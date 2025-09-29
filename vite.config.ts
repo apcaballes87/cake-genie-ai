@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
           '@': './',
         }
       },
-      // Add base path for deployment
-      base: './'
+      // Use absolute base path for deployment
+      base: '/'
     };
 });
