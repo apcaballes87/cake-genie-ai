@@ -1,9 +1,13 @@
 {
   "version": 2,
-  "routes": [
+  "redirects": [
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/",
+      "destination": "https://www.genie.ph/"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "https://www.genie.ph/$1"
     }
   ]
 }
