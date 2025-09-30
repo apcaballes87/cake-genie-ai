@@ -76,6 +76,12 @@ const CartView: React.FC<CartViewProps> = ({ items, onRemoveItem, onClose, onCon
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<'success' | 'error' | null>(null);
     
+    // Launch notification state
+    const [showLaunchNotification, setShowLaunchNotification] = useState(false);
+    const [launchEmail, setLaunchEmail] = useState('');
+    const [isSavingEmail, setIsSavingEmail] = useState(false);
+    const [emailSaveStatus, setEmailSaveStatus] = useState<'success' | 'error' | null>(null);
+    
     const inputStyle = "w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 disabled:bg-slate-50 disabled:cursor-not-allowed";
     const EVENT_TIME_SLOTS = ["10AM - 12NN", "12NN - 2PM", "2PM - 4PM", "4PM - 6PM", "6PM - 8PM"];
     
@@ -104,7 +110,9 @@ const CartView: React.FC<CartViewProps> = ({ items, onRemoveItem, onClose, onCon
             }, items);
             
             setSubmitStatus('success');
-            // Optionally, you could clear the cart here or redirect to a confirmation page
+            // Show the launch notification message after successful checkout
+            setShowLaunchNotification(true);
+            // Optionally, you could clear the cart here
             // setCartItems([]); // This would clear the cart
         } catch (err) {
             console.error("Checkout error:", err);
@@ -114,10 +122,33 @@ const CartView: React.FC<CartViewProps> = ({ items, onRemoveItem, onClose, onCon
         }
     };
     
+    const handleSaveEmail = async () => {
+        if (!launchEmail || !/\S+@\S+\.\S+/.test(launchEmail)) {
+            setEmailSaveStatus('error');
+            return;
+        }
+        
+        setIsSavingEmail(true);
+        setEmailSaveStatus(null);
+        
+        try {
+            const { saveLaunchNotificationEmail } = await import('./services/supabaseService');
+            await saveLaunchNotificationEmail(launchEmail);
+            setEmailSaveStatus('success');
+            // Clear the email input after successful submission
+            setLaunchEmail('');
+        } catch (err) {
+            console.error("Error saving email:", err);
+            setEmailSaveStatus('error');
+        } finally {
+            setIsSavingEmail(false);
+        }
+    };
+    
     return (
         <div className="w-full max-w-4xl mx-auto bg-white/70 backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-slate-200 animate-fade-in">
              <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-fade-in-fast { animation: fadeInFast 0.2s ease-out; } @keyframes fadeInFast { from { opacity: 0; } to { opacity: 1; } }`}</style>
-            
+
             <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200">
                 <h1 className="text-2xl font-bold text-slate-800">Your Cart</h1>
                 <button onClick={onClose} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Close cart">
@@ -134,245 +165,303 @@ const CartView: React.FC<CartViewProps> = ({ items, onRemoveItem, onClose, onCon
                 </div>
             ) : (
                 <div className="space-y-6">
-                    <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
-                        {items.map(item => {
-                            if (item.status === 'pending') {
-                                return (
-                                    <div key={item.id} className="flex flex-col gap-4 p-4 bg-white rounded-lg border border-slate-200">
-                                        <div className="flex gap-4 w-full">
-                                             <div className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0 rounded-md bg-slate-100 flex flex-col items-center justify-center p-2">
-                                                <LoadingSpinner />
-                                                <p className="text-xs text-slate-500 mt-2 text-center">Updating design...</p>
-                                            </div>
-                                            <div className="flex-grow">
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <h3 className="font-semibold text-slate-800">Custom Cake</h3>
-                                                        <p className="text-sm text-slate-600">{item.cakeSize}</p>
+                    {!showLaunchNotification ? (
+                        <>
+                            <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+                                {items.map(item => {
+                                    if (item.status === 'pending') {
+                                        return (
+                                            <div key={item.id} className="flex flex-col gap-4 p-4 bg-white rounded-lg border border-slate-200">
+                                                <div className="flex gap-4 w-full">
+                                                     <div className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0 rounded-md bg-slate-100 flex flex-col items-center justify-center p-2">
+                                                        <LoadingSpinner />
+                                                        <p className="text-xs text-slate-500 mt-2 text-center">Updating design...</p>
                                                     </div>
+                                                    <div className="flex-grow">
+                                                        <div className="flex justify-between items-start">
+                                                            <div>
+                                                                <h3 className="font-semibold text-slate-800">Custom Cake</h3>
+                                                                <p className="text-sm text-slate-600">{item.cakeSize}</p>
+                                                            </div>
+                                                            <button 
+                                                                onClick={() => onRemoveItem(item.id)}
+                                                                className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                                                aria-label="Remove item"
+                                                            >
+                                                                <TrashIcon />
+                                                            </button>
+                                                        </div>
+                                                        <div className="mt-2 text-right">
+                                                            <p className="font-semibold text-slate-800">₱{item.totalPrice.toLocaleString()}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    
+                                    return (
+                                        <div key={item.id} className="flex flex-col gap-4 p-4 bg-white rounded-lg border border-slate-200">
+                                            <div className="flex gap-4 w-full">
+                                                {item.image && (
                                                     <button 
-                                                        onClick={() => onRemoveItem(item.id)}
-                                                        className="p-1 text-slate-400 hover:text-red-500 transition-colors"
-                                                        aria-label="Remove item"
+                                                        onClick={() => setZoomedImage(item.image)} 
+                                                        className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0 rounded-md overflow-hidden hover:opacity-90 transition-opacity"
+                                                        aria-label="Zoom image"
                                                     >
-                                                        <TrashIcon />
+                                                        <img src={item.image} alt="Cake design" className="w-full h-full object-cover" />
                                                     </button>
-                                                </div>
-                                                <div className="mt-2 text-right">
-                                                    <p className="font-semibold text-slate-800">₱{item.totalPrice.toLocaleString()}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            }
-                            
-                            return (
-                                <div key={item.id} className="flex flex-col gap-4 p-4 bg-white rounded-lg border border-slate-200">
-                                    <div className="flex gap-4 w-full">
-                                        {item.image && (
-                                            <button 
-                                                onClick={() => setZoomedImage(item.image)} 
-                                                className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0 rounded-md overflow-hidden hover:opacity-90 transition-opacity"
-                                                aria-label="Zoom image"
-                                            >
-                                                <img src={item.image} alt="Cake design" className="w-full h-full object-cover" />
-                                            </button>
-                                        )}
-                                        <div className="flex-grow">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <h3 className="font-semibold text-slate-800">Custom Cake</h3>
-                                                    <p className="text-sm text-slate-600">{item.cakeSize}</p>
-                                                    <div className="mt-1 text-xs text-slate-500">
-                                                        {item.details.cakeInfo.type} • {item.details.cakeInfo.thickness}
+                                                )}
+                                                <div className="flex-grow">
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <h3 className="font-semibold text-slate-800">Custom Cake</h3>
+                                                            <p className="text-sm text-slate-600">{item.cakeSize}</p>
+                                                            <div className="mt-1 text-xs text-slate-500">
+                                                                {item.details.cakeInfo.type} • {item.details.cakeInfo.thickness}
+                                                            </div>
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => onRemoveItem(item.id)}
+                                                            className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                                            aria-label="Remove item"
+                                                        >
+                                                            <TrashIcon />
+                                                        </button>
+                                                    </div>
+                                                    <div className="mt-2 text-right">
+                                                        <p className="font-semibold text-slate-800">₱{item.totalPrice.toLocaleString()}</p>
                                                     </div>
                                                 </div>
-                                                <button 
-                                                    onClick={() => onRemoveItem(item.id)}
-                                                    className="p-1 text-slate-400 hover:text-red-500 transition-colors"
-                                                    aria-label="Remove item"
-                                                >
-                                                    <TrashIcon />
-                                                </button>
                                             </div>
-                                            <div className="mt-2 text-right">
-                                                <p className="font-semibold text-slate-800">₱{item.totalPrice.toLocaleString()}</p>
+                                            
+                                            {/* Item details */}
+                                            <div className="text-xs bg-slate-50 p-3 rounded-md border border-slate-200">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                    <div>
+                                                        <span className="font-medium text-slate-700">Flavors:</span> {item.details.cakeInfo.flavors.join(', ')}
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-medium text-slate-700">Main Toppers:</span> {item.details.mainToppers.join(', ') || 'None'}
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-medium text-slate-700">Support Elements:</span> {item.details.supportElements.join(', ') || 'None'}
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-medium text-slate-700">Messages:</span> {item.details.cakeMessages.map(m => m.text).join(', ') || 'None'}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Customer Information Form */}
+                            <div className="bg-white rounded-lg border border-slate-200 p-4">
+                                <h2 className="text-lg font-semibold text-slate-800 mb-4">Customer Information</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="customerName" className="block text-sm font-medium text-slate-600 mb-1">Full Name *</label>
+                                        <input 
+                                            type="text" 
+                                            id="customerName" 
+                                            value={customerName} 
+                                            onChange={(e) => setCustomerName(e.target.value)} 
+                                            className={inputStyle} 
+                                            placeholder="Enter your full name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="customerEmail" className="block text-sm font-medium text-slate-600 mb-1">Email Address *</label>
+                                        <input 
+                                            type="email" 
+                                            id="customerEmail" 
+                                            value={customerEmail} 
+                                            onChange={(e) => setCustomerEmail(e.target.value)} 
+                                            className={inputStyle} 
+                                            placeholder="Enter your email"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="customerPhone" className="block text-sm font-medium text-slate-600 mb-1">Phone Number *</label>
+                                        <input 
+                                            type="tel" 
+                                            id="customerPhone" 
+                                            value={customerPhone} 
+                                            onChange={(e) => setCustomerPhone(e.target.value)} 
+                                            className={inputStyle} 
+                                            placeholder="Enter your phone number"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="eventDate" className="block text-sm font-medium text-slate-600 mb-1">Event Date *</label>
+                                        <input 
+                                            type="date" 
+                                            id="eventDate" 
+                                            value={eventDate} 
+                                            onChange={(e) => setEventDate(e.target.value)} 
+                                            className={inputStyle} 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="eventTime" className="block text-sm font-medium text-slate-600 mb-1">Preferred Time *</label>
+                                        <select 
+                                            id="eventTime" 
+                                            value={eventTime} 
+                                            onChange={(e) => setEventTime(e.target.value)} 
+                                            className={inputStyle}
+                                        >
+                                            <option value="">Select a time slot</option>
+                                            {EVENT_TIME_SLOTS.map(slot => (
+                                                <option key={slot} value={slot}>{slot}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div className="mt-4">
+                                    <label htmlFor="deliveryAddress" className="block text-sm font-medium text-slate-600 mb-1">Delivery Address *</label>
+                                    <textarea 
+                                        id="deliveryAddress" 
+                                        value={deliveryAddress} 
+                                        onChange={(e) => setDeliveryAddress(e.target.value)} 
+                                        className={inputStyle} 
+                                        placeholder="Enter your complete delivery address"
+                                        rows={2}
+                                    ></textarea>
+                                </div>
+                                
+                                <div className="mt-4">
+                                    <label htmlFor="deliveryInstructions" className="block text-sm font-medium text-slate-600 mb-1">Delivery Instructions</label>
+                                    <textarea 
+                                        id="deliveryInstructions" 
+                                        value={deliveryInstructions} 
+                                        onChange={(e) => setDeliveryInstructions(e.target.value)} 
+                                        className={inputStyle} 
+                                        placeholder="e.g., landmark, contact person, special instructions"
+                                        rows={2}
+                                    ></textarea>
+                                </div>
+                            </div>
+
+                            {/* Order Summary and Checkout */}
+                            <div className="bg-white rounded-lg border border-slate-200 p-4">
+                                <h2 className="text-lg font-semibold text-slate-800 mb-4">Order Summary</h2>
+                                <div className="pt-2 border-t border-slate-200 space-y-4">
+                                    <div className="flex justify-between font-semibold">
+                                        <span className="text-slate-600">Subtotal</span>
+                                        <span className="text-slate-800 text-xl">₱{subtotal.toLocaleString()}</span>
                                     </div>
                                     
-                                    {/* Item details */}
-                                    <div className="text-xs bg-slate-50 p-3 rounded-md border border-slate-200">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                            <div>
-                                                <span className="font-medium text-slate-700">Flavors:</span> {item.details.cakeInfo.flavors.join(', ')}
-                                            </div>
-                                            <div>
-                                                <span className="font-medium text-slate-700">Main Toppers:</span> {item.details.mainToppers.join(', ') || 'None'}
-                                            </div>
-                                            <div>
-                                                <span className="font-medium text-slate-700">Support Elements:</span> {item.details.supportElements.join(', ') || 'None'}
-                                            </div>
-                                            <div>
-                                                <span className="font-medium text-slate-700">Messages:</span> {item.details.cakeMessages.map(m => m.text).join(', ') || 'None'}
-                                            </div>
+                                    {/* Submit status messages */}
+                                    {submitStatus === 'success' && (
+                                        <div className="p-3 bg-green-100 text-green-700 rounded-md text-center">
+                                            Order submitted successfully! We'll contact you shortly.
                                         </div>
+                                    )}
+                                    {submitStatus === 'error' && (
+                                        <div className="p-3 bg-red-100 text-red-700 rounded-md text-center">
+                                            There was an error submitting your order. Please check your information and try again.
+                                        </div>
+                                    )}
+                                    
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <button 
+                                            onClick={onContinueShopping} 
+                                            className="w-full text-center bg-white border border-slate-300 text-slate-700 font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-slate-50 transition-all text-base"
+                                            disabled={isSubmitting}
+                                        >
+                                            Continue Shopping
+                                        </button>
+                                        <button 
+                                            onClick={handleCheckout}
+                                            disabled={isSubmitting || !customerName || !customerEmail || !customerPhone || !deliveryAddress || !eventDate || !eventTime}
+                                            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {isSubmitting ? 'Processing...' : 'Proceed to Checkout'}
+                                        </button>
                                     </div>
                                 </div>
-                            );
-                        })}
-                    </div>
-
-                    {/* Customer Information Form */}
-                    <div className="bg-white rounded-lg border border-slate-200 p-4">
-                        <h2 className="text-lg font-semibold text-slate-800 mb-4">Customer Information</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label htmlFor="customerName" className="block text-sm font-medium text-slate-600 mb-1">Full Name *</label>
-                                <input 
-                                    type="text" 
-                                    id="customerName" 
-                                    value={customerName} 
-                                    onChange={(e) => setCustomerName(e.target.value)} 
-                                    className={inputStyle} 
-                                    placeholder="Enter your full name"
-                                />
                             </div>
-                            <div>
-                                <label htmlFor="customerEmail" className="block text-sm font-medium text-slate-600 mb-1">Email Address *</label>
-                                <input 
-                                    type="email" 
-                                    id="customerEmail" 
-                                    value={customerEmail} 
-                                    onChange={(e) => setCustomerEmail(e.target.value)} 
-                                    className={inputStyle} 
-                                    placeholder="Enter your email"
-                                />
+                        </>
+                    ) : (
+                        /* Launch Notification Message */
+                        <div className="bg-white rounded-lg border border-slate-200 p-6 text-center">
+                            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                                <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
                             </div>
-                            <div>
-                                <label htmlFor="customerPhone" className="block text-sm font-medium text-slate-600 mb-1">Phone Number *</label>
-                                <input 
-                                    type="tel" 
-                                    id="customerPhone" 
-                                    value={customerPhone} 
-                                    onChange={(e) => setCustomerPhone(e.target.value)} 
-                                    className={inputStyle} 
-                                    placeholder="Enter your phone number"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="eventDate" className="block text-sm font-medium text-slate-600 mb-1">Event Date *</label>
-                                <input 
-                                    type="date" 
-                                    id="eventDate" 
-                                    value={eventDate} 
-                                    onChange={(e) => setEventDate(e.target.value)} 
-                                    className={inputStyle} 
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="eventTime" className="block text-sm font-medium text-slate-600 mb-1">Preferred Time *</label>
-                                <select 
-                                    id="eventTime" 
-                                    value={eventTime} 
-                                    onChange={(e) => setEventTime(e.target.value)} 
-                                    className={inputStyle}
-                                >
-                                    <option value="">Select a time slot</option>
-                                    {EVENT_TIME_SLOTS.map(slot => (
-                                        <option key={slot} value={slot}>{slot}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div className="mt-4">
-                            <label htmlFor="deliveryAddress" className="block text-sm font-medium text-slate-600 mb-1">Delivery Address *</label>
-                            <textarea 
-                                id="deliveryAddress" 
-                                value={deliveryAddress} 
-                                onChange={(e) => setDeliveryAddress(e.target.value)} 
-                                className={inputStyle} 
-                                placeholder="Enter your complete delivery address"
-                                rows={2}
-                            ></textarea>
-                        </div>
-                        
-                        <div className="mt-4">
-                            <label htmlFor="deliveryInstructions" className="block text-sm font-medium text-slate-600 mb-1">Delivery Instructions</label>
-                            <textarea 
-                                id="deliveryInstructions" 
-                                value={deliveryInstructions} 
-                                onChange={(e) => setDeliveryInstructions(e.target.value)} 
-                                className={inputStyle} 
-                                placeholder="e.g., landmark, contact person, special instructions"
-                                rows={2}
-                            ></textarea>
-                        </div>
-                    </div>
-
-                    {/* Order Summary and Checkout */}
-                    <div className="bg-white rounded-lg border border-slate-200 p-4">
-                        <h2 className="text-lg font-semibold text-slate-800 mb-4">Order Summary</h2>
-                        <div className="pt-2 border-t border-slate-200 space-y-4">
-                            <div className="flex justify-between font-semibold">
-                                <span className="text-slate-600">Subtotal</span>
-                                <span className="text-slate-800 text-xl">₱{subtotal.toLocaleString()}</span>
+                            <h2 className="text-2xl font-bold text-slate-800 mb-2">Thank you for participating in this demo!</h2>
+                            <p className="text-slate-600 mb-6">
+                                The ecommerce aspect is not yet finished. If you wish to be informed of our launch date, 
+                                please input your email here:
+                            </p>
+                            
+                            <div className="max-w-md mx-auto">
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <input
+                                        type="email"
+                                        value={launchEmail}
+                                        onChange={(e) => setLaunchEmail(e.target.value)}
+                                        placeholder="Enter your email"
+                                        className={inputStyle}
+                                    />
+                                    <button
+                                        onClick={handleSaveEmail}
+                                        disabled={isSavingEmail || !launchEmail}
+                                        className="bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-2 px-4 rounded-md shadow-lg hover:shadow-xl transition-all text-base disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                                    >
+                                        {isSavingEmail ? 'Saving...' : 'Notify Me'}
+                                    </button>
+                                </div>
+                                
+                                {/* Email save status messages */}
+                                {emailSaveStatus === 'success' && (
+                                    <div className="mt-3 p-3 bg-green-100 text-green-700 rounded-md">
+                                        Thank you! We'll notify you when we launch.
+                                    </div>
+                                )}
+                                {emailSaveStatus === 'error' && (
+                                    <div className="mt-3 p-3 bg-red-100 text-red-700 rounded-md">
+                                        Please enter a valid email address.
+                                    </div>
+                                )}
                             </div>
                             
-                            {/* Submit status messages */}
-                            {submitStatus === 'success' && (
-                                <div className="p-3 bg-green-100 text-green-700 rounded-md text-center">
-                                    Order submitted successfully! We'll contact you shortly.
-                                </div>
-                            )}
-                            {submitStatus === 'error' && (
-                                <div className="p-3 bg-red-100 text-red-700 rounded-md text-center">
-                                    There was an error submitting your order. Please check your information and try again.
-                                </div>
-                            )}
-                            
-                            <div className="flex flex-col sm:flex-row gap-3">
+                            <div className="mt-6">
                                 <button 
                                     onClick={onContinueShopping} 
-                                    className="w-full text-center bg-white border border-slate-300 text-slate-700 font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-slate-50 transition-all text-base"
-                                    disabled={isSubmitting}
+                                    className="text-purple-600 font-semibold hover:underline"
                                 >
                                     Continue Shopping
                                 </button>
-                                <button 
-                                    onClick={handleCheckout}
-                                    disabled={isSubmitting || !customerName || !customerEmail || !customerPhone || !deliveryAddress || !eventDate || !eventTime}
-                                    className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-base disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {isSubmitting ? 'Processing...' : 'Proceed to Checkout'}
-                                </button>
                             </div>
                         </div>
-                    </div>
-                </div>
-            )}
-            
-            {/* Image Zoom Modal */}
-            {zoomedImage && (
-                <div 
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-                    onClick={() => setZoomedImage(null)}
-                >
-                    <button 
-                        onClick={() => setZoomedImage(null)}
-                        className="absolute top-4 right-4 text-white p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors z-10"
-                        aria-label="Close zoomed image"
-                    >
-                        <CloseIcon />
-                    </button>
-                    <img
-                        src={zoomedImage}
-                        alt="Zoomed cake design"
-                        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
-                        onClick={(e) => e.stopPropagation()}
-                    />
+                    )}
+                    
+                    {/* Image Zoom Modal */}
+                    {zoomedImage && (
+                        <div 
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                            onClick={() => setZoomedImage(null)}
+                        >
+                            <button 
+                                onClick={() => setZoomedImage(null)}
+                                className="absolute top-4 right-4 text-white p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors z-10"
+                                aria-label="Close zoomed image"
+                            >
+                                <CloseIcon />
+                            </button>
+                            <img
+                                src={zoomedImage}
+                                alt="Zoomed cake design"
+                                className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </div>
+                    )}
                 </div>
             )}
         </div>

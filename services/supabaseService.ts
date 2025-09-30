@@ -101,3 +101,34 @@ export const saveCheckoutOrder = async (
     throw new Error("Could not save the order to the database.");
   }
 };
+
+export const saveLaunchNotificationEmail = async (email: string): Promise<void> => {
+  try {
+    // Check if email already exists in the table
+    const { data, error: selectError } = await supabase
+      .from('cakegeniecheckouttest')
+      .select('id')
+      .eq('launch_notification_email', email)
+      .limit(1);
+
+    if (selectError) {
+      console.error("Supabase select error:", selectError.message);
+      throw new Error(selectError.message);
+    }
+
+    // If email doesn't exist, insert a new row with just the email
+    if (!data || data.length === 0) {
+      const { error: insertError } = await supabase
+        .from('cakegeniecheckouttest')
+        .insert([{ launch_notification_email: email }]);
+
+      if (insertError) {
+        console.error("Supabase insert error:", insertError.message);
+        throw new Error(insertError.message);
+      }
+    }
+  } catch (err) {
+    console.error("Error saving launch notification email:", err);
+    throw new Error("Could not save the email to the database.");
+  }
+};
