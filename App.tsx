@@ -63,45 +63,61 @@ const CartView: React.FC<CartViewProps> = ({ items, onRemoveItem, onClose, onCon
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
     const subtotal = items.reduce((acc, item) => item.status === 'complete' ? acc + item.totalPrice : acc, 0);
 
-    const [deliveryInstructions, setDeliveryInstructions] = useState('');
+    // Customer information state
+    const [customerName, setCustomerName] = useState('');
+    const [customerEmail, setCustomerEmail] = useState('');
+    const [customerPhone, setCustomerPhone] = useState('');
+    const [deliveryAddress, setDeliveryAddress] = useState('');
     const [eventDate, setEventDate] = useState('');
     const [eventTime, setEventTime] = useState('');
-    const [deliveryAddress, setDeliveryAddress] = useState('');
+    const [deliveryInstructions, setDeliveryInstructions] = useState('');
     
-    // Fallback state
-    const [city, setCity] = useState('');
-    const [barangay, setBarangay] = useState('');
-
+    // Form validation and submission state
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitStatus, setSubmitStatus] = useState<'success' | 'error' | null>(null);
+    
     const inputStyle = "w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 disabled:bg-slate-50 disabled:cursor-not-allowed";
     const EVENT_TIME_SLOTS = ["10AM - 12NN", "12NN - 2PM", "2PM - 4PM", "4PM - 6PM", "6PM - 8PM"];
+    
+    // Import the saveCheckoutOrder function
+    const handleCheckout = async () => {
+        // Simple validation
+        if (!customerName || !customerEmail || !customerPhone || !deliveryAddress || !eventDate || !eventTime) {
+            setSubmitStatus('error');
+            return;
+        }
+        
+        setIsSubmitting(true);
+        setSubmitStatus(null);
+        
+        try {
+            const { saveCheckoutOrder } = await import('./services/supabaseService');
+            
+            await saveCheckoutOrder({
+                name: customerName,
+                email: customerEmail,
+                phone: customerPhone,
+                deliveryAddress: deliveryAddress,
+                eventDate: eventDate,
+                eventTime: eventTime,
+                deliveryInstructions: deliveryInstructions
+            }, items);
+            
+            setSubmitStatus('success');
+            // Optionally, you could clear the cart here or redirect to a confirmation page
+            // setCartItems([]); // This would clear the cart
+        } catch (err) {
+            console.error("Checkout error:", err);
+            setSubmitStatus('error');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
     
     return (
         <div className="w-full max-w-4xl mx-auto bg-white/70 backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-slate-200 animate-fade-in">
              <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-fade-in-fast { animation: fadeInFast 0.2s ease-out; } @keyframes fadeInFast { from { opacity: 0; } to { opacity: 1; } }`}</style>
             
-            {zoomedImage && (
-                <div
-                    className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in-fast"
-                    onClick={() => setZoomedImage(null)}
-                    aria-modal="true"
-                    role="dialog"
-                >
-                    <button
-                        onClick={() => setZoomedImage(null)}
-                        className="absolute top-4 right-4 text-white p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors z-10"
-                        aria-label="Close zoomed image"
-                    >
-                        <CloseIcon />
-                    </button>
-                    <img
-                        src={zoomedImage}
-                        alt="Zoomed cake design"
-                        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
-                        onClick={(e) => e.stopPropagation()}
-                    />
-                </div>
-            )}
-
             <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200">
                 <h1 className="text-2xl font-bold text-slate-800">Your Cart</h1>
                 <button onClick={onClose} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Close cart">
@@ -129,150 +145,234 @@ const CartView: React.FC<CartViewProps> = ({ items, onRemoveItem, onClose, onCon
                                                 <p className="text-xs text-slate-500 mt-2 text-center">Updating design...</p>
                                             </div>
                                             <div className="flex-grow">
-                                                <h2 className="font-semibold text-slate-800">{item.cakeSize}</h2>
-                                                <p className="text-lg font-bold text-purple-600 mt-1">₱{item.totalPrice.toLocaleString()}</p>
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <h3 className="font-semibold text-slate-800">Custom Cake</h3>
+                                                        <p className="text-sm text-slate-600">{item.cakeSize}</p>
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => onRemoveItem(item.id)}
+                                                        className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                                        aria-label="Remove item"
+                                                    >
+                                                        <TrashIcon />
+                                                    </button>
+                                                </div>
+                                                <div className="mt-2 text-right">
+                                                    <p className="font-semibold text-slate-800">₱{item.totalPrice.toLocaleString()}</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 );
                             }
                             
-                            if (item.status === 'error') {
-                                return (
-                                     <div key={item.id} className="flex flex-col gap-3 p-4 bg-red-50 rounded-lg border border-red-200 text-red-800">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="font-semibold">Design Update Failed</p>
-                                                <p className="text-xs mt-1">{item.errorMessage}</p>
-                                            </div>
-                                            <button onClick={() => onRemoveItem(item.id)} className="p-1.5 text-red-500 hover:text-red-700 rounded-full hover:bg-red-100 transition-colors" aria-label="Remove item">
-                                                <TrashIcon className="w-5 h-5" />
+                            return (
+                                <div key={item.id} className="flex flex-col gap-4 p-4 bg-white rounded-lg border border-slate-200">
+                                    <div className="flex gap-4 w-full">
+                                        {item.image && (
+                                            <button 
+                                                onClick={() => setZoomedImage(item.image)} 
+                                                className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0 rounded-md overflow-hidden hover:opacity-90 transition-opacity"
+                                                aria-label="Zoom image"
+                                            >
+                                                <img src={item.image} alt="Cake design" className="w-full h-full object-cover" />
                                             </button>
+                                        )}
+                                        <div className="flex-grow">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="font-semibold text-slate-800">Custom Cake</h3>
+                                                    <p className="text-sm text-slate-600">{item.cakeSize}</p>
+                                                    <div className="mt-1 text-xs text-slate-500">
+                                                        {item.details.cakeInfo.type} • {item.details.cakeInfo.thickness}
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                    onClick={() => onRemoveItem(item.id)}
+                                                    className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                                    aria-label="Remove item"
+                                                >
+                                                    <TrashIcon />
+                                                </button>
+                                            </div>
+                                            <div className="mt-2 text-right">
+                                                <p className="font-semibold text-slate-800">₱{item.totalPrice.toLocaleString()}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                );
-                            }
-
-                            const tierLabels = item.details.cakeInfo.flavors.length === 2 
-                                ? ['Top Tier', 'Bottom Tier'] 
-                                : ['Top Tier', 'Middle Tier', 'Bottom Tier'];
-                            const colorLabelMap: Record<string, string> = {
-                                side: 'Side',
-                                top: 'Top',
-                                borderTop: 'Top Border',
-                                borderBase: 'Base Border',
-                                drip: 'Drip',
-                                gumpasteBaseBoardColor: 'Base Board'
-                            };
-                            return (
-                             <div key={item.id} className="flex flex-col gap-4 p-4 bg-white rounded-lg border border-slate-200">
-                                <div className="flex gap-4 w-full">
-                                    <button
-                                        type="button"
-                                        onClick={() => item.image && setZoomedImage(item.image)}
-                                        className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-md transition-transform hover:scale-105"
-                                        aria-label="Enlarge cake image"
-                                    >
-                                        <img src={item.image!} alt="Cake Design" className="w-full h-full object-cover rounded-md" />
-                                    </button>
-                                    <div className="flex-grow">
-                                        <div className="flex justify-between items-start">
+                                    
+                                    {/* Item details */}
+                                    <div className="text-xs bg-slate-50 p-3 rounded-md border border-slate-200">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                             <div>
-                                                <h2 className="font-semibold text-slate-800">{item.cakeSize}</h2>
-                                                <p className="text-lg font-bold text-purple-600 mt-1">₱{item.totalPrice.toLocaleString()}</p>
+                                                <span className="font-medium text-slate-700">Flavors:</span> {item.details.cakeInfo.flavors.join(', ')}
                                             </div>
-                                            <button onClick={() => onRemoveItem(item.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-colors" aria-label="Remove item">
-                                                <TrashIcon className="w-5 h-5" />
-                                            </button>
+                                            <div>
+                                                <span className="font-medium text-slate-700">Main Toppers:</span> {item.details.mainToppers.join(', ') || 'None'}
+                                            </div>
+                                            <div>
+                                                <span className="font-medium text-slate-700">Support Elements:</span> {item.details.supportElements.join(', ') || 'None'}
+                                            </div>
+                                            <div>
+                                                <span className="font-medium text-slate-700">Messages:</span> {item.details.cakeMessages.map(m => m.text).join(', ') || 'None'}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                <details className="w-full">
-                                    <summary className="text-xs font-semibold text-slate-600 cursor-pointer">View Customization Details</summary>
-                                    <div className="mt-2 pl-2 border-l-2 border-slate-200 space-y-1.5 text-xs text-slate-500">
-                                       <DetailItem label="Type" value={`${item.details.cakeInfo.type}, ${item.details.cakeInfo.thickness}, ${item.details.cakeInfo.size}`} />
-                                        {item.details.cakeInfo.flavors.length === 1 ? (
-                                            <DetailItem label="Flavor" value={item.details.cakeInfo.flavors[0]} />
-                                        ) : (
-                                            item.details.cakeInfo.flavors.map((flavor, idx) => (
-                                                <DetailItem key={idx} label={`${tierLabels[idx]} Flavor`} value={flavor} />
-                                            ))
-                                        )}
-                                       {item.details.mainToppers.length > 0 && <DetailItem label="Main Toppers" value={item.details.mainToppers.join(', ')} />}
-                                       {item.details.supportElements.length > 0 && <DetailItem label="Support" value={item.details.supportElements.join(', ')} />}
-                                       {item.details.cakeMessages.map((msg, idx) => (
-                                          <DetailItem key={idx} label={`Message #${idx+1}`} value={`'${msg.text}' (${msg.color})`} />
-                                       ))}
-                                       {item.details.icingDesign.drip && <DetailItem label="Icing" value="Has Drip Effect" />}
-                                       {item.details.icingDesign.gumpasteBaseBoard && <DetailItem label="Icing" value="Gumpaste Base Board" />}
-                                       {Object.entries(item.details.icingDesign.colors).map(([loc, color]) => (
-                                           <DetailItem key={loc} label={`${colorLabelMap[loc] || loc.charAt(0).toUpperCase() + loc.slice(1)} Color`} value={color} />
-                                       ))}
-                                       {item.details.additionalInstructions && <DetailItem label="Instructions" value={item.details.additionalInstructions} />}
-                                    </div>
-                                </details>
-                            </div>
-                        )})}
+                            );
+                        })}
                     </div>
 
-                    <div className="pt-6 border-t border-slate-200 space-y-6">
-                        <div className="space-y-4">
-                            <h2 className="text-lg font-semibold text-slate-700">Delivery Details</h2>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="eventDate" className="block text-sm font-medium text-slate-600 mb-1">Date of Event</label>
-                                    <input type="date" id="eventDate" value={eventDate} onChange={(e) => setEventDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className={inputStyle} />
-                                </div>
-                                <div>
-                                    <label htmlFor="eventTime" className="block text-sm font-medium text-slate-600 mb-1">Time of Event</label>
-                                    <select id="eventTime" value={eventTime} onChange={(e) => setEventTime(e.target.value)} className={inputStyle}>
-                                        <option value="">Select a time slot</option>
-                                        {EVENT_TIME_SLOTS.map(slot => <option key={slot} value={slot}>{slot}</option>)}
-                                    </select>
-                                </div>
+                    {/* Customer Information Form */}
+                    <div className="bg-white rounded-lg border border-slate-200 p-4">
+                        <h2 className="text-lg font-semibold text-slate-800 mb-4">Customer Information</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="customerName" className="block text-sm font-medium text-slate-600 mb-1">Full Name *</label>
+                                <input 
+                                    type="text" 
+                                    id="customerName" 
+                                    value={customerName} 
+                                    onChange={(e) => setCustomerName(e.target.value)} 
+                                    className={inputStyle} 
+                                    placeholder="Enter your full name"
+                                />
                             </div>
                             <div>
-                                <label htmlFor="deliveryAddress" className="block text-sm font-medium text-slate-600 mb-1">House No. / Street / Subdivision</label>
-                                <input type="text" id="deliveryAddress" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} className={inputStyle} placeholder="e.g., 123 Flower St., Happy Village" />
-                            </div>
-                             <div>
-                                <label className="block text-sm font-medium text-slate-600 mb-1">City & Barangay</label>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <select id="city" value={city} onChange={(e) => { setCity(e.target.value); setBarangay(''); }} className={inputStyle}>
-                                            <option value="">Select City</option>
-                                            {Object.keys(CITIES_AND_BARANGAYS).map(c => <option key={c} value={c}>{c}</option>)}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <select id="barangay" value={barangay} onChange={(e) => setBarangay(e.target.value)} className={inputStyle} disabled={!city}>
-                                            <option value="">Select Barangay</option>
-                                            {city && CITIES_AND_BARANGAYS[city as keyof typeof CITIES_AND_BARANGAYS]?.map(b => <option key={b} value={b}>{b}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
+                                <label htmlFor="customerEmail" className="block text-sm font-medium text-slate-600 mb-1">Email Address *</label>
+                                <input 
+                                    type="email" 
+                                    id="customerEmail" 
+                                    value={customerEmail} 
+                                    onChange={(e) => setCustomerEmail(e.target.value)} 
+                                    className={inputStyle} 
+                                    placeholder="Enter your email"
+                                />
                             </div>
                             <div>
-                                <label htmlFor="deliveryInstructions" className="block text-sm font-medium text-slate-600 mb-1">Delivery Instructions</label>
-                                <textarea id="deliveryInstructions" value={deliveryInstructions} onChange={(e) => setDeliveryInstructions(e.target.value)} className={inputStyle} placeholder="e.g., landmark, contact person" rows={2}></textarea>
+                                <label htmlFor="customerPhone" className="block text-sm font-medium text-slate-600 mb-1">Phone Number *</label>
+                                <input 
+                                    type="tel" 
+                                    id="customerPhone" 
+                                    value={customerPhone} 
+                                    onChange={(e) => setCustomerPhone(e.target.value)} 
+                                    className={inputStyle} 
+                                    placeholder="Enter your phone number"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="eventDate" className="block text-sm font-medium text-slate-600 mb-1">Event Date *</label>
+                                <input 
+                                    type="date" 
+                                    id="eventDate" 
+                                    value={eventDate} 
+                                    onChange={(e) => setEventDate(e.target.value)} 
+                                    className={inputStyle} 
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="eventTime" className="block text-sm font-medium text-slate-600 mb-1">Preferred Time *</label>
+                                <select 
+                                    id="eventTime" 
+                                    value={eventTime} 
+                                    onChange={(e) => setEventTime(e.target.value)} 
+                                    className={inputStyle}
+                                >
+                                    <option value="">Select a time slot</option>
+                                    {EVENT_TIME_SLOTS.map(slot => (
+                                        <option key={slot} value={slot}>{slot}</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
+                        
+                        <div className="mt-4">
+                            <label htmlFor="deliveryAddress" className="block text-sm font-medium text-slate-600 mb-1">Delivery Address *</label>
+                            <textarea 
+                                id="deliveryAddress" 
+                                value={deliveryAddress} 
+                                onChange={(e) => setDeliveryAddress(e.target.value)} 
+                                className={inputStyle} 
+                                placeholder="Enter your complete delivery address"
+                                rows={2}
+                            ></textarea>
+                        </div>
+                        
+                        <div className="mt-4">
+                            <label htmlFor="deliveryInstructions" className="block text-sm font-medium text-slate-600 mb-1">Delivery Instructions</label>
+                            <textarea 
+                                id="deliveryInstructions" 
+                                value={deliveryInstructions} 
+                                onChange={(e) => setDeliveryInstructions(e.target.value)} 
+                                className={inputStyle} 
+                                placeholder="e.g., landmark, contact person, special instructions"
+                                rows={2}
+                            ></textarea>
+                        </div>
+                    </div>
 
-                        <div className="pt-6 border-t border-slate-200 space-y-4">
+                    {/* Order Summary and Checkout */}
+                    <div className="bg-white rounded-lg border border-slate-200 p-4">
+                        <h2 className="text-lg font-semibold text-slate-800 mb-4">Order Summary</h2>
+                        <div className="pt-2 border-t border-slate-200 space-y-4">
                             <div className="flex justify-between font-semibold">
                                 <span className="text-slate-600">Subtotal</span>
                                 <span className="text-slate-800 text-xl">₱{subtotal.toLocaleString()}</span>
                             </div>
+                            
+                            {/* Submit status messages */}
+                            {submitStatus === 'success' && (
+                                <div className="p-3 bg-green-100 text-green-700 rounded-md text-center">
+                                    Order submitted successfully! We'll contact you shortly.
+                                </div>
+                            )}
+                            {submitStatus === 'error' && (
+                                <div className="p-3 bg-red-100 text-red-700 rounded-md text-center">
+                                    There was an error submitting your order. Please check your information and try again.
+                                </div>
+                            )}
+                            
                             <div className="flex flex-col sm:flex-row gap-3">
-                                <button onClick={onContinueShopping} className="w-full text-center bg-white border border-slate-300 text-slate-700 font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-slate-50 transition-all text-base">
+                                <button 
+                                    onClick={onContinueShopping} 
+                                    className="w-full text-center bg-white border border-slate-300 text-slate-700 font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-slate-50 transition-all text-base"
+                                    disabled={isSubmitting}
+                                >
                                     Continue Shopping
                                 </button>
-                                <button className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-base">
-                                    Proceed to Checkout
+                                <button 
+                                    onClick={handleCheckout}
+                                    disabled={isSubmitting || !customerName || !customerEmail || !customerPhone || !deliveryAddress || !eventDate || !eventTime}
+                                    className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSubmitting ? 'Processing...' : 'Proceed to Checkout'}
                                 </button>
                             </div>
                         </div>
                     </div>
+                </div>
+            )}
+            
+            {/* Image Zoom Modal */}
+            {zoomedImage && (
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                    onClick={() => setZoomedImage(null)}
+                >
+                    <button 
+                        onClick={() => setZoomedImage(null)}
+                        className="absolute top-4 right-4 text-white p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors z-10"
+                        aria-label="Close zoomed image"
+                    >
+                        <CloseIcon />
+                    </button>
+                    <img
+                        src={zoomedImage}
+                        alt="Zoomed cake design"
+                        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    />
                 </div>
             )}
         </div>

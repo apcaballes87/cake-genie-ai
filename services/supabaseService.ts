@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { CakeType, BasePriceInfo, CakeThickness, ReportPayload } from '../types';
+import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItem } from '../types';
 
 const supabaseUrl = 'https://congofivupobtfudnhni.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvbmdvZml2dXBvYnRmdWRuaG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODc1NjkyMTQsImV4cCI6MjAwMzE0NTIxNH0.y2jsrPWt7Q_016e1o8PkM-Ayyti9yzxj3jH9hvH4DiM';
@@ -50,5 +50,54 @@ export const reportCustomization = async (payload: ReportPayload): Promise<void>
   } catch (err) {
     console.error("Error reporting customization:", err);
     throw new Error("Could not submit the report to the database.");
+  }
+};
+
+export const saveCheckoutOrder = async (
+  customerInfo: {
+    name: string;
+    email: string;
+    phone: string;
+    deliveryAddress: string;
+    eventDate: string;
+    eventTime: string;
+    deliveryInstructions: string;
+  },
+  cartItems: CartItem[]
+): Promise<void> => {
+  try {
+    // Calculate total amount
+    const totalAmount = cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
+
+    // Prepare the order data
+    const orderData = {
+      customer_name: customerInfo.name,
+      customer_email: customerInfo.email,
+      customer_phone: customerInfo.phone,
+      delivery_address: customerInfo.deliveryAddress,
+      order_items: cartItems.map(item => ({
+        id: item.id,
+        cakeSize: item.cakeSize,
+        totalPrice: item.totalPrice,
+        details: item.details
+      })),
+      total_amount: totalAmount,
+      order_status: 'pending',
+      event_date: customerInfo.eventDate,
+      event_time: customerInfo.eventTime,
+      delivery_instructions: customerInfo.deliveryInstructions
+    };
+
+    const { error } = await supabase
+      .from('cakegeniecheckouttest')
+      .insert([orderData]);
+
+    if (error) {
+      console.error("Supabase checkout error:", error.message);
+      throw new Error(error.message);
+    }
+  } catch (err) {
+    console.error("Error saving checkout order:", err);
+    throw new Error("Could not save the order to the database.");
   }
 };
