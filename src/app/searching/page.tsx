@@ -33,6 +33,18 @@ const SearchingPage: React.FC<SearchingPageProps> = ({
 }) => {
   return (
     <div className="w-full max-w-6xl mx-auto h-full flex flex-col">
+      {/* Global CSS to hide Google CSE overlays */}
+      <style>{`
+        #google-search-container .gs-image-box-popup,
+        #google-search-container .gs-image-popup-box,
+        #google-search-container .gs-title,
+        #google-search-container .gs-bidi-start-align {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
+      `}</style>
       <div className="w-full flex items-center gap-2 md:gap-4 max-w-2xl mx-auto mb-6">
         <button
           onClick={onClose}

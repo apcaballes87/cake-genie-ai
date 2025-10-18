@@ -5,7 +5,10 @@ import { CAKE_TYPES, CAKE_THICKNESSES, COLORS } from "../constants";
 if (!import.meta.env.VITE_GEMINI_API_KEY) {
     throw new Error("VITE_GEMINI_API_KEY environment variable not set");
 }
-  
+
+// Log the API key (first 20 chars only for debugging)
+console.log('🔑 Gemini API Key being used:', import.meta.env.VITE_GEMINI_API_KEY?.substring(0, 20) + '...');
+
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {

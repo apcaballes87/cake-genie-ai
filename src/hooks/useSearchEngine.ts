@@ -54,8 +54,8 @@ export const useSearchEngine = ({
 
       // Try multiple proxy services for better reliability and speed
       const proxies = [
-        `https://corsproxy.io/?${encodeURIComponent(imageUrl)}`,
         `https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`,
+        `https://corsproxy.io/?${encodeURIComponent(imageUrl)}`,
         imageUrl // Try direct fetch as last resort
       ];
 
@@ -65,50 +65,77 @@ export const useSearchEngine = ({
       // Try each proxy in sequence until one works
       for (let i = 0; i < proxies.length; i++) {
         try {
-          console.log(`Trying proxy ${i + 1}/${proxies.length}...`);
-          const response = await fetch(proxies[i], {
-            signal: AbortSignal.timeout(8000) // 8 second timeout per proxy
-          });
+          console.log(`Trying proxy ${i + 1}/${proxies.length}:`, proxies[i].substring(0, 100) + '...');
 
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+          // Create AbortController for timeout (better browser support)
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+          try {
+            const response = await fetch(proxies[i], {
+              signal: controller.signal,
+              mode: i === proxies.length - 1 ? 'cors' : 'cors', // CORS mode for all
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+
+            const fetchedBlob = await response.blob();
+
+            // Validate it's actually an image
+            if (fetchedBlob.type.startsWith('text/') || fetchedBlob.size < 100) {
+              console.warn(`Invalid content type: ${fetchedBlob.type}, size: ${fetchedBlob.size}`);
+              throw new Error('Invalid image data');
+            }
+
+            blob = fetchedBlob;
+            console.log(`✅ Successfully fetched via proxy ${i + 1} - Type: ${fetchedBlob.type}, Size: ${fetchedBlob.size} bytes`);
+            break;
+          } catch (fetchErr) {
+            clearTimeout(timeoutId);
+            throw fetchErr;
           }
-
-          const fetchedBlob = await response.blob();
-
-          // Validate it's actually an image
-          if (fetchedBlob.type.startsWith('text/') || fetchedBlob.size < 100) {
-            throw new Error('Invalid image data');
-          }
-
-          blob = fetchedBlob;
-          console.log(`✅ Successfully fetched via proxy ${i + 1}`);
-          break;
         } catch (err) {
           lastError = err instanceof Error ? err : new Error('Fetch failed');
           console.warn(`❌ Proxy ${i + 1} failed:`, lastError.message);
+
+          // Don't continue if this was the last proxy
+          if (i === proxies.length - 1) {
+            break;
+          }
           continue;
         }
       }
 
       if (!blob) {
-        throw lastError || new Error('All proxies failed');
+        const errorMsg = lastError?.message || 'All proxies failed';
+        console.error('❌ All proxies failed. Last error:', errorMsg);
+        throw lastError || new Error('All proxies failed to fetch the image');
       }
 
       console.log('🔄 Converting to File object...');
       const file = new File([blob], 'cake-design.webp', { type: blob.type || 'image/webp' });
+      console.log('📦 File created:', file.name, file.size, 'bytes');
 
       console.log('📤 Uploading to image handler...');
       await handleImageUpload(file);
+      console.log('✅ Image upload completed successfully');
 
     } catch (err) {
       console.error("❌ Image fetch error:", err);
-      setImageError("Could not load image. It may be protected. Try saving it to your device and using the 'Upload' button.");
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error("❌ Error details:", errorMessage);
+
+      setImageError(`Could not load image: ${errorMessage}. Try saving it to your device and using the 'Upload' button.`);
       clickedElement.style.border = '4px solid #EF4444';
       clickedElement.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.5)';
       setAppState('searching');
     } finally {
       setIsProcessingImage(false);
+      console.log('🏁 Image processing finished');
       // Reset transform
       setTimeout(() => {
         clickedElement.style.transform = 'scale(1)';
@@ -317,7 +344,22 @@ export const useSearchEngine = ({
     const container = document.getElementById('google-search-container');
     if (!container) return;
     const observer = new MutationObserver(() => {
+        // Hide Google CSE UI elements that we don't need
         container.querySelectorAll('.gcse-result-tabs, .gsc-tabsArea, .gsc-above-wrapper-area, .gsc-adBlock').forEach(el => (el as HTMLElement).style.display = 'none');
+
+        // Hide the image overlay info (link, size, etc.) that appears on hover - check multiple times
+        const hideOverlays = () => {
+            container.querySelectorAll('.gs-image-box-popup, .gs-image-popup-box, .gs-title, .gs-bidi-start-align').forEach(el => {
+                (el as HTMLElement).style.display = 'none !important' as any;
+                (el as HTMLElement).style.visibility = 'hidden';
+                (el as HTMLElement).style.opacity = '0';
+                (el as HTMLElement).style.pointerEvents = 'none';
+            });
+        };
+        hideOverlays();
+        // Check again after a delay since Google might add these dynamically
+        setTimeout(hideOverlays, 100);
+
         container.querySelectorAll('.gs-image-box:not(.customize-btn-added)').forEach(resultContainer => {
             const containerEl = resultContainer as HTMLElement;
             const img = containerEl.querySelector('img');
@@ -325,6 +367,12 @@ export const useSearchEngine = ({
                 containerEl.style.position = 'relative';
                 containerEl.style.cursor = 'pointer';
                 containerEl.style.transition = 'transform 0.2s ease';
+
+                // Hide any child elements that could overlay our button
+                const overlays = containerEl.querySelectorAll('.gs-title, .gs-bidi-start-align, .gs-image-popup-box');
+                overlays.forEach(overlay => {
+                    (overlay as HTMLElement).style.display = 'none';
+                });
 
                 // Add hover effect for better interactivity
                 containerEl.addEventListener('mouseenter', () => {
@@ -341,21 +389,14 @@ export const useSearchEngine = ({
                 const button = document.createElement('button');
                 const sparkleIconSVG = `<svg class="w-3 h-3 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" /></svg>`;
                 button.innerHTML = `${sparkleIconSVG}<span>Customize</span>`;
-                button.className = 'absolute bottom-2 right-2 flex items-center bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold py-1.5 px-3 rounded-full shadow-lg hover:shadow-xl transition-all opacity-0 group-hover:opacity-100 transform hover:scale-105 z-10';
-
-                // Show button on parent hover
-                containerEl.classList.add('group');
-                containerEl.addEventListener('mouseenter', () => {
-                    button.style.opacity = isProcessingImage ? '0.6' : '1';
-                });
-                containerEl.addEventListener('mouseleave', () => {
-                    button.style.opacity = '0';
-                });
+                button.className = 'absolute bottom-2 right-2 flex items-center bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold py-1.5 px-3 rounded-full shadow-lg hover:shadow-xl transition-all opacity-0 transform hover:scale-105 z-[9999]';
+                button.style.pointerEvents = 'auto'; // Ensure button is always clickable
 
                 // Add disabled state when processing
                 if (isProcessingImage) {
                     button.disabled = true;
                     button.style.cursor = 'not-allowed';
+                    button.style.opacity = '0.6';
                 }
 
                 button.addEventListener('click', (e) => {
@@ -365,8 +406,15 @@ export const useSearchEngine = ({
                         handleImageFromUrl(img.src, img);
                     }
                 });
+
                 containerEl.appendChild(button);
                 containerEl.classList.add('customize-btn-added');
+
+                // Show button with 500ms delay after image container appears
+                setTimeout(() => {
+                    button.style.opacity = '1';
+                    button.style.transition = 'opacity 0.3s ease-in-out, transform 0.2s ease';
+                }, 500);
             }
         });
     });
