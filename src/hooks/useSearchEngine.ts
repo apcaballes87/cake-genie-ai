@@ -31,41 +31,90 @@ export const useSearchEngine = ({
   const [isCSELoaded, setIsCSELoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  // Add state to track if an image is being processed
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const cseElementRef = useRef<any>(null);
 
   const handleImageFromUrl = useCallback(async (imageUrl: string, clickedElement: HTMLElement) => {
+    // Prevent multiple clicks while processing
+    if (isProcessingImage) return;
+
+    console.log('🎯 Image clicked, starting fetch...');
+    setIsProcessingImage(true);
+
+    // Immediate visual feedback
     document.querySelectorAll('#google-search-container img').forEach(img => ((img as HTMLElement).style.border = 'none'));
-    clickedElement.style.border = '3px solid #EC4899';
-    clickedElement.style.opacity = '0.7';
+    clickedElement.style.border = '4px solid #EC4899';
+    clickedElement.style.boxShadow = '0 0 20px rgba(236, 72, 153, 0.5)';
+    clickedElement.style.transform = 'scale(0.95)';
+    clickedElement.style.transition = 'all 0.2s ease';
 
     try {
-      // Use a CORS proxy to fetch the image data and avoid browser restrictions.
-      const proxyUrl = 'https://api.allorigins.win/raw?url=';
-      const response = await fetch(`${proxyUrl}${encodeURIComponent(imageUrl)}`);
-      
-      if (!response.ok) {
-        // If the proxy fails, it might return an error status.
-        throw new Error(`Failed to fetch image via proxy. Status: ${response.status}`);
-      }
-      
-      const blob = await response.blob();
-      
-      // Some proxies return an HTML error page with a 200 status. Check the content type.
-      if (blob.type.startsWith('text/')) {
-        throw new Error('The image source or proxy returned an error page.');
+      console.log('📥 Fetching image via proxy...');
+
+      // Try multiple proxy services for better reliability and speed
+      const proxies = [
+        `https://corsproxy.io/?${encodeURIComponent(imageUrl)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`,
+        imageUrl // Try direct fetch as last resort
+      ];
+
+      let blob: Blob | null = null;
+      let lastError: Error | null = null;
+
+      // Try each proxy in sequence until one works
+      for (let i = 0; i < proxies.length; i++) {
+        try {
+          console.log(`Trying proxy ${i + 1}/${proxies.length}...`);
+          const response = await fetch(proxies[i], {
+            signal: AbortSignal.timeout(8000) // 8 second timeout per proxy
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const fetchedBlob = await response.blob();
+
+          // Validate it's actually an image
+          if (fetchedBlob.type.startsWith('text/') || fetchedBlob.size < 100) {
+            throw new Error('Invalid image data');
+          }
+
+          blob = fetchedBlob;
+          console.log(`✅ Successfully fetched via proxy ${i + 1}`);
+          break;
+        } catch (err) {
+          lastError = err instanceof Error ? err : new Error('Fetch failed');
+          console.warn(`❌ Proxy ${i + 1} failed:`, lastError.message);
+          continue;
+        }
       }
 
+      if (!blob) {
+        throw lastError || new Error('All proxies failed');
+      }
+
+      console.log('🔄 Converting to File object...');
       const file = new File([blob], 'cake-design.webp', { type: blob.type || 'image/webp' });
+
+      console.log('📤 Uploading to image handler...');
       await handleImageUpload(file);
 
     } catch (err) {
-      console.error("Image fetch error:", err);
-      // Update the error message to be more helpful.
-      setImageError("Could not load image. It may be protected. Tip: Try saving it to your device and using the 'Upload' button.");
-      clickedElement.style.border = '3px solid #EF4444';
+      console.error("❌ Image fetch error:", err);
+      setImageError("Could not load image. It may be protected. Try saving it to your device and using the 'Upload' button.");
+      clickedElement.style.border = '4px solid #EF4444';
+      clickedElement.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.5)';
       setAppState('searching');
+    } finally {
+      setIsProcessingImage(false);
+      // Reset transform
+      setTimeout(() => {
+        clickedElement.style.transform = 'scale(1)';
+      }, 200);
     }
-  }, [handleImageUpload, setImageError, setAppState]);
+  }, [handleImageUpload, setImageError, setAppState, isProcessingImage]);
   
   const handleSearch = useCallback((query?: string) => {
       const searchQueryValue = typeof query === 'string' ? query.trim() : searchInput.trim();
@@ -85,15 +134,77 @@ export const useSearchEngine = ({
   }, [searchInput, handleSearch, appState, originalImageData, setAppState]);
 
   useEffect(() => {
-    if (window.__gcse) return;
-    window.__gcse = { parsetags: 'explicit', callback: () => { if (window.google?.search?.cse) setIsCSELoaded(true); } };
+    // Check if CSE is already loaded
+    if (window.google?.search?.cse) {
+      setIsCSELoaded(true);
+      return;
+    }
+
+    // Set up the callback before loading the script
+    if (!window.__gcse) {
+      window.__gcse = {
+        parsetags: 'explicit',
+        callback: () => {
+          console.log('Google CSE callback fired');
+          setIsCSELoaded(true);
+        }
+      };
+    }
+
+    // Check if script is already in the DOM
+    const existingScript = document.getElementById('google-cse-script');
+    if (existingScript) {
+      // Script exists, check if CSE is loaded
+      const checkInterval = setInterval(() => {
+        if (window.google?.search?.cse) {
+          console.log('Google CSE detected via polling');
+          setIsCSELoaded(true);
+          clearInterval(checkInterval);
+        }
+      }, 100);
+
+      setTimeout(() => clearInterval(checkInterval), 10000);
+      return () => clearInterval(checkInterval);
+    }
+
+    // Load the script
     const script = document.createElement('script');
-    script.src = 'https://cse.google.com/cse.js?cx=825ca1503c1bd4d00';
+    const cseId = import.meta.env.VITE_GOOGLE_CSE_ID;
+    if (!cseId) {
+      console.error('VITE_GOOGLE_CSE_ID is not defined in environment variables');
+      setImageError('Search engine not configured. Please contact support.');
+      return;
+    }
+    script.src = `https://cse.google.com/cse.js?cx=${cseId}`;
     script.async = true;
     script.id = 'google-cse-script';
-    script.onerror = () => { setImageError('Failed to load the search engine. Please refresh the page.'); setIsSearching(false); };
+
+    script.onload = () => {
+      console.log('Google CSE script loaded');
+      // Poll for CSE availability after script loads
+      const checkInterval = setInterval(() => {
+        if (window.google?.search?.cse) {
+          console.log('Google CSE ready after script load');
+          setIsCSELoaded(true);
+          clearInterval(checkInterval);
+        }
+      }, 100);
+
+      setTimeout(() => clearInterval(checkInterval), 5000);
+    };
+
+    script.onerror = () => {
+      console.error('Failed to load Google CSE script');
+      setImageError('Failed to load the search engine. Please refresh the page.');
+      setIsSearching(false);
+    };
+
     document.head.appendChild(script);
-    return () => { document.getElementById('google-cse-script')?.remove(); };
+
+    return () => {
+      const scriptEl = document.getElementById('google-cse-script');
+      if (scriptEl) scriptEl.remove();
+    };
   }, [setImageError]);
   
   useEffect(() => {
@@ -106,10 +217,13 @@ export const useSearchEngine = ({
         return;
     }
 
+    console.log('Rendering Google CSE with query:', searchQuery);
+
     const renderAndExecute = () => {
         try {
             let element = cseElementRef.current;
             if (!element) {
+                console.log('Creating new CSE element');
                 element = window.google.search.cse.element.render({
                     div: 'google-search-container',
                     tag: 'searchresults-only',
@@ -117,9 +231,12 @@ export const useSearchEngine = ({
                     attributes: { searchType: 'image', disableWebSearch: true }
                 });
                 cseElementRef.current = element;
+                console.log('CSE element created successfully');
             }
+            console.log('Executing search for:', searchQuery);
             element.execute(searchQuery);
         } catch (e) {
+            console.error('CSE render/execute error:', e);
             setImageError('Failed to initialize or run the search service. Please refresh.');
         } finally {
             setIsSearching(false);
@@ -128,16 +245,20 @@ export const useSearchEngine = ({
 
     const container = document.getElementById('google-search-container');
     if (container) {
+        console.log('Container found, rendering CSE');
         renderAndExecute();
     } else {
+        console.log('Container not found, polling...');
         // Poll for the container if it's not immediately available
         let attempts = 0;
         const intervalId = setInterval(() => {
             const polledContainer = document.getElementById('google-search-container');
             if (polledContainer) {
+                console.log('Container found after polling');
                 clearInterval(intervalId);
                 renderAndExecute();
             } else if (attempts > 30) { // Give up after ~3 seconds
+                console.error('Container not found after 30 attempts');
                 clearInterval(intervalId);
                 setImageError('Search container did not appear. Please refresh the page.');
                 setIsSearching(false);
@@ -152,7 +273,15 @@ export const useSearchEngine = ({
   useEffect(() => {
     let timeoutId: number | null = null;
     if (appState === 'searching' && searchQuery && !isCSELoaded) {
-        timeoutId = window.setTimeout(() => { if (!isCSELoaded) { setImageError('The search service is taking too long. Please refresh.'); setIsSearching(false); } }, 8000);
+        console.log('Waiting for Google CSE to load...');
+        // Increased timeout to 15 seconds to give more time for the script to load
+        timeoutId = window.setTimeout(() => {
+          if (!isCSELoaded) {
+            console.error('Google CSE failed to load within timeout period');
+            setImageError('The search service is taking too long. Please refresh the page and try again.');
+            setIsSearching(false);
+          }
+        }, 15000);
     }
     return () => { if (timeoutId) clearTimeout(timeoutId); };
   }, [appState, searchQuery, isCSELoaded, setImageError]);
@@ -173,12 +302,15 @@ export const useSearchEngine = ({
         const img = target.tagName === 'IMG' ? target : target.closest('a')?.querySelector('img');
         if (img instanceof HTMLImageElement && img.src && document.getElementById('google-search-container')?.contains(img)) {
             event.preventDefault();
-            handleImageFromUrl(img.src, img);
+            // Only process if not already processing
+            if (!isProcessingImage) {
+                handleImageFromUrl(img.src, img);
+            }
         }
     };
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
-  }, [appState, handleImageFromUrl]);
+  }, [appState, handleImageFromUrl, isProcessingImage]);
 
   useEffect(() => {
     if (appState !== 'searching') return;
@@ -191,11 +323,48 @@ export const useSearchEngine = ({
             const img = containerEl.querySelector('img');
             if (img && img.src) {
                 containerEl.style.position = 'relative';
+                containerEl.style.cursor = 'pointer';
+                containerEl.style.transition = 'transform 0.2s ease';
+
+                // Add hover effect for better interactivity
+                containerEl.addEventListener('mouseenter', () => {
+                    if (!isProcessingImage) {
+                        containerEl.style.transform = 'translateY(-4px)';
+                        img.style.filter = 'brightness(1.1)';
+                    }
+                });
+                containerEl.addEventListener('mouseleave', () => {
+                    containerEl.style.transform = 'translateY(0)';
+                    img.style.filter = 'brightness(1)';
+                });
+
                 const button = document.createElement('button');
                 const sparkleIconSVG = `<svg class="w-3 h-3 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" /></svg>`;
                 button.innerHTML = `${sparkleIconSVG}<span>Customize</span>`;
-                button.className = 'absolute bottom-2 right-2 flex items-center bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold py-1.5 px-3 rounded-full shadow-lg hover:shadow-xl transition-all opacity-90 hover:opacity-100 transform hover:scale-105 z-10';
-                button.addEventListener('click', (e) => { e.stopPropagation(); handleImageFromUrl(img.src, img); });
+                button.className = 'absolute bottom-2 right-2 flex items-center bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold py-1.5 px-3 rounded-full shadow-lg hover:shadow-xl transition-all opacity-0 group-hover:opacity-100 transform hover:scale-105 z-10';
+
+                // Show button on parent hover
+                containerEl.classList.add('group');
+                containerEl.addEventListener('mouseenter', () => {
+                    button.style.opacity = isProcessingImage ? '0.6' : '1';
+                });
+                containerEl.addEventListener('mouseleave', () => {
+                    button.style.opacity = '0';
+                });
+
+                // Add disabled state when processing
+                if (isProcessingImage) {
+                    button.disabled = true;
+                    button.style.cursor = 'not-allowed';
+                }
+
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    // Only process if not already processing
+                    if (!isProcessingImage) {
+                        handleImageFromUrl(img.src, img);
+                    }
+                });
                 containerEl.appendChild(button);
                 containerEl.classList.add('customize-btn-added');
             }
@@ -203,7 +372,7 @@ export const useSearchEngine = ({
     });
     observer.observe(container, { childList: true, subtree: true });
     return () => observer.disconnect();
-  }, [appState, handleImageFromUrl]);
+  }, [appState, handleImageFromUrl, isProcessingImage]);
 
 
   return {
@@ -216,5 +385,7 @@ export const useSearchEngine = ({
     handleSearch,
     handleKeyDown,
     handleImageFromUrl,
+    // Expose the processing state
+    isProcessingImage,
   };
 };

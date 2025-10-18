@@ -14,6 +14,8 @@ interface SearchingPageProps {
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   originalImageData: { data: string; mimeType: string } | null;
   onUploadClick: () => void;
+  // Add isProcessingImage prop
+  isProcessingImage: boolean;
 }
 
 const SearchingPage: React.FC<SearchingPageProps> = ({
@@ -27,6 +29,7 @@ const SearchingPage: React.FC<SearchingPageProps> = ({
   onClose,
   onKeyDown,
   onUploadClick,
+  isProcessingImage,
 }) => {
   return (
     <div className="w-full max-w-6xl mx-auto h-full flex flex-col">
@@ -83,8 +86,32 @@ const SearchingPage: React.FC<SearchingPageProps> = ({
         </div>
       )}
       <div className="relative flex-grow">
-        {isLoading && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg">
+        {/* Show processing overlay when an image is being handled */}
+        {isProcessingImage && (
+          <div className="absolute inset-0 bg-white/90 backdrop-blur-md flex flex-col items-center justify-center z-10 rounded-lg animate-fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-4 border-2 border-purple-100">
+              <LoadingSpinner />
+              <p className="mt-6 text-slate-700 font-bold text-lg text-center">Loading Image...</p>
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
+                  <span>Fetching image from source</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                  <span>Processing for AI analysis</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                  <span>Preparing customization</span>
+                </div>
+              </div>
+              <p className="mt-6 text-slate-500 text-xs text-center">This usually takes 5-10 seconds</p>
+            </div>
+          </div>
+        )}
+        {isLoading && !isProcessingImage && (
+          <div className="absolute inset-0 bg-white/90 backdrop-blur-md flex flex-col items-center justify-center z-10 rounded-lg animate-fade-in">
             <LoadingSpinner />
             <p className="mt-4 text-slate-600 font-semibold">Preparing Image for Analysis...</p>
           </div>

@@ -151,14 +151,27 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
       </div>
 
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden animate-fade-in">
-           <style>{`.animate-fade-in { animation: fadeIn 0.2s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+        <div className="absolute z-[9999] w-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden" style={{
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <style>{`
+            @keyframes fadeIn {
+              from {
+                opacity: 0;
+                transform: translateY(-5px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+          `}</style>
           <ul className="max-h-80 overflow-y-auto">
             {suggestions.map((suggestion, index) => (
               <li key={suggestion}>
                 <button
                   onClick={() => handleSelectSuggestion(suggestion)}
-                  className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-purple-50 transition-colors ${index === selectedIndex ? 'bg-purple-50' : ''}`}
+                  className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-purple-50 transition-colors ${index === selectedIndex ? 'bg-purple-100 border-l-4 border-purple-500' : ''}`}
                 >
                   <SearchIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
                   <span className="text-slate-700 text-sm">

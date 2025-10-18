@@ -17,8 +17,8 @@ const LandingPage: React.FC<LandingPageProps> = ({
   return (
     <div className="flex flex-col items-center justify-between h-full w-full overflow-hidden">
       <div className="text-center w-full max-w-2xl mx-auto flex flex-col items-center flex-1 justify-center -translate-y-[60px]">
-        <img 
-            src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20face%20logo.webp" 
+        <img
+            src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20face%20logo.webp"
             alt="Genie Logo"
             className="w-36 h-36 -mb-4 object-contain"
         />
@@ -29,15 +29,15 @@ const LandingPage: React.FC<LandingPageProps> = ({
           <span className="absolute top-0 -right-5 transform -translate-y-1/2 translate-x-1/2 rotate-12 bg-yellow-300 text-yellow-800 text-xs font-bold px-2.5 py-1 rounded-full shadow-md">ALPHA</span>
         </div>
         <p className="text-slate-600 mb-6 text-sm">Your Cake Wish, Granted.</p>
-        
-        <div className="w-full">
-            <SearchAutocomplete 
+
+        <div className="w-full relative z-50">
+            <SearchAutocomplete
               onSearch={onSearch}
               onUploadClick={onUploadClick}
-              placeholder="Search for a design or upload an image" 
+              placeholder="Search for a design or upload an image"
             />
         </div>
-        
+
         <p className="text-slate-500 text-sm mt-8">Upload or search any cake design, customize your cake and get instant pricing.</p>
       </div>
       <footer className="p-4 bg-transparent text-center">
