@@ -301,14 +301,15 @@ export const useSearchEngine = ({
     let timeoutId: number | null = null;
     if (appState === 'searching' && searchQuery && !isCSELoaded) {
         console.log('Waiting for Google CSE to load...');
-        // Increased timeout to 15 seconds to give more time for the script to load
+        // Increased timeout to 20 seconds for slower connections
         timeoutId = window.setTimeout(() => {
           if (!isCSELoaded) {
             console.error('Google CSE failed to load within timeout period');
-            setImageError('The search service is taking too long. Please refresh the page and try again.');
+            console.error('Possible causes: 1) Missing VITE_GOOGLE_CSE_ID env var, 2) Network issues, 3) Google CSE service down');
+            setImageError('The search service failed to load. Please check your internet connection and try again. If the problem persists, try uploading an image directly instead.');
             setIsSearching(false);
           }
-        }, 15000);
+        }, 20000);
     }
     return () => { if (timeoutId) clearTimeout(timeoutId); };
   }, [appState, searchQuery, isCSELoaded, setImageError]);
