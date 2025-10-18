@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cake Genie</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Microsoft Clarity -->
+    <script type="text/javascript">
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "te894qldzn");
+    </script>
+    <!-- End Microsoft Clarity -->
+    <style>
+      html { color-scheme: light; }
+      @keyframes move-blob-1 { 0%, 100% { transform: translate(0, 0) scale(1); } 25% { transform: translate(40vw, -30vh) scale(1.1); } 50% { transform: translate(10vw, 20vh) scale(0.9); } 75% { transform: translate(-30vw, -10vh) scale(1.2); } }
+      @keyframes move-blob-2 { 0%, 100% { transform: translate(0, 0) scale(1); } 25% { transform: translate(-35vw, 25vh) scale(1.2); } 50% { transform: translate(20vw, -15vh) scale(1); } 75% { transform: translate(10vw, 30vh) scale(0.8); } }
+      @keyframes move-blob-3 { 0%, 100% { transform: translate(0, 0) scale(1); } 25% { transform: translate(20vw, 30vh) scale(0.9); } 50% { transform: translate(-40vw, -20vh) scale(1.1); } 75% { transform: translate(15vw, 10vh) scale(1); } }
+      .blob-animation-1 { animation: move-blob-1 30s infinite alternate ease-in-out; }
+      .blob-animation-2 { animation: move-blob-2 35s infinite alternate ease-in-out; }
+      .blob-animation-3 { animation: move-blob-3 25s infinite alternate ease-in-out; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+      .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+      .secure-image-container { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+      .secure-image-container img { pointer-events: none; }
+      @keyframes progress-slide { 0% { left: -50%; } 100% { left: 100%; } }
+      .animate-progress-slide { animation: progress-slide 1.5s linear infinite; }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100">
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>
