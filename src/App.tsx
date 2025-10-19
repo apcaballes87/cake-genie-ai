@@ -361,7 +361,7 @@ export default function App(): React.ReactElement {
                 <ImageUploader isOpen={isUploaderOpen} onClose={() => setIsUploaderOpen(false)} onImageSelect={(file) => { handleAppImageUpload(file).catch(err => console.error("Upload failed", err)); setIsUploaderOpen(false); }} />
                 {appState === 'customizing' && <ImageZoomModal isOpen={isMainZoomModalOpen} onClose={() => setIsMainZoomModalOpen(false)} originalImage={originalImagePreview} customizedImage={editedImage} initialTab={activeTab} />}
                 <ReportModal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} onSubmit={handleReport} isSubmitting={isReporting} editedImage={editedImage} details={analysisResult ? buildCartItemDetails() : null} cakeInfo={cakeInfo} />
-                {appState === 'customizing' && <StickyAddToCartBar price={finalPrice} isLoading={isFetchingBasePrice} isAdding={isAddingToCart} error={basePriceError} onAddToCartClick={handleAddToCart} onShareClick={handleShare} isSharing={isSavingDesign} canShare={!!analysisResult} isAnalyzing={isAnalyzing} />}
+                {appState === 'customizing' && <StickyAddToCartBar price={finalPrice} isLoading={isFetchingBasePrice} isAdding={isAddingToCart} error={basePriceError} onAddToCartClick={handleAddToCart} onShareClick={handleShare} isSharing={isSavingDesign} canShare={!!analysisResult} isAnalyzing={isAnalyzing} onSave={handleSave} isSaving={isImageManagementLoading} editedImage={editedImage} />}
                 <ShareModal isOpen={isShareModalOpen} onClose={closeShareModal} shareUrl={shareData?.shareUrl || ''} designId={shareData?.designId || ''} imageUrl={editedImage || originalImagePreview || ''} />
             </>}
         </div>

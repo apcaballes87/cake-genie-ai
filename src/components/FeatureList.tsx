@@ -356,7 +356,7 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                                 </div>
                                             </div>
                                             <span className="mt-2 text-xs font-semibold text-slate-800 leading-tight">{option.size}</span>
-                                            <span className="text-xs text-slate-500">₱{option.price.toLocaleString()}</span>
+                                            {/* <span className="text-xs text-slate-500">₱{option.price.toLocaleString()}</span> */}
                                         </button>
                                     ))}
                                 </div>

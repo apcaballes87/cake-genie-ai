@@ -253,14 +253,15 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                    </button>
                </div>
            </div>
-           <button onClick={() => setAppState('cart')} className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors flex-shrink-0" aria-label={`View cart with ${itemCount} items`}>
+           {/* TEMPORARILY HIDDEN - Cart Icon */}
+           {/* <button onClick={() => setAppState('cart')} className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors flex-shrink-0" aria-label={`View cart with ${itemCount} items`}>
                <CartIcon />
                {itemCount > 0 && (
                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
                        {itemCount}
                    </span>
                )}
-           </button>
+           </button> */}
            {isAuthenticated && !user?.is_anonymous ? (
               <div className="relative" ref={accountMenuRef}>
                    <button onClick={() => setIsAccountMenuOpen(prev => !prev)} className="p-2 text-slate-600 hover:text-purple-700 transition-colors flex-shrink-0" aria-label="Open account menu">
@@ -448,7 +449,8 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                  <ReportIcon />
                  <span className="ml-2">{isReporting ? 'Submitting...' : 'Report Issue'}</span>
              </button>
-             <button onClick={onSave} disabled={!editedImage || isLoading || isSaving} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label={isSaving ? "Saving image" : "Save customized image"}>
+             {/* TEMPORARILY HIDDEN - Save Button (now in sticky bar at bottom) */}
+             {/* <button onClick={onSave} disabled={!editedImage || isLoading || isSaving} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label={isSaving ? "Saving image" : "Save customized image"}>
                 {isSaving ? (
                     <>
                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -460,7 +462,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                         <span className="ml-2">Save</span>
                     </>
                 )}
-             </button>
+             </button> */}
              <button onClick={onClearAll} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors" aria-label="Reset everything"><ResetIcon /><span className="ml-2">Reset Everything</span></button>
            </div>
          </div>
