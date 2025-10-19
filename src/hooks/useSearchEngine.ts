@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { trackSearchTerm } from '../services/supabaseService';
+import { compressImage } from '../lib/utils/imageOptimization';
 
 // Global window type extension from App.tsx
 declare global {
@@ -50,75 +51,95 @@ export const useSearchEngine = ({
     clickedElement.style.transition = 'all 0.2s ease';
 
     try {
-      console.log('📥 Fetching image via proxy...');
+      console.log('📥 Fetching image via parallel proxy racing...');
 
-      // Try multiple proxy services for better reliability and speed
+      // Try multiple proxy services in PARALLEL for speed and reliability
       const proxies = [
         `https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`,
         `https://corsproxy.io/?${encodeURIComponent(imageUrl)}`,
         imageUrl // Try direct fetch as last resort
       ];
 
-      let blob: Blob | null = null;
-      let lastError: Error | null = null;
+      console.log('🏁 Racing all 3 proxies simultaneously...');
 
-      // Try each proxy in sequence until one works
-      for (let i = 0; i < proxies.length; i++) {
-        try {
-          console.log(`Trying proxy ${i + 1}/${proxies.length}:`, proxies[i].substring(0, 100) + '...');
-
-          // Create AbortController for timeout (better browser support)
+      // Create a fetch promise for each proxy with timeout
+      const fetchPromises = proxies.map((proxyUrl, index) => {
+        return new Promise<{ blob: Blob; index: number }>((resolve, reject) => {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+          const timeoutId = setTimeout(() => {
+            controller.abort();
+            reject(new Error('Timeout'));
+          }, 6000); // Reduced to 6 seconds for faster fallback
 
-          try {
-            const response = await fetch(proxies[i], {
-              signal: controller.signal,
-              mode: i === proxies.length - 1 ? 'cors' : 'cors', // CORS mode for all
+          fetch(proxyUrl, {
+            signal: controller.signal,
+            mode: 'cors',
+          })
+            .then(response => {
+              clearTimeout(timeoutId);
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+              }
+              return response.blob();
+            })
+            .then(fetchedBlob => {
+              // Validate it's actually an image
+              if (fetchedBlob.type.startsWith('text/') || fetchedBlob.size < 100) {
+                throw new Error('Invalid image data');
+              }
+              console.log(`✅ Proxy ${index + 1} succeeded - Type: ${fetchedBlob.type}, Size: ${fetchedBlob.size} bytes`);
+              resolve({ blob: fetchedBlob, index });
+            })
+            .catch(err => {
+              clearTimeout(timeoutId);
+              console.warn(`❌ Proxy ${index + 1} failed:`, err.message);
+              reject(err);
             });
+        });
+      });
 
-            clearTimeout(timeoutId);
+      // Race all proxies - use whichever responds first!
+      let blob: Blob | null = null;
+      try {
+        const result = await Promise.race(fetchPromises);
+        blob = result.blob;
+        console.log(`🏆 Winner: Proxy ${result.index + 1} was fastest!`);
+      } catch (firstError) {
+        // If the race fails, try to get any successful result from Promise.allSettled
+        console.log('⏳ First proxy failed, waiting for others...');
+        const results = await Promise.allSettled(fetchPromises);
+        const successfulResult = results.find(r => r.status === 'fulfilled');
 
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status}`);
-            }
-
-            const fetchedBlob = await response.blob();
-
-            // Validate it's actually an image
-            if (fetchedBlob.type.startsWith('text/') || fetchedBlob.size < 100) {
-              console.warn(`Invalid content type: ${fetchedBlob.type}, size: ${fetchedBlob.size}`);
-              throw new Error('Invalid image data');
-            }
-
-            blob = fetchedBlob;
-            console.log(`✅ Successfully fetched via proxy ${i + 1} - Type: ${fetchedBlob.type}, Size: ${fetchedBlob.size} bytes`);
-            break;
-          } catch (fetchErr) {
-            clearTimeout(timeoutId);
-            throw fetchErr;
-          }
-        } catch (err) {
-          lastError = err instanceof Error ? err : new Error('Fetch failed');
-          console.warn(`❌ Proxy ${i + 1} failed:`, lastError.message);
-
-          // Don't continue if this was the last proxy
-          if (i === proxies.length - 1) {
-            break;
-          }
-          continue;
+        if (successfulResult && successfulResult.status === 'fulfilled') {
+          blob = successfulResult.value.blob;
+          console.log(`✅ Fallback successful: Proxy ${successfulResult.value.index + 1}`);
+        } else {
+          const errors = results.filter(r => r.status === 'rejected').map(r => (r as PromiseRejectedResult).reason.message);
+          console.error('❌ All proxies failed:', errors);
+          throw new Error(`All proxies failed: ${errors.join(', ')}`);
         }
       }
 
       if (!blob) {
-        const errorMsg = lastError?.message || 'All proxies failed';
-        console.error('❌ All proxies failed. Last error:', errorMsg);
-        throw lastError || new Error('All proxies failed to fetch the image');
+        throw new Error('Failed to fetch image from any source');
       }
 
       console.log('🔄 Converting to File object...');
-      const file = new File([blob], 'cake-design.webp', { type: blob.type || 'image/webp' });
-      console.log('📦 File created:', file.name, file.size, 'bytes');
+      let file = new File([blob], 'cake-design.webp', { type: blob.type || 'image/webp' });
+      console.log('📦 File created:', file.name, (file.size / 1024 / 1024).toFixed(2), 'MB');
+
+      // Compress large images for faster processing
+      if (file.size > 500 * 1024) { // If larger than 500KB
+        console.log('🗜️ Compressing image for optimal performance...');
+        file = await compressImage(file, {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        });
+        console.log('✅ Compression complete:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+      } else {
+        console.log('⚡ Image already optimized, skipping compression');
+      }
 
       console.log('📤 Uploading to image handler...');
       await handleImageUpload(file);

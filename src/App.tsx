@@ -291,22 +291,22 @@ export default function App(): React.ReactElement {
   const renderAppState = () => {
     switch(appState) {
         case 'landing': return <LandingPage onSearch={(q) => { setSearchInput(q); handleSearch(q); }} onUploadClick={() => setIsUploaderOpen(true)} setAppState={setAppState} />;
-        case 'searching': return <SearchingPage 
-          searchInput={searchInput} 
-          setSearchInput={setSearchInput} 
-          searchQuery={searchQuery} 
-          error={imageManagementError} 
-          isSearching={isSearching} 
-          isLoading={isImageManagementLoading} 
-          onSearch={() => handleSearch()} 
-          onClose={() => originalImageData ? setAppState('customizing') : setAppState('landing')} 
-          onKeyDown={handleKeyDown} 
-          originalImageData={originalImageData} 
-          onUploadClick={() => setIsUploaderOpen(true)} 
+        case 'searching': return <SearchingPage
+          searchInput={searchInput}
+          setSearchInput={setSearchInput}
+          searchQuery={searchQuery}
+          error={imageManagementError}
+          isSearching={isSearching}
+          isLoading={isImageManagementLoading}
+          onSearch={(query) => handleSearch(query)}
+          onClose={() => setAppState('landing')}
+          onKeyDown={handleKeyDown}
+          originalImageData={originalImageData}
+          onUploadClick={() => setIsUploaderOpen(true)}
           isProcessingImage={isProcessingImage} // Add the new prop
         />;
-        case 'customizing': return <CustomizingPage 
-            onClose={() => setAppState('landing')} searchInput={searchInput} setSearchInput={setSearchInput} onKeyDown={handleKeyDown} onSearch={() => handleSearch()} 
+        case 'customizing': return <CustomizingPage
+            onClose={() => previousAppState.current === 'searching' ? setAppState('searching') : setAppState('landing')} searchInput={searchInput} setSearchInput={setSearchInput} onKeyDown={handleKeyDown} onSearch={() => handleSearch()} 
             setAppState={setAppState} itemCount={itemCount} isAuthenticated={isAuthenticated} isAccountMenuOpen={isAccountMenuOpen} 
             setIsAccountMenuOpen={setIsAccountMenuOpen} accountMenuRef={accountMenuRef} user={user} onSignOut={handleSignOut} 
             onOpenReportModal={() => setIsReportModalOpen(true)} editedImage={editedImage} isLoading={isLoading} isUpdatingDesign={isUpdatingDesign}

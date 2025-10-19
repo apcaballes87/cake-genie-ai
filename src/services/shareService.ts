@@ -77,29 +77,53 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
 }
 
 /**
- * Get a shared design by ID - WITH DETAILED LOGGING
+ * Get a shared design by ID - WITH DETAILED LOGGING AND TIMEOUT
  */
 export async function getSharedDesign(designId: string) {
+  const startTime = Date.now();
   console.log('🔍 [getSharedDesign] Starting fetch for designId:', designId);
   console.log('🔍 [getSharedDesign] Supabase client initialized:', !!supabase);
-  
+
   try {
     console.log('📡 [getSharedDesign] Calling Supabase query...');
-    
-    const { data, error } = await supabase
+
+    // Create a timeout promise (10 seconds)
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('TIMEOUT: Supabase query took longer than 10 seconds'));
+      }, 10000);
+    });
+
+    // Create the Supabase query promise
+    const queryPromise = supabase
       .from('cakegenie_shared_designs')
       .select('*')
       .eq('design_id', designId)
       .single();
 
-    console.log('📊 [getSharedDesign] Query response:', { 
-      hasData: !!data, 
+    // Race between query and timeout
+    const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+
+    const elapsed = Date.now() - startTime;
+    console.log(`📊 [getSharedDesign] Query completed in ${elapsed}ms`);
+    console.log('📊 [getSharedDesign] Query response:', {
+      hasData: !!data,
       hasError: !!error,
       errorDetails: error ? JSON.stringify(error, null, 2) : null
     });
 
     if (error) {
       console.error('❌ [getSharedDesign] Supabase error:', error);
+      console.error('❌ [getSharedDesign] Error code:', error.code);
+      console.error('❌ [getSharedDesign] Error message:', error.message);
+
+      // Check for common RLS error
+      if (error.code === 'PGRST116' || error.message?.includes('row-level security')) {
+        console.error('🔒 [getSharedDesign] ROW LEVEL SECURITY ISSUE: The table has RLS enabled but no policy allows anonymous SELECT.');
+        console.error('🔧 [getSharedDesign] SOLUTION: Go to Supabase dashboard and add a SELECT policy for anonymous users.');
+        showError('Unable to load design. Please check database permissions.');
+      }
+
       throw error;
     }
 
@@ -123,9 +147,20 @@ export async function getSharedDesign(designId: string) {
     }
 
     return data;
-  } catch (error) {
-    console.error('❌ [getSharedDesign] Exception caught:', error);
+  } catch (error: any) {
+    const elapsed = Date.now() - startTime;
+    console.error(`❌ [getSharedDesign] Exception caught after ${elapsed}ms:`, error);
     console.error('❌ [getSharedDesign] Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+
+    // Check if it's a timeout error
+    if (error.message?.includes('TIMEOUT')) {
+      console.error('⏱️ [getSharedDesign] TIMEOUT ERROR: Query took longer than 10 seconds');
+      console.error('🔧 [getSharedDesign] LIKELY CAUSE: Row Level Security (RLS) policy is blocking the query');
+      console.error('🔧 [getSharedDesign] ACTION REQUIRED: Check Supabase dashboard → cakegenie_shared_designs → RLS Policies');
+      console.error('🔧 [getSharedDesign] You may need to add: CREATE POLICY "Allow public read" ON cakegenie_shared_designs FOR SELECT USING (true);');
+      showError('Request timeout. Please check your database configuration.');
+    }
+
     return null;
   }
 }

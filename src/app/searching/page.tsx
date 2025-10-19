@@ -1,6 +1,7 @@
 import React from 'react';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { BackIcon, SearchIcon, CameraIcon } from '../../components/icons';
+import { BackIcon } from '../../components/icons';
+import { SearchAutocomplete } from '../../components/SearchAutocomplete';
 
 interface SearchingPageProps {
   searchInput: string;
@@ -9,7 +10,7 @@ interface SearchingPageProps {
   error: string | null;
   isSearching: boolean;
   isLoading: boolean;
-  onSearch: () => void;
+  onSearch: (query?: string) => void;
   onClose: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   originalImageData: { data: string; mimeType: string } | null;
@@ -33,7 +34,7 @@ const SearchingPage: React.FC<SearchingPageProps> = ({
 }) => {
   return (
     <div className="w-full max-w-6xl mx-auto h-full flex flex-col">
-      {/* Global CSS to hide Google CSE overlays */}
+      {/* Global CSS to hide Google CSE overlays and show pagination */}
       <style>{`
         #google-search-container .gs-image-box-popup,
         #google-search-container .gs-image-popup-box,
@@ -44,6 +45,54 @@ const SearchingPage: React.FC<SearchingPageProps> = ({
           opacity: 0 !important;
           pointer-events: none !important;
         }
+
+        /* Make pagination visible and styled */
+        #google-search-container .gsc-cursor-box,
+        #google-search-container .gsc-cursor,
+        #google-search-container .gsc-cursor-page,
+        #google-search-container .gsc-cursor-current-page {
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          pointer-events: auto !important;
+        }
+
+        /* Style pagination for better visibility */
+        #google-search-container .gsc-cursor-box {
+          text-align: center !important;
+          margin: 2rem 0 !important;
+          padding: 1rem 0 !important;
+        }
+
+        #google-search-container .gsc-cursor-page {
+          display: inline-block !important;
+          padding: 0.5rem 0.75rem !important;
+          margin: 0 0.25rem !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 0.5rem !important;
+          background-color: white !important;
+          color: #64748b !important;
+          cursor: pointer !important;
+          transition: all 0.2s !important;
+        }
+
+        #google-search-container .gsc-cursor-page:hover {
+          background-color: #f8fafc !important;
+          border-color: #cbd5e1 !important;
+          color: #475569 !important;
+        }
+
+        #google-search-container .gsc-cursor-current-page {
+          background: linear-gradient(to right, #ec4899, #a855f7) !important;
+          color: white !important;
+          border-color: #ec4899 !important;
+          font-weight: 600 !important;
+        }
+
+        #google-search-container .gsc-cursor-current-page:hover {
+          background: linear-gradient(to right, #db2777, #9333ea) !important;
+          border-color: #db2777 !important;
+        }
       `}</style>
       <div className="w-full flex items-center gap-2 md:gap-4 max-w-2xl mx-auto mb-6">
         <button
@@ -53,33 +102,15 @@ const SearchingPage: React.FC<SearchingPageProps> = ({
         >
           <BackIcon />
         </button>
-        <div className="relative flex-grow">
-          <input
-            type="text"
-            className="w-full pl-5 pr-28 py-3 text-base border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+        <div className="flex-grow">
+          <SearchAutocomplete
+            onSearch={(query) => {
+              setSearchInput(query);
+              onSearch(query);
+            }}
+            onUploadClick={onUploadClick}
             placeholder="Search for cake designs..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={onKeyDown}
           />
-          <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-            <button
-                type="button"
-                onClick={onUploadClick}
-                className="p-3 text-slate-500 hover:text-purple-600 rounded-full hover:bg-purple-100 transition-colors"
-                aria-label="Upload an image"
-            >
-                <CameraIcon className="w-5 h-5" />
-            </button>
-            <button
-              type="button"
-              onClick={onSearch}
-              className="p-3 text-slate-500 hover:text-purple-600 rounded-full hover:bg-purple-100 transition-colors"
-              aria-label="Search"
-            >
-              <SearchIcon />
-            </button>
-          </div>
         </div>
       </div>
       <p className="text-center text-slate-500 mb-4">
