@@ -262,7 +262,8 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                    </span>
                )}
            </button> */}
-           {isAuthenticated && !user?.is_anonymous ? (
+           {/* TEMPORARILY HIDDEN - Profile Icon */}
+           {/* {isAuthenticated && !user?.is_anonymous ? (
               <div className="relative" ref={accountMenuRef}>
                    <button onClick={() => setIsAccountMenuOpen(prev => !prev)} className="p-2 text-slate-600 hover:text-purple-700 transition-colors flex-shrink-0" aria-label="Open account menu">
                        <UserCircleIcon />
@@ -291,7 +292,10 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                <button onClick={() => setAppState('auth')} className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full text-sm font-semibold text-slate-700 hover:bg-white hover:border-slate-300 transition-all shadow-sm flex-shrink-0">
                    Login
                </button>
-           )}
+           )} */}
+           <button onClick={() => setAppState('auth')} className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full text-sm font-semibold text-slate-700 hover:bg-white hover:border-slate-300 transition-all shadow-sm flex-shrink-0">
+               Login
+           </button>
        </div>
 
        <button
