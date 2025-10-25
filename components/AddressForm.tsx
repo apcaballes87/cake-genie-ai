@@ -31,6 +31,10 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
     const [completeAddress, setCompleteAddress] = useState(''); // User-controlled input
     const [suggestedAddress, setSuggestedAddress] = useState(''); // Geocoding output
     const [isGeocoding, setIsGeocoding] = useState(false);
+    // Add refs to track the last geocoded position and if we're currently processing a geocode request
+    const lastGeocodedPosition = useRef<{ lat: number; lng: number } | null>(null);
+    const isProcessingGeocode = useRef(false);
+    const mapIdleTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const autocompleteRef = useRef<any | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null);
@@ -39,36 +43,90 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
         if(isOpen && initialStreetAddress) {
             setCompleteAddress(initialStreetAddress);
         }
+        
+        // Cleanup function
+        return () => {
+            if (mapIdleTimeout.current) {
+                clearTimeout(mapIdleTimeout.current);
+            }
+        };
     }, [isOpen, initialStreetAddress]);
 
+    // Helper function to calculate distance between two coordinates
+    const calculateDistance = (pos1: { lat: number; lng: number }, pos2: { lat: number; lng: number }) => {
+        const R = 6371; // Earth radius in km
+        const dLat = (pos2.lat - pos1.lat) * Math.PI / 180;
+        const dLon = (pos2.lng - pos1.lng) * Math.PI / 180;
+        const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(pos1.lat * Math.PI / 180) * Math.cos(pos2.lat * Math.PI / 180) * 
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c; // Distance in km
+    };
+
     const handleReverseGeocode = useCallback((lat: number, lng: number) => {
-        if (!isLoaded || !window.google) return;
+        const currentPosition = { lat, lng };
+        
+        // Prevent multiple simultaneous geocoding requests
+        if (isProcessingGeocode.current || !isLoaded || !window.google) return;
+        
+        // Check if we've already geocoded this position (or a very close one)
+        if (lastGeocodedPosition.current) {
+            const distance = calculateDistance(lastGeocodedPosition.current, currentPosition);
+            // If the distance is less than 100 meters, skip geocoding
+            if (distance < 0.1) return;
+        }
+        
+        isProcessingGeocode.current = true;
         setIsGeocoding(true);
+        
         const geocoder = new window.google.maps.Geocoder();
         geocoder.geocode({ location: { lat, lng } }, (results, status) => {
             if (status === 'OK' && results && results[0]) {
                 setSuggestedAddress(results[0].formatted_address);
+                // Only update the complete address if it's empty
+                if (!completeAddress.trim()) {
+                    setCompleteAddress(results[0].formatted_address);
+                }
+                // Update the last geocoded position
+                lastGeocodedPosition.current = currentPosition;
             } else {
                 console.error("Reverse geocoding failed:", status);
                 setSuggestedAddress('Could not determine address from map.');
             }
             setIsGeocoding(false);
+            isProcessingGeocode.current = false;
         });
-    }, [isLoaded]);
+    }, [isLoaded, completeAddress]);
 
     const onMapIdle = useCallback(() => {
         if (map) {
             const newCenter = map.getCenter();
             if (newCenter) {
-                handleReverseGeocode(newCenter.lat(), newCenter.lng());
-                // Update autocomplete bounds when user pans the map
-                if (autocompleteRef.current) {
-                    const circle = new google.maps.Circle({
-                        center: newCenter,
-                        radius: 7000, // 7km
-                    });
-                    autocompleteRef.current.setBounds(circle.getBounds());
+                // Clear any existing timeout
+                if (mapIdleTimeout.current) {
+                    clearTimeout(mapIdleTimeout.current);
                 }
+                
+                // Add a small delay to prevent too frequent geocoding
+                mapIdleTimeout.current = setTimeout(() => {
+                    // Check if the map still has the same center (user stopped moving it)
+                    const currentCenter = map.getCenter();
+                    if (currentCenter && 
+                        Math.abs(currentCenter.lat() - newCenter.lat()) < 0.0001 && 
+                        Math.abs(currentCenter.lng() - newCenter.lng()) < 0.0001) {
+                        handleReverseGeocode(currentCenter.lat(), currentCenter.lng());
+                        // Update autocomplete bounds when user pans the map
+                        if (autocompleteRef.current) {
+                            const circle = new google.maps.Circle({
+                                center: currentCenter,
+                                radius: 7000, // 7km
+                            });
+                            autocompleteRef.current.setBounds(circle.getBounds());
+                        }
+                    }
+                }, 500); // Wait 500ms to see if the user is still moving the map
             }
         }
     }, [map, handleReverseGeocode]);
@@ -88,17 +146,50 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                 strictBounds: true, // Restrict results to within the 7km radius
             });
             autocompleteRef.current = autocomplete;
+            
+            let isHandlingPlaceChange = false;
+            
             autocomplete.addListener('place_changed', () => {
+                // Prevent recursive calls
+                if (isHandlingPlaceChange) return;
+
+                isHandlingPlaceChange = true;
                 const place = autocomplete.getPlace();
                 if (place.geometry?.location) {
+                    const newLocation = {
+                        lat: place.geometry.location.lat(),
+                        lng: place.geometry.location.lng()
+                    };
+
+                    // Update center state to move the pin
+                    setCenter(newLocation);
+
+                    // Pan and zoom the map
                     map?.panTo(place.geometry.location);
                     map?.setZoom(17);
+
+                    // Update the last geocoded position to prevent immediate reverse geocoding
+                    lastGeocodedPosition.current = newLocation;
+
+                    // Only update the suggested address for reference, not the complete address
+                    if (place.formatted_address) {
+                        setSuggestedAddress(place.formatted_address);
+                    }
                 }
+                // Use setTimeout to reset the flag after a short delay
+                setTimeout(() => {
+                    isHandlingPlaceChange = false;
+                }, 100);
             });
         }
     }, [isLoaded, map]);
 
     const handleSubmit = () => {
+        // Clear any pending geocoding timeout
+        if (mapIdleTimeout.current) {
+            clearTimeout(mapIdleTimeout.current);
+        }
+        
         if (map && completeAddress.trim()) {
             const finalCenter = map.getCenter();
             if (finalCenter) {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2 } from './icons';
 import { ShareButton } from './ShareButton';
+import { CakeInfoUI } from '../types';
 
 // --- Sticky Add to Cart Bar ---
 interface StickyAddToCartBarProps {
@@ -13,9 +14,10 @@ interface StickyAddToCartBarProps {
   isSharing: boolean;
   canShare: boolean;
   isAnalyzing?: boolean;
+  cakeInfo: CakeInfoUI | null;
 }
 
-const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = ({ price, isLoading, isAdding, error, onAddToCartClick, onShareClick, isSharing, canShare, isAnalyzing }) => {
+const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = ({ price, isLoading, isAdding, error, onAddToCartClick, onShareClick, isSharing, canShare, isAnalyzing, cakeInfo }) => {
     const [show, setShow] = useState(false);
 
     useEffect(() => {
@@ -42,10 +44,11 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = ({ price, isLoadin
         if (isLoading) return <span className="text-sm text-slate-500">Calculating...</span>;
         if (error) return <span className="text-sm font-semibold text-red-600">Pricing Error</span>;
         if (price !== null) {
+            const sizeAndHeight = cakeInfo ? `${cakeInfo.size} - ${cakeInfo.thickness}` : 'Final Price';
             return (
                 <div className="text-left">
                     <span className="text-lg font-bold text-slate-800">₱{price.toLocaleString()}</span>
-                    <span className="text-xs text-slate-500 block">Final Price</span>
+                    <span className="text-xs text-slate-500 block">{sizeAndHeight}</span>
                 </div>
             );
         }

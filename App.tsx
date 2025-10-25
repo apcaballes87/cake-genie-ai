@@ -47,6 +47,8 @@ const HowToOrderPage = lazy(() => import('./app/how-to-order/page'));
 const ContactPage = lazy(() => import('./app/contact/page'));
 const ReviewsPage = lazy(() => import('./app/reviews/page'));
 const ShopifyCustomizingPage = lazy(() => import('./app/shopify-customizing/page'));
+const TestSupabasePage = lazy(() => import('./app/test-supabase/page'));
+const TestAuthPage = lazy(() => import('./app/test-auth/page'));
 
 type ImageTab = 'original' | 'customized';
 
@@ -430,6 +432,8 @@ export default function App(): React.ReactElement {
         case 'orders': return <OrdersPage onClose={() => setAppState(previousAppState.current || 'landing')} />;
         case 'shared_design': return viewingDesignId ? <SharedDesignPage designId={viewingDesignId} onStartWithDesign={handleStartWithSharedDesign} onNavigateHome={() => { setAppState('landing'); }} onPurchaseDesign={handlePurchaseSharedDesign} /> : <LoadingSpinner />;
         case 'shopify_customizing': return viewingShopifySessionId ? <ShopifyCustomizingPage sessionId={viewingShopifySessionId} onNavigateHome={() => setAppState('landing')} /> : <LoadingSpinner />;
+        case 'test-supabase': return <TestSupabasePage onClose={() => setAppState('landing')} />;
+        case 'test-auth': return <TestAuthPage onClose={() => setAppState('landing')} />;
         case 'about': return <AboutPage onClose={() => setAppState('landing')} />;
         case 'how_to_order': return <HowToOrderPage onClose={() => setAppState('landing')} />;
         case 'contact': return <ContactPage onClose={() => setAppState('landing')} />;
@@ -468,7 +472,7 @@ export default function App(): React.ReactElement {
                 <ImageUploader isOpen={isUploaderOpen} onClose={() => setIsUploaderOpen(false)} onImageSelect={(file) => { handleAppImageUpload(file).catch(err => console.error("Upload failed", err)); setIsUploaderOpen(false); }} />
                 {appState === 'customizing' && <ImageZoomModal isOpen={isMainZoomModalOpen} onClose={() => setIsMainZoomModalOpen(false)} originalImage={originalImagePreview} customizedImage={editedImage} initialTab={activeTab} />}
                 <ReportModal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} onSubmit={handleReport} isSubmitting={isReporting} editedImage={editedImage} details={analysisResult ? buildCartItemDetails() : null} cakeInfo={cakeInfo} />
-                {appState === 'customizing' && <StickyAddToCartBar price={finalPrice} isLoading={isFetchingBasePrice} isAdding={isAddingToCart} error={basePriceError} onAddToCartClick={handleAddToCart} onShareClick={handleShare} isSharing={isSavingDesign} canShare={!!analysisResult} isAnalyzing={isAnalyzing} />}
+                {appState === 'customizing' && <StickyAddToCartBar price={finalPrice} isLoading={isFetchingBasePrice} isAdding={isAddingToCart} error={basePriceError} onAddToCartClick={handleAddToCart} onShareClick={handleShare} isSharing={isSavingDesign} canShare={!!analysisResult} isAnalyzing={isAnalyzing} cakeInfo={cakeInfo} />}
                 <ShareModal 
   isOpen={isShareModalOpen} 
   onClose={closeShareModal} 

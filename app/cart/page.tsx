@@ -65,13 +65,12 @@ function getCartAvailability(items: CartItem[]): AvailabilityType {
         }
 
         const has3dTopper = details.mainToppers.some(t => t.type === 'edible_3d');
-        const hasDrip = details.icingDesign.drip;
         const hasGumpasteBase = details.icingDesign.gumpasteBaseBoard;
-        
-        if (has3dTopper || hasDrip || hasGumpasteBase) {
+
+        if (has3dTopper || hasGumpasteBase) {
             return 'normal';
         }
-        
+
         // --- Step 2: Check for Fast-Track Eligibility ---
         const isFastTrackEligible =
             (cakeTypeStr.includes('1 Tier') && (item.size === '6" Round' || item.size === '8" Round')) ||
@@ -82,13 +81,14 @@ function getCartAvailability(items: CartItem[]): AvailabilityType {
         }
 
         // --- Step 3: Classify as Same-Day or Rush ---
-        const hasGumpasteSupport = details.supportElements.some(s => s.type === 'gumpaste_panel' || s.type === 'small_gumpaste');
+        const smallGumpasteCount = details.supportElements.filter(s => s.type === 'small_gumpaste').length;
+        const hasGumpastePanels = details.supportElements.some(s => s.type === 'gumpaste_panel');
         const hasEdiblePhoto = details.mainToppers.some(t => t.type === 'edible_photo') || details.supportElements.some(s => s.type === 'edible_photo_side');
 
-        if (hasGumpasteSupport || hasEdiblePhoto) {
+        if (hasGumpastePanels || hasEdiblePhoto || smallGumpasteCount >= 2) {
             return 'same-day';
         }
-        
+
         return 'rush';
     });
     

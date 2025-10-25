@@ -35,18 +35,17 @@ function calculateAvailabilityForSharing(mainToppers: MainTopperUI[], supportEle
     if (complexTypes.includes(cakeInfo.type) || icingDesign.base === 'fondant') {
         return 'normal';
     }
-    
+
     const has3dTopper = mainToppers.some(t => t.isEnabled && t.type === 'edible_3d');
-    const hasDrip = icingDesign.drip;
     const hasGumpasteBase = icingDesign.gumpasteBaseBoard;
-    
-    if (has3dTopper || hasDrip || hasGumpasteBase) {
+
+    if (has3dTopper || hasGumpasteBase) {
         return 'normal';
     }
 
     // --- Step 2: Check for Fast-Track Eligibility ---
-    const isFastTrackEligible = 
-        (cakeInfo.type === '1 Tier' && (cakeInfo.size === '6" Round' || cakeInfo.size === '8" Round')) || 
+    const isFastTrackEligible =
+        (cakeInfo.type === '1 Tier' && (cakeInfo.size === '6" Round' || cakeInfo.size === '8" Round')) ||
         (cakeInfo.type === 'Bento');
 
     if (!isFastTrackEligible) {
@@ -54,15 +53,16 @@ function calculateAvailabilityForSharing(mainToppers: MainTopperUI[], supportEle
     }
 
     // --- Step 3: Classify as Same-Day or Rush ---
-    const hasGumpasteSupport = supportElements.some(s => s.isEnabled && (s.type === 'gumpaste_panel' || s.type === 'small_gumpaste'));
-    const hasEdiblePhoto = 
-        mainToppers.some(t => t.isEnabled && t.type === 'edible_photo') || 
+    const smallGumpasteCount = supportElements.filter(s => s.isEnabled && s.type === 'small_gumpaste').length;
+    const hasGumpastePanels = supportElements.some(s => s.isEnabled && s.type === 'gumpaste_panel');
+    const hasEdiblePhoto =
+        mainToppers.some(t => t.isEnabled && t.type === 'edible_photo') ||
         supportElements.some(s => s.isEnabled && s.type === 'edible_photo_side');
 
-    if (hasGumpasteSupport || hasEdiblePhoto) {
+    if (hasGumpastePanels || hasEdiblePhoto || smallGumpasteCount >= 2) {
         return 'same-day';
     }
-    
+
     // If it passes all checks, it's a Rush order.
     return 'rush';
 }
