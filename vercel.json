@@ -1,0 +1,19 @@
+{
+  "rewrites": [
+    {
+      "source": "/share/:designId",
+      "destination": "https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/share-design/:designId"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/share/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    }
+  ]
+}

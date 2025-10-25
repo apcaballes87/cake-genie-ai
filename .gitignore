@@ -1,3 +1,40 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Production builds
+/build
+/dist
+/.next/
+/out/
+
+# Environment variables - NEVER COMMIT THESE!
+.env
+.env.local
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+*.pem
+
 # Logs
 logs
 *.log
@@ -7,23 +44,26 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependencies
-/node_modules
+# Optional npm cache directory
+.npm
 
-# Build output
-/dist
+# Optional eslint cache
+.eslintcache
 
-# Environment variables
-.env
-.env.*
-!.env.example
+# Optional REPL history
+.node_repl_history
 
-# IDE and OS files
-.DS_Store
-.vscode/
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# Output of 'npm pack'
+*.tgz
+
+# Yarn
+.yarn-integrity
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Temporary files
+*.tmp
+*.temp
