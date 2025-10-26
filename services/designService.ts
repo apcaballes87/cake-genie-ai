@@ -59,10 +59,58 @@ export async function updateDesign({
         throw new Error("Missing required data to update design.");
     }
 
-    // 2. Check for forbidden keywords
-    const forbiddenKeywords = ['add', 'extra', 'another', 'include', 'new topper', 'new figure', 'create', 'put a new'];
-    if (forbiddenKeywords.some(keyword => additionalInstructions.toLowerCase().includes(keyword))) {
-        throw new Error("Instructions cannot add new items. Please use it only to clarify changes like color or position.");
+    // 2. Validate special instructions with intelligent pattern matching
+    const validateSpecialInstructions = (instructions: string): { isValid: boolean; error?: string } => {
+        const lowerInstructions = instructions.toLowerCase();
+
+        // Forbidden patterns that try to add NEW items
+        const forbiddenPatterns = [
+            // Adding new toppers/figures/characters
+            /(add|put|include|place)\s+(new|another|more|extra|a)\s+(topper|figure|character|item|decoration|element)/i,
+            // Creating new items
+            /create\s+(new|a|an)\s+(topper|figure|character|item|decoration)/i,
+            // Extra toppers (not "extra vibrant" or "extra shine")
+            /extra\s+(topper|figure|character|decoration)/i,
+            // Put a new X
+            /put\s+a\s+new/i,
+            // Include another X
+            /include\s+(another|more)\s+(topper|figure|character)/i,
+        ];
+
+        // Check if any forbidden pattern matches
+        for (const pattern of forbiddenPatterns) {
+            if (pattern.test(lowerInstructions)) {
+                return {
+                    isValid: false,
+                    error: "Instructions cannot add new items. Please use it only to clarify changes like color, size, or position of existing elements."
+                };
+            }
+        }
+
+        // Valid patterns that are explicitly allowed (these override simple keyword matches)
+        const allowedPatterns = [
+            // Color intensification: "add more red", "add more pink to the icing"
+            /(add|put)\s+more\s+(red|pink|blue|green|yellow|orange|purple|white|black|color)/i,
+            // Size adjustments: "make the stars bigger", "make unicorn smaller"
+            /make\s+(the\s+)?\w+\s+(bigger|smaller|larger|taller|shorter|wider)/i,
+            // Effect enhancements: "add more sparkle", "extra vibrant", "more shine"
+            /(add\s+more|extra)\s+(sparkle|shine|glitter|vibrant|intensity)/i,
+        ];
+
+        // If it matches an allowed pattern, it's valid
+        for (const pattern of allowedPatterns) {
+            if (pattern.test(lowerInstructions)) {
+                return { isValid: true };
+            }
+        }
+
+        // No forbidden patterns matched, instructions are valid
+        return { isValid: true };
+    };
+
+    const validation = validateSpecialInstructions(additionalInstructions);
+    if (!validation.isValid) {
+        throw new Error(validation.error || "Invalid instructions.");
     }
 
     // 3. Build the prompt

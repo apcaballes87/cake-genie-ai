@@ -831,13 +831,45 @@ export const EDIT_CAKE_PROMPT_TEMPLATE = (
         icingChanges.push(`- **Recolor the gumpaste base board**. The new BASE BOARD color should be **${colorName(newIcing.colors.gumpasteBaseBoardColor!)}**. Preserve all other details.`);
     }
 
-    // Handle core icing colors (side, top) which are always present
+    // Handle core icing colors (side, top) with pattern-aware recoloring
     const originalIcingColors = originalIcing.colors;
+
+    // Helper function to generate context-aware color change instructions
+    const generateColorInstruction = (surface: 'side' | 'top', newColor: string): string => {
+        const colorDesc = colorName(newColor);
+
+        let instruction = '';
+
+        switch (originalIcing.color_type) {
+            case 'single':
+                // Simple solid color replacement
+                instruction = `- **Recolor the ${surface} icing** to solid **${colorDesc}**. Important: This is a color change only. All original decorations, patterns, or details on this surface must be preserved and remain visible.`;
+                break;
+
+            case 'gradient_2':
+                // Shift 2-color gradient to new palette while maintaining pattern
+                instruction = `- **Shift the 2-color gradient** on the ${surface} icing to use **${colorDesc}** as the dominant/primary color. Maintain the gradient pattern, flow direction, and transition style, but recolor the gradient to harmonize with ${colorDesc}. For example, if the original was a pink-to-white gradient and the new color is blue, create a blue-to-light blue or blue-to-white gradient that matches the original's intensity and smoothness. Important: All original decorations, patterns, or details on this surface must be preserved and remain visible.`;
+                break;
+
+            case 'gradient_3':
+                // Shift 3-color gradient to new palette while maintaining pattern
+                instruction = `- **Shift the 3-color gradient** on the ${surface} icing to use **${colorDesc}** as the primary color. Maintain the gradient pattern, flow direction, and color transition points, but recolor to a harmonious 3-color palette based on ${colorDesc}. For example, if the original was pink-purple-blue and the new color is green, create a green-teal-light green gradient that matches the original's style and intensity. Important: All original decorations, patterns, or details on this surface must be preserved and remain visible.`;
+                break;
+
+            case 'abstract':
+                // Recolor abstract/marbled pattern while preserving the pattern itself
+                instruction = `- **Recolor the abstract/marbled pattern** on the ${surface} icing to use **${colorDesc}** as the dominant color. Preserve the abstract pattern's style, texture, flow, and artistic character, but shift the entire color palette to harmonize with ${colorDesc}. The pattern should remain recognizable and maintain its original aesthetic, just in the new color scheme. For example, if the original had pink/white swirls and the new color is purple, create purple/lavender swirls with the same pattern style. Important: All original decorations, patterns, or details on this surface must be preserved and remain visible.`;
+                break;
+        }
+
+        return instruction;
+    };
+
     if (newIcing.colors.side !== undefined && newIcing.colors.side !== originalIcingColors.side) {
-        icingChanges.push(`- **Recolor the side icing**. The new SIDE icing color should be **${colorName(newIcing.colors.side)}**. Important: This is a color change only. All original decorations, patterns, or details on this surface must be preserved and remain visible.`);
+        icingChanges.push(generateColorInstruction('side', newIcing.colors.side));
     }
     if (newIcing.colors.top !== undefined && newIcing.colors.top !== originalIcingColors.top) {
-        icingChanges.push(`- **Recolor the top icing**. The new TOP icing color should be **${colorName(newIcing.colors.top)}**. Important: This is a color change only. All original decorations, patterns, or details on this surface must be preserved and remain visible.`);
+        icingChanges.push(generateColorInstruction('top', newIcing.colors.top));
     }
 
     changes.push(...icingChanges);
