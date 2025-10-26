@@ -161,8 +161,15 @@ Some high-quality printouts are printed on colored cardstock or have digitally d
    - Thick, rounded edges typical of molded plastic
    - Printed licensing text under feet/base
    - Uniform factory-made appearance
-   
-   **BABY FIGURINE OVERRIDE:** Realistic proportioned baby + glossy/hard finish → TOY/figurine (classify as toy regardless of other cues)
+
+   **BABY FIGURINE OVERRIDE (CRITICAL):** Small, realistic baby toppers made of ceramic/resin/porcelain/plastic are ALWAYS toys/figurines:
+   - Glassy/ceramic glaze or hard resin shine with smooth specular highlights
+   - Painted micro-details (eyes/cheeks) that look printed, not hand-modeled
+   - Breakable appearance with sharp, crisp edges unlike soft fondant
+   - Integrated molded base/blanket as one piece
+   - No food cues: no hand-modeled imperfections, no cornstarch dusting, no matte sugar look
+   - If proportions are realistic (normal head/body ratio) and finish is glossy/hard → TOY/figurine
+   - **Piece count:** Two babies sharing a molded base = 1 piece; separate babies = count each
 
    **T3) EDIBLE 3D CHECK:** A topper is 'edible_3d' if it has **2 or more** of these cues:
    - Matte, soft, or powdery finish (may show cornstarch dusting)
@@ -181,20 +188,27 @@ Some high-quality printouts are printed on colored cardstock or have digitally d
    - **Printout Priority Guardrail:** Visible printed edges, logos, flat inkjet/glossy surface → PRINTOUT
    - **Stricter Toy Gate:** For small/low-res photos, require ≥3 toy cues (at least one being factory base or mold seam)
 
-   **HERO VS SUPPORT CLASSIFICATION:**
-   
-   Classify as **'hero'** (full price, no allowance) if:
-   - Any 'medium' or 'large' 'edible_3d' topper (based on ratio sizing)
-   - A 'small' topper that is the clear visual focal point:
-     * Occupies more than 10% of the top surface area, OR
-     * Height ≥⅓ of the tier's total height (ratio ≥0.33×), OR
-     * Single central character on otherwise simple cake, OR
-     * Cake has only 1-2 small characters in total
-   
-   Classify as **'support'** (subject to allowance) if:
-   - Part of decorative scene/panel work on the sides of the cake
-   - A cluster of 3 or more small characters/items bundled together
-   - A background element (e.g., trees, clouds behind a main character)
+   **HERO VS SUPPORT CLASSIFICATION (CRITICAL FOR PRICING):**
+
+   Classify as **'hero'** (full price, NO allowance) if ANY of these apply:
+   - **Any 'medium' or 'large' 'edible_3d' topper** (based on ratio sizing: >0.5× tier thickness)
+   - **Special structural bundles** like castles/towers with integrated figures
+   - **Small 3D characters/animals/objects** (≤0.5× tier thickness) that meet ANY of:
+     * **Visual Dominance:** Occupies ≥10% of top surface area OR height ≥⅓ of tier's total height (ratio ≥0.33×)
+     * **Focal Point:** Single central character on otherwise simple cake with no competing decorative elements
+     * **Character Count:** Only 1-2 small characters total on entire cake = HERO each
+
+   Classify as **'support'** (subject to ₱200 allowance) if:
+   - **3+ small characters** on cake → forms a Supporting Cluster Bundle
+   - Part of decorative scene/panel work on sides
+   - Background elements (trees, clouds behind main character)
+   - Small accent pieces scattered around
+   - When truly uncertain between hero/support → default to 'support' (cheaper option)
+
+   **PRICING CONTEXT:**
+   - Hero toppers are charged per piece at full price (no allowance deduction)
+   - Support gumpaste work is grouped and subject to a ₱200 built-in allowance
+   - This classification directly affects the final price calculation
 
    **Material Definitions:**
    - **'edible_3d'**: Hand-sculpted gumpaste/fondant figures with 3D volume
@@ -206,8 +220,17 @@ Some high-quality printouts are printed on colored cardstock or have digitally d
 
    **IMPORTANT EXCLUSIONS:**
    - Decorations made directly from piped icing (swirls, rosettes, piped writing) are NOT main toppers
-   - Dollop icing borders (piped icing blobs) are never toppers
+   - **DOLLOP ICING BORDERS (CRITICAL):** Piped soft icing blobs/teardrops around edges are NEVER toppers or gumpaste balls
+     * These are smooth, creamy piped decorations (like rosettes, shells, stars)
+     * Always part of base cake decoration (₱0)
+     * Do NOT classify as 'gumpaste_panel' or 'small_gumpaste' or any charged element
+     * Only classify spheres as gumpaste balls if they show hand-molded imperfections and matte sugar finish
    - Simple piping and sprinkles are not toppers
+   - **MESSAGE TOPPERS:** "Happy Birthday" and similar text toppers are usually PRINTOUTS (₱0) unless they clearly show ≥2 cardstock cues:
+     * Real glitter granules that sparkle with angle changes
+     * Metallic foil luster (not printed metallic)
+     * Visible layered rigid edge thickness
+     * **Single uniform color only** (if multiple colors like font + stroke → PRINTOUT)
 
     **GROUPING RULES:**
 
@@ -253,21 +276,57 @@ For each group, include:
 }
    
 4. **support_elements** (decorative, not focal):
-   
+
+   **SUPPORTING CLUSTER BUNDLE (NEW CATEGORY):**
+   When you see multiple small 3D props + minor 2D elements + simple message grouped as one cohesive decorative motif:
+   - **Small bundle:** ~1-3 small props + light 2D/name; footprint <10% of surface
+   - **Medium bundle:** ~4-7 props and/or moderate 2D + message; ~10-25% of surface
+   - **Large bundle:** 8+ props, dense or wide distribution; >25% of surface or multi-sided
+   - **Example:** 1 small hero character + 5 balloon gumpaste props + name plaque = medium Supporting Cluster Bundle
+   - **Do NOT separately list:** Individual gumpaste balls, small accents, or simple shapes that are part of this bundle
+
+   **SPECIAL STRUCTURAL BUNDLES:**
+   - **Castle/Tower with integrated figures:** Classify as special structural bundle in description
+   - Note if there are multiple towers or additional integrated elements
+   - These are considered primary/hero features
+
    Identify each support element and classify its material:
    
-   - **'gumpaste_panel'**: Significant side decoration made from flat gumpaste pieces forming a scene or pattern. Examples: camo patches, stripes, cloud blobs, silhouettes, badges, top flat discs/panels
-   
+   - **'gumpaste_panel'**: Flat gumpaste/fondant appliqués attached to cake forming scenes or patterns
+     * **Examples:** camo patches, stripes, cloud blobs, silhouettes, badges, jerseys, emblems, top flat discs/panels, rope/braid bands
+     * **Coverage levels (CRITICAL for pricing):**
+       - **Simple/Partial (<25% sides, <180°):** Small band or partial section, few elements, may include one narrow rope
+       - **Extended/Feature (25-40% sides, ~180°):** Camo/patchwork wrap, side wrap + matching top disc, wrap + rope at base, one larger feature (shield/jersey)
+       - **Heavy/Layered (>40% sides, ≥180°-360°):** Full or near-full wrap with layered complexity, emblems/faces, multiple layered motifs, modeled textures
+     * **Note:** Ropes/braids and top discs that belong to the scene are included in the panel price (don't list separately)
+     * **Name plaques:** Simple name plaques are FREE unless part of a layered emblem/badge
+
    - **'small_gumpaste'**: Smaller individual gumpaste items like stars, flowers, or dots that are not the main focus
+     * Only list if NOT part of a Supporting Cluster Bundle or Scene/Panel
+     * **Many 2D cutter decors:** Moderate (4-9 pieces) or Many (10+ pieces) flat cutouts
+     * **Small gumpaste accent:** 2-5 tiny flat accent pieces
    
    - **'chocolates'**: Chocolate bars, spheres, drips, or shards used decoratively
-     * **For expensive chocolates** (Ferrero, Kinder, Cadbury, Snickers, KitKat): note as premium
-     * **For cheap/generic chocolates** (Oreos, Kisses): note as standard
-     * **M&M chocolates**: specify as M&Ms
-   
+     * **EXPENSIVE CHOCOLATES** (Ferrero Rocher, Kinder, Cadbury, Snickers, KitKat, Toblerone):
+       - Note brand name and describe as "premium chocolates"
+       - Specify quantity/coverage (few: 1-2, moderate: 3-5, heavy: 6+)
+     * **CHEAP/GENERIC CHOCOLATES** (Oreos, Kisses, generic cookies):
+       - Describe as "generic chocolates" or "cookies"
+       - Specify quantity (few: 1-3, moderate: 4-8, heavy/dominant: 9+)
+     * **M&M CHOCOLATES**:
+       - ALWAYS specify as "M&Ms" (not just "chocolates")
+       - Estimate coverage (light scatter, moderate, heavy/1 cup amount)
+
    - **'sprinkles'**: Tiny decorative particles like nonpareils, jimmies, or edible glitter
-   
-   - **'dragees'**: Sugar pearls/dragees - NEVER treat as chocolates or gumpaste balls
+
+   - **'dragees'**: Sugar pearls/dragees used as borders or accents
+     * **CRITICAL: Dragees vs Chocolates vs Gumpaste Balls Disambiguation**
+     * **DRAGEES** (sugar pearls): Small (2-8mm), uniform spheres, pearlescent/metallic coating, hard candy shell, often silver/gold/pastel colors
+     * **CHOCOLATES** (spheres): Larger (10-25mm), matte/glossy chocolate coating, brown/colorful candy shells (M&Ms), may show brand logos
+     * **GUMPASTE BALLS**: Handmade, slight size variation, matte/powdery sugar finish, may show fingerprints or imperfections
+     * **Decision Rule:** Size + texture + finish determine the class
+     * **Coverage for dragees:** Specify as light (<40% visible surface) or heavy (≥40% visible surface)
+     * **NEVER treat dragees as "chocolates" or "gumpaste balls"**
    
    - **'support_printout'**: Smaller printed images used as background or secondary decoration
    
