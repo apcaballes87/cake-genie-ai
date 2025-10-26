@@ -47,8 +47,6 @@ const HowToOrderPage = lazy(() => import('./app/how-to-order/page'));
 const ContactPage = lazy(() => import('./app/contact/page'));
 const ReviewsPage = lazy(() => import('./app/reviews/page'));
 const ShopifyCustomizingPage = lazy(() => import('./app/shopify-customizing/page'));
-const TestSupabasePage = lazy(() => import('./app/test-supabase/page'));
-const TestAuthPage = lazy(() => import('./app/test-auth/page'));
 
 type ImageTab = 'original' | 'customized';
 
@@ -432,8 +430,6 @@ export default function App(): React.ReactElement {
         case 'orders': return <OrdersPage onClose={() => setAppState(previousAppState.current || 'landing')} />;
         case 'shared_design': return viewingDesignId ? <SharedDesignPage designId={viewingDesignId} onStartWithDesign={handleStartWithSharedDesign} onNavigateHome={() => { setAppState('landing'); }} onPurchaseDesign={handlePurchaseSharedDesign} /> : <LoadingSpinner />;
         case 'shopify_customizing': return viewingShopifySessionId ? <ShopifyCustomizingPage sessionId={viewingShopifySessionId} onNavigateHome={() => setAppState('landing')} /> : <LoadingSpinner />;
-        case 'test-supabase': return <TestSupabasePage onClose={() => setAppState('landing')} />;
-        case 'test-auth': return <TestAuthPage onClose={() => setAppState('landing')} />;
         case 'about': return <AboutPage onClose={() => setAppState('landing')} />;
         case 'how_to_order': return <HowToOrderPage onClose={() => setAppState('landing')} />;
         case 'contact': return <ContactPage onClose={() => setAppState('landing')} />;

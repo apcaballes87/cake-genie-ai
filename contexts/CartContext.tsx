@@ -154,15 +154,39 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const loadCart = useCallback(async (user: User | null) => {
     setIsLoading(true);
     try {
+      console.log('🛒 Loading cart items for user:', user?.id);
+      
       const isAnonymous = user?.is_anonymous ?? false;
       const userIdForQuery = isAnonymous ? null : user?.id;
       const sessionIdForQuery = isAnonymous ? user?.id : null;
 
-      const { data, error } = await getCartItems(userIdForQuery, sessionIdForQuery);
+      // Add timeout to prevent hanging
+      const getCartItemsWithTimeout = async () => {
+        return new Promise<any>(async (resolve, reject) => {
+            const timeout = setTimeout(() => {
+                reject(new Error('Cart loading timeout - took longer than 10 seconds'));
+            }, 10000); // 10 second timeout
+            
+            try {
+                const result = await getCartItems(userIdForQuery, sessionIdForQuery);
+                clearTimeout(timeout);
+                resolve(result);
+            } catch (error) {
+                clearTimeout(timeout);
+                reject(error);
+            }
+        });
+      };
+      
+      const { data, error } = await getCartItemsWithTimeout() as any;
       if (error) throw error;
       setCartItems(data || []);
-    } catch (error) {
+      console.log('✅ Cart items loaded:', data?.length || 0);
+    } catch (error: any) {
       console.error('Failed to load cart:', error);
+      if (error.message.includes("timeout")) {
+        console.error("Cart loading timed out");
+      }
       setCartItems([]);
     } finally {
       setIsLoading(false);
@@ -173,15 +197,62 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const initialize = async () => {
         setIsLoading(true); // Set loading at the very start.
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            console.log('🔄 Initializing cart context...');
+            
+            // Add timeout to prevent hanging
+            const getSessionWithTimeout = async () => {
+                return new Promise<any>(async (resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Session initialization timeout - took longer than 30 seconds'));
+                    }, 30000); // 30 second timeout
+                    
+                    try {
+                        const result = await supabase.auth.getSession();
+                        clearTimeout(timeout);
+                        resolve(result);
+                    } catch (error) {
+                        clearTimeout(timeout);
+                        reject(error);
+                    }
+                });
+            };
+            
+            const { data: { session }, error: sessionError } = await getSessionWithTimeout() as any;
+            
+            if (sessionError) {
+                console.error('❌ Error getting session:', sessionError);
+                throw sessionError;
+            }
     
             let userToLoad: User | null = session?.user || null;
+            console.log('📋 Session check result:', { hasSession: !!session, userId: userToLoad?.id });
     
             if (!session) {
                 console.log('🔵 No session, creating anonymous session...');
-                const { data, error } = await supabase.auth.signInAnonymously();
+                
+                // Add timeout for anonymous sign in as well
+                const signInAnonymouslyWithTimeout = async () => {
+                    return new Promise<any>(async (resolve, reject) => {
+                        const timeout = setTimeout(() => {
+                            reject(new Error('Anonymous sign-in timeout - took longer than 30 seconds'));
+                        }, 30000); // 30 second timeout
+                        
+                        try {
+                            const result = await supabase.auth.signInAnonymously();
+                            clearTimeout(timeout);
+                            resolve(result);
+                        } catch (error) {
+                            clearTimeout(timeout);
+                            reject(error);
+                        }
+                    });
+                };
+                
+                const { data, error } = await signInAnonymouslyWithTimeout();
+                console.log('🔄 Anonymous sign in result:', { data, error });
     
                 if (error) {
+                    console.error('❌ Error creating anonymous session:', error);
                     throw error; // Let the catch block handle it
                 }
                 userToLoad = data.user;
@@ -198,13 +269,17 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
             prevUserIdRef.current = userToLoad?.id ?? null;
             
+            console.log('🛒 Loading cart for user:', userToLoad?.id);
             await loadCart(userToLoad); // This has its own try/catch/finally
             setAuthError(null); // Clear any previous errors on success
+            console.log('✅ Cart context initialization complete');
 
         } catch (error: any) {
             console.error('❌ Failed to initialize user session:', error);
             if (error.message.includes("disabled")) {
                 setAuthError("Guest sessions are currently disabled. Please ask the site administrator to enable Anonymous Sign-ins in the Supabase project's authentication settings.");
+            } else if (error.message.includes("timeout")) {
+                setAuthError("Authentication service is taking too long to respond. Please check your internet connection and try again.");
             } else {
                 // A more user-friendly message
                 setAuthError(`Could not connect to the service. Please check your internet connection and try again.`);
@@ -237,15 +312,19 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // If there's no auth error, load the cart for the new user.
             // This handles login/logout scenarios.
             if (!authError) {
+                console.log('🛒 Reloading cart for user change...');
                 await loadCart(user);
+                console.log('✅ Cart reloaded');
             }
         } else {
              // If user hasn't changed (e.g., token refresh), just update the user object.
+            console.log('🔄 User unchanged, updating user object');
             setCurrentUser(user);
         }
     });
         
     return () => {
+        console.log('🧹 Cleaning up cart context subscription');
         subscription?.unsubscribe();
     };
   }, [loadCart, authError]);
