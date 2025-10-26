@@ -1044,7 +1044,13 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                 onIcingDesignChange(newIcingDesign);
                             }}
                         >
-                             {icingDesign.colors.borderTop && (
+                             {icingDesign.border_top && (() => {
+                                // Ensure color exists when border is enabled
+                                if (!icingDesign.colors.borderTop) {
+                                    const defaultColor = icingDesign.colors.top || icingDesign.colors.side || '#FFFFFF';
+                                    onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, borderTop: defaultColor } });
+                                }
+                                return (
                                 <div className="mt-3 pt-3 border-t border-slate-200">
                                     <label className="block text-xs font-medium text-slate-600 mb-2">{icingLocationMap['borderTop']}</label>
                                     {editingColorForItemId === 'icing-borderTop' ? (
@@ -1064,9 +1070,10 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                         </div>
                                     )}
                                 </div>
-                            )}
+                                );
+                            })()}
                         </Toggle>
-                        
+
                         <Toggle
                             label="Base Border"
                             icon={icingLocationIconMap['borderBase']}
@@ -1082,7 +1089,13 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                 onIcingDesignChange(newIcingDesign);
                             }}
                         >
-                            {icingDesign.colors.borderBase && (
+                            {icingDesign.border_base && (() => {
+                                // Ensure color exists when border is enabled
+                                if (!icingDesign.colors.borderBase) {
+                                    const defaultColor = icingDesign.colors.side || icingDesign.colors.top || '#FFFFFF';
+                                    onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, borderBase: defaultColor } });
+                                }
+                                return (
                                 <div className="mt-3 pt-3 border-t border-slate-200">
                                     <label className="block text-xs font-medium text-slate-600 mb-2">{icingLocationMap['borderBase']}</label>
                                     {editingColorForItemId === 'icing-borderBase' ? (
@@ -1102,7 +1115,8 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                         </div>
                                     )}
                                 </div>
-                            )}
+                                );
+                            })()}
                         </Toggle>
 
                         <Toggle
