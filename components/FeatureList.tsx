@@ -1022,14 +1022,16 @@ export const FeatureList = React.memo<FeatureListProps>(({
                            </div>
                         </div>
 
-                        <Toggle 
+                        <Toggle
                             label="Top Border"
                             icon={icingLocationIconMap['borderTop']}
                             isEnabled={icingDesign.border_top}
                             onChange={(isEnabled) => {
                                 const newIcingDesign = { ...icingDesign, border_top: isEnabled };
                                 if (isEnabled && !newIcingDesign.colors.borderTop) {
-                                    newIcingDesign.colors = { ...newIcingDesign.colors, borderTop: '#FFFFFF' };
+                                    // Set border color to match the top icing color for accuracy
+                                    const defaultColor = icingDesign.colors.top || icingDesign.colors.side || '#FFFFFF';
+                                    newIcingDesign.colors = { ...newIcingDesign.colors, borderTop: defaultColor };
                                 }
                                 onIcingDesignChange(newIcingDesign);
                             }}
@@ -1057,7 +1059,7 @@ export const FeatureList = React.memo<FeatureListProps>(({
                             )}
                         </Toggle>
                         
-                        <Toggle 
+                        <Toggle
                             label="Base Border"
                             icon={icingLocationIconMap['borderBase']}
                             isEnabled={icingDesign.border_base}
@@ -1065,7 +1067,9 @@ export const FeatureList = React.memo<FeatureListProps>(({
                             onChange={(isEnabled) => {
                                 const newIcingDesign = { ...icingDesign, border_base: isEnabled };
                                 if (isEnabled && !newIcingDesign.colors.borderBase) {
-                                    newIcingDesign.colors = { ...newIcingDesign.colors, borderBase: '#FFFFFF' };
+                                    // Set border color to match the side icing color for accuracy
+                                    const defaultColor = icingDesign.colors.side || icingDesign.colors.top || '#FFFFFF';
+                                    newIcingDesign.colors = { ...newIcingDesign.colors, borderBase: defaultColor };
                                 }
                                 onIcingDesignChange(newIcingDesign);
                             }}
