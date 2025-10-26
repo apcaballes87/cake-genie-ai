@@ -4,6 +4,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { ChevronDownIcon, PhotoIcon, SideIcingGuideIcon, TopIcingGuideIcon, TopBorderGuideIcon, BaseBorderGuideIcon, PencilIcon, BaseBoardGuideIcon, TrashIcon } from './icons';
 import { ColorPalette } from './ColorPalette';
 import { CAKE_TYPES, THICKNESS_OPTIONS_MAP, ANALYSIS_PHRASES, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_OPTIONS, FLAVOR_THUMBNAILS, TIER_THUMBNAILS } from '../constants';
+import { useAuth } from '../hooks/useAuth';
 import { ToggleSkeleton, CakeBaseSkeleton } from './LoadingSkeletons';
 
 const DRIP_THUMBNAIL_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/dripeffect.webp';
@@ -76,7 +77,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode; defaultOpen?
     );
 };
 
-const Toggle: React.FC<{ label: string; isEnabled: boolean; onChange: (enabled: boolean) => void; price?: number; children?: React.ReactNode; icon?: React.ReactNode; onDelete?: () => void; disabled?: boolean; }> = ({ label, isEnabled, onChange, price, children, icon, onDelete, disabled = false }) => (
+const Toggle: React.FC<{ label: string; isEnabled: boolean; onChange: (enabled: boolean) => void; price?: number; children?: React.ReactNode; icon?: React.ReactNode; onDelete?: () => void; disabled?: boolean; showPrice?: boolean; }> = ({ label, isEnabled, onChange, price, children, icon, onDelete, disabled = false, showPrice = true }) => (
     <div className={`bg-white p-3 rounded-md border border-slate-200 transition-opacity ${isEnabled ? 'opacity-100' : 'opacity-60'} ${disabled ? 'opacity-50 bg-slate-50 cursor-not-allowed' : ''}`}>
         <div className="flex justify-between items-center">
              <div className="flex items-center gap-3">
@@ -84,7 +85,7 @@ const Toggle: React.FC<{ label: string; isEnabled: boolean; onChange: (enabled: 
                 <span className={`text-sm font-medium ${isEnabled ? 'text-slate-800' : 'text-slate-500 line-through'} ${disabled ? 'text-slate-400' : ''}`}>{label}</span>
             </div>
             <div className="flex items-center space-x-2">
-                {price !== undefined && <span className={`font-semibold ${isEnabled ? 'text-green-600' : 'text-slate-400 line-through'}`}>₱{price}</span>}
+                {price !== undefined && showPrice && <span className={`font-semibold ${isEnabled ? 'text-green-600' : 'text-slate-400 line-through'}`}>₱{price}</span>}
                 {onDelete && (
                     <button
                         type="button"
@@ -212,6 +213,10 @@ export const FeatureList = React.memo<FeatureListProps>(({
     const [showAdditionalInstructions, setShowAdditionalInstructions] = useState(defaultOpenInstructions || !!additionalInstructions);
     const prevAnalysisIdRef = useRef(analysisId);
     const [editingColorForItemId, setEditingColorForItemId] = useState<string | null>(null);
+
+    // Get user authentication to check if admin
+    const { user } = useAuth();
+    const isAdmin = user?.email === 'apcaballes@gmail.com';
 
     const mainToppersCount = mainToppers.reduce((sum, topper) => sum + topper.quantity, 0);
     const supportElementsCount = supportElements.length;
@@ -476,11 +481,12 @@ export const FeatureList = React.memo<FeatureListProps>(({
                             const hasOptions = showMaterialToggle || isPrintoutOrPhoto || canChangeColor;
                             
                             return (
-                            <Toggle 
+                            <Toggle
                                 key={topper.id}
                                 label={`${topper.description} (${topper.size})`}
                                 isEnabled={topper.isEnabled}
                                 price={topper.price}
+                                showPrice={isAdmin}
                                 onDelete={() => onMainTopperChange(mainToppers.filter(t => t.id !== topper.id))}
                                 onChange={(isEnabled) => onMainTopperChange(mainToppers.map(t => t.id === topper.id ? { ...t, isEnabled } : t))}
                             >
@@ -602,6 +608,7 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                     label={`${element.description} (${element.coverage})`}
                                     isEnabled={element.isEnabled}
                                     price={element.price}
+                                    showPrice={isAdmin}
                                     onChange={(isEnabled) => onSupportElementChange(supportElements.map(e => e.id === element.id ? { ...e, isEnabled } : e))}
                                  >
                                     {hasOptions && (
@@ -866,11 +873,12 @@ export const FeatureList = React.memo<FeatureListProps>(({
             {icingDesign && (
                 <Section title="Icing & Design">
                     <div className="space-y-3">
-                         <Toggle 
+                         <Toggle
                             label="Drip Effect"
                             icon={<img src={DRIP_THUMBNAIL_URL} alt="Drip effect" className="w-12 h-12 object-contain rounded-md" />}
                             isEnabled={icingDesign.drip}
                             price={icingDesign.dripPrice}
+                            showPrice={isAdmin}
                             onChange={(isEnabled) => {
                                 const newIcingDesign = { ...icingDesign, drip: isEnabled };
                                 if (isEnabled && !newIcingDesign.colors.drip) {
@@ -1097,11 +1105,12 @@ export const FeatureList = React.memo<FeatureListProps>(({
                             )}
                         </Toggle>
 
-                        <Toggle 
+                        <Toggle
                             label="Gumpaste Covered Board"
                             icon={icingLocationIconMap['gumpasteBaseBoard']}
                             isEnabled={icingDesign.gumpasteBaseBoard}
                             price={icingDesign.gumpasteBaseBoardPrice}
+                            showPrice={isAdmin}
                             disabled={isBento}
                             onChange={(isEnabled) => {
                                 const newIcingDesign = { ...icingDesign, gumpasteBaseBoard: isEnabled };
