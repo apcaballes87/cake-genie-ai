@@ -294,7 +294,7 @@ interface OrdersPageProps {
 }
 
 export default function OrdersPage({ onClose }: OrdersPageProps) {
-    const { user, loading: authLoading } = useAuth();
+    const { user } = useAuth();
     const userId = user?.id;
     const [currentPage, setCurrentPage] = useState(1);
     const [allOrders, setAllOrders] = useState<EnrichedOrder[]>([]);
@@ -349,7 +349,7 @@ export default function OrdersPage({ onClose }: OrdersPageProps) {
         );
     }, []);
     
-    const initialLoading = authLoading || (pageLoading && allOrders.length === 0);
+    const initialLoading = pageLoading && allOrders.length === 0;
 
     if (initialLoading) {
         return (

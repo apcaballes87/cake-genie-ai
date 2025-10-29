@@ -65,6 +65,10 @@ export default function App(): React.ReactElement {
   const { user, isAuthenticated, signOut } = useAuth();
   const { cartItems: supabaseCartItems, itemCount: supabaseItemCount, addToCartOptimistic, removeItemOptimistic, authError, isLoading: isCartLoading } = useCart();
 
+  // Show app immediately, don't block on auth/cart loading
+  // This prevents the 5-second delay users were experiencing
+  const isAppInitializing = false;
+
   // --- CUSTOM BUSINESS LOGIC HOOKS ---
   const { appState, previousAppState, confirmedOrderId, viewingDesignId, viewingShopifySessionId, setAppState, setConfirmedOrderId } = useAppNavigation();
 

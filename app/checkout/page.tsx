@@ -21,7 +21,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
   onOrderPlaced,
   setAppState,
 }) => {
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { 
     cartItems, 
     cartTotal, 
@@ -37,15 +37,12 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
 
-  // Redirect if not authenticated or if auth check is pending
+  // Redirect if not authenticated
   useEffect(() => {
-    if (authLoading) {
-        return; // Wait for auth status to resolve
-    }
     if (!isAuthenticated) {
       setAppState('auth');
     }
-  }, [authLoading, isAuthenticated, setAppState]);
+  }, [isAuthenticated, setAppState]);
 
   const deliveryFee = 150;
   const total = cartTotal + deliveryFee;
@@ -121,7 +118,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
     }
   };
 
-  if (authLoading || addressesLoading) {
+  if (addressesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner />

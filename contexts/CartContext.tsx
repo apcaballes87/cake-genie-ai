@@ -208,68 +208,74 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     // Add a ref to track if initialization has already started
     const initStartedRef = { current: false };
-    
+
     const initialize = async () => {
         // Prevent multiple initializations
         if (initStartedRef.current) {
             console.log('🔄 Initialization already started, skipping...');
             return;
         }
-        
+
         initStartedRef.current = true;
-        setIsLoading(true); // Set loading at the very start.
-        
+
         try {
             console.log('🔄 Initializing cart context...');
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-            
-            if (sessionError) {
-                console.error('❌ Error getting session:', sessionError);
-                throw sessionError;
-            }
-    
-            let userToLoad: User | null = session?.user || null;
-            console.log('📋 Session check result:', { hasSession: !!session, userId: userToLoad?.id });
-    
-            if (!session) {
-                console.log('🔵 No session, creating anonymous session...');
-                const { data, error } = await supabase.auth.signInAnonymously();
-                console.log('🔄 Anonymous sign in result:', { data, error });
-    
-                if (error) {
-                    console.error('❌ Error creating anonymous session:', error);
-                    throw error; // Let the catch block handle it
+
+            // Get session without waiting - let it resolve in background
+            const sessionPromise = supabase.auth.getSession();
+
+            sessionPromise.then(async ({ data: { session }, error: sessionError }) => {
+                if (sessionError) {
+                    console.error('❌ Error getting session:', sessionError);
+                    throw sessionError;
                 }
-                userToLoad = data.user;
-                console.log('✅ Anonymous session created:', userToLoad?.id);
-            } else {
-                console.log('✅ Existing session found:', userToLoad.id, 'Is anonymous:', userToLoad.is_anonymous);
-            }
-    
-            setCurrentUser(userToLoad);
-            if (userToLoad?.is_anonymous) {
-                setSessionId(userToLoad.id);
-            } else {
-                setSessionId(null);
-            }
-            prevUserIdRef.current = userToLoad?.id ?? null;
-            
-            console.log('🛒 Loading cart for user:', userToLoad?.id);
-            await loadCart(userToLoad); // This has its own try/catch/finally
-            setAuthError(null); // Clear any previous errors on success
-            console.log('✅ Cart context initialization complete');
+
+                let userToLoad: User | null = session?.user || null;
+                console.log('📋 Session check result:', { hasSession: !!session, userId: userToLoad?.id });
+
+                if (!session) {
+                    console.log('🔵 No session, creating anonymous session...');
+                    const { data, error } = await supabase.auth.signInAnonymously();
+                    console.log('🔄 Anonymous sign in result:', { data, error });
+
+                    if (error) {
+                        console.error('❌ Error creating anonymous session:', error);
+                        throw error;
+                    }
+                    userToLoad = data.user;
+                    console.log('✅ Anonymous session created:', userToLoad?.id);
+                } else {
+                    console.log('✅ Existing session found:', userToLoad.id, 'Is anonymous:', userToLoad.is_anonymous);
+                }
+
+                setCurrentUser(userToLoad);
+                if (userToLoad?.is_anonymous) {
+                    setSessionId(userToLoad.id);
+                } else {
+                    setSessionId(null);
+                }
+                prevUserIdRef.current = userToLoad?.id ?? null;
+
+                console.log('🛒 Loading cart for user:', userToLoad?.id);
+                // Load cart in background without blocking UI
+                loadCart(userToLoad).catch(error => {
+                    console.error('Background cart loading failed:', error);
+                });
+                setAuthError(null);
+                console.log('✅ Cart context initialization complete');
+            }).catch((error: any) => {
+                console.error('❌ Failed to initialize user session:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+                if (error.message.includes("disabled")) {
+                    setAuthError("Guest sessions are currently disabled. Please ask the site administrator to enable Anonymous Sign-ins in the Supabase project's authentication settings.");
+                } else if (error.message.includes("timeout")) {
+                    setAuthError("Authentication service is taking too long to respond. Please check your internet connection and try again.");
+                } else {
+                    setAuthError(`Could not connect to the service. Please check your internet connection and try again.`);
+                }
+            });
 
         } catch (error: any) {
-            console.error('❌ Failed to initialize user session:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-            if (error.message.includes("disabled")) {
-                setAuthError("Guest sessions are currently disabled. Please ask the site administrator to enable Anonymous Sign-ins in the Supabase project's authentication settings.");
-            } else if (error.message.includes("timeout")) {
-                setAuthError("Authentication service is taking too long to respond. Please check your internet connection and try again.");
-            } else {
-                // A more user-friendly message
-                setAuthError(`Could not connect to the service. Please check your internet connection and try again.`);
-            }
-            setIsLoading(false); // CRITICAL: Turn off loading on initialization failure.
+            console.error('❌ Failed to initialize cart context:', error);
         }
     };
 

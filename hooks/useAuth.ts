@@ -9,7 +9,6 @@ const supabase = getSupabaseClient();
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const initStartedRef = useRef(false);
 
   useEffect(() => {
@@ -18,55 +17,30 @@ export const useAuth = () => {
       console.log('🔒 Auth initialization already started, skipping...');
       return;
     }
-    
+
     initStartedRef.current = true;
-    
-    // Add timeout to prevent hanging
-    const initializeAuth = async () => {
-      return new Promise<void>(async (resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Auth initialization timeout - took longer than 10 seconds'));
-        }, 10000); // 10 second timeout
-        
-        try {
-          const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            (_event, session) => {
-              console.log('🔄 Auth state changed in useAuth:', _event, session?.user?.id);
-              setUser(session?.user ?? null);
-              setLoading(false);
-              clearTimeout(timeout);
-              resolve();
-            }
-          );
 
-          // Initial check
-          const checkUser = async () => {
-            console.log('🔍 Checking initial user session...');
-            const { data: { session } } = await supabase.auth.getSession();
-            console.log('📋 Initial session check result:', { hasSession: !!session, userId: session?.user?.id });
-            setUser(session?.user ?? null);
-            setLoading(false);
-            clearTimeout(timeout);
-            resolve();
-          };
-          checkUser();
+    // Set up auth state listener immediately
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        console.log('🔄 Auth state changed in useAuth:', _event, session?.user?.id);
+        setUser(session?.user ?? null);
+      }
+    );
 
-          // Clean up subscription
-          return () => {
-            console.log('🧹 Cleaning up auth subscription');
-            subscription?.unsubscribe();
-          };
-        } catch (error) {
-          clearTimeout(timeout);
-          reject(error);
-        }
-      });
-    };
-
-    initializeAuth().catch((error) => {
-      console.error('❌ Auth initialization failed:', error);
-      setLoading(false);
+    // Get initial session in background without blocking
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('📋 Initial session check result:', { hasSession: !!session, userId: session?.user?.id });
+      setUser(session?.user ?? null);
+    }).catch(error => {
+      console.error('Background session check failed:', error);
     });
+
+    // Clean up subscription
+    return () => {
+      console.log('🧹 Cleaning up auth subscription');
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const signUp = useCallback(async (
@@ -134,7 +108,6 @@ export const useAuth = () => {
 
   return {
     user,
-    loading,
     isAuthenticated: !!user,
     signUp,
     signIn,
