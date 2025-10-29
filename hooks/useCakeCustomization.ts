@@ -331,20 +331,60 @@ export const useCakeCustomization = () => {
         }
     
         if (!dirtyFields.has('mainToppers')) {
-            const newMainToppers = analysisData.main_toppers.map((t): MainTopperUI => ({
-                ...t, id: crypto.randomUUID(), isEnabled: true, price: 0, original_type: t.type, replacementImage: undefined,
-                color: t.color, original_color: t.color,
-                colors: t.colors, original_colors: t.colors,
-            }));
+            const newMainToppers = analysisData.main_toppers.map((t): MainTopperUI => {
+                // Check if this is a character cutout, logo, or edible photo that should default to printout
+                let targetType = t.type;
+                const isCharacterCutoutOrLogo = (
+                    (t.description.toLowerCase().includes('character') || 
+                     t.description.toLowerCase().includes('logo') ||
+                     t.description.toLowerCase().includes('brand')) &&
+                    ['edible_3d', 'edible_2d_gumpaste'].includes(t.type)
+                );
+                
+                // Default certain types to printout
+                if (isCharacterCutoutOrLogo) {
+                    targetType = 'printout';
+                }
+                
+                return {
+                    ...t, 
+                    type: targetType,
+                    id: crypto.randomUUID(), 
+                    isEnabled: true, 
+                    price: 0, 
+                    original_type: t.type, 
+                    replacementImage: undefined,
+                    color: t.color, 
+                    original_color: t.color,
+                    colors: t.colors, 
+                    original_colors: t.colors,
+                };
+            });
             setMainToppers(newMainToppers);
         }
     
         if (!dirtyFields.has('supportElements')) {
-            const newSupportElements = analysisData.support_elements.map((s): SupportElementUI => ({
-                ...s, id: crypto.randomUUID(), isEnabled: true, price: 0, original_type: s.type, replacementImage: undefined,
-                color: s.color, original_color: s.color,
-                colors: s.colors, original_colors: s.colors,
-            }));
+            const newSupportElements = analysisData.support_elements.map((s): SupportElementUI => {
+                // Check if this is a wrap that should default to printout
+                let targetType = s.type;
+                if (s.type === 'edible_photo_side') {
+                    targetType = 'support_printout';
+                }
+                
+                return {
+                    ...s, 
+                    type: targetType,
+                    id: crypto.randomUUID(), 
+                    isEnabled: true, 
+                    price: 0, 
+                    original_type: s.type, 
+                    replacementImage: undefined,
+                    color: s.color, 
+                    original_color: s.color,
+                    colors: s.colors, 
+                    original_colors: s.colors,
+                };
+            });
             setSupportElements(newSupportElements);
         }
     

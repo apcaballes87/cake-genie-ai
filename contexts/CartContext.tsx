@@ -168,25 +168,16 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const userIdForQuery = isAnonymous ? null : user?.id;
       const sessionIdForQuery = isAnonymous ? user?.id : null;
 
-      // Add timeout to prevent hanging
-      const getCartItemsWithTimeout = async () => {
-        return new Promise<any>(async (resolve, reject) => {
-            const timeout = setTimeout(() => {
-                reject(new Error('Cart loading timeout - took longer than 10 seconds'));
-            }, 10000); // 10 second timeout
-            
-            try {
-                const result = await getCartItems(userIdForQuery, sessionIdForQuery);
-                clearTimeout(timeout);
-                resolve(result);
-            } catch (error) {
-                clearTimeout(timeout);
-                reject(error);
-            }
-        });
-      };
+      // Import timeout utility and apply 500ms timeout
+      const { withTimeout } = await import('../lib/utils/timeout');
       
-      const { data, error } = await getCartItemsWithTimeout() as any;
+      // Query cart items with a 500ms timeout
+      const { data, error } = await withTimeout(
+        getCartItems(userIdForQuery, sessionIdForQuery),
+        500,
+        'Cart loading timed out after 500ms'
+      );
+      
       if (error) throw error;
       setCartItems(data || []);
       console.log('✅ Cart items loaded:', data?.length || 0);

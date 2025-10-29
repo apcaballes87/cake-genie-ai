@@ -138,21 +138,30 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     setIsLoadingSuggestions(true);
     hasFetchedSuggestions.current = true; // Prevent re-fetching on subsequent focus events
     
-    Promise.all([
-      getSuggestedKeywords(),
-      getPopularKeywords()
-    ]).then(([suggested, popular]) => {
+    // Create a wrapper async function to handle timeouts
+    (async () => {
+      try {
+        // Dynamically import the timeout utility
+        const { withTimeout } = await import('../lib/utils/timeout');
+        
+        // Apply 500ms timeout to each request
+        const [suggested, popular] = await Promise.all([
+          withTimeout(getSuggestedKeywords(), 500, 'Suggested keywords timeout'),
+          withTimeout(getPopularKeywords(), 500, 'Popular keywords timeout')
+        ]);
+        
         if (suggested && suggested.length > 0) {
           setSuggestedKeywords(suggested);
         }
         if (popular && popular.length > 0) {
           setPopularKeywords(popular);
         }
-    }).catch(err => {
+      } catch (err) {
         console.error("Failed to fetch keywords:", err);
-    }).finally(() => {
+      } finally {
         setIsLoadingSuggestions(false);
-    });
+      }
+    })();
   };
 
   return (

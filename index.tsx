@@ -14,13 +14,11 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <GoogleMapsLoaderProvider>
-        <CartProvider>
-            <App />
-        </CartProvider>
-      </GoogleMapsLoaderProvider>
-    </QueryClientProvider>
-  </React.StrictMode>
+  <QueryClientProvider client={queryClient}>
+    <GoogleMapsLoaderProvider>
+      <CartProvider>
+          <App />
+      </CartProvider>
+    </GoogleMapsLoaderProvider>
+  </QueryClientProvider>
 );
