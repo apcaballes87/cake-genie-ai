@@ -63,8 +63,8 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
     }
 
     // Use production domain for consistency
-    const domain = (typeof process !== 'undefined' && process.env.NODE_ENV === 'production')
-        ? 'https://genie.ph' 
+    const domain = (import.meta.env.MODE === 'production')
+        ? 'https://genie.ph'
         : window.location.origin;
     const shareUrl = `${domain}/#/design/${design.design_id}`;
     
