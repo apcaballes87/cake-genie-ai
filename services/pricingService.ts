@@ -138,7 +138,7 @@ export const calculatePrice = (
                     // Price disco balls at 50 pesos each
                     price = 50 * topper.quantity;
                 } else if (topper.size === 'tiny') {
-                    // Tiny plastic balls are free
+                    // Tiny sprinkle balls are free
                     price = 0;
                 } else { // Regular plastic balls (small, medium, large)
                     // Price normal balls at 100 pesos per 3 pieces
