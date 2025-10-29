@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { calculatePrice } from '../services/pricingService';
 import { getCakeBasePriceOptions } from '../services/supabaseService';
 import {
@@ -11,6 +11,7 @@ import {
     AddOnPricing,
     BasePriceInfo,
     CakeType,
+    PricingRule,
 } from '../types';
 import { DEFAULT_THICKNESS_MAP } from '../constants';
 
@@ -35,6 +36,7 @@ interface UsePricingProps {
     cakeInfo: CakeInfoUI | null;
     onCakeInfoCorrection: (updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => void;
     initialPriceInfo?: { size: string; price: number } | null;
+    analysisId: string | null;
 }
 
 export const usePricing = ({
@@ -45,15 +47,14 @@ export const usePricing = ({
     icingDesign,
     cakeInfo,
     onCakeInfoCorrection,
-    initialPriceInfo = null
+    initialPriceInfo = null,
+    analysisId,
 }: UsePricingProps) => {
-    // State for add-on pricing
-    const [addOnPricing, setAddOnPricing] = useState<AddOnPricing | null>(null);
-
     // State for base pricing
     const [basePriceOptions, setBasePriceOptions] = useState<BasePriceInfo[] | null>(null);
     const [isFetchingBasePrice, setIsFetchingBasePrice] = useState<boolean>(false);
     const [basePriceError, setBasePriceError] = useState<string | null>(null);
+    const lastProcessedAnalysisId = useRef<string | null>(null);
 
     // Effect to fetch base price when cake type/thickness changes, or use initial price
     useEffect(() => {
@@ -89,10 +90,21 @@ export const usePricing = ({
                             updates.thickness = effectiveThickness;
                         }
                         
+                        const isNewAnalysis = analysisId && analysisId !== lastProcessedAnalysisId.current;
                         const currentSizeIsValid = results.some(r => r.size === cakeInfo.size);
-                        if (!currentSizeIsValid) {
+
+                        if (isNewAnalysis) {
+                            // On new analysis, always select the cheapest option.
+                            const sortedOptions = [...results].sort((a, b) => a.price - b.price);
+                            const cheapestOption = sortedOptions[0];
+                            updates.size = cheapestOption.size;
+                            lastProcessedAnalysisId.current = analysisId; // Mark this analysis ID as processed.
+                        } else if (!currentSizeIsValid) {
+                            // If not a new analysis (e.g., user changed thickness), and current size is now invalid,
+                            // default to the first (cheapest) option available for the new thickness.
                             updates.size = results[0].size;
                         }
+
 
                         if (Object.keys(updates).length > 0) {
                             onCakeInfoCorrection(updates, { isSystemCorrection: true });
@@ -108,30 +120,19 @@ export const usePricing = ({
             };
             fetchPrice();
         }
-    }, [cakeInfo?.type, cakeInfo?.thickness, cakeInfo?.size, onCakeInfoCorrection, initialPriceInfo]);
+    }, [cakeInfo?.type, cakeInfo?.thickness, cakeInfo?.size, onCakeInfoCorrection, initialPriceInfo, analysisId]);
 
-
-    const handleCalculatePrice = useCallback(() => {
-        if (!analysisResult || !icingDesign) {
-            setAddOnPricing(null);
-            return;
+    const { addOnPricing, itemPrices } = useMemo(() => {
+        if (!analysisResult || !icingDesign || !cakeInfo) {
+            return { addOnPricing: null, itemPrices: new Map<string, number>() };
         }
-        const newPricing = calculatePrice(
-            analysisResult,
-            { mainToppers, supportElements, cakeMessages, icingDesign }
-        );
-        setAddOnPricing(newPricing);
-    }, [analysisResult, mainToppers, supportElements, cakeMessages, icingDesign]);
+        
+        const { addOnPricing: newPricing, itemPrices: newItemPrices } = calculatePrice({
+            mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo
+        });
 
-    const pricingRelevantStateJSON = useMemo(() => {
-        return JSON.stringify({ mainToppers, supportElements, cakeMessages, icingDesign });
-    }, [mainToppers, supportElements, cakeMessages, icingDesign]);
-    
-    useEffect(() => {
-        if (analysisResult) {
-            handleCalculatePrice();
-        }
-    }, [pricingRelevantStateJSON, analysisResult, handleCalculatePrice]);
+        return { addOnPricing: newPricing, itemPrices: newItemPrices };
+    }, [analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo]);
 
     const selectedPriceOption = useMemo(
         () => basePriceOptions?.find(opt => opt.size === cakeInfo?.size), 
@@ -147,11 +148,12 @@ export const usePricing = ({
 
     return {
         addOnPricing,
+        itemPrices,
         basePriceOptions,
         isFetchingBasePrice,
         basePriceError,
         basePrice,
         finalPrice,
-        handleCalculatePrice,
+        pricingRules: null, // Rules are no longer fetched
     };
 };

@@ -1,3 +1,5 @@
+
+
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   getShopifyCustomizationRequest,
@@ -25,9 +27,10 @@ import ReportModal from '../../components/ReportModal';
 interface ShopifyCustomizingPageProps {
   sessionId: string;
   onNavigateHome: () => void;
+  user?: { email?: string } | null;
 }
 
-const ShopifyCustomizingPage: React.FC<ShopifyCustomizingPageProps> = ({ sessionId, onNavigateHome }) => {
+const ShopifyCustomizingPage: React.FC<ShopifyCustomizingPageProps> = ({ sessionId, onNavigateHome, user }) => {
   // --- Component State ---
   const [requestData, setRequestData] = useState<ShopifyCustomizationRequest | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,19 +64,28 @@ const ShopifyCustomizingPage: React.FC<ShopifyCustomizingPageProps> = ({ session
     icingDesign,
     additionalInstructions,
     analysisResult,
+    // FIX: Destructure analysisId to pass it to the usePricing hook.
+    analysisId,
     isCustomizationDirty,
     setIsCustomizationDirty,
     handleCakeInfoChange,
     onMainTopperChange,
-    onSupportElementChange,
+    // FIX: Destructure the correct update/remove functions instead of the non-existent `onSupportElementChange`.
+    updateMainTopper,
+    removeMainTopper,
+    updateSupportElement,
+    removeSupportElement,
     onCakeMessageChange,
+    updateCakeMessage,
+    removeCakeMessage,
     onIcingDesignChange,
     onAdditionalInstructionsChange,
     handleTopperImageReplace,
     initializeFromShopify,
   } = useCakeCustomization();
 
-  const { addOnPricing, finalPrice } = usePricing({
+  // FIX: Destructure `itemPrices` from the `usePricing` hook.
+  const { addOnPricing, finalPrice, itemPrices } = usePricing({
     analysisResult,
     mainToppers,
     supportElements,
@@ -81,7 +93,9 @@ const ShopifyCustomizingPage: React.FC<ShopifyCustomizingPageProps> = ({ session
     icingDesign,
     cakeInfo,
     onCakeInfoCorrection: handleCakeInfoChange,
-    initialPriceInfo: requestData ? { size: requestData.shopify_variant_title, price: requestData.shopify_base_price } : null
+    initialPriceInfo: requestData ? { size: requestData.shopify_variant_title, price: requestData.shopify_base_price } : null,
+    // FIX: Pass the required analysisId prop to the usePricing hook.
+    analysisId,
   });
 
   const {
@@ -161,7 +175,7 @@ const ShopifyCustomizingPage: React.FC<ShopifyCustomizingPageProps> = ({ session
     return () => {
       observer.unobserve(element);
     };
-  }, [pageIsLoading]); // Dependency array ensures the effect re-runs when loading state changes.
+  }, [pageIsLoading]);
   
   // --- Derived State & Memos ---
   const pageError = error || imageError || designUpdateError;
@@ -463,6 +477,7 @@ const handleReport = useCallback(async (userFeedback: string) => {
 
           {/* Features Column */}
           <div className="w-full bg-white/70 backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-slate-200">
+            {/* FIX: Pass the required `itemPrices` and correct update/remove props to the FeatureList component. */}
             <FeatureList
                 analysisError={null}
                 analysisId={"shopify"}
@@ -474,14 +489,18 @@ const handleReport = useCallback(async (userFeedback: string) => {
                 icingDesign={icingDesign}
                 additionalInstructions={additionalInstructions}
                 onCakeInfoChange={handleCakeInfoChange}
-                onMainTopperChange={onMainTopperChange}
-                onSupportElementChange={onSupportElementChange}
-                onCakeMessageChange={onCakeMessageChange}
+                updateMainTopper={updateMainTopper}
+                removeMainTopper={removeMainTopper}
+                updateSupportElement={updateSupportElement}
+                removeSupportElement={removeSupportElement}
+                updateCakeMessage={updateCakeMessage}
+                removeCakeMessage={removeCakeMessage}
                 onIcingDesignChange={onIcingDesignChange}
                 onAdditionalInstructionsChange={onAdditionalInstructionsChange}
                 onTopperImageReplace={handleTopperImageReplace}
                 onSupportElementImageReplace={() => {}} // Not implemented for this flow
                 isAnalyzing={false}
+                itemPrices={itemPrices}
                 // Shopify-specific props
                 shopifyFixedSize={requestData.shopify_variant_title}
                 shopifyBasePrice={requestData.shopify_base_price}
@@ -547,6 +566,7 @@ const handleReport = useCallback(async (userFeedback: string) => {
                 }}
                 baseBoardMessage={baseBoardMessage}
                 defaultOpenInstructions={true}
+                user={user}
               />
           </div>
         </div>

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -75,9 +76,15 @@ function getDynamicTimeInfo(availabilityType: AvailabilityType): string {
         }
         case 'normal': {
             const deliveryDate = new Date();
-            deliveryDate.setDate(now.getDate() + 2);
+            deliveryDate.setDate(now.getDate() + 1); // Tomorrow
             const formattedDate = deliveryDate.toLocaleDateString('en-US', { weekday: 'long' });
-            return `This intricate design requires 2 days lead time. Order today to receive it by ${formattedDate}.`;
+            const currentHour = now.getHours();
+        
+            if (currentHour >= 15) { // 3 PM cutoff
+                return `It's past today's 3 PM cutoff. Order now to receive it tomorrow, with the earliest available slot being 6 PM - 8 PM.`;
+            } else {
+                return `This intricate design requires a 1-day lead time. Order before 3 PM to secure delivery for tomorrow (${formattedDate}).`;
+            }
         }
         default:
             return '';
@@ -108,7 +115,7 @@ export default function SharedDesignPage({ designId, onStartWithDesign, onNaviga
         if (isMounted) {
           showError("Could not load the design.");
         }
-        console.error(err);
+        console.error("Failed to load shared design:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
       } finally {
         if (isMounted) {
           setLoading(false);

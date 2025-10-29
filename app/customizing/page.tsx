@@ -1,13 +1,10 @@
-
 import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import { FeatureList } from '../../components/FeatureList';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, CartIcon, BackIcon, ReportIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon } from '../../components/icons';
 import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType } from '../../types';
 import { SearchAutocomplete } from '../../components/SearchAutocomplete';
-
-// Determine cake availability based on design complexity
-type AvailabilityType = 'rush' | 'same-day' | 'normal';
+import { AvailabilityType } from '../../lib/utils/availability';
 
 interface AvailabilityInfo {
   type: AvailabilityType;
@@ -20,85 +17,38 @@ interface AvailabilityInfo {
   borderColor: string;
 }
 
-function calculateAvailability(
-  cakeInfo: CakeInfoUI | null,
-  mainToppers: MainTopperUI[],
-  supportElements: SupportElementUI[],
-  icingDesign: IcingDesignUI | null
-): AvailabilityInfo {
-  const AVAILABILITY_MAP: Record<AvailabilityType, AvailabilityInfo> = {
-    rush: {
-      type: 'rush',
-      label: 'Rush Order Available!',
-      time: 'Ready in 30 minutes',
-      icon: '⚡',
-      description: 'Simple design - we can make this super fast!',
-      bgColor: 'bg-green-50',
-      textColor: 'text-green-800',
-      borderColor: 'border-green-300'
-    },
-    'same-day': {
-      type: 'same-day',
-      label: 'Same-Day Order!',
-      time: 'Ready in 3 hours',
-      icon: '🕐',
-      description: 'Quick turnaround - order now for today!',
-      bgColor: 'bg-blue-50',
-      textColor: 'text-blue-800',
-      borderColor: 'border-blue-300'
-    },
-    normal: {
-      type: 'normal',
-      label: 'Standard Order',
-      time: 'Requires 2 days lead time',
-      icon: '📅',
-      description: 'Complex or large designs need time for perfection!',
-      bgColor: 'bg-slate-50',
-      textColor: 'text-slate-800',
-      borderColor: 'border-slate-300'
-    }
-  };
-
-  if (!cakeInfo || !icingDesign) {
-    return AVAILABILITY_MAP.normal;
+const AVAILABILITY_MAP: Record<AvailabilityType, AvailabilityInfo> = {
+  rush: {
+    type: 'rush',
+    label: 'Rush Order Available!',
+    time: 'Ready in 30 minutes',
+    icon: '⚡',
+    description: 'Simple design - we can make this super fast!',
+    bgColor: 'bg-green-50',
+    textColor: 'text-green-800',
+    borderColor: 'border-green-300'
+  },
+  'same-day': {
+    type: 'same-day',
+    label: 'Same-Day Order!',
+    time: 'Ready in 3 hours',
+    icon: '🕐',
+    description: 'Quick turnaround - order now for today!',
+    bgColor: 'bg-blue-50',
+    textColor: 'text-blue-800',
+    borderColor: 'border-blue-300'
+  },
+  normal: {
+    type: 'normal',
+    label: 'Standard Order',
+    time: 'Requires 1 day lead time',
+    icon: '📅',
+    description: 'Order by 3 PM for next-day delivery slots. Complex designs need time for perfection!',
+    bgColor: 'bg-slate-50',
+    textColor: 'text-slate-800',
+    borderColor: 'border-slate-300'
   }
-
-  // --- Step 1: Check for Absolute "Standard Order" Overrides ---
-  const complexTypes: CakeType[] = ['2 Tier', '3 Tier', '1 Tier Fondant', '2 Tier Fondant', '3 Tier Fondant', 'Square', 'Rectangle'];
-  if (complexTypes.includes(cakeInfo.type) || icingDesign.base === 'fondant') {
-    return AVAILABILITY_MAP.normal;
-  }
-
-  const has3dTopper = mainToppers.some(t => t.isEnabled && t.type === 'edible_3d');
-  const hasGumpasteBase = icingDesign.gumpasteBaseBoard;
-
-  if (has3dTopper || hasGumpasteBase) {
-    return AVAILABILITY_MAP.normal;
-  }
-
-  // --- Step 2: Check for Fast-Track Eligibility ---
-  const isFastTrackEligible =
-      (cakeInfo.type === '1 Tier' && (cakeInfo.size === '6" Round' || cakeInfo.size === '8" Round')) ||
-      (cakeInfo.type === 'Bento');
-
-  if (!isFastTrackEligible) {
-    return AVAILABILITY_MAP.normal;
-  }
-
-  // --- Step 3: Classify as Same-Day or Rush ---
-  const smallGumpasteCount = supportElements.filter(s => s.isEnabled && s.type === 'small_gumpaste').length;
-  const hasGumpastePanels = supportElements.some(s => s.isEnabled && s.type === 'gumpaste_panel');
-  const hasEdiblePhoto =
-      mainToppers.some(t => t.isEnabled && t.type === 'edible_photo') ||
-      supportElements.some(s => s.isEnabled && s.type === 'edible_photo_side');
-
-  if (hasGumpastePanels || hasEdiblePhoto || smallGumpasteCount >= 2) {
-    return AVAILABILITY_MAP['same-day'];
-  }
-
-  // If it passes all checks, it's a Rush order.
-  return AVAILABILITY_MAP.rush;
-}
+};
 
 
 type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation';
@@ -143,9 +93,12 @@ interface CustomizingPageProps {
   icingDesign: IcingDesignUI | null;
   additionalInstructions: string;
   onCakeInfoChange: (updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => void;
-  onMainTopperChange: (toppers: MainTopperUI[]) => void;
-  onSupportElementChange: (elements: SupportElementUI[]) => void;
-  onCakeMessageChange: (messages: CakeMessageUI[]) => void;
+  updateMainTopper: (id: string, updates: Partial<MainTopperUI>) => void;
+  removeMainTopper: (id: string) => void;
+  updateSupportElement: (id: string, updates: Partial<SupportElementUI>) => void;
+  removeSupportElement: (id: string) => void;
+  updateCakeMessage: (id: string, updates: Partial<CakeMessageUI>) => void;
+  removeCakeMessage: (id: string) => void;
   onIcingDesignChange: (design: IcingDesignUI) => void;
   onAdditionalInstructionsChange: (instructions: string) => void;
   onTopperImageReplace: (topperId: string, file: File) => void;
@@ -155,6 +108,8 @@ interface CustomizingPageProps {
   onClearAll: () => void;
   error: string | null;
   isCustomizationDirty: boolean;
+  itemPrices: Map<string, number>;
+  availability: AvailabilityType;
 }
 
 
@@ -166,48 +121,17 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     activeTab, setActiveTab, originalImagePreview, isAnalyzing, setIsMainZoomModalOpen, setIsMainImageVisible, originalImageData,
     onUpdateDesign, analysisResult, analysisError, analysisId, cakeInfo, basePriceOptions,
     mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions,
-    onCakeInfoChange, onMainTopperChange, onSupportElementChange, onCakeMessageChange, onIcingDesignChange,
-    onAdditionalInstructionsChange, onTopperImageReplace, onSupportElementImageReplace, onSave, isSaving, onClearAll, error
+    onCakeInfoChange, 
+    updateMainTopper, removeMainTopper,
+    updateSupportElement, removeSupportElement,
+    updateCakeMessage, removeCakeMessage,
+    onIcingDesignChange,
+    onAdditionalInstructionsChange, onTopperImageReplace, onSupportElementImageReplace, onSave, isSaving, onClearAll, error,
+    itemPrices,
+    availability: availabilityType,
 }) => {
     
-  // Availability state
-  const [availability, setAvailability] = useState<AvailabilityInfo>({
-    type: 'normal',
-    label: 'Standard Order',
-    time: 'Requires 2 days lead time',
-    icon: '📅',
-    description: 'Hand-crafted designs need time for perfection!',
-    bgColor: 'bg-slate-50',
-    textColor: 'text-slate-800',
-    borderColor: 'border-slate-300'
-  });
-
-  // Update availability when design changes
-  useEffect(() => {
-    if (analysisResult && cakeInfo && icingDesign) {
-      console.log('🔍 Availability Check:', {
-        cakeType: cakeInfo.type,
-        cakeSize: cakeInfo.size,
-        cakeThickness: cakeInfo.thickness,
-        icingBase: icingDesign.base,
-        hasDrip: icingDesign.drip,
-        hasGumpaste: icingDesign.gumpasteBaseBoard,
-        has3D: mainToppers.some(t => t.isEnabled && t.type === 'edible_3d'),
-        mainToppers: mainToppers.filter(t => t.isEnabled).length,
-        supportElements: supportElements.filter(s => s.isEnabled).length
-      });
-      
-      const newAvailability = calculateAvailability(
-        cakeInfo,
-        mainToppers,
-        supportElements,
-        icingDesign
-      );
-      
-      console.log('✅ Result:', newAvailability.type);
-      setAvailability(newAvailability);
-    }
-  }, [mainToppers, supportElements, icingDesign, analysisResult, cakeInfo]);
+  const availability = AVAILABILITY_MAP[availabilityType];
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -323,7 +247,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                </div>
            </div>
            <div className="relative flex-grow flex items-center justify-center p-2 pt-0 min-h-0">
-               {isLoading && <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-b-2xl z-20"><LoadingSpinner /><p className="mt-4 text-slate-500 font-semibold">Working magic...</p></div>}
+               {isUpdatingDesign && <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-b-2xl z-20"><LoadingSpinner /><p className="mt-4 text-slate-500 font-semibold">Working magic...</p></div>}
                {error && <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-b-2xl z-20 p-4"><ErrorIcon /><p className="mt-4 font-semibold text-red-600">Update Failed</p><p className="text-sm text-red-500 text-center">{error}</p></div>}
                {!originalImagePreview && !isAnalyzing && <div className="text-center text-slate-400"><ImageIcon /><p className="mt-2 font-semibold">Your creation will appear here</p></div>}
                {(originalImagePreview) && (
@@ -433,14 +357,19 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                    icingDesign={icingDesign}
                    additionalInstructions={additionalInstructions}
                    onCakeInfoChange={onCakeInfoChange}
-                   onMainTopperChange={onMainTopperChange}
-                   onSupportElementChange={onSupportElementChange}
-                   onCakeMessageChange={onCakeMessageChange}
+                   updateMainTopper={updateMainTopper}
+                   removeMainTopper={removeMainTopper}
+                   updateSupportElement={updateSupportElement}
+                   removeSupportElement={removeSupportElement}
+                   updateCakeMessage={updateCakeMessage}
+                   removeCakeMessage={removeCakeMessage}
                    onIcingDesignChange={onIcingDesignChange}
                    onAdditionalInstructionsChange={onAdditionalInstructionsChange}
                    onTopperImageReplace={onTopperImageReplace}
                    onSupportElementImageReplace={onSupportElementImageReplace}
                    isAnalyzing={isAnalyzing}
+                   itemPrices={itemPrices}
+                   user={user}
                />
            ) : <div className="text-center p-8 text-slate-500"><p>Upload an image to get started.</p></div>}
        </div>

@@ -1,6 +1,9 @@
 
+
+
+
 import { getSupabaseClient } from '../lib/supabase/client';
-import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult } from '../types';
+import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback } from '../types';
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem } from '../lib/database.types';
@@ -28,6 +31,23 @@ export interface ShopifyCustomizationRequest {
   customization_details?: CartItemDetails;
   created_at: string;
 }
+
+// --- Dynamic Config Fetchers ---
+
+export const savePricingFeedback = async (feedback: PricingFeedback): Promise<void> => {
+    try {
+        const { error } = await supabase
+            .from('pricing_feedback')
+            .insert([feedback]);
+        
+        if (error) {
+            throw new Error(error.message);
+        }
+    } catch (err) {
+        console.error("Error saving pricing feedback:", err);
+        throw new Error("Could not save feedback to the database.");
+    }
+};
 
 
 export const getCakeBasePriceOptions = async (
@@ -135,7 +155,8 @@ export async function findSimilarAnalysisByHash(pHash: string): Promise<HybridAn
  * @param imageUrl The public URL of the original image being cached.
  */
 export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysisResult, imageUrl?: string): void {
-  // Cache the analysis result for future use - fire and forget
+  // FIX: Converted to an async IIFE to use try/catch for error handling,
+  // as the Supabase query builder is a 'thenable' but may not have a .catch method.
   (async () => {
     try {
       const { error } = await supabase
@@ -145,6 +166,7 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
           analysis_json: analysisResult,
           original_image_url: imageUrl,
         });
+
       if (error) {
         // Log error but don't interrupt the user. A unique constraint violation is expected and fine.
         if (error.code !== '23505') { // 23505 is unique_violation
@@ -154,7 +176,7 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
         console.log('✅ Analysis result cached successfully.');
       }
     } catch (err) {
-      console.warn('Exception during fire-and-forget cache write:', err);
+        console.warn('Exception during fire-and-forget cache write:', err);
     }
   })();
 }
@@ -747,5 +769,59 @@ export async function updateShopifyCustomizationRequest(
     return { data, error: null };
   } catch (err) {
     return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches a list of suggested search keywords from the database.
+ * @returns An array of suggested search terms.
+ */
+export async function getSuggestedKeywords(): Promise<string[]> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_search_analytics')
+      .select('search_term')
+      .eq('is_suggested', true)
+      .limit(8); // A sensible limit for suggestions
+
+    if (error) {
+      console.warn("Supabase suggested keywords error:", error.message);
+      return []; // Return empty on error, not critical
+    }
+
+    // The data is an array of objects like [{ search_term: '...' }], so we map it
+    if (Array.isArray(data)) {
+      return data.map(item => item.search_term);
+    }
+
+    return [];
+  } catch (err) {
+    console.warn("Error fetching suggested keywords:", err);
+    return [];
+  }
+}
+
+/**
+ * Fetches a list of popular search keywords from the database.
+ * @returns An array of the most searched terms.
+ */
+export async function getPopularKeywords(): Promise<string[]> {
+  try {
+    const { data, error } = await supabase.rpc('get_popular_keywords');
+
+    if (error) {
+      console.warn("Supabase popular keywords error:", error.message);
+      return []; // Return empty on error, not critical
+    }
+
+    // The RPC returns an array of objects like [{ search_term: '...' }], so we map it
+    if (Array.isArray(data)) {
+      return data.map(item => item.search_term);
+    }
+
+    return [];
+  } catch (err) {
+    console.warn("Error fetching popular keywords:", err);
+    return [];
   }
 }

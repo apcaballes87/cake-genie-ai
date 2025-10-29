@@ -1,18 +1,20 @@
 import React from 'react';
 import { SearchAutocomplete } from '../../components/SearchAutocomplete';
 
-type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews';
+type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'pricing_sandbox';
 
 interface LandingPageProps {
   onSearch: (query: string) => void;
   onUploadClick: () => void;
   setAppState: (state: AppState) => void;
+  user: { email?: string } | null;
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({
   onSearch,
   onUploadClick,
   setAppState,
+  user,
 }) => {
   const [localSearchInput, setLocalSearchInput] = React.useState('');
   
@@ -50,6 +52,9 @@ const LandingPage: React.FC<LandingPageProps> = ({
             <button onClick={() => setAppState('how_to_order')} className="hover:text-pink-600 transition-colors">How to Order</button>
             <button onClick={() => setAppState('contact')} className="hover:text-pink-600 transition-colors">Contact Us</button>
             <button onClick={() => setAppState('reviews')} className="hover:text-pink-600 transition-colors">Reviews</button>
+            {user && user.email === 'apcaballes@gmail.com' && (
+              <button onClick={() => setAppState('pricing_sandbox')} className="hover:text-pink-600 transition-colors">Pricing Sandbox</button>
+            )}
         </div>
       </footer>
     </div>

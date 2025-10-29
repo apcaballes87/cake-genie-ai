@@ -77,8 +77,8 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, onSubmit, is
                                     {details.flavors.map((flavor, idx) => (
                                         <DetailItem key={idx} label={`Tier ${idx + 1} Flavor`} value={flavor} />
                                     ))}
-                                    {details.mainToppers.length > 0 && <DetailItem label="Main Toppers" value={details.mainToppers.join(', ')} />}
-                                    {details.supportElements.length > 0 && <DetailItem label="Support" value={details.supportElements.join(', ')} />}
+                                    {details.mainToppers.length > 0 && <DetailItem label="Main Toppers" value={details.mainToppers.map(t => t.description).join(', ')} />}
+                                    {details.supportElements.length > 0 && <DetailItem label="Support" value={details.supportElements.map(s => s.description).join(', ')} />}
                                     {details.cakeMessages.map((msg, idx) => (
                                       <DetailItem key={idx} label={`Message #${idx+1}`} value={`'${msg.text}' (${msg.color})`} />
                                    ))}

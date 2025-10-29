@@ -59,10 +59,10 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 };
 
   const handleSocialShare = (platform: 'facebook' | 'messenger' | 'twitter') => {
-  const message = SOCIAL_MESSAGES[platform];
-  // Use bot-optimized URL for social sharing if available
-  const urlToShare = botShareUrl || shareUrl;
-  const url = generateSocialShareUrl(platform, urlToShare, message);
+    const message = SOCIAL_MESSAGES[platform];
+    // Use bot-optimized URL for social sharing if available
+    const urlToShare = botShareUrl || shareUrl;
+    const url = generateSocialShareUrl(platform, urlToShare, message);
     
     incrementShareCount(designId);
     window.open(url, '_blank', 'width=600,height=400');

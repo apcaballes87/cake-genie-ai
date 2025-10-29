@@ -1,5 +1,6 @@
 
 
+
 import React, { useEffect, useState } from 'react';
 import { getSupabaseClient } from '../../lib/supabase/client';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -68,7 +69,7 @@ const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
             });
         }
       } catch (error) {
-        console.error('[OrderConfirmationPage] Error fetching order:', error);
+        console.error('[OrderConfirmationPage] Error fetching order:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
         setOrder(null);
       } finally {
         console.log('[OrderConfirmationPage] fetchOrder finished, setting loading to false.');
@@ -114,7 +115,7 @@ const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
           setPaymentStatus('pending');
         }
       } catch (error) {
-        console.error('Error checking payment status during poll:', error);
+        console.error('Error checking payment status during poll:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
         setPaymentStatus('pending');
       }
     };

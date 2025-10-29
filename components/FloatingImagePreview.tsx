@@ -81,7 +81,7 @@ export const FloatingImagePreview: React.FC<FloatingImagePreviewProps> = React.m
             </div>
           </div>
           <div className="relative flex-grow flex items-center justify-center p-2 pt-0 aspect-square">
-            {isLoading && (
+            {isUpdatingDesign && (
               <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-b-2xl z-20">
                 <LoadingSpinner />
               </div>

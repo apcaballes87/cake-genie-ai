@@ -15,6 +15,7 @@ import { createOrderFromCart } from '../../services/supabaseService';
 import { createXenditPayment } from '../../services/xenditService';
 import AddressForm, { StaticMap } from '../../components/AddressForm';
 import { useGoogleMapsLoader } from '../../contexts/GoogleMapsLoaderContext';
+import { calculateCartAvailability, AvailabilityType } from '../../lib/utils/availability';
 
 
 // FIX: Declare the global 'google' object to satisfy TypeScript.
@@ -28,8 +29,6 @@ interface CartPageProps {
   onContinueShopping: () => void;
   onAuthRequired: () => void;
 }
-
-type AvailabilityType = 'rush' | 'same-day' | 'normal';
 
 const EVENT_TIME_SLOTS_MAP: { slot: string; startHour: number; endHour: number }[] = [
     { slot: "10AM - 12NN", startHour: 10, endHour: 12 },
@@ -50,53 +49,6 @@ const paymentMethods = [
   { name: 'BDO', logoUrl: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/payment_logos/bdo.jpg' },
   { name: 'Palawan', logoUrl: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/payment_logos/palawan.jpg' },
 ];
-
-function getCartAvailability(items: CartItem[]): AvailabilityType {
-    if (items.some(item => item.status !== 'complete')) return 'normal';
-
-    const availabilities = items.map((item): AvailabilityType => {
-        const details = item.details;
-        const cakeTypeStr = item.type; // e.g., "1 Tier (Soft icing)"
-
-        // --- Step 1: Check for Absolute "Standard Order" Overrides ---
-        const isComplexType = ['2 Tier', '3 Tier', 'Square', 'Rectangle', 'Fondant'].some(t => cakeTypeStr.includes(t));
-        if (isComplexType) {
-            return 'normal';
-        }
-
-        const has3dTopper = details.mainToppers.some(t => t.type === 'edible_3d');
-        const hasGumpasteBase = details.icingDesign.gumpasteBaseBoard;
-
-        if (has3dTopper || hasGumpasteBase) {
-            return 'normal';
-        }
-
-        // --- Step 2: Check for Fast-Track Eligibility ---
-        const isFastTrackEligible =
-            (cakeTypeStr.includes('1 Tier') && (item.size === '6" Round' || item.size === '8" Round')) ||
-            (cakeTypeStr.includes('Bento'));
-
-        if (!isFastTrackEligible) {
-            return 'normal';
-        }
-
-        // --- Step 3: Classify as Same-Day or Rush ---
-        const smallGumpasteCount = details.supportElements.filter(s => s.type === 'small_gumpaste').length;
-        const hasGumpastePanels = details.supportElements.some(s => s.type === 'gumpaste_panel');
-        const hasEdiblePhoto = details.mainToppers.some(t => t.type === 'edible_photo') || details.supportElements.some(s => s.type === 'edible_photo_side');
-
-        if (hasGumpastePanels || hasEdiblePhoto || smallGumpasteCount >= 2) {
-            return 'same-day';
-        }
-
-        return 'rush';
-    });
-    
-    // The cart's availability is the most restrictive of all items.
-    if (availabilities.includes('normal')) return 'normal';
-    if (availabilities.includes('same-day')) return 'same-day';
-    return 'rush';
-}
 
 
 const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, onRemoveItem, onClose, onContinueShopping, onAuthRequired }) => {
@@ -136,19 +88,20 @@ const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, on
 
     const cartAvailability = useMemo(() => {
         if (isCartLoading || items.length === 0) return 'normal';
-        return getCartAvailability(items);
+        return calculateCartAvailability(items);
     }, [items, isCartLoading]);
 
     const { minDate, disabledSlots } = useMemo(() => {
         const now = new Date();
         let calculatedMinDate = new Date();
         let readyTime: Date | null = null;
-        
+        const newDisabledSlots: string[] = [];
+    
         const lastSlotEndHour = EVENT_TIME_SLOTS_MAP.length > 0 ? EVENT_TIME_SLOTS_MAP[EVENT_TIME_SLOTS_MAP.length - 1].endHour : 24;
-
-        switch(cartAvailability) {
+    
+        switch (cartAvailability) {
             case 'normal':
-                calculatedMinDate.setDate(now.getDate() + 2);
+                calculatedMinDate.setDate(now.getDate() + 1);
                 break;
             case 'same-day':
                 readyTime = new Date(now.getTime() + 3 * 60 * 60 * 1000); // +3 hours
@@ -165,22 +118,39 @@ const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, on
                 }
                 break;
         }
-
+    
         const minDateString = calculatedMinDate.toISOString().split('T')[0];
-        const todayString = new Date().toISOString().split('T')[0];
-        const newDisabledSlots: string[] = [];
-        
+        const todayString = now.toISOString().split('T')[0];
+        const tomorrowString = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString().split('T')[0];
+    
         if (eventDate === todayString && readyTime) {
             EVENT_TIME_SLOTS_MAP.forEach(timeSlot => {
                 const slotEndDate = new Date(eventDate);
                 slotEndDate.setHours(timeSlot.endHour, 0, 0, 0);
-
                 if (slotEndDate < readyTime) {
                     newDisabledSlots.push(timeSlot.slot);
                 }
             });
         }
-        
+    
+        if (cartAvailability === 'normal' && eventDate === tomorrowString) {
+            const currentHour = now.getHours();
+            let firstAvailableStartHour = 10;
+            if (currentHour >= 15) {
+                firstAvailableStartHour = 18;
+            } else {
+                const applicableSlot = [...EVENT_TIME_SLOTS_MAP].reverse().find(slot => currentHour >= slot.startHour);
+                if (applicableSlot) {
+                    firstAvailableStartHour = applicableSlot.startHour;
+                }
+            }
+            EVENT_TIME_SLOTS_MAP.forEach(slot => {
+                if (slot.startHour < firstAvailableStartHour) {
+                    newDisabledSlots.push(slot.slot);
+                }
+            });
+        }
+    
         return { minDate: minDateString, disabledSlots: newDisabledSlots };
     }, [cartAvailability, eventDate]);
 
@@ -275,7 +245,7 @@ const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, on
           }
       
         } catch (error: any) {
-          console.error('Order/Payment error:', error);
+          console.error('Order/Payment error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
           showError(error.message || 'Failed to process order. Please try again.');
           setIsPlacingOrder(false);
           setIsCreatingPayment(false);
@@ -518,7 +488,7 @@ const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, on
                                 </div>
                             </div>
                             
-                            {cartAvailability === 'normal' && <p className="text-xs text-slate-500 -mt-2">Your cart contains items requiring at least 2 days lead time.</p>}
+                            {cartAvailability === 'normal' && <p className="text-xs text-slate-500 -mt-2">Your cart items require a 1-day lead time. Order by 3 PM for next-day delivery.</p>}
                             {cartAvailability === 'same-day' && <p className="text-xs text-slate-500 -mt-2">Your cart contains items available for same-day delivery (3-hour lead time).</p>}
                             {cartAvailability === 'rush' && <p className="text-xs text-slate-500 -mt-2">All items in your cart are available for rush delivery (30-min lead time).</p>}
 

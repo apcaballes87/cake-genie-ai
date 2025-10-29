@@ -1,5 +1,3 @@
-
-
 import { useState, useCallback, useEffect } from 'react';
 import {
     HybridAnalysisResult,
@@ -10,10 +8,12 @@ import {
     CakeInfoUI,
     CakeType,
     CakeFlavor,
+    IcingColorDetails,
 } from '../types';
 import { DEFAULT_THICKNESS_MAP, DEFAULT_SIZE_MAP, COLORS, CAKE_TYPES } from '../constants';
 import { showSuccess } from '../lib/utils/toast';
 import { ShopifyCustomizationRequest } from '../services/supabaseService';
+import { calculateCustomizingAvailability, AvailabilityType } from '../lib/utils/availability';
 
 // 'icingDesign' is now handled with granular dot-notation strings
 type DirtyField = 'cakeInfo' | 'mainToppers' | 'supportElements' | 'cakeMessages' | 'additionalInstructions';
@@ -35,6 +35,21 @@ export const useCakeCustomization = () => {
     
     const [isCustomizationDirty, setIsCustomizationDirty] = useState(false);
     const [dirtyFields, setDirtyFields] = useState<Set<string>>(new Set());
+    const [availability, setAvailability] = useState<AvailabilityType>('normal');
+
+    // --- Effect to calculate availability ---
+    useEffect(() => {
+        if (cakeInfo && icingDesign) {
+            const newAvailabilityType = calculateCustomizingAvailability(
+                cakeInfo,
+                icingDesign,
+                mainToppers,
+                supportElements
+            );
+            setAvailability(newAvailabilityType);
+        }
+    }, [cakeInfo, icingDesign, mainToppers, supportElements]);
+
 
     // --- Logic and Handlers ---
 
@@ -190,24 +205,54 @@ export const useCakeCustomization = () => {
           setDirtyFields(prev => new Set(prev).add('cakeInfo'));
         }
     }, [setIsCustomizationDirty]);
+    
+    // --- NEW ROBUST STATE UPDATERS ---
+    const markDirty = (field: DirtyField) => {
+        setIsCustomizationDirty(true);
+        setDirtyFields(prev => new Set(prev).add(field));
+    };
+
+    const updateMainTopper = useCallback((id: string, updates: Partial<MainTopperUI>) => {
+        setMainToppers(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+        markDirty('mainToppers');
+    }, []);
+
+    const removeMainTopper = useCallback((id: string) => {
+        setMainToppers(prev => prev.filter(t => t.id !== id));
+        markDirty('mainToppers');
+    }, []);
 
     const onMainTopperChange = useCallback((toppers: MainTopperUI[]) => {
         setMainToppers(toppers);
-        setIsCustomizationDirty(true);
-        setDirtyFields(prev => new Set(prev).add('mainToppers'));
+        markDirty('mainToppers');
+    }, []);
+    
+    const updateSupportElement = useCallback((id: string, updates: Partial<SupportElementUI>) => {
+        setSupportElements(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+        markDirty('supportElements');
     }, []);
 
-    const onSupportElementChange = useCallback((elements: SupportElementUI[]) => {
-        setSupportElements(elements);
-        setIsCustomizationDirty(true);
-        setDirtyFields(prev => new Set(prev).add('supportElements'));
+    const removeSupportElement = useCallback((id: string) => {
+        setSupportElements(prev => prev.filter(e => e.id !== id));
+        markDirty('supportElements');
+    }, []);
+    
+    const updateCakeMessage = useCallback((id: string, updates: Partial<CakeMessageUI>) => {
+        setCakeMessages(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+        markDirty('cakeMessages');
+    }, []);
+
+    const removeCakeMessage = useCallback((id: string) => {
+        setCakeMessages(prev => prev.filter(m => m.id !== id));
+        markDirty('cakeMessages');
     }, []);
 
     const onCakeMessageChange = useCallback((messages: CakeMessageUI[]) => {
         setCakeMessages(messages);
-        setIsCustomizationDirty(true);
-        setDirtyFields(prev => new Set(prev).add('cakeMessages'));
+        markDirty('cakeMessages');
     }, []);
+    
+    // --- END NEW ROBUST STATE UPDATERS ---
 
     const onIcingDesignChange = useCallback((newDesign: IcingDesignUI) => {
         setIcingDesign(prevIcing => {
@@ -230,8 +275,10 @@ export const useCakeCustomization = () => {
                 ]) as Set<keyof typeof newDesign.colors>;
                 
                 for(const key of allColorKeys){
-                    if(prevIcing.colors[key] !== newDesign.colors[key]){
-                        newDirtyFields.add(`icingDesign.colors.${key}`);
+                    // FIX: Explicitly cast key to avoid symbol conversion error in strict mode.
+                    const k = key as keyof IcingColorDetails;
+                    if(prevIcing.colors[k] !== newDesign.colors[k]){
+                        newDirtyFields.add(`icingDesign.colors.${k}`);
                     }
                 }
                 return newDirtyFields;
@@ -245,8 +292,7 @@ export const useCakeCustomization = () => {
     
     const onAdditionalInstructionsChange = useCallback((instructions: string) => {
         setAdditionalInstructions(instructions);
-        setIsCustomizationDirty(true);
-        setDirtyFields(prev => new Set(prev).add('additionalInstructions'));
+        markDirty('additionalInstructions');
     }, []);
 
     const clearCustomization = useCallback(() => {
@@ -288,6 +334,7 @@ export const useCakeCustomization = () => {
             const newMainToppers = analysisData.main_toppers.map((t): MainTopperUI => ({
                 ...t, id: crypto.randomUUID(), isEnabled: true, price: 0, original_type: t.type, replacementImage: undefined,
                 color: t.color, original_color: t.color,
+                colors: t.colors, original_colors: t.colors,
             }));
             setMainToppers(newMainToppers);
         }
@@ -296,6 +343,7 @@ export const useCakeCustomization = () => {
             const newSupportElements = analysisData.support_elements.map((s): SupportElementUI => ({
                 ...s, id: crypto.randomUUID(), isEnabled: true, price: 0, original_type: s.type, replacementImage: undefined,
                 color: s.color, original_color: s.color,
+                colors: s.colors, original_colors: s.colors,
             }));
             setSupportElements(newSupportElements);
         }
@@ -320,8 +368,9 @@ export const useCakeCustomization = () => {
             
             const allAnalysisColorKeys = Object.keys(analysisIcing.colors) as Array<keyof typeof analysisIcing.colors>;
             for (const colorKey of allAnalysisColorKeys) {
-                if (!dirtyFields.has(`icingDesign.colors.${colorKey}`)) {
-                    newIcing.colors[colorKey] = analysisIcing.colors[colorKey];
+                // FIX: Explicitly cast key to string to avoid symbol conversion error in strict mode.
+                if (!dirtyFields.has(`icingDesign.colors.${String(colorKey)}`)) {
+                    (newIcing.colors as any)[colorKey] = (analysisIcing.colors as any)[colorKey];
                 }
             }
             
@@ -356,33 +405,21 @@ export const useCakeCustomization = () => {
         try {
             const { fileToBase64 } = await import('../services/geminiService.lazy');
             const replacementData = await fileToBase64(file);
-            setMainToppers(prevToppers =>
-                prevToppers.map(t =>
-                    t.id === topperId ? { ...t, replacementImage: replacementData } : t
-                )
-            );
-            setIsCustomizationDirty(true);
-            setDirtyFields(prev => new Set(prev).add('mainToppers'));
+            updateMainTopper(topperId, { replacementImage: replacementData });
         } catch (err) {
             setAnalysisError("Could not process the replacement image. Please try another file.");
         }
-    }, []);
+    }, [updateMainTopper]);
 
     const handleSupportElementImageReplace = useCallback(async (elementId: string, file: File) => {
         try {
             const { fileToBase64 } = await import('../services/geminiService.lazy');
             const replacementData = await fileToBase64(file);
-            setSupportElements(prevElements =>
-                prevElements.map(el =>
-                    el.id === elementId ? { ...el, replacementImage: replacementData } : el
-                )
-            );
-            setIsCustomizationDirty(true);
-            setDirtyFields(prev => new Set(prev).add('supportElements'));
+            updateSupportElement(elementId, { replacementImage: replacementData });
         } catch (err) {
             setAnalysisError("Could not process the replacement image. Please try another file.");
         }
-    }, []);
+    }, [updateSupportElement]);
 
 
     return {
@@ -399,6 +436,7 @@ export const useCakeCustomization = () => {
         analysisError,
         isCustomizationDirty,
         dirtyFields,
+        availability,
 
         // Setters
         setIsAnalyzing,
@@ -408,9 +446,14 @@ export const useCakeCustomization = () => {
 
         // Functions
         handleCakeInfoChange,
-        onMainTopperChange,
-        onSupportElementChange,
-        onCakeMessageChange,
+        onMainTopperChange, // Kept for complex changes if needed
+        updateMainTopper,
+        removeMainTopper,
+        updateSupportElement,
+        removeSupportElement,
+        onCakeMessageChange, // Kept for complex changes if needed
+        updateCakeMessage,
+        removeCakeMessage,
         onIcingDesignChange,
         onAdditionalInstructionsChange,
         handleTopperImageReplace,

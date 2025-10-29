@@ -1,190 +1,307 @@
 // services/pricingService.ts
-import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, AddOnPricing, MainTopperType, SupportElementType, Size, Coverage } from '../types';
+import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, AddOnPricing, Size, CakeInfoUI, CakeType } from '../types';
 
-// --- Pricing Rules from Master Prompt ---
+// ============================================================================
+// DYNAMIC PRICING ENGINE (V4 - Hardcoded)
+// ============================================================================
 
-const getEdible3DPrice = (description: string, size: Size): number => {
-    const lower = description.toLowerCase();
+// --- Helper Functions ---
+
+// Helper function to check for simple objects.
+const isSimpleObject = (description: string): boolean => {
+    const desc = description.toLowerCase();
+    // This list now aligns with the expanded list in getEdible3DPrice
+    const simpleObjectKeywords = ['bow', 'ribbon', 'object', 'item', 'flower', 'star', 'heart', 'snowflake'];
+    return simpleObjectKeywords.some(kw => desc.includes(kw));
+};
+
+function getEdible3DPrice(description: string, size: Size): number {
+    const desc = description.toLowerCase();
+
+    // UPDATED: Combined human and animal figures with new pricing
+    if (['human', 'person', 'boy', 'girl', 'man', 'woman', 'character', 'figurine', 'figure', 'animal', 'dog', 'cat', 'pet', 'bear', 'lion', 'dinosaur', 'unicorn'].some(kw => desc.includes(kw))) {
+        if (size === 'large') return 600;
+        if (size === 'medium') return 400;
+        if (size === 'small') return 200;
+        if (size === 'tiny') return 50;
+    }
+
+    // NEW: Expanded the list of simple objects to include common items like numbers, letters, and snowflakes.
+    if (['bow', 'ribbon', 'object', 'item', 'flower', 'star', 'heart', 'snowflake'].some(kw => desc.includes(kw))) {
+        if (size === 'large') return 300;
+        if (size === 'medium') return 200;
+        if (size === 'small') return 100;
+        if (size === 'tiny') return 50;
+    }
+
+    // Default pricing for 'edible_3d' if no specific keyword matches
+    if (size === 'large') return 250;
+    if (size === 'medium') return 150;
+    if (size === 'small') return 100;
+    if (size === 'tiny') return 50;
     
-    if (lower.includes('human') || lower.includes('figure') || lower.includes('character')) {
-        return { large: 800, medium: 600, small: 300, partial: 100 }[size];
-    }
-    if (lower.includes('animal') || lower.includes('vehicle') || lower.includes('building')) {
-        return { large: 500, medium: 400, small: 200, partial: 75 }[size];
-    }
-    if (lower.includes('rainbow')) return 400; // Size independent
-    if (lower.includes('bow')) {
-        return { large: 300, medium: 200, small: 100, partial: 50 }[size];
-    }
-    // Low complexity (default for 3D): e.g., detailed flowers, abstract shapes
-    return { large: 400, medium: 300, small: 150, partial: 50 }[size];
-};
+    return 0; // 'partial' size or unknown
+}
 
-const getTieredGroupPrice = (basePrice: number, quantity: number): number => {
-    if (quantity <= 0) return 0;
-    const itemsPerTier = 4;
-    const tiers = Math.ceil(quantity / itemsPerTier);
-    return basePrice * tiers;
-};
+function extractQuantity(description: string): number {
+  const match = description.match(/(\d+)/);
+  return match ? parseInt(match[1], 10) : 1;
+}
 
-const getPanelPrice = (coverage: Coverage): number => {
-    return { heavy: 300, medium: 200, light: 100, none: 0 }[coverage];
-};
-
-const getChocolatePrice = (coverage: Coverage): number => {
-    return { heavy: 300, medium: 200, light: 100, none: 0 }[coverage];
-};
-
+function extractTierCount(cakeType: CakeType): number {
+  if (cakeType.includes('3 Tier')) return 3;
+  if (cakeType.includes('2 Tier')) return 2;
+  return 1;
+}
 
 // --- Main Calculation Logic ---
 
-const GUMPASTE_TOPPER_TYPES: MainTopperType[] = ['edible_3d', 'figurine', 'edible_2d_gumpaste'];
-const GUMPASTE_SUPPORT_TYPES: SupportElementType[] = ['gumpaste_panel', 'small_gumpaste'];
-
 export const calculatePrice = (
-    analysis: HybridAnalysisResult,
     uiState: {
         mainToppers: MainTopperUI[],
         supportElements: SupportElementUI[],
         cakeMessages: CakeMessageUI[],
         icingDesign: IcingDesignUI,
+        cakeInfo: CakeInfoUI,
     }
-): AddOnPricing => {
+): { addOnPricing: AddOnPricing; itemPrices: Map<string, number> } => {
 
-    const GUMPASTE_ALLOWANCE = 200;
+    const { mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo } = uiState;
+    const breakdown: { item: string; price: number; }[] = [];
     
+    const itemPrices = new Map<string, number>();
     let heroGumpasteTotal = 0;
     let supportGumpasteRawTotal = 0;
     let nonGumpasteTotal = 0;
-    const breakdown: { item: string; price: number; }[] = [];
 
-    // 1. Process Main Toppers
-    const enabledToppers = uiState.mainToppers.filter(t => t.isEnabled);
-    const topperGroups = enabledToppers.reduce((acc, topper) => {
-        (acc[topper.group_id] = acc[topper.group_id] || []).push(topper);
-        return acc;
-    }, {} as Record<string, MainTopperUI[]>);
+    const GUMPASTE_ALLOWANCE = 200;
 
-    Object.values(topperGroups).forEach(group => {
-        if (group.length === 0) return;
-        const first = group[0];
-        const totalQuantity = group.reduce((sum, item) => sum + item.quantity, 0);
+    // --- Process All Main Toppers in a Single Loop ---
+    mainToppers.forEach(topper => {
+        if (!topper.isEnabled) {
+            itemPrices.set(topper.id, 0);
+            return;
+        }
+
+        if (topper.description.toLowerCase().includes('dots')) {
+            itemPrices.set(topper.id, 0);
+            return;
+        }
+
         let price = 0;
         
-        const isNumberInDescription = /\b\d+\b|number/i.test(first.description);
-        // FIX: The check for number toppers should only apply to gumpaste items, not all toppers.
-        const isGumpasteNumberTopper = (GUMPASTE_TOPPER_TYPES.includes(first.type)) && isNumberInDescription;
+        switch (topper.type) {
+            case 'meringue_pop':
+                price = 20 * topper.quantity;
+                nonGumpasteTotal += price;
+                break;
+            case 'edible_3d':
+                const singleItemPrice = getEdible3DPrice(topper.description, topper.size);
+                // Price simple objects as a single group, not per item. Price complex figures per item.
+                price = isSimpleObject(topper.description) ? singleItemPrice : singleItemPrice * topper.quantity;
 
-        if (!isGumpasteNumberTopper) { // Only skip pricing if it's a gumpaste number topper.
-            switch (first.type) {
-                case 'edible_3d':
-                case 'figurine':
-                    price = group.reduce((sum, item) => sum + (getEdible3DPrice(item.description, item.size) * item.quantity), 0);
-                    break;
-                case 'edible_2d_gumpaste':
-                     const basePrice2D = { large: 250, medium: 150, small: 100, partial: 50 }[first.size];
-                     price = getTieredGroupPrice(basePrice2D, totalQuantity);
-                     break;
-                case 'toy':
-                    price = 100 * totalQuantity;
-                    break;
-                case 'cardstock':
-                case 'edible_photo':
-                    price = first.type === 'cardstock' ? 100 : 200; // One price for the whole group
-                    break;
-                case 'printout':
+                if (topper.classification === 'hero') {
+                    heroGumpasteTotal += price;
+                } else {
+                    supportGumpasteRawTotal += price;
+                }
+                break;
+            case 'edible_2d_gumpaste':
+                if (topper.size === 'large') {
+                    price = 100;
+                } else if (topper.size === 'medium') {
+                    price = 50;
+                } else { // 'small' or 'tiny'
                     price = 0;
-                    break;
-            }
-        }
-        
-        const isGumpasteGroup = GUMPASTE_TOPPER_TYPES.includes(first.type);
-        if (isGumpasteGroup) {
-            if (first.classification === 'hero') {
-                heroGumpasteTotal += price;
-            } else { // 'support'
+                }
                 supportGumpasteRawTotal += price;
-            }
-        } else {
-            nonGumpasteTotal += price;
-        }
-
-        if (price > 0) {
-            let breakdownLabel = `${first.description}`;
-            if (totalQuantity > 1 && group.length === 1) {
-                 breakdownLabel = `${first.description} (x${totalQuantity})`;
-            } else if (totalQuantity > 1) {
-                 breakdownLabel = `Set of ${totalQuantity} ${first.description}`;
-            }
-            breakdown.push({ item: breakdownLabel, price });
-        }
-
-        const pricePerItem = totalQuantity > 0 ? price / totalQuantity : 0;
-        group.forEach(item => { item.price = pricePerItem * item.quantity; });
-    });
-
-    // 2. Process Support Elements
-    const supportGroups = uiState.supportElements.filter(s => s.isEnabled).reduce((acc, el) => {
-        (acc[el.group_id] = acc[el.group_id] || []).push(el);
-        return acc;
-    }, {} as Record<string, SupportElementUI[]>);
-
-    Object.values(supportGroups).forEach(group => {
-        if (group.length === 0) return;
-        const first = group[0];
-        let price = 0;
-        switch (first.type) {
-            case 'gumpaste_panel':
-            case 'small_gumpaste':
-                price = getPanelPrice(first.coverage);
                 break;
-            case 'chocolates':
-                price = getChocolatePrice(first.coverage);
+            case 'icing_doodle':
+                if (topper.description.toLowerCase().includes('intricate') || topper.description.toLowerCase().includes('complex')) {
+                    price = cakeInfo.type === 'Bento' ? 50 : 100;
+                    nonGumpasteTotal += price;
+                }
                 break;
-            case 'sprinkles':
-                price = first.coverage === 'heavy' ? 100 : 0;
+            case 'icing_palette_knife':
+                const isIntricateMain = topper.description.toLowerCase().includes('intricate');
+                if (topper.size === 'large' && isIntricateMain) {
+                    const tierCount = extractTierCount(cakeInfo.type);
+                    price = 100 * tierCount;
+                } else {
+                    price = 0; // All other cases are free
+                }
+                nonGumpasteTotal += price;
                 break;
-            case 'isomalt':
-                 price = { heavy: 300, medium: 200, light: 100, none: 0 }[first.coverage];
-                 break;
-            case 'edible_photo_side':
-                 price = 200;
-                 break;
-            case 'support_printout':
+            case 'plastic_ball':
+                const lowerDescPB = topper.description.toLowerCase();
+                if (lowerDescPB.includes('disco ball')) {
+                    // Price disco balls at 50 pesos each
+                    price = 50 * topper.quantity;
+                } else { // Regular plastic balls
+                    // Price normal balls at 100 pesos per 3 pieces
+                    price = Math.ceil(topper.quantity / 3) * 100;
+                }
+                nonGumpasteTotal += price;
+                break;
+            case 'toy':
+                // High-Detail Toys pricing based on size
+                if (topper.size === 'large') price = 200;
+                else if (topper.size === 'medium') price = 150;
+                else price = 100; // 'small' or 'partial'
+                price *= topper.quantity;
+                nonGumpasteTotal += price;
+                break;
+            case 'figurine':
+                // Simpler Figurines pricing based on size
+                if (topper.size === 'large') price = 90;
+                else if (topper.size === 'medium') price = 70;
+                else price = 50; // 'small' or 'partial'
+                price *= topper.quantity;
+                nonGumpasteTotal += price;
+                break;
+            case 'printout':
                 price = 0;
                 break;
-        }
-        
-        if(price > 0) {
-            const isGumpasteGroup = GUMPASTE_SUPPORT_TYPES.includes(first.type);
-            if (isGumpasteGroup) {
-                supportGumpasteRawTotal += price;
-            } else {
+            case 'edible_photo':
+                price = 200; // Flat price for top edible photo
                 nonGumpasteTotal += price;
-            }
-            breakdown.push({ item: first.description, price });
+                break;
+            case 'cardstock':
+                // Cardstock pricing based on size
+                if (topper.size === 'large') price = 100;
+                else if (topper.size === 'medium') price = 60;
+                else price = 25; // 'small' or 'partial'
+                price *= topper.quantity;
+                nonGumpasteTotal += price;
+                break;
+            case 'candle':
+                const digits = topper.description.match(/\d/g) || [];
+                const digitCount = Math.max(1, digits.length);
+                price = digitCount * 25; // 25 per digit
+                nonGumpasteTotal += price;
+                break;
+            default:
+                price = 0;
         }
         
-        group.forEach(item => { item.price = price / group.length; });
+        itemPrices.set(topper.id, price);
+        if (price > 0) {
+            breakdown.push({ item: topper.description, price });
+        }
     });
 
-    // 3. Icing work & other
-    if (uiState.icingDesign.drip) {
-        nonGumpasteTotal += uiState.icingDesign.dripPrice;
-        breakdown.push({ item: "Drip Icing", price: uiState.icingDesign.dripPrice });
+    // --- Process Support Elements ---
+    supportElements.forEach(element => {
+        if (!element.isEnabled) {
+            itemPrices.set(element.id, 0);
+            return;
+        }
+        
+        if (element.description.toLowerCase().includes('dots')) {
+            itemPrices.set(element.id, 0);
+            return;
+        }
+
+        let price = 0;
+        switch (element.type) {
+            case 'gumpaste_panel':
+            case 'small_gumpaste':
+            case 'edible_flowers':
+            case 'edible_2d_gumpaste':
+                if (element.coverage === 'heavy') price = 300;
+                else if (element.coverage === 'medium') price = 200;
+                else if (element.coverage === 'light') price = 100;
+                supportGumpasteRawTotal += price;
+                break;
+
+            case 'icing_doodle':
+                if (element.description.toLowerCase().includes('intricate') || element.description.toLowerCase().includes('complex')) {
+                    price = cakeInfo.type === 'Bento' ? 50 : 100;
+                    // Add to allowance-eligible total as requested
+                    supportGumpasteRawTotal += price;
+                }
+                break;
+            
+            case 'icing_palette_knife':
+                const isIntricateSupport = element.description.toLowerCase().includes('intricate');
+                if (element.coverage === 'heavy' && isIntricateSupport) {
+                    const tierCount = extractTierCount(cakeInfo.type);
+                    price = 100 * tierCount;
+                } else {
+                    price = 0; // All other cases are free
+                }
+                nonGumpasteTotal += price;
+                break;
+
+            case 'chocolates':
+                if (element.coverage === 'heavy') price = 200;
+                else if (element.coverage === 'medium') price = 100;
+                else if (element.coverage === 'light') price = 50;
+                nonGumpasteTotal += price;
+                break;
+            
+            case 'sprinkles':
+            case 'dragees':
+                if (element.coverage === 'heavy') price = 100;
+                nonGumpasteTotal += price;
+                break;
+
+            case 'isomalt':
+                const isComplex = element.description.toLowerCase().includes('complex') || element.description.toLowerCase().includes('elaborate');
+                price = isComplex ? 500 : 200;
+                nonGumpasteTotal += price;
+                break;
+            
+            case 'edible_photo_side':
+                if (element.coverage === 'heavy') price = 350;
+                else if (element.coverage === 'medium') price = 250;
+                else if (element.coverage === 'light') price = 150;
+                nonGumpasteTotal += price;
+                break;
+            
+            default:
+                price = 0;
+        }
+
+        itemPrices.set(element.id, price);
+        if (price > 0) {
+            breakdown.push({ item: element.description, price });
+        }
+    });
+
+    // --- Process Cake Messages and Icing ---
+    cakeMessages.forEach(message => {
+        let price = 0;
+        if (message.isEnabled && message.type === 'cardstock') {
+            price = 100;
+            nonGumpasteTotal += price;
+            breakdown.push({ item: `"${message.text}" (Cardstock)`, price });
+        }
+        itemPrices.set(message.id, price);
+    });
+
+    if (icingDesign.drip) {
+        const tierCount = extractTierCount(cakeInfo.type);
+        const dripPrice = 100 * tierCount;
+        nonGumpasteTotal += dripPrice;
+        breakdown.push({ item: `Drip Effect (${tierCount > 1 ? `${tierCount} tiers` : '1 tier'})`, price: dripPrice });
+        itemPrices.set('icing_drip', dripPrice);
+    } else {
+        itemPrices.set('icing_drip', 0);
     }
-    if (uiState.icingDesign.gumpasteBaseBoard) {
+    
+    if (icingDesign.gumpasteBaseBoard) {
         const baseBoardPrice = 100;
-        // Gumpaste board is a fixed add-on, not subject to allowance.
-        nonGumpasteTotal += baseBoardPrice;
+        nonGumpasteTotal += baseBoardPrice; // No longer eligible for allowance
         breakdown.push({ item: "Gumpaste Covered Base Board", price: baseBoardPrice });
+        itemPrices.set('icing_gumpasteBaseBoard', baseBoardPrice);
+    } else {
+        itemPrices.set('icing_gumpasteBaseBoard', 0);
     }
-    uiState.cakeMessages.forEach(msg => { if (msg.isEnabled) { msg.price = 0; }});
 
-
-    // 4. Apply allowance and finalize
+    // --- Final Calculation ---
+    const allowanceApplied = Math.min(GUMPASTE_ALLOWANCE, supportGumpasteRawTotal);
     const supportGumpasteCharge = Math.max(0, supportGumpasteRawTotal - GUMPASTE_ALLOWANCE);
-    const allowanceApplied = supportGumpasteRawTotal - supportGumpasteCharge;
 
     if (allowanceApplied > 0) {
         breakdown.push({ item: "Gumpaste Allowance", price: -allowanceApplied });
@@ -193,7 +310,10 @@ export const calculatePrice = (
     const addOnPrice = heroGumpasteTotal + supportGumpasteCharge + nonGumpasteTotal;
 
     return {
-        addOnPrice,
-        breakdown,
+        addOnPricing: {
+            addOnPrice,
+            breakdown,
+        },
+        itemPrices,
     };
 };

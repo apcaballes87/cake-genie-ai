@@ -27,9 +27,21 @@ export async function createXenditPayment(params: CreatePaymentParams): Promise<
     // Get the current session to include auth token
     const { data: { session } } = await supabase.auth.getSession();
     
+    // Dynamically construct redirect URLs based on the current domain.
+    // This fixes the issue where deployed apps would fail on payment redirects.
+    const domain = window.location.origin;
+    const successUrl = `${domain}/#/order-confirmation?order_id=${params.orderId}`;
+    const failureUrl = `${domain}/#/cart?payment_failed=true&order_id=${params.orderId}`;
+
+    const bodyWithUrls = {
+      ...params,
+      success_redirect_url: successUrl,
+      failure_redirect_url: failureUrl,
+    };
+    
     // Call the Edge Function
     const { data, error } = await supabase.functions.invoke('create-xendit-payment', {
-      body: params,
+      body: bodyWithUrls,
       headers: session ? {
         Authorization: `Bearer ${session.access_token}`
       } : {}

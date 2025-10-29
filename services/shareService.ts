@@ -102,14 +102,14 @@ export async function updateSharedDesignTexts(
       .eq('design_id', designId);
 
     if (error) {
-      console.error('❌ Supabase RLS error updating shared design texts:', error);
+      console.error('❌ Supabase RLS error updating shared design texts:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
       // CRITICAL: Throw the error so the caller knows it failed
       throw new Error(`Failed to update shared design: ${error.message}`);
     }
     
     console.log('✅ Successfully enriched shared design:', designId);
   } catch (error) {
-    console.error('❌ Exception updating shared design texts:', error);
+    console.error('❌ Exception updating shared design texts:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     // Re-throw so the background task knows it failed
     throw error;
   }
@@ -134,7 +134,7 @@ export async function updateSharedDesignTextsWithRetry(
       return; // Success!
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      console.warn(`⚠️ Enrichment attempt ${attempt}/${maxRetries} failed:`, error);
+      console.warn(`⚠️ Enrichment attempt ${attempt}/${maxRetries} failed:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
       
       if (attempt < maxRetries) {
         // Exponential backoff: 1s, 2s, 4s
@@ -173,7 +173,7 @@ export async function getSharedDesign(designId: string) {
     });
 
     if (error) {
-      console.error('❌ [getSharedDesign] Supabase error:', error);
+      console.error('❌ [getSharedDesign] Supabase error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
       throw error;
     }
 
@@ -187,7 +187,8 @@ export async function getSharedDesign(designId: string) {
     // Increment view count but don't wait for it to finish (fire-and-forget).
     // This prevents the main data fetch from hanging if the RPC call is slow or fails.
     if (data) {
-      // Use an async IIFE to handle the promise properly
+      // FIX: Converted to an async IIFE to use try/catch for error handling,
+      // as the Supabase query builder is a 'thenable' but may not have a .catch method.
       (async () => {
         try {
           const { error: rpcError } = await supabase.rpc('increment_design_view', { p_design_id: designId });
@@ -195,15 +196,14 @@ export async function getSharedDesign(designId: string) {
             console.warn('Failed to increment view count:', rpcError);
           }
         } catch (err) {
-          console.warn('Exception during fire-and-forget view count increment:', err);
+            console.warn('Exception during fire-and-forget view count increment:', err);
         }
       })();
     }
 
     return data;
   } catch (error) {
-    console.error('❌ [getSharedDesign] Exception caught:', error);
-    console.error('❌ [getSharedDesign] Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+    console.error('❌ [getSharedDesign] Exception caught:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     return null;
   }
 }
@@ -213,7 +213,8 @@ export async function getSharedDesign(designId: string) {
  * Increment share count when user shares. This is a non-blocking call.
  */
 export function incrementShareCount(designId: string) {
-  // Use an async IIFE to handle the promise properly
+  // FIX: Converted to an async IIFE to use try/catch for error handling,
+  // as the Supabase query builder is a 'thenable' but may not have a .catch method.
   (async () => {
     try {
       const { error } = await supabase.rpc('increment_design_share', { p_design_id: designId });
@@ -221,7 +222,7 @@ export function incrementShareCount(designId: string) {
         console.warn('Error incrementing share count:', error);
       }
     } catch (err) {
-      console.warn('Exception during fire-and-forget share count increment:', err);
+        console.warn('Exception during fire-and-forget share count increment:', err);
     }
   })();
 }

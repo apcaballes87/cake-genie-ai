@@ -33,6 +33,7 @@ export const createShopifyEditPrompt = (
 2.  **Modification, Not Replacement:** When asked to change a color (e.g., "Change the side icing to blue"), you must **recolor the existing surface** while preserving all decorations, textures, and details on that surface. Do NOT replace the area with a plain color.
 3.  **Realistic Interaction:** When adding an element like a drip, it must interact realistically with existing decorations, flowing **around or partially over** them. Original decorations must remain visible and integrated.
 4.  **Preserve Unmentioned Details:** If a feature from the original image is not explicitly mentioned as changed, it MUST be preserved exactly as it is.
+5.  **Remove Superimposed Overlays:** Identify and cleanly remove any non-diegetic logos, watermarks, text, or graphic overlays that have been digitally added on top of the cake image. In-paint the cleared area to seamlessly match the surrounding cake icing or background. Do NOT remove decorations that are physically part of the cake, such as printout toppers or piped messages.
 
 ---
 ### **List of Changes to Apply**

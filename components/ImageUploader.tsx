@@ -37,7 +37,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ isOpen, onClose, o
       }
       onImageSelect(fileToProcess);
     } catch (error) {
-      console.error('Error processing image:', error);
+      console.error('Error processing image:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
       showError('Failed to process image.');
       onImageSelect(file); // fallback to original file
     } finally {

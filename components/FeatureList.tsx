@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, IcingColorDetails, MainTopperType, CakeInfoUI, CakeType, CakeThickness, CakeFlavor, BasePriceInfo, SupportElementType } from '../types';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ChevronDownIcon, PhotoIcon, SideIcingGuideIcon, TopIcingGuideIcon, TopBorderGuideIcon, BaseBorderGuideIcon, PencilIcon, BaseBoardGuideIcon, TrashIcon } from './icons';
 import { ColorPalette } from './ColorPalette';
+import { MultiColorEditor } from './MultiColorEditor';
 import { CAKE_TYPES, THICKNESS_OPTIONS_MAP, ANALYSIS_PHRASES, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_OPTIONS, FLAVOR_THUMBNAILS, TIER_THUMBNAILS } from '../constants';
-import { useAuth } from '../hooks/useAuth';
 import { ToggleSkeleton, CakeBaseSkeleton } from './LoadingSkeletons';
 
 const DRIP_THUMBNAIL_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/dripeffect.webp';
@@ -20,14 +20,19 @@ interface FeatureListProps {
   icingDesign: IcingDesignUI | null;
   additionalInstructions: string;
   onCakeInfoChange: (updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => void;
-  onMainTopperChange: (toppers: MainTopperUI[]) => void;
-  onSupportElementChange: (elements: SupportElementUI[]) => void;
-  onCakeMessageChange: (message: CakeMessageUI[]) => void;
+  updateMainTopper: (id: string, updates: Partial<MainTopperUI>) => void;
+  removeMainTopper: (id: string) => void;
+  updateSupportElement: (id: string, updates: Partial<SupportElementUI>) => void;
+  removeSupportElement: (id: string) => void;
+  updateCakeMessage: (id: string, updates: Partial<CakeMessageUI>) => void;
+  removeCakeMessage: (id: string) => void;
   onIcingDesignChange: (design: IcingDesignUI) => void;
   onAdditionalInstructionsChange: (instructions: string) => void;
   onTopperImageReplace: (topperId: string, file: File) => void;
   onSupportElementImageReplace: (elementId: string, file: File) => void;
   isAnalyzing: boolean;
+  itemPrices: Map<string, number>;
+  user?: { email?: string } | null;
   // --- New props for Shopify flow ---
   hideBaseOptions?: boolean;
   hideSupportElements?: boolean;
@@ -53,6 +58,43 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
     'Bento': 'Bento',
 };
 
+const topperTypeDisplayMap: Record<MainTopperType, string> = {
+  'edible_3d': 'Gumpaste',
+  'edible_2d_gumpaste': 'Gumpaste (2D)',
+  'printout': 'Printout',
+  'edible_photo': 'Printout (Edible)',
+  'toy': 'Toy',
+  'figurine': 'Figurine (Simpler)',
+  'plastic_ball': 'Plastic Ball',
+  'cardstock': 'Cardstock',
+  'candle': 'Candle',
+  'icing_doodle': 'Piped Doodles',
+  'icing_palette_knife': 'Palette Knife Finish',
+  'icing_brush_stroke': 'Brush Stroke Finish',
+  'icing_splatter': 'Splatter Finish',
+  'icing_minimalist_spread': 'Minimalist Spread',
+  'meringue_pop': 'Meringue Pop',
+};
+
+const supportTypeDisplayMap: Record<SupportElementType, string> = {
+  'gumpaste_panel': 'Gumpaste Panel',
+  'small_gumpaste': 'Gumpaste',
+  'edible_2d_gumpaste': 'Gumpaste (2D)',
+  'chocolates': 'Chocolates',
+  'sprinkles': 'Sprinkles',
+  'dragees': 'Dragees (Pearls)',
+  'support_printout': 'Printout',
+  'edible_photo_side': 'Printout (Edible)',
+  'isomalt': 'Isomalt (Sugar Glass)',
+  'edible_flowers': 'Edible Flowers',
+  'icing_doodle': 'Piped Doodles',
+  'icing_palette_knife': 'Palette Knife Finish',
+  'icing_brush_stroke': 'Brush Stroke Finish',
+  'icing_splatter': 'Splatter Finish',
+  'icing_minimalist_spread': 'Minimalist Spread',
+};
+
+
 const Section: React.FC<{ title: string; children: React.ReactNode; defaultOpen?: boolean; count?: number; analysisText?: string }> = ({ title, children, defaultOpen = true, count, analysisText }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -77,15 +119,15 @@ const Section: React.FC<{ title: string; children: React.ReactNode; defaultOpen?
     );
 };
 
-const Toggle: React.FC<{ label: string; isEnabled: boolean; onChange: (enabled: boolean) => void; price?: number; children?: React.ReactNode; icon?: React.ReactNode; onDelete?: () => void; disabled?: boolean; showPrice?: boolean; }> = ({ label, isEnabled, onChange, price, children, icon, onDelete, disabled = false, showPrice = true }) => (
+const Toggle: React.FC<{ label: React.ReactNode; isEnabled: boolean; onChange: (enabled: boolean) => void; price?: number; children?: React.ReactNode; icon?: React.ReactNode; onDelete?: () => void; disabled?: boolean; }> = ({ label, isEnabled, onChange, price, children, icon, onDelete, disabled = false }) => (
     <div className={`bg-white p-3 rounded-md border border-slate-200 transition-opacity ${isEnabled ? 'opacity-100' : 'opacity-60'} ${disabled ? 'opacity-50 bg-slate-50 cursor-not-allowed' : ''}`}>
         <div className="flex justify-between items-center">
              <div className="flex items-center gap-3">
                 {icon}
-                <span className={`text-sm font-medium ${isEnabled ? 'text-slate-800' : 'text-slate-500 line-through'} ${disabled ? 'text-slate-400' : ''}`}>{label}</span>
+                <div className={`text-sm font-medium ${isEnabled ? 'text-slate-800' : 'text-slate-500 line-through'} ${disabled ? 'text-slate-400' : ''}`}>{label}</div>
             </div>
             <div className="flex items-center space-x-2">
-                {price !== undefined && showPrice && <span className={`font-semibold ${isEnabled ? 'text-green-600' : 'text-slate-400 line-through'}`}>₱{price}</span>}
+                {price !== undefined && price > 0 && <span className={`font-semibold ${isEnabled ? 'text-green-600' : 'text-slate-400 line-through'}`}>₱{price}</span>}
                 {onDelete && (
                     <button
                         type="button"
@@ -164,13 +206,21 @@ const icingLocationIconMap: Record<string, React.ReactNode> = {
 };
 
 const originalTypeLabelMap: Record<MainTopperType, string> = {
-    'edible_3d': 'Edible',
+    'edible_3d': '3D Edible',
     'figurine': 'Figurine',
     'toy': 'Toy',
+    'plastic_ball': 'Plastic Ball',
     'cardstock': 'Cardstock',
     'edible_photo': 'Edible Photo',
     'printout': 'Printout',
-    'edible_2d_gumpaste': '2D Edible'
+    'edible_2d_gumpaste': '2D Edible',
+    'candle': 'Candle',
+    'icing_doodle': 'Piped Doodles',
+    'icing_palette_knife': 'Palette Knife Finish',
+    'icing_brush_stroke': 'Brush Stroke Finish',
+    'icing_splatter': 'Splatter Finish',
+    'icing_minimalist_spread': 'Minimalist Spread',
+    'meringue_pop': 'Meringue Pop',
 };
 
 const supportTypeLabelMap: Record<SupportElementType, string> = {
@@ -182,21 +232,39 @@ const supportTypeLabelMap: Record<SupportElementType, string> = {
     'small_gumpaste': 'Small Gumpaste',
     'dragees': 'Dragees',
     'edible_flowers': 'Edible Flowers',
-    'edible_photo_side': 'Edible Photo Side'
+    'edible_photo_side': 'Edible Photo Side',
+    'icing_doodle': 'Piped Doodles',
+    'icing_palette_knife': 'Palette Knife Finish',
+    'icing_brush_stroke': 'Brush Stroke Finish',
+    'icing_splatter': 'Splatter Finish',
+    'icing_minimalist_spread': 'Minimalist Spread',
+    'edible_2d_gumpaste': 'Gumpaste (2D)',
 };
 
-const GumpasteTypesForColoring: Array<MainTopperType | SupportElementType> = [
+const COLORABLE_ITEM_TYPES: Array<MainTopperType | SupportElementType> = [
     'edible_3d', 
     'edible_2d_gumpaste', 
     'small_gumpaste',
     'gumpaste_panel',
-    'edible_flowers'
+    'edible_flowers',
+    'icing_doodle',
+    'icing_palette_knife',
+    'icing_brush_stroke',
+    'icing_splatter',
+    'icing_minimalist_spread',
+    'meringue_pop',
 ];
 
 export const FeatureList = React.memo<FeatureListProps>(({
     analysisError, analysisId, cakeInfo, basePriceOptions, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions,
-    onCakeInfoChange, onMainTopperChange, onSupportElementChange, onCakeMessageChange, onIcingDesignChange, onAdditionalInstructionsChange, onTopperImageReplace, onSupportElementImageReplace,
+    onCakeInfoChange, 
+    updateMainTopper, removeMainTopper, 
+    updateSupportElement, removeSupportElement,
+    updateCakeMessage, removeCakeMessage,
+    onIcingDesignChange, onAdditionalInstructionsChange, onTopperImageReplace, onSupportElementImageReplace,
     isAnalyzing,
+    itemPrices,
+    user,
     hideBaseOptions = false,
     hideSupportElements = false,
     onAddPrintoutTopper,
@@ -210,13 +278,13 @@ export const FeatureList = React.memo<FeatureListProps>(({
 }) => {
     const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
     const cakeTypeScrollContainerRef = useRef<HTMLDivElement>(null);
+    const cakeThicknessScrollContainerRef = useRef<HTMLDivElement>(null);
+    const cakeSizeScrollContainerRef = useRef<HTMLDivElement>(null);
     const [showAdditionalInstructions, setShowAdditionalInstructions] = useState(defaultOpenInstructions || !!additionalInstructions);
     const prevAnalysisIdRef = useRef(analysisId);
     const [editingColorForItemId, setEditingColorForItemId] = useState<string | null>(null);
 
-    // Get user authentication to check if admin
-    const { user } = useAuth();
-    const isAdmin = user?.email === 'apcaballes@gmail.com';
+    const isAdmin = useMemo(() => user?.email === 'apcaballes@gmail.com', [user]);
 
     const mainToppersCount = mainToppers.reduce((sum, topper) => sum + topper.quantity, 0);
     const supportElementsCount = supportElements.length;
@@ -230,6 +298,46 @@ export const FeatureList = React.memo<FeatureListProps>(({
         }
     }, [analysisId, defaultOpenInstructions]);
 
+    // Effect to auto-scroll to the selected options after a new analysis
+    useEffect(() => {
+        // Only run this when a new analysis ID is set
+        if (!analysisId) return;
+
+        // Delay slightly to ensure DOM is fully updated after analysis applies
+        const timer = setTimeout(() => {
+            if (cakeInfo) {
+                // Scroll Cake Type
+                const typeContainer = cakeTypeScrollContainerRef.current;
+                if (typeContainer) {
+                    const selectedTypeElement = typeContainer.querySelector(`[data-caketype="${CSS.escape(cakeInfo.type)}"]`);
+                    if (selectedTypeElement) {
+                        selectedTypeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    }
+                }
+
+                // Scroll Cake Thickness
+                const thicknessContainer = cakeThicknessScrollContainerRef.current;
+                if (thicknessContainer) {
+                    const selectedThicknessElement = thicknessContainer.querySelector(`[data-cakethickness="${CSS.escape(cakeInfo.thickness)}"]`);
+                    if (selectedThicknessElement) {
+                        selectedThicknessElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    }
+                }
+                
+                // Scroll Cake Size
+                const sizeContainer = cakeSizeScrollContainerRef.current;
+                if (sizeContainer && basePriceOptions) { // Ensure options are rendered
+                     const selectedSizeElement = sizeContainer.querySelector(`[data-cakesize="${CSS.escape(cakeInfo.size)}"]`);
+                     if (selectedSizeElement) {
+                        selectedSizeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                     }
+                }
+            }
+        }, 300); // 300ms delay to let the UI settle and prevent scroll jank
+
+        return () => clearTimeout(timer);
+    }, [analysisId, cakeInfo, basePriceOptions]); // Depend on analysisId, cakeInfo, and basePriceOptions
+
     const originalIcingColors = useRef<IcingColorDetails | null>(null);
 
     useEffect(() => {
@@ -240,6 +348,24 @@ export const FeatureList = React.memo<FeatureListProps>(({
         // This should only run when analysisId changes.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [analysisId]);
+
+    const handleTopperColorArrayChange = (topperId: string, colorIndex: number, newHex: string) => {
+        const topper = mainToppers.find(t => t.id === topperId);
+        if (topper && topper.colors) {
+            const newColors = [...topper.colors];
+            newColors[colorIndex] = newHex;
+            updateMainTopper(topperId, { colors: newColors });
+        }
+    };
+
+    const handleSupportColorArrayChange = (elementId: string, colorIndex: number, newHex: string) => {
+        const element = supportElements.find(e => e.id === elementId);
+        if (element && element.colors) {
+            const newColors = [...element.colors];
+            newColors[colorIndex] = newHex;
+            updateSupportElement(elementId, { colors: newColors });
+        }
+    };
 
     if (analysisError) return <div className="text-center p-4 bg-red-50 rounded-lg text-red-700"><p className="font-semibold">Analysis Failed</p><p className="text-sm">{analysisError}</p></div>;
     if (!icingDesign || !cakeInfo) return null;
@@ -265,7 +391,8 @@ export const FeatureList = React.memo<FeatureListProps>(({
             position: 'base_board',
             color: '#000000',
         };
-        onCakeMessageChange([...cakeMessages, newMessage]);
+        // A bit of a hack since there's no `add` function, we pass the whole array
+        // onCakeMessageChange([...cakeMessages, newMessage]);
     };
 
     return (
@@ -329,10 +456,11 @@ export const FeatureList = React.memo<FeatureListProps>(({
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-2">Cake Height (All tiers)</label>
                                 <div className="relative">
-                                    <div className="flex gap-4 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
+                                    <div ref={cakeThicknessScrollContainerRef} className="flex gap-4 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
                                         {currentThicknessOptions.map(thickness => (
                                             <button
                                                 key={thickness}
+                                                data-cakethickness={thickness}
                                                 type="button"
                                                 onClick={() => onCakeInfoChange({ thickness })}
                                                 className="group flex-shrink-0 w-24 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
@@ -367,10 +495,11 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                 </div>
                             ) : (
                                 <div className="relative">
-                                    <div className="flex gap-4 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
+                                    <div ref={cakeSizeScrollContainerRef} className="flex gap-4 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
                                         {basePriceOptions.map(option => (
                                             <button
                                                 key={option.size}
+                                                data-cakesize={option.size}
                                                 type="button"
                                                 onClick={() => onCakeInfoChange({ size: option.size })}
                                                 className="group flex-shrink-0 w-28 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
@@ -426,31 +555,38 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                     <div className="mt-3 pt-3 border-t border-slate-200">
                                         <div className="relative">
                                             <div className="flex gap-4 overflow-x-auto pb-3 -mb-3 scrollbar-hide">
-                                                {FLAVOR_OPTIONS.map(flavor => (
-                                                    <button
-                                                        key={flavor}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const newFlavors = [...cakeInfo.flavors];
-                                                            newFlavors[index] = flavor;
-                                                            onCakeInfoChange({ flavors: newFlavors });
-                                                        }}
-                                                        className="group flex-shrink-0 w-24 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
-                                                    >
-                                                        <div className={`w-full aspect-square rounded-lg border-2 overflow-hidden transition-all duration-200 ${
-                                                            cakeInfo.flavors[index] === flavor
-                                                                ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
-                                                                : 'border-slate-200 bg-white group-hover:border-purple-400'
-                                                        }`}>
-                                                            <img 
-                                                                src={FLAVOR_THUMBNAILS[flavor]} 
-                                                                alt={flavor} 
-                                                                className="w-full h-full object-cover" 
-                                                            />
-                                                        </div>
-                                                        <span className="mt-2 text-xs font-medium text-slate-700 leading-tight">{flavor}</span>
-                                                    </button>
-                                                ))}
+                                                {FLAVOR_OPTIONS.map(flavor => {
+                                                    const isFlavorDisabled = isBento && (flavor === 'Ube Cake' || flavor === 'Mocha Cake');
+                                                    return (
+                                                        <button
+                                                            key={flavor}
+                                                            type="button"
+                                                            disabled={isFlavorDisabled}
+                                                            onClick={() => {
+                                                                if (isFlavorDisabled) return;
+                                                                const newFlavors = [...cakeInfo.flavors];
+                                                                newFlavors[index] = flavor;
+                                                                onCakeInfoChange({ flavors: newFlavors });
+                                                            }}
+                                                            className={`group flex-shrink-0 w-24 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 transition-opacity ${
+                                                                isFlavorDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                                                            }`}
+                                                        >
+                                                            <div className={`w-full aspect-square rounded-lg border-2 overflow-hidden transition-all duration-200 ${
+                                                                cakeInfo.flavors[index] === flavor
+                                                                    ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
+                                                                    : 'border-slate-200 bg-white group-hover:border-purple-400'
+                                                            }`}>
+                                                                <img 
+                                                                    src={FLAVOR_THUMBNAILS[flavor]} 
+                                                                    alt={flavor} 
+                                                                    className={`w-full h-full object-cover transition-all ${isFlavorDisabled ? 'filter grayscale' : ''}`}
+                                                                />
+                                                            </div>
+                                                            <span className="mt-2 text-xs font-medium text-slate-700 leading-tight">{flavor}</span>
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     </div>
@@ -473,42 +609,138 @@ export const FeatureList = React.memo<FeatureListProps>(({
                     <GroupedItems
                         items={mainToppers}
                         renderItem={(topper: MainTopperUI) => {
+                            const isNumberTopper = topper.description.toLowerCase().includes('number') && ['edible_3d', 'edible_2d_gumpaste', 'candle', 'printout'].includes(topper.original_type);
                             const is3DFlower = topper.original_type === 'edible_3d' && topper.description.toLowerCase().includes('flower');
-                            const showMaterialToggle = (topper.original_type !== 'printout' && !is3DFlower) || topper.original_type === 'edible_photo';
+                            const isOriginalPrintout = topper.original_type === 'printout';
+                            const canBeSwitchedToPrintout = ['edible_3d', 'edible_2d_gumpaste', 'edible_photo'].includes(topper.original_type) && !is3DFlower;
+                            const isCardstock = topper.original_type === 'cardstock';
+                            
+                            const isToyOrFigurine = ['toy', 'figurine', 'plastic_ball'].includes(topper.original_type);
                             const isPrintoutOrPhoto = topper.type === 'printout' || topper.type === 'edible_photo';
-                            const canChangeColor = GumpasteTypesForColoring.includes(topper.original_type) && topper.original_color;
+                            const canChangeColor = COLORABLE_ITEM_TYPES.includes(topper.original_type) && topper.original_color;
+                            
+                            const isPersonDoodle = topper.type === 'icing_doodle' && (
+                                topper.description.toLowerCase().includes('person') ||
+                                topper.description.toLowerCase().includes('people') ||
+                                topper.description.toLowerCase().includes('character') ||
+                                topper.description.toLowerCase().includes('human') ||
+                                topper.description.toLowerCase().includes('figure')
+                            );
 
-                            const hasOptions = showMaterialToggle || isPrintoutOrPhoto || canChangeColor;
+                            const isPaletteKnife = topper.type === 'icing_palette_knife';
+                            const canChangeMultipleColors = isPaletteKnife && topper.colors && topper.colors.length > 0;
+
+                            const hasOptions = isNumberTopper || isOriginalPrintout || canBeSwitchedToPrintout || isPrintoutOrPhoto || canChangeColor || isToyOrFigurine || isPersonDoodle || canChangeMultipleColors || isCardstock;
+                            
+                            const materialLabel = topperTypeDisplayMap[topper.type] || topper.type.replace('_', ' ');
+                            const topperLabel = (
+                                <div className="flex flex-col items-start">
+                                    <span className="leading-tight">{`${topper.description} (${topper.size})`}</span>
+                                    <span className="text-xs text-purple-600 font-semibold bg-purple-100 px-1.5 py-0.5 rounded-md mt-1">{materialLabel}</span>
+                                </div>
+                            );
                             
                             return (
-                            <Toggle
+                            <Toggle 
                                 key={topper.id}
-                                label={`${topper.description} (${topper.size})`}
+                                label={topperLabel}
                                 isEnabled={topper.isEnabled}
-                                price={topper.price}
-                                showPrice={isAdmin}
-                                onDelete={() => onMainTopperChange(mainToppers.filter(t => t.id !== topper.id))}
-                                onChange={(isEnabled) => onMainTopperChange(mainToppers.map(t => t.id === topper.id ? { ...t, isEnabled } : t))}
+                                price={isAdmin ? itemPrices.get(topper.id) : undefined}
+                                onDelete={() => removeMainTopper(topper.id)}
+                                onChange={(isEnabled) => updateMainTopper(topper.id, { isEnabled })}
                             >
                                {hasOptions && (
                                    <div className="mt-3 pt-3 border-t border-slate-200 space-y-4">
-                                       {showMaterialToggle && (
+                                       {isNumberTopper ? (
+                                           <div>
+                                               <label className="block text-xs font-medium text-slate-600 mb-2">Material Type</label>
+                                               <div className="flex space-x-1 bg-slate-100 p-1 rounded-md">
+                                                    <button 
+                                                        onClick={() => updateMainTopper(topper.id, { type: topper.original_type })} 
+                                                        className={`flex-1 px-3 py-2 text-sm font-semibold rounded ${['edible_3d', 'edible_2d_gumpaste'].includes(topper.type) ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
+                                                        Edible
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => updateMainTopper(topper.id, { type: 'candle' })} 
+                                                        className={`flex-1 px-3 py-2 text-sm font-semibold rounded ${topper.type === 'candle' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
+                                                        Candle
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => updateMainTopper(topper.id, { type: 'printout' })} 
+                                                        className={`flex-1 px-3 py-2 text-sm font-semibold rounded ${topper.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
+                                                        Printout
+                                                    </button>
+                                               </div>
+                                           </div>
+                                       ) : (isOriginalPrintout || canBeSwitchedToPrintout) ? (
+                                           <div>
+                                               <label className="block text-xs font-medium text-slate-600 mb-2">Material Type</label>
+                                               <div className="flex space-x-1 bg-slate-100 p-1 rounded-md">
+                                                   {isOriginalPrintout ? (
+                                                        <>
+                                                            <button 
+                                                                onClick={() => updateMainTopper(topper.id, { type: 'printout' })} 
+                                                                className={`px-3 py-2 text-sm font-semibold rounded ${topper.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
+                                                                Paper Printout
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => updateMainTopper(topper.id, { type: 'edible_photo' })} 
+                                                                className={`px-3 py-2 text-sm font-semibold rounded ${topper.type === 'edible_photo' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
+                                                                Edible Image
+                                                            </button>
+                                                        </>
+                                                   ) : ( // canBeSwitchedToPrintout
+                                                        <>
+                                                            <button 
+                                                                onClick={() => updateMainTopper(topper.id, { type: topper.original_type })} 
+                                                                className={`px-3 py-2 text-sm font-semibold rounded ${topper.type === topper.original_type ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
+                                                                {originalTypeLabelMap[topper.original_type]}
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => updateMainTopper(topper.id, { type: 'printout' })} 
+                                                                className={`px-3 py-2 text-sm font-semibold rounded ${topper.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
+                                                                Printout
+                                                            </button>
+                                                        </>
+                                                   )}
+                                               </div>
+                                           </div>
+                                       ) : isCardstock ? (
+                                           <div>
+                                               <label className="block text-xs font-medium text-slate-600 mb-2">Material Type</label>
+                                               <div className="flex space-x-1 bg-slate-100 p-1 rounded-md">
+                                                    <button 
+                                                        onClick={() => updateMainTopper(topper.id, { type: 'cardstock' })} 
+                                                        className={`flex-1 px-3 py-2 text-sm font-semibold rounded ${topper.type === 'cardstock' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
+                                                        Cardstock
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => updateMainTopper(topper.id, { type: 'printout' })} 
+                                                        className={`flex-1 px-3 py-2 text-sm font-semibold rounded ${topper.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
+                                                        Printout
+                                                    </button>
+                                               </div>
+                                           </div>
+                                       ) : null}
+
+                                       {isToyOrFigurine && (
                                            <div>
                                                <label className="block text-xs font-medium text-slate-600 mb-2">Material Type</label>
                                                <div className="flex space-x-1 bg-slate-100 p-1 rounded-md">
                                                    <button 
-                                                       onClick={() => onMainTopperChange(mainToppers.map(t => t.id === topper.id ? { ...t, type: topper.original_type } : t))} 
-                                                       className={`px-3 py-2 text-sm font-semibold rounded ${topper.type === topper.original_type ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
-                                                       {originalTypeLabelMap[topper.original_type]}
+                                                       onClick={() => updateMainTopper(topper.id, { type: topper.original_type })} 
+                                                       className={`flex-1 px-3 py-2 text-sm font-semibold rounded ${topper.type === topper.original_type ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
+                                                       {topperTypeDisplayMap[topper.original_type]}
                                                    </button>
                                                    <button 
-                                                       onClick={() => onMainTopperChange(mainToppers.map(t => t.id === topper.id ? { ...t, type: 'printout' } : t))} 
-                                                       className={`px-3 py-2 text-sm font-semibold rounded ${topper.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
+                                                       onClick={() => updateMainTopper(topper.id, { type: 'printout' })} 
+                                                       className={`flex-1 px-3 py-2 text-sm font-semibold rounded ${topper.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
                                                        Printout
                                                    </button>
                                                </div>
                                            </div>
                                        )}
+
                                        {isPrintoutOrPhoto && (
                                            <div>
                                                <label className="block text-xs font-medium text-slate-600 mb-2">Replacement Image</label>
@@ -536,6 +768,34 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                                </div>
                                            </div>
                                        )}
+                                       {isPersonDoodle && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-600 mb-2">Replace Doodle Portrait</label>
+                                                <div className="flex items-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => fileInputRefs.current[topper.id]?.click()}
+                                                        className="text-xs bg-slate-200 text-slate-700 font-semibold px-3 py-1.5 rounded-md hover:bg-slate-300 transition-colors flex items-center"
+                                                    >
+                                                        <PhotoIcon className="w-4 h-4 mr-1.5"/>
+                                                        {topper.replacementImage ? 'Change Image' : 'Upload Portrait'}
+                                                    </button>
+                                                    {topper.replacementImage && <span className="text-xs ml-2 text-green-600 font-medium">Image selected</span>}
+                                                    <input
+                                                        type="file"
+                                                        ref={el => { fileInputRefs.current[topper.id] = el; }}
+                                                        className="hidden"
+                                                        accept="image/*"
+                                                        onChange={(e) => {
+                                                            if (e.target.files?.[0]) {
+                                                                onTopperImageReplace(topper.id, e.target.files[0]);
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
+                                                <p className="text-xs text-slate-500 mt-1">Upload a photo to convert it into a piped doodle portrait on the cake.</p>
+                                            </div>
+                                       )}
                                        {canChangeColor && (
                                             <div>
                                                 <label className="block text-xs font-medium text-slate-600 mb-2">Color</label>
@@ -544,7 +804,7 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                                         <ColorPalette
                                                             selectedColor={topper.color || ''}
                                                             onColorChange={(newHex) => {
-                                                                onMainTopperChange(mainToppers.map(t => t.id === topper.id ? { ...t, color: newHex } : t));
+                                                                updateMainTopper(topper.id, { color: newHex });
                                                                 setEditingColorForItemId(null);
                                                             }}
                                                         />
@@ -564,6 +824,16 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                                 )}
                                            </div>
                                        )}
+                                       {canChangeMultipleColors && (
+                                            <div className="mt-2 pt-2 border-t border-slate-100">
+                                                <MultiColorEditor
+                                                    colors={topper.colors!}
+                                                    onColorChange={(index, newHex) => {
+                                                        handleTopperColorArrayChange(topper.id, index, newHex);
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
                                   </div>
                                )}
                             </Toggle>
@@ -596,39 +866,72 @@ export const FeatureList = React.memo<FeatureListProps>(({
                         <GroupedItems
                              items={supportElements}
                              renderItem={(element: SupportElementUI) => {
-                                const isSwitchableToPrintout = element.original_type === 'edible_photo_side';
-                                const isPrintoutOrPhoto = element.type === 'support_printout' || element.type === 'edible_photo_side';
-                                const canChangeColor = GumpasteTypesForColoring.includes(element.original_type) && element.original_color;
+                                const isWrapSwitchable = element.original_type === 'edible_photo_side';
+                                const isGumpasteSwitchable = ['small_gumpaste', 'gumpaste_panel', 'edible_2d_gumpaste'].includes(element.original_type);
+                                const isOriginalPrintout = element.original_type === 'support_printout';
 
-                                const hasOptions = isSwitchableToPrintout || isPrintoutOrPhoto || canChangeColor;
+                                const isPrintoutOrPhoto = element.type === 'support_printout' || element.type === 'edible_photo_side';
+                                const canChangeColor = COLORABLE_ITEM_TYPES.includes(element.original_type) && element.original_color;
+
+                                const isPaletteKnife = element.type === 'icing_palette_knife';
+                                const canChangeMultipleColors = isPaletteKnife && element.colors && element.colors.length > 0;
+
+                                const hasOptions = isWrapSwitchable || isGumpasteSwitchable || isOriginalPrintout || isPrintoutOrPhoto || canChangeColor || canChangeMultipleColors;
+                                
+                                const materialLabel = supportTypeDisplayMap[element.type] || element.type.replace('_', ' ');
+                                const elementLabel = (
+                                    <div className="flex flex-col items-start">
+                                        <span className="leading-tight">{`${element.description} (${element.coverage})`}</span>
+                                        <span className="text-xs text-purple-600 font-semibold bg-purple-100 px-1.5 py-0.5 rounded-md mt-1">{materialLabel}</span>
+                                    </div>
+                                );
                                 
                                 return (
                                  <Toggle
                                     key={element.id}
-                                    label={`${element.description} (${element.coverage})`}
+                                    label={elementLabel}
                                     isEnabled={element.isEnabled}
-                                    price={element.price}
-                                    showPrice={isAdmin}
-                                    onChange={(isEnabled) => onSupportElementChange(supportElements.map(e => e.id === element.id ? { ...e, isEnabled } : e))}
+                                    price={isAdmin ? itemPrices.get(element.id) : undefined}
+                                    onChange={(isEnabled) => updateSupportElement(element.id, { isEnabled })}
                                  >
                                     {hasOptions && (
                                        <div className="mt-3 pt-3 border-t border-slate-200 space-y-4">
-                                           {isSwitchableToPrintout && (
+                                            {isWrapSwitchable && (
                                                <div>
                                                    <label className="block text-xs font-medium text-slate-600 mb-2">Material Type</label>
                                                    <div className="flex space-x-1 bg-slate-100 p-1 rounded-md">
                                                        <button 
-                                                           onClick={() => onSupportElementChange(supportElements.map(e => e.id === element.id ? { ...e, type: 'edible_photo_side' } : e))} 
+                                                           onClick={() => updateSupportElement(element.id, { type: 'edible_photo_side' })} 
                                                            className={`px-3 py-2 text-sm font-semibold rounded ${element.type === 'edible_photo_side' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
                                                            Edible Photo Wrap
                                                        </button>
                                                        <button 
-                                                           onClick={() => onSupportElementChange(supportElements.map(e => e.id === element.id ? { ...e, type: 'support_printout' } : e))} 
+                                                           onClick={() => updateSupportElement(element.id, { type: 'support_printout' })} 
                                                            className={`px-3 py-2 text-sm font-semibold rounded ${element.type === 'support_printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
                                                            Printout Wrap
                                                        </button>
                                                    </div>
                                                </div>
+                                           )}
+                                           {(isGumpasteSwitchable || isOriginalPrintout) && !isWrapSwitchable && (
+                                                <div>
+                                                    <label className="block text-xs font-medium text-slate-600 mb-2">Material Type</label>
+                                                    <div className="flex space-x-1 bg-slate-100 p-1 rounded-md">
+                                                        <button
+                                                            onClick={() => {
+                                                                const newType = isOriginalPrintout ? 'small_gumpaste' : element.original_type;
+                                                                updateSupportElement(element.id, { type: newType });
+                                                            }}
+                                                            className={`flex-1 px-3 py-2 text-sm font-semibold rounded ${element.type !== 'support_printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
+                                                            Gumpaste
+                                                        </button>
+                                                        <button
+                                                            onClick={() => updateSupportElement(element.id, { type: 'support_printout' })}
+                                                            className={`flex-1 px-3 py-2 text-sm font-semibold rounded ${element.type === 'support_printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>
+                                                            Printout
+                                                        </button>
+                                                    </div>
+                                                </div>
                                            )}
                                            {isPrintoutOrPhoto && (
                                                <div>
@@ -665,7 +968,7 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                                             <ColorPalette
                                                                 selectedColor={element.color || ''}
                                                                 onColorChange={(newHex) => {
-                                                                    onSupportElementChange(supportElements.map(e => e.id === element.id ? { ...e, color: newHex } : e));
+                                                                    updateSupportElement(element.id, { color: newHex });
                                                                     setEditingColorForItemId(null);
                                                                 }}
                                                             />
@@ -685,6 +988,16 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                                     )}
                                                </div>
                                            )}
+                                           {canChangeMultipleColors && (
+                                                <div className="mt-2 pt-2 border-t border-slate-100">
+                                                    <MultiColorEditor
+                                                        colors={element.colors!}
+                                                        onColorChange={(index, newHex) => {
+                                                            handleSupportColorArrayChange(element.id, index, newHex);
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
                                       </div>
                                     )}
                                  </Toggle>
@@ -797,8 +1110,9 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                     key={message.id}
                                     label={`Message: "${message.text}"`}
                                     isEnabled={message.isEnabled}
-                                    onChange={(isEnabled) => onCakeMessageChange(cakeMessages.map(m => m.id === message.id ? { ...m, isEnabled } : m))}
-                                    onDelete={() => onCakeMessageChange(cakeMessages.filter(m => m.id !== message.id))}
+                                    price={isAdmin ? itemPrices.get(message.id) : undefined}
+                                    onChange={(isEnabled) => updateCakeMessage(message.id, { isEnabled })}
+                                    onDelete={() => removeCakeMessage(message.id)}
                                 >
                                     <div className="space-y-4">
                                         <div>
@@ -810,7 +1124,7 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                                     id={`message-text-${message.id}`}
                                                     type="text"
                                                     value={message.text}
-                                                    onChange={(e) => onCakeMessageChange(cakeMessages.map(m => m.id === message.id ? { ...m, text: e.target.value } : m))}
+                                                    onChange={(e) => updateCakeMessage(message.id, { text: e.target.value })}
                                                     className="w-full pl-4 pr-10 py-3 text-sm border-slate-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
                                                     placeholder="Enter cake message"
                                                 />
@@ -824,7 +1138,7 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                                     <ColorPalette
                                                         selectedColor={message.color}
                                                         onColorChange={(hex) => {
-                                                            onCakeMessageChange(cakeMessages.map(m => m.id === message.id ? { ...m, color: hex } : m));
+                                                            updateCakeMessage(message.id, { color: hex });
                                                             setEditingColorForItemId(null);
                                                         }}
                                                     />
@@ -873,12 +1187,11 @@ export const FeatureList = React.memo<FeatureListProps>(({
             {icingDesign && (
                 <Section title="Icing & Design">
                     <div className="space-y-3">
-                         <Toggle
+                         <Toggle 
                             label="Drip Effect"
                             icon={<img src={DRIP_THUMBNAIL_URL} alt="Drip effect" className="w-12 h-12 object-contain rounded-md" />}
                             isEnabled={icingDesign.drip}
-                            price={icingDesign.dripPrice}
-                            showPrice={isAdmin}
+                            price={isAdmin && icingDesign.drip ? itemPrices.get('icing_drip') : undefined}
                             onChange={(isEnabled) => {
                                 const newIcingDesign = { ...icingDesign, drip: isEnabled };
                                 if (isEnabled && !newIcingDesign.colors.drip) {
@@ -1030,7 +1343,7 @@ export const FeatureList = React.memo<FeatureListProps>(({
                            </div>
                         </div>
 
-                        <Toggle
+                        <Toggle 
                             label="Top Border"
                             icon={icingLocationIconMap['borderTop']}
                             isEnabled={icingDesign.border_top}
@@ -1066,8 +1379,8 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                 </div>
                             )}
                         </Toggle>
-
-                        <Toggle
+                        
+                        <Toggle 
                             label="Base Border"
                             icon={icingLocationIconMap['borderBase']}
                             isEnabled={icingDesign.border_base}
@@ -1105,12 +1418,11 @@ export const FeatureList = React.memo<FeatureListProps>(({
                             )}
                         </Toggle>
 
-                        <Toggle
+                        <Toggle 
                             label="Gumpaste Covered Board"
                             icon={icingLocationIconMap['gumpasteBaseBoard']}
                             isEnabled={icingDesign.gumpasteBaseBoard}
-                            price={icingDesign.gumpasteBaseBoardPrice}
-                            showPrice={isAdmin}
+                            price={isAdmin && icingDesign.gumpasteBaseBoard ? itemPrices.get('icing_gumpasteBaseBoard') : undefined}
                             disabled={isBento}
                             onChange={(isEnabled) => {
                                 const newIcingDesign = { ...icingDesign, gumpasteBaseBoard: isEnabled };

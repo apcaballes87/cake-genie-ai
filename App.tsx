@@ -47,6 +47,7 @@ const HowToOrderPage = lazy(() => import('./app/how-to-order/page'));
 const ContactPage = lazy(() => import('./app/contact/page'));
 const ReviewsPage = lazy(() => import('./app/reviews/page'));
 const ShopifyCustomizingPage = lazy(() => import('./app/shopify-customizing/page'));
+const PricingSandboxPage = lazy(() => import('./app/pricing-sandbox/page'));
 
 type ImageTab = 'original' | 'customized';
 
@@ -80,15 +81,19 @@ export default function App(): React.ReactElement {
     cakeInfo, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions,
     analysisResult, analysisId, isAnalyzing, analysisError, isCustomizationDirty,
     setIsAnalyzing, setAnalysisError, setPendingAnalysisData, setIsCustomizationDirty,
-    handleCakeInfoChange, onMainTopperChange, onSupportElementChange, onCakeMessageChange,
+    handleCakeInfoChange, 
+    updateMainTopper, removeMainTopper,
+    updateSupportElement, removeSupportElement,
+    updateCakeMessage, removeCakeMessage,
     onIcingDesignChange, onAdditionalInstructionsChange, handleTopperImageReplace,
     handleSupportElementImageReplace, clearCustomization, initializeDefaultState,
     // FIX: Destructure initializeFromShopify to use in the Shopify flow.
     initializeFromShopify,
+    availability,
   } = useCakeCustomization();
 
-  const { addOnPricing, basePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice } = usePricing({
-      analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo, onCakeInfoCorrection: handleCakeInfoChange
+  const { addOnPricing, itemPrices, basePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice } = usePricing({
+      analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo, onCakeInfoCorrection: handleCakeInfoChange, analysisId
   });
 
   const {
@@ -140,6 +145,13 @@ export default function App(): React.ReactElement {
   // isAnalyzing is for background analysis which should NOT block the UI
   const isLoading = useMemo(() => isImageManagementLoading || isUpdatingDesign || isFetchingWebImage, [isImageManagementLoading, isUpdatingDesign, isFetchingWebImage]);
   const itemCount = useMemo(() => supabaseItemCount + pendingCartItems.length, [supabaseItemCount, pendingCartItems]);
+
+  const toyWarningMessage = useMemo(() => {
+    const hasToy = mainToppers.some(
+        topper => topper.isEnabled && ['toy', 'figurine', 'plastic_ball'].includes(topper.type)
+    );
+    return hasToy ? "Toys are subject for availability" : null;
+  }, [mainToppers]);
 
   // --- ORCHESTRATION LOGIC (Connecting Hooks & State) ---
   const clearAllState = useCallback((backToLanding: boolean = true) => {
@@ -405,7 +417,7 @@ export default function App(): React.ReactElement {
 
   const renderAppState = () => {
     switch(appState) {
-        case 'landing': return <LandingPage onSearch={(q) => { setSearchInput(q); handleSearch(q); }} onUploadClick={() => setIsUploaderOpen(true)} setAppState={setAppState as React.Dispatch<React.SetStateAction<AppState>>} />;
+        case 'landing': return <LandingPage user={user} onSearch={(q) => { setSearchInput(q); handleSearch(q); }} onUploadClick={() => setIsUploaderOpen(true)} setAppState={setAppState as React.Dispatch<React.SetStateAction<AppState>>} />;
         case 'searching': return <SearchingPage searchInput={searchInput} setSearchInput={setSearchInput} searchQuery={searchQuery} error={imageManagementError} isSearching={isSearching} isLoading={isLoading} onSearch={() => handleSearch()} onClose={() => setAppState('landing')} originalImageData={originalImageData} onUploadClick={() => setIsUploaderOpen(true)} />;
         case 'customizing': return <CustomizingPage 
             onClose={() => setAppState(previousAppState.current === 'searching' ? 'searching' : 'landing')} searchInput={searchInput} setSearchInput={setSearchInput} onSearch={() => handleSearch()} 
@@ -418,10 +430,13 @@ export default function App(): React.ReactElement {
             analysisResult={analysisResult} analysisError={analysisError} analysisId={analysisId} cakeInfo={cakeInfo} 
             basePriceOptions={basePriceOptions} mainToppers={mainToppers} supportElements={supportElements} cakeMessages={cakeMessages} 
             icingDesign={icingDesign} additionalInstructions={additionalInstructions} onCakeInfoChange={handleCakeInfoChange} 
-            onMainTopperChange={onMainTopperChange} onSupportElementChange={onSupportElementChange} onCakeMessageChange={onCakeMessageChange} 
+            updateMainTopper={updateMainTopper} removeMainTopper={removeMainTopper}
+            updateSupportElement={updateSupportElement} removeSupportElement={removeSupportElement}
+            updateCakeMessage={updateCakeMessage} removeCakeMessage={removeCakeMessage}
             onIcingDesignChange={onIcingDesignChange} onAdditionalInstructionsChange={onAdditionalInstructionsChange} onTopperImageReplace={handleTopperImageReplace} 
             onSupportElementImageReplace={handleSupportElementImageReplace} onSave={handleSave} isSaving={isImageManagementLoading} 
-            onClearAll={() => { clearAllState(true); }} error={designUpdateError} 
+            onClearAll={() => { clearAllState(true); }} error={designUpdateError} itemPrices={itemPrices}
+            availability={availability}
         />;
         case 'cart': return <CartPage items={[...pendingCartItems, ...supabaseCartItems.map(item => ({ id: item.cart_item_id, image: item.customized_image_url, status: 'complete' as 'complete', type: item.cake_type, thickness: item.cake_thickness, size: item.cake_size, totalPrice: item.final_price * item.quantity, details: item.customization_details as CartItemDetails, }))]} isLoading={isCartLoading} onRemoveItem={removeItemOptimistic} onClose={() => setAppState(previousAppState.current || 'customizing')} onContinueShopping={() => setAppState('customizing')} onAuthRequired={() => setAppState('auth')} />;
         case 'order_confirmation': return confirmedOrderId ? <OrderConfirmationPage orderId={confirmedOrderId} onContinueShopping={() => setAppState('landing')} onGoToOrders={() => setAppState('orders')} /> : <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>;
@@ -429,12 +444,13 @@ export default function App(): React.ReactElement {
         case 'addresses': return <AddressesPage onClose={() => setAppState(previousAppState.current || 'landing')} />;
         case 'orders': return <OrdersPage onClose={() => setAppState(previousAppState.current || 'landing')} />;
         case 'shared_design': return viewingDesignId ? <SharedDesignPage designId={viewingDesignId} onStartWithDesign={handleStartWithSharedDesign} onNavigateHome={() => { setAppState('landing'); }} onPurchaseDesign={handlePurchaseSharedDesign} /> : <LoadingSpinner />;
-        case 'shopify_customizing': return viewingShopifySessionId ? <ShopifyCustomizingPage sessionId={viewingShopifySessionId} onNavigateHome={() => setAppState('landing')} /> : <LoadingSpinner />;
+        case 'shopify_customizing': return viewingShopifySessionId ? <ShopifyCustomizingPage sessionId={viewingShopifySessionId} onNavigateHome={() => setAppState('landing')} user={user} /> : <LoadingSpinner />;
         case 'about': return <AboutPage onClose={() => setAppState('landing')} />;
         case 'how_to_order': return <HowToOrderPage onClose={() => setAppState('landing')} />;
         case 'contact': return <ContactPage onClose={() => setAppState('landing')} />;
         case 'reviews': return <ReviewsPage onClose={() => setAppState('landing')} />;
-        default: return <LandingPage onSearch={(q) => { setSearchInput(q); handleSearch(q); }} onUploadClick={() => setIsUploaderOpen(true)} setAppState={setAppState as React.Dispatch<React.SetStateAction<AppState>>} />;
+        case 'pricing_sandbox': return <PricingSandboxPage onClose={() => setAppState('landing')} />;
+        default: return <LandingPage user={user} onSearch={(q) => { setSearchInput(q); handleSearch(q); }} onUploadClick={() => setIsUploaderOpen(true)} setAppState={setAppState as React.Dispatch<React.SetStateAction<AppState>>} />;
     }
   }
 
@@ -443,7 +459,7 @@ export default function App(): React.ReactElement {
         case 'landing': return 'p-4';
         case 'customizing': case 'shopify_customizing': return 'py-8 px-4';
         case 'searching': return 'py-8 px-4';
-        case 'cart': case 'order_confirmation': case 'shared_design': case 'about': case 'how_to_order': case 'contact': case 'reviews': return 'py-20 px-4';
+        case 'cart': case 'order_confirmation': case 'shared_design': case 'about': case 'how_to_order': case 'contact': case 'reviews': case 'pricing_sandbox': return 'py-20 px-4';
         // Let the AuthPage control its own centering without extra padding from the main container
         case 'auth': return 'p-4';
         case 'addresses': case 'orders': return 'py-12 px-4';
@@ -464,11 +480,12 @@ export default function App(): React.ReactElement {
                         {isPreparingSharedDesign ? <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div> : renderAppState()}
                     </Suspense>
                 </main>
+                {/* FIX: Changed onUpdateDesign={onUpdateDesign} to onUpdateDesign={handleUpdateDesign} to pass the correct function. */}
                 {appState === 'customizing' && originalImagePreview && <FloatingImagePreview isVisible={!isMainImageVisible} originalImage={originalImagePreview} customizedImage={editedImage} isLoading={isLoading} isUpdatingDesign={isUpdatingDesign} activeTab={activeTab} onTabChange={setActiveTab} onUpdateDesign={handleUpdateDesign} isAnalyzing={isAnalyzing} analysisResult={analysisResult} isCustomizationDirty={isCustomizationDirty} />}
                 <ImageUploader isOpen={isUploaderOpen} onClose={() => setIsUploaderOpen(false)} onImageSelect={(file) => { handleAppImageUpload(file).catch(err => console.error("Upload failed", err)); setIsUploaderOpen(false); }} />
                 {appState === 'customizing' && <ImageZoomModal isOpen={isMainZoomModalOpen} onClose={() => setIsMainZoomModalOpen(false)} originalImage={originalImagePreview} customizedImage={editedImage} initialTab={activeTab} />}
                 <ReportModal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} onSubmit={handleReport} isSubmitting={isReporting} editedImage={editedImage} details={analysisResult ? buildCartItemDetails() : null} cakeInfo={cakeInfo} />
-                {appState === 'customizing' && <StickyAddToCartBar price={finalPrice} isLoading={isFetchingBasePrice} isAdding={isAddingToCart} error={basePriceError} onAddToCartClick={handleAddToCart} onShareClick={handleShare} isSharing={isSavingDesign} canShare={!!analysisResult} isAnalyzing={isAnalyzing} cakeInfo={cakeInfo} />}
+                {appState === 'customizing' && <StickyAddToCartBar price={finalPrice} isLoading={isFetchingBasePrice} isAdding={isAddingToCart} error={basePriceError} onAddToCartClick={handleAddToCart} onShareClick={handleShare} isSharing={isSavingDesign} canShare={!!analysisResult} isAnalyzing={isAnalyzing} cakeInfo={cakeInfo} warningMessage={toyWarningMessage} />}
                 <ShareModal 
   isOpen={isShareModalOpen} 
   onClose={closeShareModal} 

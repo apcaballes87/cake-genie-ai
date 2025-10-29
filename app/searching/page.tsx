@@ -52,7 +52,7 @@ const SearchingPage: React.FC<SearchingPageProps> = ({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isLoading]);
+  }, [isLoading, loadingMessages.length]);
 
   return (
     <div className="w-full max-w-6xl mx-auto h-full flex flex-col">
