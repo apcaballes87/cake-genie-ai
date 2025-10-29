@@ -35,3 +35,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Test files and directories
+**/test-*/
+src/test-*
+list-tables.js
+
+# Supabase temporary files
+supabase/.temp/
+
+# Cursor MCP settings
+.cursor/
