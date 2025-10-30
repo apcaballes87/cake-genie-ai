@@ -21,7 +21,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
   return (
     <div className="flex flex-col items-center justify-between h-full w-full overflow-hidden">
       {/* Text shown on desktop/tablet at the top, aligned with cart button */}
-      <div className="hidden md:flex fixed top-4 left-0 right-0 justify-center z-10" style={{ top: '14px' }}>
+      <div className="hidden md:flex fixed top-4 left-0 right-0 justify-center z-10" style={{ top: '14px', marginTop: '15px' }}>
         <p className="text-2xl font-extrabold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text px-4">
           Minimalist cake designs, get it as fast as 30 mins!
         </p>
@@ -29,7 +29,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
       
       <div className="text-center w-full max-w-2xl mx-auto flex flex-col items-center flex-1 justify-center -translate-y-[60px]">
         {/* Text shown on mobile above the logo */}
-        <div className="md:hidden w-full py-2 text-center mb-4">
+        <div className="md:hidden w-full py-2 text-center mb-4" style={{ marginTop: '15px' }}>
           <p className="text-lg font-extrabold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">
             Minimalist cake designs, get it as fast as 30 mins!
           </p>
