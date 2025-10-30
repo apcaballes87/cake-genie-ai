@@ -16,6 +16,7 @@ import { createXenditPayment } from '../../services/xenditService';
 import AddressForm, { StaticMap } from '../../components/AddressForm';
 import { useGoogleMapsLoader } from '../../contexts/GoogleMapsLoaderContext';
 import { calculateCartAvailability, AvailabilityType } from '../../lib/utils/availability';
+import AvailabilityBanner from '../../components/AvailabilityBanner';
 
 
 // FIX: Declare the global 'google' object to satisfy TypeScript.
@@ -488,9 +489,11 @@ const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, on
                                 </div>
                             </div>
                             
-                            {cartAvailability === 'normal' && <p className="text-xs text-slate-500 -mt-2">Your cart items require a 1-day lead time. Order by 3 PM for next-day delivery.</p>}
-                            {cartAvailability === 'same-day' && <p className="text-xs text-slate-500 -mt-2">Your cart contains items available for same-day delivery (3-hour lead time).</p>}
-                            {cartAvailability === 'rush' && <p className="text-xs text-slate-500 -mt-2">All items in your cart are available for rush delivery (30-min lead time).</p>}
+                            <AvailabilityBanner 
+                                availability={cartAvailability} 
+                                isLoading={isCartLoading} 
+                                isUpdating={items.some(item => item.status === 'pending')} 
+                            />
 
                             
                             {isAddressesLoading ? (

@@ -61,7 +61,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
 ### **Core Editing Principles (VERY IMPORTANT)**
 ---
 1.  **Layer-Based Editing:** Imagine you are working in a photo editor with layers. Your changes must be applied as non-destructive layers on top of the original image features.
-2.  **Modification, Not Replacement:** When asked to change a color (e.g., "Change the side icing to blue"), your task is to **recolor the existing surface** while preserving all decorations, textures, and details on that surface. You are NOT replacing the entire area with a plain blue color.
+2.  **Modification only:** When asked to change a color (e.g., "Change the side icing to blue"), your task is to **recolor the existing surface** while preserving all decorations, textures, and details on that surface. You are NOT replacing the entire area with a plain blue color.
 3.  **Realistic Interaction:** When adding an element like a drip, it must interact realistically with existing decorations. The drip should flow **around or partially over** decorations on the side of the cake, not completely erase them. The original decorations must remain visible and integrated with the new element.
 4.  **Preserve Unmentioned Details:** If a decoration or feature from the original image is not explicitly mentioned as changed or removed in the list below, it MUST be preserved exactly as it is.
 5.  **Remove Superimposed Overlays:** Identify and cleanly remove any non-diegetic logos, watermarks, text, or graphic overlays that have been digitally added on top of the cake image. In-paint the cleared area to seamlessly match the surrounding cake icing or background. Do NOT remove decorations that are physically part of the cake, such as printout toppers or piped messages.
