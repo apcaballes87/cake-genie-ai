@@ -138,6 +138,15 @@ const PaymentUploadForm: React.FC<{ order: EnrichedOrder; onUploadSuccess: (upda
 const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrder: EnrichedOrder) => void; }> = ({ order, onOrderUpdate }) => {
     const { user } = useAuth();
     const { data: details, isLoading } = useOrderDetails(order.order_id, user?.id, true);
+    const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
+
+    const openImageZoom = (imageUrl: string) => {
+        setZoomedImageUrl(imageUrl);
+    };
+
+    const closeImageZoom = () => {
+        setZoomedImageUrl(null);
+    };
 
     if (isLoading) {
         return <div className="p-4"><Skeleton className="h-24 w-full" /></div>;
@@ -153,15 +162,120 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
         <div className="space-y-4">
             <div>
                 <h4 className="text-sm font-semibold text-slate-800 mb-2">Items</h4>
-                <div className="space-y-3">
+                <div className="space-y-4">
                     {details.cakegenie_order_items?.map(item => (
-                        <div key={item.item_id} className="flex gap-3 items-center">
-                            <img src={item.customized_image_url} alt={item.cake_type} className="w-12 h-12 object-cover rounded-md flex-shrink-0" />
-                            <div className="flex-grow">
-                                <p className="text-xs font-medium text-slate-700">{item.cake_type}</p>
-                                <p className="text-xs text-slate-500">{item.cake_size}</p>
+                        <div key={item.item_id} className="border border-slate-200 rounded-lg p-4">
+                            <div className="flex flex-col md:flex-row gap-4">
+                                <div className="flex-shrink-0">
+                                    <img 
+                                        src={item.customized_image_url} 
+                                        alt={item.cake_type} 
+                                        className="w-24 h-24 object-cover rounded-md cursor-pointer hover:opacity-80 transition-opacity"
+                                        onClick={() => openImageZoom(item.customized_image_url)}
+                                    />
+                                </div>
+                                <div className="flex-grow">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="font-medium text-slate-800">{item.cake_type}</p>
+                                            <p className="text-sm text-slate-600">{item.cake_size} • {item.cake_thickness}</p>
+                                            <p className="text-sm text-slate-500">Qty: {item.quantity}</p>
+                                        </div>
+                                        <p className="font-semibold text-slate-800">₱{(item.final_price * item.quantity).toLocaleString()}</p>
+                                    </div>
+                                    
+                                    {/* Customization Details */}
+                                    <div className="mt-3 pt-3 border-t border-slate-100">
+                                        <h5 className="text-xs font-semibold text-slate-700 mb-2">Customization Details</h5>
+                                        
+                                        {/* Flavors */}
+                                        {item.customization_details?.flavors && item.customization_details.flavors.length > 0 && (
+                                            <div className="mb-2">
+                                                <p className="text-xs font-medium text-slate-600">Flavors:</p>
+                                                <p className="text-xs text-slate-500">{item.customization_details.flavors.join(', ')}</p>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Main Toppers */}
+                                        {item.customization_details?.mainToppers && item.customization_details.mainToppers.length > 0 && (
+                                            <div className="mb-2">
+                                                <p className="text-xs font-medium text-slate-600">Main Toppers:</p>
+                                                <ul className="text-xs text-slate-500 list-disc list-inside">
+                                                    {item.customization_details.mainToppers.map((topper, index) => (
+                                                        <li key={index}>
+                                                            {topper.description} {topper.type && `(${topper.type})`} {topper.size && `[${topper.size}]`}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Support Elements */}
+                                        {item.customization_details?.supportElements && item.customization_details.supportElements.length > 0 && (
+                                            <div className="mb-2">
+                                                <p className="text-xs font-medium text-slate-600">Support Elements:</p>
+                                                <ul className="text-xs text-slate-500 list-disc list-inside">
+                                                    {item.customization_details.supportElements.map((element, index) => (
+                                                        <li key={index}>
+                                                            {element.description} {element.type && `(${element.type})`} {element.coverage && `[${element.coverage}]`}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Cake Messages */}
+                                        {item.customization_details?.cakeMessages && item.customization_details.cakeMessages.length > 0 && (
+                                            <div className="mb-2">
+                                                <p className="text-xs font-medium text-slate-600">Messages:</p>
+                                                <ul className="text-xs text-slate-500 list-disc list-inside">
+                                                    {item.customization_details.cakeMessages.map((msg, index) => (
+                                                        <li key={index}>
+                                                            "{msg.text}" <span className="italic">({msg.color})</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Icing Design */}
+                                        {item.customization_details?.icingDesign && (
+                                            <div className="mb-2">
+                                                <p className="text-xs font-medium text-slate-600">Icing Design:</p>
+                                                <p className="text-xs text-slate-500">
+                                                    Drip: {item.customization_details.icingDesign.drip ? 'Yes' : 'No'} • 
+                                                    Gumpaste Base Board: {item.customization_details.icingDesign.gumpasteBaseBoard ? 'Yes' : 'No'}
+                                                </p>
+                                                {Object.keys(item.customization_details.icingDesign.colors).length > 0 && (
+                                                    <div className="flex items-center mt-1">
+                                                        <span className="text-xs text-slate-500 mr-2">Colors:</span>
+                                                        <div className="flex gap-1">
+                                                            {Object.entries(item.customization_details.icingDesign.colors).map(([colorName, colorCode], idx) => (
+                                                                <div key={idx} className="flex items-center">
+                                                                    <span className="text-xs text-slate-500 mr-1">{colorName}:</span>
+                                                                    <div 
+                                                                        className="w-4 h-4 rounded border border-slate-300" 
+                                                                        style={{ backgroundColor: colorCode }}
+                                                                        title={`${colorName}: ${colorCode}`}
+                                                                    />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        
+                                        {/* Additional Instructions */}
+                                        {item.customization_details?.additionalInstructions && (
+                                            <div>
+                                                <p className="text-xs font-medium text-slate-600">Additional Instructions:</p>
+                                                <p className="text-xs text-slate-500">{item.customization_details.additionalInstructions}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-                            <p className="text-xs font-semibold text-slate-600">₱{item.final_price.toLocaleString()}</p>
                         </div>
                     ))}
                 </div>
@@ -192,6 +306,23 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
             )}
             {details.payment_proof_url && details.payment_status !== 'pending' && (
                <a href={details.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-pink-600 hover:underline text-center block mt-2">View Submitted Proof</a>
+            )}
+
+            {/* Image Zoom Modal */}
+            {zoomedImageUrl && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={closeImageZoom}>
+                    <div className="relative max-w-4xl max-h-full" onClick={(e) => e.stopPropagation()}>
+                        <button 
+                            className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-lg hover:bg-slate-100 transition-colors"
+                            onClick={closeImageZoom}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                        <img src={zoomedImageUrl} alt="Zoomed cake" className="max-w-full max-h-[90vh] object-contain" />
+                    </div>
+                </div>
             )}
         </div>
     );
