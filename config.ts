@@ -1,4 +1,5 @@
 // config.ts
+/// <reference types="vite/client" />
 
 // IMPORTANT:
 // This application runs directly in the browser without a build step to handle
@@ -21,7 +22,18 @@ export const GOOGLE_MAPS_API_KEY = "AIzaSyA0RZHBXUprvS7k2x6_C-FuhkEjHluR9Ck";
 // Gemini API Key (get from Google AI Studio)
 // In production (Vercel), this comes from environment variables
 // In local development, use the value below
-export const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyDSHT7dLHjjFVCuCT5MflV8bIpQWDbYE5E";
+const envKey = import.meta.env.VITE_GEMINI_API_KEY;
+const fallbackKey = "AIzaSyDSHT7dLHjjFVCuCT5MflV8bIpQWDbYE5E";
+
+console.log('=== GEMINI API KEY DEBUG ===');
+console.log('Mode:', import.meta.env.MODE);
+console.log('Is production:', import.meta.env.PROD);
+console.log('VITE_GEMINI_API_KEY exists:', !!envKey);
+console.log('VITE_GEMINI_API_KEY value:', envKey ? `${envKey.substring(0, 20)}...` : 'UNDEFINED');
+console.log('Using fallback?', !envKey);
+
+export const GEMINI_API_KEY = envKey || fallbackKey;
+console.log('Final key starts with:', GEMINI_API_KEY ? GEMINI_API_KEY.substring(0, 20) + '...' : 'NONE');
 
 // Google Custom Search Engine ID
 export const GOOGLE_CSE_ID = "825ca1503c1bd4d00";
