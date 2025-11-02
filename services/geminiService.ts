@@ -41,22 +41,40 @@ const THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION = `You are a master digital c
 
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
-    let binary = '';
     const bytes = new Uint8Array(buffer);
-    for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
+    const chunkSize = 0x8000; // 32KB chunks to avoid call stack issues
+    let binary = '';
+
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+        binary += String.fromCharCode.apply(null, Array.from(chunk));
     }
+
     return window.btoa(binary);
 }
 
 export const fileToBase64 = async (file: File): Promise<{ mimeType: string; data: string }> => {
     try {
+        if (!file) {
+            throw new Error("No file provided");
+        }
+        if (!file.type.startsWith('image/')) {
+            throw new Error(`Invalid file type: ${file.type}. Please upload an image file.`);
+        }
+
+        console.log(`Reading file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+
         const arrayBuffer = await file.arrayBuffer();
+        console.log(`File read successfully, converting to base64...`);
+
         const base64Data = arrayBufferToBase64(arrayBuffer);
+        console.log(`Base64 conversion complete`);
+
         return { mimeType: file.type, data: base64Data };
     } catch (error) {
         console.error("Error reading file:", error);
-        throw new Error("Failed to read the image file.");
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        throw new Error(`Failed to read the image file: ${errorMessage}`);
     }
 };
 
