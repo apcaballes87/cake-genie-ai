@@ -19,7 +19,9 @@ export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 export const GOOGLE_MAPS_API_KEY = "AIzaSyA0RZHBXUprvS7k2x6_C-FuhkEjHluR9Ck";
 
 // Gemini API Key (get from Google AI Studio)
-export const GEMINI_API_KEY = "***REMOVED_GEMINI_KEY***";
+// In production (Vercel), this comes from environment variables
+// In local development, use the value below
+export const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyDSHT7dLHjjFVCuCT5MflV8bIpQWDbYE5E";
 
 // Google Custom Search Engine ID
 export const GOOGLE_CSE_ID = "825ca1503c1bd4d00";
