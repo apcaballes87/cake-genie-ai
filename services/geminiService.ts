@@ -1,12 +1,13 @@
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 import type { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, IcingColorDetails, CakeInfoUI, CakeType, CakeThickness, IcingDesign, MainTopperType, CakeMessage, SupportElementType } from '../types';
 import { CAKE_TYPES, CAKE_THICKNESSES, COLORS } from "../constants";
+import { GEMINI_API_KEY } from "../config";
 
-if (!process.env.API_KEY) {
-    throw new Error("API_KEY environment variable not set");
+if (!GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY not set in config.ts");
 }
-  
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 const IMAGE_EDITING_SYSTEM_INSTRUCTION = `You are a master digital cake artist performing a precise photo edit on the provided cake image. Your goal is to preserve the original image's style, lighting, and composition, applying ONLY the specific changes listed below.
 
