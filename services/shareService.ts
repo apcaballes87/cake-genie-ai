@@ -5,6 +5,57 @@ import { generateUrlSlug } from '../lib/utils/urlHelpers';
 
 const supabase = getSupabaseClient();
 
+/**
+ * Convert data URI to Blob
+ */
+function dataURItoBlob(dataURI: string): Blob {
+  const byteString = atob(dataURI.split(',')[1]);
+  const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
+  return new Blob([ab], { type: mimeString });
+}
+
+/**
+ * Upload image to Supabase Storage and return public URL
+ */
+async function uploadImageToStorage(imageDataUri: string, designId: string): Promise<string> {
+  try {
+    // Convert data URI to blob
+    const blob = dataURItoBlob(imageDataUri);
+
+    // Generate filename with design ID
+    const fileName = `${designId}.jpg`;
+    const filePath = `shared-designs/${fileName}`;
+
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('cakegenie')
+      .upload(filePath, blob, {
+        contentType: 'image/jpeg',
+        upsert: true, // Allow overwriting if exists
+      });
+
+    if (error) {
+      console.error('Error uploading image to storage:', error);
+      throw error;
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('cakegenie')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  } catch (error) {
+    console.error('Failed to upload image:', error);
+    throw error;
+  }
+}
+
 export interface ShareDesignData {
   customizedImageUrl: string;
   originalImageUrl?: string;
@@ -37,17 +88,33 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
   try {
     // Get current user (can be anonymous)
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     const designId = uuidv4();
     const urlSlug = generateUrlSlug(data.title, designId);
+
+    // Upload image to storage if it's a data URI
+    let imageUrl = data.customizedImageUrl;
+    if (data.customizedImageUrl.startsWith('data:')) {
+      console.log('📤 Uploading image to Supabase Storage...');
+      imageUrl = await uploadImageToStorage(data.customizedImageUrl, designId);
+      console.log('✅ Image uploaded successfully:', imageUrl);
+    }
+
+    // Upload original image if it's a data URI
+    let originalImageUrl = data.originalImageUrl;
+    if (originalImageUrl && originalImageUrl.startsWith('data:')) {
+      console.log('📤 Uploading original image to Supabase Storage...');
+      originalImageUrl = await uploadImageToStorage(originalImageUrl, `${designId}-original`);
+      console.log('✅ Original image uploaded successfully:', originalImageUrl);
+    }
 
     const { error } = await supabase
       .from('cakegenie_shared_designs')
       .insert({
         design_id: designId,
         url_slug: urlSlug,
-        customized_image_url: data.customizedImageUrl,
-        original_image_url: data.originalImageUrl,
+        customized_image_url: imageUrl,
+        original_image_url: originalImageUrl,
         cake_type: data.cakeType,
         cake_size: data.cakeSize,
         cake_flavor: data.cakeFlavor,
