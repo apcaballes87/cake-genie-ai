@@ -25,5 +25,26 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": [
+    "index.tsx",
+    "App.tsx",
+    "app/**/*",
+    "components/**/*",
+    "contexts/**/*",
+    "hooks/**/*",
+    "lib/**/*",
+    "services/**/*",
+    "constants.ts",
+    "config.ts",
+    "types.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "supabase/functions",
+    "supabase/.temp",
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ]
 }

@@ -157,6 +157,13 @@ export interface CakeInfoUI {
     flavors: CakeFlavor[];
 }
 
+// Discriminated union for analysis items (used in FeatureList component)
+export type AnalysisItem =
+  (MainTopperUI & { itemCategory: 'topper' }) |
+  (SupportElementUI & { itemCategory: 'element' }) |
+  (CakeMessageUI & { itemCategory: 'message' }) |
+  ({ id: string; description: string; x?: number; y?: number; cakeType?: CakeType } & { itemCategory: 'icing' });
+
 
 // --- Pricing & Cart Types ---
 
