@@ -15,6 +15,18 @@ const escapeHtml = (unsafe: string | null | undefined): string => {
     .replace(/'/g, "&#039;");
 };
 
+// Helper to detect if the request is from a bot
+const isBot = (userAgent: string | null): boolean => {
+  if (!userAgent) return false;
+  const botPatterns = [
+    'bot', 'crawl', 'spider', 'slurp', 'facebookexternalhit',
+    'WhatsApp', 'twitter', 'discord', 'telegram', 'slack',
+    'linkedinbot', 'pinterest', 'instagrambot', 'SkypeUriPreview'
+  ];
+  const lowerUA = userAgent.toLowerCase();
+  return botPatterns.some(pattern => lowerUA.includes(pattern));
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -27,12 +39,12 @@ serve(async (req) => {
     if (!supabaseUrl || !serviceRoleKey) {
       throw new Error('Supabase environment variables are not set.');
     }
-    
+
     // --- 2. Extract Design ID from URL ---
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/');
     const designId = pathParts[pathParts.length - 1];
-    
+
     if (!designId) {
       throw new Error('Design ID not found in URL.');
     }
@@ -69,15 +81,29 @@ serve(async (req) => {
       });
     }
 
-    // --- 4. Construct the HTML Response with Meta Tags ---
+    // --- 4. Detect Bot vs Human User ---
+    const userAgent = req.headers.get('user-agent');
+    const isBotRequest = isBot(userAgent);
+
+    // --- 5. Prepare URLs and Content ---
     const pageTitle = escapeHtml(design.title || `Custom Cake Design by Genie`);
     const pageDescription = escapeHtml(design.description || `A custom cake design from Genie. Customize it yourself!`);
     const imageUrl = design.customized_image_url;
-    // The canonical URL should be the one the bot is visiting
-    const canonicalUrl = `https://genie.ph/share/${design.design_id}`; 
-    // The URL for human users to be redirected to
+    const canonicalUrl = `https://genie.ph/share/${design.design_id}`;
     const clientAppUrl = `https://genie.ph/#/design/${design.design_id}`;
 
+    // --- 6. Return HTTP Redirect for Human Users ---
+    if (!isBotRequest) {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          ...corsHeaders,
+          'Location': clientAppUrl,
+        },
+      });
+    }
+
+    // --- 7. Return HTML with Meta Tags for Bots ---
     const html = `
       <!DOCTYPE html>
       <html lang="en">
@@ -85,7 +111,7 @@ serve(async (req) => {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>${pageTitle}</title>
-          
+
           <!-- SEO / General Meta -->
           <meta name="description" content="${pageDescription}">
           <link rel="canonical" href="${canonicalUrl}">
@@ -105,17 +131,12 @@ serve(async (req) => {
           <meta name="twitter:title" content="${pageTitle}">
           <meta name="twitter:description" content="${pageDescription}">
           <meta name="twitter:image" content="${imageUrl}">
-
-          <!-- Client-side redirect for human users -->
-          <script>
-            window.location.replace("${clientAppUrl}");
-          </script>
         </head>
         <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
           <h1>${pageTitle}</h1>
           <img src="${imageUrl}" alt="${escapeHtml(design.alt_text)}" style="max-width: 90%; width: 500px; height: auto; border-radius: 12px; margin: 20px auto;">
           <p>${pageDescription}</p>
-          <p>If you are not redirected, <a href="${clientAppUrl}">click here</a>.</p>
+          <p><a href="${clientAppUrl}">View and customize this design</a></p>
         </body>
       </html>
     `;
