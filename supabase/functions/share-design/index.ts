@@ -39,10 +39,14 @@ serve(async (req) => {
 
     // --- 3. Fetch Design Data from Supabase ---
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+    // Check if designId is a UUID or a URL slug
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(designId);
+
     const { data: design, error } = await supabaseAdmin
       .from('cakegenie_shared_designs')
       .select('*')
-      .eq('design_id', designId)
+      .eq(isUuid ? 'design_id' : 'url_slug', designId)
       .single();
 
     if (error || !design) {
