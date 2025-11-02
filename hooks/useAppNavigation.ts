@@ -32,9 +32,10 @@ export const useAppNavigation = () => {
             
             console.log('[Routing] Parsed Path:', path, 'Query:', queryString);
 
-            const designMatch = path.match(/^\/design\/([a-zA-Z0-9-]+)\/?$/);
+            const designMatch = path.match(/^\/designs\/([a-z0-9-]+)\/?$/);
             const shopifyMatch = path.match(/^\/cakesandmemories\/([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})\/?$/);
             const orderConfirmationMatch = path.match(/^\/order-confirmation\/?$/);
+            const oldDesignMatch = path.match(/^\/design\/([a-zA-Z0-9-]+)\/?$/);
 
             if (orderConfirmationMatch && params.get('order_id')) {
                 const orderId = params.get('order_id');
@@ -47,6 +48,9 @@ export const useAppNavigation = () => {
                 }
             } else if (designMatch && designMatch[1]) {
                 setViewingDesignId(designMatch[1]);
+                setAppState('shared_design');
+            } else if (oldDesignMatch && oldDesignMatch[1]) { // Keep for backward compatibility
+                setViewingDesignId(oldDesignMatch[1]);
                 setAppState('shared_design');
             } else if (shopifyMatch && shopifyMatch[1]) {
                 const sessionId = shopifyMatch[1];

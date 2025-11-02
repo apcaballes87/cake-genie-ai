@@ -1,3 +1,5 @@
+// components/ShareModal.tsx
+
 'use client';
 
 import React, { useState } from 'react';
@@ -8,15 +10,16 @@ import {
   SOCIAL_MESSAGES 
 } from '../services/shareService';
 import { showSuccess } from '../lib/utils/toast';
+import LazyImage from './LazyImage';
 
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
-  shareUrl: string;
+  shareUrl: string; // The client-side hash URL (fallback)
   designId: string;
   imageUrl: string;
   shareCount?: number;
-  botShareUrl?: string; // NEW: Optimized URL for bots
+  botShareUrl?: string; // The SEO-friendly clean URL
 }
 
 export const ShareModal: React.FC<ShareModalProps> = ({
@@ -26,15 +29,18 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   designId,
   imageUrl,
   shareCount = 0,
-  botShareUrl, // NEW
+  botShareUrl,
 }) => {
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
 
+  // Prioritize the SEO-friendly URL for all sharing actions
+  const urlToShare = botShareUrl || shareUrl;
+
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(urlToShare);
       setCopied(true);
       showSuccess('Link copied to clipboard!');
       incrementShareCount(designId);
@@ -45,23 +51,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     }
   };
 
-  const handleCopyBotLink = async () => {
-  if (!botShareUrl) return;
-  try {
-    await navigator.clipboard.writeText(botShareUrl);
-    setCopied(true);
-    showSuccess('SEO-optimized link copied!');
-    incrementShareCount(designId);
-    setTimeout(() => setCopied(false), 2000);
-  } catch (error) {
-    console.error('Failed to copy:', error);
-  }
-};
-
   const handleSocialShare = (platform: 'facebook' | 'messenger' | 'twitter') => {
     const message = SOCIAL_MESSAGES[platform];
-    // Use bot-optimized URL for social sharing if available
-    const urlToShare = botShareUrl || shareUrl;
     const url = generateSocialShareUrl(platform, urlToShare, message);
     
     incrementShareCount(designId);
@@ -70,7 +61,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
   const handleInstagramCopy = async () => {
     try {
-      const instagramText = `${SOCIAL_MESSAGES.instagram}\n\n${shareUrl}`;
+      // Use the clean URL for Instagram captions as well
+      const instagramText = `${SOCIAL_MESSAGES.instagram}\n\n${urlToShare}`;
       await navigator.clipboard.writeText(instagramText);
       showSuccess('Caption and link copied! Paste in Instagram.');
       incrementShareCount(designId);
@@ -109,7 +101,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           <div className="p-6 space-y-4">
             {/* Preview Image */}
             <div className="relative w-full aspect-square rounded-xl overflow-hidden border-2 border-slate-200">
-              <img 
+              <LazyImage 
                 src={imageUrl} 
                 alt="Your cake design" 
                 className="w-full h-full object-cover"
@@ -123,7 +115,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                   ✨ Enhanced Social Sharing Active!
                 </p>
                 <p className="text-xs text-blue-700">
-                  Your design will show rich previews on Facebook, Twitter & WhatsApp
+                  Your design will show rich previews on Facebook, Twitter & WhatsApp.
                 </p>
               </div>
             )}
@@ -135,31 +127,29 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               </p>
             )}
 
-            {/* Copy Link Button */}
-            <button
-              onClick={handleCopyLink}
-              type="button"
-              className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 border-2 border-slate-200 rounded-xl transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                {copied ? (
-                  <CheckCircleIcon className="w-6 h-6 text-green-600" />
-                ) : (
-                  <CopyIcon className="w-6 h-6 text-slate-600" />
-                )}
-                <div className="text-left">
-                  <p className="font-semibold text-slate-800">
-                    {copied ? 'Link Copied!' : 'Copy Link'}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Perfect for: Anywhere!
-                  </p>
-                </div>
+            {/* Copy Link Input & Button */}
+            <div>
+              <p className="text-xs font-semibold text-slate-500 mb-1">Share this link:</p>
+              <div className="flex gap-2">
+                <input
+                  value={urlToShare}
+                  readOnly
+                  className="flex-1 w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none"
+                />
+                <button
+                  onClick={handleCopyLink}
+                  className="p-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg transition-colors"
+                  aria-label="Copy link"
+                >
+                  {copied ? (
+                    <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                  ) : (
+                    <CopyIcon className="w-5 h-5 text-slate-600" />
+                  )}
+                </button>
               </div>
-              <span className="text-2xl group-hover:scale-110 transition-transform">
-                📋
-              </span>
-            </button>
+            </div>
+
 
             {/* Facebook */}
             <button

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CloseIcon, Loader2 } from './icons';
 import { CartItemDetails, CakeInfoUI, CakeType } from '../types';
 import DetailItem from './UI/DetailItem';
+import LazyImage from './LazyImage';
 
 const cakeTypeDisplayMap: Record<CakeType, string> = {
     '1 Tier': '1 Tier (Soft icing)',
@@ -61,7 +62,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, onSubmit, is
                     <div>
                         <p className="text-sm font-semibold text-slate-700 mb-2">Generated Image</p>
                         {editedImage ? (
-                            <img src={editedImage} alt="Customized Cake" className="w-full h-auto object-contain rounded-lg border border-slate-200" />
+                            <LazyImage src={editedImage} alt="Customized Cake" className="w-full h-auto object-contain rounded-lg border border-slate-200" />
                         ) : (
                             <div className="aspect-square bg-slate-100 flex items-center justify-center rounded-lg">
                                 <span className="text-slate-400 text-sm">No image generated</span>

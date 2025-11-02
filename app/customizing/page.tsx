@@ -1,10 +1,16 @@
-import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
+
+
+
+
+import React, { Dispatch, SetStateAction, useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { X } from 'lucide-react';
 import { FeatureList } from '../../components/FeatureList';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, CartIcon, BackIcon, ReportIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon } from '../../components/icons';
+import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, CartIcon, BackIcon, ReportIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon, SideIcingGuideIcon, TopIcingGuideIcon, TopBorderGuideIcon, BaseBorderGuideIcon, BaseBoardGuideIcon } from '../../components/icons';
 import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType } from '../../types';
 import { SearchAutocomplete } from '../../components/SearchAutocomplete';
 import { AvailabilityType } from '../../lib/utils/availability';
+import { FloatingResultPanel } from '../../components/FloatingResultPanel';
 
 interface AvailabilityInfo {
   type: AvailabilityType;
@@ -54,6 +60,22 @@ const AVAILABILITY_MAP: Record<AvailabilityType, AvailabilityInfo> = {
 type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation';
 type ImageTab = 'original' | 'customized';
 
+// FIX: Redefined AnalysisItem as a discriminated union to improve type safety and enable better type narrowing.
+export type AnalysisItem =
+  (MainTopperUI & { itemCategory: 'topper' }) |
+  (SupportElementUI & { itemCategory: 'element' }) |
+  (CakeMessageUI & { itemCategory: 'message' }) |
+  ({ id: string; description: string; x?: number; y?: number; cakeType?: CakeType } & { itemCategory: 'icing' });
+
+// Add a type for clustered markers
+export type ClusteredMarker = {
+    id: string;
+    x: number;
+    y: number;
+    isCluster: true;
+    items: AnalysisItem[];
+} | (AnalysisItem & { isCluster?: false });
+
 interface CustomizingPageProps {
   onClose: () => void;
   searchInput: string;
@@ -79,7 +101,6 @@ interface CustomizingPageProps {
   originalImagePreview: string | null;
   isAnalyzing: boolean;
   setIsMainZoomModalOpen: (isOpen: boolean) => void;
-  setIsMainImageVisible: Dispatch<SetStateAction<boolean>>;
   originalImageData: { data: string; mimeType: string } | null;
   onUpdateDesign: () => void;
   analysisResult: HybridAnalysisResult | null;
@@ -110,7 +131,41 @@ interface CustomizingPageProps {
   isCustomizationDirty: boolean;
   itemPrices: Map<string, number>;
   availability: AvailabilityType;
+  onCakeMessageChange: (messages: CakeMessageUI[]) => void;
 }
+
+const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icingDesign: IcingDesignUI; cakeType: CakeType; isVisible: boolean }> = ({ onSelectItem, icingDesign, cakeType, isVisible }) => {
+    const isBento = cakeType === 'Bento';
+    const tools = [
+        { id: 'drip', description: 'Drip Effect', icon: <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/dripeffect.webp" alt="Drip effect" />, featureFlag: icingDesign.drip },
+        { id: 'borderTop', description: 'Top Border', icon: <TopBorderGuideIcon />, featureFlag: icingDesign.border_top },
+        { id: 'borderBase', description: 'Base Border', icon: <BaseBorderGuideIcon />, featureFlag: icingDesign.border_base, disabled: isBento },
+        { id: 'top', description: 'Top Icing Color', icon: <TopIcingGuideIcon />, featureFlag: !!icingDesign.colors.top },
+        { id: 'side', description: 'Side Icing Color', icon: <SideIcingGuideIcon />, featureFlag: !!icingDesign.colors.side },
+        { id: 'gumpasteBaseBoard', description: 'Gumpaste Covered Board', icon: <BaseBoardGuideIcon />, featureFlag: icingDesign.gumpasteBaseBoard, disabled: isBento },
+    ];
+    
+    return (
+        <div className={`absolute top-1/2 -translate-y-1/2 left-4 z-10 flex flex-col gap-2 transition-opacity ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            {tools.map(tool => (
+                <button 
+                    key={tool.id} 
+                    onClick={() => !tool.disabled && onSelectItem({ id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: cakeType })}
+                    className={`relative w-10 h-10 p-1.5 rounded-full hover:bg-purple-100 transition-colors group bg-white/80 backdrop-blur-md border border-slate-200 shadow-md ${tool.featureFlag ? 'ring-2 ring-purple-500 ring-offset-2' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
+                    disabled={tool.disabled}
+                >
+                    {React.cloneElement(tool.icon as React.ReactElement<any>, { className: 'w-full h-full object-contain' })}
+                    {tool.disabled && (
+                         <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
+                            <X className="w-5 h-5 text-white" />
+                         </div>
+                    )}
+                    <span className="icing-toolbar-tooltip">{tool.description}</span>
+                </button>
+            ))}
+        </div>
+    );
+};
 
 
 const CustomizingPage: React.FC<CustomizingPageProps> = ({
@@ -118,44 +173,172 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     searchInput, setSearchInput, onSearch,
     setAppState, itemCount, isAuthenticated, isAccountMenuOpen, setIsAccountMenuOpen, accountMenuRef, user, onSignOut,
     onOpenReportModal, editedImage, isLoading, isUpdatingDesign, isReporting, reportStatus, mainImageContainerRef, isCustomizationDirty,
-    activeTab, setActiveTab, originalImagePreview, isAnalyzing, setIsMainZoomModalOpen, setIsMainImageVisible, originalImageData,
+    activeTab, setActiveTab, originalImagePreview, isAnalyzing, setIsMainZoomModalOpen, originalImageData,
     onUpdateDesign, analysisResult, analysisError, analysisId, cakeInfo, basePriceOptions,
     mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions,
     onCakeInfoChange, 
     updateMainTopper, removeMainTopper,
     updateSupportElement, removeSupportElement,
     updateCakeMessage, removeCakeMessage,
-    onIcingDesignChange,
+    onIcingDesignChange, onCakeMessageChange,
     onAdditionalInstructionsChange, onTopperImageReplace, onSupportElementImageReplace, onSave, isSaving, onClearAll, error,
     itemPrices,
     availability: availabilityType,
 }) => {
     
   const availability = AVAILABILITY_MAP[availabilityType];
+  const [areHelpersVisible, setAreHelpersVisible] = useState(true);
+  const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
+  const [hoveredItem, setHoveredItem] = useState<ClusteredMarker | null>(null);
+  const [selectedItem, setSelectedItem] = useState<ClusteredMarker | null>(null);
+  const cakeBaseSectionRef = useRef<HTMLDivElement>(null);
+  const markerContainerRef = useRef<HTMLDivElement>(null);
+  const [containerDimensions, setContainerDimensions] = useState<{width: number, height: number} | null>(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsMainImageVisible(entry.isIntersecting);
-      },
-      {
-        root: null, // viewport
-        rootMargin: '0px',
-        threshold: 0.1, // considered "out of view" if less than 10% is visible
-      }
-    );
+    const element = markerContainerRef.current;
+    if (!element) return;
 
-    const currentRef = mainImageContainerRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
+    const resizeObserver = new ResizeObserver(() => {
+        setContainerDimensions({
+            width: element.clientWidth,
+            height: element.clientHeight,
+        });
+    });
+
+    resizeObserver.observe(element);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  const handleListItemClick = useCallback((item: AnalysisItem) => {
+    setSelectedItem(item);
+    mainImageContainerRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+    });
+  }, []);
+
+  useEffect(() => {
+    setOriginalImageDimensions(null);
+  }, [originalImagePreview]);
+
+  const isAdmin = useMemo(() => user?.email === 'apcaballes@gmail.com', [user]);
+
+  const handleScrollToCakeBase = () => {
+    cakeBaseSectionRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  };
+
+  const analysisItems = useMemo((): AnalysisItem[] => {
+    const items: AnalysisItem[] = [];
+    if (!analysisResult) return items;
+    items.push(...mainToppers.map((t): AnalysisItem => ({ ...t, itemCategory: 'topper' })));
+    items.push(...supportElements.map((e): AnalysisItem => ({ ...e, itemCategory: 'element' })));
+    items.push(...cakeMessages.map((m): AnalysisItem => ({ ...m, itemCategory: 'message' })));
+    return items;
+  }, [analysisResult, mainToppers, supportElements, cakeMessages]);
+
+  const rawMarkers = useMemo(() => {
+    return analysisItems.filter(item => typeof item.x === 'number' && typeof item.y === 'number');
+  }, [analysisItems]);
+
+  const markerMap = useMemo(() => {
+    const map = new Map<string, string>();
+    rawMarkers.forEach((marker, index) => {
+        map.set(marker.id, String.fromCharCode(65 + index));
+    });
+    return map;
+  }, [rawMarkers]);
+
+  const getMarkerPosition = useCallback((x: number, y: number) => {
+    if (!originalImageDimensions || !containerDimensions) {
+        return { top: '50%', left: '50%', topPx: 0, leftPx: 0 };
+    }
+    
+    const { width: containerWidth, height: containerHeight } = containerDimensions;
+    const { width: imageWidth, height: imageHeight } = originalImageDimensions;
+
+    const imageAspectRatio = imageWidth / imageHeight;
+    const containerAspectRatio = containerWidth / containerHeight;
+    
+    let renderedWidth, renderedHeight, offsetX, offsetY;
+
+    if (imageAspectRatio > containerAspectRatio) {
+        renderedWidth = containerWidth;
+        renderedHeight = containerWidth / imageAspectRatio;
+        offsetX = 0;
+        offsetY = (containerHeight - renderedHeight) / 2;
+    } else {
+        renderedHeight = containerHeight;
+        renderedWidth = containerHeight * imageAspectRatio;
+        offsetY = 0;
+        offsetX = (containerWidth - renderedWidth) / 2;
     }
 
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
+    const markerXPercent = (x + imageWidth / 2) / imageWidth;
+    const markerYPercent = (-y + imageHeight / 2) / imageHeight;
+    
+    const markerX = (markerXPercent * renderedWidth) + offsetX;
+    const markerY = (markerYPercent * renderedHeight) + offsetY;
+
+    return { left: `${markerX}px`, top: `${markerY}px`, leftPx: markerX, topPx: markerY };
+  }, [originalImageDimensions, containerDimensions]);
+
+  const clusteredMarkers = useMemo((): ClusteredMarker[] => {
+    const MIN_DISTANCE = 30; // Minimum pixel distance between markers
+    
+    // FIX: Add a guard clause to ensure all necessary data (markers, image dimensions, and container dimensions)
+    // is available before attempting to calculate marker positions. This prevents a race condition on initial load.
+    if (rawMarkers.length === 0 || !containerDimensions || !originalImageDimensions) {
+        return [];
+    }
+  
+    const markers = rawMarkers;
+    const markerPositions = markers.map(m => getMarkerPosition(m.x!, m.y!));
+    const clustered: ClusteredMarker[] = [];
+    const clusteredIndices = new Set<number>();
+  
+    for (let i = 0; i < markers.length; i++) {
+      if (clusteredIndices.has(i)) continue;
+  
+      const currentClusterItems: AnalysisItem[] = [markers[i]];
+      const clusterIndices = [i];
+  
+      for (let j = i + 1; j < markers.length; j++) {
+        if (clusteredIndices.has(j)) continue;
+  
+        const pos1 = markerPositions[i];
+        const pos2 = markerPositions[j];
+        const distance = Math.sqrt(Math.pow(pos1.leftPx - pos2.leftPx, 2) + Math.pow(pos1.topPx - pos2.topPx, 2));
+  
+        if (distance < MIN_DISTANCE) {
+          currentClusterItems.push(markers[j]);
+          clusterIndices.push(j);
+        }
       }
-    };
-  }, [mainImageContainerRef, setIsMainImageVisible]);
+  
+      if (currentClusterItems.length > 1) {
+        clusterIndices.forEach(idx => clusteredIndices.add(idx));
+        const avgX = currentClusterItems.reduce((sum, item) => sum + item.x!, 0) / currentClusterItems.length;
+        const avgY = currentClusterItems.reduce((sum, item) => sum + item.y!, 0) / currentClusterItems.length;
+        
+        clustered.push({
+          id: `cluster-${i}`,
+          x: avgX,
+          y: avgY,
+          isCluster: true,
+          items: currentClusterItems,
+        });
+      } else {
+        clustered.push({ ...markers[i], isCluster: false });
+      }
+    }
+  
+    return clustered;
+  }, [rawMarkers, getMarkerPosition, containerDimensions, originalImageDimensions]);
+
 
   const handleCustomizedTabClick = () => {
     if (isCustomizationDirty) {
@@ -195,7 +378,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                        <UserCircleIcon />
                    </button>
                    {isAccountMenuOpen && (
-                       <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-1 animate-fade-in">
+                       <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-1 animate-fade-in z-50">
                           <div className="px-4 py-2 border-b border-slate-100">
                                <p className="text-sm font-medium text-slate-800 truncate">{user?.email}</p>
                           </div>
@@ -239,27 +422,95 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                {reportStatus === 'success' ? 'Report submitted successfully. Thank you for your feedback!' : 'Failed to submit report. Please try again.'}
            </div>
        )}
-       <div ref={mainImageContainerRef} className="w-full max-w-4xl h-[550px] bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 flex flex-col">
-           <div className="p-2 flex-shrink-0">
-               <div className="bg-slate-100 p-1 rounded-lg flex space-x-1">
+       <div ref={mainImageContainerRef} className="w-full max-w-4xl bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 flex flex-col">
+            <div className="p-2 flex-shrink-0">
+                <div className="bg-slate-100 p-1 rounded-lg flex space-x-1">
                    <button onClick={() => setActiveTab('original')} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'original' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50'}`}>Original</button>
                    <button onClick={handleCustomizedTabClick} disabled={(!editedImage && !isCustomizationDirty) || isUpdatingDesign} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'customized' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50 disabled:text-slate-400 disabled:hover:bg-transparent disabled:cursor-not-allowed'}`}>Customized</button>
-               </div>
+                </div>
            </div>
-           <div className="relative flex-grow flex items-center justify-center p-2 pt-0 min-h-0">
+           <div className="relative flex items-center justify-center p-2 pt-0">
                {isUpdatingDesign && <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-b-2xl z-20"><LoadingSpinner /><p className="mt-4 text-slate-500 font-semibold">Working magic...</p></div>}
                {error && <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-b-2xl z-20 p-4"><ErrorIcon /><p className="mt-4 font-semibold text-red-600">Update Failed</p><p className="text-sm text-red-500 text-center">{error}</p></div>}
-               {!originalImagePreview && !isAnalyzing && <div className="text-center text-slate-400"><ImageIcon /><p className="mt-2 font-semibold">Your creation will appear here</p></div>}
+               {!originalImagePreview && !isAnalyzing && <div className="text-center text-slate-400 py-16"><ImageIcon /><p className="mt-2 font-semibold">Your creation will appear here</p></div>}
                {(originalImagePreview) && (
-                 <button
-                   type="button"
-                   onClick={() => setIsMainZoomModalOpen(true)}
-                   className="w-full h-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-lg secure-image-container"
-                   aria-label="Enlarge image"
+                 <div
+                   ref={markerContainerRef}
+                   className="relative w-full flex items-center justify-center rounded-lg"
                    onContextMenu={(e) => e.preventDefault()}
                  >
-                   <img key={activeTab} src={activeTab === 'customized' ? (editedImage || originalImagePreview) : originalImagePreview} alt={activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake"} className="w-full h-full object-contain rounded-lg"/>
-                 </button>
+                   {icingDesign && cakeInfo && (
+                        <IcingToolbar 
+                            onSelectItem={setSelectedItem} 
+                            icingDesign={icingDesign} 
+                            cakeType={cakeInfo.type} 
+                            isVisible={areHelpersVisible}
+                        />
+                    )}
+                   <img
+                    onLoad={(e) => {
+                        const img = e.currentTarget;
+                        const container = markerContainerRef.current;
+                        if (originalImagePreview && img.src === originalImagePreview && container) {
+                            setOriginalImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+                            // Set container dimensions at the same time to avoid race condition
+                            setContainerDimensions({ width: container.clientWidth, height: container.clientHeight });
+                        }
+                    }}
+                    key={activeTab} 
+                    src={activeTab === 'customized' ? (editedImage || originalImagePreview) : originalImagePreview} 
+                    alt={activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake"} 
+                    className="w-full max-h-[550px] object-contain rounded-lg"
+                   />
+                   <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleScrollToCakeBase();
+                        }}
+                        className="absolute top-3 right-3 z-10 bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-semibold hover:bg-black/60 transition-all shadow-md px-3 py-1.5"
+                        aria-label="Scroll to cake options"
+                    >
+                        Cake Options
+                    </button>
+                    {originalImageDimensions && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setAreHelpersVisible(prev => !prev);
+                            }}
+                            className="absolute bottom-3 right-3 z-10 bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-semibold hover:bg-black/60 transition-all shadow-md px-3 py-1.5"
+                            aria-label={areHelpersVisible ? "Hide design helpers" : "Show design helpers"}
+                        >
+                            {areHelpersVisible ? 'Hide Helpers' : 'Show Helpers'}
+                        </button>
+                    )}
+                   {originalImageDimensions && containerDimensions && containerDimensions.height > 0 && areHelpersVisible && clusteredMarkers.map((item) => {
+                      if(item.x === undefined || item.y === undefined) return null;
+                      const position = getMarkerPosition(item.x, item.y);
+                      const isSelected = selectedItem?.id === item.id;
+                      const isCluster = 'isCluster' in item && item.isCluster;
+
+                      return (
+                        <div
+                          key={item.id}
+                          className={`analysis-marker ${isSelected ? 'selected' : ''}`}
+                          style={{ top: position.top, left: position.left }}
+                          onMouseEnter={() => setHoveredItem(item)}
+                          onMouseLeave={() => setHoveredItem(null)}
+                          onClick={(e) => { e.stopPropagation(); setSelectedItem(prev => prev?.id === item.id ? null : item)}}
+                        >
+                          <div className="marker-dot">
+                            {isCluster ? item.items.length : markerMap.get(item.id)}
+                          </div>
+                          {hoveredItem?.id === item.id && (
+                            <span className="marker-tooltip">
+                                {isCluster ? `${item.items.length} items found here` : ('description' in item ? item.description : 'text' in item ? item.text : '')}
+                            </span>
+                          )}
+                        </div>
+                      );
+                   })}
+                 </div>
                )}
            </div>
        </div>
@@ -294,15 +545,11 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
          </div>
        )}
        
-       {/* Cake Availability Banner */}
-        {analysisResult && cakeInfo && icingDesign && (
+       {analysisResult && cakeInfo && icingDesign && (
             <div className={`w-full max-w-4xl p-4 rounded-xl border-2 flex items-start gap-4 transition-all duration-300 animate-fade-in ${availability.bgColor} ${availability.borderColor}`}>
-                {/* Icon */}
                 <div className="text-3xl flex-shrink-0 mt-1">
                     {availability.icon}
                 </div>
-                
-                {/* Content */}
                 <div className="flex-grow">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                         <h4 className={`text-lg font-bold ${availability.textColor}`}>
@@ -322,7 +569,6 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                         {availability.description}
                     </p>
                     
-                    {/* Additional info based on type */}
                     {availability.type === 'rush' && (
                         <p className="text-xs mt-2 text-green-600">
                             💨 Perfect for last-minute celebrations!
@@ -370,6 +616,9 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                    isAnalyzing={isAnalyzing}
                    itemPrices={itemPrices}
                    user={user}
+                   cakeBaseSectionRef={cakeBaseSectionRef}
+                   onItemClick={handleListItemClick}
+                   markerMap={markerMap}
                />
            ) : <div className="text-center p-8 text-slate-500"><p>Upload an image to get started.</p></div>}
        </div>
@@ -398,6 +647,27 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
            </div>
          </div>
        )}
+       <FloatingResultPanel
+            selectedItem={selectedItem}
+            onClose={() => setSelectedItem(null)}
+            mainToppers={mainToppers}
+            updateMainTopper={updateMainTopper}
+            removeMainTopper={removeMainTopper}
+            onTopperImageReplace={onTopperImageReplace}
+            supportElements={supportElements}
+            updateSupportElement={updateSupportElement}
+            removeSupportElement={removeSupportElement}
+            onSupportElementImageReplace={onSupportElementImageReplace}
+            cakeMessages={cakeMessages}
+            updateCakeMessage={updateCakeMessage}
+            removeCakeMessage={removeCakeMessage}
+            onCakeMessageChange={onCakeMessageChange}
+            icingDesign={icingDesign}
+            onIcingDesignChange={onIcingDesignChange}
+            analysisResult={analysisResult}
+            itemPrices={itemPrices}
+            isAdmin={isAdmin}
+        />
     </div>
    );
 };

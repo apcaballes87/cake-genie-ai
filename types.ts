@@ -6,12 +6,12 @@ export type CakeThickness = '2 in' | '3 in' | '4 in' | '5 in' | '6 in';
 export type CakeSize = string; // e.g., '6" Round', '6"/8" Round'
 export type CakeFlavor = 'Chocolate Cake' | 'Ube Cake' | 'Vanilla Cake' | 'Mocha Cake';
 
-export type MainTopperType = 'edible_3d' | 'printout' | 'toy' | 'figurine' | 'cardstock' | 'edible_photo' | 'edible_2d_gumpaste' | 'candle' | 'icing_doodle' | 'icing_palette_knife' | 'icing_brush_stroke' | 'icing_splatter' | 'icing_minimalist_spread' | 'meringue_pop' | 'plastic_ball';
-export type SupportElementType = 'gumpaste_panel' | 'chocolates' | 'sprinkles' | 'support_printout' | 'isomalt' | 'small_gumpaste' | 'dragees' | 'edible_flowers' | 'edible_photo_side' | 'icing_doodle' | 'icing_palette_knife' | 'icing_brush_stroke' | 'icing_splatter' | 'icing_minimalist_spread' | 'edible_2d_gumpaste';
+export type MainTopperType = 'edible_3d_complex' | 'edible_3d_ordinary' | 'printout' | 'toy' | 'figurine' | 'cardstock' | 'edible_photo' | 'candle' | 'icing_doodle' | 'icing_palette_knife' | 'icing_brush_stroke' | 'icing_splatter' | 'icing_minimalist_spread' | 'meringue_pop' | 'plastic_ball';
+export type SupportElementType = 'edible_3d_support' | 'edible_2d_support' | 'chocolates' | 'sprinkles' | 'support_printout' | 'isomalt' | 'dragees' | 'edible_flowers' | 'edible_photo_side' | 'icing_doodle' | 'icing_palette_knife' | 'icing_brush_stroke' | 'icing_splatter' | 'icing_minimalist_spread';
 export type CakeMessageType = 'gumpaste_letters' | 'icing_script' | 'printout' | 'cardstock';
 
 export type Size = 'small' | 'medium' | 'large' | 'tiny' | 'mixed';
-export type Coverage = 'light' | 'medium' | 'heavy' | 'none';
+export type Coverage = 'large' | 'medium' | 'small' | 'tiny';
 
 export interface Color {
   name: string;
@@ -27,6 +27,8 @@ export interface MainTopper {
     classification: 'hero' | 'support' | 'hero + support';
     color?: string;
     colors?: (string | null)[];
+    x?: number;
+    y?: number;
 }
 
 export interface SupportElement {
@@ -36,6 +38,8 @@ export interface SupportElement {
     group_id: string;
     color?: string;
     colors?: (string | null)[];
+    x?: number;
+    y?: number;
 }
 
 export interface CakeMessage {
@@ -43,6 +47,8 @@ export interface CakeMessage {
     text: string;
     position: 'top' | 'side' | 'base_board';
     color: string;
+    x?: number;
+    y?: number;
 }
 
 export interface IcingColorDetails {
@@ -64,6 +70,34 @@ export interface IcingDesign {
     gumpasteBaseBoard: boolean;
 }
 
+export interface DripEffect {
+    description: string;
+    x: number;
+    y: number;
+}
+
+export interface IcingSurface {
+    description: string;
+    tier: number;
+    position: 'top' | 'side';
+    x: number;
+    y: number;
+}
+
+export interface IcingBorder {
+    description: string;
+    tier: number;
+    position: 'top' | 'base';
+    x: number;
+    y: number;
+}
+
+export interface BaseBoard {
+    description: string;
+    x: number;
+    y: number;
+}
+
 export interface HybridAnalysisResult {
     cakeType: CakeType;
     cakeThickness: CakeThickness;
@@ -75,6 +109,10 @@ export interface HybridAnalysisResult {
         isRejected: boolean;
         message: string;
     };
+    drip_effects?: DripEffect[];
+    icing_surfaces?: IcingSurface[];
+    icing_borders?: IcingBorder[];
+    base_board?: BaseBoard[];
 }
 
 // --- UI-specific types (extended from base types) ---

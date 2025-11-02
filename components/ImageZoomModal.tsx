@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CloseIcon } from './icons';
+import LazyImage from './LazyImage';
 
 type ImageTab = 'original' | 'customized';
 
@@ -68,11 +69,12 @@ export const ImageZoomModal = React.memo<ImageZoomModalProps>(({
         onClick={(e) => e.stopPropagation()}
         onContextMenu={(e) => e.preventDefault()}
       >
-          <img
+          <LazyImage
             key={activeTab} // To force re-render with animation on tab change
             src={currentImage}
             alt={`${activeTab} cake preview`}
             className="max-w-[90vw] max-h-[80vh] object-contain rounded-lg shadow-2xl animate-fadeIn"
+            placeholderClassName="max-w-[90vw] max-h-[80vh] object-contain rounded-lg"
           />
       </div>
 

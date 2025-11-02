@@ -1,11 +1,24 @@
 {
   "rewrites": [
     {
-      "source": "/share/:designId",
-      "destination": "https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/share-design/:designId"
+      "source": "/designs/:slug*",
+      "destination": "https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/share-design/:slug*"
+    },
+    {
+      "source": "/share/:id*",
+      "destination": "https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/share-design/:id*"
     }
   ],
   "headers": [
+    {
+      "source": "/designs/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    },
     {
       "source": "/share/(.*)",
       "headers": [

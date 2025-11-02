@@ -36,37 +36,12 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     let prompt: string;
 
     if (isThreeTierReconstruction) {
-        prompt = `You are a master digital cake artist tasked with reconstructing a cake design into a new 3-tier structure. You will be given an original cake image for its design language and a reference image for the 3-tier structure.
-
----
-### **Core Reconstruction Principles (VERY IMPORTANT)**
----
-1.  **Reconstruct Proportionally:** Rebuild the cake with a 3-tier count, distributing height and width realistically. The final structure and proportions MUST strictly follow the provided plain white 3-tier reference image. Maintain the original cake’s visual proportions if possible (e.g., if it was tall and narrow, keep that ratio across the new tiers).
-2.  **Preserve Design Language, Not Layout:** Your primary task is to harvest the colors, textures, icing style, and decorative motifs from the original cake and apply them to the new 3-tier structure.
-3.  **Redistribute Decorations Logically:**
-    - Main toppers go on the top tier.
-    - Side decorations (e.g., florals, lace) should appear on all tiers or follow a cascading pattern.
-    - Cake messages should remain readable and be centered on an appropriate tier.
-4.  **Maintain Theme & Style Consistency:** If the original had a drip effect, apply it to all tiers consistently. If it used gold leaf, fresh flowers, or geometric patterns, replicate that aesthetic across the new structure.
-5.  **Do NOT Preserve Spatial Layout:** It is expected that elements will move to fit the new tier structure. The goal is stylistic continuity, not pixel-perfect replication of element positions.
-
----
+        prompt = `---
 ### **List of Changes to Apply to the New 3-Tier Structure**
 ---
 `;
     } else {
-        prompt = `You are a master digital cake artist performing a precise photo edit on the provided cake image. Your goal is to preserve the original image's style, lighting, and composition, applying ONLY the specific changes listed below.
-
----
-### **Core Editing Principles (VERY IMPORTANT)**
----
-1.  **Layer-Based Editing:** Imagine you are working in a photo editor with layers. Your changes must be applied as non-destructive layers on top of the original image features.
-2.  **Modification only:** When asked to change a color (e.g., "Change the side icing to blue"), your task is to **recolor the existing surface** while preserving all decorations, textures, and details on that surface. You are NOT replacing the entire area with a plain blue color.
-3.  **Realistic Interaction:** When adding an element like a drip, it must interact realistically with existing decorations. The drip should flow **around or partially over** decorations on the side of the cake, not completely erase them. The original decorations must remain visible and integrated with the new element.
-4.  **Preserve Unmentioned Details:** If a decoration or feature from the original image is not explicitly mentioned as changed or removed in the list below, it MUST be preserved exactly as it is.
-5.  **Remove Superimposed Overlays:** Identify and cleanly remove any non-diegetic logos, watermarks, text, or graphic overlays that have been digitally added on top of the cake image. In-paint the cleared area to seamlessly match the surrounding cake icing or background. Do NOT remove decorations that are physically part of the cake, such as printout toppers or piped messages.
-
----
+        prompt = `---
 ### **List of Changes to Apply**
 ---
 `;
@@ -91,7 +66,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     }
 
     // A more descriptive size instruction for multi-tier cakes.
-    const tiers = newCakeInfo.size.match(/\\d+"/g); // e.g., ["6\"", "8\"", "10\""]
+    const tiers = newCakeInfo.size.match(/\d+"/g); // e.g., ["6\"", "8\"", "10\""]
     if ((newCakeInfo.type.includes('2 Tier')) && tiers && tiers.length === 2) {
         changes.push(`- The final **cake size** represents a 2-tier structure: a ${tiers[0]} diameter top tier stacked on a ${tiers[1]} diameter bottom tier.`);
     } else if ((newCakeInfo.type.includes('3 Tier')) && tiers && tiers.length === 3) {
@@ -112,8 +87,28 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             if (t.replacementImage) {
                 if (t.type === 'icing_doodle') {
                     itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **piped icing doodle style** as the original cake. Capture the likeness from the reference photo but render it as a simple, elegant line art portrait using piped icing.`);
-                } else {
-                    itemChanges.push(`replace its image with the new one provided`);
+                } else if (t.type === 'icing_palette_knife') {
+                    const isFigure = t.description.toLowerCase().includes('person') || 
+                                     t.description.toLowerCase().includes('character') || 
+                                     t.description.toLowerCase().includes('human') ||
+                                     t.description.toLowerCase().includes('figure');
+                    if (isFigure) {
+                        itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **painterly palette knife style** as the original cake. Capture the likeness from the reference photo but render it as a textured, abstract portrait using palette knife strokes.`);
+                    } else {
+                        // Default behavior if not a figure
+                        itemChanges.push(`replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
+                    }
+                } else if (t.type === 'edible_3d_complex' || t.type === 'edible_3d_ordinary') {
+                    itemChanges.push(`**re-sculpt this 3D gumpaste figure based on the new reference image provided**. The new figure must be in the same **3D gumpaste style** as the original cake. Capture the likeness, pose, and details from the reference photo but render it as a hand-sculpted, edible gumpaste figure.`);
+                } else if (t.type === 'edible_photo') {
+                    let instruction = `replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it. Crop it if necessary to fit the original edible photo's shape on the cake.`;
+                    // Check if original description implies full coverage
+                    if (t.description.toLowerCase().includes('full top') || t.description.toLowerCase().includes('entire top')) {
+                        instruction += ` The new image MUST cover the **entire top surface of the cake**, just like the original one did. Ensure it is flat, perfectly aligned, and integrated seamlessly with the cake's top icing.`;
+                    }
+                    itemChanges.push(instruction);
+                } else { // This applies to 'printout'
+                    itemChanges.push(`replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
                 }
             }
             
@@ -126,7 +121,12 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                 const newColorNames = t.colors!.map(c => colorName(c || undefined)).join(', ');
                 itemChanges.push(`**remap its entire color palette**. The original color scheme was based on ${originalColorNames}. The new scheme MUST be based on **${newColorNames}**. It is critical that you preserve the original's textured strokes and relative light/dark variations, but translate them to the new color family.`);
             } else if (hasSingleColorChanged) {
-                itemChanges.push(`recolor it to **${colorName(t.color)}**`);
+                const isTexturedIcing = ['icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread'].includes(t.type);
+                if (isTexturedIcing) {
+                    itemChanges.push(`**rehue the texture** to a monochromatic palette based on the new color **${colorName(t.color)}**. It is critical that you **PRESERVE THE ORIGINAL STROKES, TEXTURE, AND LIGHTING (shadows/highlights)**. Simply shift the hue of the existing texture to the new color, maintaining all its original detail and form.`);
+                } else {
+                    itemChanges.push(`recolor it to **${colorName(t.color)}**`);
+                }
             }
 
             if (itemChanges.length > 0) {
@@ -145,7 +145,34 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                 itemChanges.push(`change its material to **${s.type}**`);
             }
             if (s.replacementImage) {
-                itemChanges.push(`replace its image with the new one provided`);
+                if (s.type === 'icing_doodle') {
+                    itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **piped icing doodle style** as the original cake. Capture the likeness from the reference photo but render it as a simple, elegant line art portrait using piped icing.`);
+                } else if (s.type === 'icing_palette_knife') {
+                    const isFigure = s.description.toLowerCase().includes('person') || 
+                                     s.description.toLowerCase().includes('character') || 
+                                     s.description.toLowerCase().includes('human') ||
+                                     s.description.toLowerCase().includes('figure');
+                    if (isFigure) {
+                        itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **painterly palette knife style** as the original cake. Capture the likeness from the reference photo but render it as a textured, abstract portrait using palette knife strokes.`);
+                    } else {
+                        // Default behavior for other palette knife changes (e.g. textures)
+                        itemChanges.push(`replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
+                    }
+                } else if (s.type === 'edible_3d_support') {
+                    const isFigure = s.description.toLowerCase().includes('person') || 
+                                     s.description.toLowerCase().includes('character') || 
+                                     s.description.toLowerCase().includes('human') || 
+                                     s.description.toLowerCase().includes('figure') ||
+                                     s.description.toLowerCase().includes('silhouette');
+                    if (isFigure) {
+                        itemChanges.push(`**re-sculpt this small 3D gumpaste item based on the new reference image provided**. The new item must be in the same **3D gumpaste style** as the original cake. Capture the likeness, pose, and details from the reference photo but render it as a small, hand-sculpted, edible gumpaste figure.`);
+                    } else {
+                        // This else block handles non-figure gumpaste support elements with replacement images, which is an unlikely scenario. But to be safe:
+                        itemChanges.push(`replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
+                    }
+                } else { // Default for support_printout, edible_photo_side, etc.
+                    itemChanges.push(`replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
+                }
             }
             
             const isPaletteKnife = s.type === 'icing_palette_knife';
@@ -157,7 +184,12 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                 const newColorNames = s.colors!.map(c => colorName(c || undefined)).join(', ');
                 itemChanges.push(`**remap its entire color palette**. The original color scheme was based on ${originalColorNames}. The new scheme MUST be based on **${newColorNames}**. It is critical that you preserve the original's textured strokes and relative light/dark variations, but translate them to the new color family.`);
             } else if (hasSingleColorChanged) {
-                itemChanges.push(`recolor it to **${colorName(s.color)}**`);
+                const isTexturedIcing = ['icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread'].includes(s.type);
+                if (isTexturedIcing) {
+                    itemChanges.push(`**rehue the texture** to a monochromatic palette based on the new color **${colorName(s.color)}**. It is critical that you **PRESERVE THE ORIGINAL STROKES, TEXTURE, AND LIGHTING (shadows/highlights)**. Simply shift the hue of the existing texture to the new color, maintaining all its original detail and form.`);
+                } else {
+                    itemChanges.push(`recolor it to **${colorName(s.color)}**`);
+                }
             }
             
             if (itemChanges.length > 0) {
@@ -193,26 +225,26 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     if (newIcing.border_top && !originalIcing.border_top) {
         let instruction = `- **Add a decorative top border**.`;
         if (newIcing.colors.borderTop) {
-            instruction += ` The TOP border color should be **${colorName(newIcing.colors.borderTop)}**.`;
+            instruction += ` The TOP border color shade should be **${colorName(newIcing.colors.borderTop)}**.`;
         }
         icingChanges.push(instruction);
     } else if (!newIcing.border_top && originalIcing.border_top) {
         icingChanges.push(`- **Remove the top border**.`);
     } else if (newIcing.border_top && originalIcing.border_top && newIcing.colors.borderTop !== originalIcing.colors.borderTop) {
-        icingChanges.push(`- **Recolor the top border**. The new TOP border color should be **${colorName(newIcing.colors.borderTop!)}**. Preserve all other details.`);
+        icingChanges.push(`- **Recolor the top border shade**. The new TOP border color shade should be **${colorName(newIcing.colors.borderTop!)}**. Preserve all other details.`);
     }
     
     // Handle Base Border
     if (newIcing.border_base && !originalIcing.border_base) {
         let instruction = `- **Add a decorative base border**.`;
         if (newIcing.colors.borderBase) {
-            instruction += ` The BASE border color should be **${colorName(newIcing.colors.borderBase)}**.`;
+            instruction += ` The BASE border color shade should be **${colorName(newIcing.colors.borderBase)}**.`;
         }
         icingChanges.push(instruction);
     } else if (!newIcing.border_base && originalIcing.border_base) {
         icingChanges.push(`- **Remove the base border**.`);
     } else if (newIcing.border_base && originalIcing.border_base && newIcing.colors.borderBase !== originalIcing.colors.borderBase) {
-        icingChanges.push(`- **Recolor the base border**. The new BASE border color should be **${colorName(newIcing.colors.borderBase!)}**. Preserve all other details.`);
+        icingChanges.push(`- **Recolor the base border shade**. The new BASE border color shade should be **${colorName(newIcing.colors.borderBase!)}**. Preserve all other details.`);
     }
 
     // Handle Gumpaste Base Board
@@ -228,13 +260,24 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
         icingChanges.push(`- **Recolor the gumpaste base board**. The new BASE BOARD color should be **${colorName(newIcing.colors.gumpasteBaseBoardColor!)}**. Preserve all other details.`);
     }
 
-    // Handle core icing colors (side, top) which are always present
+    // Handle core icing colors with explicit preservation
     const originalIcingColors = originalIcing.colors;
-    if (newIcing.colors.side !== undefined && newIcing.colors.side !== originalIcingColors.side) {
-        icingChanges.push(`- **Recolor the side icing**. The new SIDE icing color should be **${colorName(newIcing.colors.side)}**. Important: This is a color change only. All original decorations, patterns, or details on this surface must be preserved and remain visible.`);
+    const sideColorChanged = newIcing.colors.side !== undefined && newIcing.colors.side !== originalIcingColors.side;
+    const topColorChanged = newIcing.colors.top !== undefined && newIcing.colors.top !== originalIcingColors.top;
+
+    if (sideColorChanged) {
+        icingChanges.push(`- **Recolor the shade of the side icing** to **${colorName(newIcing.colors.side)}**. CRITICAL: This is a color change ONLY.  Preserve all original decorations and details, simply shifting their hue to the new color.`);
     }
-    if (newIcing.colors.top !== undefined && newIcing.colors.top !== originalIcingColors.top) {
-        icingChanges.push(`- **Recolor the top icing**. The new TOP icing color should be **${colorName(newIcing.colors.top)}**. Important: This is a color change only. All original decorations, patterns, or details on this surface must be preserved and remain visible.`);
+    if (topColorChanged) {
+        icingChanges.push(`- **Recolor the shade of the top icing** to **${colorName(newIcing.colors.top)}**. CRITICAL: This is a color change ONLY. Preserve all original decorations and details, simply shifting their hue to the new color.`);
+    }
+
+    // Add preservation instructions for unchanged surfaces
+    if (sideColorChanged && !topColorChanged && originalIcingColors.top) {
+        icingChanges.push(`- **Preserve top icing color**: The top icing MUST remain its original color. Do not change it.`);
+    }
+    if (topColorChanged && !sideColorChanged && originalIcingColors.side) {
+        icingChanges.push(`- **Preserve side icing color**: The side icing MUST remain its original color. Do not change it.`);
     }
 
     changes.push(...icingChanges);
@@ -308,21 +351,10 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
 
     // Assemble the final prompt
     if (changes.length > 0) {
-        prompt += changes.join('\\n');
+        prompt += changes.join('\n');
     } else {
         prompt += "- No changes were requested. The image should remain exactly the same.";
     }
-    
-    let finalReminder: string;
-    if (isThreeTierReconstruction) {
-        finalReminder = `---
-**Final Reminder:** Reconstruct the cake structure while faithfully preserving the original design language, color palette, and decorative theme. Do not attempt to keep elements in their original positions—redistribute them naturally across the new tier configuration.`;
-    } else {
-        finalReminder = `---
-**Final Reminder:** Adhere strictly to the Core Editing Principles. You are ONLY editing the provided image based on the specific changes listed above. All other features, decorations, lighting, and style must be perfectly preserved from the original.`;
-    }
-
-    prompt += `\\n\\n${finalReminder}`;
     
     return prompt;
 };

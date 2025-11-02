@@ -101,7 +101,8 @@ export const useImageManagement = () => {
   const handleImageUpload = useCallback(async (
     file: File,
     onSuccess: (result: HybridAnalysisResult) => void,
-    onError: (error: Error) => void
+    onError: (error: Error) => void,
+    options?: { imageUrl?: string }
   ) => {
     setIsLoading(true); // For file processing
     setError(null);
@@ -157,8 +158,8 @@ export const useImageManagement = () => {
         analyzeCakeImage(imageData.data, imageData.mimeType)
             .then(result => {
                 onSuccess(result);
-                // Fire-and-forget caching
-                cacheAnalysisResult(pHash, result);
+                // Fire-and-forget caching, now with the original URL if available
+                cacheAnalysisResult(pHash, result, options?.imageUrl);
             })
             .catch(onError);
         

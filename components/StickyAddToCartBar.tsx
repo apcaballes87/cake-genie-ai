@@ -18,7 +18,7 @@ interface StickyAddToCartBarProps {
   warningMessage?: string | null;
 }
 
-const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = ({ price, isLoading, isAdding, error, onAddToCartClick, onShareClick, isSharing, canShare, isAnalyzing, cakeInfo, warningMessage }) => {
+const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({ price, isLoading, isAdding, error, onAddToCartClick, onShareClick, isSharing, canShare, isAnalyzing, cakeInfo, warningMessage }) => {
     const [show, setShow] = useState(false);
 
     useEffect(() => {
@@ -93,6 +93,8 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = ({ price, isLoadin
             </div>
         </div>
     );
-};
+});
+
+StickyAddToCartBar.displayName = 'StickyAddToCartBar';
 
 export default StickyAddToCartBar;

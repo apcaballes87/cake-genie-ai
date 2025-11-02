@@ -12,35 +12,38 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  // FIX: The class component's state was not initialized, causing errors when trying to access `this.state` and `this.props`. Adding a constructor to call `super(props)` and set the initial state resolves these issues.
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-    };
-  }
+  public state: State = {
+    hasError: false,
+    error: null,
+  };
 
-  static getDerivedStateFromError(error: Error): State {
+  public static getDerivedStateFromError(error: Error): State {
     return {
       hasError: true,
       error
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
     
     // Call optional error handler
-    if (this.props.onError) {
-      this.props.onError(error, errorInfo);
+    // In a class component, props are accessed via `this.props`.
+    const { onError } = this.props;
+    if (onError) {
+      onError(error, errorInfo);
     }
   }
 
-  render() {
-    if (this.state.hasError) {
+  public render() {
+    const { hasError } = this.state;
+    
+    // In a class component, props are accessed via `this.props`.
+    const { fallback, children } = this.props;
+
+    if (hasError) {
       // Use custom fallback if provided, otherwise use default
-      return this.props.fallback || (
+      return fallback || (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -63,6 +66,6 @@ export class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    return this.props.children;
+    return children;
   }
 }

@@ -2,13 +2,42 @@ import { GoogleGenAI, Modality, Type } from "@google/genai";
 import type { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, IcingColorDetails, CakeInfoUI, CakeType, CakeThickness, IcingDesign, MainTopperType, CakeMessage, SupportElementType } from '../types';
 import { CAKE_TYPES, CAKE_THICKNESSES, COLORS } from "../constants";
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-
-if (!GEMINI_API_KEY) {
-    throw new Error("VITE_GEMINI_API_KEY environment variable not set");
+if (!process.env.API_KEY) {
+    throw new Error("API_KEY environment variable not set");
 }
+  
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+const IMAGE_EDITING_SYSTEM_INSTRUCTION = `You are a master digital cake artist performing a precise photo edit on the provided cake image. Your goal is to preserve the original image's style, lighting, and composition, applying ONLY the specific changes listed below.
+
+---
+### **Core Editing Principles (VERY IMPORTANT)**
+---
+1.  **Enhance and Upscale:** The final output MUST be a high-resolution, photorealistic image. If the original input image is pixelated, blurry, or low-quality, you MUST upscale and enhance it, removing artifacts and sharpening details to create a crisp, professional-grade photograph. All edits must be applied to this enhanced version.
+2.  **Preserve Aspect Ratio:** The final output image MUST have the exact same dimensions and aspect ratio as the original input image. Do not change the image from portrait to landscape, square to rectangle, etc.
+3.  **Layer-Based Editing:** Imagine you are working in a photo editor with layers. Your changes must be applied as non-destructive layers on top of the original image features.
+4.  **Modification only:** When asked to change a color (e.g., "Change the shade of side icing to blue"), your task is to **recolor the existing shade color** while preserving all decorations, textures, and details on that surface. You are NOT replacing the entire area with a plain blue color. CRITICAL: If the original surface has multiple shades of a color (e.g., light blue, dark blue, and white), you MUST preserve these tonal variations. For example, changing the color to "red" should result in a surface with light red, dark red, and white, not a flat, solid red. This is a color re-mapping, not a flat replacement.
+5.  **Surface Integrity and Separation (CRITICAL):** Treat the cake's surfaces as distinct, independently editable zones. The primary zones are: "Side Icing," "Top Icing," "Top Border," "Base Border," and "Drip." Changes to one surface MUST NOT affect another unless explicitly told to. For example, a request to change the 'Side Icing' color must not alter the 'Top Icing' color. If asked to change the side icing to black, the top icing MUST remain its original color. Do not let the black color 'bleed' or 'wrap over' to the top surface.
+6.  **Realistic Interaction:** When adding an element like a drip, it must interact realistically with existing decorations. The drip should flow **around or partially over** decorations on the side of the cake, not completely erase them. The original decorations must remain visible and integrated with the new element.
+7.  **Preserve Unmentioned Details:** If a decoration or feature from the original image is not explicitly mentioned as changed or removed in the list below, it MUST be preserved exactly as it is.
+8.  **Remove Superimposed Overlays:** Identify and cleanly remove any non-diegetic logos, watermarks, text, or graphic overlays that have been digitally added on top of the cake image. In-paint the cleared area to seamlessly match the surrounding cake icing or background. Do NOT remove decorations that are physically part of the cake, such as printout toppers or piped messages.`;
+
+const THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION = `You are a master digital cake artist tasked with reconstructing a cake design into a new 3-tier structure. You will be given an original cake image for its design language and a reference image for the 3-tier structure.
+
+---
+### **Core Reconstruction Principles (VERY IMPORTANT)**
+---
+1.  **High-Quality Output:** The final output MUST be a high-resolution, photorealistic image. Even if the original design source image is low-quality, the new 3-tier cake image you generate must be crisp, clear, and professional-grade.
+2.  **Preserve Aspect Ratio:** The final output image MUST have the exact same dimensions and aspect ratio as the original input image. Do not change the image from portrait to landscape, square to rectangle, etc.
+3.  **Reconstruct Proportionally:** Rebuild the cake with a 3-tier count, distributing height and width realistically. The final structure and proportions MUST strictly follow the provided plain white 3-tier reference image. Maintain the original cake’s visual proportions if possible (e.g., if it was tall and narrow, keep that ratio across the new tier structure).
+4.  **Preserve Design Language, Not Layout:** Your primary task is to harvest the colors, textures, icing style, and decorative motifs from the original cake and apply them to the new 3-tier structure.
+5.  **Redistribute Decorations Logically:**
+    - Main toppers go on the top tier.
+    - Side decorations (e.g., florals, lace) should appear on all tiers or follow a cascading pattern.
+    - Cake messages should remain readable and be centered on an appropriate tier.
+6.  **Maintain Theme & Style Consistency:** If the original had a drip effect, apply it to all tiers consistently. If it used gold leaf, fresh flowers, or geometric patterns, replicate that aesthetic across the new structure.
+7.  **Do NOT Preserve Spatial Layout:** It is expected that elements will move to fit the new tier structure. The goal is stylistic continuity, not pixel-perfect replication of element positions.`;
+
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
     let binary = '';
@@ -77,10 +106,10 @@ export const validateCakeImage = async (base64ImageData: string, mimeType: strin
             contents: [{
                 parts: [
                     { inlineData: { mimeType, data: base64ImageData } },
+                    { text: VALIDATION_PROMPT }
                 ],
             }],
             config: {
-                systemInstruction: VALIDATION_PROMPT,
                 responseMimeType: 'application/json',
                 responseSchema: validationResponseSchema,
                 temperature: 0,
@@ -97,441 +126,130 @@ export const validateCakeImage = async (base64ImageData: string, mimeType: strin
     }
 };
 
-const NEW_HYBRID_PROMPT = `You are an expert cake designer analyzing a cake image to identify design elements for pricing and customization. Your response must be a valid JSON object.
+const SYSTEM_INSTRUCTION = `You are an expert cake designer analyzing a cake image to identify design elements for pricing and customization. Your response must be a valid JSON object.
 
-**OBJECTIVE TOPPER SIZING SYSTEM**
-Use ratio-based size classification for all physical toppers (e.g., 'edible_3d', 'toy', 'figurine', 'cardstock', 'meringue_pop'):
+**GLOBAL RULES:**
+1.  **JSON Output:** Your entire response MUST be a single, valid JSON object that adheres to the provided schema. Do not include any text, explanations, or markdown formatting outside of the JSON structure.
+2.  **Color Palette:** For any color field in your response (like icing or message colors), you MUST use the closest matching hex code from this specific list: Red (#EF4444), Light Red (#FCA5A5), Orange (#F97316), Yellow (#EAB308), Green (#16A34A), Light Green (#4ADE80), Teal (#14B8A6), Blue (#3B82F6), Light Blue (#93C5FD), Purple (#8B5CF6), Light Purple (#C4B5FD), Pink (#EC4899), Light Pink (#FBCFE8), Brown (#78350F), Light Brown (#B45309), Gray (#64748B), White (#FFFFFF), Black (#000000).
+`;
 
-MEASUREMENT PROTOCOL:
-1. Establish the cake tier thickness (2-6 inches)
-2. Estimate topper height relative to tier thickness
-3. Apply ratio classification:
-   - **'large'**: Height > 1.0× tier thickness
-   - **'medium'**: Height > 0.6× and ≤ 1.0× tier thickness
-   - **'small'**: Height > 0.4× and ≤ 0.6× tier thickness
-   - **'tiny'**: Height ≤ 0.4× tier thickness
+const ANALYSIS_PROMPT_CONTENTS = `
+**CORE DECORATION PHILOSOPHY: Hero vs. Support (VERY IMPORTANT)**
+Before you begin, you must understand the two fundamental types of decorations. Your primary task is to classify every single decoration into one of these two roles. Location (top vs. side) DOES NOT determine the category; the item's function does.
 
-SPECIAL CASES:
-- For horizontal/lying toppers: use longest dimension instead of height
-- For printout toppers: SKIP sizing (always note as printout, size not relevant)
-- When tier thickness is uncertain, default to 4 inches for calculations
-- When borderline between sizes, round DOWN to smaller category
+1.  **HERO Elements**:
+    *   **Function**: These are the main subject and focal point of the cake. They define the theme. A cake typically has only 1 or 2 Hero elements.
+    *   **Ask Yourself**: Is this item the *reason* for the cake's design? If you removed it, would the theme be lost?
+    *   **Examples**: A detailed, hand-sculpted Spider-Man figure; a large, elegant "Mr. & Mrs." wedding topper; a prominent printed logo that *is* the theme.
+    *   **Placement**: Hero elements will be placed in the \`main_toppers\` array.
 
-**Color Palette:** For any color field in your response (like icing or message colors), you MUST use the closest matching hex code from this specific list: Red (#EF4444), Light Red (#FCA5A5), Orange (#F97316), Yellow (#EAB308), Green (#16A34A), Light Green (#4ADE80), Teal (#14B8A6), Blue (#3B82F6), Light Blue (#93C5FD), Purple (#8B5CF6), Light Purple (#C4B5FD), Pink (#EC4899), Light Pink (#FBCFE8), Brown (#78350F), Light Brown (#B45309), Gray (#64748B), White (#FFFFFF), Black (#000000).
+2.  **SUPPORT Elements**:
+    *   **Function**: These are all other decorations. They build the atmosphere, add texture, or act as fillers and accents. They support the theme but are not the main subject.
+    *   **Ask Yourself**: Is this item part of the background, a texture, or a scattered decorative flourish?
+    *   **Examples**: Sprinkles, small gumpaste stars/hearts, chocolate bars, meringue pops, isomalt shards, individual flowers in a bouquet, and ALL textural icing finishes (like palette knife strokes or splatters).
+    *   **CRITICAL**: Support elements belong in the \`support_elements\` array **REGARDLESS of their location**. A small flower on top of the cake is still a Support element. Palette knife strokes on the top and sides are one group of Support elements.
+    *   **Placement**: ALL Support elements go into the \`support_elements\` array.
+
+**GROUPING IS MANDATORY FOR SUPPORT ELEMENTS**
+This is a critical rule for pricing. You MUST group similar Support Elements into a single entry, even if their colors or exact sizes differ.
+-   **Example 1 (Flowers):** If there are 3 pink roses and 2 white roses scattered on the cake, they MUST become a single entry in \`support_elements\` with \`description: 'group of 5 assorted roses'\`.
+-   **Example 2 (Textures):** If abstract palette knife strokes in blue and white appear on the sides AND on the top edge, you MUST create a single entry in \`support_elements\` for 'abstract blue and white palette knife strokes'. DO NOT create a separate entry in \`main_toppers\` for the strokes on top. They are one single, continuous design feature.
+
+**OBJECTIVE SIZING & COVERAGE SYSTEMS**
+
+*   **Topper Sizing (for Hero elements):**
+    1.  Establish cake tier thickness (default 4 inches).
+    2.  Estimate topper height relative to tier thickness.
+    3.  Classify size: 'large' (>1.0x tier), 'medium' (0.6x-1.0x), 'small' (0.4x-0.6x), 'tiny' (≤0.4x).
+
+*   **Support Group Coverage (for Support elements):**
+    1.  Assess the entire group of similar items.
+    2.  Classify coverage: 'large' (>15 items or >40% of a tier's side), 'medium' (6-15 items), 'small' (2-5 items), 'tiny' (1 item or sparse scatter).
 
 **CRITICAL RULE: ICING DECORATION IDENTIFICATION**
-- **Simple piped icing** (swirls, rosettes, ruffles, shell borders) are part of the fundamental icing design and MUST NOT be listed in 'main_toppers' or 'support_elements'. They are not add-ons.
-- **Complex icing techniques**, however, ARE considered add-ons. You MUST identify and list them. These include:
-  - **Doodles:** Piped line-art drawings or intricate patterns. Note in the description if they are 'simple' or 'intricate'.
-  - **Palette Knife Finish:** Distinct, textured strokes made with a palette knife.
-  - **Brush Stroke Icing:** Visible strokes made with a brush.
-  - **Splatter Finish:** A speckled or splattered color effect on icing.
-  - **Minimalist Spread:** A rough, intentionally rustic or unfinished-looking spread of icing.
+-   **Simple piped icing** (swirls, rosettes, shell borders) are part of the fundamental icing design and MUST NOT be listed as a decoration.
+-   **Complex icing techniques** ARE decorations. Classify them as **Support Elements** and place them in the \`support_elements\` array. These include: 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread'.
+
+**CRITICAL RULE: FLOWER CLASSIFICATION**
+You MUST distinguish between 3D gumpaste flowers and painterly icing flowers.
+-   **Gumpaste Flowers (type: 'edible_flowers'):** 3D, sculptural, matte finish. Classify as a **Support Element**.
+-   **Icing Flowers (type: 'icing_palette_knife'):** 2D, painterly, glossy. Classify as a **Support Element**.
 
 Now, analyze the image and provide a JSON object with these 6 categories:
 
 1. **cakeType**: Choose the best fit from this list: 1 Tier, 2 Tier, 3 Tier, 1 Tier Fondant, 2 Tier Fondant, 3 Tier Fondant, Square, Rectangle, Bento. 
-   
-   **TIER RECOGNITION GUARDRAILS:**
-   - Default to "1 Tier" unless there is CLEAR physical separation between tiers:
-     * A distinct second cake body with its own vertical side and top plane
-     * Shadow line and diameter change visible; top tier's base is flat and not just a piped crown
-     * Top décor resting on a same-diameter top (NOT just a mound of piping)
-   - Do NOT count dense top piping crowns or large 3D toppers as a second tier
-   - Top-view photos: use side cues (shadows, board edge, visible side height) before claiming multiple tiers
-   
-   **Bento Definition:** A "Bento" cake is a small, personal-sized cake, typically 4 inches in diameter and 2 inches thick, often packaged in a clamshell box.
+   - **Bento Definition:** A "Bento" cake is a small, personal-sized cake, typically 4 inches in diameter and 2 inches thick.
 
 2. **cakeThickness**: Choose the best fit from this list: 2 in, 3 in, 4 in, 5 in, 6 in.
+   - **Heuristics:** Bento (2-3 in), Standard (4 in), Tall (5-6 in). Default to 4 in if uncertain.
+
+3. **main_toppers** (array for HERO ELEMENTS ONLY):
+   - This array is for the primary, focal-point decorations that you identified as **Hero Elements**.
+   - If an item is just a decorative accent (like a sprinkle or small flower), it does NOT belong here, even if it's on top of the cake. Put it in \`support_elements\`.
+   - If there are no Hero elements, this array MUST be empty.
    
-   **THICKNESS HEURISTICS:**
-   - Bento: 2–3 in
-   - Standard single tier: 4 in (most common)
-   - Tall/double-barrel look: 6 in (or 5 in when clearly taller than standard but not double)
-   - Small but not bento: 3 in
-   - If uncertain: default to 4 in
-
-3. **main_toppers** (focal points on top/prominent on cake):
-   
-   **CRITICAL DECISION FRAMEWORKS (APPLY IN ORDER):**
-
-    **ICING PALETTE KNIFE / SPATULA PAINTING IDENTIFICATION (APPLY FIRST):**
-    - Identify textured "swooshes," "swipes," or "smears" of colored icing.
-    - If these are the primary decoration on the **top surface** of the cake, classify it as a 'main_topper' with type 'icing_palette_knife'.
-    - Use 'size' to describe the coverage on the top surface: 'small' for accent, 'medium' for partial, 'large' for full coverage.
-    - **CRITICAL:** Assess the complexity. Describe it as either "Intricate Palette Knife Finish" or "Simple Palette Knife Finish". A design is 'intricate' if it involves multiple layers, complex color blending, or forms a detailed abstract picture. It is 'simple' if it consists of basic, separate swooshes.
-    - For this type, you MUST identify up to 3 dominant colors present in the strokes and return them as an array in a 'colors' field (e.g., "colors": ["#EC4899", "#FFFFFF", "#FBCFE8"]). Do not use the singular 'color' field for this type.
-   
-    **SPHERICAL TOPPER CLASSIFICATION (APPLY SECOND):**
-    You MUST correctly classify all spherical or ball-shaped toppers to ensure correct pricing. This rule has high priority.
-
-    **Identification Cues:** Look for any decorative item that is primarily a sphere or ball.
-    
-    **Classification Logic (Strictly follow this order):**
-    1.  **Is it very small and scattered in large numbers?**
-        - If YES, and it has a pearlescent/metallic sheen -> Classify as a \`support_element\` with type \`dragees\`.
-        - If YES, and it's like tiny candy dots -> Classify as a \`support_element\` with type \`sprinkles\`.
-    2.  **Does it look like a chocolate?** (e.g., Ferrero Rocher, malt ball, chocolate truffle)
-        - If YES -> Classify as a \`support_element\` with type \`chocolates\`. Describe it as "chocolate balls" or by brand name.
-    3.  **For ALL OTHER SPHERES/BALLS:**
-        - You MUST classify them as a \`main_topper\` with the type \`plastic_ball\`.
-        - **This applies even if they look like they are made of gumpaste, fondant, or other edible materials.** This is a pricing override rule. Unless it is clearly a tiny sprinkle/dragee or a chocolate, any decorative sphere is priced as a \`plastic_ball\`.
-        - **Description:** The description MUST include "sphere" or "ball" and the color if applicable (e.g., "3 large brown spheres", "5 small silver balls"). Do not describe them as "gumpaste spheres".
-    
-    **CRITICAL RULE:** This rule overrides all other material analysis for spherical toppers. Do NOT classify decorative spheres as \`edible_3d\` unless they are part of a more complex sculpture (e.g., the head of a snowman figure). If they are just standalone spheres, they are \`plastic_ball\`.
-
-   **CONCEPTUAL TOPPER GUIDE (Use this for high-level understanding):**
-
-    🍰 **Cake Topper Guide: What Type Is It?**
-    Not sure if your topper is a toy, figurine, edible sculpture, or printout?
-    Look at these 4 key clues — shape, texture, material, and purpose — to tell them apart!
-
-    🍓 **1. 3D Edible (Gumpaste/Fondant) — “Eat Me!”**
-    Hand-sculpted sugar art — soft, detailed, and meant to be eaten with the cake. 
-
-    🔹 **How It Looks:**
-    Soft, matte finish — like clay or dough
-    Slightly uneven edges (handmade!)
-    Often painted with food-safe colors
-    No plastic shine or printed lines
-    🔹 **Texture Clue:** Feels like soft modeling paste — not hard or glossy
-
-    🔹 **Ask Yourself:**
-    “Can I eat this?” → If YES → It’s 3D Edible 
-
-    🧸 **2. Toy Toppers — “Play With Me!”**
-    Plastic characters from movies or toy lines — fun, colorful, and perfect for kids’ parties. 
-
-    🔹 **How It Looks:**
-    Hard plastic or PVC — shiny, molded, lightweight
-    Glossy finish, bright colors, cartoonish style
-    Often has small white plastic base or stand
-    May have visible seams or injection molding lines
-    🔹 **Texture Clue:** Feels like a plastic action figure — smooth but rigid
-
-    🔹 **Ask Yourself:**
-    “Would a kid play with this after the party?” → If YES → It’s a Toy 
-
-    ✅ **Examples:** construction trucks, action figures
-
-    🎭 **3. Figurine Toppers — “Display Me!”**
-    Decorative collectibles — elegant, detailed, and often sentimental (like wedding couples). 
-
-    🔹 **How It Looks:**
-    Made of resin, ceramic, or porcelain — smooth, heavy, often matte or satin
-    not so detailed: sometimes poorly painted,  facial expressions not clear, details are not clear.
-    May be hand-painted or airbrushed — not just printed
-    Often includes  weighted bases
-    🔹 **Texture Clue:** Feels solid, weighty, and refined — like a mini statue
-
-    🔹 **Ask Yourself:**
-    “Would I keep this on my shelf as a keepsake?” → If YES → It’s a Figurine 
-
-    ✅ **Examples:** Bride & groom, Frozen resin characters, breakable fragile figurines
-
-    🖨️ **4. Printout Toppers — “Peel & Stick Me!”**
-    Flat, printed images on paper, cardstock, or edible icing — easy, affordable, and great for quick decoration. 
-
-    🔹 **How It Looks:**
-    Flat, 2D cutouts — sharp edges, glossy or matte finish
-    Printed with vibrant colors — looks like a photo or poster
-    Attached to thin sticks (food-safe picks)
-    has a white outline.
-    May include text, numbers, banners, or scenes
-    🔹 **Texture Clue:** Feels like paper or thin plastic — flat and flexible
-
-    🔹 **Ask Yourself:**
-    “Is this a flat picture on a stick?” → If YES → It’s a Printout 
-
-    ✅ **Examples:** Barbie cutouts, Frozen banner, princess castle printed with white outlines.
+   **GUMPASTE TOPPER CLASSIFICATION (High Priority)**
+   You MUST classify 3D gumpaste/fondant Hero toppers into one of two categories:
+   1.  **'edible_3d_complex'**: Highly detailed, hand-sculpted figures (characters, animals, complex structures).
+   2.  **'edible_3d_ordinary'**: Simpler 3D items (ribbons, bows, simple 3D shapes).
 
    **TOPPER IDENTIFICATION LADDER (Apply in order of precedence):**
-   
-   **T1) PRINTOUT CHECK:** A topper is a 'printout' if it has **2 or more** of these cues:
-- Visible thin white cut edge/halo
-- Visible paper thickness (0.2-0.6mm)
-- Printed dot pattern texture (visible halftone/CMYK dots under close inspection)
-- Support stick taped behind it (not embedded in the topper)
-- Flat 2D card/paper appearance with no side volume
-- Printed brand logos, character images with licensing marks
-- Multiple colors (font color different from stroke/outline color)
-- Uniform matte/inkjet surface
-- **Perfect symmetry on paired elements** (e.g., butterfly wings with identical patterns on both sides - indicates digital printing/mirroring)
-- **Photorealistic printed details** (gradient patterns, photo-quality images) that would be impossible to hand-paint on gumpaste
-- **Clean die-cut edges without white borders** - professionally printed items can have precision-cut edges that match the design color (no white halo)
-- **Uniform thickness across entire piece** (0.3-0.8mm) - gumpaste varies in thickness due to hand-rolling
-- **Glossy laminated finish** or **photo paper sheen** distinct from gumpaste's matte/powdery surface
-
-**EDGE CASE - NO WHITE EDGE PRINTOUTS:**
-Some high-quality printouts are printed on colored cardstock or have digitally designed backgrounds that eliminate white edges. Identify these by:
-- Perfect pattern repetition or symmetry (especially on butterflies, flowers)
-- Photo-quality gradients or details impossible to hand-paint
-- Uniform paper-thin consistency throughout
-- Sharp, laser/die-cut edges (too perfect for hand-cutting gumpaste)
-- May have slight paper curl or warping under cake lights
-
-**NOTE:** Even without white edges, if an item shows ≥2 printout cues (especially perfect symmetry + paper-thin + photorealistic details), classify as PRINTOUT.
-
-   **T2) TOY CHECK:** A topper is a 'toy' if it has **2 or more** of these cues:
-   - **Is a well-known licensed character** (e.g., from Disney, Marvel, Nintendo like Mickey Mouse, Spider-Man, Mario). These are almost always commercially produced toys.
-   - True 3D volume with parallax effect from different angles
-   - Glossy plastic specular highlights that "travel" smoothly
-   - Visible injection mold seams/marks
-   - Factory-made base or stand
-   - Thick, rounded edges typical of molded plastic
-   - Printed licensing text under feet/base
-   - Uniform factory-made appearance
-   
-   **BABY FIGURINE OVERRIDE:** Realistic proportioned baby + glossy/hard finish → TOY/figurine (classify as toy regardless of other cues)
-
-   **T3) EDIBLE 3D & 2D CHECK:** 
-   
-   **2D vs 3D Gumpaste Distinction (CRITICAL):**
-   - **CRITICAL OVERRIDE FOR NUMBERS & LETTERS:** If the primary subject of a topper is a number or a letter, you MUST classify it as **'edible_2d_gumpaste'**, even if it appears thick, sculpted, or is described as '3D'. This is a pricing rule to ensure all standalone numbers and letters are categorized correctly.
-   - For all other items, if a gumpaste item is flat with minimal thickness (like a cutout), you MUST classify it as **'edible_2d_gumpaste'**. Examples include flat snowflakes, or leaves. 
-   - If it has significant depth and sculpted volume (like a figurine), you MUST classify it as **'edible_3d'**. This rule applies to both main toppers and support elements.
-   
-   A topper is 'edible_3d' if it has **2 or more** of these cues:
-   - Matte, soft, or powdery finish (may show cornstarch dusting)
-   - Visible signs of being hand-modeled (minor imperfections, asymmetry)
-   - Soft, hand-formed edges
-   - Embedded support stick (not taped behind)
-   - Visible sculpting tool marks
-   - Solid-through color (not surface print)
-   - Tiny cracks at bends/joints
-   - Sits flush on icing without manufactured base
-
-   **DEFAULT RULE:** If a topper does not meet the 2-cue threshold for any category, classify it as **'printout'**.
-
-   **VALIDATION RULE PRECEDENCE:**
-   - **White-Edge Forcing Rule:** Any visible white cut edge or taped stick behind figure → PRINTOUT (override all other classifications)
-   - **Printout Priority Guardrail:** Visible printed edges, logos, flat inkjet/glossy surface → PRINTOUT
-   - **Stricter Toy Gate:** For small/low-res photos, require ≥3 toy cues (at least one being factory base or mold seam)
-
-   **HERO VS SUPPORT CLASSIFICATION:**
-   
-   Classify as **'hero'** (full price, no allowance) if:
-   - Any 'medium' or 'large' 'edible_3d' topper (based on ratio sizing)
-   - A 'small' topper that is the clear visual focal point:
-     * Occupies more than 10% of the top surface area, OR
-     * Height ≥⅓ of the tier's total height (ratio ≥0.33×), OR
-     * Single central character on otherwise simple cake, OR
-     * Cake has only 1-2 small characters in total
-   
-   Classify as **'support'** (subject to allowance) if:
-   - Part of decorative scene/panel work on the sides of the cake
-   - A cluster of 3 or more small characters/items bundled together
-   - A background element (e.g., trees, clouds behind a main character)
+   - **T1) PRINTOUT CHECK:** A topper is 'printout' if it has 2+ cues: visible white cut edge, paper thickness, printed dot pattern, support stick taped behind, flat 2D look, printed logos.
+   - **T2) TOY CHECK:** A topper is 'toy' if it has 2+ cues: known licensed character, glossy plastic look, mold seams, factory base.
+   - **T3) EDIBLE 3D CHECK:** A topper is 'edible_3d_...' if it has a matte/powdery finish, hand-modeled imperfections, or an embedded support stick. Then, classify its complexity.
+   - **DEFAULT:** If unsure, classify as **'printout'**.
 
    **Material Definitions:**
-   - **'edible_3d'**: Hand-sculpted gumpaste/fondant figures with 3D volume
-   - **'printout'**: Printed images on paper/card (always ₱0)
-   - **'toy'**: Plastic/resin factory-made figures
-   - **'plastic_ball'**: Non-edible plastic spheres, including disco balls and solid color balls.
-   - **'edible_2d_gumpaste'**: Flat, cut-out shapes made from hardened sugar paste
-   - **'cardstock'**: Stiff colored paper (glitter, metallic) - NOT printed. Must have ≥2 cues: visible edge thickness/layers, real glitter granules, or mirror-foil highlights
-   - **'edible_photo'**: Photo printed on edible sheet applied seamlessly to icing
-   - **'icing_doodle'**: Complex piped line-art or drawings.
-   - **'icing_palette_knife'**: Textured icing applied with a palette knife.
-   - **'icing_brush_stroke'**: Visible icing strokes made with a brush.
-   - **'icing_splatter'**: Speckled or splattered color effect on icing.
-   - **'icing_minimalist_spread'**: Intentionally rough or rustic icing spread.
-   - **'meringue_pop'**: Piped icing swirls standing on sticks.
+   - **'edible_3d_complex'**: Hand-sculpted, detailed gumpaste figures.
+   - **'edible_3d_ordinary'**: Simpler hand-sculpted gumpaste objects.
+   - **'printout'**: Printed images on paper/card.
+   - **'toy'**: Plastic/resin factory-made figures.
+   - **'plastic_ball'**: Non-edible plastic spheres.
+   - **'cardstock'**: Stiff colored paper (glitter, metallic).
+   - **'edible_photo'**: Photo printed on edible sheet applied to icing.
+   - **'meringue_pop'**: Piped icing swirls on sticks.
 
-   **IMPORTANT EXCLUSIONS:**
-   - Decorations made directly from simple piped icing (swirls, rosettes, dollops) are NOT main toppers
-   - Simple piping and sprinkles are not toppers
+4. **support_elements** (array for ALL SUPPORT ELEMENTS):
+    - This array is for ALL decorative items that you identified as **Support Elements**.
+    - This includes all fillers, textures, and scattered items, **regardless of whether they are on the top, sides, or base board of the cake**.
+    - Remember to follow the **GROUPING IS MANDATORY** rule defined at the top for all items in this array.
 
-    **GROUPING RULES:**
+    **SPECIAL COVERAGE RULE FOR 'edible_photo_side' (PRIORITY)**
+    If you identify an 'edible_photo_side' (a printed image wrap), use these specific rules for 'coverage':
+    - **'large'**: Full wrap on a large cake ('10" Round', 'Rectangle', '2 Tier', '3 Tier').
+    - **'medium'**: Full wrap on a small/medium cake ('6" Round', '8" Round', 'Square').
+    - **'small'**: Partial or half wrap.
+    - **'tiny'**: Small, isolated logo or 1-3 characters.
 
-**UNICORN SET GROUPING (HIGHEST PRIORITY):**
-If you identify a unicorn horn and two matching ears on top of the cake, you MUST group them as a single main topper.
-- **Description:** "1 Unicorn horn & ears set"
-- **Type:** 'edible_3d' (or 'cardstock' if applicable)
-- **Quantity:** 1
-- **Size:** 'medium' (this is the typical size for this set)
-- **Classification:** 'hero'
-- This rule overrides all other shape-based grouping rules for these specific items. Do not list the horn and ears separately.
+    **SUPPORT GUMPASTE CLASSIFICATION**
+    - **'edible_3d_support'**: Small, simple 3D gumpaste items (rocks, tiny clouds).
+    - **'edible_2d_support'**: Flat 2D gumpaste shapes, stripes, or panels.
 
-**MERINGUE POP / ICING LOLLIPOP IDENTIFICATION (CRITICAL RULE):**
-You MUST identify piped icing swirls that are standing upright on sticks. These are called 'meringue pops' or 'icing lollipops' and are priced add-ons.
-- **Identification Cues:** Look for distinct, piped icing rosettes or swirls that have a visible stick or lollipop stick inserted at the base, making them stand up from the cake surface. They often appear in groups.
-- **Classification:** If you identify these, you MUST list them as a \`main_topper\` with the type \`meringue_pop\`.
-- **Description:** The description should be "Meringue Pop" or "Icing Lollipop".
-- **Quantity:** Count each individual pop.
-- **Size:** Use the standard sizing system ('small', 'medium', 'large').
-- **CRITICAL DISTINCTION:** If you see similar piped swirls or rosettes directly on the cake surface *without a stick*, they are considered part of the basic icing design and MUST NOT be listed as a topper. The presence of a stick is the only thing that makes it a \`meringue_pop\`.
-
-**SHAPE-BASED GROUPING (Standard Rule):**
-Group items by their PRIMARY SHAPE/FORM, regardless of:
-- Color variations (red stars + yellow stars = 1 star group)
-- Size variations (large stars + small stars = 1 star group)
-- Material variations (gumpaste stars + printout stars = may be 1 group, see below)
-- Classification differences (hero stars + support stars = note both classifications in same group)
-
-**When to group as ONE:**
-- Same base shape: stars, hearts, flowers, circles, butterflies, balloons, etc.
-- Example: "5 gumpaste stars (2 red hero medium, 3 yellow support small)" = 1 group entry
-- Example: "8 butterflies (3 large printout, 5 small gumpaste)" = 1 group entry
-
-**When to keep SEPARATE (only these exceptions):**
-- Different materials that affect pricing differently:
-  * Edible 3D vs Printout (different pricing) → separate groups
-  * Toy vs Edible 3D (different pricing) → separate groups
-- Completely different shapes (stars vs hearts → separate groups)
-- Elements that belong to different functional categories:
-  * Main focal topper vs scattered decorative accents
-  * Example: 1 large hero butterfly topper + 20 tiny printout butterfly confetti → can be 2 groups
-
-**GROUPING FORMAT:**
-For each group, include:
-- type: material classification
-- description: "[quantity] [shape] ([size/classification details if varied])"
-- size: if all same size use that; if mixed use "mixed" and detail in description
-- quantity: total count in group
-- group_id: same ID for this shape family
-- classification: if mixed, note "hero + support" or detail in description
-
-**Examples:**
-{
-  "type": "edible_3d",
-  "description": "7 gumpaste stars: 2 large red (hero), 3 medium blue (hero), 2 small yellow (support)",
-  "size": "mixed",
-  "quantity": 7,
-  "group_id": "stars_01",
-  "classification": "hero + support"
-}
+   **Material Definitions:**
+   - **'edible_3d_support'**: Small, simple 3D gumpaste items.
+   - **'edible_2d_support'**: Flat 2D gumpaste shapes, stripes.
+   - **'chocolates'**: Chocolate bars, spheres, drips, shards.
+   - **'sprinkles'**: Tiny decorative particles.
+   - **'dragees'**: Sugar pearls.
+   - **'support_printout'**: Smaller printed images.
+   - **'isomalt'**: Hard, clear or colored sugar work.
+   - **'edible_flowers'**: Sugar flowers.
+   - **'edible_photo_side'**: Edible photo wrap on the side.
+   - **'icing_doodle'**: Piped line-art.
+   - **'icing_palette_knife'**: Textured icing.
    
-4. **support_elements** (decorative, not focal):
-
-    **DOTS IDENTIFICATION:** If you identify simple, small gumpaste dots (not sprinkles/dragees), they MUST be classified as a \`support_element\`. You MUST include the word "dots" in the description (e.g., "small gumpaste dots"). These are considered a free, simple decoration.
-
-    **SCATTERED ELEMENTS RULE:** For small, numerous, flat decorative items (like gumpaste confetti, tiny stars, or snowflakes scattered across the cake), you should prefer classifying them as a single **'support_element'** with type **'edible_2d_gumpaste'**. Assess their overall **coverage** ('light', 'medium', 'heavy') rather than listing them as individual 'main_toppers' with a quantity.
-
-    **ICING PALETTE KNIFE / SPATULA PAINTING IDENTIFICATION (APPLY FIRST):**
-    - Identify textured "swooshes," "swipes," or "smears" of colored icing.
-    - If these are on the **sides of the cake**, classify it as a 'support_element' with type 'icing_palette_knife'.
-    - **CRITICAL:** Assess the complexity. Describe it as either "Intricate Palette Knife Finish" or "Simple Palette Knife Finish". A design is 'intricate' if it involves multiple layers, complex color blending, or forms a detailed abstract picture. It is 'simple' if it consists of basic, separate swooshes.
-    - For this type, you MUST identify up to 3 dominant colors present in the strokes and return them as an array in a 'colors' field (e.g., "colors": ["#EC4899", "#FFFFFF", "#FBCFE8"]). Do not use the singular 'color' field for this type.
-
-    **SIMPLE PRINTOUT PRIORITY RULE (APPLY SECOND):**
-    If a printed element on the side/front of the cake is a **small logo, brand name, or consists of only 1-3 characters/symbols**, you MUST classify it as a **'support_printout'**. This is considered a simple accent, not a decorative wrap. This rule overrides the 'edible_photo_side' classification for these specific cases, even if the print quality is high and it appears seamless.
-
-    **EDIBLE PHOTO WRAP VS. SUPPORT PRINTOUT DECISION RULE (APPLY FOURTH):**
-    You MUST correctly distinguish between an edible photo wrap/panel applied to the side of the cake and a simple non-edible printout stuck to the side.
-
-    - **Classify as 'edible_photo_side'** if the decoration meets **TWO or more** of these criteria:
-      - **Seamless Appearance:** The image looks fully integrated with the icing, with no visible gap or shadow indicating it's a separate object.
-      - **Conforms Perfectly:** It follows the curve of the cake flawlessly.
-      - **Ultra-Thin Edges:** The edges appear to melt into the icing and are not visibly thick like paper.
-      - **Continuous Wrap:** The image wraps partially or fully around the cake in a continuous sheet.
-
-    - **Classify as 'support_printout'** if the decoration meets **TWO or more** of these criteria:
-      - **Visible Edge Thickness:** You can perceive the thickness of paper or cardstock (0.2mm or more).
-      - **Stands Off Surface:** It looks like a separate object placed *on* the cake, with a slight shadow behind it.
-      - **Rigid Shape:** It doesn't perfectly follow the cake's curve.
-      - **White Cut Edge:** A thin white border is visible around the image.
-
-    **STRICT RULE:** If an image on the side of the cake looks like a flat cutout with visible edges, it is 'support_printout'. If it looks like it's printed *onto* the icing, it is 'edible_photo_side'.
-   
-   Identify each support element and classify its material:
-   
-   - **'gumpaste_panel'**: Significant side decoration made from flat gumpaste pieces forming a scene or pattern. Examples: camo patches, stripes, cloud blobs, silhouettes, badges, top flat discs/panels
-   
-   - **'edible_2d_gumpaste'**: Flat, 2D cut-out shapes made from hardened sugar paste, often used as scattered decorations (like snowflakes, leaves, or confetti).
-
-   - **'small_gumpaste'**: Smaller individual gumpaste items like stars, flowers, or dots that are not the main focus
-   
-   - **'chocolates'**: Chocolate bars, spheres, drips, or shards used decoratively
-     * **For expensive chocolates** (Ferrero, Kinder, Cadbury, Snickers, KitKat): note as premium
-     * **For cheap/generic chocolates** (Oreos, Kisses): note as standard
-     * **M&M chocolates**: specify as M&Ms
-   
-   - **'sprinkles'**: Tiny decorative particles like nonpareils, jimmies, or edible glitter
-   
-   - **'dragees'**: Sugar pearls/dragees - use the decision rule above.
-   
-   - **'support_printout'**: Smaller printed images used as background or secondary decoration
-   
-   - **'isomalt'**: Hard, clear or colored sugar work creating glass-like or gemstone effect (e.g., 'sail', 'shards', translucent lollipops)
-   
-   - **'edible_flowers'**: Sugar flowers - count as cohesive clusters. Note if flowers appear to be real/fresh (for substitution recommendation)
-
-   **COVERAGE CLASSIFICATION:**
-   - **'light'**: <25% of visible surface
-   - **'medium'**: 25-40% of visible surface
-   - **'heavy'**: >40% of visible surface
-   - **'none'**: Not present
-
-**GROUPING:**
-Apply the same shape-based grouping rules as main_toppers:
-- Group by PRIMARY SHAPE regardless of color, size, or material variations
-- Example: red star sprinkles + gold star dragees = 1 star group
-- For support elements, also include **coverage** assessment (light/medium/heavy/none)
-- Format: type, description (with shape + variations), coverage, quantity, group_id
-
 5. **cake_messages** (array):
-   
-   For each distinct message on the cake, create a separate object. If no message, return an empty array.
-   
-   **MESSAGE TYPE CLASSIFICATION:**
-   - **'gumpaste_letters'**: Individual cut letters made from gumpaste/fondant
-   - **'icing_script'**: Text piped directly with icing
-   - **'printout'**: Printed text on paper/card - usually has multiple colors (font color different from stroke)
-   - **'cardstock'**: Thick paper/glitter/metallic text - has ONE uniform color only. Must meet ≥2 cardstock cues (visible thickness, real glitter, metallic luster)
-   
-   For each message, record:
-   - type (from above)
-   - text content (actual words/numbers visible)
-   - position (top/side/base_board)
-   - color (using closest hex from Color Palette)
+   - type: 'gumpaste_letters', 'icing_script', 'printout', 'cardstock'
+   - text: Actual words/numbers visible
+   - position: top/side/base_board
+   - color: Closest hex from Global Color Palette
 
 6. **icing_design**:
-   
-   **FONDANT VS SOFT ICING IDENTIFICATION (REINFORCED RULE):**
-   The primary visual cue for differentiation is the sharpness of the cake's edges.
-
-   **SOFT ICING (boiled/marshmallow icing):**
-   - **Edges (Primary Identifier):** The key characteristic of this style is **razor-sharp edges** and perfectly smooth, straight sides. If you see sharp, clean corners on the top edge of the cake, it is almost certainly soft icing.
-   - **Surface (Secondary Identifier):** The surface is typically creamy, soft, and may show very subtle spatula marks or a slight glossy sheen from boiled sugar. It lacks the "sheet-like" appearance of fondant.
-   
-   **FONDANT:**
-   - **Edges (Primary Identifier):** The key characteristic of fondant is **curved or rounded edges**. The transition from the side of the cake to the top surface is smooth and soft, never a sharp corner.
-   - **Surface (Secondary Identifier):** The surface is very smooth and uniform, with a matte or satin-like finish. It looks like a seamless sheet has been draped over the cake.
-   
-   **CRITICAL DECISION RULE:**
-   - **If the cake has SHARP EDGES -> classify as 'soft_icing'.**
-   - **If the cake has ROUNDED/CURVED EDGES -> classify as 'fondant'.**
-   - Use surface texture (creamy vs. sheet-like) only as a secondary confirmation if the edges are somehow unclear. The edge style is the most important factor.
-
-    **GUMPASTE BASE BOARD IDENTIFICATION (CRITICAL RULE):**
-    You must follow these steps to determine if \`gumpasteBaseBoard\` is true:
-
-    1.  **Default \`false\` Rule (Standard Boards):** You MUST set \`gumpasteBaseBoard: false\` if the cake board appears to be a standard, pre-made board. This is the default. Strong indicators of a standard board are:
-        - **Plain White Color:** The board is simple white cardboard.
-        - **Metallic Finish:** The board has a shiny, metallic finish, typically **gold** or **silver**. These are almost always foil-covered cardboard and NOT gumpaste.
-    2.  **Evidence for \`true\` (Custom Covered):** Only set \`gumpasteBaseBoard: true\` if you see **at least one** of these strong indicators of a custom-covered board:
-        - **Solid, Non-Metallic Color:** The board is a distinct, matte or satin color (e.g., pink, black, blue) that is NOT metallic gold or silver.
-        - **Matching Texture:** The board's surface has the same smooth, non-shiny texture as a fondant-covered cake, indicating it's covered with the same material.
-        - **Ribbon Edge:** A decorative ribbon is wrapped around the edge of the board. This is a very strong sign it's a custom-covered board.
-    3.  **Uncertainty Rule:** If you are uncertain or the evidence is weak, you MUST default to \`gumpasteBaseBoard: false\`. This prevents overcharging.
-
-   **Structure:**
-   - **Base**: soft_icing or fondant (use identification rules above)
+   - **Base**: 'soft_icing' (sharp top edge) or 'fondant' (rounded top edge).
+   - **gumpasteBaseBoard**: \`true\` only if the board is a solid color, has a ribbon, or matches fondant texture.
    - **Color Type**: single, gradient_2, gradient_3, abstract
-   - **Colors**: Object with hex codes. For each visible colored part, find CLOSEST MATCH from Color Palette. Include keys as applicable: "side", "top", "borderTop", "borderBase", "drip", "gumpasteBaseBoardColor"
-   - **Features**:
-     * **'drip'**: true if drip effect clearly visible (physical flow from top rim with rounded ends), otherwise false
-     * **'border_top'**: true if decorative border exists at top edge
-     * **'border_base'**: true if decorative border exists at base
-     * **'gumpasteBaseBoard'**: true if cake board covered in fondant/gumpaste, otherwise false
-
-**FINAL GROUPING RULES:**
-- Group identical/similar items as one entry with shared group_id
-- Use coverage terms for scattered items (chocolates, sprinkles, dragees)
-- Combine side decorations as "panel" or "scene" work
-- Focus on what customers would customize (not every tiny detail)
-- Always note material type and visual prominence (main vs support)
+   - **Colors**: Object with hex codes for: "side", "top", "borderTop", "borderBase", "drip", "gumpasteBaseBoardColor"
+   - **Features**: 'drip', 'border_top', 'border_base', 'gumpasteBaseBoard' (all true/false).
 `;
 
 const hybridAnalysisResponseSchema = {
@@ -542,16 +260,17 @@ const hybridAnalysisResponseSchema = {
             items: {
                 type: Type.OBJECT,
                 properties: {
-                    type: { type: Type.STRING, enum: ['edible_3d', 'printout', 'toy', 'figurine', 'cardstock', 'edible_photo', 'edible_2d_gumpaste', 'candle', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop', 'plastic_ball'] },
+                    type: { type: Type.STRING, enum: ['edible_3d_complex', 'edible_3d_ordinary', 'printout', 'toy', 'figurine', 'cardstock', 'edible_photo', 'candle', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop', 'plastic_ball'] },
                     description: { type: Type.STRING },
                     size: { type: Type.STRING, enum: ['small', 'medium', 'large', 'tiny'] },
                     quantity: { type: Type.INTEGER },
                     group_id: { type: Type.STRING },
-                    classification: { type: Type.STRING, enum: ['hero', 'support'] },
                     color: { type: Type.STRING },
-                    colors: { type: Type.ARRAY, items: { type: Type.STRING } }
+                    colors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER }
                 },
-                required: ['type', 'description', 'size', 'quantity', 'group_id', 'classification']
+                required: ['type', 'description', 'size', 'quantity', 'group_id', 'x', 'y']
             }
         },
         support_elements: {
@@ -559,14 +278,16 @@ const hybridAnalysisResponseSchema = {
             items: {
                 type: Type.OBJECT,
                 properties: {
-                    type: { type: Type.STRING, enum: ['gumpaste_panel', 'chocolates', 'sprinkles', 'support_printout', 'isomalt', 'small_gumpaste', 'dragees', 'edible_flowers', 'edible_photo_side', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'edible_2d_gumpaste'] },
+                    type: { type: Type.STRING, enum: ['edible_3d_support', 'edible_2d_support', 'chocolates', 'sprinkles', 'support_printout', 'isomalt', 'dragees', 'edible_flowers', 'edible_photo_side', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread'] },
                     description: { type: Type.STRING },
-                    coverage: { type: Type.STRING, enum: ['light', 'medium', 'heavy', 'none'] },
+                    coverage: { type: Type.STRING, enum: ['large', 'medium', 'small', 'tiny'] },
                     group_id: { type: Type.STRING },
                     color: { type: Type.STRING },
-                    colors: { type: Type.ARRAY, items: { type: Type.STRING } }
+                    colors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER }
                 },
-                required: ['type', 'description', 'coverage', 'group_id']
+                required: ['type', 'description', 'coverage', 'group_id', 'x', 'y']
             }
         },
         cake_messages: {
@@ -577,9 +298,11 @@ const hybridAnalysisResponseSchema = {
                     type: { type: Type.STRING, enum: ['gumpaste_letters', 'icing_script', 'printout', 'cardstock'] },
                     text: { type: Type.STRING },
                     position: { type: Type.STRING, enum: ['top', 'side', 'base_board'] },
-                    color: { type: Type.STRING }
+                    color: { type: Type.STRING },
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER }
                 },
-                required: ['type', 'text', 'position', 'color']
+                required: ['type', 'text', 'position', 'color', 'x', 'y']
             }
         },
         icing_design: {
@@ -607,6 +330,58 @@ const hybridAnalysisResponseSchema = {
         },
         cakeType: { type: Type.STRING, enum: CAKE_TYPES },
         cakeThickness: { type: Type.STRING, enum: CAKE_THICKNESSES },
+        drip_effects: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    description: { type: Type.STRING },
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER },
+                },
+                required: ['description', 'x', 'y']
+            }
+        },
+        icing_surfaces: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    description: { type: Type.STRING },
+                    tier: { type: Type.INTEGER },
+                    position: { type: Type.STRING, enum: ['top', 'side'] },
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER },
+                },
+                required: ['description', 'tier', 'position', 'x', 'y']
+            }
+        },
+        icing_borders: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    description: { type: Type.STRING },
+                    tier: { type: Type.INTEGER },
+                    position: { type: Type.STRING, enum: ['top', 'base'] },
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER },
+                },
+                required: ['description', 'tier', 'position', 'x', 'y']
+            }
+        },
+        base_board: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    description: { type: Type.STRING },
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER },
+                },
+                required: ['description', 'x', 'y']
+            }
+        }
     },
     required: ['cakeType', 'cakeThickness', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design'],
 };
@@ -616,15 +391,57 @@ export const analyzeCakeImage = async (
     mimeType: string
 ): Promise<HybridAnalysisResult> => {
     try {
+        const image = new Image();
+        const imageLoadPromise = new Promise<{ width: number; height: number }>((resolve, reject) => {
+            image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+            image.onerror = (err) => reject(new Error('Failed to load image to get dimensions.'));
+            image.src = `data:${mimeType};base64,${base64ImageData}`;
+        });
+        const dimensions = await imageLoadPromise;
+
+        const COORDINATE_PROMPT = `
+**CRITICAL RULE: PRECISE COORDINATE SYSTEM**
+You MUST provide precise central coordinates for every single decorative element you identify. Adherence to this coordinate system is mandatory and of the highest priority.
+
+**SYSTEM DEFINITION:**
+1.  **Image Dimensions:** The current image is ${dimensions.width}px wide and ${dimensions.height}px high.
+2.  **Origin (0,0):** The exact center of the image is the origin point (0, 0).
+3.  **X-Axis:** The horizontal axis. It ranges from -${dimensions.width / 2} (far left edge) to +${dimensions.width / 2} (far right edge).
+4.  **Y-Axis:** The vertical axis. It ranges from -${dimensions.height / 2} (bottom edge) to +${dimensions.height / 2} (top edge). **Positive Y values go UPWARDS.**
+
+**COORDINATES FOR GROUPED OR SCATTERED ITEMS:**
+- If an element represents a group of multiple items (e.g., "5 assorted stars," "sprinkles," "scattered paw prints"), you MUST determine the visual center of the entire group and provide the 'x' and 'y' coordinates for that single, central point.
+- If the items form a line or arc, provide the coordinate of the middle item in that sequence.
+- If the items are scattered across an area, provide the coordinate for the geometric center of that area.
+- This ensures that every entry in your JSON, even for groups, has a single representative coordinate for its marker.
+
+**EXAMPLE:**
+- For a 1000x800 image:
+  - Top-left corner: (-500, 400)
+  - Top-right corner: (500, 400)
+  - Bottom-left corner: (-500, -400)
+  - A point slightly above and to the right of the center could be (50, 100).
+
+**MANDATORY REQUIREMENTS FOR COORDINATES:**
+- **ALL DECORATIONS:** For **EVERY** item in the \`main_toppers\`, \`support_elements\`, and \`cake_messages\` arrays, you MUST provide precise integer values for its central 'x' and 'y' coordinates. This is not optional.
+- **ALL ICING FEATURES:** You MUST identify and provide coordinates for the following features if they exist. Return them in these new, separate top-level arrays in your JSON. Each item in these arrays MUST include a 'description' and precise 'x', 'y' coordinates.
+  - **\`drip_effects\`**: The center of any visible drip pattern.
+  - **\`icing_surfaces\`**: The center of EACH tier's top and side surface.
+  - **\`icing_borders\`**: The center of EACH tier's top and base piped border.
+  - **\`base_board\`**: The center of the visible cake board.
+- **FAILURE TO PROVIDE COORDINATES FOR ANY ELEMENT WILL RESULT IN AN INVALID RESPONSE.**
+`;
+
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: [{
                 parts: [
                     { inlineData: { mimeType, data: base64ImageData } },
+                    { text: COORDINATE_PROMPT + ANALYSIS_PROMPT_CONTENTS },
                 ],
             }],
             config: {
-                systemInstruction: NEW_HYBRID_PROMPT,
+                systemInstruction: SYSTEM_INSTRUCTION,
                 responseMimeType: 'application/json',
                 responseSchema: hybridAnalysisResponseSchema,
                 temperature: 0.1,
@@ -736,8 +553,10 @@ export const generateShareableTexts = async (
             support_elements: analysisResult.support_elements,
             cake_messages: analysisResult.cake_messages,
             icing_colors: Object.entries(analysisResult.icing_design.colors).map(([key, hex]) => {
-// FIX: Add a type guard to ensure `hex` is a string before calling `toLowerCase()`.
-                return { location: key, name: (typeof hex === 'string' ? HEX_TO_COLOR_NAME_MAP[hex.toLowerCase()] : undefined) || 'Custom Color' };
+                if (typeof hex === 'string') {
+                    return { location: key, name: HEX_TO_COLOR_NAME_MAP[hex.toLowerCase()] || 'Custom Color' };
+                }
+                return { location: key, name: 'Custom Color' };
             })
         };
 
@@ -814,12 +633,17 @@ export const editCakeImage = async (
     // 5. Text prompt (last, to provide context for all images)
     parts.push({ text: prompt });
 
+    const systemInstruction = threeTierReferenceImage 
+        ? THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION 
+        : IMAGE_EDITING_SYSTEM_INSTRUCTION;
+
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
-            contents: [{ parts }],
+            contents: { parts },
             config: {
                 responseModalities: [Modality.IMAGE],
+                systemInstruction: systemInstruction,
             },
         });
 

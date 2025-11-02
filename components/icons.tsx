@@ -1,4 +1,5 @@
 import React from 'react';
+import { LazyImage } from './LazyImage';
 
 export const UploadIcon: React.FC = () => (
     <svg className="w-6 h-6 text-slate-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -168,23 +169,23 @@ export const DripGuideIcon: React.FC<{className?: string}> = ({className = "w-8 
 );
 
 export const SideIcingGuideIcon: React.FC<{className?: string}> = ({className = "w-8 h-8 shrink-0"}) => (
-    <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/side%20icing.webp" alt="Side icing guide" className={className} />
+    <LazyImage src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/side%20icing.webp" alt="Side icing guide" className={className} />
 );
 
 export const TopIcingGuideIcon: React.FC<{className?: string}> = ({className = "w-8 h-8 shrink-0"}) => (
-    <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/topicing.webp" alt="Top icing guide" className={className} />
+    <LazyImage src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/topicing.webp" alt="Top icing guide" className={className} />
 );
 
 export const TopBorderGuideIcon: React.FC<{className?: string}> = ({className = "w-8 h-8 shrink-0"}) => (
-    <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/top%20border.webp" alt="Top border guide" className={className} />
+    <LazyImage src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/top%20border.webp" alt="Top border guide" className={className} />
 );
 
 export const BaseBorderGuideIcon: React.FC<{className?: string}> = ({className = "w-8 h-8 shrink-0"}) => (
-    <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/baseborder.webp" alt="Base border guide" className={className} />
+    <LazyImage src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/baseborder.webp" alt="Base border guide" className={className} />
 );
 
 export const BaseBoardGuideIcon: React.FC<{className?: string}> = ({className = "w-8 h-8 shrink-0"}) => (
-    <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/baseboard.webp" alt="Base board guide" className={className} />
+    <LazyImage src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/baseboard.webp" alt="Base board guide" className={className} />
 );
 
 export const PencilIcon: React.FC<{className?: string}> = ({className = "w-5 h-5"}) => (

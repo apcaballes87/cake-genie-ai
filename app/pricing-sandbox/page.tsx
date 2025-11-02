@@ -12,6 +12,7 @@ import { ArrowLeft, Upload, Save, CheckCircle, Loader2 } from 'lucide-react';
 import { showError, showSuccess } from '../../lib/utils/toast';
 // FIX: Imported PricingFeedback from types instead of supabaseService.
 import { AddOnPricing, HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, PricingFeedback } from '../../types';
+import LazyImage from '../../components/LazyImage';
 
 interface PricingSandboxPageProps {
   onClose: () => void;
@@ -174,7 +175,7 @@ const PricingSandboxPage: React.FC<PricingSandboxPageProps> = ({ onClose }) => {
                             </div>
                         )}
                         {originalImagePreview ? (
-                            <img src={originalImagePreview} alt="Uploaded Cake" className="w-full h-full object-contain" />
+                            <LazyImage src={originalImagePreview} alt="Uploaded Cake" className="w-full h-full object-contain" />
                         ) : (
                             <div className="text-center text-slate-500">
                                 <p>Upload an image to begin.</p>

@@ -3,6 +3,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { MagicSparkleIcon, Loader2 } from './icons';
 import { HybridAnalysisResult } from '../types';
 import { ImageZoomModal } from './ImageZoomModal';
+import LazyImage from './LazyImage';
 
 type ImageTab = 'original' | 'customized';
 
@@ -94,11 +95,12 @@ export const FloatingImagePreview: React.FC<FloatingImagePreviewProps> = React.m
                 aria-label="Enlarge image"
                 onContextMenu={(e) => e.preventDefault()}
               >
-                <img
+                <LazyImage
                   key={activeTab}
                   src={activeTab === 'customized' ? (customizedImage || originalImage) : originalImage}
                   alt={activeTab === 'customized' && customizedImage ? "Customized Cake" : "Original Cake"}
                   className="max-w-full max-h-full object-contain rounded-lg"
+                  placeholderClassName="w-full h-full object-contain rounded-lg"
                 />
               </button>
             )}

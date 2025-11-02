@@ -1,5 +1,9 @@
 
 
+
+
+
+
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   getShopifyCustomizationRequest,
@@ -23,6 +27,8 @@ import { FloatingImagePreview } from '../../components/FloatingImagePreview';
 import { ImageZoomModal } from '../../components/ImageZoomModal';
 import { COLORS } from '../../constants';
 import ReportModal from '../../components/ReportModal';
+import { FloatingResultPanel } from '../../components/FloatingResultPanel';
+import { AnalysisItem } from '../customizing/page';
 
 interface ShopifyCustomizingPageProps {
   sessionId: string;
@@ -41,6 +47,7 @@ const ShopifyCustomizingPage: React.FC<ShopifyCustomizingPageProps> = ({ session
   const mainImageContainerRef = useRef<HTMLDivElement>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<AnalysisItem | null>(null);
 
 
   // --- Core Hooks ---
@@ -81,6 +88,7 @@ const ShopifyCustomizingPage: React.FC<ShopifyCustomizingPageProps> = ({ session
     onIcingDesignChange,
     onAdditionalInstructionsChange,
     handleTopperImageReplace,
+    handleSupportElementImageReplace,
     initializeFromShopify,
   } = useCakeCustomization();
 
@@ -192,6 +200,12 @@ const ShopifyCustomizingPage: React.FC<ShopifyCustomizingPageProps> = ({ session
     acc[color.hex.toLowerCase()] = color.name;
     return acc;
   }, {} as Record<string, string>), []);
+
+  const handleListItemClick = useCallback((item: AnalysisItem) => {
+    setSelectedItem(item);
+  }, []);
+
+  const markerMap = useMemo(() => new Map<string, string>(), []);
 
   // --- Handlers ---
   const handleCustomizedTabClick = () => {
@@ -476,7 +490,49 @@ const handleReport = useCallback(async (userFeedback: string) => {
           </div>
 
           {/* Features Column */}
-          <div className="w-full bg-white/70 backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-slate-200">
+          <div className="w-full bg-white/70 backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-slate-200 space-y-4">
+            <div className="flex flex-col gap-2">
+              <button
+                className="w-full text-center bg-white border border-dashed border-slate-400 text-slate-600 font-semibold py-2 px-4 rounded-lg hover:bg-slate-50 transition-colors text-sm"
+                onClick={() => {
+                  const newTopper: MainTopperUI = {
+                      id: crypto.randomUUID(),
+                      type: 'printout',
+                      original_type: 'printout',
+                      description: 'New Printout Topper',
+                      size: 'medium',
+                      quantity: 1,
+                      group_id: `new-${Date.now()}`,
+                      classification: 'hero',
+                      isEnabled: true,
+                      price: 0,
+                  };
+                  onMainTopperChange([...mainToppers, newTopper]);
+                }}
+              >
+                + Add Printout Topper
+              </button>
+              <button
+                className="w-full text-center bg-white border border-dashed border-slate-400 text-slate-600 font-semibold py-2 px-4 rounded-lg hover:bg-slate-50 transition-colors text-sm"
+                onClick={() => {
+                  if (!primaryMessage) {
+                    const newMessage: CakeMessageUI = { 
+                        id: crypto.randomUUID(), 
+                        type: 'icing_script', 
+                        text: 'Happy Birthday!', 
+                        position: 'top', 
+                        color: '#000000',
+                        isEnabled: true, 
+                        price: 0,
+                        useDefaultColor: true,
+                    };
+                    onCakeMessageChange([...cakeMessages, newMessage]);
+                  }
+                }}
+              >
+                + Add Cake Message
+              </button>
+            </div>
             {/* FIX: Pass the required `itemPrices` and correct update/remove props to the FeatureList component. */}
             <FeatureList
                 analysisError={null}
@@ -498,74 +554,14 @@ const handleReport = useCallback(async (userFeedback: string) => {
                 onIcingDesignChange={onIcingDesignChange}
                 onAdditionalInstructionsChange={onAdditionalInstructionsChange}
                 onTopperImageReplace={handleTopperImageReplace}
-                onSupportElementImageReplace={() => {}} // Not implemented for this flow
+                onSupportElementImageReplace={handleSupportElementImageReplace}
                 isAnalyzing={false}
                 itemPrices={itemPrices}
                 // Shopify-specific props
                 shopifyFixedSize={requestData.shopify_variant_title}
                 shopifyBasePrice={requestData.shopify_base_price}
-                hideBaseOptions={true}
-                hideSupportElements={true}
-                onAddPrintoutTopper={() => {
-                    const newTopper: MainTopperUI = {
-                        id: crypto.randomUUID(),
-                        type: 'printout',
-                        original_type: 'printout',
-                        description: 'New Printout Topper',
-                        size: 'medium',
-                        quantity: 1,
-                        group_id: `new-${Date.now()}`,
-                        classification: 'hero',
-                        isEnabled: true,
-                        price: 0,
-                    };
-                    onMainTopperChange([...mainToppers, newTopper]);
-                }}
-                onSetPrimaryMessage={(update) => {
-                  if (primaryMessage) {
-                      onCakeMessageChange(cakeMessages.map(m => 
-                          m.id === primaryMessage.id 
-                              ? { ...m, ...update, isEnabled: (update.text ?? m.text ?? '').length > 0 } 
-                              : m
-                      ));
-                  } else if (update.text || update.color || typeof update.useDefaultColor === 'boolean') {
-                      const newMessage: CakeMessageUI = { 
-                          id: crypto.randomUUID(), 
-                          type: 'icing_script', 
-                          text: update.text ?? '', 
-                          position: 'top', 
-                          color: update.color ?? '#000000',
-                          isEnabled: (update.text ?? '').length > 0, 
-                          price: 0,
-                          useDefaultColor: update.useDefaultColor ?? true,
-                      };
-                      onCakeMessageChange([...cakeMessages, newMessage]);
-                  }
-                }}
-                primaryMessage={primaryMessage}
-                onSetBaseBoardMessage={(update) => {
-                    if (baseBoardMessage) {
-                        onCakeMessageChange(cakeMessages.map(m => 
-                            m.id === baseBoardMessage.id 
-                                ? { ...m, ...update, isEnabled: (update.text ?? m.text ?? '').length > 0 } 
-                                : m
-                        ));
-                    } else if (update.text || update.color || typeof update.useDefaultColor === 'boolean') {
-                        const newMessage: CakeMessageUI = { 
-                            id: crypto.randomUUID(), 
-                            type: 'icing_script', 
-                            text: update.text ?? '', 
-                            position: 'base_board', 
-                            color: update.color ?? '#000000',
-                            isEnabled: (update.text ?? '').length > 0, 
-                            price: 0,
-                            useDefaultColor: update.useDefaultColor ?? true,
-                        };
-                        onCakeMessageChange([...cakeMessages, newMessage]);
-                    }
-                }}
-                baseBoardMessage={baseBoardMessage}
-                defaultOpenInstructions={true}
+                onItemClick={handleListItemClick}
+                markerMap={markerMap}
                 user={user}
               />
           </div>
@@ -607,6 +603,27 @@ const handleReport = useCallback(async (userFeedback: string) => {
           </div>
         </div>
       </div>
+      <FloatingResultPanel
+        selectedItem={selectedItem}
+        onClose={() => setSelectedItem(null)}
+        mainToppers={mainToppers}
+        updateMainTopper={updateMainTopper}
+        removeMainTopper={removeMainTopper}
+        onTopperImageReplace={handleTopperImageReplace}
+        supportElements={supportElements}
+        updateSupportElement={updateSupportElement}
+        removeSupportElement={removeSupportElement}
+        onSupportElementImageReplace={handleSupportElementImageReplace}
+        cakeMessages={cakeMessages}
+        updateCakeMessage={updateCakeMessage}
+        removeCakeMessage={removeCakeMessage}
+        onCakeMessageChange={onCakeMessageChange}
+        icingDesign={icingDesign}
+        onIcingDesignChange={onIcingDesignChange}
+        analysisResult={analysisResult}
+        itemPrices={itemPrices}
+        isAdmin={user?.email === 'apcaballes@gmail.com'}
+      />
     </>
   );
 };

@@ -7,16 +7,17 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Split vendor code into separate chunks
-          'react-vendor': ['react', 'react-dom', 'react-hot-toast'],
+          'react-core': ['react', 'react-dom'],
           'supabase': ['@supabase/supabase-js'],
           'query': ['@tanstack/react-query'],
-          'utils': ['lodash', 'uuid'],
+          'ui-heavy': ['react-hot-toast'],
+          'utils': ['uuid'],
         },
       },
     },
-    // Increase chunk size warning limit
-    chunkSizeWarningLimit: 1000,
+    // Report compressed size and set warning limit
+    reportCompressedSize: true,
+    chunkSizeWarningLimit: 500,
   },
   optimizeDeps: {
     include: ['react', 'react-dom', '@supabase/supabase-js', '@tanstack/react-query'],

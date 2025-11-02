@@ -1,5 +1,6 @@
 // hooks/useDesignSharing.ts
 import { useState, useCallback } from 'react';
+// FIX: Import `updateSharedDesignTextsWithRetry` from `shareService` to resolve the "Cannot find name" error.
 import { saveDesignToShare, ShareResult, updateSharedDesignTextsWithRetry } from '../services/shareService';
 import { generateShareableTexts } from '../services/geminiService.lazy';
 import { showError } from '../lib/utils/toast';
@@ -36,7 +37,9 @@ function calculateAvailabilityForSharing(mainToppers: MainTopperUI[], supportEle
         return 'normal';
     }
     
-    const has3dTopper = mainToppers.some(t => t.isEnabled && t.type === 'edible_3d');
+    // FIX: The 'edible_3d' type no longer exists. Updated to check for related types
+    // 'edible_3d_complex' and 'edible_3d_ordinary'.
+    const has3dTopper = mainToppers.some(t => t.isEnabled && (t.type === 'edible_3d_complex' || t.type === 'edible_3d_ordinary'));
     const hasDrip = icingDesign.drip;
     const hasGumpasteBase = icingDesign.gumpasteBaseBoard;
     
@@ -54,7 +57,9 @@ function calculateAvailabilityForSharing(mainToppers: MainTopperUI[], supportEle
     }
 
     // --- Step 3: Classify as Same-Day or Rush ---
-    const hasGumpasteSupport = supportElements.some(s => s.isEnabled && (s.type === 'gumpaste_panel' || s.type === 'small_gumpaste'));
+    // FIX: The 'gumpaste_panel' and 'small_gumpaste' types no longer exist.
+    // Updated to check for the current gumpaste support types 'edible_3d_support' and 'edible_2d_support'.
+    const hasGumpasteSupport = supportElements.some(s => s.isEnabled && (s.type === 'edible_3d_support' || s.type === 'edible_2d_support'));
     const hasEdiblePhoto = 
         mainToppers.some(t => t.isEnabled && t.type === 'edible_photo') || 
         supportElements.some(s => s.isEnabled && s.type === 'edible_photo_side');
@@ -80,12 +85,8 @@ export const useDesignSharing = ({
     analysisResult,
     HEX_TO_COLOR_NAME_MAP,
 }: UseDesignSharingProps) => {
-    interface ExtendedShareResult extends ShareResult {
-    botShareUrl?: string;
-}
-
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-    const [shareData, setShareData] = useState<ExtendedShareResult | null>(null);
+    const [shareData, setShareData] = useState<ShareResult | null>(null);
     const [isSavingDesign, setIsSavingDesign] = useState(false);
 
     const openShareModal = () => setIsShareModalOpen(true);
@@ -133,17 +134,10 @@ export const useDesignSharing = ({
             const result = await saveDesignToShare(initialData);
 
             if (result) {
-    // Generate share URL that works with bots (via Vercel proxy to Supabase Edge Function)
-    const shareUrlForBots = `https://genie.ph/share/${result.designId}`;
-    
-    // --- UI is now responsive ---
-    setShareData({
-        ...result,
-        shareUrl: result.shareUrl, // Original React app URL for humans
-        botShareUrl: shareUrlForBots, // Optimized URL for social media bots
-    });
-    setIsShareModalOpen(true);
-    setIsSavingDesign(false);
+                // --- UI is now responsive ---
+                setShareData(result);
+                setIsShareModalOpen(true);
+                setIsSavingDesign(false);
 
                 // --- Step 2: Background Enrichment (Fire-and-forget) ---
                 (async () => {

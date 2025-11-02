@@ -24,18 +24,7 @@ export const createShopifyEditPrompt = (
 ): string => {
     if (!originalAnalysis) return ""; // Guard clause
 
-    let prompt = `You are a professional food photography editor. Your task is to perform a precise, photorealistic edit on the provided cake product photo. Your goal is to preserve the original image's style, lighting, shadows, and composition, applying ONLY the specific changes listed below.
-
----
-### **Core Editing Principles (VERY IMPORTANT)**
----
-1.  **Maintain Photorealism:** The final image must look like a real photograph, not a digital drawing. Match the original lighting and shadows perfectly.
-2.  **Modification only:** When asked to change a color (e.g., "Change the side icing to blue"), you must **recolor the existing surface** while preserving all decorations, textures, and details on that surface. Do NOT replace the area with a plain color.
-3.  **Realistic Interaction:** When adding an element like a drip, it must interact realistically with existing decorations, flowing **around or partially over** them. Original decorations must remain visible and integrated.
-4.  **Preserve Unmentioned Details:** If a feature from the original image is not explicitly mentioned as changed, it MUST be preserved exactly as it is.
-5.  **Remove Superimposed Overlays:** Identify and cleanly remove any non-diegetic logos, watermarks, text, or graphic overlays that have been digitally added on top of the cake image. In-paint the cleared area to seamlessly match the surrounding cake icing or background. Do NOT remove decorations that are physically part of the cake, such as printout toppers or piped messages.
-
----
+    let prompt = `---
 ### **List of Changes to Apply**
 ---
 `;
@@ -55,7 +44,18 @@ export const createShopifyEditPrompt = (
             if (t.type !== t.original_type) itemChanges.push(`change its material to **${t.type}**`);
             
             if (t.replacementImage) {
-                if (t.type === 'printout') {
+                const isFigure = t.description.toLowerCase().includes('person') || 
+                                 t.description.toLowerCase().includes('character') || 
+                                 t.description.toLowerCase().includes('human') ||
+                                 t.description.toLowerCase().includes('figure');
+
+                if (t.type === 'icing_doodle' && isFigure) {
+                    itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **piped icing doodle style**. Capture the likeness from the reference photo but render it as a simple, elegant line art portrait using piped icing.`);
+                } else if (t.type === 'icing_palette_knife' && isFigure) {
+                    itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **painterly palette knife style**. Capture the likeness from the reference photo but render it as a textured, abstract portrait using palette knife strokes.`);
+                } else if ((t.type === 'edible_3d_complex' || t.type === 'edible_3d_ordinary') && isFigure) {
+                    itemChanges.push(`**re-sculpt this 3D gumpaste figure based on the new reference image provided**. The new figure must be in the same **3D gumpaste style**. Capture the likeness, pose, and details from the reference photo but render it as a hand-sculpted, edible gumpaste figure.`);
+                } else if (t.type === 'printout') {
                     itemChanges.push(`replace its image with the new one provided. The printout topper should be **standing vertically** on the top surface of the cake, as if supported by a small stick from behind.`);
                 } else {
                     itemChanges.push(`replace its image with the new one provided`);
@@ -73,7 +73,17 @@ export const createShopifyEditPrompt = (
         } else {
             const itemChanges: string[] = [];
             if (s.type !== s.original_type) itemChanges.push(`change its material to **${s.type}**`);
-            if (s.replacementImage) itemChanges.push(`replace its image with the new one provided`);
+            if (s.replacementImage) {
+                const isFigure = s.description.toLowerCase().includes('person') || 
+                                 s.description.toLowerCase().includes('character') || 
+                                 s.description.toLowerCase().includes('human') || 
+                                 s.description.toLowerCase().includes('figure');
+                if (s.type === 'edible_3d_support' && isFigure) {
+                    itemChanges.push(`**re-sculpt this small 3D gumpaste item based on the new reference image provided**. The new item must be in the same **3D gumpaste style** as the original cake. Capture the likeness, pose, and details from the reference photo but render it as a small, hand-sculpted, edible gumpaste figure.`);
+                } else {
+                    itemChanges.push(`replace its image with the new one provided`);
+                }
+            }
             if (s.color && s.original_color && s.color !== s.original_color) itemChanges.push(`recolor it to **${colorName(s.color)}**`);
             if (itemChanges.length > 0) changes.push(`- For the support element "${s.description}": ${itemChanges.join(' and ')}.`);
         }
@@ -150,10 +160,6 @@ export const createShopifyEditPrompt = (
     } else {
         prompt += changes.join('\n');
     }
-
-    prompt += `\n\n---
-**Final Reminder:** Maintain photorealistic quality. All changes must look like a seamless, professional photo edit. Preserve all details not mentioned in the list of changes.
-`;
     
     return prompt;
 };

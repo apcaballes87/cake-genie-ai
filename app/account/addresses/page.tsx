@@ -92,7 +92,7 @@ interface AddressesPageProps {
 }
 
 export default function AddressesPage({ onClose }: AddressesPageProps) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { data: addresses = [], isLoading: dataLoading, error } = useAddresses(user?.id);
   
   const deleteAddressMutation = useDeleteAddress();
@@ -126,7 +126,7 @@ export default function AddressesPage({ onClose }: AddressesPageProps) {
       setFormState(null);
   };
   
-  const pageIsLoading = dataLoading && !addresses.length;
+  const pageIsLoading = authLoading || (dataLoading && !addresses.length);
 
   if (pageIsLoading) {
     return (

@@ -1,7 +1,4 @@
-
-
-
-
+// services/supabaseService.ts
 import { getSupabaseClient } from '../lib/supabase/client';
 import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback } from '../types';
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
@@ -824,4 +821,32 @@ export async function getPopularKeywords(): Promise<string[]> {
     console.warn("Error fetching popular keywords:", err);
     return [];
   }
+}
+
+/**
+ * Fetches all necessary data for the cart page in parallel.
+ * @param userId - The UUID of the logged-in user.
+ * @param sessionId - The session ID for a guest user.
+ * @returns An object containing cart items and user addresses, or an error.
+ */
+export async function getCartPageData(
+  userId: string | null,
+  sessionId: string | null
+): Promise<{ 
+  cartData: SupabaseServiceResponse<CakeGenieCartItem[]>, 
+  addressesData: SupabaseServiceResponse<CakeGenieAddress[]> 
+}> {
+  const isAnonymous = !userId && !!sessionId;
+
+  // Use Promise.all to run queries in parallel
+  const [cartResult, addressesResult] = await Promise.all([
+    getCartItems(userId, sessionId),
+    // Only fetch addresses for authenticated (non-anonymous) users
+    isAnonymous ? Promise.resolve({ data: [], error: null }) : getUserAddresses(userId!),
+  ]);
+
+  return {
+    cartData: cartResult,
+    addressesData: addressesResult,
+  };
 }

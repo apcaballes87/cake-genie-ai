@@ -1,22 +1,20 @@
+
+
+
+
 import React, { useState, useCallback, useRef, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { useCart } from './contexts/CartContext';
 import { showSuccess, showError } from './lib/utils/toast';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { CartIcon, UserCircleIcon, LogOutIcon, MapPinIcon, PackageIcon, ErrorIcon } from './components/icons';
-// FIX: Import ShopifyCustomizationRequest type to handle the new flow.
 import { reportCustomization } from './services/supabaseService';
 import { CartItem, CartItemDetails, CakeType } from './types';
-import { ImageUploader } from './components/ImageUploader';
-import { FloatingImagePreview } from './components/FloatingImagePreview';
-import { ImageZoomModal } from './components/ImageZoomModal';
 import { COLORS, DEFAULT_THICKNESS_MAP } from './constants';
 import { CakeGenieCartItem } from './lib/database.types';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import ReportModal from './components/ReportModal';
 import StickyAddToCartBar from './components/StickyAddToCartBar';
 import AnimatedBlobs from './components/UI/AnimatedBlobs';
-import { ShareModal } from './components/ShareModal';
 
 // --- Custom Hooks for Core Logic (Simplified Import) ---
 import {
@@ -49,6 +47,13 @@ const ReviewsPage = lazy(() => import('./app/reviews/page'));
 const ShopifyCustomizingPage = lazy(() => import('./app/shopify-customizing/page'));
 const PricingSandboxPage = lazy(() => import('./app/pricing-sandbox/page'));
 
+// Lazy load heavy modal components
+const ImageUploader = lazy(() => import('./components/ImageUploader').then(module => ({ default: module.ImageUploader })));
+const ImageZoomModal = lazy(() => import('./components/ImageZoomModal').then(module => ({ default: module.ImageZoomModal })));
+const ReportModal = lazy(() => import('./components/ReportModal'));
+const ShareModal = lazy(() => import('./components/ShareModal').then(module => ({ default: module.ShareModal })));
+
+
 type ImageTab = 'original' | 'customized';
 
 // Declare gtag for Google Analytics event tracking
@@ -65,10 +70,6 @@ export default function App(): React.ReactElement {
   const { user, isAuthenticated, signOut } = useAuth();
   const { cartItems: supabaseCartItems, itemCount: supabaseItemCount, addToCartOptimistic, removeItemOptimistic, authError, isLoading: isCartLoading } = useCart();
 
-  // Show app immediately, don't block on auth/cart loading
-  // This prevents the 5-second delay users were experiencing
-  const isAppInitializing = false;
-
   // --- CUSTOM BUSINESS LOGIC HOOKS ---
   const { appState, previousAppState, confirmedOrderId, viewingDesignId, viewingShopifySessionId, setAppState, setConfirmedOrderId } = useAppNavigation();
 
@@ -77,7 +78,6 @@ export default function App(): React.ReactElement {
     isLoading: isImageManagementLoading, error: imageManagementError,
     setEditedImage, setError: setImageManagementError,
     handleImageUpload: hookImageUpload, handleSave, uploadCartImages, clearImages,
-    // FIX: Destructure loadImageWithoutAnalysis to use in the Shopify flow.
     loadImageWithoutAnalysis,
   } = useImageManagement();
   
@@ -91,9 +91,10 @@ export default function App(): React.ReactElement {
     updateCakeMessage, removeCakeMessage,
     onIcingDesignChange, onAdditionalInstructionsChange, handleTopperImageReplace,
     handleSupportElementImageReplace, clearCustomization, initializeDefaultState,
-    // FIX: Destructure initializeFromShopify to use in the Shopify flow.
     initializeFromShopify,
     availability,
+    // FIX: Destructure onCakeMessageChange from useCakeCustomization hook.
+    onCakeMessageChange,
   } = useCakeCustomization();
 
   const { addOnPricing, itemPrices, basePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice } = usePricing({
@@ -125,7 +126,7 @@ export default function App(): React.ReactElement {
   // --- UI-DRIVEN HOOKS ---
   const [isFetchingWebImage, setIsFetchingWebImage] = useState(false);
   const { isSearching, searchInput, setSearchInput, searchQuery, handleSearch } = useSearchEngine({
-    appState, setAppState, handleImageUpload: (file: File) => handleAppImageUpload(file), setImageError: setImageManagementError, originalImageData, setIsFetchingWebImage
+    appState, setAppState, handleImageUpload: (file: File, imageUrl?: string) => handleAppImageUpload(file, imageUrl), setImageError: setImageManagementError, originalImageData, setIsFetchingWebImage
   });
 
   // --- COMPONENT-LEVEL UI STATE ---
@@ -134,7 +135,6 @@ export default function App(): React.ReactElement {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isMainZoomModalOpen, setIsMainZoomModalOpen] = useState(false);
-  const [isMainImageVisible, setIsMainImageVisible] = useState(true);
   const [pendingCartItems, setPendingCartItems] = useState<CartItem[]>([]);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
@@ -165,8 +165,7 @@ export default function App(): React.ReactElement {
     setActiveTab('original');
   }, [clearImages, clearCustomization, setAppState]);
 
-  // FIX: `handleAppImageUpload` now returns a Promise to be awaitable by `useSearchEngine`.
-  const handleAppImageUpload = useCallback((file: File) => {
+  const handleAppImageUpload = useCallback((file: File, imageUrl?: string) => {
     // Analytics: Track when a user starts the design process via upload
     if (typeof gtag === 'function') {
         gtag('event', 'start_design', {
@@ -206,7 +205,8 @@ export default function App(): React.ReactElement {
           setIsAnalyzing(false);
           setAppState('landing'); // Go back to landing on critical failure
           reject(error);
-        }
+        },
+        { imageUrl }
       );
     });
   }, [clearAllState, hookImageUpload, setIsAnalyzing, setAnalysisError, setPendingAnalysisData, setAppState, initializeDefaultState]);
@@ -279,7 +279,7 @@ export default function App(): React.ReactElement {
             handleUpdateDesign().then(async (newEditedImage) => {
                 if (!newEditedImage) throw new Error("Background image generation failed.");
                 
-                // FIX: Pass the newly generated image data URI directly to the upload function
+                // Pass the newly generated image data URI directly to the upload function
                 // to avoid using stale state from the closure.
                 const { originalImageUrl, finalImageUrl } = await uploadCartImages({ editedImageDataUri: newEditedImage });
                 
@@ -430,7 +430,7 @@ export default function App(): React.ReactElement {
             onOpenReportModal={() => setIsReportModalOpen(true)} editedImage={editedImage} isLoading={isLoading} isUpdatingDesign={isUpdatingDesign}
             isReporting={isReporting} reportStatus={reportStatus} mainImageContainerRef={mainImageContainerRef} activeTab={activeTab} 
             setActiveTab={setActiveTab} originalImagePreview={originalImagePreview} isAnalyzing={isAnalyzing} setIsMainZoomModalOpen={setIsMainZoomModalOpen} 
-            setIsMainImageVisible={setIsMainImageVisible} originalImageData={originalImageData} onUpdateDesign={handleUpdateDesign} 
+            originalImageData={originalImageData} onUpdateDesign={handleUpdateDesign} 
             analysisResult={analysisResult} analysisError={analysisError} analysisId={analysisId} cakeInfo={cakeInfo} 
             basePriceOptions={basePriceOptions} mainToppers={mainToppers} supportElements={supportElements} cakeMessages={cakeMessages} 
             icingDesign={icingDesign} additionalInstructions={additionalInstructions} onCakeInfoChange={handleCakeInfoChange} 
@@ -441,6 +441,7 @@ export default function App(): React.ReactElement {
             onSupportElementImageReplace={handleSupportElementImageReplace} onSave={handleSave} isSaving={isImageManagementLoading} 
             onClearAll={() => { clearAllState(true); }} error={designUpdateError} itemPrices={itemPrices}
             availability={availability}
+            onCakeMessageChange={onCakeMessageChange}
         />;
         case 'cart': return <CartPage items={[...pendingCartItems, ...supabaseCartItems.map(item => ({ id: item.cart_item_id, image: item.customized_image_url, status: 'complete' as 'complete', type: item.cake_type, thickness: item.cake_thickness, size: item.cake_size, totalPrice: item.final_price * item.quantity, details: item.customization_details as CartItemDetails, }))]} isLoading={isCartLoading} onRemoveItem={removeItemOptimistic} onClose={() => setAppState(previousAppState.current || 'customizing')} onContinueShopping={() => setAppState('customizing')} onAuthRequired={() => setAppState('auth')} />;
         case 'order_confirmation': return confirmedOrderId ? <OrderConfirmationPage orderId={confirmedOrderId} onContinueShopping={() => setAppState('landing')} onGoToOrders={() => setAppState('orders')} /> : <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>;
@@ -478,26 +479,30 @@ export default function App(): React.ReactElement {
             <AnimatedBlobs />
             {authError && <div className="fixed inset-0 bg-white z-[100] flex items-center justify-center p-4 text-center"><div className="max-w-md"><ErrorIcon className="w-16 h-16 text-red-500 mx-auto mb-4" /><h2 className="text-2xl font-bold text-slate-800 mb-2">Initialization Failed</h2><p className="text-slate-600 mb-6">{authError}</p><button onClick={() => window.location.reload()} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:shadow-lg transition-all">Refresh Page</button></div></div>}
             {!authError && <>
-                {appState === 'landing' && <div className="fixed top-4 right-4 z-20 flex items-center gap-2"><button onClick={() => setAppState('cart')} className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors" aria-label={`View cart with ${itemCount} items`}><CartIcon />{itemCount > 0 && <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">{itemCount}</span>}</button>{isAuthenticated && !user?.is_anonymous ? <div className="relative" ref={accountMenuRef}><button onClick={() => setIsAccountMenuOpen(prev => !prev)} className="p-2 text-slate-600 hover:text-purple-700 transition-colors" aria-label="Open account menu"><UserCircleIcon /></button>{isAccountMenuOpen && <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-1 animate-fade-in"><div className="px-4 py-2 border-b border-slate-100"><p className="text-sm font-medium text-slate-800 truncate">{user?.email}</p></div><button onClick={() => { setAppState('addresses'); setIsAccountMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"><MapPinIcon className="w-4 h-4" />My Addresses</button><button onClick={() => { setAppState('orders'); setIsAccountMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"><PackageIcon className="w-4 h-4" />My Orders</button><button onClick={handleSignOut} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"><LogOutIcon className="w-4 h-4" />Sign Out</button></div>}</div> : <button onClick={() => setAppState('auth')} className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full text-sm font-semibold text-slate-700 hover:bg-white hover:border-slate-300 transition-all shadow-sm">Login / Sign Up</button>}</div>}
-                <main className={`relative w-full mx-auto transition-all duration-300 ease-in-out ${mainContentPadding} ${appState === 'landing' ? 'h-screen overflow-hidden' : ''}`}>
+                {appState === 'landing' && <div className="fixed top-4 right-4 z-20 flex items-center gap-2"><button onMouseEnter={() => import('./app/cart/page')} onClick={() => setAppState('cart')} className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors" aria-label={`View cart with ${itemCount} items`}><CartIcon />{itemCount > 0 && <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">{itemCount}</span>}</button>{isAuthenticated && !user?.is_anonymous ? <div className="relative" ref={accountMenuRef}><button onClick={() => setIsAccountMenuOpen(prev => !prev)} className="p-2 text-slate-600 hover:text-purple-700 transition-colors" aria-label="Open account menu"><UserCircleIcon /></button>{isAccountMenuOpen && <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-1 animate-fade-in"><div className="px-4 py-2 border-b border-slate-100"><p className="text-sm font-medium text-slate-800 truncate">{user?.email}</p></div><button onClick={() => { setAppState('addresses'); setIsAccountMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"><MapPinIcon className="w-4 h-4" />My Addresses</button><button onClick={() => { setAppState('orders'); setIsAccountMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"><PackageIcon className="w-4 h-4" />My Orders</button><button onClick={handleSignOut} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"><LogOutIcon className="w-4 h-4" />Sign Out</button></div>}</div> : <button onClick={() => setAppState('auth')} className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full text-sm font-semibold text-slate-700 hover:bg-white hover:border-slate-300 transition-all shadow-sm">Login / Sign Up</button>}</div>}
+                <main className={`relative w-full mx-auto transition-all duration-300 ease-in-out ${mainContentPadding} ${appState === 'landing' ? 'h-screen overflow-y-hidden' : ''}`}>
                     <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                         {isPreparingSharedDesign ? <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div> : renderAppState()}
                     </Suspense>
                 </main>
-                {/* FIX: Changed onUpdateDesign={onUpdateDesign} to onUpdateDesign={handleUpdateDesign} to pass the correct function. */}
-                {appState === 'customizing' && originalImagePreview && <FloatingImagePreview isVisible={!isMainImageVisible} originalImage={originalImagePreview} customizedImage={editedImage} isLoading={isLoading} isUpdatingDesign={isUpdatingDesign} activeTab={activeTab} onTabChange={setActiveTab} onUpdateDesign={handleUpdateDesign} isAnalyzing={isAnalyzing} analysisResult={analysisResult} isCustomizationDirty={isCustomizationDirty} />}
-                <ImageUploader isOpen={isUploaderOpen} onClose={() => setIsUploaderOpen(false)} onImageSelect={(file) => { handleAppImageUpload(file).catch(err => console.error("Upload failed", err)); setIsUploaderOpen(false); }} />
-                {appState === 'customizing' && <ImageZoomModal isOpen={isMainZoomModalOpen} onClose={() => setIsMainZoomModalOpen(false)} originalImage={originalImagePreview} customizedImage={editedImage} initialTab={activeTab} />}
-                <ReportModal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} onSubmit={handleReport} isSubmitting={isReporting} editedImage={editedImage} details={analysisResult ? buildCartItemDetails() : null} cakeInfo={cakeInfo} />
+                <Suspense fallback={null}>
+                  <ImageUploader isOpen={isUploaderOpen} onClose={() => setIsUploaderOpen(false)} onImageSelect={(file) => { handleAppImageUpload(file).catch(err => console.error("Upload failed", err)); setIsUploaderOpen(false); }} />
+                </Suspense>
+                {appState === 'customizing' && <Suspense fallback={null}><ImageZoomModal isOpen={isMainZoomModalOpen} onClose={() => setIsMainZoomModalOpen(false)} originalImage={originalImagePreview} customizedImage={editedImage} initialTab={activeTab} /></Suspense>}
+                <Suspense fallback={null}>
+                  <ReportModal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} onSubmit={handleReport} isSubmitting={isReporting} editedImage={editedImage} details={analysisResult ? buildCartItemDetails() : null} cakeInfo={cakeInfo} />
+                </Suspense>
                 {appState === 'customizing' && <StickyAddToCartBar price={finalPrice} isLoading={isFetchingBasePrice} isAdding={isAddingToCart} error={basePriceError} onAddToCartClick={handleAddToCart} onShareClick={handleShare} isSharing={isSavingDesign} canShare={!!analysisResult} isAnalyzing={isAnalyzing} cakeInfo={cakeInfo} warningMessage={toyWarningMessage} />}
-                <ShareModal 
-  isOpen={isShareModalOpen} 
-  onClose={closeShareModal} 
-  shareUrl={shareData?.shareUrl || ''} 
-  designId={shareData?.designId || ''} 
-  imageUrl={editedImage || originalImagePreview || ''}
-  botShareUrl={shareData?.botShareUrl} // NEW: Pass bot-optimized URL
-/>
+                <Suspense fallback={null}>
+                  <ShareModal 
+                    isOpen={isShareModalOpen} 
+                    onClose={closeShareModal} 
+                    shareUrl={shareData?.shareUrl || ''} 
+                    designId={shareData?.designId || ''} 
+                    imageUrl={editedImage || originalImagePreview || ''}
+                    botShareUrl={shareData?.botShareUrl} // NEW: Pass bot-optimized URL
+                  />
+                </Suspense>
             </>}
         </div>
     </ErrorBoundary>

@@ -332,31 +332,26 @@ export const useCakeCustomization = () => {
     
         if (!dirtyFields.has('mainToppers')) {
             const newMainToppers = analysisData.main_toppers.map((t): MainTopperUI => {
-                // Check if this is a character cutout, logo, or edible photo that should default to printout
-                let targetType = t.type;
-                const isCharacterCutoutOrLogo = (
-                    (t.description.toLowerCase().includes('character') || 
-                     t.description.toLowerCase().includes('logo') ||
-                     t.description.toLowerCase().includes('brand')) &&
-                    ['edible_3d', 'edible_2d_gumpaste'].includes(t.type)
-                );
-                
-                // Default certain types to printout
-                if (isCharacterCutoutOrLogo) {
-                    targetType = 'printout';
+                let initialType = t.type;
+                const canBePrintout = ['edible_3d', 'toy', 'figurine', 'edible_photo'].includes(t.type);
+                const isCharacterOrLogo = /character|figure|logo|brand/i.test(t.description);
+
+                // Default to 'printout' for characters, logos, etc., if it's a valid alternative
+                if (canBePrintout && isCharacterOrLogo) {
+                    initialType = 'printout';
                 }
                 
                 return {
-                    ...t, 
-                    type: targetType,
-                    id: crypto.randomUUID(), 
-                    isEnabled: true, 
-                    price: 0, 
-                    original_type: t.type, 
+                    ...t,
+                    x: t.x, // Explicitly carry over x
+                    y: t.y, // Explicitly carry over y
+                    id: crypto.randomUUID(),
+                    isEnabled: true,
+                    price: 0,
+                    original_type: t.type,
+                    type: initialType,
                     replacementImage: undefined,
-                    color: t.color, 
                     original_color: t.color,
-                    colors: t.colors, 
                     original_colors: t.colors,
                 };
             });
@@ -365,23 +360,23 @@ export const useCakeCustomization = () => {
     
         if (!dirtyFields.has('supportElements')) {
             const newSupportElements = analysisData.support_elements.map((s): SupportElementUI => {
-                // Check if this is a wrap that should default to printout
-                let targetType = s.type;
+                let initialType = s.type;
+                // Default edible photo wraps to the more common 'support_printout' option first.
                 if (s.type === 'edible_photo_side') {
-                    targetType = 'support_printout';
+                    initialType = 'support_printout';
                 }
-                
+
                 return {
-                    ...s, 
-                    type: targetType,
-                    id: crypto.randomUUID(), 
-                    isEnabled: true, 
-                    price: 0, 
-                    original_type: s.type, 
+                    ...s,
+                    x: s.x, // Explicitly carry over x
+                    y: s.y, // Explicitly carry over y
+                    id: crypto.randomUUID(),
+                    isEnabled: true,
+                    price: 0,
+                    original_type: s.type,
+                    type: initialType,
                     replacementImage: undefined,
-                    color: s.color, 
                     original_color: s.color,
-                    colors: s.colors, 
                     original_colors: s.colors,
                 };
             });
@@ -389,7 +384,15 @@ export const useCakeCustomization = () => {
         }
     
         if (!dirtyFields.has('cakeMessages')) {
-            const newCakeMessages = analysisData.cake_messages.map((msg): CakeMessageUI => ({ ...msg, id: crypto.randomUUID(), isEnabled: true, price: 0, originalMessage: { ...msg } }));
+            const newCakeMessages = analysisData.cake_messages.map((msg): CakeMessageUI => ({
+                 ...msg,
+                 x: msg.x, // Explicitly carry over x
+                 y: msg.y, // Explicitly carry over y
+                 id: crypto.randomUUID(),
+                 isEnabled: true,
+                 price: 0,
+                 originalMessage: { ...msg }
+            }));
             setCakeMessages(newCakeMessages);
         }
     

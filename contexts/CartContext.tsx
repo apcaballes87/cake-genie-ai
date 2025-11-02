@@ -12,47 +12,125 @@ import React, {
 } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { SupabaseClient, User, PostgrestError } from '@supabase/supabase-js';
-import { debounce } from 'lodash';
+import debounce from 'lodash/debounce';
+import { showError } from '../lib/utils/toast';
 
 import { getSupabaseClient } from '../lib/supabase/client';
 import { CakeGenieCartItem, CakeGenieAddress } from '../lib/database.types';
 import {
-  getCartItems,
+  getCartPageData,
   addToCart as addToCartService,
   updateCartItemQuantity as updateQuantityService,
   removeCartItem as removeItemService,
 } from '../services/supabaseService';
+import { withTimeout } from '../lib/utils/timeout';
 
-// Utility to save to localStorage without blocking the main thread
-const saveToLocalStorage = (key: string, value: string) => {
+// --- NEW BATCHED LOCALSTORAGE WRITER ---
+const queuedWrites: { [key: string]: string | null } = {};
+let isFlushScheduled = false;
+
+const flushWrites = () => {
   if (typeof window === 'undefined') return;
-  
-  // Use requestIdleCallback to save during idle time, or fallback to setTimeout
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      localStorage.setItem(key, value);
-    });
-  } else {
-    setTimeout(() => {
-      localStorage.setItem(key, value);
-    }, 0);
+  try {
+    for (const key in queuedWrites) {
+      if (Object.prototype.hasOwnProperty.call(queuedWrites, key)) {
+        const value = queuedWrites[key];
+        if (value === null) {
+          localStorage.removeItem(key);
+        } else {
+          localStorage.setItem(key, value);
+        }
+        delete queuedWrites[key];
+      }
+    }
+  } catch (e) {
+    if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+      console.error("LocalStorage quota exceeded. Cannot save cart state.");
+      showError("Could not save session. Browser storage might be full.");
+    } else {
+      console.error("Failed to write to localStorage:", e);
+    }
+  } finally {
+    isFlushScheduled = false;
   }
 };
 
-// Utility to remove from localStorage without blocking
-const removeFromLocalStorage = (key: string) => {
+// Debounce the flush operation to batch multiple writes within 100ms
+const debouncedFlush = debounce(flushWrites, 100);
+
+const batchSaveToLocalStorage = (key: string, value: string) => {
   if (typeof window === 'undefined') return;
-  
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      localStorage.removeItem(key);
-    });
-  } else {
-    setTimeout(() => {
-      localStorage.removeItem(key);
-    }, 0);
+  const dataToStore = {
+      value,
+      timestamp: Date.now()
+  };
+  queuedWrites[key] = JSON.stringify(dataToStore);
+  if (!isFlushScheduled) {
+    isFlushScheduled = true;
+    debouncedFlush();
   }
 };
+
+const batchRemoveFromLocalStorage = (key: string) => {
+  if (typeof window === 'undefined') return;
+  queuedWrites[key] = null; // Use null as a sentinel for removal
+  if (!isFlushScheduled) {
+    isFlushScheduled = true;
+    debouncedFlush();
+  }
+};
+
+// --- NEW LOCALSTORAGE READ/CLEANUP UTILITIES ---
+
+const readFromLocalStorage = (key: string): string | null => {
+  if (typeof window === 'undefined') return null;
+  const item = localStorage.getItem(key);
+  if (!item) return null;
+  try {
+    const data = JSON.parse(item);
+    // Check for new format with timestamp
+    if (data && typeof data.value === 'string' && typeof data.timestamp === 'number') {
+      return data.value;
+    }
+    // It's a JSON but not our format, so ignore it
+    return null;
+  } catch (e) {
+    // If parsing fails, it's the old plain string format. Return for backward compatibility.
+    // The next save will convert it to the new format.
+    return item;
+  }
+};
+
+const cleanupExpiredLocalStorage = () => {
+    if (typeof window === 'undefined') return;
+    
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('cart_')) {
+            try {
+                const item = localStorage.getItem(key);
+                if (item) {
+                    const data = JSON.parse(item);
+                    if (data.timestamp) {
+                        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                        if (data.timestamp < sevenDaysAgo) {
+                            keysToRemove.push(key);
+                        }
+                    }
+                }
+            } catch (e) {
+                // Ignore items not in the new format or unparseable
+            }
+        }
+    }
+    
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    if (keysToRemove.length > 0) {
+        console.log(`Cleaned up ${keysToRemove.length} expired localStorage items.`);
+    }
+};
+
 
 interface DeliveryDetails {
     eventDate: string;
@@ -62,21 +140,28 @@ interface DeliveryDetails {
     deliveryInstructions: string;
 }
 
-interface CartContextType {
+// --- NEW SPLIT CONTEXT TYPES ---
+
+interface CartDataType {
   cartItems: CakeGenieCartItem[];
+  addresses: CakeGenieAddress[];
   cartTotal: number;
   itemCount: number;
   isLoading: boolean;
   sessionId: string | null;
   deliveryDetails: DeliveryDetails | null;
-  setDeliveryDetails: (details: DeliveryDetails | null) => void;
   eventDate: string;
-  setEventDate: (date: string) => void;
   eventTime: string;
-  setEventTime: (time: string) => void;
   deliveryInstructions: string;
-  setDeliveryInstructions: (instructions: string) => void;
   selectedAddressId: string;
+  authError: string | null;
+}
+
+interface CartActionsType {
+  setDeliveryDetails: (details: DeliveryDetails | null) => void;
+  setEventDate: (date: string) => void;
+  setEventTime: (time: string) => void;
+  setDeliveryInstructions: (instructions: string) => void;
   setSelectedAddressId: (id: string) => void;
   refreshCart: () => Promise<void>;
   addToCartOptimistic: (
@@ -86,15 +171,20 @@ interface CartContextType {
   updateQuantityOptimistic: (cartItemId: string, quantity: number) => Promise<void>;
   removeItemOptimistic: (cartItemId: string) => Promise<void>;
   clearCart: () => void;
-  authError: string | null;
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+interface CartContextType extends CartDataType, CartActionsType {}
+
+// --- NEW SPLIT CONTEXTS ---
+
+const CartDataContext = createContext<CartDataType | undefined>(undefined);
+const CartActionsContext = createContext<CartActionsType | undefined>(undefined);
 
 const supabase: SupabaseClient = getSupabaseClient();
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CakeGenieCartItem[]>([]);
+  const [addresses, setAddresses] = useState<CakeGenieAddress[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -104,169 +194,117 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const prevUserIdRef = useRef<string | null>(null);
 
   const [eventDate, setEventDateState] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('cart_event_date') || '';
-    }
-    return '';
+    return readFromLocalStorage('cart_event_date') || '';
   });
 
   const [eventTime, setEventTimeState] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('cart_event_time') || '';
-    }
-    return '';
+    return readFromLocalStorage('cart_event_time') || '';
   });
   
   const [deliveryInstructions, setDeliveryInstructionsState] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-        return localStorage.getItem('cart_delivery_instructions') || '';
-    }
-    return '';
+    return readFromLocalStorage('cart_delivery_instructions') || '';
   });
 
   const [selectedAddressId, setSelectedAddressIdState] = useState<string>(() => {
-      if (typeof window !== 'undefined') {
-          return localStorage.getItem('cart_selected_address_id') || '';
-      }
-      return '';
+      return readFromLocalStorage('cart_selected_address_id') || '';
   });
 
   const setEventDate = useCallback((date: string) => {
-    saveToLocalStorage('cart_event_date', date);
+    batchSaveToLocalStorage('cart_event_date', date);
     setEventDateState(date);
   }, []);
 
   const setEventTime = useCallback((time: string) => {
-    saveToLocalStorage('cart_event_time', time);
+    batchSaveToLocalStorage('cart_event_time', time);
     setEventTimeState(time);
   }, []);
 
   const setDeliveryInstructions = useCallback((instructions: string) => {
-    saveToLocalStorage('cart_delivery_instructions', instructions);
+    batchSaveToLocalStorage('cart_delivery_instructions', instructions);
     setDeliveryInstructionsState(instructions);
   }, []);
 
   const setSelectedAddressId = useCallback((id: string) => {
-    saveToLocalStorage('cart_selected_address_id', id);
+    batchSaveToLocalStorage('cart_selected_address_id', id);
     setSelectedAddressIdState(id);
   }, []);
 
-  const loadCart = useCallback(async (user: User | null) => {
-    // Prevent multiple simultaneous cart loads
-    if (loadingRef.current) {
-      console.log('🛒 Cart load already in progress, skipping...');
-      return;
-    }
-    
-    loadingRef.current = true;
+  const loadCartData = useCallback(async (user: User | null) => {
     setIsLoading(true);
-    
     try {
-      console.log('🛒 Loading cart items for user:', user?.id);
-      
       const isAnonymous = user?.is_anonymous ?? false;
       const userIdForQuery = isAnonymous ? null : user?.id;
       const sessionIdForQuery = isAnonymous ? user?.id : null;
-
-      // Import timeout utility and apply 500ms timeout
-      const { withTimeout } = await import('../lib/utils/timeout');
       
-      // Query cart items with a 500ms timeout
-      const { data, error } = await withTimeout(
-        getCartItems(userIdForQuery, sessionIdForQuery),
-        500,
-        'Cart loading timed out after 500ms'
+      const pageDataPromise = getCartPageData(userIdForQuery, sessionIdForQuery);
+      const { cartData, addressesData } = await withTimeout(
+        pageDataPromise,
+        5000, // Increased timeout for parallel queries
+        "Cart loading timed out."
       );
-      
-      if (error) throw error;
-      setCartItems(data || []);
-      console.log('✅ Cart items loaded:', data?.length || 0);
-    } catch (error: any) {
-      console.error('Failed to load cart:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-      if (error.message.includes("timeout")) {
-        console.error("Cart loading timed out");
+
+      const { data: cartItemsData, error: cartError } = cartData;
+      if (cartError) throw cartError;
+      setCartItems(cartItemsData || []);
+
+      const { data: userAddressesData, error: addressesError } = addressesData;
+      if (addressesError) {
+          console.error('Failed to load addresses:', addressesError);
+          // Don't throw, allow cart to load without addresses
       }
+      setAddresses(userAddressesData || []);
+      
+    } catch (error) {
+      console.error('Failed to load cart data:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
       setCartItems([]);
+      setAddresses([]);
     } finally {
       setIsLoading(false);
-      loadingRef.current = false;
     }
   }, []);
   
-  // Add a ref to track loading state
-  const loadingRef = useRef(false);
-
   useEffect(() => {
-    // Add a ref to track if initialization has already started
-    const initStartedRef = { current: false };
-
     const initialize = async () => {
-        // Prevent multiple initializations
-        if (initStartedRef.current) {
-            console.log('🔄 Initialization already started, skipping...');
-            return;
-        }
-
-        initStartedRef.current = true;
-
+        cleanupExpiredLocalStorage();
+        setIsLoading(true); // Set loading at the very start.
         try {
-            console.log('🔄 Initializing cart context...');
-
-            // Get session without waiting - let it resolve in background
-            const sessionPromise = supabase.auth.getSession();
-
-            sessionPromise.then(async ({ data: { session }, error: sessionError }) => {
-                if (sessionError) {
-                    console.error('❌ Error getting session:', sessionError);
-                    throw sessionError;
+            const { data: { session } } = await supabase.auth.getSession();
+    
+            let userToLoad: User | null = session?.user || null;
+    
+            if (!session) {
+                console.log('🔵 No session, creating anonymous session...');
+                const { data, error } = await supabase.auth.signInAnonymously();
+    
+                if (error) {
+                    throw error; // Let the catch block handle it
                 }
-
-                let userToLoad: User | null = session?.user || null;
-                console.log('📋 Session check result:', { hasSession: !!session, userId: userToLoad?.id });
-
-                if (!session) {
-                    console.log('🔵 No session, creating anonymous session...');
-                    const { data, error } = await supabase.auth.signInAnonymously();
-                    console.log('🔄 Anonymous sign in result:', { data, error });
-
-                    if (error) {
-                        console.error('❌ Error creating anonymous session:', error);
-                        throw error;
-                    }
-                    userToLoad = data.user;
-                    console.log('✅ Anonymous session created:', userToLoad?.id);
-                } else {
-                    console.log('✅ Existing session found:', userToLoad.id, 'Is anonymous:', userToLoad.is_anonymous);
-                }
-
-                setCurrentUser(userToLoad);
-                if (userToLoad?.is_anonymous) {
-                    setSessionId(userToLoad.id);
-                } else {
-                    setSessionId(null);
-                }
-                prevUserIdRef.current = userToLoad?.id ?? null;
-
-                console.log('🛒 Loading cart for user:', userToLoad?.id);
-                // Load cart in background without blocking UI
-                loadCart(userToLoad).catch(error => {
-                    console.error('Background cart loading failed:', error);
-                });
-                setAuthError(null);
-                console.log('✅ Cart context initialization complete');
-            }).catch((error: any) => {
-                console.error('❌ Failed to initialize user session:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-                if (error.message.includes("disabled")) {
-                    setAuthError("Guest sessions are currently disabled. Please ask the site administrator to enable Anonymous Sign-ins in the Supabase project's authentication settings.");
-                } else if (error.message.includes("timeout")) {
-                    setAuthError("Authentication service is taking too long to respond. Please check your internet connection and try again.");
-                } else {
-                    setAuthError(`Could not connect to the service. Please check your internet connection and try again.`);
-                }
-            });
+                userToLoad = data.user;
+                console.log('✅ Anonymous session created:', userToLoad?.id);
+            } else {
+                console.log('✅ Existing session found:', userToLoad.id, 'Is anonymous:', userToLoad.is_anonymous);
+            }
+    
+            setCurrentUser(userToLoad);
+            if (userToLoad?.is_anonymous) {
+                setSessionId(userToLoad.id);
+            } else {
+                setSessionId(null);
+            }
+            prevUserIdRef.current = userToLoad?.id ?? null;
+            
+            await loadCartData(userToLoad); // This has its own try/catch/finally
+            setAuthError(null); // Clear any previous errors on success
 
         } catch (error: any) {
-            console.error('❌ Failed to initialize cart context:', error);
+            console.error('❌ Failed to initialize user session:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+            if (error.message.includes("disabled")) {
+                setAuthError("Guest sessions are currently disabled. Please ask the site administrator to enable Anonymous Sign-ins in the Supabase project's authentication settings.");
+            } else {
+                // A more user-friendly message
+                setAuthError(`Could not connect to the service. Please check your internet connection and try again.`);
+            }
+            setIsLoading(false); // CRITICAL: Turn off loading on initialization failure.
         }
     };
 
@@ -294,22 +332,18 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // If there's no auth error, load the cart for the new user.
             // This handles login/logout scenarios.
             if (!authError) {
-                console.log('🛒 Reloading cart for user change...');
-                await loadCart(user);
-                console.log('✅ Cart reloaded');
+                await loadCartData(user);
             }
         } else {
              // If user hasn't changed (e.g., token refresh), just update the user object.
-            console.log('🔄 User unchanged, updating user object');
             setCurrentUser(user);
         }
     });
         
     return () => {
-        console.log('🧹 Cleaning up cart context subscription');
         subscription?.unsubscribe();
     };
-  }, [loadCart, authError]);
+  }, [loadCartData, authError]);
 
   const addToCartOptimistic = useCallback(async (
     itemParams: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
@@ -439,20 +473,17 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [cartItems, removeItemOptimistic, debouncedUpdateQuantity]);
 
   const refreshCart = useCallback(async () => {
-    await loadCart(currentUser);
-  }, [loadCart, currentUser]);
+    await loadCartData(currentUser);
+  }, [loadCartData, currentUser]);
 
   const clearCart = useCallback(() => {
     setCartItems([]);
     setDeliveryDetails(null);
     if (typeof window !== 'undefined') {
-      removeFromLocalStorage('cart_event_date');
-      removeFromLocalStorage('cart_event_time');
-      removeFromLocalStorage('cart_delivery_instructions');
-      removeFromLocalStorage('cart_selected_address_id');
-      removeFromLocalStorage('guestFirstName');
-      removeFromLocalStorage('guestLastName');
-      removeFromLocalStorage('guestEmail');
+      batchRemoveFromLocalStorage('cart_event_date');
+      batchRemoveFromLocalStorage('cart_event_time');
+      batchRemoveFromLocalStorage('cart_delivery_instructions');
+      batchRemoveFromLocalStorage('cart_selected_address_id');
     }
     setEventDateState('');
     setEventTimeState('');
@@ -468,62 +499,100 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return cartItems.reduce((total, item) => total + item.final_price * item.quantity, 0);
   }, [cartItems]);
 
-  const value = useMemo(() => ({
-    cartItems,
-    cartTotal,
-    itemCount,
-    isLoading,
-    sessionId,
-    deliveryDetails,
-    setDeliveryDetails,
-    eventDate,
-    setEventDate,
-    eventTime,
-    setEventTime,
-    deliveryInstructions,
-    setDeliveryInstructions,
-    selectedAddressId,
-    setSelectedAddressId,
+  const actionsValue = useMemo(() => ({
     refreshCart,
     addToCartOptimistic,
     updateQuantityOptimistic,
     removeItemOptimistic,
     clearCart,
+    setDeliveryDetails,
+    setEventDate,
+    setEventTime,
+    setDeliveryInstructions,
+    setSelectedAddressId,
+  }), [
+    refreshCart,
+    addToCartOptimistic,
+    updateQuantityOptimistic,
+    removeItemOptimistic,
+    clearCart,
+    setEventDate,
+    setEventTime,
+    setDeliveryInstructions,
+    setSelectedAddressId,
+  ]);
+
+  const dataValue = useMemo(() => ({
+    cartItems,
+    addresses,
+    cartTotal,
+    itemCount,
+    isLoading,
+    sessionId,
+    deliveryDetails,
+    eventDate,
+    eventTime,
+    deliveryInstructions,
+    selectedAddressId,
     authError,
   }), [
     cartItems,
+    addresses,
     cartTotal,
     itemCount,
     isLoading,
     sessionId,
     deliveryDetails,
     eventDate,
-    setEventDate,
     eventTime,
-    setEventTime,
     deliveryInstructions,
-    setDeliveryInstructions,
     selectedAddressId,
-    setSelectedAddressId,
-    refreshCart,
-    addToCartOptimistic,
-    updateQuantityOptimistic,
-    removeItemOptimistic,
-    clearCart,
     authError,
   ]);
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartActionsContext.Provider value={actionsValue}>
+      <CartDataContext.Provider value={dataValue}>
+        {children}
+      </CartDataContext.Provider>
+    </CartActionsContext.Provider>
+  );
+};
+
+// --- NEW SPLIT HOOKS ---
+
+/**
+ * Custom hook to access only the cart data.
+ * This hook will re-render when cart data (items, totals, loading state) changes.
+ */
+export const useCartData = (): CartDataType => {
+  const context = useContext(CartDataContext);
+  if (context === undefined) {
+    throw new Error('useCartData must be used within a CartProvider');
+  }
+  return context;
 };
 
 /**
- * Custom hook to access the cart context.
- * Throws an error if used outside of a CartProvider.
+ * Custom hook to access only the cart actions.
+ * This hook will NOT re-render when cart data changes, improving performance.
  */
-export const useCart = (): CartContextType => {
-  const context = useContext(CartContext);
+export const useCartActions = (): CartActionsType => {
+  const context = useContext(CartActionsContext);
   if (context === undefined) {
-    throw new Error('useCart must be used within a CartProvider');
+    throw new Error('useCartActions must be used within a CartProvider');
   }
   return context;
+};
+
+/**
+ * Custom hook to access the full cart context (data and actions).
+ * Kept for backward compatibility and convenience.
+ * This hook will re-render on any cart data change.
+ */
+export const useCart = (): CartContextType => {
+  return {
+    ...useCartData(),
+    ...useCartActions(),
+  };
 };

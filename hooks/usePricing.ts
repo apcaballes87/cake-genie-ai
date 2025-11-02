@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { calculatePrice } from '../services/pricingService';
 import { getCakeBasePriceOptions } from '../services/supabaseService';
 import {
@@ -11,7 +12,7 @@ import {
     AddOnPricing,
     BasePriceInfo,
     CakeType,
-    PricingRule,
+    CakeThickness,
 } from '../types';
 import { DEFAULT_THICKNESS_MAP } from '../constants';
 
@@ -25,6 +26,11 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
     'Square': 'Square',
     'Rectangle': 'Rectangle',
     'Bento': 'Bento',
+};
+
+const pricingKeys = {
+    basePrice: (type?: CakeType, thickness?: CakeThickness) =>
+      ['pricing', 'base', type, thickness] as const,
 };
 
 interface UsePricingProps {
@@ -50,77 +56,89 @@ export const usePricing = ({
     initialPriceInfo = null,
     analysisId,
 }: UsePricingProps) => {
-    // State for base pricing
-    const [basePriceOptions, setBasePriceOptions] = useState<BasePriceInfo[] | null>(null);
-    const [isFetchingBasePrice, setIsFetchingBasePrice] = useState<boolean>(false);
-    const [basePriceError, setBasePriceError] = useState<string | null>(null);
     const lastProcessedAnalysisId = useRef<string | null>(null);
 
-    // Effect to fetch base price when cake type/thickness changes, or use initial price
+    const {
+        data: queryResult,
+        isLoading: isFetchingBasePrice,
+        error: queryError,
+    } = useQuery({
+        // Use optional chaining as cakeInfo can be null initially. `enabled` flag prevents execution.
+        queryKey: pricingKeys.basePrice(cakeInfo?.type, cakeInfo?.thickness),
+        queryFn: async () => {
+            if (!cakeInfo?.type || !cakeInfo?.thickness) {
+                return { options: [], effectiveThickness: cakeInfo?.thickness };
+            }
+            
+            let results = await getCakeBasePriceOptions(cakeInfo.type, cakeInfo.thickness);
+            let effectiveThickness = cakeInfo.thickness;
+
+            // Fallback logic: If no options, try with the default thickness for the cake type
+            if (results.length === 0) {
+                const defaultThickness = DEFAULT_THICKNESS_MAP[cakeInfo.type];
+                if (defaultThickness && defaultThickness !== cakeInfo.thickness) {
+                    const fallbackResults = await getCakeBasePriceOptions(cakeInfo.type, defaultThickness);
+                    if (fallbackResults.length > 0) {
+                        results = fallbackResults;
+                        effectiveThickness = defaultThickness;
+                    }
+                }
+            }
+            
+            if (results.length === 0) {
+                throw new Error(`We don't have price options for a "${cakeTypeDisplayMap[cakeInfo.type]}" cake. Please try another design.`);
+            }
+
+            return { options: results, effectiveThickness };
+        },
+        enabled: !!cakeInfo?.type && !!cakeInfo?.thickness && !initialPriceInfo,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+    
+    const basePriceOptions = useMemo(() => {
+        if (initialPriceInfo) return [initialPriceInfo];
+        return queryResult?.options || null;
+    }, [initialPriceInfo, queryResult]);
+
+    const basePriceError = useMemo(() => {
+        return queryError ? (queryError as Error).message : null;
+    }, [queryError]);
+    
+    // This effect handles the side-effect of updating cakeInfo based on fetched price options.
     useEffect(() => {
         if (initialPriceInfo) {
-            setBasePriceOptions([initialPriceInfo]);
             onCakeInfoCorrection({ size: initialPriceInfo.size }, { isSystemCorrection: true });
             return;
         }
 
-        if (cakeInfo?.type && cakeInfo?.thickness) {
-            const fetchPrice = async () => {
-                setIsFetchingBasePrice(true);
-                setBasePriceError(null);
-                setBasePriceOptions(null);
-                try {
-                    let results = await getCakeBasePriceOptions(cakeInfo.type, cakeInfo.thickness);
-                    let effectiveThickness = cakeInfo.thickness;
-
-                    if (results.length === 0) {
-                        const defaultThickness = DEFAULT_THICKNESS_MAP[cakeInfo.type];
-                        if (defaultThickness && defaultThickness !== cakeInfo.thickness) {
-                            results = await getCakeBasePriceOptions(cakeInfo.type, defaultThickness);
-                            effectiveThickness = defaultThickness;
-                        }
-                    }
-
-                    setBasePriceOptions(results);
-
-                     if (results.length > 0) {
-                        const updates: Partial<CakeInfoUI> = {};
-                        
-                        if (effectiveThickness !== cakeInfo.thickness) {
-                            updates.thickness = effectiveThickness;
-                        }
-                        
-                        const isNewAnalysis = analysisId && analysisId !== lastProcessedAnalysisId.current;
-                        const currentSizeIsValid = results.some(r => r.size === cakeInfo.size);
-
-                        if (isNewAnalysis) {
-                            // On new analysis, always select the cheapest option.
-                            const sortedOptions = [...results].sort((a, b) => a.price - b.price);
-                            const cheapestOption = sortedOptions[0];
-                            updates.size = cheapestOption.size;
-                            lastProcessedAnalysisId.current = analysisId; // Mark this analysis ID as processed.
-                        } else if (!currentSizeIsValid) {
-                            // If not a new analysis (e.g., user changed thickness), and current size is now invalid,
-                            // default to the first (cheapest) option available for the new thickness.
-                            updates.size = results[0].size;
-                        }
-
-
-                        if (Object.keys(updates).length > 0) {
-                            onCakeInfoCorrection(updates, { isSystemCorrection: true });
-                        }
-                    } else {
-                        throw new Error(`We don't have price options for a "${cakeTypeDisplayMap[cakeInfo.type]}" cake. Please try another design.`);
-                    }
-                } catch (err) {
-                    setBasePriceError(err instanceof Error ? err.message : 'Could not fetch size options.');
-                } finally {
-                    setIsFetchingBasePrice(false);
+        if (queryResult && cakeInfo) {
+            const { options, effectiveThickness } = queryResult;
+            
+            if (options.length > 0) {
+                const updates: Partial<CakeInfoUI> = {};
+                
+                if (effectiveThickness && effectiveThickness !== cakeInfo.thickness) {
+                    updates.thickness = effectiveThickness;
                 }
-            };
-            fetchPrice();
+
+                const isNewAnalysis = analysisId && analysisId !== lastProcessedAnalysisId.current;
+                const currentSizeIsValid = options.some(r => r.size === cakeInfo.size);
+
+                if (isNewAnalysis) {
+                    const sortedOptions = [...options].sort((a, b) => a.price - b.price);
+                    updates.size = sortedOptions[0].size;
+                    lastProcessedAnalysisId.current = analysisId;
+                } else if (!currentSizeIsValid) {
+                    updates.size = options[0].size;
+                }
+
+                if (Object.keys(updates).length > 0) {
+                    onCakeInfoCorrection(updates, { isSystemCorrection: true });
+                }
+            }
         }
-    }, [cakeInfo?.type, cakeInfo?.thickness, cakeInfo?.size, onCakeInfoCorrection, initialPriceInfo, analysisId]);
+    }, [queryResult, cakeInfo, onCakeInfoCorrection, analysisId, initialPriceInfo]);
+
 
     const { addOnPricing, itemPrices } = useMemo(() => {
         if (!analysisResult || !icingDesign || !cakeInfo) {

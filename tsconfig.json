@@ -25,11 +25,5 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  },
-  "exclude": [
-    "supabase/functions/**/*",
-    "src/test-supabase.ts",
-    "app/test-auth/**/*",
-    "app/test-supabase/**/*"
-  ]
+  }
 }

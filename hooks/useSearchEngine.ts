@@ -18,7 +18,7 @@ declare const gtag: (...args: any[]) => void;
 interface UseSearchEngineProps {
   appState: string;
   setAppState: (state: any) => void; // Using 'any' as AppState type is not exported
-  handleImageUpload: (file: File) => Promise<any>;
+  handleImageUpload: (file: File, imageUrl?: string) => Promise<any>;
   setImageError: (error: string | null) => void;
   originalImageData: { data: string; mimeType: string } | null;
   setIsFetchingWebImage: (fetching: boolean) => void;
@@ -118,7 +118,7 @@ export const useSearchEngine = ({
         // Race all promises. The first one to resolve (not reject) wins.
         const blob = await Promise.race(fetchPromises);
         const file = new File([blob], 'cake-design.webp', { type: blob.type || 'image/webp' });
-        await handleImageUpload(file);
+        await handleImageUpload(file, imageUrl);
     } catch (err) {
         console.warn("Promise.race failed, falling back to allSettled to find any success.", err);
         const results = await Promise.allSettled(fetchPromises);
@@ -127,7 +127,7 @@ export const useSearchEngine = ({
         if (successResult && 'value' in successResult && successResult.value instanceof Blob) {
             const blob = successResult.value;
             const file = new File([blob], 'cake-design.webp', { type: blob.type || 'image/webp' });
-            await handleImageUpload(file);
+            await handleImageUpload(file, imageUrl);
         } else {
             console.error("All fetch attempts failed completely:", results);
             setImageError("Could not load image from any source. It may be protected. Tip: Try saving it to your device and using the 'Upload' button.");

@@ -8,6 +8,7 @@ import { Loader2, MapPin, Search, X, Pencil } from 'lucide-react';
 import { GOOGLE_MAPS_API_KEY } from '../config';
 import { GoogleMap } from '@react-google-maps/api';
 import { useGoogleMapsLoader } from '../contexts/GoogleMapsLoaderContext';
+import LazyImage from './LazyImage';
 
 declare const google: any;
 
@@ -17,7 +18,7 @@ export const StaticMap: React.FC<{ latitude: number; longitude: number }> = ({ l
   const imageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=15&size=300x150&markers=color:0xf472b6%7C${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`;
   return (
     <div className="mt-4 rounded-lg overflow-hidden border border-slate-200">
-      <img src={imageUrl} alt="Map location" className="w-full h-auto object-cover" />
+      <LazyImage src={imageUrl} alt="Map location" className="w-full h-auto object-cover" />
     </div>
   );
 };

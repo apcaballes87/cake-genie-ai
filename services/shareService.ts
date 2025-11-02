@@ -1,5 +1,7 @@
 import { getSupabaseClient } from '../lib/supabase/client';
 import { showSuccess, showError } from '../lib/utils/toast';
+import { v4 as uuidv4 } from 'uuid';
+import { generateUrlSlug } from '../lib/utils/urlHelpers';
 
 const supabase = getSupabaseClient();
 
@@ -24,6 +26,8 @@ export interface ShareDesignData {
 export interface ShareResult {
   designId: string;
   shareUrl: string;
+  botShareUrl: string;
+  urlSlug: string;
 }
 
 /**
@@ -34,9 +38,14 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
     // Get current user (can be anonymous)
     const { data: { user } } = await supabase.auth.getUser();
     
-    const { data: design, error } = await supabase
+    const designId = uuidv4();
+    const urlSlug = generateUrlSlug(data.title, designId);
+
+    const { error } = await supabase
       .from('cakegenie_shared_designs')
       .insert({
+        design_id: designId,
+        url_slug: urlSlug,
         customized_image_url: data.customizedImageUrl,
         original_image_url: data.originalImageUrl,
         cake_type: data.cakeType,
@@ -53,26 +62,24 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
         description: data.description,
         alt_text: data.altText,
         availability_type: data.availabilityType, // Save the new field
-      })
-      .select('design_id')
-      .single();
+      });
 
     if (error) {
       console.error('Supabase error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
       throw error;
     }
 
-    // Use production domain for consistency
-    const domain = (import.meta.env.MODE === 'production')
-        ? 'https://genie.ph'
-        : window.location.origin;
-    const shareUrl = `${domain}/#/design/${design.design_id}`;
+    const clientDomain = window.location.origin;
+    const shareUrl = `${clientDomain}/#/designs/${urlSlug}`;
+    const botShareUrl = `https://genie.ph/designs/${urlSlug}`;
     
     showSuccess('Share link created!');
     
     return {
-      designId: design.design_id,
-      shareUrl
+      designId: designId,
+      shareUrl,
+      botShareUrl,
+      urlSlug
     };
   } catch (error) {
     console.error('Error saving design:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
@@ -151,20 +158,28 @@ export async function updateSharedDesignTextsWithRetry(
 
 
 /**
- * Get a shared design by ID - WITH DETAILED LOGGING
+ * Get a shared design by ID or slug - WITH DETAILED LOGGING
  */
-export async function getSharedDesign(designId: string) {
-  console.log('🔍 [getSharedDesign] Starting fetch for designId:', designId);
+export async function getSharedDesign(identifier: string) {
+  console.log('🔍 [getSharedDesign] Starting fetch for identifier:', identifier);
   console.log('🔍 [getSharedDesign] Supabase client initialized:', !!supabase);
   
   try {
     console.log('📡 [getSharedDesign] Calling Supabase query...');
     
-    const { data, error } = await supabase
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+    
+    const query = supabase
       .from('cakegenie_shared_designs')
-      .select('*')
-      .eq('design_id', designId)
-      .single();
+      .select('*');
+
+    if (isUuid) {
+        query.eq('design_id', identifier);
+    } else {
+        query.eq('url_slug', identifier);
+    }
+    
+    const { data, error } = await query.single();
 
     console.log('📊 [getSharedDesign] Query response:', { 
       hasData: !!data, 
@@ -178,7 +193,7 @@ export async function getSharedDesign(designId: string) {
     }
 
     if (!data) {
-      console.warn('⚠️ [getSharedDesign] No data returned for designId:', designId);
+      console.warn('⚠️ [getSharedDesign] No data returned for identifier:', identifier);
       return null;
     }
 
@@ -191,7 +206,7 @@ export async function getSharedDesign(designId: string) {
       // as the Supabase query builder is a 'thenable' but may not have a .catch method.
       (async () => {
         try {
-          const { error: rpcError } = await supabase.rpc('increment_design_view', { p_design_id: designId });
+          const { error: rpcError } = await supabase.rpc('increment_design_view', { p_design_id: data.design_id });
           if (rpcError) {
             console.warn('Failed to increment view count:', rpcError);
           }

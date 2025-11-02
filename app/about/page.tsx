@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-// FIX: Replaced non-existent `Bullseye` icon with `Target`.
 import { ArrowLeft, Award, Target, Rocket, Users, Handshake, Search, Upload, Edit, Wand2, ShoppingCart, CheckCircle, X } from 'lucide-react';
+import LazyImage from '../../components/LazyImage';
 
 interface AboutPageProps {
   onClose: () => void;
@@ -35,7 +35,7 @@ const ListItem: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 const PermitThumbnail: React.FC<{ src: string; alt: string; onClick: () => void }> = ({ src, alt, onClick }) => (
     <button onClick={onClick} className="group text-center focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 rounded-lg">
         <div className="aspect-w-3 aspect-h-4 bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
-            <img 
+            <LazyImage 
                 src={src} 
                 alt={alt} 
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
@@ -141,7 +141,7 @@ const AboutPage: React.FC<AboutPageProps> = ({ onClose }) => {
             <X size={24} />
           </button>
           <div className="relative" onClick={e => e.stopPropagation()}>
-            <img 
+            <LazyImage 
               src={zoomedPermit} 
               alt="Permit document"
               className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
