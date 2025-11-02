@@ -1,15 +1,47 @@
 {
-  "name": "cake-genie-app",
+  "name": "genie-ph",
   "version": "1.0.0",
-  "description": "Cake Genie Frontend",
-  "main": "index.js",
+  "private": true,
+  "type": "module",
+  "description": "Cake Genie - AI-Powered Cake Customization Platform",
   "scripts": {
-    "start": "serve -s .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
-    "serve": "^14.2.1"
+    "@google/genai": "^1.27.0",
+    "@google/generative-ai": "^0.1.3",
+    "@react-google-maps/api": "^2.20.7",
+    "@supabase/supabase-js": "^2.38.0",
+    "@tanstack/react-query": "^5.8.0",
+    "browser-image-compression": "^2.0.2",
+    "lodash": "^4.17.21",
+    "lucide-react": "^0.548.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.4.1",
+    "uuid": "^9.0.1"
   },
-  "author": "",
-  "license": "ISC"
+  "devDependencies": {
+    "@types/lodash": "^4.14.202",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@types/uuid": "^9.0.7",
+    "@typescript-eslint/eslint-plugin": "^6.10.0",
+    "@typescript-eslint/parser": "^6.10.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.53.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.4",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
