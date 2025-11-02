@@ -40,19 +40,6 @@ const THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION = `You are a master digital c
 7.  **Do NOT Preserve Spatial Layout:** It is expected that elements will move to fit the new tier structure. The goal is stylistic continuity, not pixel-perfect replication of element positions.`;
 
 
-const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
-    const bytes = new Uint8Array(buffer);
-    const chunkSize = 0x8000; // 32KB chunks to avoid call stack issues
-    let binary = '';
-
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-        const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-        binary += String.fromCharCode.apply(null, Array.from(chunk));
-    }
-
-    return window.btoa(binary);
-}
-
 export const fileToBase64 = async (file: File): Promise<{ mimeType: string; data: string }> => {
     try {
         if (!file) {
@@ -64,13 +51,34 @@ export const fileToBase64 = async (file: File): Promise<{ mimeType: string; data
 
         console.log(`Reading file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
 
-        const arrayBuffer = await file.arrayBuffer();
-        console.log(`File read successfully, converting to base64...`);
+        // Use FileReader as a fallback for mobile browsers
+        // This is more reliable on mobile devices
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
 
-        const base64Data = arrayBufferToBase64(arrayBuffer);
-        console.log(`Base64 conversion complete`);
+            reader.onload = () => {
+                try {
+                    const result = reader.result as string;
+                    // Remove the data URL prefix to get just the base64 data
+                    const base64Data = result.split(',')[1];
+                    console.log(`Base64 conversion complete`);
+                    resolve({ mimeType: file.type, data: base64Data });
+                } catch (err) {
+                    reject(new Error('Failed to process file data'));
+                }
+            };
 
-        return { mimeType: file.type, data: base64Data };
+            reader.onerror = () => {
+                reject(new Error('Failed to read the file. Please try again.'));
+            };
+
+            reader.onabort = () => {
+                reject(new Error('File reading was aborted.'));
+            };
+
+            // Read as data URL (base64)
+            reader.readAsDataURL(file);
+        });
     } catch (error) {
         console.error("Error reading file:", error);
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
