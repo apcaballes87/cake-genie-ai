@@ -24,6 +24,7 @@ dist-ssr
 **/config.local.*
 **/*secret*
 **/*key*.json
+config.ts
 
 # Editor directories and files
 .vscode/*

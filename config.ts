@@ -19,7 +19,7 @@ export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 export const GOOGLE_MAPS_API_KEY = "AIzaSyA0RZHBXUprvS7k2x6_C-FuhkEjHluR9Ck";
 
 // Gemini API Key (get from Google AI Studio)
-export const GEMINI_API_KEY = "AIzaSyDYuf7EQ0_jQc2OWxfdoaNnX5myKrlci9A";
+export const GEMINI_API_KEY = "***REMOVED_GEMINI_KEY***";
 
 // Google Custom Search Engine ID
 export const GOOGLE_CSE_ID = "825ca1503c1bd4d00";
