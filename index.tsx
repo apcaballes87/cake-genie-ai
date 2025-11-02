@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import './index.css';
 import App from './App';
 import { CartProvider } from './contexts/CartContext';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -13,13 +14,11 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <GoogleMapsLoaderProvider>
-        <CartProvider>
-            <App />
-        </CartProvider>
-      </GoogleMapsLoaderProvider>
-    </QueryClientProvider>
-  </React.StrictMode>
+  <QueryClientProvider client={queryClient}>
+    <GoogleMapsLoaderProvider>
+      <CartProvider>
+          <App />
+      </CartProvider>
+    </GoogleMapsLoaderProvider>
+  </QueryClientProvider>
 );
