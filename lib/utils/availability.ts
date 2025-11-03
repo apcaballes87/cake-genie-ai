@@ -53,7 +53,7 @@ async function getDesignAvailability(design: DesignData): Promise<AvailabilityTy
     if (hasSameDayDecorations) {
         // Check if same-day is disabled via settings
         const settings = await fetchAvailabilitySettings();
-        if (settings.rush_to_same_day_enabled) {
+        if (settings.rush_to_same_day_enabled || settings.rush_same_to_standard_enabled) {
             return 'normal'; // Convert same-day to standard
         }
         return 'same-day';
@@ -69,7 +69,7 @@ async function getDesignAvailability(design: DesignData): Promise<AvailabilityTy
     if (isRushEligibleBase) {
         // Check if rush is disabled via settings
         const settings = await fetchAvailabilitySettings();
-        if (settings.rush_to_same_day_enabled) {
+        if (settings.rush_to_same_day_enabled || settings.rush_same_to_standard_enabled) {
             return 'normal'; // Convert rush to standard
         }
         return 'rush';

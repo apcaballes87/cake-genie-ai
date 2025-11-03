@@ -5,6 +5,7 @@ const supabase = getSupabaseClient();
 
 interface AvailabilitySettings {
   rush_to_same_day_enabled: boolean;
+  rush_same_to_standard_enabled: boolean; // Alternative column name
 }
 
 // Cache the settings to avoid repeated database calls
@@ -23,17 +24,21 @@ export async function fetchAvailabilitySettings(): Promise<AvailabilitySettings>
   try {
     const { data, error } = await supabase
       .from('availability_settings')
-      .select('rush_to_same_day_enabled')
+      .select('rush_to_same_day_enabled, rush_same_to_standard_enabled')
       .single();
 
     if (error) {
       console.error('Error fetching availability settings:', error);
       // Default to false if there's an error
-      return { rush_to_same_day_enabled: false };
+      return {
+        rush_to_same_day_enabled: false,
+        rush_same_to_standard_enabled: false
+      };
     }
 
     const settings: AvailabilitySettings = {
-      rush_to_same_day_enabled: data?.rush_to_same_day_enabled ?? false
+      rush_to_same_day_enabled: data?.rush_to_same_day_enabled ?? false,
+      rush_same_to_standard_enabled: data?.rush_same_to_standard_enabled ?? false
     };
 
     // Update cache
@@ -43,13 +48,17 @@ export async function fetchAvailabilitySettings(): Promise<AvailabilitySettings>
     return settings;
   } catch (err) {
     console.error('Exception fetching availability settings:', err);
-    return { rush_to_same_day_enabled: false };
+    return {
+      rush_to_same_day_enabled: false,
+      rush_same_to_standard_enabled: false
+    };
   }
 }
 
 export function useAvailabilitySettings() {
   const [settings, setSettings] = useState<AvailabilitySettings>({
-    rush_to_same_day_enabled: false
+    rush_to_same_day_enabled: false,
+    rush_same_to_standard_enabled: false
   });
   const [isLoading, setIsLoading] = useState(true);
 
