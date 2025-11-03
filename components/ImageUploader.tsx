@@ -53,13 +53,34 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ isOpen, onClose, o
         }
       }
 
-      // CRITICAL FIX: Create a stable Blob copy of the file to prevent mobile permission issues
-      // This ensures the file data is captured before the modal closes
-      console.log('ImageUploader: Creating stable file copy...');
-      const blob = await fileToProcess.arrayBuffer();
-      const stableFile = new File([blob], fileToProcess.name, { type: fileToProcess.type });
+      // CRITICAL FIX: Read file data immediately using FileReader to prevent mobile permission issues
+      // This captures the file data while the input is still active and has permissions
+      console.log('ImageUploader: Reading file data immediately with FileReader...');
 
-      console.log('ImageUploader: Calling onImageSelect with stable file:', {
+      const fileData = await new Promise<ArrayBuffer>((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = () => {
+          console.log('ImageUploader: FileReader completed successfully');
+          resolve(reader.result as ArrayBuffer);
+        };
+
+        reader.onerror = () => {
+          console.error('ImageUploader: FileReader error:', reader.error);
+          reject(new Error(`Failed to read file: ${reader.error?.message || 'Unknown error'}`));
+        };
+
+        // Read the file as ArrayBuffer while we still have permission
+        reader.readAsArrayBuffer(fileToProcess);
+      });
+
+      // Create a new File object from the captured data
+      const stableFile = new File([fileData], fileToProcess.name, {
+        type: fileToProcess.type,
+        lastModified: fileToProcess.lastModified
+      });
+
+      console.log('ImageUploader: Stable file created, calling onImageSelect:', {
         name: stableFile.name,
         size: stableFile.size,
         type: stableFile.type
