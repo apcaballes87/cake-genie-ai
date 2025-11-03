@@ -53,17 +53,22 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ isOpen, onClose, o
         }
       }
 
-      console.log('ImageUploader: Calling onImageSelect with file:', {
-        name: fileToProcess.name,
-        size: fileToProcess.size,
-        type: fileToProcess.type
+      // CRITICAL FIX: Create a stable Blob copy of the file to prevent mobile permission issues
+      // This ensures the file data is captured before the modal closes
+      console.log('ImageUploader: Creating stable file copy...');
+      const blob = await fileToProcess.arrayBuffer();
+      const stableFile = new File([blob], fileToProcess.name, { type: fileToProcess.type });
+
+      console.log('ImageUploader: Calling onImageSelect with stable file:', {
+        name: stableFile.name,
+        size: stableFile.size,
+        type: stableFile.type
       });
 
-      onImageSelect(fileToProcess);
+      onImageSelect(stableFile);
     } catch (error) {
       console.error('Error processing image:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
       showError('Failed to process image.');
-      onImageSelect(file); // fallback to original file
     } finally {
       setIsProcessing(false);
     }
