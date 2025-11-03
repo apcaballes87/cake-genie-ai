@@ -39,15 +39,18 @@ export const useCakeCustomization = () => {
 
     // --- Effect to calculate availability ---
     useEffect(() => {
-        if (cakeInfo && icingDesign) {
-            const newAvailabilityType = calculateCustomizingAvailability(
-                cakeInfo,
-                icingDesign,
-                mainToppers,
-                supportElements
-            );
-            setAvailability(newAvailabilityType);
+        async function fetchAvailability() {
+            if (cakeInfo && icingDesign) {
+                const newAvailabilityType = await calculateCustomizingAvailability(
+                    cakeInfo,
+                    icingDesign,
+                    mainToppers,
+                    supportElements
+                );
+                setAvailability(newAvailabilityType);
+            }
         }
+        fetchAvailability();
     }, [cakeInfo, icingDesign, mainToppers, supportElements]);
 
 

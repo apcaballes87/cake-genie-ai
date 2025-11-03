@@ -257,7 +257,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     } else if (!newIcing.gumpasteBaseBoard && originalIcing.gumpasteBaseBoard) {
         icingChanges.push(`- **Remove the gumpaste-covered base board**.`);
     } else if (newIcing.gumpasteBaseBoard && originalIcing.gumpasteBaseBoard && newIcing.colors.gumpasteBaseBoardColor !== originalIcing.colors.gumpasteBaseBoardColor) {
-        icingChanges.push(`- **Recolor the gumpaste base board**. The new BASE BOARD color should be **${colorName(newIcing.colors.gumpasteBaseBoardColor!)}**. Preserve all other details.`);
+        icingChanges.push(`- **Recolor the gumpaste base board**. to **${colorName(newIcing.colors.gumpasteBaseBoardColor!)}**. Preserve all other details.`);
     }
 
     // Handle core icing colors with explicit preservation
@@ -266,10 +266,10 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     const topColorChanged = newIcing.colors.top !== undefined && newIcing.colors.top !== originalIcingColors.top;
 
     if (sideColorChanged) {
-        icingChanges.push(`- **Recolor the shade of the side icing** to **${colorName(newIcing.colors.side)}**. CRITICAL: This is a color change ONLY.  Preserve all original decorations and details, simply shifting their hue to the new color.`);
+        icingChanges.push(`- **Recolor the shade of the side icing** to **${colorName(newIcing.colors.side)}**. This is a color change ONLY.`);
     }
     if (topColorChanged) {
-        icingChanges.push(`- **Recolor the shade of the top icing** to **${colorName(newIcing.colors.top)}**. CRITICAL: This is a color change ONLY. Preserve all original decorations and details, simply shifting their hue to the new color.`);
+        icingChanges.push(`- **Recolor the shade of the top icing** to **${colorName(newIcing.colors.top)}**. This is a color change ONLY.`);
     }
 
     // Add preservation instructions for unchanged surfaces

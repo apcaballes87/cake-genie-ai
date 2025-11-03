@@ -1,6 +1,7 @@
 // lib/utils/availability.ts
 
 import { CakeInfoUI, MainTopperUI, SupportElementUI, IcingDesignUI, CartItem, CakeType } from '../../types';
+import { fetchAvailabilitySettings } from '../../hooks/useAvailabilitySettings';
 
 export type AvailabilityType = 'rush' | 'same-day' | 'normal';
 
@@ -19,7 +20,7 @@ interface DesignData {
 /**
  * Determines the availability of a cake design based on its complexity using a hierarchical approach.
  */
-function getDesignAvailability(design: DesignData): AvailabilityType {
+async function getDesignAvailability(design: DesignData): Promise<AvailabilityType> {
     const allItems = [...design.mainToppers, ...design.supportElements];
 
     // --- STEP 1: NORMAL ORDER CHECKS (1-day lead time) ---
@@ -50,6 +51,11 @@ function getDesignAvailability(design: DesignData): AvailabilityType {
     );
 
     if (hasSameDayDecorations) {
+        // Check if same-day is disabled via settings
+        const settings = await fetchAvailabilitySettings();
+        if (settings.rush_to_same_day_enabled) {
+            return 'normal'; // Convert same-day to standard
+        }
         return 'same-day';
     }
 
@@ -61,6 +67,11 @@ function getDesignAvailability(design: DesignData): AvailabilityType {
         (design.cakeType === 'Bento');
 
     if (isRushEligibleBase) {
+        // Check if rush is disabled via settings
+        const settings = await fetchAvailabilitySettings();
+        if (settings.rush_to_same_day_enabled) {
+            return 'normal'; // Convert rush to standard
+        }
         return 'rush';
     }
 
@@ -73,12 +84,12 @@ function getDesignAvailability(design: DesignData): AvailabilityType {
 
 // --- Main exported functions ---
 
-export function calculateCartAvailability(items: CartItem[]): AvailabilityType {
+export async function calculateCartAvailability(items: CartItem[]): Promise<AvailabilityType> {
     if (items.some(item => item.status !== 'complete')) {
         return 'normal';
     }
 
-    const availabilities = items.map((item): AvailabilityType => {
+    const availabilityPromises = items.map(async (item): Promise<AvailabilityType> => {
         // Map CartItem string type back to CakeType enum
         const stringToCakeType: Record<string, CakeType> = {
             '1 Tier (Soft icing)': '1 Tier',
@@ -102,20 +113,22 @@ export function calculateCartAvailability(items: CartItem[]): AvailabilityType {
             mainToppers: item.details.mainToppers,
             supportElements: item.details.supportElements,
         };
-        return getDesignAvailability(design);
+        return await getDesignAvailability(design);
     });
+
+    const availabilities = await Promise.all(availabilityPromises);
 
     if (availabilities.includes('normal')) return 'normal';
     if (availabilities.includes('same-day')) return 'same-day';
     return 'rush';
 }
 
-export function calculateCustomizingAvailability(
+export async function calculateCustomizingAvailability(
     cakeInfo: CakeInfoUI,
     icingDesign: IcingDesignUI,
     mainToppers: MainTopperUI[],
     supportElements: SupportElementUI[]
-): AvailabilityType {
+): Promise<AvailabilityType> {
     // Map customizing state to DesignData, ensuring we only consider enabled items.
     const design: DesignData = {
         cakeType: cakeInfo.type,
@@ -126,5 +139,5 @@ export function calculateCustomizingAvailability(
         mainToppers: mainToppers.filter(t => t.isEnabled),
         supportElements: supportElements.filter(s => s.isEnabled),
     };
-    return getDesignAvailability(design);
+    return await getDesignAvailability(design);
 }

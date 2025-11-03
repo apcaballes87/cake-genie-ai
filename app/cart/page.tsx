@@ -88,9 +88,18 @@ const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, on
     const deliveryFee = 150;
     const total = subtotal + deliveryFee;
 
-    const cartAvailability = useMemo(() => {
-        if (isCartLoading || items.length === 0) return 'normal';
-        return calculateCartAvailability(items);
+    const [cartAvailability, setCartAvailability] = useState<AvailabilityType>('normal');
+
+    useEffect(() => {
+        async function fetchCartAvailability() {
+            if (isCartLoading || items.length === 0) {
+                setCartAvailability('normal');
+                return;
+            }
+            const availability = await calculateCartAvailability(items);
+            setCartAvailability(availability);
+        }
+        fetchCartAvailability();
     }, [items, isCartLoading]);
 
     const { minDate, disabledSlots } = useMemo(() => {

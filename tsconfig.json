@@ -37,7 +37,8 @@
     "services/**/*",
     "constants.ts",
     "config.ts",
-    "types.ts"
+    "types.ts",
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
