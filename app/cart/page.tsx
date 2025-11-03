@@ -17,6 +17,7 @@ import AddressForm, { StaticMap } from '../../components/AddressForm';
 import { useGoogleMapsLoader } from '../../contexts/GoogleMapsLoaderContext';
 import { calculateCartAvailability, AvailabilityType } from '../../lib/utils/availability';
 import CartItemCard from '../../components/CartItemCard';
+import DeliveryDatePicker from '../../components/DeliveryDatePicker';
 
 
 // FIX: Declare the global 'google' object to satisfy TypeScript.
@@ -347,10 +348,11 @@ const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, on
                         <div className="space-y-4">
                             <h2 className="text-lg font-semibold text-slate-700">Delivery Details</h2>
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="eventDate" className="block text-sm font-medium text-slate-600 mb-1">Date of Event</label>
-                                    <input type="date" id="eventDate" value={eventDate} onChange={(e) => setEventDate(e.target.value)} min={minDate} className={inputStyle} />
-                                </div>
+                                <DeliveryDatePicker
+                                    selectedDate={eventDate}
+                                    onDateChange={setEventDate}
+                                    minDate={minDate}
+                                />
                                 <div>
                                     <label htmlFor="eventTime" className="block text-sm font-medium text-slate-600 mb-1">Time of Event</label>
                                     <select id="eventTime" value={eventTime} onChange={(e) => setEventTime(e.target.value)} className={inputStyle}>
