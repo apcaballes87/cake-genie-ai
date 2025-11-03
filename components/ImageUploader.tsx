@@ -17,24 +17,48 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ isOpen, onClose, o
   const handleFileSelect = useCallback(async (file: File | null) => {
     if (!file) return;
 
+    console.log('ImageUploader: File selected', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: file.lastModified
+    });
+
     const validation = validateImageFile(file);
     if (!validation.valid && validation.error) {
       showError(validation.error);
       return;
     }
-    
+
     setIsProcessing(true);
     try {
       let fileToProcess = file;
+
+      // Check if we're on mobile (simplified detection)
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
       // Conditionally compress if file is larger than 500KB
       if (file.size > 500 * 1024) {
         console.log(`Image is >500KB (${(file.size/1024/1024).toFixed(2)}MB), compressing...`);
-        fileToProcess = await compressImage(file, {
-          maxSizeMB: 1, // Compress to a max of 1MB
-          maxWidthOrHeight: 1920,
-          useWebWorker: true,
-        });
+        try {
+          fileToProcess = await compressImage(file, {
+            maxSizeMB: 1, // Compress to a max of 1MB
+            maxWidthOrHeight: 1920,
+            useWebWorker: !isMobile, // Disable web worker on mobile
+          });
+          console.log('Compression successful, new size:', fileToProcess.size);
+        } catch (compressionError) {
+          console.warn('Compression failed, using original file:', compressionError);
+          fileToProcess = file;
+        }
       }
+
+      console.log('ImageUploader: Calling onImageSelect with file:', {
+        name: fileToProcess.name,
+        size: fileToProcess.size,
+        type: fileToProcess.type
+      });
+
       onImageSelect(fileToProcess);
     } catch (error) {
       console.error('Error processing image:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
