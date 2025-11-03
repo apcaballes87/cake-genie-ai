@@ -18,6 +18,7 @@ import { useGoogleMapsLoader } from '../../contexts/GoogleMapsLoaderContext';
 import { calculateCartAvailability, AvailabilityType } from '../../lib/utils/availability';
 import CartItemCard from '../../components/CartItemCard';
 import DeliveryDatePicker from '../../components/DeliveryDatePicker';
+import { useAvailabilitySettings, getAvailabilityTimeMessage } from '../../hooks/useAvailabilitySettings';
 
 
 // FIX: Declare the global 'google' object to satisfy TypeScript.
@@ -56,6 +57,7 @@ const paymentMethods = [
 const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, onRemoveItem, onClose, onContinueShopping, onAuthRequired }) => {
     const { user } = useAuth();
     const isRegisteredUser = user && !user.is_anonymous;
+    const { settings: availabilitySettings } = useAvailabilitySettings();
     const { 
       cartItems,
       setDeliveryDetails, 
@@ -375,9 +377,9 @@ const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, on
                                 </div>
                             </div>
                             
-                            {cartAvailability === 'normal' && <p className="text-xs text-slate-500 -mt-2">Your cart items require a 1-day lead time. Order by 3 PM for next-day delivery.</p>}
-                            {cartAvailability === 'same-day' && <p className="text-xs text-slate-500 -mt-2">Your cart contains items available for same-day delivery (3-hour lead time).</p>}
-                            {cartAvailability === 'rush' && <p className="text-xs text-slate-500 -mt-2">All items in your cart are available for rush delivery (30-min lead time).</p>}
+                            {cartAvailability === 'normal' && <p className="text-xs text-slate-500 -mt-2">Your cart items require {getAvailabilityTimeMessage('normal', availabilitySettings).toLowerCase()}. Order by 3 PM for next-day delivery.</p>}
+                            {cartAvailability === 'same-day' && <p className="text-xs text-slate-500 -mt-2">Your cart contains items available for same-day delivery ({getAvailabilityTimeMessage('same-day', availabilitySettings).toLowerCase()}).</p>}
+                            {cartAvailability === 'rush' && <p className="text-xs text-slate-500 -mt-2">All items in your cart are available for rush delivery ({getAvailabilityTimeMessage('rush', availabilitySettings).toLowerCase()}).</p>}
 
                             
                             {isAddressesLoading ? (
