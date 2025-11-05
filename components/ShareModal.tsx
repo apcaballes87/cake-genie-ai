@@ -395,7 +395,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                       }}
                       className="w-4 h-4"
                     />
-                    <span className="font-medium">Enable Bill Sharing & Auto-Order</span>
+                    <span className="font-medium">Enable Bill Sharing</span>
                   </label>
 
                   {(!user || user.is_anonymous) && !billSharingEnabled && (
