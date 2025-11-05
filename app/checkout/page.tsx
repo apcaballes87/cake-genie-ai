@@ -7,6 +7,7 @@ import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { showSuccess, showError } from '../../lib/utils/toast';
 import { createOrderFromCart } from '../../services/supabaseService';
 import { createXenditPayment } from '../../services/xenditService';
+import { calculateDeliveryFee, getDeliveryFeeMessage } from '../../lib/utils/deliveryFee';
 
 type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation';
 
@@ -47,7 +48,8 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
     }
   }, [authLoading, isAuthenticated, setAppState]);
 
-  const deliveryFee = 150;
+  const deliveryFee = useMemo(() => calculateDeliveryFee(cartItems), [cartItems]);
+  const deliveryMessage = useMemo(() => getDeliveryFeeMessage(cartItems), [cartItems]);
   const total = cartTotal + deliveryFee;
 
   const selectedAddress = useMemo(() => {
@@ -200,9 +202,16 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   <span>Subtotal ({cartItems.length} items)</span>
                   <span>₱{cartTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Delivery Fee</span>
-                  <span>₱{deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <div className="flex justify-between items-center text-gray-600">
+                  <div className="flex flex-col">
+                    <span>Delivery Fee</span>
+                    {deliveryMessage && (
+                      <span className="text-xs text-green-600 font-medium">{deliveryMessage}</span>
+                    )}
+                  </div>
+                  <span className={deliveryFee === 0 ? 'text-green-600 line-through' : ''}>
+                    ₱{deliveryFee === 0 ? '150.00' : deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
                 </div>
                 <div className="border-t pt-3 mt-2">
                   <div className="flex justify-between text-lg font-bold text-gray-800">

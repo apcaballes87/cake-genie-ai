@@ -19,6 +19,7 @@ import { calculateCartAvailability, AvailabilityType } from '../../lib/utils/ava
 import CartItemCard from '../../components/CartItemCard';
 import DeliveryDatePicker from '../../components/DeliveryDatePicker';
 import { useAvailabilitySettings, getAvailabilityTimeMessage } from '../../hooks/useAvailabilitySettings';
+import { calculateDeliveryFee, getDeliveryFeeMessage } from '../../lib/utils/deliveryFee';
 
 
 // FIX: Declare the global 'google' object to satisfy TypeScript.
@@ -87,7 +88,8 @@ const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, on
     }, [mapsLoadError]);
 
     const subtotal = items.reduce((acc, item) => item.status === 'complete' ? acc + item.totalPrice : acc, 0);
-    const deliveryFee = 150;
+    const deliveryFee = useMemo(() => calculateDeliveryFee(items), [items]);
+    const deliveryMessage = useMemo(() => getDeliveryFeeMessage(items), [items]);
     const total = subtotal + deliveryFee;
 
     const [cartAvailability, setCartAvailability] = useState<AvailabilityType>('normal');
@@ -451,9 +453,16 @@ const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, on
                                     <span className="text-slate-600">Subtotal</span>
                                     <span className="text-slate-800 font-semibold">₱{subtotal.toLocaleString()}</span>
                                 </div>
-                                <div className="flex justify-between">
-                                    <span className="text-slate-600">Delivery Fee</span>
-                                    <span className="text-slate-800 font-semibold">₱{deliveryFee.toLocaleString()}</span>
+                                <div className="flex justify-between items-center">
+                                    <div className="flex flex-col">
+                                        <span className="text-slate-600">Delivery Fee</span>
+                                        {deliveryMessage && (
+                                            <span className="text-xs text-green-600 font-medium">{deliveryMessage}</span>
+                                        )}
+                                    </div>
+                                    <span className={`font-semibold ${deliveryFee === 0 ? 'text-green-600 line-through' : 'text-slate-800'}`}>
+                                        ₱{deliveryFee === 0 ? '150' : deliveryFee.toLocaleString()}
+                                    </span>
                                 </div>
                             </div>
                             <div className="border-t pt-3 mt-2">
