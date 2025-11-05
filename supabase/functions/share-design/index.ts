@@ -1,3 +1,5 @@
+// supabase/functions/share-design/index.ts
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
@@ -5,8 +7,7 @@ import { corsHeaders } from '../_shared/cors.ts'
 declare const Deno: any;
 
 // Helper to escape HTML characters
-const escapeHtml = (unsafe: string | null | undefined): string => {
-  if (unsafe === null || unsafe === undefined) return '';
+const escapeHtml = (unsafe: string) => {
   return unsafe
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -15,172 +16,104 @@ const escapeHtml = (unsafe: string | null | undefined): string => {
     .replace(/'/g, "&#039;");
 };
 
-// Helper to detect if the request is from a bot
-const isBot = (userAgent: string | null): boolean => {
-  if (!userAgent) return false;
-  const botPatterns = [
-    'bot', 'crawl', 'spider', 'slurp', 'facebookexternalhit',
-    'WhatsApp', 'twitter', 'discord', 'telegram', 'slack',
-    'linkedinbot', 'pinterest', 'instagrambot', 'SkypeUriPreview'
-  ];
-  const lowerUA = userAgent.toLowerCase();
-  return botPatterns.some(pattern => lowerUA.includes(pattern));
-};
-
 serve(async (req) => {
+  // This is a browser-based request, so we should allow OPTIONS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // --- 1. Get Environment Variables ---
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
     if (!supabaseUrl || !serviceRoleKey) {
-      throw new Error('Supabase environment variables are not set.');
+        throw new Error('Supabase environment variables are not set.');
     }
 
-    // --- 2. Extract Design ID from URL ---
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+    
+    // 1. Get the slug from the URL path
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/');
-    const designId = pathParts[pathParts.length - 1];
+    // Example path: /functions/v1/share-design/my-awesome-cake-12345678
+    // We want the last part.
+    const slug = pathParts[pathParts.length - 1];
 
-    if (!designId) {
-      throw new Error('Design ID not found in URL.');
+    if (!slug) {
+        throw new Error("Design slug not found in URL.");
+    }
+    
+    console.log(`[share-design] Received request for slug: ${slug}`);
+
+    // 2. Fetch the design from Supabase
+    const { data, error } = await supabaseAdmin
+        .from('cakegenie_shared_designs')
+        .select('*')
+        .eq('url_slug', slug)
+        .single();
+    
+    if (error || !data) {
+        if (error) console.error("[share-design] Supabase error:", error);
+        return new Response("Design not found", {
+            status: 404,
+            headers: { 'Content-Type': 'text/plain' },
+        });
     }
 
-    // --- 3. Fetch Design Data from Supabase ---
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
-
-    // Check if designId is a UUID or a URL slug
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(designId);
-
-    const { data: design, error } = await supabaseAdmin
-      .from('cakegenie_shared_designs')
-      .select('*')
-      .eq(isUuid ? 'design_id' : 'url_slug', designId)
-      .single();
-
-    if (error || !design) {
-      // Return a simple 404 page
-      const notFoundHtml = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Design Not Found</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
-            <h1>404 - Design Not Found</h1>
-            <p>This cake design doesn't exist or has been removed.</p>
-          </body>
-        </html>`;
-      return new Response(notFoundHtml, {
-        headers: { ...corsHeaders, 'Content-Type': 'text/html' },
-        status: 404
-      });
-    }
-
-    // --- 4. Detect Bot vs Human User ---
-    const userAgent = req.headers.get('user-agent');
-    const isBotRequest = isBot(userAgent);
-
-    // --- 5. Prepare URLs and Content ---
-    const pageTitle = escapeHtml(design.title || `Custom Cake Design by Genie`);
-    const pageDescription = escapeHtml(design.description || `A custom cake design from Genie. Customize it yourself!`);
-    const imageUrl = design.customized_image_url;
-    const urlSlug = design.url_slug || design.design_id;
-    const canonicalUrl = `https://genie.ph/designs/${urlSlug}`;
-    const clientAppUrl = `https://genie.ph/#/design/${design.design_id}`;
-
-    // --- 6. Return HTTP Redirect for Human Users ---
-    if (!isBotRequest) {
-      return new Response(null, {
-        status: 302,
-        headers: {
-          ...corsHeaders,
-          'Location': clientAppUrl,
-        },
-      });
-    }
-
-    // --- 7. Return HTML with Meta Tags for Bots ---
-    const structuredData = {
-      "@context": "https://schema.org",
-      "@type": "Product",
-      "name": pageTitle,
-      "description": pageDescription,
-      "image": imageUrl,
-      "url": canonicalUrl,
-      "brand": {
-        "@type": "Brand",
-        "name": "Genie"
-      },
-      "offers": {
-        "@type": "Offer",
-        "availability": "https://schema.org/InStock",
-        "priceCurrency": "PHP",
-        "url": clientAppUrl
-      }
-    };
+    console.log(`[share-design] Found design: ${data.title}`);
+    
+    // 3. Construct the HTML with meta tags
+    const clientUrl = `${url.origin}/#/designs/${slug}`;
+    const title = escapeHtml(data.title || "Check out this Cake Design!");
+    const description = escapeHtml(data.description || "I created this custom cake design using CakeGenie. What do you think?");
+    const imageUrl = data.customized_image_url;
 
     const html = `
       <!DOCTYPE html>
       <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>${pageTitle}</title>
-
-          <!-- SEO / General Meta -->
-          <meta name="description" content="${pageDescription}">
-          <meta name="robots" content="index, follow">
-          <link rel="canonical" href="${canonicalUrl}">
-
-          <!-- Open Graph / Facebook -->
-          <meta property="og:type" content="website">
-          <meta property="og:site_name" content="Genie - Custom Cakes">
-          <meta property="og:url" content="${canonicalUrl}">
-          <meta property="og:title" content="${pageTitle}">
-          <meta property="og:description" content="${pageDescription}">
-          <meta property="og:image" content="${imageUrl}">
-          <meta property="og:image:secure_url" content="${imageUrl}">
-          <meta property="og:image:width" content="1024">
-          <meta property="og:image:height" content="1024">
-          <meta property="og:image:alt" content="${escapeHtml(design.alt_text || pageTitle)}">
-          <meta property="og:locale" content="en_PH">
-
-          <!-- Twitter -->
-          <meta name="twitter:card" content="summary_large_image">
-          <meta name="twitter:url" content="${canonicalUrl}">
-          <meta name="twitter:title" content="${pageTitle}">
-          <meta name="twitter:description" content="${pageDescription}">
-          <meta name="twitter:image" content="${imageUrl}">
-          <meta name="twitter:image:alt" content="${escapeHtml(design.alt_text || pageTitle)}">
-
-          <!-- Structured Data / Schema.org -->
-          <script type="application/ld+json">
-            ${JSON.stringify(structuredData)}
-          </script>
-        </head>
-        <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
-          <h1>${pageTitle}</h1>
-          <img src="${imageUrl}" alt="${escapeHtml(design.alt_text)}" style="max-width: 90%; width: 500px; height: auto; border-radius: 12px; margin: 20px auto;">
-          <p>${pageDescription}</p>
-          <p><a href="${clientAppUrl}">View and customize this design</a></p>
-        </body>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${title}</title>
+        
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="${clientUrl}">
+        <meta property="og:title" content="${title}">
+        <meta property="og:description" content="${description}">
+        <meta property="og:image" content="${imageUrl}">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="1200">
+        
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary_large_image">
+        <meta property="twitter:url" content="${clientUrl}">
+        <meta property="twitter:title" content="${title}">
+        <meta property="twitter:description" content="${description}">
+        <meta property="twitter:image" content="${imageUrl}">
+        
+        <!-- JavaScript redirect for real users -->
+        <script type="text/javascript">
+          window.location.href = "${clientUrl}";
+        </script>
+      </head>
+      <body>
+        <h1>Redirecting you to the design...</h1>
+        <p>If you are not redirected, <a href="${clientUrl}">click here</a>.</p>
+      </body>
       </html>
     `;
-
+    
     return new Response(html, {
-      headers: { ...corsHeaders, 'Content-Type': 'text/html' },
-      status: 200
+        headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+        status: 200,
     });
 
   } catch (error) {
+    console.error('[share-design] Critical error:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500
+      status: 500,
     });
   }
 });

@@ -7,10 +7,6 @@
     {
       "source": "/share/:id*",
       "destination": "https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/share-design/:id*"
-    },
-    {
-      "source": "/sitemap.xml",
-      "destination": "https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/sitemap"
     }
   ],
   "headers": [

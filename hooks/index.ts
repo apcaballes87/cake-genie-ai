@@ -9,3 +9,4 @@ export { useDesignUpdate } from './useDesignUpdate';
 export { useAuth } from './useAuth';
 export { useAddresses } from './useAddresses';
 export { useOrders } from './useOrders';
+export { useAvailabilitySettings } from './useAvailabilitySettings';

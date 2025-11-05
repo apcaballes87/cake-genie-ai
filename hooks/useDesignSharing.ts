@@ -89,18 +89,34 @@ export const useDesignSharing = ({
     const [shareData, setShareData] = useState<ShareResult | null>(null);
     const [isSavingDesign, setIsSavingDesign] = useState(false);
 
-    const openShareModal = () => setIsShareModalOpen(true);
-    const closeShareModal = () => setIsShareModalOpen(false);
+    const handleShare = useCallback(() => {
+        setShareData(null); // Reset any previous share data when opening
+        setIsShareModalOpen(true);
+    }, []);
 
-    const handleShare = useCallback(async () => {
+    const closeShareModal = () => {
+        setIsShareModalOpen(false);
+    };
+
+    const createShareLink = useCallback(async (config: {
+      billSharingEnabled: boolean;
+      billSharingMessage?: string;
+      suggestedSplitCount?: number;
+      // ADD THESE:
+      deliveryAddress?: string;
+      deliveryCity?: string;
+      deliveryPhone?: string;
+      eventDate?: string;
+      eventTime?: string;
+      recipientName?: string;
+    }) => {
         const imageUrlToShare = editedImage || originalImagePreview;
         if (!imageUrlToShare || !analysisResult || !cakeInfo || basePrice === undefined || finalPrice === null) {
-            showError('Price information is missing or design is not analyzed.');
+            showError('Cannot create link: missing design or price information.');
             return;
         }
         setIsSavingDesign(true);
         try {
-            // --- Step 1: Immediate Save with Placeholders ---
             const availabilityType = calculateAvailabilityForSharing(mainToppers, supportElements, icingDesign, cakeInfo);
             const accessoriesList = [...mainToppers.filter(t => t.isEnabled).map(t => t.description), ...supportElements.filter(s => s.isEnabled).map(s => s.description)];
             const colorsList: { name: string; hex: string }[] = [];
@@ -114,32 +130,38 @@ export const useDesignSharing = ({
                 }
             }
             
-            const initialData = {
-                customizedImageUrl: imageUrlToShare,
-                originalImageUrl: originalImagePreview || undefined,
-                cakeType: cakeInfo.type,
-                cakeSize: cakeInfo.size,
-                cakeFlavor: cakeInfo.flavors.join(', '),
-                cakeThickness: cakeInfo.thickness,
-                icingColors: colorsList,
-                accessories: accessoriesList,
-                basePrice,
-                finalPrice,
-                availabilityType,
-                title: `${cakeInfo.size} ${cakeInfo.type} Cake`,
-                description: 'A custom cake design from Genie.',
-                altText: `A custom ${cakeInfo.type} cake.`,
+            const designData = {
+              customizedImageUrl: imageUrlToShare,
+              originalImageUrl: originalImagePreview || undefined,
+              cakeType: cakeInfo.type,
+              cakeSize: cakeInfo.size,
+              cakeFlavor: cakeInfo.flavors.join(', '),
+              cakeThickness: cakeInfo.thickness,
+              icingColors: colorsList,
+              accessories: accessoriesList,
+              basePrice,
+              finalPrice,
+              availabilityType,
+              title: `${cakeInfo.size} ${cakeInfo.type} Cake`,
+              description: 'A custom cake design from Genie.',
+              altText: `A custom ${cakeInfo.type} cake.`,
+              billSharingEnabled: config.billSharingEnabled,
+              billSharingMessage: config.billSharingMessage,
+              suggestedSplitCount: config.suggestedSplitCount,
+              // ADD THESE NEW FIELDS:
+              deliveryAddress: config.deliveryAddress,
+              deliveryCity: config.deliveryCity,
+              deliveryPhone: config.deliveryPhone,
+              eventDate: config.eventDate,
+              eventTime: config.eventTime,
+              recipientName: config.recipientName,
             };
 
-            const result = await saveDesignToShare(initialData);
+            const result = await saveDesignToShare(designData);
 
             if (result) {
-                // --- UI is now responsive ---
                 setShareData(result);
-                setIsShareModalOpen(true);
-                setIsSavingDesign(false);
 
-                // --- Step 2: Background Enrichment (Fire-and-forget) ---
                 (async () => {
                     try {
                         const { title, description, altText } = await generateShareableTexts(
@@ -147,33 +169,28 @@ export const useDesignSharing = ({
                             cakeInfo,
                             HEX_TO_COLOR_NAME_MAP
                         );
-                        console.log('🤖 AI generated marketing text for design:', result.designId);
-                        
                         await updateSharedDesignTextsWithRetry(result.designId, title, description, altText);
-                        
-                        console.log('✅ Successfully enriched shared design in background');
-                        
                     } catch (enrichError) {
                         console.error('❌ Background enrichment failed:', enrichError);
-                        // This warning is helpful for debugging without alerting the user.
-                        console.warn('💡 Design was shared successfully, but AI enhancement failed. Placeholder text will be used.');
                     }
                 })();
             } else {
-                throw new Error("Failed to save initial design data.");
+                throw new Error("Failed to save design data.");
             }
         } catch (error) {
             showError('Failed to create a shareable link.');
+        } finally {
             setIsSavingDesign(false);
         }
-    }, [editedImage, originalImagePreview, cakeInfo, basePrice, finalPrice, mainToppers, supportElements, icingDesign, HEX_TO_COLOR_NAME_MAP, analysisResult]);
+    }, [editedImage, originalImagePreview, cakeInfo, basePrice, finalPrice, mainToppers, supportElements, icingDesign, analysisResult, HEX_TO_COLOR_NAME_MAP]);
+
 
     return {
         isShareModalOpen,
         shareData,
         isSavingDesign,
         handleShare,
-        openShareModal,
+        createShareLink,
         closeShareModal,
     };
 };

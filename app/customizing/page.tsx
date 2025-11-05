@@ -2,16 +2,17 @@
 
 
 
+
+
 import React, { Dispatch, SetStateAction, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { X } from 'lucide-react';
 import { FeatureList } from '../../components/FeatureList';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, CartIcon, BackIcon, ReportIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon, SideIcingGuideIcon, TopIcingGuideIcon, TopBorderGuideIcon, BaseBorderGuideIcon, BaseBoardGuideIcon } from '../../components/icons';
-import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType } from '../../types';
+import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType, AvailabilitySettings } from '../../types';
 import { SearchAutocomplete } from '../../components/SearchAutocomplete';
 import { AvailabilityType } from '../../lib/utils/availability';
 import { FloatingResultPanel } from '../../components/FloatingResultPanel';
-import { useAvailabilitySettings, getAvailabilityTimeMessage } from '../../hooks/useAvailabilitySettings';
 
 interface AvailabilityInfo {
   type: AvailabilityType;
@@ -132,6 +133,9 @@ interface CustomizingPageProps {
   isCustomizationDirty: boolean;
   itemPrices: Map<string, number>;
   availability: AvailabilityType;
+  availabilitySettings: AvailabilitySettings | undefined;
+  isLoadingAvailabilitySettings: boolean;
+  availabilityWasOverridden: boolean;
   onCakeMessageChange: (messages: CakeMessageUI[]) => void;
 }
 
@@ -185,17 +189,12 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     onAdditionalInstructionsChange, onTopperImageReplace, onSupportElementImageReplace, onSave, isSaving, onClearAll, error,
     itemPrices,
     availability: availabilityType,
+    availabilitySettings,
+    isLoadingAvailabilitySettings,
+    availabilityWasOverridden,
 }) => {
-    const { settings: availabilitySettings } = useAvailabilitySettings();
-
-    // Generate dynamic availability info based on Supabase settings
-    const availability: AvailabilityInfo = useMemo(() => {
-        const baseInfo = AVAILABILITY_MAP[availabilityType];
-        return {
-            ...baseInfo,
-            time: getAvailabilityTimeMessage(availabilityType, availabilitySettings)
-        };
-    }, [availabilityType, availabilitySettings]);
+    
+  const availability = AVAILABILITY_MAP[availabilityType];
   const [areHelpersVisible, setAreHelpersVisible] = useState(true);
   const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
   const [hoveredItem, setHoveredItem] = useState<ClusteredMarker | null>(null);
@@ -597,6 +596,18 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                     )}
                 </div>
             </div>
+        )}
+
+        {!isLoadingAvailabilitySettings && (
+            (availabilitySettings && availabilitySettings.minimum_lead_time_days > 0 && availabilityType === 'normal') ? (
+                <div className="w-full max-w-4xl p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800 animate-fade-in text-center">
+                    <strong>Note:</strong> We are observing a minimum lead time of <strong>{availabilitySettings.minimum_lead_time_days} day(s)</strong>. Available delivery dates will be adjusted in your cart.
+                </div>
+            ) : availabilityWasOverridden ? (
+                <div className="w-full max-w-4xl p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 animate-fade-in text-center">
+                    <strong>Note:</strong> Due to high demand, availability has been adjusted. Your order will now be processed as a <strong>'{availability.type.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}'</strong> order.
+                </div>
+            ) : null
         )}
 
        <div className="w-full max-w-4xl bg-white/70 backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-slate-200">

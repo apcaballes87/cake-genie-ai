@@ -2,27 +2,28 @@
 /// <reference types="vite/client" />
 
 // IMPORTANT:
-// This application runs directly in the browser without a build step to handle
-// environment variables (like process.env). Therefore, you must manually enter
-// your Supabase credentials below.
+// This application uses Vite for environment variable handling.
+// For local development, create a .env.local file (already in .gitignore)
+// For production (Vercel), set environment variables in the Vercel dashboard:
 //
-// 1. Go to your Supabase project dashboard.
-// 2. Go to Settings > API.
-// 3. Copy the "Project URL" and the "anon" "public" key.
-// 4. Paste them here to replace the placeholder values.
+// Required Environment Variables:
+// - VITE_GEMINI_API_KEY (Google AI Studio API key)
+// - VITE_GOOGLE_MAPS_API_KEY (Google Maps API key)
+//
+// The Supabase URL and anon key are public and safe to commit.
 
 export const SUPABASE_URL = "https://cqmhanqnfybyxezhobkx.supabase.co";
 export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxbWhhbnFuZnlieXhlemhvYmt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MjEwMTgsImV4cCI6MjA3NTE5NzAxOH0.7Et4dx3c8MXXpVVC5tXzM2nFZ203lx9WnAagWsakXks";
 
-// Add your Google Maps API Key here.
-// You can get one from the Google Cloud Console: https://console.cloud.google.com/google/maps-apis/
-// Also, remember to add it to index.html where prompted.
-export const GOOGLE_MAPS_API_KEY = "AIzaSyA0RZHBXUprvS7k2x6_C-FuhkEjHluR9Ck";
+// Google Maps API Key - loaded from environment variables
+// In production (Vercel), set VITE_GOOGLE_MAPS_API_KEY
+// In local development, add to .env.local
+export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
-// Gemini API Key (get from Google AI Studio)
-// In production (Vercel), this comes from environment variables
-// In local development, use the value below
-export const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyDSHT7dLHjjFVCuCT5MflV8bIpQWDbYE5E";
+// Gemini API Key - loaded from environment variables
+// In production (Vercel), set VITE_GEMINI_API_KEY
+// In local development, add to .env.local
+export const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 
 // Google Custom Search Engine ID
 export const GOOGLE_CSE_ID = "825ca1503c1bd4d00";

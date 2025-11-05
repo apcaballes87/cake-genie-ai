@@ -1,60 +1,11 @@
+
+
 import { getSupabaseClient } from '../lib/supabase/client';
 import { showSuccess, showError } from '../lib/utils/toast';
 import { v4 as uuidv4 } from 'uuid';
 import { generateUrlSlug } from '../lib/utils/urlHelpers';
 
 const supabase = getSupabaseClient();
-
-/**
- * Convert data URI to Blob
- */
-function dataURItoBlob(dataURI: string): Blob {
-  const byteString = atob(dataURI.split(',')[1]);
-  const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-  const ab = new ArrayBuffer(byteString.length);
-  const ia = new Uint8Array(ab);
-  for (let i = 0; i < byteString.length; i++) {
-    ia[i] = byteString.charCodeAt(i);
-  }
-  return new Blob([ab], { type: mimeString });
-}
-
-/**
- * Upload image to Supabase Storage and return public URL
- */
-async function uploadImageToStorage(imageDataUri: string, designId: string): Promise<string> {
-  try {
-    // Convert data URI to blob
-    const blob = dataURItoBlob(imageDataUri);
-
-    // Generate filename with design ID
-    const fileName = `${designId}.jpg`;
-    const filePath = `shared-designs/${fileName}`;
-
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from('cakegenie')
-      .upload(filePath, blob, {
-        contentType: 'image/jpeg',
-        upsert: true, // Allow overwriting if exists
-      });
-
-    if (error) {
-      console.error('Error uploading image to storage:', error);
-      throw error;
-    }
-
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('cakegenie')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
-  } catch (error) {
-    console.error('Failed to upload image:', error);
-    throw error;
-  }
-}
 
 export interface ShareDesignData {
   customizedImageUrl: string;
@@ -72,6 +23,30 @@ export interface ShareDesignData {
   description: string;
   altText: string;
   availabilityType: 'rush' | 'same-day' | 'normal';
+  billSharingEnabled?: boolean;
+  billSharingMessage?: string;
+  suggestedSplitCount?: number;
+  // ADD THESE NEW FIELDS:
+  deliveryAddress?: string;
+  deliveryCity?: string;
+  deliveryPhone?: string;
+  eventDate?: string;
+  eventTime?: string;
+  recipientName?: string;
+}
+
+export interface BillContribution {
+  contribution_id: string;
+  design_id: string;
+  contributor_name: string;
+  contributor_email: string | null;
+  contributor_phone: string | null;
+  amount: number;
+  xendit_invoice_id: string | null;
+  payment_url: string | null;
+  status: 'pending' | 'paid' | 'expired' | 'failed';
+  paid_at: string | null;
+  created_at: string;
 }
 
 export interface ShareResult {
@@ -89,32 +64,24 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
     // Get current user (can be anonymous)
     const { data: { user } } = await supabase.auth.getUser();
 
+    // Require authenticated user for bill sharing
+    if (data.billSharingEnabled) {
+      if (!user || user.is_anonymous) {
+        showError('You must be signed in to enable bill sharing');
+        return null;
+      }
+    }
+    
     const designId = uuidv4();
     const urlSlug = generateUrlSlug(data.title, designId);
-
-    // Upload image to storage if it's a data URI
-    let imageUrl = data.customizedImageUrl;
-    if (data.customizedImageUrl.startsWith('data:')) {
-      console.log('📤 Uploading image to Supabase Storage...');
-      imageUrl = await uploadImageToStorage(data.customizedImageUrl, designId);
-      console.log('✅ Image uploaded successfully:', imageUrl);
-    }
-
-    // Upload original image if it's a data URI
-    let originalImageUrl = data.originalImageUrl;
-    if (originalImageUrl && originalImageUrl.startsWith('data:')) {
-      console.log('📤 Uploading original image to Supabase Storage...');
-      originalImageUrl = await uploadImageToStorage(originalImageUrl, `${designId}-original`);
-      console.log('✅ Original image uploaded successfully:', originalImageUrl);
-    }
 
     const { error } = await supabase
       .from('cakegenie_shared_designs')
       .insert({
         design_id: designId,
         url_slug: urlSlug,
-        customized_image_url: imageUrl,
-        original_image_url: originalImageUrl,
+        customized_image_url: data.customizedImageUrl,
+        original_image_url: data.originalImageUrl,
         cake_type: data.cakeType,
         cake_size: data.cakeSize,
         cake_flavor: data.cakeFlavor,
@@ -123,12 +90,23 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
         accessories: data.accessories || [],
         base_price: data.basePrice,
         final_price: data.finalPrice,
-        created_by_user_id: user && !user.is_anonymous ? user.id : null,
+        created_by_user_id: data.billSharingEnabled ? user!.id : (user && !user.is_anonymous ? user.id : null),
         creator_name: data.creatorName,
         title: data.title,
         description: data.description,
         alt_text: data.altText,
-        availability_type: data.availabilityType, // Save the new field
+        availability_type: data.availabilityType,
+        bill_sharing_enabled: data.billSharingEnabled || false,
+        bill_sharing_message: data.billSharingMessage || null,
+        suggested_split_count: data.suggestedSplitCount || null,
+        // ADD THESE NEW FIELDS:
+        delivery_address: data.deliveryAddress || null,
+        delivery_city: data.deliveryCity || null,
+        delivery_phone: data.deliveryPhone || null,
+        event_date: data.eventDate || null,
+        event_time: data.eventTime || null,
+        recipient_name: data.recipientName || null,
+        auto_order_enabled: data.billSharingEnabled || false, // Enable auto-order when bill sharing is enabled
       });
 
     if (error) {
@@ -339,6 +317,143 @@ export function generateSocialShareUrl(
     
     default:
       return shareUrl;
+  }
+}
+
+/**
+ * Get all contributions for a design
+ */
+export async function getDesignContributions(designId: string): Promise<BillContribution[]> {
+  try {
+    const { data, error } = await supabase
+      .from('bill_contributions')
+      .select('*')
+      .eq('design_id', designId)
+      .eq('status', 'paid')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching contributions:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Exception fetching contributions:', error);
+    return [];
+  }
+}
+
+/**
+ * Create a contribution and Xendit payment
+ */
+export async function createContribution(
+  designId: string,
+  contributorName: string,
+  contributorEmail: string,
+  amount: number
+): Promise<{ success: boolean; paymentUrl?: string; error?: string }> {
+  try {
+    // 1. Get design details
+    const design = await getSharedDesign(designId);
+    if (!design) {
+      return { success: false, error: 'Design not found' };
+    }
+
+    if (!design.bill_sharing_enabled) {
+      return { success: false, error: 'Bill sharing is not enabled for this design' };
+    }
+    
+    console.log('🎯 Creating contribution:', {
+      designId,
+      contributorName,
+      amount,
+      design_bill_sharing: design.bill_sharing_enabled
+    });
+
+    // 2. Check remaining amount
+    const remaining = design.final_price - (design.amount_collected || 0);
+    if (amount > remaining) {
+      return { success: false, error: `Amount exceeds remaining ₱${remaining.toFixed(2)}` };
+    }
+
+    if (amount <= 0) {
+      return { success: false, error: 'Amount must be greater than 0' };
+    }
+
+    // 3. Create contribution record
+    const { data: contribution, error: insertError } = await supabase
+      .from('bill_contributions')
+      .insert({
+        design_id: designId,
+        contributor_name: contributorName,
+        contributor_email: contributorEmail,
+        amount: amount,
+        status: 'pending'
+      })
+      .select()
+      .single();
+
+    if (insertError || !contribution) {
+      console.error('Error creating contribution:', insertError);
+      return { success: false, error: 'Failed to create contribution record' };
+    }
+
+    // 4. Create Xendit invoice using existing Edge Function
+    const domain = window.location.origin;
+    const successUrl = `${domain}/#/designs/${design.url_slug || design.design_id}?contribution=success`;
+    const failureUrl = `${domain}/#/designs/${design.url_slug || design.design_id}?contribution=failed`;
+
+    const { data: paymentData, error: paymentError } = await supabase.functions.invoke(
+      'create-xendit-payment',
+      {
+        body: {
+          orderId: contribution.contribution_id, // Use contribution_id as external_id
+          amount: amount,
+          customerEmail: contributorEmail,
+          customerName: contributorName,
+          items: [{
+            name: `Contribution for: ${design.title || 'Custom Cake'}`,
+            quantity: 1,
+            price: amount
+          }],
+          success_redirect_url: successUrl,
+          failure_redirect_url: failureUrl,
+          isContribution: true // Flag to identify this as a contribution
+        }
+      }
+    );
+
+    console.log('💳 Xendit response:', {
+      success: paymentData.success,
+      hasPaymentUrl: !!paymentData.paymentUrl,
+      invoiceId: paymentData.invoiceId
+    });
+
+    if (paymentError || !paymentData.success) {
+      console.error('Error creating Xendit payment:', paymentError);
+      // Clean up contribution record
+      await supabase.from('bill_contributions').delete().eq('contribution_id', contribution.contribution_id);
+      return { success: false, error: 'Failed to create payment link' };
+    }
+
+    // 5. Update contribution with Xendit details
+    await supabase
+      .from('bill_contributions')
+      .update({
+        xendit_invoice_id: paymentData.invoiceId,
+        xendit_external_id: contribution.contribution_id,
+        payment_url: paymentData.paymentUrl
+      })
+      .eq('contribution_id', contribution.contribution_id);
+
+    return {
+      success: true,
+      paymentUrl: paymentData.paymentUrl
+    };
+  } catch (error) {
+    console.error('Exception in createContribution:', error);
+    return { success: false, error: 'An unexpected error occurred' };
   }
 }
 

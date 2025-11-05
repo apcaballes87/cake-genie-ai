@@ -1,10 +1,10 @@
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 import type { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, IcingColorDetails, CakeInfoUI, CakeType, CakeThickness, IcingDesign, MainTopperType, CakeMessage, SupportElementType } from '../types';
 import { CAKE_TYPES, CAKE_THICKNESSES, COLORS } from "../constants";
-import { GEMINI_API_KEY } from "../config";
+import { GEMINI_API_KEY } from '../config';
 
 if (!GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY not set in config.ts");
+    throw new Error("GEMINI_API_KEY environment variable not set");
 }
 
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
@@ -40,92 +40,23 @@ const THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION = `You are a master digital c
 7.  **Do NOT Preserve Spatial Layout:** It is expected that elements will move to fit the new tier structure. The goal is stylistic continuity, not pixel-perfect replication of element positions.`;
 
 
+const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+}
+
 export const fileToBase64 = async (file: File): Promise<{ mimeType: string; data: string }> => {
     try {
-        if (!file) {
-            throw new Error("No file provided");
-        }
-
-        console.log('File object details:', {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            lastModified: file.lastModified
-        });
-
-        if (!file.type.startsWith('image/')) {
-            throw new Error(`Invalid file type: ${file.type}. Please upload an image file.`);
-        }
-
-        console.log(`Reading file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
-
-        // Use FileReader as a fallback for mobile browsers
-        // This is more reliable on mobile devices
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-
-            reader.onloadstart = () => {
-                console.log('FileReader: Started reading file');
-            };
-
-            reader.onprogress = (e) => {
-                if (e.lengthComputable) {
-                    console.log(`FileReader: Progress ${((e.loaded / e.total) * 100).toFixed(1)}%`);
-                }
-            };
-
-            reader.onload = () => {
-                try {
-                    console.log('FileReader: Load complete');
-                    const result = reader.result as string;
-
-                    if (!result || typeof result !== 'string') {
-                        console.error('FileReader result is invalid:', typeof result);
-                        reject(new Error('Invalid file data received'));
-                        return;
-                    }
-
-                    // Remove the data URL prefix to get just the base64 data
-                    const base64Data = result.split(',')[1];
-
-                    if (!base64Data) {
-                        console.error('Failed to extract base64 data from result');
-                        reject(new Error('Failed to extract image data'));
-                        return;
-                    }
-
-                    console.log(`Base64 conversion complete (${base64Data.length} chars)`);
-                    resolve({ mimeType: file.type, data: base64Data });
-                } catch (err) {
-                    console.error('Error in onload handler:', err);
-                    reject(new Error('Failed to process file data'));
-                }
-            };
-
-            reader.onerror = (e) => {
-                console.error('FileReader error event:', e);
-                console.error('FileReader error:', reader.error);
-                reject(new Error(`Failed to read the file: ${reader.error?.message || 'Unknown error'}`));
-            };
-
-            reader.onabort = () => {
-                console.error('FileReader was aborted');
-                reject(new Error('File reading was aborted'));
-            };
-
-            try {
-                // Read as data URL (base64)
-                console.log('Starting FileReader.readAsDataURL...');
-                reader.readAsDataURL(file);
-            } catch (err) {
-                console.error('Error calling readAsDataURL:', err);
-                reject(err);
-            }
-        });
+        const arrayBuffer = await file.arrayBuffer();
+        const base64Data = arrayBufferToBase64(arrayBuffer);
+        return { mimeType: file.type, data: base64Data };
     } catch (error) {
         console.error("Error reading file:", error);
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
-        throw new Error(`Failed to read the image file: ${errorMessage}`);
+        throw new Error("Failed to read the image file.");
     }
 };
 

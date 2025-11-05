@@ -157,13 +157,6 @@ export interface CakeInfoUI {
     flavors: CakeFlavor[];
 }
 
-// Discriminated union for analysis items (used in FeatureList component)
-export type AnalysisItem =
-  (MainTopperUI & { itemCategory: 'topper' }) |
-  (SupportElementUI & { itemCategory: 'element' }) |
-  (CakeMessageUI & { itemCategory: 'message' }) |
-  ({ id: string; description: string; x?: number; y?: number; cakeType?: CakeType } & { itemCategory: 'icing' });
-
 
 // --- Pricing & Cart Types ---
 
@@ -246,4 +239,12 @@ export interface PricingFeedback {
   ai_total_price: number;
   expert_total_price: number;
   notes?: string;
+}
+
+export interface AvailabilitySettings {
+  setting_id: string;
+  created_at: string;
+  rush_to_same_day_enabled: boolean;
+  rush_same_to_standard_enabled: boolean;
+  minimum_lead_time_days: number;
 }

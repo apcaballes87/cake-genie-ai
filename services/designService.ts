@@ -266,10 +266,10 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     const topColorChanged = newIcing.colors.top !== undefined && newIcing.colors.top !== originalIcingColors.top;
 
     if (sideColorChanged) {
-        icingChanges.push(`- **Recolor the shade of the side icing** to **${colorName(newIcing.colors.side)}**. This is a color change ONLY.`);
+        icingChanges.push(`- **Recolor the shade of the side icing** to **${colorName(newIcing.colors.side)}**.`);
     }
     if (topColorChanged) {
-        icingChanges.push(`- **Recolor the shade of the top icing** to **${colorName(newIcing.colors.top)}**. This is a color change ONLY.`);
+        icingChanges.push(`- **Recolor the shade of the top icing** to **${colorName(newIcing.colors.top)}**. `);
     }
 
     // Add preservation instructions for unchanged surfaces
@@ -348,9 +348,6 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     if (additionalInstructions.trim()) {
         changes.push(`- **Special Instructions:** ${additionalInstructions.trim()}`);
     }
-
-    // 8. CRITICAL: Always remove watermarks/overlays
-    changes.push(`- **CRITICAL - Remove All Digital Overlays:** You MUST identify and completely remove any logos, watermarks, text overlays, or graphic elements that have been digitally superimposed on top of this cake image (e.g., bakery logos, website watermarks, copyright text, social media handles). Clean the area by in-painting it to seamlessly match the surrounding cake surface or background. IMPORTANT: Do NOT remove decorations that are physically part of the cake itself, such as edible printout toppers, piped messages, or fondant decorations. Only remove digital overlays that were added after the photo was taken.`);
 
     // Assemble the final prompt
     if (changes.length > 0) {

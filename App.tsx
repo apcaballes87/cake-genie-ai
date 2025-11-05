@@ -1,11 +1,7 @@
-
-
-
-
 import React, { useState, useCallback, useRef, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { useCart } from './contexts/CartContext';
-import { showSuccess, showError } from './lib/utils/toast';
+import { showSuccess, showError, showInfo } from './lib/utils/toast';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { CartIcon, UserCircleIcon, LogOutIcon, MapPinIcon, PackageIcon, ErrorIcon } from './components/icons';
 import { reportCustomization } from './services/supabaseService';
@@ -27,6 +23,7 @@ import {
   useDesignUpdate,
   useDesignSharing,
   AppState,
+  useAvailabilitySettings,
 } from './hooks';
 
 
@@ -68,7 +65,8 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
 export default function App(): React.ReactElement {
   // --- CORE CONTEXT HOOKS ---
   const { user, isAuthenticated, signOut } = useAuth();
-  const { cartItems: supabaseCartItems, itemCount: supabaseItemCount, addToCartOptimistic, removeItemOptimistic, authError, isLoading: isCartLoading } = useCart();
+  const { itemCount: supabaseItemCount, addToCartOptimistic, removeItemOptimistic, authError, isLoading: isCartLoading } = useCart();
+  const { settings: availabilitySettings, loading: isLoadingAvailabilitySettings } = useAvailabilitySettings();
 
   // --- CUSTOM BUSINESS LOGIC HOOKS ---
   const { appState, previousAppState, confirmedOrderId, viewingDesignId, viewingShopifySessionId, setAppState, setConfirmedOrderId } = useAppNavigation();
@@ -92,10 +90,29 @@ export default function App(): React.ReactElement {
     onIcingDesignChange, onAdditionalInstructionsChange, handleTopperImageReplace,
     handleSupportElementImageReplace, clearCustomization, initializeDefaultState,
     initializeFromShopify,
-    availability,
+    availability: baseAvailability,
     // FIX: Destructure onCakeMessageChange from useCakeCustomization hook.
     onCakeMessageChange,
   } = useCakeCustomization();
+
+  const availability = useMemo(() => {
+    if (!availabilitySettings || !baseAvailability) return baseAvailability;
+
+    if (availabilitySettings.rush_same_to_standard_enabled) {
+        if (baseAvailability === 'rush' || baseAvailability === 'same-day') {
+            return 'normal';
+        }
+    }
+    
+    if (availabilitySettings.rush_to_same_day_enabled) {
+        if (baseAvailability === 'rush') {
+            return 'same-day';
+        }
+    }
+
+    return baseAvailability;
+  }, [baseAvailability, availabilitySettings]);
+  const availabilityWasOverridden = availability !== baseAvailability;
 
   const { addOnPricing, itemPrices, basePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice } = usePricing({
       analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo, onCakeInfoCorrection: handleCakeInfoChange, analysisId
@@ -118,7 +135,7 @@ export default function App(): React.ReactElement {
       return acc;
   }, {} as Record<string, string>), []);
   
-  const { isShareModalOpen, shareData, isSavingDesign, handleShare, closeShareModal } = useDesignSharing({
+  const { isShareModalOpen, shareData, isSavingDesign, handleShare, createShareLink, closeShareModal } = useDesignSharing({
     editedImage, originalImagePreview, cakeInfo, basePrice, finalPrice, mainToppers,
     supportElements, icingDesign, analysisResult, HEX_TO_COLOR_NAME_MAP,
   });
@@ -441,14 +458,17 @@ export default function App(): React.ReactElement {
             onSupportElementImageReplace={handleSupportElementImageReplace} onSave={handleSave} isSaving={isImageManagementLoading} 
             onClearAll={() => { clearAllState(true); }} error={designUpdateError} itemPrices={itemPrices}
             availability={availability}
+            availabilitySettings={availabilitySettings}
+            isLoadingAvailabilitySettings={isLoadingAvailabilitySettings}
+            availabilityWasOverridden={availabilityWasOverridden}
             onCakeMessageChange={onCakeMessageChange}
         />;
-        case 'cart': return <CartPage items={[...pendingCartItems, ...supabaseCartItems.map(item => ({ id: item.cart_item_id, image: item.customized_image_url, status: 'complete' as 'complete', type: item.cake_type, thickness: item.cake_thickness, size: item.cake_size, totalPrice: item.final_price * item.quantity, details: item.customization_details as CartItemDetails, }))]} isLoading={isCartLoading} onRemoveItem={removeItemOptimistic} onClose={() => setAppState(previousAppState.current || 'customizing')} onContinueShopping={() => setAppState('customizing')} onAuthRequired={() => setAppState('auth')} />;
+        case 'cart': return <CartPage pendingItems={pendingCartItems} isLoading={isCartLoading} onRemoveItem={removeItemOptimistic} onClose={() => setAppState(previousAppState.current || 'customizing')} onContinueShopping={() => setAppState('customizing')} onAuthRequired={() => setAppState('auth')} />;
         case 'order_confirmation': return confirmedOrderId ? <OrderConfirmationPage orderId={confirmedOrderId} onContinueShopping={() => setAppState('landing')} onGoToOrders={() => setAppState('orders')} /> : <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>;
         case 'auth': return <AuthPage onClose={() => setAppState(previousAppState.current || 'landing')} onSuccess={() => setAppState(previousAppState.current && previousAppState.current !== 'auth' ? previousAppState.current : 'landing')} />;
         case 'addresses': return <AddressesPage onClose={() => setAppState(previousAppState.current || 'landing')} />;
         case 'orders': return <OrdersPage onClose={() => setAppState(previousAppState.current || 'landing')} />;
-        case 'shared_design': return viewingDesignId ? <SharedDesignPage designId={viewingDesignId} onStartWithDesign={handleStartWithSharedDesign} onNavigateHome={() => { setAppState('landing'); }} onPurchaseDesign={handlePurchaseSharedDesign} /> : <LoadingSpinner />;
+        case 'shared_design': return viewingDesignId ? <SharedDesignPage designId={viewingDesignId} onStartWithDesign={handleStartWithSharedDesign} onNavigateHome={() => { setAppState('landing'); }} onPurchaseDesign={handlePurchaseSharedDesign} user={user} onAuthRequired={() => setAppState('auth')} /> : <LoadingSpinner />;
         case 'shopify_customizing': return viewingShopifySessionId ? <ShopifyCustomizingPage sessionId={viewingShopifySessionId} onNavigateHome={() => setAppState('landing')} user={user} /> : <LoadingSpinner />;
         case 'about': return <AboutPage onClose={() => setAppState('landing')} />;
         case 'how_to_order': return <HowToOrderPage onClose={() => setAppState('landing')} />;
@@ -486,14 +506,7 @@ export default function App(): React.ReactElement {
                     </Suspense>
                 </main>
                 <Suspense fallback={null}>
-                  <ImageUploader
-                    isOpen={isUploaderOpen}
-                    onClose={() => setIsUploaderOpen(false)}
-                    onImageSelect={(file) => {
-                      handleAppImageUpload(file).catch(err => console.error("Upload failed", err));
-                      setIsUploaderOpen(false);
-                    }}
-                  />
+                  <ImageUploader isOpen={isUploaderOpen} onClose={() => setIsUploaderOpen(false)} onImageSelect={(file) => { handleAppImageUpload(file).catch(err => console.error("Upload failed", err)); setIsUploaderOpen(false); }} />
                 </Suspense>
                 {appState === 'customizing' && <Suspense fallback={null}><ImageZoomModal isOpen={isMainZoomModalOpen} onClose={() => setIsMainZoomModalOpen(false)} originalImage={originalImagePreview} customizedImage={editedImage} initialTab={activeTab} /></Suspense>}
                 <Suspense fallback={null}>
@@ -501,13 +514,17 @@ export default function App(): React.ReactElement {
                 </Suspense>
                 {appState === 'customizing' && <StickyAddToCartBar price={finalPrice} isLoading={isFetchingBasePrice} isAdding={isAddingToCart} error={basePriceError} onAddToCartClick={handleAddToCart} onShareClick={handleShare} isSharing={isSavingDesign} canShare={!!analysisResult} isAnalyzing={isAnalyzing} cakeInfo={cakeInfo} warningMessage={toyWarningMessage} />}
                 <Suspense fallback={null}>
-                  <ShareModal 
-                    isOpen={isShareModalOpen} 
-                    onClose={closeShareModal} 
-                    shareUrl={shareData?.shareUrl || ''} 
-                    designId={shareData?.designId || ''} 
+                  <ShareModal
+                    isOpen={isShareModalOpen}
+                    onClose={closeShareModal}
+                    shareData={shareData}
+                    onCreateLink={createShareLink}
+                    isSaving={isSavingDesign}
+                    finalPrice={finalPrice}
                     imageUrl={editedImage || originalImagePreview || ''}
-                    botShareUrl={shareData?.botShareUrl} // NEW: Pass bot-optimized URL
+                    user={user}
+                    onAuthRequired={() => setAppState('auth')}
+                    availability={availability}
                   />
                 </Suspense>
             </>}

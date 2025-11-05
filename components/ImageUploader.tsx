@@ -17,79 +17,29 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ isOpen, onClose, o
   const handleFileSelect = useCallback(async (file: File | null) => {
     if (!file) return;
 
-    console.log('ImageUploader: File selected', {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      lastModified: file.lastModified
-    });
-
     const validation = validateImageFile(file);
     if (!validation.valid && validation.error) {
       showError(validation.error);
       return;
     }
-
+    
     setIsProcessing(true);
     try {
       let fileToProcess = file;
-
-      // Check if we're on mobile (simplified detection)
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
       // Conditionally compress if file is larger than 500KB
       if (file.size > 500 * 1024) {
         console.log(`Image is >500KB (${(file.size/1024/1024).toFixed(2)}MB), compressing...`);
-        try {
-          fileToProcess = await compressImage(file, {
-            maxSizeMB: 1, // Compress to a max of 1MB
-            maxWidthOrHeight: 1920,
-            useWebWorker: !isMobile, // Disable web worker on mobile
-          });
-          console.log('Compression successful, new size:', fileToProcess.size);
-        } catch (compressionError) {
-          console.warn('Compression failed, using original file:', compressionError);
-          fileToProcess = file;
-        }
+        fileToProcess = await compressImage(file, {
+          maxSizeMB: 1, // Compress to a max of 1MB
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        });
       }
-
-      // CRITICAL FIX: Read file data immediately using FileReader to prevent mobile permission issues
-      // This captures the file data while the input is still active and has permissions
-      console.log('ImageUploader: Reading file data immediately with FileReader...');
-
-      const fileData = await new Promise<ArrayBuffer>((resolve, reject) => {
-        const reader = new FileReader();
-
-        reader.onload = () => {
-          console.log('ImageUploader: FileReader completed successfully');
-          resolve(reader.result as ArrayBuffer);
-        };
-
-        reader.onerror = () => {
-          console.error('ImageUploader: FileReader error:', reader.error);
-          reject(new Error(`Failed to read file: ${reader.error?.message || 'Unknown error'}`));
-        };
-
-        // Read the file as ArrayBuffer while we still have permission
-        reader.readAsArrayBuffer(fileToProcess);
-      });
-
-      // Create a new File object from the captured data
-      const stableFile = new File([fileData], fileToProcess.name, {
-        type: fileToProcess.type,
-        lastModified: fileToProcess.lastModified
-      });
-
-      console.log('ImageUploader: Stable file created, calling onImageSelect:', {
-        name: stableFile.name,
-        size: stableFile.size,
-        type: stableFile.type
-      });
-
-      onImageSelect(stableFile);
+      onImageSelect(fileToProcess);
     } catch (error) {
       console.error('Error processing image:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
       showError('Failed to process image.');
+      onImageSelect(file); // fallback to original file
     } finally {
       setIsProcessing(false);
     }

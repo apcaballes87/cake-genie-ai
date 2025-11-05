@@ -53,7 +53,7 @@ export const showInfo = (message: string, options?: ToastOptions) => {
   toast(message, {
     duration: 4000,
     position: 'top-center',
-    icon: '⚡️',
+    icon: 'ℹ️',
     style: {
       background: '#3B82F6', // Blue-500
       color: '#ffffff',

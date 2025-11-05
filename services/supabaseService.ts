@@ -1,6 +1,6 @@
 // services/supabaseService.ts
 import { getSupabaseClient } from '../lib/supabase/client';
-import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback } from '../types';
+import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback, AvailabilitySettings } from '../types';
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem } from '../lib/database.types';
@@ -27,6 +27,22 @@ export interface ShopifyCustomizationRequest {
   customized_image_url?: string;
   customization_details?: CartItemDetails;
   created_at: string;
+}
+
+// --- New Types for Delivery Date RPCs ---
+export interface AvailableDate {
+  available_date: string;
+  day_of_week: string;
+  is_rush_available: boolean;
+  is_same_day_available: boolean;
+  is_standard_available: boolean;
+}
+
+export interface BlockedDateInfo {
+    closure_reason: string | null;
+    is_all_day: boolean;
+    blocked_time_start: string | null;
+    blocked_time_end: string | null;
 }
 
 // --- Dynamic Config Fetchers ---
@@ -849,4 +865,70 @@ export async function getCartPageData(
     cartData: cartResult,
     addressesData: addressesResult,
   };
+}
+
+// --- New Functions for Delivery Date ---
+export async function getAvailableDeliveryDates(startDate: string, numDays: number): Promise<AvailableDate[]> {
+    const { data, error } = await supabase.rpc('get_available_delivery_dates', {
+      start_date: startDate,
+      num_days: numDays,
+    });
+    if (error) {
+        console.error("Error fetching available dates:", error);
+        throw new Error("Could not fetch available delivery dates.");
+    }
+    return data || [];
+}
+
+export async function getBlockedDatesInRange(startDate: string, endDate: string): Promise<Record<string, BlockedDateInfo[]>> {
+    try {
+        const { data, error } = await supabase
+            .from('blocked_dates')
+            .select('blocked_date, closure_reason, is_all_day, blocked_time_start, blocked_time_end')
+            .gte('blocked_date', startDate)
+            .lte('blocked_date', endDate)
+            .eq('is_active', true);
+
+        if (error) {
+            throw error;
+        }
+
+        const groupedByDate: Record<string, BlockedDateInfo[]> = {};
+        (data || []).forEach(row => {
+            const date = row.blocked_date;
+            if (!groupedByDate[date]) {
+                groupedByDate[date] = [];
+            }
+            groupedByDate[date].push({
+                closure_reason: row.closure_reason,
+                is_all_day: row.is_all_day,
+                blocked_time_start: row.blocked_time_start,
+                blocked_time_end: row.blocked_time_end,
+            });
+        });
+
+        return groupedByDate;
+
+    } catch(err) {
+        const error = err as PostgrestError;
+        console.error("Error in getBlockedDatesInRange:", error);
+        throw new Error("Could not verify date availability.");
+    }
+}
+
+
+export async function getAvailabilitySettings(): Promise<SupabaseServiceResponse<AvailabilitySettings>> {
+  try {
+    const { data, error } = await supabase
+      .from('availability_settings')
+      .select('*')
+      .eq('setting_id', '00000000-0000-0000-0000-000000000001')
+      .single();
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
 }

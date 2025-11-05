@@ -1,7 +1,6 @@
 // lib/utils/availability.ts
 
 import { CakeInfoUI, MainTopperUI, SupportElementUI, IcingDesignUI, CartItem, CakeType } from '../../types';
-import { fetchAvailabilitySettings } from '../../hooks/useAvailabilitySettings';
 
 export type AvailabilityType = 'rush' | 'same-day' | 'normal';
 
@@ -20,7 +19,7 @@ interface DesignData {
 /**
  * Determines the availability of a cake design based on its complexity using a hierarchical approach.
  */
-async function getDesignAvailability(design: DesignData): Promise<AvailabilityType> {
+function getDesignAvailability(design: DesignData): AvailabilityType {
     const allItems = [...design.mainToppers, ...design.supportElements];
 
     // --- STEP 1: NORMAL ORDER CHECKS (1-day lead time) ---
@@ -31,8 +30,8 @@ async function getDesignAvailability(design: DesignData): Promise<AvailabilityTy
 
     // Truly complex, hand-sculpted or assembled items.
     const hasHighlyComplexDecorations = allItems.some(item =>
-        item.type === 'edible_3d' ||      // 3D sculptures
-        item.type === 'gumpaste_panel' || // Large panels
+        ['edible_3d_complex', 'edible_3d_ordinary'].includes(item.type) || // 3D sculptures (was 'edible_3d')
+        item.type === 'edible_2d_support' || // Large panels (was 'gumpaste_panel')
         item.type === 'edible_flowers'    // Intricate sugar flowers
     );
 
@@ -43,19 +42,14 @@ async function getDesignAvailability(design: DesignData): Promise<AvailabilityTy
     // --- STEP 2: SAME-DAY ORDER CHECKS (3-hour lead time) ---
     // Checks for decorations that take some prep time but not a full day.
     const hasSameDayDecorations = allItems.some(item =>
-        item.type === 'edible_2d_gumpaste' || // Flat 2D cutouts
-        (item.type === 'small_gumpaste' && !item.description.toLowerCase().includes('dots')) || // Small non-dot gumpaste items
+        item.type === 'edible_2d_support' || // Flat 2D cutouts (was 'edible_2d_gumpaste')
+        (item.type === 'edible_3d_support' && !item.description.toLowerCase().includes('dots')) || // Small non-dot gumpaste items (was 'small_gumpaste')
         item.type === 'edible_photo' ||
         item.type === 'edible_photo_side' ||
         item.type === 'icing_doodle' // Piped doodles require more time than rush orders.
     );
 
     if (hasSameDayDecorations) {
-        // Check if same-day is disabled via settings
-        const settings = await fetchAvailabilitySettings();
-        if (settings.rush_to_same_day_enabled || settings.rush_same_to_standard_enabled) {
-            return 'normal'; // Convert same-day to standard
-        }
         return 'same-day';
     }
 
@@ -67,11 +61,6 @@ async function getDesignAvailability(design: DesignData): Promise<AvailabilityTy
         (design.cakeType === 'Bento');
 
     if (isRushEligibleBase) {
-        // Check if rush is disabled via settings
-        const settings = await fetchAvailabilitySettings();
-        if (settings.rush_to_same_day_enabled || settings.rush_same_to_standard_enabled) {
-            return 'normal'; // Convert rush to standard
-        }
         return 'rush';
     }
 
@@ -84,12 +73,15 @@ async function getDesignAvailability(design: DesignData): Promise<AvailabilityTy
 
 // --- Main exported functions ---
 
-export async function calculateCartAvailability(items: CartItem[]): Promise<AvailabilityType> {
-    if (items.some(item => item.status !== 'complete')) {
+export function calculateCartAvailability(items: CartItem[]): AvailabilityType {
+    // If any item has an error, default to normal as a safe fallback.
+    if (items.some(item => item.status === 'error')) {
         return 'normal';
     }
 
-    const availabilityPromises = items.map(async (item): Promise<AvailabilityType> => {
+    // Calculate availability for all items, including 'pending' ones,
+    // as they contain all necessary details for the calculation.
+    const availabilities = items.map((item): AvailabilityType => {
         // Map CartItem string type back to CakeType enum
         const stringToCakeType: Record<string, CakeType> = {
             '1 Tier (Soft icing)': '1 Tier',
@@ -113,22 +105,23 @@ export async function calculateCartAvailability(items: CartItem[]): Promise<Avai
             mainToppers: item.details.mainToppers,
             supportElements: item.details.supportElements,
         };
-        return await getDesignAvailability(design);
+        return getDesignAvailability(design);
     });
 
-    const availabilities = await Promise.all(availabilityPromises);
-
+    // The most restrictive availability determines the cart's overall availability.
     if (availabilities.includes('normal')) return 'normal';
     if (availabilities.includes('same-day')) return 'same-day';
+    
+    // If no 'normal' or 'same-day' items, it must be 'rush' (or empty, which also qualifies as 'rush').
     return 'rush';
 }
 
-export async function calculateCustomizingAvailability(
+export function calculateCustomizingAvailability(
     cakeInfo: CakeInfoUI,
     icingDesign: IcingDesignUI,
     mainToppers: MainTopperUI[],
     supportElements: SupportElementUI[]
-): Promise<AvailabilityType> {
+): AvailabilityType {
     // Map customizing state to DesignData, ensuring we only consider enabled items.
     const design: DesignData = {
         cakeType: cakeInfo.type,
@@ -139,5 +132,5 @@ export async function calculateCustomizingAvailability(
         mainToppers: mainToppers.filter(t => t.isEnabled),
         supportElements: supportElements.filter(s => s.isEnabled),
     };
-    return await getDesignAvailability(design);
+    return getDesignAvailability(design);
 }
