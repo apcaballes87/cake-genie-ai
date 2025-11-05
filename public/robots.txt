@@ -1,0 +1,21 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Disallow admin or private paths (if any)
+Disallow: /api/
+Disallow: /_next/
+
+# Sitemap location
+Sitemap: https://genie.ph/sitemap.xml
+
+# Specific rules for major search engines
+User-agent: Googlebot
+Allow: /
+Allow: /designs/
+Allow: /share/
+
+User-agent: Bingbot
+Allow: /
+Allow: /designs/
+Allow: /share/

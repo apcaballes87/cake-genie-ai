@@ -89,7 +89,8 @@ serve(async (req) => {
     const pageTitle = escapeHtml(design.title || `Custom Cake Design by Genie`);
     const pageDescription = escapeHtml(design.description || `A custom cake design from Genie. Customize it yourself!`);
     const imageUrl = design.customized_image_url;
-    const canonicalUrl = `https://genie.ph/share/${design.design_id}`;
+    const urlSlug = design.url_slug || design.design_id;
+    const canonicalUrl = `https://genie.ph/designs/${urlSlug}`;
     const clientAppUrl = `https://genie.ph/#/design/${design.design_id}`;
 
     // --- 6. Return HTTP Redirect for Human Users ---
@@ -104,6 +105,25 @@ serve(async (req) => {
     }
 
     // --- 7. Return HTML with Meta Tags for Bots ---
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      "name": pageTitle,
+      "description": pageDescription,
+      "image": imageUrl,
+      "url": canonicalUrl,
+      "brand": {
+        "@type": "Brand",
+        "name": "Genie"
+      },
+      "offers": {
+        "@type": "Offer",
+        "availability": "https://schema.org/InStock",
+        "priceCurrency": "PHP",
+        "url": clientAppUrl
+      }
+    };
+
     const html = `
       <!DOCTYPE html>
       <html lang="en">
@@ -114,16 +134,21 @@ serve(async (req) => {
 
           <!-- SEO / General Meta -->
           <meta name="description" content="${pageDescription}">
+          <meta name="robots" content="index, follow">
           <link rel="canonical" href="${canonicalUrl}">
 
           <!-- Open Graph / Facebook -->
           <meta property="og:type" content="website">
+          <meta property="og:site_name" content="Genie - Custom Cakes">
           <meta property="og:url" content="${canonicalUrl}">
           <meta property="og:title" content="${pageTitle}">
           <meta property="og:description" content="${pageDescription}">
           <meta property="og:image" content="${imageUrl}">
+          <meta property="og:image:secure_url" content="${imageUrl}">
           <meta property="og:image:width" content="1024">
           <meta property="og:image:height" content="1024">
+          <meta property="og:image:alt" content="${escapeHtml(design.alt_text || pageTitle)}">
+          <meta property="og:locale" content="en_PH">
 
           <!-- Twitter -->
           <meta name="twitter:card" content="summary_large_image">
@@ -131,6 +156,12 @@ serve(async (req) => {
           <meta name="twitter:title" content="${pageTitle}">
           <meta name="twitter:description" content="${pageDescription}">
           <meta name="twitter:image" content="${imageUrl}">
+          <meta name="twitter:image:alt" content="${escapeHtml(design.alt_text || pageTitle)}">
+
+          <!-- Structured Data / Schema.org -->
+          <script type="application/ld+json">
+            ${JSON.stringify(structuredData)}
+          </script>
         </head>
         <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
           <h1>${pageTitle}</h1>
