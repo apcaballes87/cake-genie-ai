@@ -51,7 +51,7 @@ export const useDesignUpdate = ({
 }: UseDesignUpdateProps) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const lastPromptRef = useRef<string | null>(null);
+    const lastGenerationInfoRef = useRef<{ prompt: string; systemInstruction: string; } | null>(null);
 
     const handleUpdateDesign = useCallback(async () => {
         // Analytics: Track when a user completes a customization by updating the design
@@ -73,7 +73,7 @@ export const useDesignUpdate = ({
         setError(null);
 
         try {
-            const { image: editedImageResult, prompt } = await updateDesign({
+            const { image: editedImageResult, prompt, systemInstruction } = await updateDesign({
                 originalImageData,
                 analysisResult,
                 cakeInfo,
@@ -86,7 +86,7 @@ export const useDesignUpdate = ({
                 promptGenerator, // ADDED: Pass the generator to the service
             });
 
-            lastPromptRef.current = prompt;
+            lastGenerationInfoRef.current = { prompt, systemInstruction };
             onSuccess(editedImageResult);
             return editedImageResult;
 
@@ -114,7 +114,7 @@ export const useDesignUpdate = ({
     return {
         isLoading,
         error,
-        lastPromptRef,
+        lastGenerationInfoRef,
         handleUpdateDesign,
         setError,
     };

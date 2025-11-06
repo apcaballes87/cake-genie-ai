@@ -5,6 +5,7 @@ import { ArrowLeft, Edit, ShoppingCart, Share2, CopyIcon as Copy, CheckCircle, U
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
 import LazyImage from '../../components/LazyImage';
 import { AvailabilityType } from '../../lib/utils/availability';
+import { ContributionSuccessModal } from '../../components/ContributionSuccessModal';
 
 interface SharedDesign {
   design_id: string;
@@ -75,6 +76,13 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
   const [isLoadingContributions, setIsLoadingContributions] = useState(true);
   const [showContributionForm, setShowContributionForm] = useState(false);
 
+  // State for success modal
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successDiscountCode, setSuccessDiscountCode] = useState('');
+  const [successAmount, setSuccessAmount] = useState(0);
+
+  
+
   useEffect(() => {
     const fetchDesign = async () => {
       setIsLoading(true);
@@ -112,7 +120,12 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.split('?')[1]);
     if (params.get('contribution') === 'success') {
-      showSuccess('Your contribution was successful! Thank you!');
+      const amount = parseFloat(params.get('amount') || '0');
+      const code = params.get('code') || 'FRIEND100';
+      
+      setSuccessAmount(amount);
+      setSuccessDiscountCode(code);
+      setShowSuccessModal(true);
       
       // Reload contributions to show the updated total
       if (design?.bill_sharing_enabled) {
@@ -567,6 +580,16 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
           </div>
         </div>
       </div>
+      <ContributionSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        contributionAmount={successAmount}
+        discountCode={successDiscountCode}
+        onStartDesigning={() => {
+          setShowSuccessModal(false);
+          onNavigateHome(); // Takes them to design tool
+        }}
+      />
     </>
   );
 };

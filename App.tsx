@@ -119,7 +119,7 @@ export default function App(): React.ReactElement {
   });
 
   const {
-    isLoading: isUpdatingDesign, error: designUpdateError, lastPromptRef, handleUpdateDesign, setError: setDesignUpdateError,
+    isLoading: isUpdatingDesign, error: designUpdateError, lastGenerationInfoRef, handleUpdateDesign, setError: setDesignUpdateError,
   } = useDesignUpdate({
       originalImageData, analysisResult, cakeInfo, mainToppers, supportElements, cakeMessages,
       icingDesign, additionalInstructions, threeTierReferenceImage,
@@ -317,22 +317,38 @@ export default function App(): React.ReactElement {
   }, [originalImagePreview, cakeInfo, finalPrice, analysisResult, buildCartItemDetails, isCustomizationDirty, uploadCartImages, basePrice, addOnPricing, setAppState, addToCartOptimistic, handleUpdateDesign]);
   
   const handleReport = useCallback(async (userFeedback: string) => {
-    if (!editedImage || !originalImageData?.data || !lastPromptRef.current) {
+    if (!editedImage || !originalImageData?.data || !lastGenerationInfoRef.current) {
         showError("Missing critical data for report.");
         return;
     }
     setIsReporting(true); setReportStatus(null);
     try {
+        const { prompt, systemInstruction } = lastGenerationInfoRef.current;
+        const fullPrompt = `--- SYSTEM PROMPT ---
+${systemInstruction}
+
+--- USER PROMPT ---
+${prompt}
+`;
         await reportCustomization({
-            original_image: originalImageData.data, customized_image: editedImage.split(',')[1],
-            prompt_sent_gemini: lastPromptRef.current, maintoppers: JSON.stringify(mainToppers.filter(t => t.isEnabled)),
-            supportelements: JSON.stringify(supportElements.filter(s => s.isEnabled)), cakemessages: JSON.stringify(cakeMessages.filter(m => m.isEnabled)),
-            icingdesign: JSON.stringify(icingDesign), addon_price: addOnPricing?.addOnPrice ?? 0, user_report: userFeedback.trim() || undefined,
+            original_image: originalImageData.data,
+            customized_image: editedImage.split(',')[1],
+            prompt_sent_gemini: fullPrompt.trim(),
+            maintoppers: JSON.stringify(mainToppers.filter(t => t.isEnabled)),
+            supportelements: JSON.stringify(supportElements.filter(s => s.isEnabled)),
+            cakemessages: JSON.stringify(cakeMessages.filter(m => m.isEnabled)),
+            icingdesign: JSON.stringify(icingDesign),
+            addon_price: addOnPricing?.addOnPrice ?? 0,
+            user_report: userFeedback.trim() || undefined,
         });
         setReportStatus('success'); showSuccess("Report submitted. Thank you!"); setIsReportModalOpen(false);
-    } catch (err) { setReportStatus('error'); showError("Failed to submit report.");
-    } finally { setIsReporting(false); setTimeout(() => setReportStatus(null), 5000); }
-  }, [editedImage, originalImageData, lastPromptRef, mainToppers, supportElements, cakeMessages, icingDesign, addOnPricing]);
+    } catch (err) {
+        setReportStatus('error'); showError("Failed to submit report.");
+    } finally {
+        setIsReporting(false);
+        setTimeout(() => setReportStatus(null), 5000);
+    }
+  }, [editedImage, originalImageData, lastGenerationInfoRef, mainToppers, supportElements, cakeMessages, icingDesign, addOnPricing]);
 
   const handleStartWithSharedDesign = useCallback(async (sharedDesign: any) => {
       clearAllState(false); setIsPreparingSharedDesign(true);

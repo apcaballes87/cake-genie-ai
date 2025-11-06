@@ -110,7 +110,7 @@ const ShopifyCustomizingPage: React.FC<ShopifyCustomizingPageProps> = ({ session
     isLoading: isUpdatingDesign,
     error: designUpdateError,
     handleUpdateDesign,
-    lastPromptRef,
+    lastGenerationInfoRef,
   } = useDesignUpdate({
     originalImageData,
     analysisResult,
@@ -367,16 +367,23 @@ const handleShopifyAddToCart = useCallback(async () => {
 }, [requestData, editedImage, isCustomizationDirty, handleUpdateDesign, uploadCartImages, generateCustomizationProperties, buildCartItemDetails, sessionId, finalShopifyPrice, icingDesign]);
 
 const handleReport = useCallback(async (userFeedback: string) => {
-    if (!editedImage || !originalImageData?.data || !lastPromptRef.current) {
+    if (!editedImage || !originalImageData?.data || !lastGenerationInfoRef.current) {
         showError("Missing critical data for report.");
         return;
     }
     setIsReporting(true);
     try {
+        const { prompt, systemInstruction } = lastGenerationInfoRef.current;
+        const fullPrompt = `--- SYSTEM PROMPT ---
+${systemInstruction}
+
+--- USER PROMPT ---
+${prompt}
+`;
         await reportCustomization({
             original_image: originalImageData.data,
             customized_image: editedImage.split(',')[1],
-            prompt_sent_gemini: lastPromptRef.current,
+            prompt_sent_gemini: fullPrompt.trim(),
             maintoppers: JSON.stringify(mainToppers.filter(t => t.isEnabled)),
             supportelements: JSON.stringify(supportElements.filter(s => s.isEnabled)),
             cakemessages: JSON.stringify(cakeMessages.filter(m => m.isEnabled)),
@@ -391,7 +398,7 @@ const handleReport = useCallback(async (userFeedback: string) => {
     } finally {
         setIsReporting(false);
     }
-}, [editedImage, originalImageData, lastPromptRef, mainToppers, supportElements, cakeMessages, icingDesign, addOnPricing]);
+}, [editedImage, originalImageData, lastGenerationInfoRef, mainToppers, supportElements, cakeMessages, icingDesign, addOnPricing]);
   
   // --- Render Logic ---
   if (pageIsLoading) {

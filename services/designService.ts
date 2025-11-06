@@ -14,6 +14,45 @@ import type {
     CakeInfoUI
 } from '../types';
 
+// --- NEW SPECIALIZED SYSTEM INSTRUCTIONS ---
+
+const INPAINTING_STYLE_SYSTEM_INSTRUCTION = `You are an expert, non-destructive photo editor.
+
+### **Core Editing Principles**
+---
+1.  **CRITICAL: TEXTURE-PRESERVING COLOR TINTING (Your ONLY Job)**
+    *   When asked to change a color, you MUST perform a "hue-shift" or "color tinting" operation only."
+    *   Analogy: You are applying a "Hue/Saturation" adjustment layer in Photoshop.
+2.  **PRESERVE EVERYTHING ELSE:** Do NOT add, remove, or change the shape of any element. The final output image MUST have the exact same dimensions, aspect ratio, background, lighting, shadows, and all other unmentioned details as the original input image.`;
+
+const GENERATIVE_DESIGN_SYSTEM_INSTRUCTION = `You are a master digital cake artist performing photorealistic edits on a cake image. Your goal is to apply ONLY the specific changes listed in the prompt, while preserving the original image's style, lighting, and composition.
+
+---
+### **Core Editing Principles**
+---
+1.  **Master Prioritization:** If any rules conflict, preserving the original physical texture of unedited areas is the highest priority.
+2.  **Technical Quality:** The final output MUST be a high-resolution, photorealistic image. Your task is technical cleanup: "Enhance" means you must upscale the final resolution and remove digital artifacts (like JPEG compression noise or pixelation). It does NOT mean artistically redrawing or repainting existing physical textures.
+3.  **Realistic Interaction:** When adding a new element (like a drip or a base board), it must interact realistically with the scene. It should adopt the same lighting, cast subtle shadows, and flow around existing decorations, not erase them.
+4.  **Preserve Unmentioned Details:** Any feature from the original image not mentioned in the list of changes MUST be preserved exactly as it is. This includes background, cake stand, and non-targeted decorations.
+5.  **Clean Removals:** When asked to remove an element, you must cleanly erase it and realistically in-paint the background area to seamlessly match the surrounding texture and lighting.
+6.  **Texture-Preserving Color Changes:** When asked to change an existing color, you MUST perform a "hue-shift" or "color tinting" operation. Preserve 100% of the original surface details and micro-textures (like icing strokes). The brightness and darkness (luminance) of every pixel should remain identical to the original; only the hue and saturation should change. Avoid flat, "plastic" looks.`;
+
+const THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION = `You are a master digital cake artist tasked with reconstructing a cake design into a new 3-tier structure. You will be given an original cake image for its design language and a reference image for the 3-tier structure.
+
+---
+### **Core Reconstruction Principles (VERY IMPORTANT)**
+---
+1.  **High-Quality Output:** The final output MUST be a high-resolution, photorealistic image. Even if the original design source image is low-quality, the new 3-tier cake image you generate must be crisp, clear, and professional-grade.
+2.  **Preserve Aspect Ratio:** The final output image MUST have the exact same dimensions and aspect ratio as the original input image. Do not change the image from portrait to landscape, square to rectangle, etc.
+3.  **Reconstruct Proportionally:** Rebuild the cake with a 3-tier count, distributing height and width realistically. The final structure and proportions MUST strictly follow the provided plain white 3-tier reference image. Maintain the original cake’s visual proportions if possible (e.g., if it was tall and narrow, keep that ratio across the new tier structure).
+4.  **Preserve Design Language, Not Layout:** Your primary task is to harvest the colors, textures, icing style, and decorative motifs from the original cake and apply them to the new 3-tier structure.
+5.  **Redistribute Decorations Logically:**
+    - Main toppers go on the top tier.
+    - Side decorations (e.g., florals, lace) should appear on all tiers or follow a cascading pattern.
+    - Cake messages should remain readable and be centered on an appropriate tier.
+6.  **Maintain Theme & Style Consistency:** If the original had a drip effect, apply it to all tiers consistently. If it used gold leaf, fresh flowers, or geometric patterns, replicate that aesthetic across the new structure.
+7.  **Do NOT Preserve Spatial Layout:** It is expected that elements will move to fit the new tier structure. The goal is stylistic continuity, not pixel-perfect replication of element positions.`;
+
 const EDIT_CAKE_PROMPT_TEMPLATE = (
     originalAnalysis: HybridAnalysisResult | null,
     newCakeInfo: CakeInfoUI,
@@ -119,11 +158,11 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             if (isPaletteKnife && hasMultipleColorsChanged) {
                 const originalColorNames = t.original_colors!.map(c => colorName(c || undefined)).join(', ');
                 const newColorNames = t.colors!.map(c => colorName(c || undefined)).join(', ');
-                itemChanges.push(`**remap its entire color palette**. The original color scheme was based on ${originalColorNames}. The new scheme MUST be based on **${newColorNames}**. It is critical that you preserve the original's textured strokes and relative light/dark variations, but translate them to the new color family.`);
+                itemChanges.push(`**remap its entire color palette**. The original color scheme was based on ${originalColorNames}. The new scheme MUST be based on **${newColorNames}**.`);
             } else if (hasSingleColorChanged) {
                 const isTexturedIcing = ['icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread'].includes(t.type);
                 if (isTexturedIcing) {
-                    itemChanges.push(`**rehue the texture** to a monochromatic palette based on the new color **${colorName(t.color)}**. It is critical that you **PRESERVE THE ORIGINAL STROKES, TEXTURE, AND LIGHTING (shadows/highlights)**. Simply shift the hue of the existing texture to the new color, maintaining all its original detail and form.`);
+                    itemChanges.push(`**change the color texture** to color **${colorName(t.color)}**. Simply shift the hue of the existing texture to the new color.`);
                 } else {
                     itemChanges.push(`recolor it to **${colorName(t.color)}**`);
                 }
@@ -182,11 +221,11 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             if (isPaletteKnife && hasMultipleColorsChanged) {
                 const originalColorNames = s.original_colors!.map(c => colorName(c || undefined)).join(', ');
                 const newColorNames = s.colors!.map(c => colorName(c || undefined)).join(', ');
-                itemChanges.push(`**remap its entire color palette**. The original color scheme was based on ${originalColorNames}. The new scheme MUST be based on **${newColorNames}**. It is critical that you preserve the original's textured strokes and relative light/dark variations, but translate them to the new color family.`);
+                itemChanges.push(`**remap its entire color palette**. The original color scheme was based on ${originalColorNames}. The new scheme MUST be based on **${newColorNames}**.`);
             } else if (hasSingleColorChanged) {
                 const isTexturedIcing = ['icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread'].includes(s.type);
                 if (isTexturedIcing) {
-                    itemChanges.push(`**rehue the texture** to a monochromatic palette based on the new color **${colorName(s.color)}**. It is critical that you **PRESERVE THE ORIGINAL STROKES, TEXTURE, AND LIGHTING (shadows/highlights)**. Simply shift the hue of the existing texture to the new color, maintaining all its original detail and form.`);
+                    itemChanges.push(`**change the color texture** to color **${colorName(s.color)}**. Simply shift the hue of the existing texture to the new color.`);
                 } else {
                     itemChanges.push(`recolor it to **${colorName(s.color)}**`);
                 }
@@ -395,7 +434,7 @@ export async function updateDesign({
         icingDesign: IcingDesignUI,
         additionalInstructions: string
     ) => string;
-}): Promise<{ image: string, prompt: string }> {
+}): Promise<{ image: string, prompt: string, systemInstruction: string }> {
 
     // 1. Validate inputs
     if (!originalImageData || !icingDesign || !cakeInfo) {
@@ -429,7 +468,7 @@ export async function updateDesign({
     };
     
     // Use the provided prompt generator, or fall back to the default one
-    const prompt = promptGenerator
+    let prompt = promptGenerator
         ? promptGenerator(
             analysisForPrompt, cakeInfo, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions
           )
@@ -437,24 +476,77 @@ export async function updateDesign({
             analysisForPrompt, cakeInfo, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions
           );
 
-    // 4. Handle timeout
+    // 4. Determine change type and select system instruction
+    const changesList = prompt.split('### **List of Changes to Apply**')[1]?.trim().split('\n').filter(line => line.startsWith('- ')) || [];
+    
+    const isColorOnlyChange = (changes: string[]): boolean => {
+        if (changes.length === 0) return true; // No changes, inpainting prompt is safer.
+        const designChangeKeywords = [
+            'remove', 'add', 'change the cake type', 'change the cake thickness', 'reconstruct', 'erase', 'move',
+            'change the style', 'redraw', 're-sculpt', 'replace its image', 'bento box presentation'
+        ];
+        // Check if ANY change is NOT just a color change
+        return !changes.some(change => 
+            designChangeKeywords.some(keyword => change.toLowerCase().includes(keyword))
+        );
+    };
+
+    const isThreeTierReconstruction = cakeInfo.type !== (analysisResult?.cakeType || cakeInfo.type) && cakeInfo.type.includes('3 Tier');
+    const useInpaintingStyle = isColorOnlyChange(changesList);
+
+    console.log('[Design Service] Change analysis:', { isThreeTierReconstruction, useInpaintingStyle });
+    
+    let systemInstruction = 
+        isThreeTierReconstruction ? THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION :
+        useInpaintingStyle ? INPAINTING_STYLE_SYSTEM_INSTRUCTION :
+        GENERATIVE_DESIGN_SYSTEM_INSTRUCTION;
+
+    // 5. Smart Prompt Filtering for Inpainting
+    if (useInpaintingStyle && !isThreeTierReconstruction) {
+        const colorKeywords = ['re-hue', 'recolor', 'color shade', 'color to'];
+        const colorChanges = changesList.filter(change =>
+            colorKeywords.some(keyword => change.toLowerCase().includes(keyword))
+        );
+
+        if (colorChanges.length > 0) {
+            prompt = `---
+### **List of Changes to Apply**
+---
+${colorChanges.join('\n')}`;
+        } else {
+             prompt = `---
+### **List of Changes to Apply**
+---
+- No changes were requested. The image should remain exactly the same.`;
+        }
+    }
+
+
+    // 6. Handle timeout
     const timeoutPromise = new Promise < never > ((_, reject) =>
         setTimeout(() => reject(new Error("Request timed out after 60 seconds.")), 60000)
     );
 
     try {
-        // 5. Call editCakeImage
+        // 7. Call editCakeImage
         const editedImageResult: string | unknown = await Promise.race([
-            editCakeImage(prompt, originalImageData, mainToppers, supportElements, cakeInfo.type.includes('3 Tier') ? threeTierReferenceImage : null),
+            editCakeImage(
+                prompt,
+                originalImageData,
+                mainToppers,
+                supportElements,
+                isThreeTierReconstruction ? threeTierReferenceImage : null,
+                systemInstruction
+            ),
             timeoutPromise
         ]);
         
-        // 6. Return the edited image or throw an error
+        // 8. Return the edited image or throw an error
         if (typeof editedImageResult !== 'string') {
             throw new Error("Image generation did not return a valid string response.");
         }
         
-        return { image: editedImageResult, prompt };
+        return { image: editedImageResult, prompt, systemInstruction };
 
     } catch (err) {
         // Re-throw the caught error to be handled by the component

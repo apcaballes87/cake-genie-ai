@@ -594,7 +594,8 @@ export const editCakeImage = async (
     originalImage: { data: string; mimeType: string; },
     mainToppers: MainTopperUI[],
     supportElements: SupportElementUI[],
-    threeTierReferenceImage: { data: string; mimeType: string; } | null
+    threeTierReferenceImage: { data: string; mimeType: string; } | null,
+    customSystemInstruction?: string
 ): Promise<string> => {
 
     const parts: ({ text: string } | { inlineData: { mimeType: string, data: string } })[] = [];
@@ -634,9 +635,9 @@ export const editCakeImage = async (
     // 5. Text prompt (last, to provide context for all images)
     parts.push({ text: prompt });
 
-    const systemInstruction = threeTierReferenceImage 
+    const systemInstruction = customSystemInstruction || (threeTierReferenceImage 
         ? THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION 
-        : IMAGE_EDITING_SYSTEM_INSTRUCTION;
+        : IMAGE_EDITING_SYSTEM_INSTRUCTION);
 
     try {
         const response = await ai.models.generateContent({
