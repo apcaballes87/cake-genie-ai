@@ -4,6 +4,7 @@ import { getSupabaseClient } from '../lib/supabase/client';
 import { showSuccess, showError } from '../lib/utils/toast';
 import { v4 as uuidv4 } from 'uuid';
 import { generateUrlSlug } from '../lib/utils/urlHelpers';
+import { generateContributorDiscountCode } from './incentiveService';
 
 const supabase = getSupabaseClient();
 
@@ -351,7 +352,8 @@ export async function createContribution(
   designId: string,
   contributorName: string,
   contributorEmail: string,
-  amount: number
+  amount: number,
+  userId: string
 ): Promise<{ success: boolean; paymentUrl?: string; error?: string }> {
   try {
     // 1. Get design details
@@ -389,7 +391,8 @@ export async function createContribution(
         contributor_name: contributorName,
         contributor_email: contributorEmail,
         amount: amount,
-        status: 'pending'
+        status: 'pending',
+        user_id: userId
       })
       .select()
       .single();
@@ -399,9 +402,22 @@ export async function createContribution(
       return { success: false, error: 'Failed to create contribution record' };
     }
 
+    // Track referral if this is a new user being referred
+    if (userId && design.created_by_user_id && userId !== design.created_by_user_id) {
+      await trackReferral(userId, design.created_by_user_id, design.design_id, contribution.contribution_id);
+    }
+
+    // Generate discount code for contributor
+    const discountCode = await generateContributorDiscountCode(userId, amount);
+
+    if (insertError || !contribution) {
+      console.error('Error creating contribution:', insertError);
+      return { success: false, error: 'Failed to create contribution record' };
+    }
+
     // 4. Create Xendit invoice using existing Edge Function
     const domain = window.location.origin;
-    const successUrl = `${domain}/#/designs/${design.url_slug || design.design_id}?contribution=success`;
+    const successUrl = `${domain}/#/designs/${design.url_slug || design.design_id}?contribution=success&amount=${amount}&code=${discountCode || 'FRIEND100'}`;
     const failureUrl = `${domain}/#/designs/${design.url_slug || design.design_id}?contribution=failed`;
 
     const { data: paymentData, error: paymentError } = await supabase.functions.invoke(
@@ -469,3 +485,31 @@ export const SOCIAL_MESSAGES = {
   
   instagram: "🎂 Designed my dream cake using AI!\nWhat do you think? 😍\n\n🔗 Link in bio to see the full design!\nTag someone who needs to see this! 👇\n\n#CakeGenie #CustomCake #DreamCake #BirthdayCake"
 };
+
+/**
+ * Track that a user was referred through a bill share
+ */
+export async function trackReferral(
+  referredUserId: string,
+  referringUserId: string,
+  designId: string,
+  contributionId: string
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('user_referrals')
+      .insert({
+        referring_user_id: referringUserId,
+        referred_user_id: referredUserId,
+        referral_source: 'bill_sharing',
+        design_id: designId,
+        contribution_id: contributionId
+      });
+    
+    if (error && error.code !== '23505') { // Ignore duplicate key errors
+      console.error('Error tracking referral:', error);
+    }
+  } catch (error) {
+    console.error('Exception tracking referral:', error);
+  }
+}

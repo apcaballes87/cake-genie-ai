@@ -204,7 +204,8 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
       design.design_id,
       nameToUse,
       emailToUse,
-      amount
+      amount,
+      user.id
     );
 
     setIsSubmittingContribution(false);

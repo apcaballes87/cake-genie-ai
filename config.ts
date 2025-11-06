@@ -25,5 +25,12 @@ export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "
 // In local development, add to .env.local
 export const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 
+// Check if API key is set and provide helpful error message
+if (!GEMINI_API_KEY) {
+  console.warn("⚠️  WARNING: GEMINI_API_KEY is not set. Please add VITE_GEMINI_API_KEY to your .env.local file.");
+} else if (GEMINI_API_KEY === "REPLACE_WITH_YOUR_NEW_GEMINI_API_KEY") {
+  console.warn("⚠️  WARNING: You need to replace the placeholder API key in .env.local with your actual Gemini API key.");
+}
+
 // Google Custom Search Engine ID
 export const GOOGLE_CSE_ID = "825ca1503c1bd4d00";

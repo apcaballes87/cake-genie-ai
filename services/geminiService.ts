@@ -4,7 +4,7 @@ import { CAKE_TYPES, CAKE_THICKNESSES, COLORS } from "../constants";
 import { GEMINI_API_KEY } from '../config';
 
 if (!GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY environment variable not set");
+    throw new Error("GEMINI_API_KEY environment variable not set. Please add VITE_GEMINI_API_KEY to your .env.local file with a valid Gemini API key from https://aistudio.google.com/app/apikey");
 }
 
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
