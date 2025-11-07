@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "test": "jest"
   },
   "dependencies": {
     "@google/genai": "^1.27.0",
@@ -25,6 +26,7 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/lodash": "^4.14.202",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",

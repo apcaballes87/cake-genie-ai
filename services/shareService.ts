@@ -1,5 +1,3 @@
-
-
 import { getSupabaseClient } from '../lib/supabase/client';
 import { showSuccess, showError } from '../lib/utils/toast';
 import { v4 as uuidv4 } from 'uuid';
@@ -417,7 +415,7 @@ export async function createContribution(
 
     // 4. Create Xendit invoice using existing Edge Function
     const domain = window.location.origin;
-    const successUrl = `${domain}/#/designs/${design.url_slug || design.design_id}?contribution=success&amount=${amount}&code=${discountCode || 'FRIEND100'}`;
+    const successUrl = `${domain}/#/designs/${design.url_slug || design.design_id}?contribution=success&contribution_id=${contribution.contribution_id}&amount=${amount}&code=${discountCode || 'FRIEND100'}`;
     const failureUrl = `${domain}/#/designs/${design.url_slug || design.design_id}?contribution=failed`;
 
     const { data: paymentData, error: paymentError } = await supabase.functions.invoke(
