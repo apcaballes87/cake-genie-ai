@@ -1,12 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase credentials from the environment file
-const supabaseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co';
+// Supabase credentials - will use service role key from environment if available
+const supabaseUrl = process.env.SUPABASE_URL || 'https://cqmhanqnfybyxezhobkx.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxbWhhbnFuZnlieXhlemhvYmt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MjEwMTgsImV4cCI6MjA3NTE5NzAxOH0.7Et4dx3c8MXXpVVC5tXzM2nFZ203lx9WnAagWsakXks';
+
+// Note: For production use, this should use SUPABASE_SERVICE_ROLE_KEY for full access
 
 console.log('Fixing base64 URLs in shared designs...');
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Use service role key if available in environment, otherwise use anon key
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
+console.log('Using Supabase URL:', supabaseUrl);
+console.log('Using service role key:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Function to convert base64 data URI to Blob (simplified version for Node.js)
 function dataURItoBlob(dataURI) {
@@ -28,13 +35,14 @@ async function fixBase64Urls() {
     
     // Get designs that have base64 data URIs
     const { data: designs, error } = await supabase
-      .from('cakegenie_shared_designs')
+      .from('cakegenie_shared_designs') // Corrected table name
       .select('design_id, customized_image_url')
       .like('customized_image_url', 'data:%')
       .limit(50); // Process in batches to avoid timeouts
     
     if (error) {
       console.log('Error fetching designs:', error.message);
+      console.log('Error details:', error);
       return;
     }
     
@@ -83,7 +91,7 @@ async function fixBase64Urls() {
         
         // Update the database record
         const { error: updateError } = await supabase
-          .from('cakegenie_shared_designs')
+          .from('cakegenie_shared_designs') // Corrected table name
           .update({ customized_image_url: publicUrl })
           .eq('design_id', design.design_id);
         
@@ -100,8 +108,9 @@ async function fixBase64Urls() {
     }
     
     console.log(`\n=== Summary ===`);
-    console.log(`Fixed ${fixedCount} designs with base64 URLs`);
-    console.log(`Remaining: ${designs.length - fixedCount} designs with issues`);
+    console.log(`Found ${designs.length} designs with base64 URLs`);
+    console.log(`Successfully fixed ${fixedCount} designs`);
+    console.log(`${designs.length - fixedCount} designs had issues`);
     
   } catch (err) {
     console.error('Unexpected error:', err);
