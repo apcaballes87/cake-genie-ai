@@ -298,9 +298,10 @@ export async function getSharedDesign(identifier: string) {
     
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
     
+    // Simplified query without joining with user_profiles table
     const query = supabase
       .from('cakegenie_shared_designs')
-      .select('*, organizer:profiles(full_name, email, phone)');
+      .select('*');
 
     if (isUuid) {
         query.eq('design_id', identifier);
