@@ -53,6 +53,8 @@ const paymentMethods = [
 
 
 const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, onRemoveItem, onClose, onContinueShopping, onAuthRequired }) => {
+    console.log('🎨 Rendering CartPage:', { items, isCartLoading });
+    
     const { user } = useAuth();
     const isRegisteredUser = user && !user.is_anonymous;
     const { 
@@ -64,6 +66,8 @@ const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, on
       selectedAddressId, setSelectedAddressId
     } = useCart();
     
+    console.log('🛒 Cart context items:', { cartItems, cartItemsCount: cartItems?.length });
+
     const { data: savedAddresses = [], isLoading: isAddressesLoading } = useAddresses(user?.id);
     
     const [isAddingAddress, setIsAddingAddress] = useState(false);
@@ -127,6 +131,8 @@ const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, on
     }, [mapsLoadError]);
 
     const subtotal = (items || []).reduce((acc, item) => item.status === 'complete' ? acc + item.totalPrice : acc, 0);
+    console.log('💰 Subtotal calculation:', { items, subtotal });
+    
     const deliveryFee = 150;
     const total = subtotal + deliveryFee - (appliedDiscount?.discountAmount || 0);
 
@@ -379,6 +385,7 @@ const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, on
                 <div className="space-y-6">
                     <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
                         {(items || []).map(item => {
+                            console.log('📦 Rendering cart item:', item);
                             const tierLabels = item.details.flavors.length === 2 
                                 ? ['Top Tier', 'Bottom Tier'] 
                                 : ['Top Tier', 'Middle Tier', 'Bottom Tier'];

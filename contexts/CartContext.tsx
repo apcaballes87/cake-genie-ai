@@ -230,11 +230,14 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const loadCartData = useCallback(async (user: User | null) => {
+    console.log('📦 Loading cart data for user:', user?.id || 'no user');
     setIsLoading(true);
     try {
       const isAnonymous = user?.is_anonymous ?? false;
       const userIdForQuery = isAnonymous ? null : user?.id;
       const sessionIdForQuery = isAnonymous ? user?.id : null;
+      
+      console.log('🔍 Query parameters:', { userIdForQuery, sessionIdForQuery, isAnonymous });
       
       const pageDataPromise = getCartPageData(userIdForQuery, sessionIdForQuery);
       const { cartData, addressesData } = await withTimeout(
@@ -243,8 +246,15 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         "Cart loading timed out."
       );
 
+      console.log('📊 Cart data response:', cartData);
+      console.log('🏠 Addresses data response:', addressesData);
+
       const { data: cartItemsData, error: cartError } = cartData;
-      if (cartError) throw cartError;
+      if (cartError) {
+        console.error('❌ Cart data error:', cartError);
+        throw cartError;
+      }
+      console.log('✅ Cart items loaded:', cartItemsData?.length || 0);
       setCartItems(cartItemsData || []);
 
       const { data: userAddressesData, error: addressesError } = addressesData;
@@ -260,15 +270,18 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setAddresses([]);
     } finally {
       setIsLoading(false);
+      console.log('🏁 Cart loading finished');
     }
   }, []);
   
   useEffect(() => {
+    console.log('🔄 Initializing cart provider...');
     const initialize = async () => {
         cleanupExpiredLocalStorage();
         setIsLoading(true); // Set loading at the very start.
         try {
             const { data: { session } } = await supabase.auth.getSession();
+            console.log('🔑 Session data:', session);
     
             let userToLoad: User | null = session?.user || null;
     
@@ -282,14 +295,16 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 userToLoad = data.user;
                 console.log('✅ Anonymous session created:', userToLoad?.id);
             } else {
-                console.log('✅ Existing session found:', userToLoad.id, 'Is anonymous:', userToLoad.is_anonymous);
+                console.log('✅ Existing session found:', userToLoad?.id, 'Is anonymous:', userToLoad?.is_anonymous);
             }
     
             setCurrentUser(userToLoad);
             if (userToLoad?.is_anonymous) {
                 setSessionId(userToLoad.id);
+                console.log('🆔 Set session ID for anonymous user:', userToLoad.id);
             } else {
                 setSessionId(null);
+                console.log('🆔 Cleared session ID for authenticated user');
             }
             prevUserIdRef.current = userToLoad?.id ?? null;
             
@@ -325,8 +340,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             
             if (user?.is_anonymous) {
                 setSessionId(user.id);
+                console.log('🆔 Set session ID for anonymous user (state change):', user.id);
             } else {
                 setSessionId(null);
+                console.log('🆔 Cleared session ID for authenticated user (state change)');
             }
             
             // If there's no auth error, load the cart for the new user.
@@ -349,6 +366,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     itemParams: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
     options?: { skipOptimistic?: boolean }
   ) => {
+    console.log('🛒 Adding item to cart:', itemParams);
     const tempId = `temp-${Date.now()}`;
     const now = new Date().toISOString();
     
@@ -371,6 +389,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // FIX: Fetch the user directly before the operation to avoid race conditions
       // with the state update, which was causing RLS violations.
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('👤 User for cart add:', user?.id, 'Is anonymous:', user?.is_anonymous);
 
       if (!user) {
         throw new Error("Could not verify user session. Please try again.");
