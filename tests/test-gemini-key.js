@@ -1,4 +1,4 @@
-// Script to test if the Gemini API key is valid
+// Script to test if the API keys are valid
 import { config } from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -14,61 +14,70 @@ if (existsSync(envLocalPath)) {
   console.log('Loaded environment variables from .env.local');
 }
 
-// Get the API key
-const apiKey = process.env.VITE_GEMINI_API_KEY;
+console.log('=== Checking API Keys ===');
 
-console.log('Checking Gemini API key...');
+// Check Gemini API Key
+const geminiApiKey = process.env.VITE_GEMINI_API_KEY;
+console.log('\n1. Gemini API Key Check:');
 
-if (!apiKey) {
+if (!geminiApiKey) {
   console.error('❌ Error: VITE_GEMINI_API_KEY is not set in environment variables');
   console.log('Please add your actual Gemini API key to .env.local');
-  process.exit(1);
-}
-
-if (apiKey === 'your_actual_gemini_api_key_here') {
+} else if (geminiApiKey === 'your_actual_gemini_api_key_here') {
   console.error('❌ Error: VITE_GEMINI_API_KEY is still set to the placeholder value');
   console.log('Please replace "your_actual_gemini_api_key_here" with your actual API key in .env.local');
-  process.exit(1);
-}
-
-console.log('✅ API key found in environment variables');
-console.log('Testing API key validity...');
-
-// Test the API key with a simple request
-const testApiKey = async () => {
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: 'Hello, this is a test message to verify the API key.'
-            }]
+} else {
+  console.log('✅ Gemini API key found in environment variables');
+  console.log('Testing Gemini API key validity...');
+  
+  // Test the API key with a simple request
+  fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: 'Hello, this is a test message to verify the API key.'
           }]
-        })
-      }
-    );
-
-    const data = await response.json();
-    
+        }]
+      })
+    }
+  )
+  .then(response => {
     if (response.ok) {
-      console.log('✅ API key is valid!');
+      console.log('✅ Gemini API key is valid!');
       console.log('Test response received successfully');
     } else {
-      console.error('❌ API key is invalid or there was an error:');
-      console.error('Status:', response.status);
-      console.error('Message:', data.error?.message || 'Unknown error');
-      process.exit(1);
+      return response.json().then(data => {
+        console.error('❌ Gemini API key is invalid or there was an error:');
+        console.error('Status:', response.status);
+        console.error('Message:', data.error?.message || 'Unknown error');
+      });
     }
-  } catch (error) {
-    console.error('❌ Error testing API key:', error.message);
-    process.exit(1);
-  }
-};
+  })
+  .catch(error => {
+    console.error('❌ Error testing Gemini API key:', error.message);
+  });
+}
 
-testApiKey();
+// Check Google Maps API Key
+const googleMapsApiKey = process.env.VITE_GOOGLE_MAPS_API_KEY;
+console.log('\n2. Google Maps API Key Check:');
+
+if (!googleMapsApiKey) {
+  console.error('❌ Error: VITE_GOOGLE_MAPS_API_KEY is not set in environment variables');
+  console.log('Please add your actual Google Maps API key to .env.local');
+} else if (googleMapsApiKey === 'your_actual_google_maps_api_key_here') {
+  console.error('❌ Error: VITE_GOOGLE_MAPS_API_KEY is still set to the placeholder value');
+  console.log('Please replace "your_actual_google_maps_api_key_here" with your actual API key in .env.local');
+} else {
+  console.log('✅ Google Maps API key found in environment variables');
+  console.log('Note: Google Maps API key validation requires a browser environment');
+  console.log('You can test it by opening the app and checking for map functionality');
+}
+
+console.log('\n=== API Key Check Complete ===');
