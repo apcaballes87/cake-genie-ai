@@ -34,5 +34,9 @@ dist-ssr
 .env.production.local
 .cursor/mcp-settings.json
 
+# Test files with local credentials
+tests/*.local.js
+tests/.env
+
 # Vercel
 .vercel
