@@ -7,6 +7,66 @@ import { CartItemDetails } from '../types';
 
 const supabase = getSupabaseClient();
 
+/**
+ * Convert base64 data URI to Blob
+ */
+function dataURItoBlob(dataURI: string): Blob {
+  const byteString = atob(dataURI.split(',')[1]);
+  const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
+  return new Blob([ab], { type: mimeString });
+}
+
+/**
+ * Upload image to Supabase Storage and return public URL
+ */
+async function uploadImageToStorage(
+  imageDataUri: string,
+  fileName: string
+): Promise<string | null> {
+  try {
+    // Check if it's already a URL (not base64)
+    if (imageDataUri.startsWith('http://') || imageDataUri.startsWith('https://')) {
+      return imageDataUri; // Already a URL, return as-is
+    }
+
+    // Convert base64 to Blob
+    const blob = dataURItoBlob(imageDataUri);
+
+    // Generate unique file path
+    const fileExt = blob.type.split('/')[1] || 'png';
+    const filePath = `${fileName}.${fileExt}`;
+
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('shared-cake-images')
+      .upload(filePath, blob, {
+        contentType: blob.type,
+        cacheControl: '31536000', // Cache for 1 year
+        upsert: true // Overwrite if exists
+      });
+
+    if (error) {
+      console.error('Storage upload error:', error);
+      return null;
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('shared-cake-images')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  } catch (error) {
+    console.error('Exception uploading image:', error);
+    return null;
+  }
+}
+
 export interface ShareDesignData {
   customizedImageUrl: string;
   originalImageUrl?: string;
@@ -71,17 +131,41 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
         return null;
       }
     }
-    
+
     const designId = uuidv4();
     const urlSlug = generateUrlSlug(data.title, designId);
+
+    // Upload images to Supabase Storage and get public URLs
+    let customizedImageUrl = data.customizedImageUrl;
+    let originalImageUrl = data.originalImageUrl;
+
+    // Upload customized image
+    if (customizedImageUrl && customizedImageUrl.startsWith('data:')) {
+      const uploadedUrl = await uploadImageToStorage(customizedImageUrl, `${designId}-customized`);
+      if (uploadedUrl) {
+        customizedImageUrl = uploadedUrl;
+      } else {
+        showError('Failed to upload customized image');
+        return null;
+      }
+    }
+
+    // Upload original image if provided
+    if (originalImageUrl && originalImageUrl.startsWith('data:')) {
+      const uploadedUrl = await uploadImageToStorage(originalImageUrl, `${designId}-original`);
+      if (uploadedUrl) {
+        originalImageUrl = uploadedUrl;
+      }
+      // Don't fail if original image upload fails, it's optional
+    }
 
     const { error } = await supabase
       .from('cakegenie_shared_designs')
       .insert({
         design_id: designId,
         url_slug: urlSlug,
-        customized_image_url: data.customizedImageUrl,
-        original_image_url: data.originalImageUrl,
+        customized_image_url: customizedImageUrl,
+        original_image_url: originalImageUrl,
         cake_type: data.cakeType,
         cake_size: data.cakeSize,
         cake_flavor: data.cakeFlavor,
