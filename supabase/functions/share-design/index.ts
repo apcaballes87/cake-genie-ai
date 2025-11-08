@@ -64,11 +64,25 @@ serve(async (req) => {
     }
 
     console.log(`[share-design] Found design: ${data.title}`);
-    
-    // 3. Construct the HTML with meta tags
+
+    // 3. Check if this is a bot or a real user
+    const userAgent = req.headers.get('user-agent') || '';
+    const isBot = /bot|crawler|spider|facebook|twitter|whatsapp|linkedin|slack/i.test(userAgent);
+
     const APP_DOMAIN = 'https://genie.ph';
     const canonicalUrl = `${APP_DOMAIN}/designs/${slug}`; // The URL crawlers see
     const clientRedirectUrl = `${APP_DOMAIN}/#/designs/${slug}`; // The SPA route for users
+
+    // If it's a real user (not a bot), redirect them immediately
+    if (!isBot) {
+        return new Response(null, {
+            status: 302,
+            headers: {
+                'Location': clientRedirectUrl,
+                ...corsHeaders
+            }
+        });
+    }
 
     const title = escapeHtml(data.title || "Check out this Cake Design!");
     const description = escapeHtml(data.description || "I created this custom cake design using Genie. What do you think?");
