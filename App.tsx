@@ -62,10 +62,24 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
     'Square': 'Square', 'Rectangle': 'Rectangle', 'Bento': 'Bento',
 };
 
+// Helper function to convert CakeGenieCartItem to CartItem
+const convertCakeGenieCartItemToCartItem = (item: CakeGenieCartItem): CartItem => {
+  return {
+    id: item.cart_item_id,
+    image: item.customized_image_url,
+    status: 'complete',
+    type: item.cake_type,
+    thickness: item.cake_thickness,
+    size: item.cake_size,
+    totalPrice: item.final_price,
+    details: item.customization_details,
+  };
+};
+
 export default function App(): React.ReactElement {
   // --- CORE CONTEXT HOOKS ---
   const { user, isAuthenticated, signOut } = useAuth();
-  const { itemCount: supabaseItemCount, addToCartOptimistic, removeItemOptimistic, authError, isLoading: isCartLoading } = useCart();
+  const { itemCount: supabaseItemCount, addToCartOptimistic, removeItemOptimistic, authError } = useCart();
   const { settings: availabilitySettings, loading: isLoadingAvailabilitySettings } = useAvailabilitySettings();
 
   // --- CUSTOM BUSINESS LOGIC HOOKS ---
@@ -95,6 +109,30 @@ export default function App(): React.ReactElement {
     onCakeMessageChange,
   } = useCakeCustomization();
 
+  const { 
+    addOnPricing, 
+    itemPrices, 
+    basePriceOptions, 
+    isFetchingBasePrice, 
+    basePriceError, 
+    basePrice, 
+    finalPrice 
+  } = usePricing({
+      analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo, onCakeInfoCorrection: handleCakeInfoChange, analysisId
+  });
+
+  const {
+    isLoading: isUpdatingDesign, error: designUpdateError, lastGenerationInfoRef, handleUpdateDesign, setError: setDesignUpdateError,
+  } = useDesignUpdate({
+      originalImageData, analysisResult, cakeInfo, mainToppers, supportElements, cakeMessages,
+      icingDesign, additionalInstructions, threeTierReferenceImage,
+      onSuccess: (editedImageResult: string) => {
+          setEditedImage(editedImageResult);
+          setActiveTab('customized');
+          setIsCustomizationDirty(false);
+      },
+  });
+
   const availability = useMemo(() => {
     if (!availabilitySettings || !baseAvailability) return baseAvailability;
 
@@ -112,23 +150,8 @@ export default function App(): React.ReactElement {
 
     return baseAvailability;
   }, [baseAvailability, availabilitySettings]);
+  
   const availabilityWasOverridden = availability !== baseAvailability;
-
-  const { addOnPricing, itemPrices, basePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice } = usePricing({
-      analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo, onCakeInfoCorrection: handleCakeInfoChange, analysisId
-  });
-
-  const {
-    isLoading: isUpdatingDesign, error: designUpdateError, lastGenerationInfoRef, handleUpdateDesign, setError: setDesignUpdateError,
-  } = useDesignUpdate({
-      originalImageData, analysisResult, cakeInfo, mainToppers, supportElements, cakeMessages,
-      icingDesign, additionalInstructions, threeTierReferenceImage,
-      onSuccess: (editedImageResult: string) => {
-          setEditedImage(editedImageResult);
-          setActiveTab('customized');
-          setIsCustomizationDirty(false);
-      },
-  });
 
   const HEX_TO_COLOR_NAME_MAP = useMemo(() => COLORS.reduce((acc, color) => {
       acc[color.hex.toLowerCase()] = color.name;
@@ -162,6 +185,9 @@ export default function App(): React.ReactElement {
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const mainImageContainerRef = useRef<HTMLDivElement>(null);
 
+  // Get cart data from CartContext
+  const { cartItems: contextCartItems, isLoading: isCartContextLoading } = useCart();
+
   // --- DERIVED STATE & MEMOIZED VALUES ---
   // isLoading is for overlays that block image interaction (image processing, updating design)
   // isAnalyzing is for background analysis which should NOT block the UI
@@ -174,6 +200,11 @@ export default function App(): React.ReactElement {
     );
     return hasToy ? "Toys are subject for availability" : null;
   }, [mainToppers]);
+
+  // Convert context cart items to UI cart items
+  const uiCartItems = useMemo(() => {
+    return contextCartItems.map(convertCakeGenieCartItemToCartItem);
+  }, [contextCartItems]);
 
   // --- ORCHESTRATION LOGIC (Connecting Hooks & State) ---
   const clearAllState = useCallback((backToLanding: boolean = true) => {
@@ -480,7 +511,14 @@ ${prompt}
             availabilityWasOverridden={availabilityWasOverridden}
             onCakeMessageChange={onCakeMessageChange}
         />;
-        case 'cart': return <CartPage pendingItems={pendingCartItems} isLoading={isCartLoading} onRemoveItem={removeItemOptimistic} onClose={() => setAppState(previousAppState.current || 'customizing')} onContinueShopping={() => setAppState('customizing')} onAuthRequired={() => setAppState('auth')} />;
+        case 'cart': return <CartPage 
+          items={[...uiCartItems, ...pendingCartItems]} 
+          isLoading={isCartContextLoading} 
+          onRemoveItem={removeItemOptimistic} 
+          onClose={() => setAppState(previousAppState.current || 'customizing')} 
+          onContinueShopping={() => setAppState('customizing')} 
+          onAuthRequired={() => setAppState('auth')} 
+        />;
         case 'order_confirmation': return confirmedOrderId ? <OrderConfirmationPage orderId={confirmedOrderId} onContinueShopping={() => setAppState('landing')} onGoToOrders={() => setAppState('orders')} /> : <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>;
         case 'auth': return <AuthPage onClose={() => setAppState(previousAppState.current || 'landing')} onSuccess={() => setAppState(previousAppState.current && previousAppState.current !== 'auth' ? previousAppState.current : 'landing')} />;
         case 'addresses': return <AddressesPage onClose={() => setAppState(previousAppState.current || 'landing')} />;
