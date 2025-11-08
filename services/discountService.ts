@@ -20,35 +20,113 @@ export async function validateDiscountCode(
   orderAmount: number
 ): Promise<DiscountValidationResult> {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const normalizedCode = code.trim().toUpperCase();
     
-    const { data, error } = await supabase.functions.invoke('validate-discount-code', {
-      body: { code, orderAmount },
-      headers: session ? {
-        Authorization: `Bearer ${session.access_token}`
-      } : {}
-    });
+    // Direct query to discount_codes table
+    const { data: discountCode, error } = await supabase
+      .from('discount_codes')
+      .select('*')
+      .eq('code', normalizedCode)
+      .single();
 
-    if (error) {
-      console.error('Error validating discount code:', error);
-      return { 
-        valid: false, 
+    // If code doesn't exist
+    if (error || !discountCode) {
+      return {
+        valid: false,
         discountAmount: 0,
         originalAmount: orderAmount,
         finalAmount: orderAmount,
-        error: 'Failed to validate code' 
+        message: 'Invalid discount code',
       };
     }
 
-    return data;
+    // Check if active
+    if (!discountCode.is_active) {
+      return {
+        valid: false,
+        discountAmount: 0,
+        originalAmount: orderAmount,
+        finalAmount: orderAmount,
+        message: 'This discount code is no longer active',
+      };
+    }
+
+    // Check expiration
+    if (discountCode.expires_at) {
+      const expirationDate = new Date(discountCode.expires_at);
+      const now = new Date();
+      
+      if (expirationDate < now) {
+        return {
+          valid: false,
+          discountAmount: 0,
+          originalAmount: orderAmount,
+          finalAmount: orderAmount,
+          message: `This code expired on ${expirationDate.toLocaleDateString()}`,
+        };
+      }
+    }
+
+    // Check usage limit
+    if (discountCode.times_used >= discountCode.max_uses) {
+      return {
+        valid: false,
+        discountAmount: 0,
+        originalAmount: orderAmount,
+        finalAmount: orderAmount,
+        message: 'This discount code has reached its usage limit',
+      };
+    }
+
+    // Check minimum order amount
+    if (discountCode.min_order_amount && orderAmount < discountCode.min_order_amount) {
+      return {
+        valid: false,
+        discountAmount: 0,
+        originalAmount: orderAmount,
+        finalAmount: orderAmount,
+        message: `Minimum order amount of ₱${discountCode.min_order_amount} required`,
+      };
+    }
+
+    // Check user-specific codes
+    const { data: { user } } = await supabase.auth.getUser();
+    if (discountCode.user_id && discountCode.user_id !== user?.id) {
+      return {
+        valid: false,
+        discountAmount: 0,
+        originalAmount: orderAmount,
+        finalAmount: orderAmount,
+        message: 'This code is not valid for your account',
+      };
+    }
+
+    // Calculate discount
+    let discountAmount = 0;
+    if (discountCode.discount_amount > 0) {
+      discountAmount = discountCode.discount_amount;
+    } else if (discountCode.discount_percentage > 0) {
+      discountAmount = (orderAmount * discountCode.discount_percentage) / 100;
+    }
+
+    const finalAmount = Math.max(0, orderAmount - discountAmount);
+
+    return {
+      valid: true,
+      discountAmount,
+      codeId: discountCode.code_id,
+      originalAmount: orderAmount,
+      finalAmount,
+      message: 'Discount code applied successfully!',
+    };
   } catch (error) {
-    console.error('Exception validating discount code:', error);
-    return { 
-      valid: false, 
+    console.error('Error validating discount code:', error);
+    return {
+      valid: false,
       discountAmount: 0,
       originalAmount: orderAmount,
       finalAmount: orderAmount,
-      error: 'An error occurred' 
+      message: 'Error validating discount code',
     };
   }
 }
