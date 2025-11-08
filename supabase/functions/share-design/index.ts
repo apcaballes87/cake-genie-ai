@@ -111,12 +111,14 @@ serve(async (req) => {
     `;
     
     return new Response(html, {
-        headers: { 
-            ...corsHeaders, 
+        headers: {
+            ...corsHeaders,
             'Content-Type': 'text/html',
             // Cache for 1 hour in browser, 24 hours on CDN (like Vercel)
             // This drastically reduces Supabase load from bots.
-            'Cache-Control': 'public, max-age=3600, s-maxage=86400'
+            'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+            // Allow inline scripts for the JavaScript redirect
+            'Content-Security-Policy': "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline';"
         },
         status: 200,
     });
