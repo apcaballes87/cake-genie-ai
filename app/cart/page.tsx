@@ -126,13 +126,13 @@ const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, on
         }
     }, [mapsLoadError]);
 
-    const subtotal = items.reduce((acc, item) => item.status === 'complete' ? acc + item.totalPrice : acc, 0);
+    const subtotal = (items || []).reduce((acc, item) => item.status === 'complete' ? acc + item.totalPrice : acc, 0);
     const deliveryFee = 150;
     const total = subtotal + deliveryFee - (appliedDiscount?.discountAmount || 0);
 
     const cartAvailability = useMemo(() => {
-        if (isCartLoading || items.length === 0) return 'normal';
-        return calculateCartAvailability(items);
+        if (isCartLoading || (items || []).length === 0) return 'normal';
+        return calculateCartAvailability(items || []);
     }, [items, isCartLoading]);
 
     const { minDate, disabledSlots } = useMemo(() => {
@@ -368,7 +368,7 @@ const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, on
 
             {isCartLoading ? (
                 <div className="py-4"><CartSkeleton count={2} /></div>
-            ) : items.length === 0 ? (
+            ) : (items || []).length === 0 ? (
                 <div className="text-center py-16">
                     <p className="text-slate-500">Your cart is empty.</p>
                     <button onClick={onContinueShopping} className="mt-4 text-purple-600 font-semibold hover:underline">
@@ -378,7 +378,7 @@ const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, on
             ) : (
                 <div className="space-y-6">
                     <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
-                        {items.map(item => {
+                        {(items || []).map(item => {
                             const tierLabels = item.details.flavors.length === 2 
                                 ? ['Top Tier', 'Bottom Tier'] 
                                 : ['Top Tier', 'Middle Tier', 'Bottom Tier'];
