@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Discount Code Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Discount Code Test</h1>
+    <button id="testButton">Test NEW100 Discount Code</button>
+    <div id="result"></div>
+
+    <script type="module">
+        // Configuration
+        const supabaseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxbWhhbnFuZnlieXhlemhvYmt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MjEwMTgsImV4cCI6MjA3NTE5NzAxOH0.7Et4dx3c8MXXpVVC5tXzM2nFZ203lx9WnAagWsakXks';
+        
+        const { createClient } = window.supabase;
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+        document.getElementById('testButton').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+            
+            try {
+                // Test querying discount codes
+                const { data, error } = await supabase
+                    .from('discount_codes')
+                    .select('*')
+                    .limit(10);
+                
+                if (error) {
+                    resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                    return;
+                }
+                
+                resultDiv.innerHTML = `<p style="color: green;">Success! Found ${data.length} discount codes</p>`;
+                if (data.length > 0) {
+                    resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+                
+                // Test specifically for NEW100
+                const { data: newCode, error: newCodeError } = await supabase
+                    .from('discount_codes')
+                    .select('*')
+                    .eq('code', 'NEW100')
+                    .single();
+                
+                if (newCodeError) {
+                    resultDiv.innerHTML += `<p style="color: red;">NEW100 Error: ${newCodeError.message}</p>`;
+                } else {
+                    resultDiv.innerHTML += `<p style="color: green;">Found NEW100: ${JSON.stringify(newCode)}</p>`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<p style="color: red;">Exception: ${err.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
