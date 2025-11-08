@@ -1,5 +1,3 @@
-
-
 import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { toast as toastHot } from 'react-hot-toast';
@@ -126,7 +124,9 @@ export const useImageManagement = () => {
                 errorMessage = "The uploaded image doesn't appear to be a cake.";
                 break;
             case 'multiple_cakes':
-                errorMessage = "Please upload an image of a single cake. Multiple cakes are not supported yet.";
+                // Being more lenient - allow multiple cakes if one is clearly the main focus
+                showInfo("Note: Multiple cakes detected. The system will focus on the main cake in the image.");
+                // Don't throw an error, just proceed with a warning
                 break;
             case 'only_cupcakes':
                 errorMessage = "Cupcake-only images are not supported. Please upload an image of a larger cake.";
