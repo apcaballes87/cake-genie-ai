@@ -36,9 +36,9 @@ const VALIDATION_PROMPT = `You are an image validation expert for a cake customi
 
 Based on the image, classify it into ONE of the following categories:
 
-- "valid_single_cake": A single, clear image of one cake. It can be a bento, 1-3 tier, square, rectangle, or fondant cake. Cupcakes may be present on the side, but the main focus is a single cake.
+- "valid_single_cake": A single, clear image of one cake. It can be a bento, 1-3 tier, square, rectangle, or fondant cake. Cupcakes may be present on the side, but the main focus is a single cake. **If there are multiple cakes but one is clearly the main focus (e.g., in the foreground, larger, or more detailed), classify as "valid_single_cake".**
 - "not_a_cake": The image does not contain a cake. It might be a person, object, or scene that isn't cake-like.
-- "multiple_cakes": The image clearly shows two or more separate cakes of significant size (not including a main cake with cupcakes).
+- "multiple_cakes": The image clearly shows two or more separate cakes of significant size (not including a main cake with cupcakes) **where none is clearly the main focus**.
 - "only_cupcakes": The image contains only cupcakes and no larger cake.
 - "complex_sculpture": The cake is an extreme, gravity-defying sculpture, a hyper-realistic object (like a shoe or a car), or has incredibly intricate details that are beyond standard customization.
 - "large_wedding_cake": The cake is clearly a large, elaborate wedding cake, typically 4 tiers or more, often with complex floral arrangements or structures.
@@ -104,9 +104,8 @@ const SYSTEM_INSTRUCTION = `You are an expert cake designer analyzing a cake ima
 **GLOBAL RULES:**
 1.  **JSON Output:** Your entire response MUST be a single, valid JSON object that adheres to the provided schema. Do not include any text, explanations, or markdown formatting outside of the JSON structure.
 2.  **Color Palette:** For any color field in your response (like icing or message colors), you MUST use the closest matching hex code from this specific list: Red (#EF4444), Light Red (#FCA5A5), Orange (#F97316), Yellow (#EAB308), Green (#16A34A), Light Green (#4ADE80), Teal (#14B8A6), Blue (#3B82F6), Light Blue (#93C5FD), Purple (#8B5CF6), Light Purple (#C4B5FD), Pink (#EC4899), Light Pink (#FBCFE8), Brown (#78350F), Light Brown (#B45309), Gray (#64748B), White (#FFFFFF), Black (#000000).
-`;
+3.  **Focus on Main Cake:** If the image contains multiple cakes, focus ONLY on the main cake (typically the one in the foreground, largest, or most detailed). Ignore background cakes that are blurry, small, or out of focus.
 
-const ANALYSIS_PROMPT_CONTENTS = `
 **CORE DECORATION PHILOSOPHY: Hero vs. Support (VERY IMPORTANT)**
 Before you begin, you must understand the two fundamental types of decorations. Your primary task is to classify every single decoration into one of these two roles. Location (top vs. side) DOES NOT determine the category; the item's function does.
 
@@ -121,7 +120,12 @@ Before you begin, you must understand the two fundamental types of decorations. 
     *   **Ask Yourself**: Is this item part of the background, a texture, or a scattered decorative flourish?
     *   **Examples**: Sprinkles, small gumpaste stars/hearts, chocolate bars, meringue pops, isomalt shards, individual flowers in a bouquet, and ALL textural icing finishes (like palette knife strokes or splatters).
     *   **CRITICAL**: Support elements belong in the \`support_elements\` array **REGARDLESS of their location**. A small flower on top of the cake is still a Support element. Palette knife strokes on the top and sides are one group of Support elements.
-    *   **Placement**: ALL Support elements go into the \`support_elements\` array.
+    *   **IMPORTANT**: Background cakes or blurry cakes that are not the main focus should be classified as Support elements or ignored entirely.
+
+**IMPORTANT INSTRUCTIONS FOR BACKGROUND ELEMENTS:**
+- If there are multiple cakes in the image, focus ONLY on the main cake (typically the one in the foreground, largest, or most detailed).
+- Background cakes that are blurry, small, or out of focus should be completely ignored and NOT included in your analysis.
+- Only analyze and classify elements that are part of the main cake.
 
 **GROUPING IS MANDATORY FOR SUPPORT ELEMENTS**
 This is a critical rule for pricing. You MUST group similar Support Elements into a single entry, even if their colors or exact sizes differ.
@@ -410,7 +414,7 @@ You MUST provide precise central coordinates for every single decorative element
             contents: [{
                 parts: [
                     { inlineData: { mimeType, data: base64ImageData } },
-                    { text: COORDINATE_PROMPT + ANALYSIS_PROMPT_CONTENTS },
+                    { text: COORDINATE_PROMPT },
                 ],
             }],
             config: {
