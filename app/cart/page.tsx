@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { useCart, useCartActions } from '../../contexts/CartContext';
+import { useCart } from '../../contexts/CartContext';
 import { useAddresses } from '../../hooks/useAddresses';
 import { showSuccess, showError } from '../../lib/utils/toast';
 import { Loader2, CloseIcon, TrashIcon } from '../../components/icons';
@@ -11,22 +11,19 @@ import { CartSkeleton } from '../../components/LoadingSkeletons';
 import { CITIES_AND_BARANGAYS } from '../../constants';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import DetailItem from '../../components/UI/DetailItem';
-import { createOrderFromCart, getAvailableDeliveryDates, getBlockedDatesInRange, AvailableDate, BlockedDateInfo } from '../../services/supabaseService';
+import { createOrderFromCart } from '../../services/supabaseService';
 import { createXenditPayment } from '../../services/xenditService';
 import AddressForm, { StaticMap } from '../../components/AddressForm';
 import { useGoogleMapsLoader } from '../../contexts/GoogleMapsLoaderContext';
 import { calculateCartAvailability, AvailabilityType } from '../../lib/utils/availability';
-import CartItemCard from '../../components/CartItemCard';
-import { useQuery } from '@tanstack/react-query';
-import { useAvailabilitySettings } from '../../hooks/useAvailabilitySettings';
+// AvailabilityBanner component not available
 import { validateDiscountCode, getUserDiscountCodes, DiscountValidationResult } from '../../services/discountService';
-
 
 // FIX: Declare the global 'google' object to satisfy TypeScript.
 declare const google: any;
 
 interface CartPageProps {
-  pendingItems: CartItem[];
+  items: CartItem[];
   isLoading: boolean;
   onRemoveItem: (id: string) => void;
   onClose: () => void;
@@ -55,72 +52,53 @@ const paymentMethods = [
 ];
 
 
-const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoading, onRemoveItem, onClose, onContinueShopping, onAuthRequired }) => {
+const CartPage: React.FC<CartPageProps> = ({ items, isLoading: isCartLoading, onRemoveItem, onClose, onContinueShopping, onAuthRequired }) => {
     const { user } = useAuth();
     const isRegisteredUser = user && !user.is_anonymous;
-    const {
-        cartItems,
-        eventDate,
-        eventTime,
-        deliveryInstructions,
-        selectedAddressId,
-        cartTotal: subtotal,
+    const { 
+      cartItems,
+      setDeliveryDetails, 
+      eventDate, setEventDate, 
+      eventTime, setEventTime,
+      deliveryInstructions, setDeliveryInstructions,
+      selectedAddressId, setSelectedAddressId
     } = useCart();
-    const {
-        setEventDate,
-        setEventTime,
-        setDeliveryInstructions,
-        setSelectedAddressId,
-    } = useCartActions();
     
     const { data: savedAddresses = [], isLoading: isAddressesLoading } = useAddresses(user?.id);
-    const { settings: availabilitySettings, loading: isLoadingSettings } = useAvailabilitySettings();
-
-    const allItems = useMemo<CartItem[]>(() => {
-        const mappedSupabaseItems: CartItem[] = cartItems.map(item => ({
-            id: item.cart_item_id,
-            image: item.customized_image_url,
-            status: 'complete',
-            type: item.cake_type,
-            thickness: item.cake_thickness,
-            size: item.cake_size,
-            totalPrice: item.final_price * item.quantity,
-            details: item.customization_details as CartItemDetails,
-        }));
-        return [...pendingItems, ...mappedSupabaseItems];
-    }, [pendingItems, cartItems]);
     
     const [isAddingAddress, setIsAddingAddress] = useState(false);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
     const [isCreatingPayment, setIsCreatingPayment] = useState(false);
-    const [partiallyBlockedSlots, setPartiallyBlockedSlots] = useState<BlockedDateInfo[]>([]);
-    const [tooltip, setTooltip] = useState<{ date: string; reason: string; } | null>(null);
-
+    
     // State for discount
     const [discountCode, setDiscountCode] = useState('');
     const [appliedDiscount, setAppliedDiscount] = useState<DiscountValidationResult | null>(null);
     const [isValidatingCode, setIsValidatingCode] = useState(false);
     const [userDiscountCodes, setUserDiscountCodes] = useState<any[]>([]);
 
+    // Load user's available discount codes
     useEffect(() => {
         const loadDiscountCodes = async () => {
             const codes = await getUserDiscountCodes();
             setUserDiscountCodes(codes);
         };
-        if (isRegisteredUser) {
+        
+        if (user) {
             loadDiscountCodes();
         }
-    }, [isRegisteredUser]);
+    }, [user]);
 
     const handleApplyDiscount = async () => {
         if (!discountCode.trim()) {
             showError('Please enter a discount code');
             return;
         }
+        
         setIsValidatingCode(true);
         const result = await validateDiscountCode(discountCode.toUpperCase(), subtotal);
         setIsValidatingCode(false);
+        
         if (result.valid) {
             setAppliedDiscount(result);
             showSuccess(`Discount applied! ₱${result.discountAmount?.toFixed(2)} off`);
@@ -129,7 +107,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
             showError(result.error || 'Invalid discount code');
         }
     };
-    
+
     const handleRemoveDiscount = () => {
         setAppliedDiscount(null);
         setDiscountCode('');
@@ -148,201 +126,88 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
         }
     }, [mapsLoadError]);
 
+    const subtotal = items.reduce((acc, item) => item.status === 'complete' ? acc + item.totalPrice : acc, 0);
     const deliveryFee = 150;
-    const total = (appliedDiscount?.finalAmount || subtotal) + deliveryFee;
-
-    const baseCartAvailability = useMemo(() => {
-        if (isCartLoading || allItems.length === 0) return 'normal';
-        return calculateCartAvailability(allItems);
-    }, [allItems, isCartLoading]);
+    const total = subtotal + deliveryFee - (appliedDiscount?.discountAmount || 0);
 
     const cartAvailability = useMemo(() => {
-        if (!availabilitySettings) return baseCartAvailability;
+        if (isCartLoading || items.length === 0) return 'normal';
+        return calculateCartAvailability(items);
+    }, [items, isCartLoading]);
 
-        if (availabilitySettings.rush_same_to_standard_enabled) {
-            if (baseCartAvailability === 'rush' || baseCartAvailability === 'same-day') {
-                return 'normal';
-            }
-        }
-        
-        if (availabilitySettings.rush_to_same_day_enabled) {
-            if (baseCartAvailability === 'rush') {
-                return 'same-day';
-            }
-        }
-
-        return baseCartAvailability;
-    }, [baseCartAvailability, availabilitySettings]);
-
-    const availabilityWasOverridden = cartAvailability !== baseCartAvailability;
-
-    const { data: availableDates = [], isLoading: isLoadingDates } = useQuery<AvailableDate[]>({
-        queryKey: ['available-dates', availabilitySettings?.minimum_lead_time_days],
-        queryFn: () => {
-            const startDate = new Date(); // Always start from today
-            const year = startDate.getFullYear();
-            const month = String(startDate.getMonth() + 1).padStart(2, '0');
-            const day = String(startDate.getDate()).padStart(2, '0');
-            return getAvailableDeliveryDates(`${year}-${month}-${day}`, 30);
-        },
-        enabled: !isLoadingSettings, // Only run when settings are loaded
-        staleTime: 5 * 60 * 1000, // 5 minutes
-    });
-
-    const { data: blockedDatesMap, isLoading: isLoadingBlockedDates } = useQuery({
-        queryKey: ['blocked-dates-range'],
-        queryFn: () => {
-            const startDate = new Date();
-            const endDate = new Date();
-            endDate.setDate(startDate.getDate() + 30);
-            
-            const format = (d: Date) => d.toISOString().split('T')[0];
-    
-            return getBlockedDatesInRange(format(startDate), format(endDate));
-        },
-        staleTime: 5 * 60 * 1000,
-    });
-
-    const correctedDates = useMemo(() => {
-        if (isLoadingDates || !availabilitySettings) return availableDates;
-
-        if (cartAvailability === 'normal') {
-            return availableDates;
-        }
-        
-        const leadTimeDays = availabilitySettings.minimum_lead_time_days || 0;
-        if (leadTimeDays === 0) {
-            return availableDates;
-        }
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        return availableDates.map(dateInfo => {
-            const date = new Date(dateInfo.available_date + 'T00:00:00');
-            const diffDays = Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-            if (diffDays >= 0 && diffDays < leadTimeDays) {
-                const isFullyBlockedByBackend = !dateInfo.is_rush_available && !dateInfo.is_same_day_available && !dateInfo.is_standard_available;
-                if (isFullyBlockedByBackend && diffDays > 0) {
-                    return { ...dateInfo, is_rush_available: true, is_same_day_available: true };
-                }
-            }
-            return dateInfo;
-        });
-    }, [availableDates, isLoadingDates, cartAvailability, availabilitySettings]);
-    
-    const handleDateSelect = useCallback((date: string) => {
-        setEventDate(date);
-        const blocks = blockedDatesMap?.[date] || [];
-        const partials = blocks.filter(b => !b.is_all_day);
-        setPartiallyBlockedSlots(partials);
-    }, [setEventDate, blockedDatesMap]);
-
-    const getDateStatus = useCallback((dateInfo: AvailableDate) => {
-        const date = dateInfo.available_date;
-        const blocksOnDate = blockedDatesMap?.[date];
-        const isFullyBlocked = blocksOnDate?.some(block => block.is_all_day) ?? false;
-
-        if (isFullyBlocked) {
-            return {
-                isDisabled: true,
-                reason: blocksOnDate?.find(b => b.is_all_day)?.closure_reason || 'Fully Booked / Holiday'
-            };
-        }
-
-        // Enforce minimum lead time for standard orders based on settings
-        if (cartAvailability === 'normal' && availabilitySettings && availabilitySettings.minimum_lead_time_days > 0) {
-            const leadTimeDays = availabilitySettings.minimum_lead_time_days;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const selectedDate = new Date(dateInfo.available_date + 'T00:00:00');
-            const diffDays = Math.ceil((selectedDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-            
-            if (diffDays < leadTimeDays) {
-                const plural = leadTimeDays > 1 ? 's' : '';
-                return {
-                    isDisabled: true,
-                    reason: `Requires a ${leadTimeDays} day${plural} lead time.`
-                };
-            }
-        }
-
-        // Check availability flags from the RPC, but *only* for rush and same-day.
-        // The client-side logic above is the source of truth for 'normal' orders.
-        let leadTimeDisabledByRpc = false;
-        if (cartAvailability === 'rush') {
-            leadTimeDisabledByRpc = !dateInfo.is_rush_available;
-        } else if (cartAvailability === 'same-day') {
-            leadTimeDisabledByRpc = !dateInfo.is_same_day_available;
-        }
-
-        if (leadTimeDisabledByRpc) {
-            let reason = "Date unavailable for this order's lead time.";
-            return { isDisabled: true, reason };
-        }
-
-        return { isDisabled: false, reason: null };
-    }, [blockedDatesMap, cartAvailability, availabilitySettings]);
-
-    const disabledSlots = useMemo(() => {
-        const newDisabledSlots: string[] = [];
+    const { minDate, disabledSlots } = useMemo(() => {
         const now = new Date();
-        const todayString = now.toISOString().split('T')[0];
-        
-        if (eventDate === todayString) {
-            let readyTime: Date | null = null;
-            if (cartAvailability === 'same-day') {
+        let calculatedMinDate = new Date();
+        let readyTime: Date | null = null;
+        const newDisabledSlots: string[] = [];
+    
+        const lastSlotEndHour = EVENT_TIME_SLOTS_MAP.length > 0 ? EVENT_TIME_SLOTS_MAP[EVENT_TIME_SLOTS_MAP.length - 1].endHour : 24;
+    
+        switch (cartAvailability) {
+            case 'normal':
+                calculatedMinDate.setDate(now.getDate() + 1);
+                break;
+            case 'same-day':
                 readyTime = new Date(now.getTime() + 3 * 60 * 60 * 1000); // +3 hours
-            } else if (cartAvailability === 'rush') {
+                if (readyTime.getHours() >= lastSlotEndHour) {
+                    calculatedMinDate.setDate(now.getDate() + 1);
+                    readyTime = null;
+                }
+                break;
+            case 'rush':
                 readyTime = new Date(now.getTime() + 30 * 60 * 1000); // +30 mins
-            }
-    
-            if (readyTime) {
-                EVENT_TIME_SLOTS_MAP.forEach(timeSlot => {
-                    const slotEndDate = new Date(eventDate);
-                    slotEndDate.setHours(timeSlot.endHour, 0, 0, 0);
-                    if (slotEndDate < readyTime) {
-                        newDisabledSlots.push(timeSlot.slot);
-                    }
-                });
-            } else {
-                const currentHour = now.getHours();
-                EVENT_TIME_SLOTS_MAP.forEach(timeSlot => {
-                    if (timeSlot.endHour <= currentHour) {
-                        newDisabledSlots.push(timeSlot.slot);
-                    }
-                });
-            }
+                if (readyTime.getHours() >= lastSlotEndHour) {
+                    calculatedMinDate.setDate(now.getDate() + 1);
+                    readyTime = null;
+                }
+                break;
         }
-
-        if (partiallyBlockedSlots.length > 0) {
-            const parseTime = (timeStr: string): number => parseInt(timeStr.split(':')[0], 10);
     
-            partiallyBlockedSlots.forEach(blockedSlot => {
-                if (blockedSlot.blocked_time_start && blockedSlot.blocked_time_end) {
-                    const blockStartHour = parseTime(blockedSlot.blocked_time_start);
-                    const blockEndHour = parseTime(blockedSlot.blocked_time_end);
+        const minDateString = calculatedMinDate.toISOString().split('T')[0];
+        const todayString = now.toISOString().split('T')[0];
+        const tomorrowString = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString().split('T')[0];
     
-                    EVENT_TIME_SLOTS_MAP.forEach(timeSlot => {
-                        // Check for overlap: (slot.start < block.end) and (slot.end > block.start)
-                        if (timeSlot.startHour < blockEndHour && timeSlot.endHour > blockStartHour) {
-                            newDisabledSlots.push(timeSlot.slot);
-                        }
-                    });
+        if (eventDate === todayString && readyTime) {
+            EVENT_TIME_SLOTS_MAP.forEach(timeSlot => {
+                const slotEndDate = new Date(eventDate);
+                slotEndDate.setHours(timeSlot.endHour, 0, 0, 0);
+                if (slotEndDate < readyTime) {
+                    newDisabledSlots.push(timeSlot.slot);
                 }
             });
         }
-        
-        return [...new Set(newDisabledSlots)];
-    }, [cartAvailability, eventDate, partiallyBlockedSlots]);
+    
+        if (cartAvailability === 'normal' && eventDate === tomorrowString) {
+            const currentHour = now.getHours();
+            let firstAvailableStartHour = 10;
+            if (currentHour >= 15) {
+                firstAvailableStartHour = 18;
+            } else {
+                const applicableSlot = [...EVENT_TIME_SLOTS_MAP].reverse().find(slot => currentHour >= slot.startHour);
+                if (applicableSlot) {
+                    firstAvailableStartHour = applicableSlot.startHour;
+                }
+            }
+            EVENT_TIME_SLOTS_MAP.forEach(slot => {
+                if (slot.startHour < firstAvailableStartHour) {
+                    newDisabledSlots.push(slot.slot);
+                }
+            });
+        }
+    
+        return { minDate: minDateString, disabledSlots: newDisabledSlots };
+    }, [cartAvailability, eventDate]);
 
     useEffect(() => {
+        if (eventDate && eventDate < minDate) {
+            setEventDate(minDate);
+        }
         if (eventTime && disabledSlots.includes(eventTime)) {
             setEventTime('');
         }
-    }, [eventTime, disabledSlots, setEventTime]);
+    }, [minDate, disabledSlots, eventDate, eventTime, setEventDate, setEventTime]);
     
+    // Effect to manage address selection
     useEffect(() => {
         if (isRegisteredUser && !isAddressesLoading) {
             const persistedIdIsValid = savedAddresses.some(addr => addr.address_id === selectedAddressId);
@@ -391,8 +256,8 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
             eventTime,
             deliveryInstructions,
             deliveryAddressId: selectedAddressId,
-            discountAmount: appliedDiscount?.discountAmount || 0,
-            discountCodeId: appliedDiscount?.codeId,
+            discountAmount: appliedDiscount?.discountAmount,
+            discountCodeId: appliedDiscount?.codeId, // Added discount code ID
           });
       
           if (!orderResult.success || !orderResult.order) {
@@ -469,7 +334,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
     return (
         <>
         <div className="w-full max-w-4xl mx-auto bg-white/70 backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-slate-200 animate-fade-in">
-             <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-fade-in-fast { animation: fadeInFast 0.2s ease-out; } @keyframes fadeInFast { from { opacity: 0; } to { opacity: 1; } }`}</style>
+             <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-fade-in-fast { animation: fadeInFast 0.2s ease-out; } @keyframes fadeInFast { from { opacity: 0; } to { opacity: 1; }`}</style>
             
             {zoomedImage && (
                 <div
@@ -503,7 +368,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
 
             {isCartLoading ? (
                 <div className="py-4"><CartSkeleton count={2} /></div>
-            ) : allItems.length === 0 ? (
+            ) : items.length === 0 ? (
                 <div className="text-center py-16">
                     <p className="text-slate-500">Your cart is empty.</p>
                     <button onClick={onContinueShopping} className="mt-4 text-purple-600 font-semibold hover:underline">
@@ -513,108 +378,163 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
             ) : (
                 <div className="space-y-6">
                     <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
-                        {allItems.map(item => (
-                            <CartItemCard 
-                                key={item.id}
-                                item={item}
-                                onRemove={onRemoveItem}
-                                onZoom={setZoomedImage}
-                            />
-                        ))}
-                    </div>
+                        {items.map(item => {
+                            const tierLabels = item.details.flavors.length === 2 
+                                ? ['Top Tier', 'Bottom Tier'] 
+                                : ['Top Tier', 'Middle Tier', 'Bottom Tier'];
+                            const colorLabelMap: Record<string, string> = {
+                                side: 'Side',
+                                top: 'Top',
+                                borderTop: 'Top Border',
+                                borderBase: 'Base Border',
+                                drip: 'Drip',
+                                gumpasteBaseBoardColor: 'Base Board'
+                            };
 
-                    <div className="pt-6 border-t border-slate-200 space-y-6">
-                        <h2 className="text-lg font-semibold text-slate-700">Delivery Details</h2>
-
-                        {!isLoadingSettings && (
-                            (availabilitySettings && availabilitySettings.minimum_lead_time_days > 0 && cartAvailability === 'normal') ? (
-                                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800 animate-fade-in">
-                                    <strong>Note:</strong> We are observing a minimum lead time of <strong>{availabilitySettings.minimum_lead_time_days} day(s)</strong>. The first available date has been adjusted.
-                                </div>
-                            ) : availabilityWasOverridden ? (
-                                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 animate-fade-in">
-                                    <strong>Note:</strong> Due to high demand, availability has been adjusted. Your order will now be processed as a <strong>'{cartAvailability.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}'</strong> order.
-                                </div>
-                            ) : null
-                        )}
-                        
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-1 gap-4">
-                                <div>
-                                    <label htmlFor="eventDate" className="block text-sm font-medium text-slate-600 mb-1">Date of Event</label>
-                                    {isLoadingDates || isLoadingBlockedDates ? (
-                                        <div className="h-16 flex items-center"><Loader2 className="animate-spin text-slate-400"/></div>
-                                    ) : (
-                                        <div className="relative">
-                                            <div className="flex gap-2 overflow-x-auto overflow-y-visible pt-12 -mt-12 pb-2 -mb-2 scrollbar-hide">
-                                                {correctedDates.slice(0, 14).map(dateInfo => {
-                                                    const { isDisabled, reason } = getDateStatus(dateInfo);
-                                                    const isSelected = eventDate === dateInfo.available_date;
-                                                    const dateObj = new Date(dateInfo.available_date + 'T00:00:00');
-                                                    const day = dateObj.toLocaleDateString('en-US', { day: 'numeric' });
-                                                    const month = dateObj.toLocaleDateString('en-US', { month: 'short' });
-
-                                                    return (
-                                                        <div key={dateInfo.available_date} className="relative flex-shrink-0">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => !isDisabled && handleDateSelect(dateInfo.available_date)}
-                                                                onMouseEnter={() => isDisabled && reason && setTooltip({ date: dateInfo.available_date, reason })}
-                                                                onMouseLeave={() => setTooltip(null)}
-                                                                className={`w-16 text-center rounded-lg p-2 border-2 transition-all duration-200
-                                                                    ${isSelected ? 'border-pink-500 bg-pink-50 ring-2 ring-pink-200' : 'border-slate-200 bg-white'}
-                                                                    ${isDisabled ? 'opacity-50 bg-slate-50 cursor-not-allowed' : 'hover:border-pink-400'}
-                                                                `}
-                                                            >
-                                                                <span className="block text-xs font-semibold text-slate-500">{month}</span>
-                                                                <span className="block text-xl font-bold text-slate-800">{day}</span>
-                                                                <span className="block text-[10px] font-medium text-slate-500">{dateInfo.day_of_week.substring(0, 3)}</span>
-                                                            </button>
-                                                            {tooltip && tooltip.date === dateInfo.available_date && (
-                                                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max max-w-[200px] px-3 py-1.5 bg-slate-800 text-white text-xs text-center font-semibold rounded-md z-10 animate-fade-in-fast shadow-lg">
-                                                                    {tooltip.reason}
-                                                                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-800"></div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )
-                                                })}
+                            if (item.status === 'pending') {
+                                return (
+                                    <div key={item.id} className="flex flex-col gap-4 p-4 bg-white rounded-lg border border-slate-200">
+                                        <div className="flex gap-4 w-full">
+                                            <div className="relative w-24 h-24 md:w-32 md:h-32 flex-shrink-0 rounded-md bg-slate-100 overflow-hidden">
+                                                <img 
+                                                    src={item.image!} 
+                                                    alt="Original cake design" 
+                                                    className="absolute inset-0 w-full h-full object-cover opacity-40" 
+                                                />
+                                                <div className="absolute inset-0 bg-slate-900/30 flex flex-col items-center justify-center p-2">
+                                                    <LoadingSpinner />
+                                                    <p className="text-xs text-white font-semibold mt-2 text-center shadow-sm">Updating design...</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex-grow">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <h2 className="font-semibold text-slate-800">{item.size}</h2>
+                                                        <p className="text-lg font-bold text-purple-600 mt-1">₱{item.totalPrice.toLocaleString()}</p>
+                                                    </div>
+                                                    <button onClick={() => onRemoveItem(item.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-colors" aria-label="Remove item">
+                                                        <TrashIcon className="w-5 h-5" />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
-                                    )}
-                                </div>
-                                <div>
-                                    <label htmlFor="eventTime" className="block text-sm font-medium text-slate-600 mb-1">Time of Event</label>
-                                    <div className="relative">
-                                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                                            {EVENT_TIME_SLOTS.map(slot => {
-                                                const isDisabled = disabledSlots.includes(slot);
-                                                const isSelected = eventTime === slot;
-                                                return (
-                                                    <button
-                                                        key={slot}
-                                                        type="button"
-                                                        onClick={() => !isDisabled && setEventTime(slot)}
-                                                        disabled={isDisabled}
-                                                        className={`flex-shrink-0 text-center rounded-lg p-2 border-2 transition-all duration-200
-                                                            ${isSelected ? 'border-pink-500 bg-pink-50 ring-2 ring-pink-200' : 'border-slate-200 bg-white'}
-                                                            ${isDisabled ? 'opacity-50 bg-slate-50 cursor-not-allowed' : 'hover:border-pink-400'}
-                                                        `}
-                                                    >
-                                                        <span className="block text-xs font-semibold text-slate-800 px-2">{slot}</span>
-                                                    </button>
-                                                );
-                                            })}
+                                        <details className="w-full">
+                                            <summary className="text-xs font-semibold text-slate-600 cursor-pointer">View Customization Details</summary>
+                                            <div className="mt-2 pl-2 border-l-2 border-slate-200 space-y-1.5 text-xs text-slate-500">
+                                               <DetailItem label="Type" value={`${item.type}, ${item.thickness}, ${item.size}`} />
+                                                {item.details.flavors.length === 1 ? (
+                                                    <DetailItem label="Flavor" value={item.details.flavors[0]} />
+                                                ) : (
+                                                    item.details.flavors.map((flavor, idx) => (
+                                                        <DetailItem key={idx} label={`${tierLabels[idx]} Flavor`} value={flavor} />
+                                                    ))
+                                                )}
+                                               {item.details.mainToppers.length > 0 && <DetailItem label="Main Toppers" value={item.details.mainToppers.map(t => t.description).join(', ')} />}
+                                               {item.details.supportElements.length > 0 && <DetailItem label="Support" value={item.details.supportElements.map(s => s.description).join(', ')} />}
+                                               {item.details.cakeMessages.map((msg, idx) => (
+                                                  <DetailItem key={idx} label={`Message #${idx+1}`} value={`'${msg.text}' (${msg.color})`} />
+                                               ))}
+                                               {item.details.icingDesign.drip && <DetailItem label="Icing" value="Has Drip Effect" />}
+                                               {item.details.icingDesign.gumpasteBaseBoard && <DetailItem label="Icing" value="Gumpaste Base Board" />}
+                                               {Object.entries(item.details.icingDesign.colors).map(([loc, color]) => (
+                                                   <DetailItem key={loc} label={`${colorLabelMap[loc] || loc.charAt(0).toUpperCase() + loc.slice(1)} Color`} value={color} />
+                                               ))}
+                                               {item.details.additionalInstructions && <DetailItem label="Instructions" value={item.details.additionalInstructions} />}
+                                            </div>
+                                        </details>
+                                    </div>
+                                );
+                            }
+                            
+                            if (item.status === 'error') {
+                                return (
+                                     <div key={item.id} className="flex flex-col gap-3 p-4 bg-red-50 rounded-lg border border-red-200 text-red-800">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="font-semibold">Design Update Failed</p>
+                                                <p className="text-xs mt-1">{item.errorMessage}</p>
+                                            </div>
+                                            <button onClick={() => onRemoveItem(item.id)} className="p-1.5 text-red-500 hover:text-red-700 rounded-full hover:bg-red-100 transition-colors" aria-label="Remove item">
+                                                <TrashIcon className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            }
+
+                            return (
+                             <div key={item.id} className="flex flex-col gap-4 p-4 bg-white rounded-lg border border-slate-200">
+                                <div className="flex gap-4 w-full">
+                                    <button
+                                        type="button"
+                                        onClick={() => item.image && setZoomedImage(item.image)}
+                                        className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-md transition-transform hover:scale-105"
+                                        aria-label="Enlarge cake image"
+                                    >
+                                        <img src={item.image!} alt="Cake Design" className="w-full h-full object-cover rounded-md" />
+                                    </button>
+                                    <div className="flex-grow">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h2 className="font-semibold text-slate-800">{item.size}</h2>
+                                                <p className="text-lg font-bold text-purple-600 mt-1">₱{item.totalPrice.toLocaleString()}</p>
+                                            </div>
+                                            <button onClick={() => onRemoveItem(item.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-colors" aria-label="Remove item">
+                                                <TrashIcon className="w-5 h-5" />
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
+                                <details className="w-full">
+                                    <summary className="text-xs font-semibold text-slate-600 cursor-pointer">View Customization Details</summary>
+                                    <div className="mt-2 pl-2 border-l-2 border-slate-200 space-y-1.5 text-xs text-slate-500">
+                                       <DetailItem label="Type" value={`${item.type}, ${item.thickness}, ${item.size}`} />
+                                        {item.details.flavors.length === 1 ? (
+                                            <DetailItem label="Flavor" value={item.details.flavors[0]} />
+                                        ) : (
+                                            item.details.flavors.map((flavor, idx) => (
+                                                <DetailItem key={idx} label={`${tierLabels[idx]} Flavor`} value={flavor} />
+                                            ))
+                                        )}
+                                       {item.details.mainToppers.length > 0 && <DetailItem label="Main Toppers" value={item.details.mainToppers.map(t => t.description).join(', ')} />}
+                                       {item.details.supportElements.length > 0 && <DetailItem label="Support" value={item.details.supportElements.map(s => s.description).join(', ')} />}
+                                       {item.details.cakeMessages.map((msg, idx) => (
+                                          <DetailItem key={idx} label={`Message #${idx+1}`} value={`'${msg.text}' (${msg.color})`} />
+                                       ))}
+                                       {item.details.icingDesign.drip && <DetailItem label="Icing" value="Has Drip Effect" />}
+                                       {item.details.icingDesign.gumpasteBaseBoard && <DetailItem label="Icing" value="Gumpaste Base Board" />}
+                                       {Object.entries(item.details.icingDesign.colors).map(([loc, color]) => (
+                                           <DetailItem key={loc} label={`${colorLabelMap[loc] || loc.charAt(0).toUpperCase() + loc.slice(1)} Color`} value={color} />
+                                       ))}
+                                       {item.details.additionalInstructions && <DetailItem label="Instructions" value={item.details.additionalInstructions} />}
+                                    </div>
+                                </details>
+                            </div>
+                        )})}
+                    </div>
+
+                    <div className="pt-6 border-t border-slate-200 space-y-6">
+                        <div className="space-y-4">
+                            <h2 className="text-lg font-semibold text-slate-700">Delivery Details</h2>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="eventDate" className="block text-sm font-medium text-slate-600 mb-1">Date of Event</label>
+                                    <input type="date" id="eventDate" value={eventDate} onChange={(e) => setEventDate(e.target.value)} min={minDate} className={inputStyle} />
+                                </div>
+                                <div>
+                                    <label htmlFor="eventTime" className="block text-sm font-medium text-slate-600 mb-1">Time of Event</label>
+                                    <select id="eventTime" value={eventTime} onChange={(e) => setEventTime(e.target.value)} className={inputStyle}>
+                                        <option value="">Select a time slot</option>
+                                        {EVENT_TIME_SLOTS.map(slot => (
+                                            <option key={slot} value={slot} disabled={disabledSlots.includes(slot)}>
+                                                {slot}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
                             
-                            {cartAvailability === 'normal' && <p className="text-xs text-slate-500 -mt-2">Your cart items require a 1-day lead time. Order by 3 PM for next-day delivery.</p>}
-                            {cartAvailability === 'same-day' && <p className="text-xs text-slate-500 -mt-2">Your cart contains items available for same-day delivery (3-hour lead time).</p>}
-                            {cartAvailability === 'rush' && <p className="text-xs text-slate-500 -mt-2">All items in your cart are available for rush delivery (30-min lead time).</p>}
 
-                            
                             {isAddressesLoading ? (
                                 <div className="flex justify-center items-center h-24"><Loader2 className="w-6 h-6 animate-spin text-purple-500" /></div>
                             ) : isRegisteredUser ? (
@@ -678,58 +598,45 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                             </div>
                         </div>
 
-                        <div className="pt-6 border-t border-slate-200 space-y-4">
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-slate-600">Subtotal</span>
-                                    <span className="text-slate-800 font-semibold">₱{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-slate-600">Delivery Fee</span>
-                                    <span className="text-slate-800 font-semibold">₱{deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                </div>
-                            </div>
-
-                            {/* Discount Code Section - HIDDEN FOR NOW */}
-                            {/*
-                            <div className="border-t border-slate-200 pt-4">
-                                <h3 className="text-sm font-semibold text-slate-700 mb-3">Have a Discount Code?</h3>
-                                
-                                {userDiscountCodes.length > 0 && !appliedDiscount && (
-                                    <div className="mb-3">
+                        {/* Discount Code Section */}
+                        <div className="border-t border-slate-200 pt-4">
+                            <h3 className="text-sm font-semibold text-slate-700 mb-3">Have a Discount Code?</h3>
+                            
+                            {userDiscountCodes.length > 0 && !appliedDiscount && (
+                                <div className="mb-3">
                                     <p className="text-xs text-slate-600 mb-2">Your available codes:</p>
                                     <div className="flex flex-wrap gap-2">
                                         {userDiscountCodes.map(code => (
-                                        <button
-                                            key={code.code_id}
-                                            onClick={() => {
-                                                setDiscountCode(code.code);
-                                                // We need to trigger the apply function after setting state.
-                                                // A simple way is to call it in the next render cycle or directly with the new code.
-                                                // To make it instant, let's just call apply with the new code.
-                                                validateDiscountCode(code.code, subtotal).then(result => {
-                                                    setIsValidatingCode(false);
-                                                    if (result.valid) {
-                                                        setAppliedDiscount(result);
-                                                        showSuccess(`Discount applied! ₱${result.discountAmount?.toFixed(2)} off`);
-                                                    } else {
-                                                        showError(result.error || 'Invalid discount code');
-                                                    }
-                                                });
-                                            }}
-                                            className="px-3 py-1.5 text-xs bg-slate-100 text-slate-700 rounded-lg hover:bg-pink-100 hover:text-pink-700 border border-slate-200 transition-colors font-mono"
-                                        >
-                                            {code.code} 
-                                            {code.discount_amount && ` (₱${code.discount_amount} off)`}
-                                            {code.discount_percentage && ` (${code.discount_percentage}% off)`}
-                                        </button>
+                                            <button
+                                                key={code.code_id}
+                                                onClick={() => {
+                                                    setDiscountCode(code.code);
+                                                    // We need to trigger the apply function after setting state.
+                                                    // A simple way is to call it in the next render cycle or directly with the new code.
+                                                    // To make it instant, let's just call apply with the new code.
+                                                    validateDiscountCode(code.code, subtotal).then(result => {
+                                                        setIsValidatingCode(false);
+                                                        if (result.valid) {
+                                                            setAppliedDiscount(result);
+                                                            showSuccess(`Discount applied! ₱${result.discountAmount?.toFixed(2)} off`);
+                                                        } else {
+                                                            showError(result.error || 'Invalid discount code');
+                                                        }
+                                                    });
+                                                }}
+                                                className="px-3 py-1.5 text-xs bg-slate-100 text-slate-700 rounded-lg hover:bg-pink-100 hover:text-pink-700 border border-slate-200 transition-colors font-mono"
+                                            >
+                                                {code.code}
+                                                {code.discount_amount && ` (₱${code.discount_amount} off)`}
+                                                {code.discount_percentage && ` (${code.discount_percentage}% off)`}
+                                            </button>
                                         ))}
                                     </div>
-                                    </div>
-                                )}
+                                </div>
+                            )}
 
-                                {!appliedDiscount ? (
-                                    <div className="flex gap-2">
+                            {!appliedDiscount ? (
+                                <div className="flex gap-2">
                                     <input
                                         type="text"
                                         value={discountCode}
@@ -745,42 +652,50 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                                     >
                                         {isValidatingCode ? <Loader2 className="animate-spin w-4 h-4"/> : 'Apply'}
                                     </button>
-                                    </div>
-                                ) : (
-                                    <div className="bg-green-50 border border-green-300 rounded-lg p-3">
+                                </div>
+                            ) : (
+                                <div className="bg-green-50 border border-green-300 rounded-lg p-3">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                        <p className="text-sm font-semibold text-green-800">
-                                            ✅ Code Applied: <span className="font-mono">{discountCode}</span>
-                                        </p>
-                                        <p className="text-xs text-green-700">
-                                            Saving ₱{appliedDiscount.discountAmount?.toFixed(2)}
-                                        </p>
+                                            <p className="text-sm font-semibold text-green-800">
+                                                ✅ Code Applied: <span className="font-mono">{discountCode}</span>
+                                            </p>
+                                            <p className="text-xs text-green-700">
+                                                Saving ₱{appliedDiscount.discountAmount?.toFixed(2)}
+                                            </p>
                                         </div>
                                         <button
-                                        onClick={handleRemoveDiscount}
-                                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                            onClick={handleRemoveDiscount}
+                                            className="text-red-600 hover:text-red-800 text-sm font-medium"
                                         >
-                                        Remove
+                                            Remove
                                         </button>
                                     </div>
-                                    </div>
-                                )}
-                            </div>
-                            */}
-                            
-                            <div className="border-t pt-3 mt-2">
-                                {/*
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="pt-6 border-t border-slate-200 space-y-4">
+                            <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-slate-600">Subtotal</span>
+                                    <span className="text-slate-800 font-semibold">₱{subtotal.toLocaleString()}</span>
+                                </div>
                                 {appliedDiscount && (
-                                    <div className="flex justify-between text-sm text-green-600 font-semibold mb-2">
-                                    <span>Discount:</span>
-                                    <span>-₱{appliedDiscount.discountAmount?.toFixed(2)}</span>
+                                    <div className="flex justify-between text-sm text-green-600 font-semibold">
+                                        <span>Discount:</span>
+                                        <span>-₱{appliedDiscount.discountAmount?.toFixed(2)}</span>
                                     </div>
                                 )}
-                                */}
+                                <div className="flex justify-between">
+                                    <span className="text-slate-600">Delivery Fee</span>
+                                    <span className="text-slate-800 font-semibold">₱{deliveryFee.toLocaleString()}</span>
+                                </div>
+                            </div>
+                            <div className="border-t pt-3 mt-2">
                                 <div className="flex justify-between text-lg font-bold">
                                     <span className="text-slate-800">Total</span>
-                                    <span className="text-pink-600 text-xl">₱{total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                    <span className="text-pink-600 text-xl">₱{total.toLocaleString()}</span>
                                 </div>
                             </div>
                             

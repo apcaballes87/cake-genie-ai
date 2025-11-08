@@ -123,6 +123,7 @@ export interface CakeGenieOrder {
   payment_status: PaymentStatus;
   payment_method: string | null;
   payment_proof_url: string | null;
+  discount_code_id?: string | null; // Added for discount code support
   created_at: string; // ISO 8601 timestamp
   updated_at: string; // ISO 8601 timestamp
   confirmed_at: string | null; // ISO 8601 timestamp

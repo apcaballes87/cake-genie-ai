@@ -4,10 +4,11 @@ const supabase = getSupabaseClient();
 
 export interface DiscountValidationResult {
   valid: boolean;
-  discountAmount?: number;
+  discountAmount: number;
   codeId?: string;
-  originalAmount?: number;
-  finalAmount?: number;
+  originalAmount: number;
+  finalAmount: number;
+  message?: string;
   error?: string;
 }
 
@@ -30,13 +31,25 @@ export async function validateDiscountCode(
 
     if (error) {
       console.error('Error validating discount code:', error);
-      return { valid: false, error: 'Failed to validate code' };
+      return { 
+        valid: false, 
+        discountAmount: 0,
+        originalAmount: orderAmount,
+        finalAmount: orderAmount,
+        error: 'Failed to validate code' 
+      };
     }
 
     return data;
   } catch (error) {
     console.error('Exception validating discount code:', error);
-    return { valid: false, error: 'An error occurred' };
+    return { 
+      valid: false, 
+      discountAmount: 0,
+      originalAmount: orderAmount,
+      finalAmount: orderAmount,
+      error: 'An error occurred' 
+    };
   }
 }
 
