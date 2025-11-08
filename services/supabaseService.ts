@@ -535,6 +535,19 @@ export async function createOrderFromCart(
       
     if (fetchError) throw fetchError;
 
+    // Record discount code usage if a code was applied
+    if (discountCodeId && user.id && fullOrder.order_id) {
+      // Import the recordDiscountCodeUsage function
+      const { recordDiscountCodeUsage } = await import('./discountService');
+
+      // Record usage (fire-and-forget, don't fail order if this fails)
+      recordDiscountCodeUsage(discountCodeId, user.id, fullOrder.order_id)
+        .catch(err => {
+          console.error('Failed to record discount code usage:', err);
+          // Don't throw - order was successful even if tracking failed
+        });
+    }
+
     return { success: true, order: fullOrder };
   } catch (error: any) {
     // FIX: Serialize error object to prevent '[object Object]' in logs.

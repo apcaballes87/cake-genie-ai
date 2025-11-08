@@ -46,7 +46,7 @@ To run the full test, you need to:
 
 2. Update your `.env.local` file:
    ```
-   SUPABASE_SERVICE_ROLE_KEY=your_actual_service_role_key_here
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
    ```
 
 ### 2. Run Test Scripts

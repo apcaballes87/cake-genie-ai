@@ -20,7 +20,7 @@ The service role key in your `.env.local` file is still a placeholder. You need 
 4. Copy this key
 5. Update your `.env.local` file:
 ```
-SUPABASE_SERVICE_ROLE_KEY=your_actual_service_role_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
 ```
 
 ### 2. Deploy the Updated Edge Function

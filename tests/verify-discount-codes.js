@@ -24,8 +24,15 @@ if (!process.env.VITE_SUPABASE_URL) {
   process.exit(1);
 }
 
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY === 'your_actual_supabase_service_role_key_here') {
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY === 'your_supabase_service_role_key_here') {
   console.error('❌ Error: SUPABASE_SERVICE_ROLE_KEY environment variable is not set or is still the placeholder value');
+  console.log('Please set SUPABASE_SERVICE_ROLE_KEY in your .env.local file');
+  console.log('Steps to get your key:');
+  console.log('1. Go to your Supabase project dashboard');
+  console.log('2. Navigate to Settings > API');
+  console.log('3. Find the "service_role" key under "Project API keys"');
+  console.log('4. Copy this key (it\'s different from the anon key)');
+  console.log('5. Replace "your_supabase_service_role_key_here" with your actual key in .env.local');
   process.exit(1);
 }
 

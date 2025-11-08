@@ -8,7 +8,7 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 
 // Use the actual service role key from the .env.local file
-// Note: In the .env.local file, it says "your_actual_supabase_service_role_key_here"
+// Note: In the .env.local file, it says "your_supabase_service_role_key_here"
 // We need to get the actual service role key from the Supabase dashboard
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
