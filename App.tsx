@@ -138,6 +138,7 @@ export default function App(): React.ReactElement {
   const { isShareModalOpen, shareData, isSavingDesign, handleShare, createShareLink, closeShareModal } = useDesignSharing({
     editedImage, originalImagePreview, cakeInfo, basePrice, finalPrice, mainToppers,
     supportElements, icingDesign, analysisResult, HEX_TO_COLOR_NAME_MAP,
+    cakeMessages, additionalInstructions
   });
 
   // --- UI-DRIVEN HOOKS ---

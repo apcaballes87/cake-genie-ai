@@ -1,19 +1,31 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getUserOrders, uploadPaymentProof, getSingleOrder, cancelOrder } from '../services/supabaseService';
+import { getUserOrders, uploadPaymentProof, getSingleOrder, cancelOrder, getBillSharingCreations } from '../services/supabaseService';
 import { CakeGenieOrder } from '../lib/database.types';
 import { showSuccess, showError } from '../lib/utils/toast';
 
 export function useOrders(userId: string | undefined, options?: { limit?: number; offset?: number, includeItems?: boolean }) {
   return useQuery({
-    queryKey: ['orders', userId, options?.limit, options?.offset],
+    queryKey: ['creations', userId, options?.limit, options?.offset],
     queryFn: async () => {
       if (!userId) throw new Error('User ID required');
-      const result = await getUserOrders(userId, options);
-      if (result.error) throw result.error;
-      return result.data;
+      
+      const [ordersResult, designsResult] = await Promise.all([
+        getUserOrders(userId, options),
+        // Only fetch designs on the first page load to avoid re-fetching
+        (options?.offset ?? 0) === 0 ? getBillSharingCreations(userId) : Promise.resolve({ data: [], error: null }),
+      ]);
+
+      if (ordersResult.error) throw ordersResult.error;
+      if (designsResult.error) throw designsResult.error;
+      
+      return {
+        orders: ordersResult.data?.orders || [],
+        totalOrderCount: ordersResult.data?.totalCount || 0,
+        designs: designsResult.data || [],
+      };
     },
-    enabled: !!userId, // Only run query if userId exists
-    staleTime: 2 * 60 * 1000, // Consider data fresh for 2 minutes
+    enabled: !!userId,
+    staleTime: 2 * 60 * 1000,
   });
 }
 
@@ -50,7 +62,7 @@ export function useUploadPaymentProof() {
     },
     onSuccess: (_, variables) => {
       // Invalidate all queries related to this user's orders to refetch them
-      queryClient.invalidateQueries({ queryKey: ['orders', variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ['creations', variables.userId] });
       // Also invalidate the specific order detail query if it's cached
       queryClient.invalidateQueries({ queryKey: ['order-details', variables.orderId]});
     },
@@ -75,7 +87,7 @@ export function useCancelOrder() {
     onSuccess: (data, variables) => {
       showSuccess("Order has been cancelled successfully.");
       // Invalidate all queries related to this user's orders to refetch them
-      queryClient.invalidateQueries({ queryKey: ['orders', variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ['creations', variables.userId] });
       // Also invalidate the specific order detail query if it's cached
       queryClient.invalidateQueries({ queryKey: ['order-details', variables.orderId]});
     },

@@ -72,7 +72,7 @@ const AboutPage: React.FC<AboutPageProps> = ({ onClose }) => {
 
         <div className="space-y-8">
           <Section title="Our Story">
-            <p>Genie PH was founded by Alan Paris Caballes with a vision to revolutionize the made-to-order economy. What began as a solution to the frustrations of ordering custom cakes—the long waits for replies, tedious back-and-forth conversations, and unclear pricing—has evolved into a cutting-edge platform that bridges the gap between artisans and their customers through innovative AI-powered technology.</p>
+            <p>Genie was founded by Alan Paris Caballes with a vision to revolutionize the made-to-order economy. What began as a solution to the frustrations of ordering custom cakes—the long waits for replies, tedious back-and-forth conversations, and unclear pricing—has evolved into a cutting-edge platform that bridges the gap between artisans and their customers through innovative AI-powered technology.</p>
           </Section>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-200">

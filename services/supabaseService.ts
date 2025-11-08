@@ -483,9 +483,11 @@ export async function createOrderFromCart(
     eventTime: string;
     deliveryAddressId: string | null;
     deliveryInstructions?: string;
+    discountAmount?: number;
+    discountCodeId?: string;
   }
 ): Promise<{ success: boolean, order?: any, error?: Error }> {
-  const { cartItems, eventDate, eventTime, deliveryAddressId, deliveryInstructions } = params;
+  const { cartItems, eventDate, eventTime, deliveryAddressId, deliveryInstructions, discountAmount, discountCodeId } = params;
   
   try {
     if (!cartItems || cartItems.length === 0) {
@@ -500,7 +502,7 @@ export async function createOrderFromCart(
     }
 
     const subtotal = cartItems.reduce((sum, item) => sum + (item.final_price * item.quantity), 0);
-    const deliveryFee = 100; // Fixed delivery fee for now
+    const deliveryFee = 150; // Fixed delivery fee for now
 
     // Call the atomic RPC function
     const { data, error } = await supabase.rpc('create_order_from_cart', {
@@ -511,7 +513,8 @@ export async function createOrderFromCart(
       p_subtotal: subtotal,
       p_delivery_fee: deliveryFee,
       p_delivery_instructions: deliveryInstructions || null,
-      p_discount_amount: 0
+      p_discount_amount: discountAmount || 0,
+      p_discount_code_id: discountCodeId || null,
     });
 
     if (error) throw error;
@@ -924,6 +927,28 @@ export async function getAvailabilitySettings(): Promise<SupabaseServiceResponse
       .select('*')
       .eq('setting_id', '00000000-0000-0000-0000-000000000001')
       .single();
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches all bill-sharing designs created by a user.
+ * @param userId The UUID of the user.
+ */
+export async function getBillSharingCreations(userId: string): Promise<SupabaseServiceResponse<any[]>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_shared_designs')
+      .select('*, contributions:bill_contributions(amount, status)')
+      .eq('created_by_user_id', userId)
+      .eq('bill_sharing_enabled', true)
+      .order('created_at', { ascending: false });
+
     if (error) {
       return { data: null, error };
     }

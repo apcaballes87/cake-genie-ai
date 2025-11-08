@@ -405,7 +405,13 @@ export const useCakeCustomization = () => {
             if (!dirtyFields.has('icingDesign.base')) newIcing.base = analysisIcing.base;
             if (!dirtyFields.has('icingDesign.color_type')) newIcing.color_type = analysisIcing.color_type;
             if (!dirtyFields.has('icingDesign.drip')) newIcing.drip = analysisIcing.drip;
-            if (!dirtyFields.has('icingDesign.gumpasteBaseBoard')) newIcing.gumpasteBaseBoard = analysisIcing.gumpasteBaseBoard;
+            
+            if (!dirtyFields.has('icingDesign.gumpasteBaseBoard')) {
+                const isBaseBoardWhite = analysisIcing.colors.gumpasteBaseBoardColor?.toLowerCase() === '#ffffff';
+                // The feature is enabled only if the AI detects it AND the color is not white.
+                newIcing.gumpasteBaseBoard = analysisIcing.gumpasteBaseBoard && !isBaseBoardWhite;
+            }
+
             if (!dirtyFields.has('icingDesign.border_top')) newIcing.border_top = analysisIcing.border_top;
             if (!dirtyFields.has('icingDesign.border_base')) newIcing.border_base = analysisIcing.border_base;
             

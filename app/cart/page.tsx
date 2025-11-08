@@ -19,6 +19,7 @@ import { calculateCartAvailability, AvailabilityType } from '../../lib/utils/ava
 import CartItemCard from '../../components/CartItemCard';
 import { useQuery } from '@tanstack/react-query';
 import { useAvailabilitySettings } from '../../hooks/useAvailabilitySettings';
+import { validateDiscountCode, getUserDiscountCodes, DiscountValidationResult } from '../../services/discountService';
 
 
 // FIX: Declare the global 'google' object to satisfy TypeScript.
@@ -63,6 +64,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
         eventTime,
         deliveryInstructions,
         selectedAddressId,
+        cartTotal: subtotal,
     } = useCart();
     const {
         setEventDate,
@@ -95,6 +97,44 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
     const [partiallyBlockedSlots, setPartiallyBlockedSlots] = useState<BlockedDateInfo[]>([]);
     const [tooltip, setTooltip] = useState<{ date: string; reason: string; } | null>(null);
 
+    // State for discount
+    const [discountCode, setDiscountCode] = useState('');
+    const [appliedDiscount, setAppliedDiscount] = useState<DiscountValidationResult | null>(null);
+    const [isValidatingCode, setIsValidatingCode] = useState(false);
+    const [userDiscountCodes, setUserDiscountCodes] = useState<any[]>([]);
+
+    useEffect(() => {
+        const loadDiscountCodes = async () => {
+            const codes = await getUserDiscountCodes();
+            setUserDiscountCodes(codes);
+        };
+        if (isRegisteredUser) {
+            loadDiscountCodes();
+        }
+    }, [isRegisteredUser]);
+
+    const handleApplyDiscount = async () => {
+        if (!discountCode.trim()) {
+            showError('Please enter a discount code');
+            return;
+        }
+        setIsValidatingCode(true);
+        const result = await validateDiscountCode(discountCode.toUpperCase(), subtotal);
+        setIsValidatingCode(false);
+        if (result.valid) {
+            setAppliedDiscount(result);
+            showSuccess(`Discount applied! ₱${result.discountAmount?.toFixed(2)} off`);
+        } else {
+            setAppliedDiscount(null);
+            showError(result.error || 'Invalid discount code');
+        }
+    };
+    
+    const handleRemoveDiscount = () => {
+        setAppliedDiscount(null);
+        setDiscountCode('');
+        showSuccess('Discount removed');
+    };
 
     const { 
       isLoaded: isMapsLoaded, 
@@ -108,9 +148,8 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
         }
     }, [mapsLoadError]);
 
-    const subtotal = allItems.reduce((acc, item) => item.status === 'complete' ? acc + item.totalPrice : acc, 0);
     const deliveryFee = 150;
-    const total = subtotal + deliveryFee;
+    const total = (appliedDiscount?.finalAmount || subtotal) + deliveryFee;
 
     const baseCartAvailability = useMemo(() => {
         if (isCartLoading || allItems.length === 0) return 'normal';
@@ -212,18 +251,35 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
             };
         }
 
-        let leadTimeDisabled = false;
-        if (cartAvailability === 'rush') leadTimeDisabled = !dateInfo.is_rush_available;
-        else if (cartAvailability === 'same-day') leadTimeDisabled = !dateInfo.is_same_day_available;
-        else leadTimeDisabled = !dateInfo.is_standard_available;
-
-        if (leadTimeDisabled) {
-            let leadTimeReason = "Date unavailable for this order's lead time.";
-            if (availabilitySettings && availabilitySettings.minimum_lead_time_days > 0 && cartAvailability === 'normal') {
-                const plural = availabilitySettings.minimum_lead_time_days > 1 ? 's' : '';
-                leadTimeReason = `Requires a ${availabilitySettings.minimum_lead_time_days} day${plural} lead time.`;
+        // Enforce minimum lead time for standard orders based on settings
+        if (cartAvailability === 'normal' && availabilitySettings && availabilitySettings.minimum_lead_time_days > 0) {
+            const leadTimeDays = availabilitySettings.minimum_lead_time_days;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const selectedDate = new Date(dateInfo.available_date + 'T00:00:00');
+            const diffDays = Math.ceil((selectedDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < leadTimeDays) {
+                const plural = leadTimeDays > 1 ? 's' : '';
+                return {
+                    isDisabled: true,
+                    reason: `Requires a ${leadTimeDays} day${plural} lead time.`
+                };
             }
-            return { isDisabled: true, reason: leadTimeReason };
+        }
+
+        // Check availability flags from the RPC, but *only* for rush and same-day.
+        // The client-side logic above is the source of truth for 'normal' orders.
+        let leadTimeDisabledByRpc = false;
+        if (cartAvailability === 'rush') {
+            leadTimeDisabledByRpc = !dateInfo.is_rush_available;
+        } else if (cartAvailability === 'same-day') {
+            leadTimeDisabledByRpc = !dateInfo.is_same_day_available;
+        }
+
+        if (leadTimeDisabledByRpc) {
+            let reason = "Date unavailable for this order's lead time.";
+            return { isDisabled: true, reason };
         }
 
         return { isDisabled: false, reason: null };
@@ -335,6 +391,8 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
             eventTime,
             deliveryInstructions,
             deliveryAddressId: selectedAddressId,
+            discountAmount: appliedDiscount?.discountAmount || 0,
+            discountCodeId: appliedDiscount?.codeId,
           });
       
           if (!orderResult.success || !orderResult.order) {
@@ -481,7 +539,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                         )}
                         
                         <div className="space-y-4">
-                             <div className="grid grid-cols-1 gap-4">
+                            <div className="grid grid-cols-1 gap-4">
                                 <div>
                                     <label htmlFor="eventDate" className="block text-sm font-medium text-slate-600 mb-1">Date of Event</label>
                                     {isLoadingDates || isLoadingBlockedDates ? (
@@ -624,17 +682,105 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
                                     <span className="text-slate-600">Subtotal</span>
-                                    <span className="text-slate-800 font-semibold">₱{subtotal.toLocaleString()}</span>
+                                    <span className="text-slate-800 font-semibold">₱{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-slate-600">Delivery Fee</span>
-                                    <span className="text-slate-800 font-semibold">₱{deliveryFee.toLocaleString()}</span>
+                                    <span className="text-slate-800 font-semibold">₱{deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                 </div>
                             </div>
+
+                            {/* Discount Code Section - HIDDEN FOR NOW */}
+                            {/*
+                            <div className="border-t border-slate-200 pt-4">
+                                <h3 className="text-sm font-semibold text-slate-700 mb-3">Have a Discount Code?</h3>
+                                
+                                {userDiscountCodes.length > 0 && !appliedDiscount && (
+                                    <div className="mb-3">
+                                    <p className="text-xs text-slate-600 mb-2">Your available codes:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {userDiscountCodes.map(code => (
+                                        <button
+                                            key={code.code_id}
+                                            onClick={() => {
+                                                setDiscountCode(code.code);
+                                                // We need to trigger the apply function after setting state.
+                                                // A simple way is to call it in the next render cycle or directly with the new code.
+                                                // To make it instant, let's just call apply with the new code.
+                                                validateDiscountCode(code.code, subtotal).then(result => {
+                                                    setIsValidatingCode(false);
+                                                    if (result.valid) {
+                                                        setAppliedDiscount(result);
+                                                        showSuccess(`Discount applied! ₱${result.discountAmount?.toFixed(2)} off`);
+                                                    } else {
+                                                        showError(result.error || 'Invalid discount code');
+                                                    }
+                                                });
+                                            }}
+                                            className="px-3 py-1.5 text-xs bg-slate-100 text-slate-700 rounded-lg hover:bg-pink-100 hover:text-pink-700 border border-slate-200 transition-colors font-mono"
+                                        >
+                                            {code.code} 
+                                            {code.discount_amount && ` (₱${code.discount_amount} off)`}
+                                            {code.discount_percentage && ` (${code.discount_percentage}% off)`}
+                                        </button>
+                                        ))}
+                                    </div>
+                                    </div>
+                                )}
+
+                                {!appliedDiscount ? (
+                                    <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={discountCode}
+                                        onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                                        placeholder="Enter code"
+                                        className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg uppercase font-mono"
+                                        maxLength={20}
+                                    />
+                                    <button
+                                        onClick={handleApplyDiscount}
+                                        disabled={isValidatingCode || !discountCode.trim()}
+                                        className="px-4 py-2 bg-pink-600 text-white text-sm font-semibold rounded-lg hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isValidatingCode ? <Loader2 className="animate-spin w-4 h-4"/> : 'Apply'}
+                                    </button>
+                                    </div>
+                                ) : (
+                                    <div className="bg-green-50 border border-green-300 rounded-lg p-3">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                        <p className="text-sm font-semibold text-green-800">
+                                            ✅ Code Applied: <span className="font-mono">{discountCode}</span>
+                                        </p>
+                                        <p className="text-xs text-green-700">
+                                            Saving ₱{appliedDiscount.discountAmount?.toFixed(2)}
+                                        </p>
+                                        </div>
+                                        <button
+                                        onClick={handleRemoveDiscount}
+                                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                        >
+                                        Remove
+                                        </button>
+                                    </div>
+                                    </div>
+                                )}
+                            </div>
+                            */}
+                            
                             <div className="border-t pt-3 mt-2">
+                                {/*
+                                {appliedDiscount && (
+                                    <div className="flex justify-between text-sm text-green-600 font-semibold mb-2">
+                                    <span>Discount:</span>
+                                    <span>-₱{appliedDiscount.discountAmount?.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                */}
                                 <div className="flex justify-between text-lg font-bold">
                                     <span className="text-slate-800">Total</span>
-                                    <span className="text-pink-600 text-xl">₱{total.toLocaleString()}</span>
+                                    <span className="text-pink-600 text-xl">₱{total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                 </div>
                             </div>
                             

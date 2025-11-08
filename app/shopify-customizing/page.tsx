@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   getShopifyCustomizationRequest,

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
 import { trackSearchTerm } from '../services/supabaseService';
 
 // Global window type extension from App.tsx
@@ -162,7 +162,7 @@ export const useSearchEngine = ({
   }, [searchInput, setImageError, setAppState]);
 
   // FIX: Added React to import to make React.KeyboardEvent available.
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') { if (searchInput.trim()) handleSearch(searchInput.trim()); }
     if (e.key === 'Escape' && appState === 'searching') { originalImageData ? setAppState('customizing') : setAppState('landing'); }
   }, [searchInput, handleSearch, appState, originalImageData, setAppState]);

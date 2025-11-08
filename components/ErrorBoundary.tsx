@@ -36,9 +36,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public render() {
+    // FIX: In a class component, state must be accessed via `this.state`.
     const { hasError } = this.state;
     
-    // In a class component, props are accessed via `this.props`.
     // FIX: In a class component, props must be accessed via `this.props`.
     const { fallback, children } = this.props;
 

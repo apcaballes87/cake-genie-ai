@@ -11,6 +11,8 @@ import {
     IcingDesignUI,
     HybridAnalysisResult,
     CakeType,
+    CartItemDetails,
+    CakeMessageUI,
 } from '../types';
 
 interface UseDesignSharingProps {
@@ -24,6 +26,8 @@ interface UseDesignSharingProps {
     icingDesign: IcingDesignUI | null;
     analysisResult: HybridAnalysisResult | null;
     HEX_TO_COLOR_NAME_MAP: Record<string, string>;
+    cakeMessages: CakeMessageUI[];
+    additionalInstructions: string;
 }
 
 function calculateAvailabilityForSharing(mainToppers: MainTopperUI[], supportElements: SupportElementUI[], icingDesign: IcingDesignUI | null, cakeInfo: CakeInfoUI | null): 'rush' | 'same-day' | 'normal' {
@@ -84,6 +88,8 @@ export const useDesignSharing = ({
     icingDesign,
     analysisResult,
     HEX_TO_COLOR_NAME_MAP,
+    cakeMessages,
+    additionalInstructions,
 }: UseDesignSharingProps) => {
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [shareData, setShareData] = useState<ShareResult | null>(null);
@@ -111,7 +117,7 @@ export const useDesignSharing = ({
       recipientName?: string;
     }) => {
         const imageUrlToShare = editedImage || originalImagePreview;
-        if (!imageUrlToShare || !analysisResult || !cakeInfo || basePrice === undefined || finalPrice === null) {
+        if (!imageUrlToShare || !analysisResult || !cakeInfo || basePrice === undefined || finalPrice === null || !icingDesign) {
             showError('Cannot create link: missing design or price information.');
             return;
         }
@@ -129,6 +135,30 @@ export const useDesignSharing = ({
                     }
                 }
             }
+
+            const hexToName = (hex: string) => HEX_TO_COLOR_NAME_MAP[hex.toLowerCase()] || hex;
+            const customizationDetails: CartItemDetails = {
+                flavors: cakeInfo.flavors,
+                mainToppers: mainToppers.filter(t => t.isEnabled).map(t => ({
+                    description: `${t.description} (${t.size})`,
+                    type: t.type,
+                    size: t.size,
+                })),
+                supportElements: supportElements.filter(s => s.isEnabled).map(s => ({
+                    description: `${s.description} (${s.coverage})`,
+                    type: s.type,
+                    coverage: s.coverage
+                })),
+                cakeMessages: cakeMessages.filter(m => m.isEnabled).map(m => ({ text: m.text, color: hexToName(m.color) })),
+                icingDesign: {
+                    drip: icingDesign.drip, gumpasteBaseBoard: icingDesign.gumpasteBaseBoard,
+                    colors: Object.entries(icingDesign.colors).reduce((acc, [key, value]) => {
+                        if (typeof value === 'string' && value) acc[key] = hexToName(value);
+                        return acc;
+                    }, {} as Record<string, string>),
+                },
+                additionalInstructions: additionalInstructions.trim(),
+            };
             
             const designData = {
               customizedImageUrl: imageUrlToShare,
@@ -148,13 +178,13 @@ export const useDesignSharing = ({
               billSharingEnabled: config.billSharingEnabled,
               billSharingMessage: config.billSharingMessage,
               suggestedSplitCount: config.suggestedSplitCount,
-              // ADD THESE NEW FIELDS:
               deliveryAddress: config.deliveryAddress,
               deliveryCity: config.deliveryCity,
               deliveryPhone: config.deliveryPhone,
               eventDate: config.eventDate,
               eventTime: config.eventTime,
               recipientName: config.recipientName,
+              customization_details: customizationDetails,
             };
 
             const result = await saveDesignToShare(designData);
@@ -182,7 +212,7 @@ export const useDesignSharing = ({
         } finally {
             setIsSavingDesign(false);
         }
-    }, [editedImage, originalImagePreview, cakeInfo, basePrice, finalPrice, mainToppers, supportElements, icingDesign, analysisResult, HEX_TO_COLOR_NAME_MAP]);
+    }, [editedImage, originalImagePreview, cakeInfo, basePrice, finalPrice, mainToppers, supportElements, icingDesign, analysisResult, HEX_TO_COLOR_NAME_MAP, cakeMessages, additionalInstructions]);
 
 
     return {

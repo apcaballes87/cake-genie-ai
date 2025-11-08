@@ -1,44 +1,16 @@
+// services/geminiService.ts
+
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 import type { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, IcingColorDetails, CakeInfoUI, CakeType, CakeThickness, IcingDesign, MainTopperType, CakeMessage, SupportElementType } from '../types';
 import { CAKE_TYPES, CAKE_THICKNESSES, COLORS } from "../constants";
-import { GEMINI_API_KEY } from '../config';
 
-if (!GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY environment variable not set. Please add VITE_GEMINI_API_KEY to your .env.local file with a valid Gemini API key from https://aistudio.google.com/app/apikey");
+const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+if (!geminiApiKey) {
+    throw new Error("VITE_GEMINI_API_KEY environment variable not set. Please add it to your .env.local file or Vercel environment variables.");
 }
-
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-
-const IMAGE_EDITING_SYSTEM_INSTRUCTION = `You are a master digital cake artist performing a precise photo edit on the provided cake image. Your goal is to preserve the original image's style, lighting, and composition, applying ONLY the specific changes listed below.
-
----
-### **Core Editing Principles (VERY IMPORTANT)**
----
-1.  **Enhance and Upscale:** The final output MUST be a high-resolution, photorealistic image. If the original input image is pixelated, blurry, or low-quality, you MUST upscale and enhance it, removing artifacts and sharpening details to create a crisp, professional-grade photograph. All edits must be applied to this enhanced version.
-2.  **Preserve Aspect Ratio:** The final output image MUST have the exact same dimensions and aspect ratio as the original input image. Do not change the image from portrait to landscape, square to rectangle, etc.
-3.  **Layer-Based Editing:** Imagine you are working in a photo editor with layers. Your changes must be applied as non-destructive layers on top of the original image features.
-4.  **Modification only:** When asked to change a color (e.g., "Change the shade of side icing to blue"), your task is to **recolor the existing shade color** while preserving all decorations, textures, and details on that surface. You are NOT replacing the entire area with a plain blue color. CRITICAL: If the original surface has multiple shades of a color (e.g., light blue, dark blue, and white), you MUST preserve these tonal variations. For example, changing the color to "red" should result in a surface with light red, dark red, and white, not a flat, solid red. This is a color re-mapping, not a flat replacement.
-5.  **Surface Integrity and Separation (CRITICAL):** Treat the cake's surfaces as distinct, independently editable zones. The primary zones are: "Side Icing," "Top Icing," "Top Border," "Base Border," and "Drip." Changes to one surface MUST NOT affect another unless explicitly told to. For example, a request to change the 'Side Icing' color must not alter the 'Top Icing' color. If asked to change the side icing to black, the top icing MUST remain its original color. Do not let the black color 'bleed' or 'wrap over' to the top surface.
-6.  **Realistic Interaction:** When adding an element like a drip, it must interact realistically with existing decorations. The drip should flow **around or partially over** decorations on the side of the cake, not completely erase them. The original decorations must remain visible and integrated with the new element.
-7.  **Preserve Unmentioned Details:** If a decoration or feature from the original image is not explicitly mentioned as changed or removed in the list below, it MUST be preserved exactly as it is.
-8.  **Remove Superimposed Overlays:** Identify and cleanly remove any non-diegetic logos, watermarks, text, or graphic overlays that have been digitally added on top of the cake image. In-paint the cleared area to seamlessly match the surrounding cake icing or background. Do NOT remove decorations that are physically part of the cake, such as printout toppers or piped messages.`;
-
-const THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION = `You are a master digital cake artist tasked with reconstructing a cake design into a new 3-tier structure. You will be given an original cake image for its design language and a reference image for the 3-tier structure.
-
----
-### **Core Reconstruction Principles (VERY IMPORTANT)**
----
-1.  **High-Quality Output:** The final output MUST be a high-resolution, photorealistic image. Even if the original design source image is low-quality, the new 3-tier cake image you generate must be crisp, clear, and professional-grade.
-2.  **Preserve Aspect Ratio:** The final output image MUST have the exact same dimensions and aspect ratio as the original input image. Do not change the image from portrait to landscape, square to rectangle, etc.
-3.  **Reconstruct Proportionally:** Rebuild the cake with a 3-tier count, distributing height and width realistically. The final structure and proportions MUST strictly follow the provided plain white 3-tier reference image. Maintain the original cake’s visual proportions if possible (e.g., if it was tall and narrow, keep that ratio across the new tier structure).
-4.  **Preserve Design Language, Not Layout:** Your primary task is to harvest the colors, textures, icing style, and decorative motifs from the original cake and apply them to the new 3-tier structure.
-5.  **Redistribute Decorations Logically:**
-    - Main toppers go on the top tier.
-    - Side decorations (e.g., florals, lace) should appear on all tiers or follow a cascading pattern.
-    - Cake messages should remain readable and be centered on an appropriate tier.
-6.  **Maintain Theme & Style Consistency:** If the original had a drip effect, apply it to all tiers consistently. If it used gold leaf, fresh flowers, or geometric patterns, replicate that aesthetic across the new structure.
-7.  **Do NOT Preserve Spatial Layout:** It is expected that elements will move to fit the new tier structure. The goal is stylistic continuity, not pixel-perfect replication of element positions.`;
-
+  
+const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
     let binary = '';
@@ -595,7 +567,7 @@ export const editCakeImage = async (
     mainToppers: MainTopperUI[],
     supportElements: SupportElementUI[],
     threeTierReferenceImage: { data: string; mimeType: string; } | null,
-    customSystemInstruction?: string
+    systemInstruction: string,
 ): Promise<string> => {
 
     const parts: ({ text: string } | { inlineData: { mimeType: string, data: string } })[] = [];
@@ -634,10 +606,6 @@ export const editCakeImage = async (
     
     // 5. Text prompt (last, to provide context for all images)
     parts.push({ text: prompt });
-
-    const systemInstruction = customSystemInstruction || (threeTierReferenceImage 
-        ? THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION 
-        : IMAGE_EDITING_SYSTEM_INSTRUCTION);
 
     try {
         const response = await ai.models.generateContent({

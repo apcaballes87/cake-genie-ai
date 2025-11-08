@@ -53,6 +53,7 @@ const THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION = `You are a master digital c
 6.  **Maintain Theme & Style Consistency:** If the original had a drip effect, apply it to all tiers consistently. If it used gold leaf, fresh flowers, or geometric patterns, replicate that aesthetic across the new structure.
 7.  **Do NOT Preserve Spatial Layout:** It is expected that elements will move to fit the new tier structure. The goal is stylistic continuity, not pixel-perfect replication of element positions.`;
 
+
 const EDIT_CAKE_PROMPT_TEMPLATE = (
     originalAnalysis: HybridAnalysisResult | null,
     newCakeInfo: CakeInfoUI,
@@ -221,11 +222,11 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             if (isPaletteKnife && hasMultipleColorsChanged) {
                 const originalColorNames = s.original_colors!.map(c => colorName(c || undefined)).join(', ');
                 const newColorNames = s.colors!.map(c => colorName(c || undefined)).join(', ');
-                itemChanges.push(`**remap its entire color palette**. The original color scheme was based on ${originalColorNames}. The new scheme MUST be based on **${newColorNames}**.`);
+                itemChanges.push(`**remap its entire color palette**. The original color scheme was based on ${originalColorNames}. The new scheme MUST be based on **${newColorNames}**. It is critical that you preserve the original's textured strokes and relative light/dark variations, but translate them to the new color family.`);
             } else if (hasSingleColorChanged) {
                 const isTexturedIcing = ['icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread'].includes(s.type);
                 if (isTexturedIcing) {
-                    itemChanges.push(`**change the color texture** to color **${colorName(s.color)}**. Simply shift the hue of the existing texture to the new color.`);
+                    itemChanges.push(`**rehue the texture** to a monochromatic palette based on the new color **${colorName(s.color)}**. It is critical that you **PRESERVE THE ORIGINAL STROKES, TEXTURE, AND LIGHTING (shadows/highlights)**. Simply shift the hue of the existing texture to the new color, maintaining all its original detail and form.`);
                 } else {
                     itemChanges.push(`recolor it to **${colorName(s.color)}**`);
                 }
@@ -296,7 +297,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     } else if (!newIcing.gumpasteBaseBoard && originalIcing.gumpasteBaseBoard) {
         icingChanges.push(`- **Remove the gumpaste-covered base board**.`);
     } else if (newIcing.gumpasteBaseBoard && originalIcing.gumpasteBaseBoard && newIcing.colors.gumpasteBaseBoardColor !== originalIcing.colors.gumpasteBaseBoardColor) {
-        icingChanges.push(`- **Recolor the gumpaste base board**. to **${colorName(newIcing.colors.gumpasteBaseBoardColor!)}**. Preserve all other details.`);
+        icingChanges.push(`- **Recolor the gumpaste base board shade**. to **${colorName(newIcing.colors.gumpasteBaseBoardColor!)}**. Preserve all other details.`);
     }
 
     // Handle core icing colors with explicit preservation
@@ -304,19 +305,16 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     const sideColorChanged = newIcing.colors.side !== undefined && newIcing.colors.side !== originalIcingColors.side;
     const topColorChanged = newIcing.colors.top !== undefined && newIcing.colors.top !== originalIcingColors.top;
 
-    if (sideColorChanged) {
-        icingChanges.push(`- **Recolor the shade of the side icing** to **${colorName(newIcing.colors.side)}**.`);
-    }
-    if (topColorChanged) {
-        icingChanges.push(`- **Recolor the shade of the top icing** to **${colorName(newIcing.colors.top)}**. `);
-    }
-
-    // Add preservation instructions for unchanged surfaces
-    if (sideColorChanged && !topColorChanged && originalIcingColors.top) {
-        icingChanges.push(`- **Preserve top icing color**: The top icing MUST remain its original color. Do not change it.`);
-    }
-    if (topColorChanged && !sideColorChanged && originalIcingColors.side) {
-        icingChanges.push(`- **Preserve side icing color**: The side icing MUST remain its original color. Do not change it.`);
+    if (sideColorChanged && !topColorChanged) {
+        const instruction = `- **Re-hue the side icing shade ONLY** to shades of**${colorName(newIcing.colors.side)}**.`;
+        icingChanges.push(instruction);
+    } else if (topColorChanged && !sideColorChanged) {
+        const instruction = `- **Re-hue the top icing shade ONLY** to shades of**${colorName(newIcing.colors.top)}**.`;
+        icingChanges.push(instruction);
+    } else if (sideColorChanged && topColorChanged) {
+        // Both colors changed, so no preservation needed, but remove "ONLY"
+        icingChanges.push(`- **Re-hue the side icing shade** to shades of **${colorName(newIcing.colors.side)}**.`);
+        icingChanges.push(`- **Re-hue the top icing shade** to shades of**${colorName(newIcing.colors.top)}**.`);
     }
 
     changes.push(...icingChanges);
@@ -369,7 +367,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     currentUIMessages.forEach(uiMsg => {
         if (uiMsg.isEnabled && !uiMsg.originalMessage) {
             // Case 3: A new message was added.
-            messageChanges.push(`- **Add new text**: Write "${uiMsg.text}" on the **${uiMsg.position}** using ${uiMsg.type} style in the color ${colorName(uiMsg.color)}.`);
+            messageChanges.push(`- **Add new text**: Write "${uiMsg.text}" on the **${uiMsg.position}** using small ${uiMsg.type} style in the color ${colorName(uiMsg.color)}.`);
         }
     });
 

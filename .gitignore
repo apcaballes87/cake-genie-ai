@@ -33,3 +33,6 @@ dist-ssr
 .env.test.local
 .env.production.local
 .cursor/mcp-settings.json
+
+# Vercel
+.vercel

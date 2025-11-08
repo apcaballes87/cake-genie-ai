@@ -70,11 +70,6 @@ const HowToOrderPage: React.FC<HowToOrderPageProps> = ({ onClose }) => {
         </Step>
         
         <div className="pt-4 border-t border-slate-200">
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Coming from Shopify?</h2>
-            <p className="text-slate-600">If you started on our Shopify store, the process is even simpler! Your cake's base options (like size and flavor) are already set. Just use our editor to customize the decorations, colors, and messages. When you click "Add to Cart," you'll be taken directly back to your Shopify cart to complete your purchase.</p>
-        </div>
-
-        <div className="pt-4 border-t border-slate-200">
             <h2 className="text-xl font-bold text-slate-800 mb-2">Tips for the Best Results</h2>
             <ul className="list-disc list-inside space-y-2 pl-2 text-slate-600">
                 <li><strong>Use Clear Images:</strong> For best results, start with a high-quality, well-lit photo where the cake is the main focus.</li>

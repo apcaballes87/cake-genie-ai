@@ -3,6 +3,7 @@ import { showSuccess, showError } from '../lib/utils/toast';
 import { v4 as uuidv4 } from 'uuid';
 import { generateUrlSlug } from '../lib/utils/urlHelpers';
 import { generateContributorDiscountCode } from './incentiveService';
+import { CartItemDetails } from '../types';
 
 const supabase = getSupabaseClient();
 
@@ -25,13 +26,13 @@ export interface ShareDesignData {
   billSharingEnabled?: boolean;
   billSharingMessage?: string;
   suggestedSplitCount?: number;
-  // ADD THESE NEW FIELDS:
   deliveryAddress?: string;
   deliveryCity?: string;
   deliveryPhone?: string;
   eventDate?: string;
   eventTime?: string;
   recipientName?: string;
+  customization_details: CartItemDetails;
 }
 
 export interface BillContribution {
@@ -98,7 +99,6 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
         bill_sharing_enabled: data.billSharingEnabled || false,
         bill_sharing_message: data.billSharingMessage || null,
         suggested_split_count: data.suggestedSplitCount || null,
-        // ADD THESE NEW FIELDS:
         delivery_address: data.deliveryAddress || null,
         delivery_city: data.deliveryCity || null,
         delivery_phone: data.deliveryPhone || null,
@@ -106,6 +106,7 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
         event_time: data.eventTime || null,
         recipient_name: data.recipientName || null,
         auto_order_enabled: data.billSharingEnabled || false, // Enable auto-order when bill sharing is enabled
+        customization_details: data.customization_details,
       });
 
     if (error) {
@@ -215,7 +216,7 @@ export async function getSharedDesign(identifier: string) {
     
     const query = supabase
       .from('cakegenie_shared_designs')
-      .select('*');
+      .select('*, organizer:profiles(full_name, email, phone)');
 
     if (isUuid) {
         query.eq('design_id', identifier);
@@ -408,11 +409,6 @@ export async function createContribution(
     // Generate discount code for contributor
     const discountCode = await generateContributorDiscountCode(userId, amount);
 
-    if (insertError || !contribution) {
-      console.error('Error creating contribution:', insertError);
-      return { success: false, error: 'Failed to create contribution record' };
-    }
-
     // 4. Create Xendit invoice using existing Edge Function
     const domain = window.location.origin;
     const successUrl = `${domain}/#/designs/${design.url_slug || design.design_id}?contribution=success&contribution_id=${contribution.contribution_id}&amount=${amount}&code=${discountCode || 'FRIEND100'}`;
@@ -472,19 +468,6 @@ export async function createContribution(
 }
 
 /**
- * Pre-written social media messages
- */
-export const SOCIAL_MESSAGES = {
-  facebook: "🎂 Check out this AMAZING custom cake I just designed!\nWhat do you think? Should I order it? 😍\n\nDesign yours at CakeGenie!",
-  
-  messenger: "Hey! 👋 What do you think of this cake design I made?\nBe honest! 😅🎂",
-  
-  twitter: "Just designed the perfect cake using AI! 🎂✨\nCheck it out 👇\n\n#CakeDesign #CustomCake #CakeGenie",
-  
-  instagram: "🎂 Designed my dream cake using AI!\nWhat do you think? 😍\n\n🔗 Link in bio to see the full design!\nTag someone who needs to see this! 👇\n\n#CakeGenie #CustomCake #DreamCake #BirthdayCake"
-};
-
-/**
  * Track that a user was referred through a bill share
  */
 export async function trackReferral(
@@ -511,3 +494,16 @@ export async function trackReferral(
     console.error('Exception tracking referral:', error);
   }
 }
+
+/**
+ * Pre-written social media messages
+ */
+export const SOCIAL_MESSAGES = {
+  facebook: "🎂 Check out this AMAZING custom cake I just designed!\nWhat do you think? Should I order it? 😍\n\nDesign yours at CakeGenie!",
+  
+  messenger: "Hey! 👋 What do you think of this cake design I made?\nBe honest! 😅🎂",
+  
+  twitter: "Just designed the perfect cake using AI! 🎂✨\nCheck it out 👇\n\n#CakeDesign #CustomCake #CakeGenie",
+  
+  instagram: "🎂 Designed my dream cake using AI!\nWhat do you think? 😍\n\n🔗 Link in bio to see the full design!\nTag someone who needs to see this! 👇\n\n#CakeGenie #CustomCake #DreamCake #BirthdayCake"
+};

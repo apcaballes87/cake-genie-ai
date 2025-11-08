@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { Dispatch, SetStateAction, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { X } from 'lucide-react';
 import { FeatureList } from '../../components/FeatureList';
@@ -67,7 +61,8 @@ export type AnalysisItem =
   (MainTopperUI & { itemCategory: 'topper' }) |
   (SupportElementUI & { itemCategory: 'element' }) |
   (CakeMessageUI & { itemCategory: 'message' }) |
-  ({ id: string; description: string; x?: number; y?: number; cakeType?: CakeType } & { itemCategory: 'icing' });
+  ({ id: string; description: string; x?: number; y?: number; cakeType?: CakeType } & { itemCategory: 'icing' }) |
+  ({ id: string; description: string; x?: number; y?: number; } & { itemCategory: 'action' });
 
 // Add a type for clustered markers
 export type ClusteredMarker = {
@@ -204,6 +199,32 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
   const [containerDimensions, setContainerDimensions] = useState<{width: number, height: number} | null>(null);
 
   useEffect(() => {
+    if (selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'action' && selectedItem.id === 'add-baseboard-message') {
+        const baseBoardCoords = analysisResult?.base_board?.[0];
+        
+        const newMessage: CakeMessageUI = {
+            id: crypto.randomUUID(),
+            type: 'gumpaste_letters',
+            text: 'Your Text Here',
+            position: 'base_board',
+            color: '#000000',
+            isEnabled: true,
+            price: 0,
+            x: baseBoardCoords?.x,
+            y: baseBoardCoords?.y,
+        };
+
+        onCakeMessageChange([...cakeMessages, newMessage]);
+        setSelectedItem(null); // Deselect the action item
+
+        // After a short delay, select the newly created message to open its editor
+        setTimeout(() => {
+            setSelectedItem({ ...newMessage, itemCategory: 'message' });
+        }, 100);
+    }
+  }, [selectedItem, onCakeMessageChange, cakeMessages, analysisResult]);
+
+  useEffect(() => {
     const element = markerContainerRef.current;
     if (!element) return;
 
@@ -248,9 +269,25 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     return items;
   }, [analysisResult, mainToppers, supportElements, cakeMessages]);
 
-  const rawMarkers = useMemo(() => {
-    return analysisItems.filter(item => typeof item.x === 'number' && typeof item.y === 'number');
-  }, [analysisItems]);
+  const rawMarkers = useMemo((): AnalysisItem[] => {
+    const markers: AnalysisItem[] = analysisItems.filter(item => typeof item.x === 'number' && typeof item.y === 'number');
+    const hasBaseBoardMessage = cakeMessages.some(m => m.position === 'base_board' && m.isEnabled);
+    
+    const isBento = cakeInfo?.type === 'Bento';
+
+    if (!isBento && !hasBaseBoardMessage && analysisResult?.base_board?.[0]) {
+        const baseBoardCenter = analysisResult.base_board[0];
+        markers.push({
+            id: 'add-baseboard-message',
+            itemCategory: 'action',
+            description: 'Add message to base board',
+            x: baseBoardCenter.x,
+            y: baseBoardCenter.y,
+        });
+    }
+
+    return markers;
+  }, [analysisItems, cakeMessages, analysisResult, cakeInfo]);
 
   const markerMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -286,7 +323,14 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     }
 
     const markerXPercent = (x + imageWidth / 2) / imageWidth;
-    const markerYPercent = (-y + imageHeight / 2) / imageHeight;
+
+    // Apply a small downward correction to the y-coordinate.
+    // The AI seems to have a consistent upward offset in its y-coordinate reporting.
+    // This empirically corrects for that observation. A 2% downward shift.
+    const yCorrection = imageHeight * 0.02; 
+    const correctedY = y - yCorrection;
+    
+    const markerYPercent = (-correctedY + imageHeight / 2) / imageHeight;
     
     const markerX = (markerXPercent * renderedWidth) + offsetX;
     const markerY = (markerYPercent * renderedHeight) + offsetY;
@@ -497,6 +541,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                       const position = getMarkerPosition(item.x, item.y);
                       const isSelected = selectedItem?.id === item.id;
                       const isCluster = 'isCluster' in item && item.isCluster;
+                      const isAction = 'itemCategory' in item && item.itemCategory === 'action';
 
                       return (
                         <div
@@ -507,8 +552,8 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                           onMouseLeave={() => setHoveredItem(null)}
                           onClick={(e) => { e.stopPropagation(); setSelectedItem(prev => prev?.id === item.id ? null : item)}}
                         >
-                          <div className="marker-dot">
-                            {isCluster ? item.items.length : markerMap.get(item.id)}
+                          <div className={`marker-dot ${isAction ? 'action-marker' : ''}`}>
+                            {isCluster ? item.items.length : isAction ? '+' : markerMap.get(item.id)}
                           </div>
                           {hoveredItem?.id === item.id && (
                             <span className="marker-tooltip">

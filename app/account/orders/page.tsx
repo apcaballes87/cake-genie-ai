@@ -1,8 +1,6 @@
-
-
 'use client';
 
-import React, { useState, useEffect, useCallback, ChangeEvent, FormEvent } from 'react';
+import React, { useState, useEffect, useCallback, ChangeEvent, FormEvent, useMemo } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import { showSuccess, showError } from '../../../lib/utils/toast';
 import { CakeGenieOrder, CakeGenieOrderItem, PaymentStatus, OrderStatus } from '../../../lib/database.types';
@@ -12,11 +10,15 @@ import { OrdersSkeleton, Skeleton } from '../../../components/LoadingSkeletons';
 import { ImageZoomModal } from '../../../components/ImageZoomModal';
 import DetailItem from '../../../components/UI/DetailItem';
 import LazyImage from '../../../components/LazyImage';
+import BillShareCard from '../../../components/BillShareCard';
 
 interface EnrichedOrder extends CakeGenieOrder {
   cakegenie_order_items?: any[]; // Can be items or count object
   cakegenie_addresses?: any;
 }
+
+// Combined type for the unified list
+type CreationItem = (EnrichedOrder & { type: 'order' }) | (any & { type: 'bill_sharing' });
 
 // --- Status Badge Component ---
 const statusStyles: Record<OrderStatus, string> = {
@@ -270,8 +272,8 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
     
     const orderDate = new Date(order.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     
-    // The query now returns an array with a count object, e.g., [{ count: 2 }]
-    const itemCount = order.cakegenie_order_items?.[0]?.count ?? 0;
+    // The query now returns the full items array, so we use .length for the count.
+    const itemCount = order.cakegenie_order_items?.length ?? 0;
 
     const handleCancelOrder = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -357,12 +359,13 @@ export default function OrdersPage({ onClose }: OrdersPageProps) {
     const userId = user?.id;
     const [currentPage, setCurrentPage] = useState(1);
     const [allOrders, setAllOrders] = useState<EnrichedOrder[]>([]);
+    const [billShareDesigns, setBillShareDesigns] = useState<any[]>([]);
     const ORDERS_PER_PAGE = 5;
 
     const { data: pageData, isLoading: pageLoading, isFetching, error } = useOrders(userId, {
         limit: ORDERS_PER_PAGE,
         offset: (currentPage - 1) * ORDERS_PER_PAGE,
-        includeItems: false, // Fetch only item counts for the list view
+        includeItems: true,
     });
 
     useEffect(() => {
@@ -371,13 +374,14 @@ export default function OrdersPage({ onClose }: OrdersPageProps) {
         }
     }, [error]);
 
-    const totalOrderCount = pageData?.totalCount || 0;
+    const totalOrderCount = pageData?.totalOrderCount || 0;
+    const totalItemCount = (pageData?.totalOrderCount || 0) + (pageData?.designs?.length || 0);
     
-    // Effect to append new orders to the list
     useEffect(() => {
-        if (pageData?.orders) {
+        if (pageData) {
             if (currentPage === 1) {
                 setAllOrders(pageData.orders);
+                setBillShareDesigns(pageData.designs); // Only set designs on first page load
             } else {
                 setAllOrders(prevOrders => {
                     const existingOrderIds = new Set(prevOrders.map(o => o.order_id));
@@ -388,10 +392,16 @@ export default function OrdersPage({ onClose }: OrdersPageProps) {
         }
     }, [pageData, currentPage]);
     
-    // Reset state on user change
+    const combinedItems = useMemo<CreationItem[]>(() => {
+      const ordersWithType: CreationItem[] = allOrders.map(o => ({ ...o, type: 'order' }));
+      const designsWithType: CreationItem[] = billShareDesigns.map(d => ({ ...d, type: 'bill_sharing' }));
+      return [...ordersWithType, ...designsWithType].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }, [allOrders, billShareDesigns]);
+    
     useEffect(() => {
         setCurrentPage(1);
         setAllOrders([]);
+        setBillShareDesigns([]);
     }, [userId]);
 
     const handleLoadMore = () => {
@@ -407,8 +417,16 @@ export default function OrdersPage({ onClose }: OrdersPageProps) {
             )
         );
     }, []);
+
+    const handleDesignUpdate = useCallback((updatedDesign: any) => {
+      setBillShareDesigns(currentDesigns =>
+        currentDesigns.map(design =>
+          design.design_id === updatedDesign.design_id ? { ...design, ...updatedDesign } : design
+        )
+      );
+    }, []);
     
-    const initialLoading = authLoading || (pageLoading && allOrders.length === 0);
+    const initialLoading = authLoading || (pageLoading && combinedItems.length === 0);
 
     if (initialLoading) {
         return (
@@ -441,19 +459,27 @@ export default function OrdersPage({ onClose }: OrdersPageProps) {
             </div>
 
             <div className="space-y-4">
-                {allOrders.length > 0 ? (
-                    allOrders.map(order => <OrderCard key={order.order_id} order={order} onOrderUpdate={handleOrderUpdate} />)
+                {combinedItems.length > 0 ? (
+                    combinedItems.map(item => {
+                        if (item.type === 'order') {
+                            return <OrderCard key={item.order_id} order={item} onOrderUpdate={handleOrderUpdate} />;
+                        }
+                        if (item.type === 'bill_sharing') {
+                            return <BillShareCard key={item.design_id} design={item} onDesignUpdate={handleDesignUpdate} />;
+                        }
+                        return null;
+                    })
                 ) : (
                     <div className="text-center py-16 bg-white/50 rounded-2xl">
                         <Package className="w-12 h-12 mx-auto text-slate-400" />
-                        <p className="text-slate-500 mt-4">You haven't placed any orders yet.</p>
-                        <button onClick={onClose} className="mt-4 text-pink-600 font-semibold hover:underline">Start Shopping</button>
+                        <p className="text-slate-500 mt-4">You haven't placed any orders or created any designs yet.</p>
+                        <button onClick={onClose} className="mt-4 text-pink-600 font-semibold hover:underline">Start Designing</button>
                     </div>
                 )}
             </div>
             
             <div className="mt-6 text-center">
-                 <p className="text-sm text-slate-500 mb-4">Showing {allOrders.length} of {totalOrderCount} orders.</p>
+                 <p className="text-sm text-slate-500 mb-4">Showing {combinedItems.length} of {totalItemCount} items.</p>
                  {allOrders.length < totalOrderCount && (
                     <button
                         onClick={handleLoadMore}
