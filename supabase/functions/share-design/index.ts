@@ -64,16 +64,48 @@ serve(async (req) => {
     }
 
     console.log(`[share-design] Found design: ${data.title}`);
-    
-    // 3. Construct the HTML with meta tags
+
+    // 3. Check if this is a bot or a real user
+    const userAgent = req.headers.get('user-agent') || '';
+    const isBot = /bot|crawler|spider|facebook|twitter|whatsapp|linkedin|slack|messenger/i.test(userAgent);
+
     const APP_DOMAIN = 'https://genie.ph';
     const canonicalUrl = `${APP_DOMAIN}/designs/${slug}`; // The URL crawlers see
     const clientRedirectUrl = `${APP_DOMAIN}/#/designs/${slug}`; // The SPA route for users
 
+    // If it's a real user (not a bot), redirect them immediately
+    if (!isBot) {
+        return new Response(null, {
+            status: 302,
+            headers: {
+                'Location': clientRedirectUrl,
+                ...corsHeaders
+            }
+        });
+    }
+
     const title = escapeHtml(data.title || "Check out this Cake Design!");
     const description = escapeHtml(data.description || "I created this custom cake design using Genie. What do you think?");
-    const imageUrl = data.customized_image_url;
+    
+    // Ensure the image URL is properly formatted for social media previews
+    let imageUrl = data.customized_image_url;
+    if (imageUrl) {
+        // If it's a base64 data URI, we can't use it for social media previews
+        // In this case, we should use a default image or try to get a proper URL
+        if (imageUrl.startsWith('data:')) {
+            // Use a default image for social media previews
+            imageUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20face%20logo.webp';
+        } 
+        // If it's not already a full URL, construct it properly
+        else if (!imageUrl.startsWith('http')) {
+            imageUrl = `https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/${imageUrl}`;
+        }
+    } else {
+        // Fallback to default image if no image URL is available
+        imageUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20face%20logo.webp';
+    }
 
+    // Enhanced Open Graph meta tags for better Messenger compatibility
     const html = `
       <!DOCTYPE html>
       <html lang="en">
@@ -82,21 +114,27 @@ serve(async (req) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${title}</title>
         
+        <!-- Primary Meta Tags -->
+        <meta name="title" content="${title}">
+        <meta name="description" content="${description}">
+        
         <!-- Open Graph / Facebook / Messenger -->
         <meta property="og:type" content="website">
         <meta property="og:url" content="${canonicalUrl}">
         <meta property="og:title" content="${title}">
         <meta property="og:description" content="${description}">
         <meta property="og:image" content="${imageUrl}">
-        <meta property="og:image:width" content="1080">
-        <meta property="og:image:height" content="1080">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+        <meta property="og:image:type" content="image/png">
+        <meta property="og:site_name" content="Genie">
         
         <!-- Twitter -->
-        <meta name="twitter:card" content="summary_large_image">
+        <meta property="twitter:card" content="summary_large_image">
         <meta property="twitter:url" content="${canonicalUrl}">
-        <meta name="twitter:title" content="${title}">
-        <meta name="twitter:description" content="${description}">
-        <meta name="twitter:image" content="${imageUrl}">
+        <meta property="twitter:title" content="${title}">
+        <meta property="twitter:description" content="${description}">
+        <meta property="twitter:image" content="${imageUrl}">
         
         <!-- JavaScript redirect for real users -->
         <script type="text/javascript">
@@ -111,12 +149,14 @@ serve(async (req) => {
     `;
     
     return new Response(html, {
-        headers: { 
-            ...corsHeaders, 
+        headers: {
+            ...corsHeaders,
             'Content-Type': 'text/html',
             // Cache for 1 hour in browser, 24 hours on CDN (like Vercel)
             // This drastically reduces Supabase load from bots.
-            'Cache-Control': 'public, max-age=3600, s-maxage=86400'
+            'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+            // Allow inline scripts for the JavaScript redirect
+            'Content-Security-Policy': "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline';"
         },
         status: 200,
     });
