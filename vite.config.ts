@@ -21,8 +21,6 @@ export default defineConfig({
         'next/',
         'vite',
         '@vitejs/plugin-react',
-        'browser-image-compression',
-        '@react-google-maps/api',
         'crypto'
       ],
       output: {
@@ -31,7 +29,7 @@ export default defineConfig({
           'supabase': ['@supabase/supabase-js'],
           'query': ['@tanstack/react-query'],
           'ui-heavy': ['react-hot-toast'],
-          'utils': ['uuid'],
+          'utils': ['uuid', 'browser-image-compression'],
         },
       },
     },
@@ -40,6 +38,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 500,
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', '@supabase/supabase-js', '@tanstack/react-query'],
+    include: ['react', 'react-dom', '@supabase/supabase-js', '@tanstack/react-query', 'browser-image-compression'],
+    exclude: []
   },
 });
