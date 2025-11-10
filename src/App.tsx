@@ -12,6 +12,8 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import StickyAddToCartBar from './components/StickyAddToCartBar';
 import AnimatedBlobs from './components/UI/AnimatedBlobs';
 
+console.log('App.tsx: File loaded');
+
 // --- Custom Hooks for Core Logic (Simplified Import) ---
 import {
   useAuth,

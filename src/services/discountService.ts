@@ -212,14 +212,9 @@ export async function getUserDiscountCodes(): Promise<any[]> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
 
-    const { data, error } = await supabase
-      .rpc('get_available_discounts_for_user', { p_user_id: user.id });
-
-    if (error) {
-      console.error('Error fetching user discount codes:', error);
-      return [];
-    }
-    return data || [];
+    // Temporarily disabled - RPC function not yet created
+    const userDiscounts: any[] = [];
+    return userDiscounts;
   } catch (error) {
     console.error('Exception fetching user discount codes:', error);
     return [];

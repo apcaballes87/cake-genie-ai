@@ -25,6 +25,8 @@ import {
 } from '../services/supabaseService';
 import { withTimeout } from '../lib/utils/timeout';
 
+console.log('CartContext.tsx: File loaded');
+
 // --- NEW BATCHED LOCALSTORAGE WRITER ---
 const queuedWrites: { [key: string]: string | null } = {};
 let isFlushScheduled = false;
@@ -183,6 +185,8 @@ const CartActionsContext = createContext<CartActionsType | undefined>(undefined)
 const supabase: SupabaseClient = getSupabaseClient();
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  console.log('CartProvider: Component initialized');
+  
   const [cartItems, setCartItems] = useState<CakeGenieCartItem[]>([]);
   const [addresses, setAddresses] = useState<CakeGenieAddress[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -236,7 +240,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const userIdForQuery = isAnonymous ? null : user?.id;
       const sessionIdForQuery = isAnonymous ? user?.id : null;
       
-      const pageDataPromise = getCartPageData(userIdForQuery, sessionIdForQuery);
+      // Fix TypeScript error by ensuring proper types
+      const pageDataPromise = getCartPageData(
+        userIdForQuery !== undefined ? userIdForQuery : null, 
+        sessionIdForQuery !== undefined ? sessionIdForQuery : null
+      );
       const { cartData, addressesData } = await withTimeout(
         pageDataPromise,
         5000, // Increased timeout for parallel queries
@@ -282,7 +290,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 userToLoad = data.user;
                 console.log('✅ Anonymous session created:', userToLoad?.id);
             } else {
-                console.log('✅ Existing session found:', userToLoad.id, 'Is anonymous:', userToLoad.is_anonymous);
+                // Fix TypeScript error by checking if userToLoad is not null
+                if (userToLoad) {
+                    console.log('✅ Existing session found:', userToLoad.id, 'Is anonymous:', userToLoad.is_anonymous);
+                } else {
+                    console.log('✅ Existing session found, but user is null');
+                }
             }
     
             setCurrentUser(userToLoad);

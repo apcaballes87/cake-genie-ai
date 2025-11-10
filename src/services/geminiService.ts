@@ -1,17 +1,17 @@
 // services/geminiService.ts
 
-import { GoogleGenAI, Modality, Type } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, IcingColorDetails, CakeInfoUI, CakeType, CakeThickness, IcingDesign, MainTopperType, CakeMessage, SupportElementType } from '../types';
 import { CAKE_TYPES, CAKE_THICKNESSES, COLORS } from "../constants";
 import { getSupabaseClient } from '../lib/supabase/client';
 
-const geminiApiKey = process.env.API_KEY;
+const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
 if (!geminiApiKey) {
-    throw new Error("API_KEY environment variable not set");
+    throw new Error("VITE_GEMINI_API_KEY environment variable not set");
 }
   
-const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+const genAI = new GoogleGenerativeAI(geminiApiKey);
 const supabase = getSupabaseClient();
 
 // Cache the prompt for 10 minutes
@@ -100,51 +100,29 @@ Example for a picture of a car:
 { "classification": "not_a_cake" }
 `;
 
-const validationResponseSchema = {
-    type: Type.OBJECT,
-    properties: {
-        classification: {
-            type: Type.STRING,
-            enum: [
-                'valid_single_cake',
-                'not_a_cake',
-                'multiple_cakes',
-                'only_cupcakes',
-                'complex_sculpture',
-                'large_wedding_cake',
-                'non_food',
-            ],
-        },
-    },
-    required: ['classification'],
-};
-
 export const validateCakeImage = async (base64ImageData: string, mimeType: string): Promise<string> => {
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: [{
-                parts: [
-                    { inlineData: { mimeType, data: base64ImageData } },
-                    { text: VALIDATION_PROMPT }
-                ],
-            }],
-            config: {
-                responseMimeType: 'application/json',
-                responseSchema: validationResponseSchema,
-                temperature: 0,
+        // Use the updated model name
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        
+        const result = await model.generateContent([
+            {
+                inlineData: { mimeType, data: base64ImageData }
             },
-        });
+            VALIDATION_PROMPT
+        ]);
 
-        const jsonText = response.text.trim();
-        const result = JSON.parse(jsonText);
-        return result.classification;
+        const response = await result.response;
+        const jsonText = response.text().trim();
+        const resultData = JSON.parse(jsonText);
+        return resultData.classification;
 
     } catch (error) {
         console.error("Error validating cake image:", error);
         throw new Error("The AI failed to validate the image. Please try again.");
     }
 };
+
 
 const SYSTEM_INSTRUCTION = `You are an expert cake designer analyzing a cake image to identify design elements for pricing and customization. Your response must be a valid JSON object.
 
@@ -387,7 +365,7 @@ Small 3D characters/animals/objects become HERO when they meet ANY of these:
 - 4-inch tier with 3-inch topper: 3÷4 = 0.75 = Medium
 - 4-inch tier with 5-inch topper: 5÷4 = 1.25 = Large
 
-### VALIDATION RULE PRECEDENCE HIERARCHY
+**VALIDATION RULE PRECEDENCE HIERARCHY**
 
 When cues conflict between materials, follow this order:
 1. Physical candles (T1) - Check first
@@ -977,140 +955,6 @@ Single-tier round cake with pastel pink and white soft icing. Large number "6" i
 **END OF GENIE.PH MASTER PROMPT v3.0 - REVISED**
 `;
 
-const hybridAnalysisResponseSchema = {
-    type: Type.OBJECT,
-    properties: {
-        main_toppers: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    type: { type: Type.STRING, enum: ['edible_3d_complex', 'edible_3d_ordinary', 'printout', 'toy', 'figurine', 'cardstock', 'edible_photo', 'candle', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop', 'plastic_ball'] },
-                    description: { type: Type.STRING },
-                    size: { type: Type.STRING, enum: ['small', 'medium', 'large', 'tiny'] },
-                    quantity: { type: Type.INTEGER },
-                    group_id: { type: Type.STRING },
-                    color: { type: Type.STRING },
-                    colors: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER }
-                },
-                required: ['type', 'description', 'size', 'quantity', 'group_id', 'x', 'y']
-            }
-        },
-        support_elements: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    type: { type: Type.STRING, enum: ['edible_3d_support', 'edible_2d_support', 'chocolates', 'sprinkles', 'support_printout', 'isomalt', 'dragees', 'edible_flowers', 'edible_photo_side', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread'] },
-                    description: { type: Type.STRING },
-                    coverage: { type: Type.STRING, enum: ['large', 'medium', 'small', 'tiny'] },
-                    group_id: { type: Type.STRING },
-                    color: { type: Type.STRING },
-                    colors: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER }
-                },
-                required: ['type', 'description', 'coverage', 'group_id', 'x', 'y']
-            }
-        },
-        cake_messages: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    type: { type: Type.STRING, enum: ['gumpaste_letters', 'icing_script', 'printout', 'cardstock'] },
-                    text: { type: Type.STRING },
-                    position: { type: Type.STRING, enum: ['top', 'side', 'base_board'] },
-                    color: { type: Type.STRING },
-                    x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER }
-                },
-                required: ['type', 'text', 'position', 'color', 'x', 'y']
-            }
-        },
-        icing_design: {
-            type: Type.OBJECT,
-            properties: {
-                base: { type: Type.STRING, enum: ['soft_icing', 'fondant'] },
-                color_type: { type: Type.STRING, enum: ['single', 'gradient_2', 'gradient_3', 'abstract'] },
-                colors: {
-                    type: Type.OBJECT,
-                    properties: {
-                        side: { type: Type.STRING },
-                        top: { type: Type.STRING },
-                        borderTop: { type: Type.STRING },
-                        borderBase: { type: Type.STRING },
-                        drip: { type: Type.STRING },
-                        gumpasteBaseBoardColor: { type: Type.STRING }
-                    }
-                },
-                border_top: { type: Type.BOOLEAN },
-                border_base: { type: Type.BOOLEAN },
-                drip: { type: Type.BOOLEAN },
-                gumpasteBaseBoard: { type: Type.BOOLEAN }
-            },
-            required: ['base', 'color_type', 'colors', 'border_top', 'border_base', 'drip', 'gumpasteBaseBoard']
-        },
-        cakeType: { type: Type.STRING, enum: CAKE_TYPES },
-        cakeThickness: { type: Type.STRING, enum: CAKE_THICKNESSES },
-        drip_effects: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    description: { type: Type.STRING },
-                    x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER },
-                },
-                required: ['description', 'x', 'y']
-            }
-        },
-        icing_surfaces: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    description: { type: Type.STRING },
-                    tier: { type: Type.INTEGER },
-                    position: { type: Type.STRING, enum: ['top', 'side'] },
-                    x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER },
-                },
-                required: ['description', 'tier', 'position', 'x', 'y']
-            }
-        },
-        icing_borders: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    description: { type: Type.STRING },
-                    tier: { type: Type.INTEGER },
-                    position: { type: Type.STRING, enum: ['top', 'base'] },
-                    x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER },
-                },
-                required: ['description', 'tier', 'position', 'x', 'y']
-            }
-        },
-        base_board: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    description: { type: Type.STRING },
-                    x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER },
-                },
-                required: ['description', 'x', 'y']
-            }
-        }
-    },
-    required: ['cakeType', 'cakeThickness', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design'],
-};
-
 export const analyzeCakeImage = async (
     base64ImageData: string,
     mimeType: string
@@ -1166,38 +1010,40 @@ You MUST provide precise central coordinates for every single decorative element
 
         const activePrompt = await getActivePrompt();
 
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: [{
-                parts: [
-                    { inlineData: { mimeType, data: base64ImageData } },
-                    { text: COORDINATE_PROMPT + activePrompt },
-                ],
-            }],
-            config: {
-                systemInstruction: SYSTEM_INSTRUCTION,
-                responseMimeType: 'application/json',
-                responseSchema: hybridAnalysisResponseSchema,
-                temperature: 0.1,
-            },
+        // Use the correct Google Generative AI library syntax
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-2.5-flash"
         });
+        
+        const result = await model.generateContent([
+            {
+                inlineData: { mimeType, data: base64ImageData }
+            },
+            COORDINATE_PROMPT + activePrompt
+        ]);
 
-        const jsonText = response.text.trim();
-        const result = JSON.parse(jsonText);
+        const response = await result.response;
+        let jsonText = response.text().trim();
+        if (jsonText.startsWith('```json')) {
+          jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (jsonText.startsWith('```')) {
+          jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        const analysisResult = JSON.parse(jsonText);
 
-        if (result.rejection?.isRejected) {
-            throw new Error(result.rejection.message || "The uploaded image is not suitable for processing.");
+        if (analysisResult.rejection?.isRejected) {
+            throw new Error(analysisResult.rejection.message || "The uploaded image is not suitable for processing.");
         }
         
         const requiredFields = ['main_toppers', 'support_elements', 'cake_messages', 'icing_design', 'cakeType', 'cakeThickness'];
         for (const field of requiredFields) {
-            if (result[field] === undefined) {
-                console.error("Analysis validation error: Missing field", field, JSON.stringify(result, null, 2));
+            if (analysisResult[field] === undefined) {
+                console.error("Analysis validation error: Missing field", field, JSON.stringify(analysisResult, null, 2));
                 throw new Error("The AI returned an incomplete analysis. Please try a different image.");
             }
         }
 
-        return result as HybridAnalysisResult;
+        return analysisResult as HybridAnalysisResult;
 
     } catch (error) {
         console.error("Error analyzing cake image:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
@@ -1216,57 +1062,43 @@ You MUST provide precise central coordinates for every single decorative element
     }
 };
 
-const SHARE_TEXT_PROMPT = `You are an expert in SEO and creative marketing for a cake shop. Your task is to generate a compelling, SEO-friendly title, description, and alt text for a shared cake design. You will be given a JSON object with the cake's analysis details.
+const SHARE_TEXT_PROMPT = `You are an expert social media copywriter for a cake design business. Your task is to generate engaging, shareable text content for a cake design that has been analyzed by an AI system. The content should be appealing for social media platforms like Facebook and Instagram.
 
-**CRITICAL INSTRUCTION: Identify the Core Theme**
-Your most important job is to find the main THEME of the cake. The theme is often a specific brand, character, movie, TV show, anime, K-Pop group, or logo.
+**INPUT FORMAT:**
+You will receive a JSON object containing:
+1. \`cakeType\`: The type of cake (e.g., "1 Tier", "2 Tier Fondant")
+2. \`cakeSize\`: The size of the cake (e.g., "6 inch", "8 inch")
+3. \`main_toppers\`: Array of main decorative elements
+4. \`support_elements\`: Array of supporting decorative elements
+5. \`cake_messages\`: Array of text elements
+6. \`icing_colors\`: Array of color information
 
-**HOW TO FIND THE THEME (CHECK IN THIS ORDER):**
-1.  **First, check \`cake_messages\`:** Text written on the cake is the strongest clue. A message like "Happy Birthday, Super Mario" or "KPOP DEMON HUNTERS" DIRECTLY tells you the theme. Prioritize this information above all else.
-2.  **Second, check \`main_toppers\`:** Look at the 'description' field for toppers. This is another great source for themes like "1 unicorn topper" or "BTS logo".
-3.  **Synthesize:** Combine clues. If a message says "Happy 10th Birthday, Ash" and a topper is "Pikachu", the theme is "Pokemon".
+**YOUR TASK:**
+Generate three specific text elements:
 
-The identified theme MUST be the primary focus of the generated text, especially the title.
+1. \`title\`: A catchy, short title (5-10 words) that highlights the most unique/eye-catching aspect of the cake. Focus on the main topper or theme.
 
-**Output Format:** Your response MUST be a single, valid JSON object with the following structure:
-{
-  "title": "string",
-  "description": "string",
-  "altText": "string"
-}
+2. \`description\`: A longer, engaging description (2-3 sentences) that tells a story about the cake. Include:
+   - The cake type and size
+   - The main topper or theme
+   - At least one supporting element or color
+   - Use descriptive, appetizing language
 
-**Instructions for each field:**
+3. \`altText\`: A detailed, SEO-friendly description (1-2 sentences) for accessibility. Focus on visual elements and avoid marketing language.
 
-1.  **title:**
-    *   **Structure:** "[Theme] Themed [Size] [Type] Cake"
-    *   **Prioritize the Theme:** The theme you identified MUST be the first part of the title. Capitalize it appropriately.
-    *   **Fallback:** ONLY if no specific theme can be found in messages or toppers, use a descriptive but generic title based on the main topper (e.g., "Character Figure Themed Cake", "Elegant Floral Cake").
-    *   **Example (Good):** "KPOP DEMON HUNTERS Themed 6\" Round 1 Tier Cake"
-    *   **Example (Bad):** "Character Figures Located On The Top Surface Themed 6\" Round (4\" thickness) 1 Tier Cake"
+**STYLE GUIDELINES:**
+- Use natural, conversational language
+- Emphasize visual elements and colors
+- Create excitement and desire
+- Avoid generic phrases like "delicious" or "tasty"
+- Be specific about design elements
+- Keep it positive and celebratory
 
-2.  **description:**
-    *   Start with a creative sentence that highlights the theme.
-    *   Mention the key decorations from \`main_toppers\` and \`support_elements\`.
-    *   Keep it concise and appealing (1-2 sentences).
-
-3.  **altText (for accessibility):**
-    *   **Structure:** "A photo of a [Theme] themed cake. It is a [Main Icing Color] [Cake Type] cake decorated with [list of key decorations]."
-    *   Be descriptive and clear.
-    *   Mention the main color of the cake and list the most important decorations.
+**OUTPUT FORMAT:**
+Respond with a valid JSON object containing ONLY the three required fields: \`title\`, \`description\`, and \`altText\`. Do not include any markdown formatting or additional text.
 
 Here is the cake analysis data:
 `;
-
-const shareableTextResponseSchema = {
-    type: Type.OBJECT,
-    properties: {
-        title: { type: Type.STRING },
-        description: { type: Type.STRING },
-        altText: { type: Type.STRING },
-    },
-    required: ['title', 'description', 'altText'],
-};
-
 
 export interface ShareableTexts {
     title: string;
@@ -1294,22 +1126,21 @@ export const generateShareableTexts = async (
             })
         };
 
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: [{
-                parts: [
-                    { text: SHARE_TEXT_PROMPT },
-                    { text: `\`\`\`json\n${JSON.stringify(simplifiedAnalysis, null, 2)}\n\`\`\`` },
-                ],
-            }],
-            config: {
-                responseMimeType: 'application/json',
-                responseSchema: shareableTextResponseSchema,
-                temperature: 0.3,
-            },
-        });
-
-        const jsonText = response.text.trim();
+        // Use the correct Google Generative AI library syntax
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        
+        const result = await model.generateContent([
+            SHARE_TEXT_PROMPT,
+            `\`\`\`json\n${JSON.stringify(simplifiedAnalysis, null, 2)}\n\`\`\``
+        ]);
+        
+        const response = await result.response;
+        let jsonText = response.text().trim();
+        if (jsonText.startsWith('```json')) {
+          jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (jsonText.startsWith('```')) {
+          jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
         return JSON.parse(jsonText) as ShareableTexts;
     } catch (error) {
         console.error("Error generating shareable texts:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
@@ -1369,25 +1200,18 @@ export const editCakeImage = async (
     parts.push({ text: prompt });
 
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents: { parts },
-            config: {
-                responseModalities: [Modality.IMAGE],
-                systemInstruction: systemInstruction,
-                temperature: 0.1,
-            },
+        // Use the correct Google Generative AI library syntax
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-2.5-flash-image"  // Use the specific image model for image editing
         });
-
-        for (const part of response.candidates[0].content.parts) {
-            if (part.inlineData) {
-                return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-            }
-        }
         
-        const refusalText = response.text?.trim();
-        if (refusalText) {
-             throw new Error(`The AI could not generate the image. Reason: ${refusalText}`);
+        const result = await model.generateContent(parts);
+        const response = await result.response;
+        
+        // Extract the image data from the response
+        const imageData = response.text();
+        if (imageData) {
+            return imageData;
         }
 
         throw new Error("The AI did not return an image. Please try again.");
