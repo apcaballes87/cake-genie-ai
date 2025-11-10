@@ -26,6 +26,7 @@ import {
   useAvailabilitySettings,
 } from './hooks';
 
+import TestGemini from './components/TestGemini';
 
 // Lazy load heavy page components
 const LandingPage = lazy(() => import('./app/landing/page'));
@@ -63,6 +64,9 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
 };
 
 export default function App(): React.ReactElement {
+  // For testing purposes, let's show the test component by default
+  const [showTest, setShowTest] = useState(false);
+
   // --- CORE CONTEXT HOOKS ---
   const { user, isAuthenticated, signOut } = useAuth();
   const { itemCount: supabaseItemCount, addToCartOptimistic, removeItemOptimistic, authError, isLoading: isCartLoading } = useCart();
@@ -130,10 +134,12 @@ export default function App(): React.ReactElement {
       },
   });
 
-  const HEX_TO_COLOR_NAME_MAP = useMemo(() => COLORS.reduce((acc, color) => {
+  const HEX_TO_COLOR_NAME_MAP = useMemo(() => {
+    return COLORS.reduce((acc, color) => {
       acc[color.hex.toLowerCase()] = color.name;
       return acc;
-  }, {} as Record<string, string>), []);
+    }, {} as Record<string, string>);
+  }, []);
   
   const { isShareModalOpen, shareData, isSavingDesign, handleShare, createShareLink, closeShareModal } = useDesignSharing({
     editedImage, originalImagePreview, cakeInfo, basePrice, finalPrice, mainToppers,
@@ -510,42 +516,43 @@ ${prompt}
   }, [appState]);
 
   return (
-    <ErrorBoundary>
-        <div className="relative min-h-screen">
-            <Toaster toastOptions={toastOptions} />
-            <AnimatedBlobs />
-            {authError && <div className="fixed inset-0 bg-white z-[100] flex items-center justify-center p-4 text-center"><div className="max-w-md"><ErrorIcon className="w-16 h-16 text-red-500 mx-auto mb-4" /><h2 className="text-2xl font-bold text-slate-800 mb-2">Initialization Failed</h2><p className="text-slate-600 mb-6">{authError}</p><button onClick={() => window.location.reload()} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:shadow-lg transition-all">Refresh Page</button></div></div>}
-            {!authError && <>
-                {appState === 'landing' && <div className="fixed top-4 right-4 z-20 flex items-center gap-2"><button onMouseEnter={() => import('./app/cart/page')} onClick={() => setAppState('cart')} className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors" aria-label={`View cart with ${itemCount} items`}><CartIcon />{itemCount > 0 && <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">{itemCount}</span>}</button>{isAuthenticated && !user?.is_anonymous ? <div className="relative" ref={accountMenuRef}><button onClick={() => setIsAccountMenuOpen(prev => !prev)} className="p-2 text-slate-600 hover:text-purple-700 transition-colors" aria-label="Open account menu"><UserCircleIcon /></button>{isAccountMenuOpen && <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-1 animate-fade-in"><div className="px-4 py-2 border-b border-slate-100"><p className="text-sm font-medium text-slate-800 truncate">{user?.email}</p></div><button onClick={() => { setAppState('addresses'); setIsAccountMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"><MapPinIcon className="w-4 h-4" />My Addresses</button><button onClick={() => { setAppState('orders'); setIsAccountMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"><PackageIcon className="w-4 h-4" />My Orders</button><button onClick={handleSignOut} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"><LogOutIcon className="w-4 h-4" />Sign Out</button></div>}</div> : <button onClick={() => setAppState('auth')} className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full text-sm font-semibold text-slate-700 hover:bg-white hover:border-slate-300 transition-all shadow-sm">Login / Sign Up</button>}</div>}
-                <main className={`relative w-full mx-auto transition-all duration-300 ease-in-out ${mainContentPadding} ${appState === 'landing' ? 'h-screen overflow-y-hidden' : ''}`}>
-                    <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
-                        {isPreparingSharedDesign ? <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div> : renderAppState()}
-                    </Suspense>
-                </main>
-                <Suspense fallback={null}>
-                  <ImageUploader isOpen={isUploaderOpen} onClose={() => setIsUploaderOpen(false)} onImageSelect={(file) => { handleAppImageUpload(file).catch(err => console.error("Upload failed", err)); setIsUploaderOpen(false); }} />
-                </Suspense>
-                {appState === 'customizing' && <Suspense fallback={null}><ImageZoomModal isOpen={isMainZoomModalOpen} onClose={() => setIsMainZoomModalOpen(false)} originalImage={originalImagePreview} customizedImage={editedImage} initialTab={activeTab} /></Suspense>}
-                <Suspense fallback={null}>
-                  <ReportModal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} onSubmit={handleReport} isSubmitting={isReporting} editedImage={editedImage} details={analysisResult ? buildCartItemDetails() : null} cakeInfo={cakeInfo} />
-                </Suspense>
-                {appState === 'customizing' && <StickyAddToCartBar price={finalPrice} isLoading={isFetchingBasePrice} isAdding={isAddingToCart} error={basePriceError} onAddToCartClick={handleAddToCart} onShareClick={handleShare} isSharing={isSavingDesign} canShare={!!analysisResult} isAnalyzing={isAnalyzing} cakeInfo={cakeInfo} warningMessage={toyWarningMessage} />}
-                <Suspense fallback={null}>
-                  <ShareModal
-                    isOpen={isShareModalOpen}
-                    onClose={closeShareModal}
-                    shareData={shareData}
-                    onCreateLink={createShareLink}
-                    isSaving={isSavingDesign}
-                    finalPrice={finalPrice}
-                    imageUrl={editedImage || originalImagePreview || ''}
-                    user={user}
-                    onAuthRequired={() => setAppState('auth')}
-                    availability={availability}
-                  />
-                </Suspense>
-            </>}
-        </div>
-    </ErrorBoundary>
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100">
+      {/* Test component for Gemini API */}
+      {showTest && <TestGemini />}
+      
+      <Toaster toastOptions={toastOptions} />
+      <AnimatedBlobs />
+      {authError && <div className="fixed inset-0 bg-white z-[100] flex items-center justify-center p-4 text-center"><div className="max-w-md"><ErrorIcon className="w-16 h-16 text-red-500 mx-auto mb-4" /><h2 className="text-2xl font-bold text-slate-800 mb-2">Initialization Failed</h2><p className="text-slate-600 mb-6">{authError}</p><button onClick={() => window.location.reload()} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:shadow-lg transition-all">Refresh Page</button></div></div>}
+      {!authError && <>
+          {appState === 'landing' && <div className="fixed top-4 right-4 z-20 flex items-center gap-2"><button onMouseEnter={() => import('./app/cart/page')} onClick={() => setAppState('cart')} className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors" aria-label={`View cart with ${itemCount} items`}><CartIcon />{itemCount > 0 && <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">{itemCount}</span>}</button>{isAuthenticated && !user?.is_anonymous ? <div className="relative" ref={accountMenuRef}><button onClick={() => setIsAccountMenuOpen(prev => !prev)} className="p-2 text-slate-600 hover:text-purple-700 transition-colors" aria-label="Open account menu"><UserCircleIcon /></button>{isAccountMenuOpen && <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-1 animate-fade-in"><div className="px-4 py-2 border-b border-slate-100"><p className="text-sm font-medium text-slate-800 truncate">{user?.email}</p></div><button onClick={() => { setAppState('addresses'); setIsAccountMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"><MapPinIcon className="w-4 h-4" />My Addresses</button><button onClick={() => { setAppState('orders'); setIsAccountMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"><PackageIcon className="w-4 h-4" />My Orders</button><button onClick={handleSignOut} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"><LogOutIcon className="w-4 h-4" />Sign Out</button></div>}</div> : <button onClick={() => setAppState('auth')} className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full text-sm font-semibold text-slate-700 hover:bg-white hover:border-slate-300 transition-all shadow-sm">Login / Sign Up</button>}</div>}
+          <main className={`relative w-full mx-auto transition-all duration-300 ease-in-out ${mainContentPadding} ${appState === 'landing' ? 'h-screen overflow-y-hidden' : ''}`}>
+              <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
+                  {isPreparingSharedDesign ? <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div> : renderAppState()}
+              </Suspense>
+          </main>
+          <Suspense fallback={null}>
+            <ImageUploader isOpen={isUploaderOpen} onClose={() => setIsUploaderOpen(false)} onImageSelect={(file) => { handleAppImageUpload(file).catch(err => console.error("Upload failed", err)); setIsUploaderOpen(false); }} />
+          </Suspense>
+          {appState === 'customizing' && <Suspense fallback={null}><ImageZoomModal isOpen={isMainZoomModalOpen} onClose={() => setIsMainZoomModalOpen(false)} originalImage={originalImagePreview} customizedImage={editedImage} initialTab={activeTab} /></Suspense>}
+          <Suspense fallback={null}>
+            <ReportModal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} onSubmit={handleReport} isSubmitting={isReporting} editedImage={editedImage} details={analysisResult ? buildCartItemDetails() : null} cakeInfo={cakeInfo} />
+          </Suspense>
+          {appState === 'customizing' && <StickyAddToCartBar price={finalPrice} isLoading={isFetchingBasePrice} isAdding={isAddingToCart} error={basePriceError} onAddToCartClick={handleAddToCart} onShareClick={handleShare} isSharing={isSavingDesign} canShare={!!analysisResult} isAnalyzing={isAnalyzing} cakeInfo={cakeInfo} warningMessage={toyWarningMessage} />}
+          <Suspense fallback={null}>
+            <ShareModal
+              isOpen={isShareModalOpen}
+              onClose={closeShareModal}
+              shareData={shareData}
+              onCreateLink={createShareLink}
+              isSaving={isSavingDesign}
+              finalPrice={finalPrice}
+              imageUrl={editedImage || originalImagePreview || ''}
+              user={user}
+              onAuthRequired={() => setAppState('auth')}
+              availability={availability}
+            />
+          </Suspense>
+      </>}
+    </div>
   );
 }
