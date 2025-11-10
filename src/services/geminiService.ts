@@ -102,8 +102,7 @@ Example for a picture of a car:
 
 export const validateCakeImage = async (base64ImageData: string, mimeType: string): Promise<string> => {
     try {
-        // Use the updated model name
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
         
         const result = await model.generateContent([
             {
@@ -113,7 +112,11 @@ export const validateCakeImage = async (base64ImageData: string, mimeType: strin
         ]);
 
         const response = await result.response;
-        const jsonText = response.text().trim();
+        let jsonText = response.text().trim();
+        
+        // Strip markdown code blocks
+        jsonText = jsonText.replace(/^```json\s*/m, '').replace(/^```\s*/m, '').replace(/\s*```$/m, '');
+        
         const resultData = JSON.parse(jsonText);
         return resultData.classification;
 
@@ -1024,11 +1027,10 @@ You MUST provide precise central coordinates for every single decorative element
 
         const response = await result.response;
         let jsonText = response.text().trim();
-        if (jsonText.startsWith('```json')) {
-          jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-        } else if (jsonText.startsWith('```')) {
-          jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-        }
+        
+        // Strip markdown code blocks
+        jsonText = jsonText.replace(/^```json\s*/m, '').replace(/^```\s*/m, '').replace(/\s*```$/m, '');
+        
         const analysisResult = JSON.parse(jsonText);
 
         if (analysisResult.rejection?.isRejected) {
@@ -1136,11 +1138,10 @@ export const generateShareableTexts = async (
         
         const response = await result.response;
         let jsonText = response.text().trim();
-        if (jsonText.startsWith('```json')) {
-          jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-        } else if (jsonText.startsWith('```')) {
-          jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-        }
+        
+        // Strip markdown code blocks
+        jsonText = jsonText.replace(/^```json\s*/m, '').replace(/^```\s*/m, '').replace(/\s*```$/m, '');
+        
         return JSON.parse(jsonText) as ShareableTexts;
     } catch (error) {
         console.error("Error generating shareable texts:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
