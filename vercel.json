@@ -10,12 +10,6 @@
       }
     }
   ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/dist/$1"
-    }
-  ],
   "rewrites": [
     {
       "source": "/designs/:slug*",
@@ -24,6 +18,10 @@
     {
       "source": "/share/:id*",
       "destination": "https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/share-design/:id*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/dist/$1"
     }
   ],
   "headers": [
