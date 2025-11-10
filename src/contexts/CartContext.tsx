@@ -12,7 +12,7 @@ import React, {
 } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { SupabaseClient, User, PostgrestError } from '@supabase/supabase-js';
-import debounce from 'lodash/debounce';
+import debounce from 'lodash-es/debounce';
 import { showError } from '../lib/utils/toast';
 
 import { getSupabaseClient } from '../lib/supabase/client';
