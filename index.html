@@ -7,6 +7,30 @@
     <title>Genie</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- IMPORTANT: The Google Maps script is now loaded by the @react-google-maps/api library to prevent conflicts. -->
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.20.0",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.44.4/",
+    "@supabase/auth-helpers-nextjs": "https://aistudiocdn.com/@supabase/auth-helpers-nextjs@^0.10.0",
+    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+    "react-hot-toast": "https://aistudiocdn.com/react-hot-toast@^2.4.1",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.417.0",
+    "lodash": "https://aistudiocdn.com/lodash-es@^4.17.21",
+    "lodash/": "https://aistudiocdn.com/lodash-es@^4.17.21/",
+    "next/": "https://aistudiocdn.com/next@^15.5.4/",
+    "@tanstack/react-query": "https://aistudiocdn.com/@tanstack/react-query@^5.51.1",
+    "vite": "https://aistudiocdn.com/vite@^7.1.9",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/vitejs/plugin-react@^5.0.4",
+    "browser-image-compression": "https://aistudiocdn.com/browser-image-compression@^2.0.2",
+    "@react-google-maps/api": "https://aistudiocdn.com/@react-google-maps/api@^2.19.3",
+    "crypto": "https://aistudiocdn.com/crypto@^1.0.1"
+  }
+}
+</script>
 <!-- Microsoft Clarity -->
 <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
@@ -233,10 +257,10 @@
     transform: translate(0, -50%); /* End position: slid out */
   }
 </style>
-<link rel="stylesheet" href="/index.css">
+<link rel="stylesheet" href="/src/index.css">
 </head>
   <body class="bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100">
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

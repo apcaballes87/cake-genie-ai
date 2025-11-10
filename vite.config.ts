@@ -1,10 +1,29 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src')
+    }
+  },
   build: {
     rollupOptions: {
+      external: [
+        '@google/genai',
+        '@supabase/auth-helpers-nextjs',
+        'lodash',
+        'lodash/',
+        'next/',
+        'vite',
+        '@vitejs/plugin-react',
+        'browser-image-compression',
+        '@react-google-maps/api',
+        'crypto'
+      ],
       output: {
         manualChunks: {
           'react-core': ['react', 'react-dom'],

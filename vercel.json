@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/designs/:slug*",
-      "destination": "https://congofivupobtfudnhni.supabase.co/functions/v1/share-design/:slug*"
+      "destination": "https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/share-design/:slug*"
     },
     {
       "source": "/share/:id*",
-      "destination": "https://congofivupobtfudnhni.supabase.co/functions/v1/share-design/:id*"
+      "destination": "https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/share-design/:id*"
     }
   ],
   "headers": [
