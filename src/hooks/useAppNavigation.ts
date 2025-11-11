@@ -25,12 +25,23 @@ export const useAppNavigation = () => {
     useEffect(() => {
         const handleRouting = () => {
             console.log('[Routing] Handling route for hash:', window.location.hash);
-            const pathWithQuery = window.location.hash.substring(1); // e.g., /order-confirmation?order_id=...
+            const pathWithQuery = window.location.hash.substring(1) || ''; // e.g., /order-confirmation?order_id=...
 
-            const [path, queryString] = pathWithQuery.split('?');
+            const [path = '', queryString] = pathWithQuery.split('?');
             const params = new URLSearchParams(queryString || '');
             
             console.log('[Routing] Parsed Path:', path, 'Query:', queryString);
+
+            // Ensure path is a string before calling .match()
+            if (!path || typeof path !== 'string') {
+                // If path is invalid, reset to landing if needed
+                if (appStateRef.current === 'shared_design' || appStateRef.current === 'shopify_customizing') {
+                    setViewingDesignId(null);
+                    setViewingShopifySessionId(null);
+                    setAppState('landing');
+                }
+                return;
+            }
 
             const designMatch = path.match(/^\/designs\/([a-z0-9-]+)\/?$/);
             const shopifyMatch = path.match(/^\/cakesandmemories\/([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})\/?$/);
