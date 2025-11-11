@@ -107,7 +107,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     }
 
     // A more descriptive size instruction for multi-tier cakes.
-    const tiers = newCakeInfo.size.match(/\d+"/g); // e.g., ["6\"", "8\"", "10\""]
+    const tiers = newCakeInfo.size?.match(/\d+"/g); // e.g., ["6\"", "8\"", "10\""]
     if ((newCakeInfo.type.includes('2 Tier')) && tiers && tiers.length === 2) {
         changes.push(`- The final **cake size** represents a 2-tier structure: a ${tiers[0]} diameter top tier stacked on a ${tiers[1]} diameter bottom tier.`);
     } else if ((newCakeInfo.type.includes('3 Tier')) && tiers && tiers.length === 3) {
