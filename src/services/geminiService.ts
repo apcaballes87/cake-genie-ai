@@ -1,6 +1,6 @@
 // services/geminiService.ts
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, Modality } from "@google/genai";
 import type { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, IcingColorDetails, CakeInfoUI, CakeType, CakeThickness, IcingDesign, MainTopperType, CakeMessage, SupportElementType } from '../types';
 import { CAKE_TYPES, CAKE_THICKNESSES, COLORS } from "../constants";
 import { getSupabaseClient } from '../lib/supabase/client';
@@ -1232,17 +1232,24 @@ export const editCakeImage = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: [{ parts }],
+            model: 'gemini-2.5-flash-image',
+            contents: { parts },
             config: {
-                temperature: 0.4,
+                responseModalities: [Modality.IMAGE],
+                systemInstruction: systemInstruction,
+                temperature: 0.1,
             },
         });
 
-        // Extract the image data from the response
-        const imageData = response.text;
-        if (imageData) {
-            return imageData;
+        for (const part of response.candidates[0].content.parts) {
+            if (part.inlineData) {
+                return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+            }
+        }
+
+        const refusalText = response.text?.trim();
+        if (refusalText) {
+             throw new Error(`The AI could not generate the image. Reason: ${refusalText}`);
         }
 
         throw new Error("The AI did not return an image. Please try again.");
