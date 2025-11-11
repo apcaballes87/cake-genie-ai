@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import {
     HybridAnalysisResult,
     MainTopperUI,
@@ -311,7 +312,7 @@ export const useCakeCustomization = () => {
     }, []);
 
     const handleApplyAnalysis = useCallback((analysisData: HybridAnalysisResult) => {
-        setAnalysisId(crypto.randomUUID());
+        setAnalysisId(uuidv4());
         setAnalysisResult(analysisData);
     
         if (!dirtyFields.has('cakeInfo')) {
@@ -345,7 +346,7 @@ export const useCakeCustomization = () => {
                     ...t,
                     x: t.x, // Explicitly carry over x
                     y: t.y, // Explicitly carry over y
-                    id: crypto.randomUUID(),
+                    id: uuidv4(),
                     isEnabled: true,
                     price: 0,
                     original_type: t.type,
@@ -370,7 +371,7 @@ export const useCakeCustomization = () => {
                     ...s,
                     x: s.x, // Explicitly carry over x
                     y: s.y, // Explicitly carry over y
-                    id: crypto.randomUUID(),
+                    id: uuidv4(),
                     isEnabled: true,
                     price: 0,
                     original_type: s.type,
@@ -388,7 +389,7 @@ export const useCakeCustomization = () => {
                  ...msg,
                  x: msg.x, // Explicitly carry over x
                  y: msg.y, // Explicitly carry over y
-                 id: crypto.randomUUID(),
+                 id: uuidv4(),
                  isEnabled: true,
                  price: 0,
                  originalMessage: { ...msg }
