@@ -5,13 +5,19 @@ import type { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageU
 import { CAKE_TYPES, CAKE_THICKNESSES, COLORS } from "../constants";
 import { getSupabaseClient } from '../lib/supabase/client';
 
-const geminiApiKey = process.env.API_KEY;
+let ai: InstanceType<typeof GoogleGenAI> | null = null;
 
-if (!geminiApiKey) {
-    throw new Error("API_KEY environment variable not set");
+function getAI() {
+    if (!ai) {
+        const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        if (!geminiApiKey) {
+            throw new Error("VITE_GEMINI_API_KEY environment variable not set");
+        }
+        ai = new GoogleGenAI({ apiKey: geminiApiKey });
+    }
+    return ai;
 }
-  
-const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+
 const supabase = getSupabaseClient();
 
 // Cache the prompt for 10 minutes
@@ -121,7 +127,7 @@ const validationResponseSchema = {
 
 export const validateCakeImage = async (base64ImageData: string, mimeType: string): Promise<string> => {
     try {
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: "gemini-2.5-flash",
             contents: [{
                 parts: [
@@ -387,7 +393,7 @@ Small 3D characters/animals/objects become HERO when they meet ANY of these:
 - 4-inch tier with 3-inch topper: 3÷4 = 0.75 = Medium
 - 4-inch tier with 5-inch topper: 5÷4 = 1.25 = Large
 
-### VALIDATION RULE PRECEDENCE HIERARCHY
+**VALIDATION RULE PRECEDENCE HIERARCHY**
 
 When cues conflict between materials, follow this order:
 1. Physical candles (T1) - Check first
@@ -1168,7 +1174,7 @@ You MUST provide precise central coordinates for every single decorative element
         const activePrompt = await getActivePrompt();
 
         // Use streaming for real-time progress feedback
-        const stream = await ai.models.generateContentStream({
+        const stream = await getAI().models.generateContentStream({
             model: "gemini-2.5-flash",
             contents: [{
                 parts: [
@@ -1307,7 +1313,7 @@ export const generateShareableTexts = async (
             })
         };
 
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: "gemini-2.5-flash",
             contents: [{
                 parts: [
@@ -1382,7 +1388,7 @@ export const editCakeImage = async (
     parts.push({ text: prompt });
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: 'gemini-2.5-flash-image',
             contents: { parts },
             config: {
