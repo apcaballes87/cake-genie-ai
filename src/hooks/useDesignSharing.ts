@@ -197,7 +197,8 @@ export const useDesignSharing = ({
                         const { title, description, altText } = await generateShareableTexts(
                             analysisResult,
                             cakeInfo,
-                            HEX_TO_COLOR_NAME_MAP
+                            HEX_TO_COLOR_NAME_MAP,
+                            editedImage // Pass the edited image for accurate text generation
                         );
                         await updateSharedDesignTextsWithRetry(result.designId, title, description, altText);
                     } catch (enrichError) {

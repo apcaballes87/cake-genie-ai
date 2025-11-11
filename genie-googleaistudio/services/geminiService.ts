@@ -1047,7 +1047,8 @@ const hybridAnalysisResponseSchema = {
 
 export const analyzeCakeImage = async (
     base64ImageData: string,
-    mimeType: string
+    mimeType: string,
+    onStreamUpdate?: (progress: string) => void
 ): Promise<HybridAnalysisResult> => {
     try {
         const image = new Image();
@@ -1100,7 +1101,8 @@ You MUST provide precise central coordinates for every single decorative element
 
         const activePrompt = await getActivePrompt();
 
-        const response = await ai.models.generateContent({
+        // Use streaming for real-time progress feedback
+        const stream = await ai.models.generateContentStream({
             model: "gemini-2.5-flash",
             contents: [{
                 parts: [
@@ -1116,7 +1118,22 @@ You MUST provide precise central coordinates for every single decorative element
             },
         });
 
-        const jsonText = response.text.trim();
+        // Collect streamed response
+        let fullResponse = '';
+        const estimatedSize = 2500; // Estimated average size of the JSON response in bytes for progress calculation.
+        for await (const chunk of stream) {
+            const chunkText = chunk.text;
+            fullResponse += chunkText;
+            // Send progress updates to UI if callback provided
+            if (onStreamUpdate) {
+                // Heuristic for progress: percentage of an estimated average response size.
+                // Capped at 95% to leave room for final parsing.
+                const progress = Math.min(Math.floor((fullResponse.length / estimatedSize) * 100), 95);
+                onStreamUpdate(`Analyzing... ${progress}%`);
+            }
+        }
+
+        const jsonText = fullResponse.trim();
         const result = JSON.parse(jsonText);
 
         if (result.rejection?.isRejected) {

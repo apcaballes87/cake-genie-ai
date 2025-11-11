@@ -113,25 +113,41 @@ export const useImageManagement = () => {
         setOriginalImagePreview(imageSrc);
         setIsLoading(false); // File processing done
 
-        // --- UPLOAD IMAGE FOR CACHING ---
+        // --- STEP 1: CHECK CACHE FIRST (FAST PATH) ---
+        console.log('🔍 Checking cache for similar image...');
+        const pHash = await generatePerceptualHash(imageSrc);
+        const cachedAnalysis = await findSimilarAnalysisByHash(pHash);
+
+        if (cachedAnalysis) {
+            console.log('✅ Cache Hit! Using stored analysis (no compression needed).');
+            onSuccess(cachedAnalysis);
+            return; // Skip compression and AI call entirely!
+        }
+
+        console.log('⚫️ Cache Miss. Compressing image for AI analysis...');
+
+        // --- STEP 2: COMPRESS IMAGE FOR AI & STORAGE (ONLY ON CACHE MISS) ---
         let uploadedImageUrl = options?.imageUrl; // Use existing URL if from web search
+        let compressedImageData = imageData; // Default to original
 
-        if (!uploadedImageUrl) {
-            // This is a direct file upload, so we need to upload it for our cache records.
-            try {
-                // The ImageUploader may have already compressed it, but we ensure a consistent format/size here.
-                const imageBlob = dataURItoBlob(imageSrc);
-                const fileToUpload = new File([imageBlob], file.name, { type: file.type });
-                
-                // Compress for storage efficiency. 500KB is a good target for a reference image.
-                const compressedFile = await compressImage(fileToUpload, {
-                    maxSizeMB: 0.5,
-                    maxWidthOrHeight: 1024,
-                    fileType: 'image/webp',
-                });
+        try {
+            // Compress image for both AI analysis and storage. 1024x1024 is optimal for Gemini.
+            const imageBlob = dataURItoBlob(imageSrc);
+            const fileToUpload = new File([imageBlob], file.name, { type: file.type });
+            
+            const compressedFile = await compressImage(fileToUpload, {
+                maxSizeMB: 0.5,
+                maxWidthOrHeight: 1024,
+                fileType: 'image/webp',
+            });
 
+            // Convert compressed file to base64 for AI
+            compressedImageData = await fileToBase64(compressedFile);
+            console.log('✅ Image compressed: ~1024x1024px for faster AI processing');
+
+            // Upload compressed file to storage
+            if (!uploadedImageUrl) {
                 const fileName = `analysis-cache/${uuidv4()}.webp`;
-
                 const { error: uploadError } = await supabase.storage
                     .from('cakegenie')
                     .upload(fileName, compressedFile, {
@@ -140,39 +156,32 @@ export const useImageManagement = () => {
                     });
 
                 if (uploadError) {
-                    // This is a non-critical failure. Log it but don't block the user.
                     console.warn('Failed to upload image for caching, proceeding without URL.', uploadError.message);
                 } else {
                     const { data: { publicUrl } } = supabase.storage.from('cakegenie').getPublicUrl(fileName);
                     uploadedImageUrl = publicUrl;
                     console.log('✅ Image uploaded for analysis cache:', uploadedImageUrl);
                 }
-            } catch (uploadErr) {
-                // Also non-critical.
-                console.warn('Image upload for caching failed:', uploadErr);
             }
+        } catch (compressionErr) {
+            console.warn('Image compression failed, proceeding with original:', compressionErr);
         }
-        // --- END OF UPLOAD LOGIC ---
+        // --- END OF COMPRESSION LOGIC ---
 
-        // --- Step 1: Caching & Detailed Analysis ---
-        const pHash = await generatePerceptualHash(imageSrc);
-        const cachedAnalysis = await findSimilarAnalysisByHash(pHash);
-
-        if (cachedAnalysis) {
-            console.log('✅ Cache Hit! Using stored analysis.');
-            onSuccess(cachedAnalysis);
-            return; // Skip AI call
-        }
-
-        console.log('⚫️ Cache Miss. Proceeding with AI Analysis...');
+        // --- STEP 3: CALL AI FOR ANALYSIS ---
+        console.log('🤖 Calling Gemini AI for analysis...');
         
-        analyzeCakeImage(imageData.data, imageData.mimeType)
-            .then(result => {
-                onSuccess(result);
-                // Fire-and-forget caching, now with the uploaded URL
-                cacheAnalysisResult(pHash, result, uploadedImageUrl);
-            })
-            .catch(onError);
+        try {
+            const result = await analyzeCakeImage(
+                compressedImageData.data,
+                compressedImageData.mimeType
+            );
+            onSuccess(result);
+            // Fire-and-forget caching, now with the uploaded URL
+            cacheAnalysisResult(pHash, result, uploadedImageUrl);
+        } catch (error) {
+            onError(error instanceof Error ? error : new Error('Failed to analyze image'));
+        }
         
     } catch (err) {
         const fileProcessingError = err instanceof Error ? err : new Error("Failed to read image file.");
