@@ -1283,7 +1283,8 @@ export interface ShareableTexts {
 export const generateShareableTexts = async (
     analysisResult: HybridAnalysisResult,
     cakeInfo: CakeInfoUI,
-    HEX_TO_COLOR_NAME_MAP: Record<string, string>
+    HEX_TO_COLOR_NAME_MAP: Record<string, string>,
+    editedImageDataUri?: string | null
 ): Promise<ShareableTexts> => {
     try {
         const simplifiedAnalysis = {
@@ -1300,14 +1301,26 @@ export const generateShareableTexts = async (
             })
         };
 
+        // If we have an edited image, include it in the prompt for more accurate descriptions
+        const parts: ({ text: string } | { inlineData: { mimeType: string, data: string } })[] = [];
+        
+        if (editedImageDataUri) {
+            // Extract base64 data from data URI
+            const matches = editedImageDataUri.match(/^data:([^;]+);base64,(.+)$/);
+            if (matches) {
+                const mimeType = matches[1];
+                const base64Data = matches[2];
+                parts.push({ inlineData: { mimeType, data: base64Data } });
+                parts.push({ text: `This is the FINAL customized cake design that the user created. Use this image to generate the title, description, and alt text. Pay attention to the actual colors, decorations, and text visible in this edited image.\n\n` });
+            }
+        }
+        
+        parts.push({ text: SHARE_TEXT_PROMPT });
+        parts.push({ text: `\`\`\`json\n${JSON.stringify(simplifiedAnalysis, null, 2)}\n\`\`\`` });
+
         const response = await getAI().models.generateContent({
             model: "gemini-2.5-flash",
-            contents: [{
-                parts: [
-                    { text: SHARE_TEXT_PROMPT },
-                    { text: `\`\`\`json\n${JSON.stringify(simplifiedAnalysis, null, 2)}\n\`\`\`` },
-                ],
-            }],
+            contents: [{ parts }],
             config: {
                 responseMimeType: 'application/json',
                 responseSchema: shareableTextResponseSchema,
