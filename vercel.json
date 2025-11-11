@@ -16,6 +16,10 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=3600"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline';"
         }
       ]
     },
@@ -25,6 +29,10 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=3600"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline';"
         }
       ]
     }
