@@ -88,8 +88,9 @@ serve(async (req) => {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="refresh" content="0; url=${clientRedirectUrl}">
         <title>${title}</title>
-        
+
         <!-- Open Graph / Facebook / Messenger -->
         <meta property="og:type" content="website">
         <meta property="og:site_name" content="Genie">
