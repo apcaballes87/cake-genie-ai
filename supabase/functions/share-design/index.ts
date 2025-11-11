@@ -1,7 +1,7 @@
 // supabase/functions/share-design/index.ts
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 import { corsHeaders } from '../_shared/cors.ts'
 
 declare const Deno: any;
@@ -33,7 +33,12 @@ serve(async (req) => {
         throw new Error('Supabase environment variables are not set.');
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
     
     // 1. Get the slug from the URL path
     const url = new URL(req.url);
