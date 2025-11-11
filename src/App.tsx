@@ -12,6 +12,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import StickyAddToCartBar from './components/StickyAddToCartBar';
 import AnimatedBlobs from './components/UI/AnimatedBlobs';
 
+// Build: v1.2.8 - Fixed .match() errors with defensive checks
 console.log('App.tsx: File loaded');
 
 // --- Custom Hooks for Core Logic (Simplified Import) ---
