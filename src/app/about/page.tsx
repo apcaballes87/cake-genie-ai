@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Award, Target, Rocket, Users, Handshake, Search, Upload, Edit, Wand2, ShoppingCart, CheckCircle, X } from 'lucide-react';
 import LazyImage from '../../components/LazyImage';
+import { useCanonicalUrl } from '../../hooks';
 
 interface AboutPageProps {
   onClose: () => void;
@@ -47,6 +48,9 @@ const PermitThumbnail: React.FC<{ src: string; alt: string; onClick: () => void 
 
 
 const AboutPage: React.FC<AboutPageProps> = ({ onClose }) => {
+  // Add canonical URL for SEO
+  useCanonicalUrl('/about');
+  
   const [zoomedPermit, setZoomedPermit] = useState<string | null>(null);
 
   const permits = [

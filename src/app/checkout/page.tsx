@@ -7,6 +7,7 @@ import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { showSuccess, showError } from '../../lib/utils/toast';
 import { createOrderFromCart } from '../../services/supabaseService';
 import { createXenditPayment } from '../../services/xenditService';
+import { useCanonicalUrl } from '../../hooks';
 
 type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation';
 
@@ -21,6 +22,9 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
   onOrderPlaced,
   setAppState,
 }) => {
+  // Add canonical URL for SEO
+  useCanonicalUrl('/checkout');
+  
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const { 
     cartItems, 

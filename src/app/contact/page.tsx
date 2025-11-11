@@ -1,6 +1,7 @@
 import React, { useState, FormEvent } from 'react';
 import { ArrowLeft, Globe, Mail, Phone, MapPin, Clock, Send, Loader2 } from 'lucide-react';
 import { showSuccess, showError } from '../../lib/utils/toast';
+import { useCanonicalUrl } from '../../hooks';
 
 interface ContactPageProps {
   onClose: () => void;
@@ -21,6 +22,9 @@ const ContactInfoItem: React.FC<{ icon: React.ReactNode; label: string; value: s
 );
 
 const ContactPage: React.FC<ContactPageProps> = ({ onClose }) => {
+    // Add canonical URL for SEO
+    useCanonicalUrl('/contact');
+    
     const [name, setName] = useState('');
     const [contact, setContact] = useState('');
     const [email, setEmail] = useState('');

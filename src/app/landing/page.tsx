@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { SearchAutocomplete } from '../../components/SearchAutocomplete';
 import LazyImage from '../../components/LazyImage';
+import { useCanonicalUrl } from '../../hooks';
 
 type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'pricing_sandbox';
 
@@ -59,6 +60,9 @@ const LandingPage: React.FC<LandingPageProps> = ({
   setAppState,
   user,
 }) => {
+  // Add canonical URL for SEO
+  useCanonicalUrl('/');
+  
   const [localSearchInput, setLocalSearchInput] = React.useState('');
   const [imageIndex, setImageIndex] = useState(0);
 

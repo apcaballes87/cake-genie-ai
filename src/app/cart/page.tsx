@@ -21,6 +21,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAvailabilitySettings } from '../../hooks/useAvailabilitySettings';
 import { validateDiscountCode, getUserDiscountCodes } from '../../services/discountService';
 import type { DiscountValidationResult } from '../../types';
+import { useCanonicalUrl } from '../../hooks';
 
 
 // FIX: Declare the global 'google' object to satisfy TypeScript.
@@ -57,6 +58,9 @@ const paymentMethods = [
 
 
 const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoading, onRemoveItem, onClose, onContinueShopping, onAuthRequired }) => {
+    // Add canonical URL for SEO
+    useCanonicalUrl('/cart');
+    
     const { user } = useAuth();
     const isRegisteredUser = !!(user && !user.is_anonymous);
     const {

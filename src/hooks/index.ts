@@ -10,3 +10,4 @@ export { useAuth } from './useAuth';
 export { useAddresses } from './useAddresses';
 export { useOrders } from './useOrders';
 export { useAvailabilitySettings } from './useAvailabilitySettings';
+export { useCanonicalUrl } from './useCanonicalUrl';

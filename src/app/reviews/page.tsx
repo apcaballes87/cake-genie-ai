@@ -1,11 +1,15 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { useCanonicalUrl } from '../../hooks';
 
 interface ReviewsPageProps {
   onClose: () => void;
 }
 
 const ReviewsPage: React.FC<ReviewsPageProps> = ({ onClose }) => {
+  // Add canonical URL for SEO
+  useCanonicalUrl('/reviews');
+  
   return (
     <div className="w-full max-w-3xl mx-auto bg-white/70 backdrop-blur-lg p-8 rounded-2xl shadow-lg border border-slate-200 animate-fade-in">
       <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
