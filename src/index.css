@@ -3,38 +3,3 @@
 @tailwind utilities;
 
 /* Custom styles can be added here */
-
-/* --- Search Pagination Styles --- */
-/* Force pagination container to be visible */
-.gsc-cursor-box {
-  display: block !important;
-}
-.gsc-cursor-area {
-  display: flex !important; /* Use important to override Google's styles */
-  justify-content: center;
-  padding: 20px 0;
-  gap: 8px;
-}
-.gsc-cursor-page, .gsc-cursor-next, .gsc-cursor-prev {
-  padding: 8px 14px;
-  border: 1px solid #e2e8f0; /* slate-200 */
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  font-weight: 600;
-  color: #475569; /* slate-600 */
-  background-color: #fff;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-.gsc-cursor-page:hover, .gsc-cursor-next:hover, .gsc-cursor-prev:hover {
-  background-color: #f1f5f9; /* slate-100 */
-  border-color: #cbd5e1; /* slate-300 */
-  transform: translateY(-1px);
-}
-.gsc-cursor-current-page {
-  background: linear-gradient(to right, #ec4899, #8b5cf6); /* pink-500 to purple-600 */
-  color: white;
-  border-color: transparent;
-  font-weight: bold;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
