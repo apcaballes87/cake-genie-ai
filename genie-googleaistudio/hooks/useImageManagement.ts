@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { toast as toastHot } from 'react-hot-toast';
-import { fileToBase64, analyzeCakeImage, validateCakeImage } from '../services/geminiService.lazy';
+import { fileToBase64, analyzeCakeImage } from '../services/geminiService.lazy';
 import { getSupabaseClient } from '../lib/supabase/client';
 import { compressImage, dataURItoBlob } from '../lib/utils/imageOptimization';
 import { showSuccess, showError, showLoading, showInfo } from '../lib/utils/toast';
@@ -102,6 +102,7 @@ export const useImageManagement = () => {
     file: File,
     onSuccess: (result: HybridAnalysisResult) => void,
     onError: (error: Error) => void,
+    onStreamUpdate: (progress: string) => void,
     options?: { imageUrl?: string }
   ) => {
     setIsLoading(true); // For file processing
@@ -113,25 +114,28 @@ export const useImageManagement = () => {
         setOriginalImagePreview(imageSrc);
         setIsLoading(false); // File processing done
 
-        // --- UPLOAD IMAGE FOR CACHING ---
+        // --- COMPRESS IMAGE FOR AI & STORAGE ---
         let uploadedImageUrl = options?.imageUrl; // Use existing URL if from web search
+        let compressedImageData = imageData; // Default to original
 
-        if (!uploadedImageUrl) {
-            // This is a direct file upload, so we need to upload it for our cache records.
-            try {
-                // The ImageUploader may have already compressed it, but we ensure a consistent format/size here.
-                const imageBlob = dataURItoBlob(imageSrc);
-                const fileToUpload = new File([imageBlob], file.name, { type: file.type });
-                
-                // Compress for storage efficiency. 500KB is a good target for a reference image.
-                const compressedFile = await compressImage(fileToUpload, {
-                    maxSizeMB: 0.5,
-                    maxWidthOrHeight: 1024,
-                    fileType: 'image/webp',
-                });
+        try {
+            // Compress image for both AI analysis and storage. 1024x1024 is optimal for Gemini.
+            const imageBlob = dataURItoBlob(imageSrc);
+            const fileToUpload = new File([imageBlob], file.name, { type: file.type });
+            
+            const compressedFile = await compressImage(fileToUpload, {
+                maxSizeMB: 0.5,
+                maxWidthOrHeight: 1024,
+                fileType: 'image/webp',
+            });
 
+            // Convert compressed file to base64 for AI
+            compressedImageData = await fileToBase64(compressedFile);
+            console.log('✅ Image compressed: ~1024x1024px for faster AI processing');
+
+            // Upload compressed file to storage
+            if (!uploadedImageUrl) {
                 const fileName = `analysis-cache/${uuidv4()}.webp`;
-
                 const { error: uploadError } = await supabase.storage
                     .from('cakegenie')
                     .upload(fileName, compressedFile, {
@@ -140,51 +144,19 @@ export const useImageManagement = () => {
                     });
 
                 if (uploadError) {
-                    // This is a non-critical failure. Log it but don't block the user.
                     console.warn('Failed to upload image for caching, proceeding without URL.', uploadError.message);
                 } else {
                     const { data: { publicUrl } } = supabase.storage.from('cakegenie').getPublicUrl(fileName);
                     uploadedImageUrl = publicUrl;
                     console.log('✅ Image uploaded for analysis cache:', uploadedImageUrl);
                 }
-            } catch (uploadErr) {
-                // Also non-critical.
-                console.warn('Image upload for caching failed:', uploadErr);
             }
+        } catch (compressionErr) {
+            console.warn('Image compression failed, proceeding with original:', compressionErr);
         }
-        // --- END OF UPLOAD LOGIC ---
+        // --- END OF COMPRESSION LOGIC ---
 
-        // --- Step 1: Validation ---
-        const classification = await validateCakeImage(imageData.data, imageData.mimeType);
-
-        let errorMessage = "";
-        switch (classification) {
-            case 'valid_single_cake':
-                // Proceed
-                break;
-            case 'not_a_cake':
-            case 'non_food':
-                errorMessage = "The uploaded image doesn't appear to be a cake.";
-                break;
-            case 'multiple_cakes':
-                errorMessage = "Please upload an image of a single cake. Multiple cakes are not supported yet.";
-                break;
-            case 'only_cupcakes':
-                errorMessage = "Cupcake-only images are not supported. Please upload an image of a larger cake.";
-                break;
-            case 'complex_sculpture':
-            case 'large_wedding_cake':
-                errorMessage = "This cake design is too complex for online pricing. Please contact us for an in-store consultation.";
-                break;
-            default:
-                errorMessage = "The uploaded image is not suitable for processing.";
-        }
-
-        if (errorMessage) {
-            throw new Error(errorMessage);
-        }
-
-        // --- Step 2: Caching & Detailed Analysis ---
+        // --- Step 1: Caching & Detailed Analysis ---
         const pHash = await generatePerceptualHash(imageSrc);
         const cachedAnalysis = await findSimilarAnalysisByHash(pHash);
 
@@ -196,7 +168,7 @@ export const useImageManagement = () => {
 
         console.log('⚫️ Cache Miss. Proceeding with AI Analysis...');
         
-        analyzeCakeImage(imageData.data, imageData.mimeType)
+        analyzeCakeImage(compressedImageData.data, compressedImageData.mimeType, onStreamUpdate)
             .then(result => {
                 onSuccess(result);
                 // Fire-and-forget caching, now with the uploaded URL

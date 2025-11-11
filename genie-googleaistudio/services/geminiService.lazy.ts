@@ -17,10 +17,8 @@ export const analyzeCakeImage = async (...args: Parameters<typeof GeminiService.
   return fn(...args);
 };
 
-export const validateCakeImage = async (...args: Parameters<typeof GeminiService.validateCakeImage>) => {
-  const { validateCakeImage: fn } = await loadGeminiService();
-  return fn(...args);
-};
+// FIX: Removed the non-existent 'validateCakeImage' export.
+// The function does not exist in the source 'geminiService.ts' file.
 
 export const fileToBase64 = async (...args: Parameters<typeof GeminiService.fileToBase64>) => {
   const { fileToBase64: fn } = await loadGeminiService();

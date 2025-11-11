@@ -158,6 +158,7 @@ export default function App(): React.ReactElement {
   const [isReporting, setIsReporting] = useState(false);
   const [reportStatus, setReportStatus] = useState<'success' | 'error' | null>(null);
   const [isPreparingSharedDesign, setIsPreparingSharedDesign] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState<string>('');
 
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const mainImageContainerRef = useRef<HTMLDivElement>(null);
@@ -181,6 +182,7 @@ export default function App(): React.ReactElement {
     clearImages();
     clearCustomization();
     setActiveTab('original');
+    setAnalysisProgress('');
   }, [clearImages, clearCustomization, setAppState]);
 
   const handleAppImageUpload = useCallback((file: File, imageUrl?: string) => {
@@ -197,6 +199,7 @@ export default function App(): React.ReactElement {
     setAppState('customizing');
     setIsAnalyzing(true);
     setAnalysisError(null);
+    setAnalysisProgress('Preparing image...');
     
     // Set default state so user can customize immediately
     initializeDefaultState();
@@ -212,17 +215,22 @@ export default function App(): React.ReactElement {
                   'event_category': 'ecommerce_funnel'
               });
           }
+          setAnalysisProgress('');
           setPendingAnalysisData(result);
           setIsAnalyzing(false);
           resolve();
         },
         (error) => { // on analysis error
           const errorMessage = error.message;
+          setAnalysisProgress('');
           setAnalysisError(errorMessage);
           showError(errorMessage);
           setIsAnalyzing(false);
           setAppState('landing'); // Go back to landing on critical failure
           reject(error);
+        },
+        (progress) => {
+            setAnalysisProgress(progress);
         },
         { imageUrl }
       );
@@ -479,6 +487,7 @@ ${prompt}
             isLoadingAvailabilitySettings={isLoadingAvailabilitySettings}
             availabilityWasOverridden={availabilityWasOverridden}
             onCakeMessageChange={onCakeMessageChange}
+            analysisProgress={analysisProgress}
         />;
         case 'cart': return <CartPage pendingItems={pendingCartItems} isLoading={isCartLoading} onRemoveItem={removeItemOptimistic} onClose={() => setAppState(previousAppState.current || 'customizing')} onContinueShopping={() => setAppState('customizing')} onAuthRequired={() => setAppState('auth')} />;
         case 'order_confirmation': return confirmedOrderId ? <OrderConfirmationPage orderId={confirmedOrderId} onContinueShopping={() => setAppState('landing')} onGoToOrders={() => setAppState('orders')} /> : <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>;

@@ -137,6 +137,7 @@ interface CustomizingPageProps {
   isLoadingAvailabilitySettings: boolean;
   availabilityWasOverridden: boolean;
   onCakeMessageChange: (messages: CakeMessageUI[]) => void;
+  analysisProgress?: string;
 }
 
 const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icingDesign: IcingDesignUI; cakeType: CakeType; isVisible: boolean }> = ({ onSelectItem, icingDesign, cakeType, isVisible }) => {
@@ -224,6 +225,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     availabilitySettings,
     isLoadingAvailabilitySettings,
     availabilityWasOverridden,
+    analysisProgress,
 }) => {
     
   const availability = AVAILABILITY_MAP[availabilityType];
@@ -364,7 +366,9 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     const newIcingColors: IcingColorDetails = { ...icingDesign.colors };
     let icingChanged = false;
     (Object.keys(newIcingColors) as Array<keyof IcingColorDetails>).forEach(key => {
-        if (newIcingColors[key]?.toLowerCase() === oldHex) {
+        // FIX: Add type guard to ensure value is a string before calling toLowerCase, preventing a type error.
+        const colorValue = newIcingColors[key];
+        if (typeof colorValue === 'string' && colorValue.toLowerCase() === oldHex) {
             newIcingColors[key] = newHex;
             icingChanged = true;
         }
@@ -850,7 +854,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                     <div className="w-full bg-slate-200 rounded-full h-2.5 relative overflow-hidden">
                        <div className="absolute h-full w-1/2 bg-gradient-to-r from-pink-500 to-purple-600 animate-progress-slide"></div>
                     </div>
-                    <p className="text-xs text-slate-500 mt-2 font-medium">Analyzing design elements & pricing... You can start customizing below.</p>
+                    <p className="text-xs text-slate-500 mt-2 font-medium">{analysisProgress || 'Analyzing design elements & pricing... You can start customizing below.'}</p>
                 </div>
             )}
          </div>

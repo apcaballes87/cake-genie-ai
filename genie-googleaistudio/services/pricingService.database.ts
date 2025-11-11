@@ -69,23 +69,33 @@ export async function calculatePriceFromDatabase(
   const getRule = (
     type: string, 
     sizeOrCoverage?: string, 
-    category?: 'main_topper' | 'support_element' | 'message' | 'icing_feature' | 'special'
+    category?: 'main_topper' | 'support_element' | 'message' | 'icing_feature' | 'special',
+    subtype?: string
   ): PricingRule | undefined => {
     const findRuleByCategory = (rulesList: PricingRule[] | undefined) => {
         if (!rulesList) return undefined;
         return rulesList.find(r => !category || r.category === category);
     };
+    
+    // 1. Try with subtype: `type_subtype`
+    if (subtype) {
+      const subtypeKey = `${type}_${subtype.toLowerCase()}`;
+      const rule = findRuleByCategory(rules.get(subtypeKey));
+      if (rule) return rule;
+    }
 
+    // 2. Fallback to size/coverage: `type_sizeOrCoverage`
     if (sizeOrCoverage) {
       const specificKey = `${type}_${sizeOrCoverage}`;
       const rule = findRuleByCategory(rules.get(specificKey));
       if (rule) return rule;
     }
 
+    // 3. Fallback to just type: `type`
     const rule = findRuleByCategory(rules.get(type));
     
     if (!rule) {
-        console.warn(`No pricing rule found for: type="${type}", size/coverage="${sizeOrCoverage}", category="${category}"`);
+        console.warn(`No pricing rule found for: type="${type}", subtype="${subtype}", size/coverage="${sizeOrCoverage}", category="${category}"`);
     }
     
     return rule;
@@ -108,7 +118,7 @@ export async function calculatePriceFromDatabase(
     }
     
     let price = 0;
-    const rule = getRule(topper.type, topper.size, 'main_topper');
+    const rule = getRule(topper.type, topper.size, 'main_topper', topper.subtype);
     
     if (rule) {
       price = rule.price;
@@ -152,10 +162,18 @@ export async function calculatePriceFromDatabase(
     }
     
     let price = 0;
-    const rule = getRule(element.type, element.coverage, 'support_element');
+    const rule = getRule(element.type, element.coverage, 'support_element', element.subtype);
     
     if (rule) {
       price = rule.price;
+
+      if (rule.quantity_rule && element.quantity && element.quantity > 0) {
+        if (rule.quantity_rule === 'per_piece') {
+            price *= element.quantity;
+        } else if (rule.quantity_rule === 'per_3_pieces') {
+            price = Math.ceil(element.quantity / 3) * rule.price;
+        }
+      }
 
       if (rule.multiplier_rule === 'tier_count') {
         price *= extractTierCount(cakeInfo.type);
