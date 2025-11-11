@@ -93,13 +93,13 @@ export const calculatePrice = (
                 nonGumpasteTotal += price;
                 break;
             case 'icing_doodle':
-                if (topper.description.toLowerCase().includes('intricate') || topper.description.toLowerCase().includes('complex')) {
+                if (topper.description?.toLowerCase().includes('intricate') || topper.description?.toLowerCase().includes('complex')) {
                     price = cakeInfo.type === 'Bento' ? 50 : 100;
                     nonGumpasteTotal += price;
                 }
                 break;
             case 'icing_palette_knife':
-                const isIntricateMain = topper.description.toLowerCase().includes('intricate');
+                const isIntricateMain = topper.description?.toLowerCase().includes('intricate');
                 if (topper.size === 'large' && isIntricateMain) {
                     const tierCount = extractTierCount(cakeInfo.type);
                     price = 100 * tierCount;
@@ -112,7 +112,7 @@ export const calculatePrice = (
                 if (topper.size === 'tiny') {
                     price = 0;
                 } else {
-                    const lowerDescPB = topper.description.toLowerCase();
+                    const lowerDescPB = topper.description?.toLowerCase() || '';
                     if (lowerDescPB.includes('disco ball')) {
                         // Price disco balls at 50 pesos each
                         price = 50 * topper.quantity;
@@ -155,7 +155,7 @@ export const calculatePrice = (
                 nonGumpasteTotal += price;
                 break;
             case 'candle':
-                const digits = topper.description.match(/\d/g) || [];
+                const digits = topper.description?.match(/\d/g) || [];
                 const digitCount = Math.max(1, digits.length);
                 price = digitCount * 25; // 25 per digit
                 nonGumpasteTotal += price;
@@ -191,7 +191,7 @@ export const calculatePrice = (
             // --- Legacy gumpaste types are removed, logic for other types remains ---
             
             case 'icing_doodle':
-                if (element.description.toLowerCase().includes('intricate') || element.description.toLowerCase().includes('complex')) {
+                if (element.description?.toLowerCase().includes('intricate') || element.description?.toLowerCase().includes('complex')) {
                     price = cakeInfo.type === 'Bento' ? 50 : 100;
                     // Note: As per old logic, this was not part of allowance. Keeping it that way unless specified.
                     // To make it eligible, change to: supportGumpasteRawTotal += price;
@@ -200,7 +200,7 @@ export const calculatePrice = (
                 break;
             
             case 'icing_palette_knife':
-                const isIntricateSupport = element.description.toLowerCase().includes('intricate');
+                const isIntricateSupport = element.description?.toLowerCase().includes('intricate');
                 if (element.coverage === 'large' && isIntricateSupport) { // Changed from 'heavy'
                     const tierCount = extractTierCount(cakeInfo.type);
                     price = 100 * tierCount;
@@ -224,7 +224,7 @@ export const calculatePrice = (
                 break;
 
             case 'isomalt':
-                const isComplex = element.description.toLowerCase().includes('complex') || element.description.toLowerCase().includes('elaborate');
+                const isComplex = element.description?.toLowerCase().includes('complex') || element.description?.toLowerCase().includes('elaborate');
                 price = isComplex ? 500 : 200;
                 nonGumpasteTotal += price;
                 break;
