@@ -39,8 +39,11 @@ serve(async (req) => {
 
     if (error) {
       console.error('[generate-sitemap] Error fetching designs:', error);
-      // Return static sitemap if database query fails
+      console.error('[generate-sitemap] Error details:', JSON.stringify(error));
+      // Continue with empty designs array instead of failing
     }
+
+    console.log('[generate-sitemap] Fetched designs count:', designs?.length || 0);
 
     const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
