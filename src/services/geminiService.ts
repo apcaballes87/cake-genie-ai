@@ -1178,7 +1178,7 @@ You MUST provide precise central coordinates for every single decorative element
                 systemInstruction: SYSTEM_INSTRUCTION,
                 responseMimeType: 'application/json',
                 responseSchema: hybridAnalysisResponseSchema,
-                temperature: 0.1,
+                temperature: 0,
             },
         });
 
