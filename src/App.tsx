@@ -457,7 +457,22 @@ ${prompt}
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSignOut = useCallback(async () => { await signOut(); setIsAccountMenuOpen(false); showSuccess("You've been signed out."); }, [signOut]);
+  const handleSignOut = useCallback(async () => {
+    try {
+      const { error } = await signOut();
+      if (error) {
+        console.error('Sign out error:', error);
+        showError('Failed to sign out: ' + error.message);
+      } else {
+        setIsAccountMenuOpen(false);
+        setAppState('landing');
+        showSuccess("You've been signed out.");
+      }
+    } catch (err) {
+      console.error('Sign out exception:', err);
+      showError('An error occurred while signing out');
+    }
+  }, [signOut, setAppState]);
 
   // --- RENDER LOGIC ---
   const toastOptions = { style: { borderRadius: '9999px', background: '#333', color: '#fff', boxShadow: '0 3px 10px rgba(0, 0, 0, 0.2)' } };

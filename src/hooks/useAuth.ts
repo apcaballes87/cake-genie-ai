@@ -52,8 +52,22 @@ export const useAuth = () => {
   }, []);
 
   const signOut = useCallback(async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout error:', error);
+        // Even if there's an error, clear local state
+        setUser(null);
+      } else {
+        setUser(null);
+      }
+      return { error };
+    } catch (err) {
+      console.error('Logout exception:', err);
+      // Force clear user state even on exception
+      setUser(null);
+      return { error: err as Error };
+    }
   }, []);
 
   return {
