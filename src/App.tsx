@@ -29,8 +29,6 @@ import {
   useAvailabilitySettings,
 } from './hooks';
 
-import TestGemini from './components/TestGemini';
-
 // Lazy load heavy page components
 const LandingPage = lazy(() => import('./app/landing/page'));
 const SearchingPage = lazy(() => import('./app/searching/page'));
@@ -67,8 +65,6 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
 };
 
 export default function App(): React.ReactElement {
-  // For testing purposes, let's show the test component by default
-  const [showTest, setShowTest] = useState(false);
 
   // --- CORE CONTEXT HOOKS ---
   const { user, isAuthenticated, signOut } = useAuth();
@@ -535,9 +531,6 @@ ${prompt}
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100">
-      {/* Test component for Gemini API */}
-      {showTest && <TestGemini />}
-      
       <Toaster toastOptions={toastOptions} />
       <AnimatedBlobs />
       {authError && <div className="fixed inset-0 bg-white z-[100] flex items-center justify-center p-4 text-center"><div className="max-w-md"><ErrorIcon className="w-16 h-16 text-red-500 mx-auto mb-4" /><h2 className="text-2xl font-bold text-slate-800 mb-2">Initialization Failed</h2><p className="text-slate-600 mb-6">{authError}</p><button onClick={() => window.location.reload()} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:shadow-lg transition-all">Refresh Page</button></div></div>}
