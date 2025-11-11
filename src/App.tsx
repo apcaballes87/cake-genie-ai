@@ -157,7 +157,6 @@ export default function App(): React.ReactElement {
   const [isUploaderOpen, setIsUploaderOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
-  const [isMainZoomModalOpen, setIsMainZoomModalOpen] = useState(false);
   const [pendingCartItems, setPendingCartItems] = useState<CartItem[]>([]);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
@@ -483,7 +482,7 @@ ${prompt}
             setIsAccountMenuOpen={setIsAccountMenuOpen} accountMenuRef={accountMenuRef} user={user} onSignOut={handleSignOut} isCustomizationDirty={isCustomizationDirty}
             onOpenReportModal={() => setIsReportModalOpen(true)} editedImage={editedImage} isLoading={isLoading} isUpdatingDesign={isUpdatingDesign}
             isReporting={isReporting} reportStatus={reportStatus} mainImageContainerRef={mainImageContainerRef} activeTab={activeTab} 
-            setActiveTab={setActiveTab} originalImagePreview={originalImagePreview} isAnalyzing={isAnalyzing} setIsMainZoomModalOpen={setIsMainZoomModalOpen} 
+            setActiveTab={setActiveTab} originalImagePreview={originalImagePreview} isAnalyzing={isAnalyzing} 
             originalImageData={originalImageData} onUpdateDesign={handleUpdateDesign} 
             analysisResult={analysisResult} analysisError={analysisError} analysisId={analysisId} cakeInfo={cakeInfo} 
             basePriceOptions={basePriceOptions} mainToppers={mainToppers} supportElements={supportElements} cakeMessages={cakeMessages} 
@@ -544,7 +543,6 @@ ${prompt}
           <Suspense fallback={null}>
             <ImageUploader isOpen={isUploaderOpen} onClose={() => setIsUploaderOpen(false)} onImageSelect={(file) => { handleAppImageUpload(file).catch(err => console.error("Upload failed", err)); setIsUploaderOpen(false); }} />
           </Suspense>
-          {appState === 'customizing' && <Suspense fallback={null}><ImageZoomModal isOpen={isMainZoomModalOpen} onClose={() => setIsMainZoomModalOpen(false)} originalImage={originalImagePreview} customizedImage={editedImage} initialTab={activeTab} /></Suspense>}
           <Suspense fallback={null}>
             <ReportModal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} onSubmit={handleReport} isSubmitting={isReporting} editedImage={editedImage} details={analysisResult ? buildCartItemDetails() : null} cakeInfo={cakeInfo} />
           </Suspense>

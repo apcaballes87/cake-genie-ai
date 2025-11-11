@@ -393,7 +393,7 @@ Small 3D characters/animals/objects become HERO when they meet ANY of these:
 - 4-inch tier with 3-inch topper: 3÷4 = 0.75 = Medium
 - 4-inch tier with 5-inch topper: 5÷4 = 1.25 = Large
 
-**VALIDATION RULE PRECEDENCE HIERARCHY**
+### VALIDATION RULE PRECEDENCE HIERARCHY
 
 When cues conflict between materials, follow this order:
 1. Physical candles (T1) - Check first
@@ -1119,8 +1119,7 @@ const hybridAnalysisResponseSchema = {
 
 export const analyzeCakeImage = async (
     base64ImageData: string,
-    mimeType: string,
-    onStreamUpdate?: (progress: string) => void
+    mimeType: string
 ): Promise<HybridAnalysisResult> => {
     try {
         const image = new Image();
@@ -1173,8 +1172,7 @@ You MUST provide precise central coordinates for every single decorative element
 
         const activePrompt = await getActivePrompt();
 
-        // Use streaming for real-time progress feedback
-        const stream = await getAI().models.generateContentStream({
+        const response = await getAI().models.generateContent({
             model: "gemini-2.5-flash",
             contents: [{
                 parts: [
@@ -1190,18 +1188,7 @@ You MUST provide precise central coordinates for every single decorative element
             },
         });
 
-        // Collect streamed response
-        let fullResponse = '';
-        for await (const chunk of stream) {
-            const chunkText = chunk.text;
-            fullResponse += chunkText;
-            // Send progress updates to UI if callback provided
-            if (onStreamUpdate) {
-                onStreamUpdate(`Analyzing... ${Math.min(Math.floor((fullResponse.length / 100) * 100), 95)}%`);
-            }
-        }
-
-        const jsonText = fullResponse.trim();
+        const jsonText = response.text.trim();
         const result = JSON.parse(jsonText);
 
         if (result.rejection?.isRejected) {
@@ -1296,7 +1283,8 @@ export interface ShareableTexts {
 export const generateShareableTexts = async (
     analysisResult: HybridAnalysisResult,
     cakeInfo: CakeInfoUI,
-    HEX_TO_COLOR_NAME_MAP: Record<string, string>
+    HEX_TO_COLOR_NAME_MAP: Record<string, string>,
+    editedImageDataUri?: string | null
 ): Promise<ShareableTexts> => {
     try {
         const simplifiedAnalysis = {
@@ -1313,14 +1301,26 @@ export const generateShareableTexts = async (
             })
         };
 
+        // If we have an edited image, include it in the prompt for more accurate descriptions
+        const parts: ({ text: string } | { inlineData: { mimeType: string, data: string } })[] = [];
+        
+        if (editedImageDataUri) {
+            // Extract base64 data from data URI
+            const matches = editedImageDataUri.match(/^data:([^;]+);base64,(.+)$/);
+            if (matches) {
+                const mimeType = matches[1];
+                const base64Data = matches[2];
+                parts.push({ inlineData: { mimeType, data: base64Data } });
+                parts.push({ text: `This is the FINAL customized cake design that the user created. Use this image to generate the title, description, and alt text. Pay attention to the actual colors, decorations, and text visible in this edited image.\n\n` });
+            }
+        }
+        
+        parts.push({ text: SHARE_TEXT_PROMPT });
+        parts.push({ text: `\`\`\`json\n${JSON.stringify(simplifiedAnalysis, null, 2)}\n\`\`\`` });
+
         const response = await getAI().models.generateContent({
             model: "gemini-2.5-flash",
-            contents: [{
-                parts: [
-                    { text: SHARE_TEXT_PROMPT },
-                    { text: `\`\`\`json\n${JSON.stringify(simplifiedAnalysis, null, 2)}\n\`\`\`` },
-                ],
-            }],
+            contents: [{ parts }],
             config: {
                 responseMimeType: 'application/json',
                 responseSchema: shareableTextResponseSchema,

@@ -446,8 +446,15 @@ export const useCakeCustomization = () => {
 
     useEffect(() => {
         if (pendingAnalysisData) {
-            handleApplyAnalysis(pendingAnalysisData);
-            setPendingAnalysisData(null); // Clear after applying to prevent re-runs
+            // Apply a small delay to prevent a race condition with image loading.
+            // This gives the image's onLoad event time to fire and set dimensions
+            // before the marker calculation runs with the new analysis data.
+            const timer = setTimeout(() => {
+                handleApplyAnalysis(pendingAnalysisData);
+                setPendingAnalysisData(null); // Clear after applying
+            }, 300); // 300ms delay
+
+            return () => clearTimeout(timer); // Cleanup timeout if component unmounts
         }
     }, [pendingAnalysisData, handleApplyAnalysis]);
     
@@ -499,6 +506,7 @@ export const useCakeCustomization = () => {
         onMainTopperChange, // Kept for complex changes if needed
         updateMainTopper,
         removeMainTopper,
+// FIX: Export updateSupportElement and removeSupportElement from the hook.
         updateSupportElement,
         removeSupportElement,
         onCakeMessageChange, // Kept for complex changes if needed

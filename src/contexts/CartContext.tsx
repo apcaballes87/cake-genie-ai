@@ -244,7 +244,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       );
       const { cartData, addressesData } = await withTimeout(
         pageDataPromise,
-        15000, // Increased timeout for slow network connections
+        2000, // 2 second timeout
         "Cart loading timed out."
       );
 

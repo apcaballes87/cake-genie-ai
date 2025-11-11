@@ -113,7 +113,20 @@ export const useImageManagement = () => {
         setOriginalImagePreview(imageSrc);
         setIsLoading(false); // File processing done
 
-        // --- COMPRESS IMAGE FOR AI & STORAGE ---
+        // --- STEP 1: CHECK CACHE FIRST (FAST PATH) ---
+        console.log('🔍 Checking cache for similar image...');
+        const pHash = await generatePerceptualHash(imageSrc);
+        const cachedAnalysis = await findSimilarAnalysisByHash(pHash);
+
+        if (cachedAnalysis) {
+            console.log('✅ Cache Hit! Using stored analysis (no compression needed).');
+            onSuccess(cachedAnalysis);
+            return; // Skip compression and AI call entirely!
+        }
+
+        console.log('⚫️ Cache Miss. Compressing image for AI analysis...');
+
+        // --- STEP 2: COMPRESS IMAGE FOR AI & STORAGE (ONLY ON CACHE MISS) ---
         let uploadedImageUrl = options?.imageUrl; // Use existing URL if from web search
         let compressedImageData = imageData; // Default to original
 
@@ -155,23 +168,13 @@ export const useImageManagement = () => {
         }
         // --- END OF COMPRESSION LOGIC ---
 
-        // --- Step 1: Caching & Detailed Analysis ---
-        const pHash = await generatePerceptualHash(imageSrc);
-        const cachedAnalysis = await findSimilarAnalysisByHash(pHash);
-
-        if (cachedAnalysis) {
-            console.log('✅ Cache Hit! Using stored analysis.');
-            onSuccess(cachedAnalysis);
-            return; // Skip AI call
-        }
-
-        console.log('⚫️ Cache Miss. Proceeding with AI Analysis...');
+        // --- STEP 3: CALL AI FOR ANALYSIS ---
+        console.log('🤖 Calling Gemini AI for analysis...');
         
         try {
             const result = await analyzeCakeImage(
                 compressedImageData.data,
-                compressedImageData.mimeType,
-                (progress) => console.log(progress) // Log progress updates from streaming
+                compressedImageData.mimeType
             );
             onSuccess(result);
             // Fire-and-forget caching, now with the uploaded URL

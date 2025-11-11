@@ -72,7 +72,8 @@ export function useUploadPaymentProof() {
 export function useCancelOrder() {
   const queryClient = useQueryClient();
   
-  return useMutation({
+// FIX: Add explicit types to useMutation to ensure the data passed to onSuccess is correctly typed, resolving an 'unknown' type error.
+  return useMutation<CakeGenieOrder | null, Error, { orderId: string; userId: string; }>({
     mutationFn: async ({ 
       orderId, 
       userId 
