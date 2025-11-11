@@ -978,6 +978,140 @@ Single-tier round cake with pastel pink and white soft icing. Large number "6" i
 **END OF GENIE.PH MASTER PROMPT v3.0 - REVISED**
 `;
 
+const hybridAnalysisResponseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        main_toppers: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    type: { type: Type.STRING, enum: ['edible_3d', 'edible_2d_gumpaste', 'printout', 'toy', 'cardstock', 'edible_photo', 'candle', 'icing_doodle'] },
+                    description: { type: Type.STRING },
+                    size: { type: Type.STRING, enum: ['small', 'medium', 'large', 'tiny', 'partial'] },
+                    quantity: { type: Type.INTEGER },
+                    group_id: { type: Type.STRING },
+                    color: { type: Type.STRING },
+                    colors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER }
+                },
+                required: ['type', 'description', 'size', 'quantity', 'group_id', 'x', 'y']
+            }
+        },
+        support_elements: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    type: { type: Type.STRING, enum: ['edible_3d', 'edible_2d_gumpaste', 'gumpaste_panel', 'small_gumpaste', 'chocolates', 'sprinkles', 'support_printout', 'isomalt', 'dragees', 'edible_flowers', 'edible_photo_side', 'icing_doodle', 'gumpaste_bundle', 'toy'] },
+                    description: { type: Type.STRING },
+                    coverage: { type: Type.STRING, enum: ['large', 'medium', 'small', 'tiny', 'light', 'heavy'] },
+                    group_id: { type: Type.STRING },
+                    color: { type: Type.STRING },
+                    colors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER }
+                },
+                required: ['type', 'description', 'coverage', 'group_id', 'x', 'y']
+            }
+        },
+        cake_messages: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    type: { type: Type.STRING, enum: ['gumpaste_letters', 'icing_script', 'printout', 'cardstock'] },
+                    text: { type: Type.STRING },
+                    position: { type: Type.STRING, enum: ['top', 'side', 'base_board'] },
+                    color: { type: Type.STRING },
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER }
+                },
+                required: ['type', 'text', 'position', 'color', 'x', 'y']
+            }
+        },
+        icing_design: {
+            type: Type.OBJECT,
+            properties: {
+                base: { type: Type.STRING, enum: ['soft_icing', 'fondant'] },
+                color_type: { type: Type.STRING, enum: ['single', 'gradient_2', 'gradient_3', 'abstract'] },
+                colors: {
+                    type: Type.OBJECT,
+                    properties: {
+                        side: { type: Type.STRING },
+                        top: { type: Type.STRING },
+                        borderTop: { type: Type.STRING },
+                        borderBase: { type: Type.STRING },
+                        drip: { type: Type.STRING },
+                        gumpasteBaseBoardColor: { type: Type.STRING }
+                    }
+                },
+                border_top: { type: Type.BOOLEAN },
+                border_base: { type: Type.BOOLEAN },
+                drip: { type: Type.BOOLEAN },
+                gumpasteBaseBoard: { type: Type.BOOLEAN }
+            },
+            required: ['base', 'color_type', 'colors', 'border_top', 'border_base', 'drip', 'gumpasteBaseBoard']
+        },
+        cakeType: { type: Type.STRING, enum: CAKE_TYPES },
+        cakeThickness: { type: Type.STRING, enum: CAKE_THICKNESSES },
+        drip_effects: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    description: { type: Type.STRING },
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER }
+                },
+                required: ['description', 'x', 'y']
+            }
+        },
+        icing_surfaces: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    description: { type: Type.STRING },
+                    tier: { type: Type.INTEGER },
+                    position: { type: Type.STRING, enum: ['top', 'side'] },
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER }
+                },
+                required: ['description', 'tier', 'position', 'x', 'y']
+            }
+        },
+        icing_borders: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    description: { type: Type.STRING },
+                    tier: { type: Type.INTEGER },
+                    position: { type: Type.STRING, enum: ['top', 'base'] },
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER }
+                },
+                required: ['description', 'tier', 'position', 'x', 'y']
+            }
+        },
+        base_board: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    description: { type: Type.STRING },
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER }
+                },
+                required: ['description', 'x', 'y']
+            }
+        }
+    },
+    required: ['cakeType', 'cakeThickness', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design']
+};
+
 export const analyzeCakeImage = async (
     base64ImageData: string,
     mimeType: string
@@ -1044,6 +1178,7 @@ You MUST provide precise central coordinates for every single decorative element
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
                 responseMimeType: 'application/json',
+                responseSchema: hybridAnalysisResponseSchema,
                 temperature: 0.1,
             },
         });
