@@ -101,7 +101,6 @@ interface CustomizingPageProps {
   setActiveTab: (tab: ImageTab) => void;
   originalImagePreview: string | null;
   isAnalyzing: boolean;
-  setIsMainZoomModalOpen: (isOpen: boolean) => void;
   originalImageData: { data: string; mimeType: string } | null;
   onUpdateDesign: () => void;
   analysisResult: HybridAnalysisResult | null;
@@ -209,7 +208,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     searchInput, setSearchInput, onSearch,
     setAppState, itemCount, isAuthenticated, isAccountMenuOpen, setIsAccountMenuOpen, accountMenuRef, user, onSignOut,
     onOpenReportModal, editedImage, isLoading, isUpdatingDesign, isReporting, reportStatus, mainImageContainerRef, isCustomizationDirty,
-    activeTab, setActiveTab, originalImagePreview, isAnalyzing, setIsMainZoomModalOpen, originalImageData,
+    activeTab, setActiveTab, originalImagePreview, isAnalyzing, originalImageData,
     onUpdateDesign, analysisResult, analysisError, analysisId, cakeInfo, basePriceOptions,
     mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions,
     onCakeInfoChange, 
@@ -461,9 +460,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     });
   }, []);
 
-  useEffect(() => {
-    setOriginalImageDimensions(null);
-  }, [originalImagePreview]);
+
 
   const isAdmin = useMemo(() => user?.email === 'apcaballes@gmail.com', [user]);
 
@@ -555,10 +552,15 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
   const clusteredMarkers = useMemo((): ClusteredMarker[] => {
     const MIN_DISTANCE = 15; // Minimum pixel distance between markers
     
-    // FIX: Add a guard clause to ensure all necessary data (markers, image dimensions, and container dimensions)
-    // is available before attempting to calculate marker positions. This prevents a race condition on initial load.
-    if (rawMarkers.length === 0 || !containerDimensions || !originalImageDimensions) {
+    // Don't return early with empty array - let clustering work even if dimensions haven't loaded yet.
+    // The rendering condition checks for dimensions, so this prevents markers from disappearing.
+    if (rawMarkers.length === 0) {
         return [];
+    }
+    
+    // If dimensions aren't available yet, return unclustered markers so they render once dimensions load
+    if (!containerDimensions || !originalImageDimensions) {
+        return rawMarkers.map(marker => ({ ...marker, isCluster: false }));
     }
   
     const markers = rawMarkers;
@@ -745,7 +747,9 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                 onLoad={(e) => {
                                     const img = e.currentTarget;
                                     const container = markerContainerRef.current;
-                                    if (originalImagePreview && img.src === originalImagePreview && container) {
+                                    // Always set dimensions when image loads, regardless of tab or src
+                                    // This ensures markers are always anchored to correct positions
+                                    if (container) {
                                         setOriginalImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
                                         setContainerDimensions({ width: container.clientWidth, height: container.clientHeight });
                                     }
@@ -754,7 +758,6 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                 src={activeTab === 'customized' ? (editedImage || originalImagePreview) : originalImagePreview} 
                                 alt={activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake"} 
                                 className="w-full h-full object-contain rounded-lg"
-                                onClick={() => setIsMainZoomModalOpen(true)}
                             />
                             {dominantMotif && areHelpersVisible && (
                                 <button

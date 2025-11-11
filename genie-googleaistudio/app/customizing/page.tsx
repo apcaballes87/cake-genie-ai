@@ -364,7 +364,9 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     const newIcingColors: IcingColorDetails = { ...icingDesign.colors };
     let icingChanged = false;
     (Object.keys(newIcingColors) as Array<keyof IcingColorDetails>).forEach(key => {
-        if (newIcingColors[key]?.toLowerCase() === oldHex) {
+        // FIX: Add type guard to ensure value is a string before calling toLowerCase, preventing a type error.
+        const colorValue = newIcingColors[key];
+        if (typeof colorValue === 'string' && colorValue.toLowerCase() === oldHex) {
             newIcingColors[key] = newHex;
             icingChanged = true;
         }

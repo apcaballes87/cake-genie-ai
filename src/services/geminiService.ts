@@ -5,13 +5,19 @@ import type { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageU
 import { CAKE_TYPES, CAKE_THICKNESSES, COLORS } from "../constants";
 import { getSupabaseClient } from '../lib/supabase/client';
 
-const geminiApiKey = process.env.API_KEY;
+let ai: InstanceType<typeof GoogleGenAI> | null = null;
 
-if (!geminiApiKey) {
-    throw new Error("API_KEY environment variable not set");
+function getAI() {
+    if (!ai) {
+        const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        if (!geminiApiKey) {
+            throw new Error("VITE_GEMINI_API_KEY environment variable not set");
+        }
+        ai = new GoogleGenAI({ apiKey: geminiApiKey });
+    }
+    return ai;
 }
-  
-const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+
 const supabase = getSupabaseClient();
 
 // Cache the prompt for 10 minutes
@@ -121,7 +127,7 @@ const validationResponseSchema = {
 
 export const validateCakeImage = async (base64ImageData: string, mimeType: string): Promise<string> => {
     try {
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: "gemini-2.5-flash",
             contents: [{
                 parts: [
@@ -1166,7 +1172,7 @@ You MUST provide precise central coordinates for every single decorative element
 
         const activePrompt = await getActivePrompt();
 
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: "gemini-2.5-flash",
             contents: [{
                 parts: [
@@ -1294,7 +1300,7 @@ export const generateShareableTexts = async (
             })
         };
 
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: "gemini-2.5-flash",
             contents: [{
                 parts: [
@@ -1369,7 +1375,7 @@ export const editCakeImage = async (
     parts.push({ text: prompt });
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: 'gemini-2.5-flash-image',
             contents: { parts },
             config: {

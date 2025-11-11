@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { toast as toastHot } from 'react-hot-toast';
-import { fileToBase64, analyzeCakeImage, validateCakeImage } from '../services/geminiService.lazy';
+import { fileToBase64, analyzeCakeImage } from '../services/geminiService.lazy';
 import { getSupabaseClient } from '../lib/supabase/client';
 import { compressImage, dataURItoBlob } from '../lib/utils/imageOptimization';
 import { showSuccess, showError, showLoading, showInfo } from '../lib/utils/toast';
@@ -154,37 +154,7 @@ export const useImageManagement = () => {
         }
         // --- END OF UPLOAD LOGIC ---
 
-        // --- Step 1: Validation ---
-        const classification = await validateCakeImage(imageData.data, imageData.mimeType);
-
-        let errorMessage = "";
-        switch (classification) {
-            case 'valid_single_cake':
-                // Proceed
-                break;
-            case 'not_a_cake':
-            case 'non_food':
-                errorMessage = "The uploaded image doesn't appear to be a cake.";
-                break;
-            case 'multiple_cakes':
-                errorMessage = "Please upload an image of a single cake. Multiple cakes are not supported yet.";
-                break;
-            case 'only_cupcakes':
-                errorMessage = "Cupcake-only images are not supported. Please upload an image of a larger cake.";
-                break;
-            case 'complex_sculpture':
-            case 'large_wedding_cake':
-                errorMessage = "This cake design is too complex for online pricing. Please contact us for an in-store consultation.";
-                break;
-            default:
-                errorMessage = "The uploaded image is not suitable for processing.";
-        }
-
-        if (errorMessage) {
-            throw new Error(errorMessage);
-        }
-
-        // --- Step 2: Caching & Detailed Analysis ---
+        // --- Step 1: Caching & Detailed Analysis ---
         const pHash = await generatePerceptualHash(imageSrc);
         const cachedAnalysis = await findSimilarAnalysisByHash(pHash);
 

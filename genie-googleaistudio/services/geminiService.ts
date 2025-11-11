@@ -77,75 +77,6 @@ export const fileToBase64 = async (file: File): Promise<{ mimeType: string; data
     }
 };
 
-const VALIDATION_PROMPT = `You are an image validation expert for a cake customization app. Your task is to analyze the provided image and determine if it's suitable for our automated design and pricing tool. Your response must be a valid JSON object.
-
-**CRITICAL RULE: Focus ONLY on the main subject of the photo.** Ignore blurry, out-of-focus items in the background. If the primary, focused subject is a single cake, the image is valid.
-
-Based on the image, classify it into ONE of the following categories:
-
-- "valid_single_cake": The main, in-focus subject is a single, clear image of one cake. It can be a bento, 1-3 tier, square, rectangle, or fondant cake. Other items, including other cakes or cupcakes, are acceptable ONLY if they are blurry, out-of-focus, and clearly in the background.
-- "not_a_cake": The image does not contain a cake. It might be a person, object, or scene that isn't cake-like.
-- "multiple_cakes": The image clearly shows two or more separate cakes as the primary, in-focus subjects. Do NOT use this classification if the other cakes are blurry or in the background.
-- "only_cupcakes": The image contains only cupcakes and no larger cake.
-- "complex_sculpture": The cake is an extreme, gravity-defying sculpture, a hyper-realistic object (like a shoe or a car), or has incredibly intricate details that are beyond standard customization.
-- "large_wedding_cake": The cake is clearly a large, elaborate wedding cake, typically 4 tiers or more, often with complex floral arrangements or structures.
-- "non_food": The image is not of a food item at all.
-
-Provide your response as a JSON object with a single key "classification".
-
-Example for a valid cake:
-{ "classification": "valid_single_cake" }
-
-Example for a picture of a car:
-{ "classification": "not_a_cake" }
-`;
-
-const validationResponseSchema = {
-    type: Type.OBJECT,
-    properties: {
-        classification: {
-            type: Type.STRING,
-            enum: [
-                'valid_single_cake',
-                'not_a_cake',
-                'multiple_cakes',
-                'only_cupcakes',
-                'complex_sculpture',
-                'large_wedding_cake',
-                'non_food',
-            ],
-        },
-    },
-    required: ['classification'],
-};
-
-export const validateCakeImage = async (base64ImageData: string, mimeType: string): Promise<string> => {
-    try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: [{
-                parts: [
-                    { inlineData: { mimeType, data: base64ImageData } },
-                    { text: VALIDATION_PROMPT }
-                ],
-            }],
-            config: {
-                responseMimeType: 'application/json',
-                responseSchema: validationResponseSchema,
-                temperature: 0,
-            },
-        });
-
-        const jsonText = response.text.trim();
-        const result = JSON.parse(jsonText);
-        return result.classification;
-
-    } catch (error) {
-        console.error("Error validating cake image:", error);
-        throw new Error("The AI failed to validate the image. Please try again.");
-    }
-};
-
 const SYSTEM_INSTRUCTION = `You are an expert cake designer analyzing a cake image to identify design elements for pricing and customization. Your response must be a valid JSON object.
 
 **GLOBAL RULES:**
@@ -993,7 +924,8 @@ const hybridAnalysisResponseSchema = {
                     color: { type: Type.STRING },
                     colors: { type: Type.ARRAY, items: { type: Type.STRING } },
                     x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER }
+                    y: { type: Type.NUMBER },
+                    subtype: { type: Type.STRING },
                 },
                 required: ['type', 'description', 'size', 'quantity', 'group_id', 'x', 'y']
             }
@@ -1010,7 +942,9 @@ const hybridAnalysisResponseSchema = {
                     color: { type: Type.STRING },
                     colors: { type: Type.ARRAY, items: { type: Type.STRING } },
                     x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER }
+                    y: { type: Type.NUMBER },
+                    subtype: { type: Type.STRING },
+                    quantity: { type: Type.INTEGER },
                 },
                 required: ['type', 'description', 'coverage', 'group_id', 'x', 'y']
             }
@@ -1178,7 +1112,7 @@ You MUST provide precise central coordinates for every single decorative element
                 systemInstruction: SYSTEM_INSTRUCTION,
                 responseMimeType: 'application/json',
                 responseSchema: hybridAnalysisResponseSchema,
-                temperature: 0.1,
+                temperature: 0,
             },
         });
 

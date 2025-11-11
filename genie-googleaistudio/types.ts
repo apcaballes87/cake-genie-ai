@@ -29,6 +29,7 @@ export interface MainTopper {
     colors?: (string | null)[];
     x?: number;
     y?: number;
+    subtype?: string;
 }
 
 export interface SupportElement {
@@ -40,6 +41,8 @@ export interface SupportElement {
     colors?: (string | null)[];
     x?: number;
     y?: number;
+    subtype?: string;
+    quantity?: number;
 }
 
 export interface CakeMessage {
