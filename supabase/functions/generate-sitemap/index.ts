@@ -5,7 +5,16 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
 declare const Deno: any;
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
@@ -81,6 +90,7 @@ serve(async (req) => {
 
     return new Response(xml, {
       headers: {
+        ...corsHeaders,
         'Content-Type': 'application/xml; charset=utf-8',
         'Cache-Control': 'public, max-age=3600, s-maxage=86400', // Cache for 1 hour (browser), 24 hours (CDN)
       },
@@ -102,6 +112,7 @@ serve(async (req) => {
 
     return new Response(fallbackXml, {
       headers: {
+        ...corsHeaders,
         'Content-Type': 'application/xml; charset=utf-8',
         'Cache-Control': 'public, max-age=300', // 5 minutes cache on error
       },
