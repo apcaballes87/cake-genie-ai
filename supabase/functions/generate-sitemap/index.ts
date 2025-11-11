@@ -32,18 +32,22 @@ serve(async (req) => {
     });
 
     // Fetch all shared designs
+    console.log('[generate-sitemap] Starting to fetch designs...');
     const { data: designs, error } = await supabase
       .from('cakegenie_shared_designs')
       .select('url_slug, updated_at')
       .order('updated_at', { ascending: false });
 
+    console.log('[generate-sitemap] Query completed');
+    console.log('[generate-sitemap] Designs data:', designs);
+    console.log('[generate-sitemap] Error:', error);
+
     if (error) {
-      console.error('[generate-sitemap] Error fetching designs:', error);
-      console.error('[generate-sitemap] Error details:', JSON.stringify(error));
-      // Continue with empty designs array instead of failing
+      console.error('[generate-sitemap] Database error:', JSON.stringify(error, null, 2));
     }
 
-    console.log('[generate-sitemap] Fetched designs count:', designs?.length || 0);
+    const designCount = designs?.length || 0;
+    console.log('[generate-sitemap] Total designs to include:', designCount);
 
     const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
