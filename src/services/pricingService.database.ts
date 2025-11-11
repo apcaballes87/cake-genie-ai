@@ -176,7 +176,7 @@ export async function calculatePriceFromDatabase(
   // Process Messages
   cakeMessages.forEach(message => {
     let price = 0;
-    if (message.isEnabled) {
+    if (message.isEnabled && message.type) {
       const rule = getRule(message.type, undefined, 'message');
       if (rule) {
         price = rule.price;

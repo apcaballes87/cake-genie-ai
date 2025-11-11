@@ -140,8 +140,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     
     Promise.all([
       getSuggestedKeywords(),
-      // getPopularKeywords() - Temporarily disabled
-      Promise.resolve([])
+      Promise.resolve([]) // Popular keywords disabled - RPC function doesn't exist
     ]).then(([suggested, popular]) => {
         if (suggested && suggested.length > 0) {
           setSuggestedKeywords(suggested);
