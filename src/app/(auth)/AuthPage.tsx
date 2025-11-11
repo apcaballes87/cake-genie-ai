@@ -40,8 +40,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
       
       // If user was anonymous and had a session, merge their cart
       if (wasAnonymous && anonymousUserId && data.user) {
-        console.log('Merging anonymous cart...', { anonymousUserId, newUserId: data.user.id });
-        
         // Import the merge function
         const { mergeAnonymousCartToUser } = await import('../../services/supabaseService');
         
@@ -50,7 +48,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
         if (mergeResult.success) {
           showSuccess('Welcome back! Your cart has been restored.');
         } else {
-          console.warn('Cart merge failed, but login succeeded:', mergeResult.error);
           showSuccess('Welcome back!');
         }
       } else {

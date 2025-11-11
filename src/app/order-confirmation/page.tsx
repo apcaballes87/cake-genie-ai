@@ -1,6 +1,3 @@
-
-
-
 import React, { useEffect, useState } from 'react';
 import { getSupabaseClient } from '../../lib/supabase/client';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -21,8 +18,6 @@ const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
   onContinueShopping,
   onGoToOrders,
 }) => {
-  console.log('[OrderConfirmationPage] Rendering with orderId:', orderId);
-
   const [order, setOrder] = useState<(CakeGenieOrder & { cakegenie_order_items: CakeGenieOrderItem[] }) | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = getSupabaseClient();
@@ -32,14 +27,11 @@ const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
 
   useEffect(() => {
     const fetchOrder = async () => {
-      console.log('[OrderConfirmationPage] fetchOrder effect triggered.');
       if (!orderId) {
-        console.warn('[OrderConfirmationPage] No orderId provided to fetchOrder.');
         setLoading(false);
         return;
       };
       
-      console.log(`[OrderConfirmationPage] Fetching order data for ID: ${orderId}`);
       setLoading(true);
       try {
         const { data, error } = await supabase
@@ -49,7 +41,6 @@ const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
           .single();
 
         if (error) throw error;
-        console.log('[OrderConfirmationPage] Successfully fetched order data:', data);
         setOrder(data);
 
         // Analytics: Track purchase event for the funnel
@@ -72,7 +63,6 @@ const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
         console.error('[OrderConfirmationPage] Error fetching order:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
         setOrder(null);
       } finally {
-        console.log('[OrderConfirmationPage] fetchOrder finished, setting loading to false.');
         setLoading(false);
       }
     };
@@ -85,14 +75,11 @@ const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
     const verifyOnLoad = async () => {
         if (!orderId) return;
 
-        console.log(`[OrderConfirmationPage] Proactively verifying payment for orderId: ${orderId}`);
         const result = await verifyXenditPayment(orderId);
 
         if (result.success && result.status) {
-            console.log(`[OrderConfirmationPage] Verification successful, status: ${result.status}`);
             setPaymentStatus(result.status.toLowerCase() as any);
         } else {
-            console.warn('[OrderConfirmationPage] Proactive verification failed. Falling back to polling.', result.error);
             // If verification fails, the polling mechanism below will take over.
         }
     };

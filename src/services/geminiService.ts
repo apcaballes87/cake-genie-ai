@@ -1,6 +1,6 @@
 // services/geminiService.ts
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI, Type } from "@google/genai";
 import type { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, IcingColorDetails, CakeInfoUI, CakeType, CakeThickness, IcingDesign, MainTopperType, CakeMessage, SupportElementType } from '../types';
 import { CAKE_TYPES, CAKE_THICKNESSES, COLORS } from "../constants";
 import { getSupabaseClient } from '../lib/supabase/client';
@@ -10,8 +10,8 @@ const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
 if (!geminiApiKey) {
     throw new Error("VITE_GEMINI_API_KEY environment variable not set");
 }
-  
-const genAI = new GoogleGenerativeAI(geminiApiKey);
+
+const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 const supabase = getSupabaseClient();
 
 // Cache the prompt for 10 minutes
@@ -100,25 +100,48 @@ Example for a picture of a car:
 { "classification": "not_a_cake" }
 `;
 
+const validationResponseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        classification: {
+            type: Type.STRING,
+            enum: [
+                'valid_single_cake',
+                'not_a_cake',
+                'multiple_cakes',
+                'only_cupcakes',
+                'complex_sculpture',
+                'large_wedding_cake',
+                'non_food',
+            ],
+        },
+    },
+    required: ['classification'],
+};
+
 export const validateCakeImage = async (base64ImageData: string, mimeType: string): Promise<string> => {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-        
-        const result = await model.generateContent([
-            {
-                inlineData: { mimeType, data: base64ImageData }
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [{
+                parts: [
+                    { inlineData: { mimeType, data: base64ImageData } },
+                    { text: VALIDATION_PROMPT }
+                ],
+            }],
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: validationResponseSchema,
+                temperature: 0,
             },
-            VALIDATION_PROMPT
-        ]);
+        });
 
-        const response = await result.response;
-        let jsonText = response.text().trim();
-        
-        // Strip markdown code blocks
-        jsonText = jsonText.replace(/^```json\s*/m, '').replace(/^```\s*/m, '').replace(/\s*```$/m, '');
-        
-        const resultData = JSON.parse(jsonText);
-        return resultData.classification;
+        const jsonText = response.text?.trim();
+        if (!jsonText) {
+            throw new Error("Empty response from AI");
+        }
+        const result = JSON.parse(jsonText);
+        return result.classification;
 
     } catch (error) {
         console.error("Error validating cake image:", error);
@@ -1013,24 +1036,26 @@ You MUST provide precise central coordinates for every single decorative element
 
         const activePrompt = await getActivePrompt();
 
-        // Use the correct Google Generative AI library syntax
-        const model = genAI.getGenerativeModel({ 
-            model: "gemini-2.5-flash"
-        });
-        
-        const result = await model.generateContent([
-            {
-                inlineData: { mimeType, data: base64ImageData }
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [{
+                parts: [
+                    { inlineData: { mimeType, data: base64ImageData } },
+                    { text: COORDINATE_PROMPT + activePrompt },
+                ],
+            }],
+            config: {
+                systemInstruction: SYSTEM_INSTRUCTION,
+                responseMimeType: 'application/json',
+                temperature: 0.1,
             },
-            COORDINATE_PROMPT + activePrompt
-        ]);
+        });
 
-        const response = await result.response;
-        let jsonText = response.text().trim();
-        
-        // Strip markdown code blocks
-        jsonText = jsonText.replace(/^```json\s*/m, '').replace(/^```\s*/m, '').replace(/\s*```$/m, '');
-        
+        const jsonText = response.text?.trim();
+        if (!jsonText) {
+            throw new Error("Empty response from AI");
+        }
+
         const analysisResult = JSON.parse(jsonText);
 
         if (analysisResult.rejection?.isRejected) {
@@ -1128,20 +1153,25 @@ export const generateShareableTexts = async (
             })
         };
 
-        // Use the correct Google Generative AI library syntax
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        
-        const result = await model.generateContent([
-            SHARE_TEXT_PROMPT,
-            `\`\`\`json\n${JSON.stringify(simplifiedAnalysis, null, 2)}\n\`\`\``
-        ]);
-        
-        const response = await result.response;
-        let jsonText = response.text().trim();
-        
-        // Strip markdown code blocks
-        jsonText = jsonText.replace(/^```json\s*/m, '').replace(/^```\s*/m, '').replace(/\s*```$/m, '');
-        
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [{
+                parts: [
+                    { text: SHARE_TEXT_PROMPT },
+                    { text: `\`\`\`json\n${JSON.stringify(simplifiedAnalysis, null, 2)}\n\`\`\`` }
+                ],
+            }],
+            config: {
+                responseMimeType: 'application/json',
+                temperature: 0.7,
+            },
+        });
+
+        const jsonText = response.text?.trim();
+        if (!jsonText) {
+            throw new Error("Empty response from AI");
+        }
+
         return JSON.parse(jsonText) as ShareableTexts;
     } catch (error) {
         console.error("Error generating shareable texts:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
@@ -1201,16 +1231,16 @@ export const editCakeImage = async (
     parts.push({ text: prompt });
 
     try {
-        // Use the correct Google Generative AI library syntax
-        const model = genAI.getGenerativeModel({ 
-            model: "gemini-2.5-flash-image"  // Use the specific image model for image editing
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [{ parts }],
+            config: {
+                temperature: 0.4,
+            },
         });
-        
-        const result = await model.generateContent(parts);
-        const response = await result.response;
-        
+
         // Extract the image data from the response
-        const imageData = response.text();
+        const imageData = response.text;
         if (imageData) {
             return imageData;
         }

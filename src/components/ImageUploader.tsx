@@ -28,7 +28,6 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ isOpen, onClose, o
       let fileToProcess = file;
       // Conditionally compress if file is larger than 500KB
       if (file.size > 500 * 1024) {
-        console.log(`Image is >500KB (${(file.size/1024/1024).toFixed(2)}MB), compressing...`);
         fileToProcess = await compressImage(file, {
           maxSizeMB: 1, // Compress to a max of 1MB
           maxWidthOrHeight: 1920,

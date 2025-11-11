@@ -1,130 +1,53 @@
-# Cake Genie - AI-Powered Cake Design Application
+# Genie 🎂✨
 
-Cake Genie is a cutting-edge web application that allows users to create custom cake designs using AI technology. Users can upload images, customize cakes with various toppings and designs, and place orders seamlessly.
+Welcome to Genie, the AI-powered cake customization platform. Find any cake design, use AI to customize it, and get an instant, rule-based price estimate.
 
-## Features
+## 🚀 Getting Started
 
-- AI-powered image analysis for cake design suggestions
-- Interactive cake customization interface
-- Real-time pricing calculations
-- Shopping cart functionality with Supabase integration
-- Social sharing capabilities
-- Responsive design for all devices
+This project is a Vite-based React application that uses Supabase for its backend and the Google Gemini API for AI features.
 
-## Tech Stack
+### 1. Environment Variables
 
-- **Frontend**: React 18, TypeScript, Vite
-- **State Management**: React Context API, TanStack Query
-- **UI Framework**: Tailwind CSS
-- **Backend**: Supabase (Database, Authentication, Storage)
-- **AI Integration**: Google Gemini API
-- **Maps**: Google Maps API
-- **Image Processing**: Browser Image Compression
-- **Deployment**: Vercel
+This project requires certain secrets to be configured in your Vercel project's environment variables. Public, non-sensitive keys are already included in the source code.
 
-## Prerequisites
+**Go to your Vercel Project > Settings > Environment Variables and add the following:**
 
-Before you begin, ensure you have the following installed:
-- Node.js (v16 or higher)
-- npm or yarn
-- A Supabase account
-- Google Cloud Platform account for Gemini API
-- Google Cloud Platform account for Maps API
+| Name                      | Value                            | Description                                       |
+| ------------------------- | -------------------------------- | ------------------------------------------------- |
+| `API_KEY`                 | Your Google Gemini API Key       | **Required for all AI features.**                      |
+| `XENDIT_SECRET_KEY`       | Your Xendit Secret Key           | **Required for Supabase payment functions.**       |
+| `SUPABASE_SERVICE_ROLE_KEY`| Your Supabase Service Role Key | **Required for Supabase server-side functions.** |
 
-## Environment Variables
+### 2. Local Development
 
-Create a `.env.local` file in the root directory with the following variables:
+To run the application on your local machine, follow these steps:
 
-```env
-# Supabase Configuration
-VITE_SUPABASE_URL=your_supabase_project_url_here
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+1.  **Install Dependencies**:
+    If you don't have `pnpm` or `yarn`, you can use `npm`.
+    ```bash
+    npm install
+    ```
 
-# Google Gemini API Key
-VITE_GEMINI_API_KEY=your_gemini_api_key_here
+2.  **Run the Development Server**:
+    This will start the Vite development server, usually on `http://localhost:5173`.
+    ```bash
+    npm run dev
+    ```
 
-# Google Maps API Key
-VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
+### 3. Building for Production
 
-# Supabase Service Role Key (for server-side operations)
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+To create a production-ready build of your application:
+
+```bash
+npm run build
 ```
 
-## Installation
+This will create a `dist` folder containing the optimized, static files for your application. You can preview the production build locally with `npm run preview`.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/cake-genie.git
-   cd cake-genie
-   ```
+## 📦 Deployment
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+This project is optimized for deployment on **Vercel**.
 
-3. Set up environment variables as described above
-
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-## Available Scripts
-
-- `npm run dev` - Starts the development server
-- `npm run build` - Builds the application for production
-- `npm run preview` - Previews the production build locally
-- `npm run start` - Serves the production build
-
-## Project Structure
-
-```
-cake-genie/
-├── src/
-│   ├── app/              # Page components
-│   ├── components/       # Reusable UI components
-│   ├── contexts/         # React context providers
-│   ├── hooks/            # Custom hooks
-│   ├── lib/              # Utility functions and services
-│   ├── services/         # Business logic services
-│   ├── constants/        # Application constants
-│   ├── types/            # TypeScript types
-│   ├── App.tsx           # Main application component
-│   └── index.tsx         # Entry point
-├── public/               # Static assets
-├── supabase/             # Supabase functions and migrations
-├── .env.example          # Environment variable template
-├── vite.config.ts        # Vite configuration
-├── tsconfig.json         # TypeScript configuration
-└── package.json          # Project dependencies and scripts
-```
-
-## Deployment
-
-This application is configured for deployment on Vercel:
-
-1. Push your code to a GitHub repository
-2. Connect your repository to Vercel
-3. Set the environment variables in Vercel dashboard
-4. Deploy!
-
-## Development Guidelines
-
-- Use TypeScript for all new code
-- Follow the existing component structure and naming conventions
-- Write tests for complex logic
-- Use the provided hooks for business logic
-- Maintain responsive design principles
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a pull request
-
-## License
-
-This project is licensed under the MIT License.
+1.  **Import Project**: Import your GitHub repository into Vercel. It will be automatically detected as a Vite project.
+2.  **Configure Environment Variables**: As described in the section above, add your secret keys to the Vercel project settings.
+3.  **Deploy**: Vercel will automatically build and deploy the application. Subsequent pushes to your main branch will trigger new deployments.

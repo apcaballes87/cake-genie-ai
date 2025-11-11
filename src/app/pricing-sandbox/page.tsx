@@ -39,12 +39,10 @@ const PricingSandboxPage: React.FC<PricingSandboxPageProps> = ({ onClose }) => {
 
     const runCalculation = useCallback(async () => {
         console.clear();
-        console.log("🧪 Running pricing calculation with:", { mainToppers, supportElements, icingDesign, cakeInfo });
         setIsLoading(true);
         try {
             const result = await calculatePriceFromDatabase({ mainToppers, supportElements, cakeMessages: [], icingDesign, cakeInfo });
             setPricingResult(result);
-            console.log("✅ Calculation successful:", result);
         } catch (e) {
             const error = e as Error;
             showError(`Calculation failed: ${error.message}`);

@@ -36,7 +36,6 @@ const ContactPage: React.FC<ContactPageProps> = ({ onClose }) => {
 
         setIsSubmitting(true);
         // Simulate a submission since no backend endpoint is specified
-        console.log("Form Submitted:", { name, contact, email, message });
 
         setTimeout(() => {
             setIsSubmitting(false);

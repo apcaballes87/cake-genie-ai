@@ -1,7 +1,4 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "installCommand": "npm install",
   "rewrites": [
     {
       "source": "/designs/:slug*",
@@ -10,10 +7,6 @@
     {
       "source": "/share/:id*",
       "destination": "https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/share-design/:id*"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
     }
   ],
   "headers": [

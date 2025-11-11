@@ -25,8 +25,6 @@ import {
 } from '../services/supabaseService';
 import { withTimeout } from '../lib/utils/timeout';
 
-console.log('CartContext.tsx: File loaded');
-
 // --- NEW BATCHED LOCALSTORAGE WRITER ---
 const queuedWrites: { [key: string]: string | null } = {};
 let isFlushScheduled = false;
@@ -129,7 +127,7 @@ export const cleanupExpiredLocalStorage = () => {
     
     keysToRemove.forEach(key => localStorage.removeItem(key));
     if (keysToRemove.length > 0) {
-        console.log(`Cleaned up ${keysToRemove.length} expired localStorage items.`);
+        // Removed console.log for production
     }
 };
 
@@ -185,7 +183,6 @@ const CartActionsContext = createContext<CartActionsType | undefined>(undefined)
 const supabase: SupabaseClient = getSupabaseClient();
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  console.log('CartProvider: Component initialized');
   
   const [cartItems, setCartItems] = useState<CakeGenieCartItem[]>([]);
   const [addresses, setAddresses] = useState<CakeGenieAddress[]>([]);
@@ -281,20 +278,16 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             let userToLoad: User | null = session?.user || null;
     
             if (!session) {
-                console.log('🔵 No session, creating anonymous session...');
                 const { data, error } = await supabase.auth.signInAnonymously();
     
                 if (error) {
                     throw error; // Let the catch block handle it
                 }
                 userToLoad = data.user;
-                console.log('✅ Anonymous session created:', userToLoad?.id);
             } else {
                 // Fix TypeScript error by checking if userToLoad is not null
                 if (userToLoad) {
-                    console.log('✅ Existing session found:', userToLoad.id, 'Is anonymous:', userToLoad.is_anonymous);
                 } else {
-                    console.log('✅ Existing session found, but user is null');
                 }
             }
     
@@ -328,11 +321,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const currentUserId = user?.id ?? null;
         
         const isAnonymous = user?.is_anonymous;
-        console.log('🔄 Auth state changed:', event, currentUserId, 'Is anonymous:', isAnonymous);
         
         // Only reload the cart if the user has actually changed.
         if (currentUserId !== prevUserIdRef.current) {
-            console.log('👤 User changed from', prevUserIdRef.current, 'to', currentUserId);
             prevUserIdRef.current = currentUserId;
             setCurrentUser(user);
             
@@ -396,16 +387,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         session_id: isAnonymous ? user.id : null,
       };
 
-      console.log('🔵 Attempting to add to cart:', {
-        userId: itemToSend.user_id,
-        sessionId: itemToSend.session_id,
-        skipOptimistic: options?.skipOptimistic,
-        item: {
-          cake_type: itemToSend.cake_type,
-          cake_size: itemToSend.cake_size,
-        }
-      });
-
       const { data: realItem, error } = await addToCartService(itemToSend);
 
       if (error || !realItem) {
@@ -416,8 +397,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw error || new Error('Failed to add item to cart. No data returned from service.');
       }
       
-      console.log('🟢 Successfully added to cart:', realItem);
-
       if (options?.skipOptimistic) {
         setCartItems(prev => [realItem, ...prev]);
       } else {

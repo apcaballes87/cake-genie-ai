@@ -8,8 +8,8 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function diagnoseSupabase() {
-  console.log('🔍 Diagnosing Supabase connection...');
-  console.log('Supabase URL:', SUPABASE_URL);
+  // Removed console.log for production
+  // Removed console.log for production
   
   try {
     // Test a simple query to check if we can connect
@@ -23,8 +23,8 @@ async function diagnoseSupabase() {
       return;
     }
     
-    console.log('✅ Supabase connection successful');
-    console.log('Table exists and is accessible');
+    // Removed console.log for production
+    // Removed console.log for production
     
     // Check if we can access the storage bucket
     const { data: buckets, error: bucketError } = await supabase
@@ -34,15 +34,15 @@ async function diagnoseSupabase() {
     if (bucketError) {
       console.error('❌ Supabase storage error:', bucketError.message);
     } else {
-      console.log('✅ Supabase storage accessible');
-      console.log('Available buckets:', buckets.map(b => b.id));
+      // Removed console.log for production
+      // Removed console.log for production
       const sharedCakeImagesBucket = buckets.find(bucket => bucket.id === 'shared-cake-images');
       if (sharedCakeImagesBucket) {
-        console.log('✅ shared-cake-images bucket found');
-        console.log('Bucket details:', sharedCakeImagesBucket);
+        // Removed console.log for production
+        // Removed console.log for production
       } else {
-        console.log('❌ shared-cake-images bucket not found');
-        console.log('All buckets:', buckets);
+        // Removed console.log for production
+        // Removed console.log for production
       }
     }
   } catch (error) {
