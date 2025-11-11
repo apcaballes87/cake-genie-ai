@@ -72,7 +72,8 @@ serve(async (req) => {
 
     const title = escapeHtml(data.title || "Check out this Cake Design!");
     const description = escapeHtml(data.description || "I created this custom cake design using Genie. What do you think?");
-    const altText = escapeHtml(data.alt_text || data.title || "Custom cake design");
+    // Use alt_text if available, otherwise fall back to title, then generic text
+    const altText = data.alt_text ? escapeHtml(data.alt_text) : (data.title ? escapeHtml(data.title) : "Custom cake design");
     const imageUrl = data.customized_image_url;
 
     const html = `
