@@ -167,12 +167,18 @@ export const useImageManagement = () => {
 
         console.log('⚫️ Cache Miss. Proceeding with AI Analysis...');
         
-        analyzeCakeImage(compressedImageData.data, compressedImageData.mimeType)
-            .then(result => {
-                // Fire-and-forget caching, now with the uploaded URL
-                cacheAnalysisResult(pHash, result, uploadedImageUrl);
-            })
-            .catch(onError);
+        try {
+            const result = await analyzeCakeImage(
+                compressedImageData.data,
+                compressedImageData.mimeType,
+                (progress) => console.log(progress) // Log progress updates from streaming
+            );
+            onSuccess(result);
+            // Fire-and-forget caching, now with the uploaded URL
+            cacheAnalysisResult(pHash, result, uploadedImageUrl);
+        } catch (error) {
+            onError(error instanceof Error ? error : new Error('Failed to analyze image'));
+        }
         
     } catch (err) {
         const fileProcessingError = err instanceof Error ? err : new Error("Failed to read image file.");
