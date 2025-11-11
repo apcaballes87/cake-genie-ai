@@ -51,7 +51,7 @@ serve(async (req) => {
     // 2. Fetch the design from Supabase
     const { data, error } = await supabaseAdmin
         .from('cakegenie_shared_designs')
-        .select('title, description, customized_image_url, url_slug')
+        .select('title, description, alt_text, customized_image_url, url_slug')
         .eq('url_slug', slug)
         .single();
     
@@ -72,6 +72,7 @@ serve(async (req) => {
 
     const title = escapeHtml(data.title || "Check out this Cake Design!");
     const description = escapeHtml(data.description || "I created this custom cake design using Genie. What do you think?");
+    const altText = escapeHtml(data.alt_text || data.title || "Custom cake design");
     const imageUrl = data.customized_image_url;
 
     const html = `
@@ -88,15 +89,17 @@ serve(async (req) => {
         <meta property="og:title" content="${title}">
         <meta property="og:description" content="${description}">
         <meta property="og:image" content="${imageUrl}">
+        <meta property="og:image:alt" content="${altText}">
         <meta property="og:image:width" content="1080">
         <meta property="og:image:height" content="1080">
-        
+
         <!-- Twitter -->
         <meta name="twitter:card" content="summary_large_image">
         <meta property="twitter:url" content="${canonicalUrl}">
         <meta name="twitter:title" content="${title}">
         <meta name="twitter:description" content="${description}">
         <meta name="twitter:image" content="${imageUrl}">
+        <meta name="twitter:image:alt" content="${altText}">
         
         <!-- JavaScript redirect for real users -->
         <script type="text/javascript">

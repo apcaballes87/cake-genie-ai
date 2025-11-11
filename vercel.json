@@ -1,12 +1,9 @@
 {
-  "redirects": [
+  "rewrites": [
     {
       "source": "/designs/:slug",
-      "destination": "/#/designs/:slug",
-      "permanent": false
-    }
-  ],
-  "rewrites": [
+      "destination": "https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/share-design/:slug"
+    },
     {
       "source": "/share/:id*",
       "destination": "https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/share-design/:id*"
