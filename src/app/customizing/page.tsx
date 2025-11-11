@@ -81,7 +81,7 @@ interface CustomizingPageProps {
   onClose: () => void;
   searchInput: string;
   setSearchInput: (value: string) => void;
-  onSearch: () => void;
+  onSearch: (query?: string) => void;
   setAppState: (state: AppState) => void;
   itemCount: number;
   isAuthenticated: boolean;

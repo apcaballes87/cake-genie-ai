@@ -465,9 +465,9 @@ ${prompt}
   const renderAppState = () => {
     switch(appState) {
         case 'landing': return <LandingPage user={user} onSearch={(q) => { setSearchInput(q); handleSearch(q); }} onUploadClick={() => setIsUploaderOpen(true)} setAppState={setAppState as React.Dispatch<React.SetStateAction<AppState>>} />;
-        case 'searching': return <SearchingPage searchInput={searchInput} setSearchInput={setSearchInput} searchQuery={searchQuery} error={imageManagementError} isSearching={isSearching} isLoading={isLoading} onSearch={() => handleSearch()} onClose={() => setAppState('landing')} originalImageData={originalImageData} onUploadClick={() => setIsUploaderOpen(true)} />;
+        case 'searching': return <SearchingPage searchInput={searchInput} setSearchInput={setSearchInput} searchQuery={searchQuery} error={imageManagementError} isSearching={isSearching} isLoading={isLoading} onSearch={(query) => handleSearch(query)} onClose={() => setAppState('landing')} originalImageData={originalImageData} onUploadClick={() => setIsUploaderOpen(true)} />;
         case 'customizing': return <CustomizingPage 
-            onClose={() => setAppState(previousAppState.current === 'searching' ? 'searching' : 'landing')} searchInput={searchInput} setSearchInput={setSearchInput} onSearch={() => handleSearch()} 
+            onClose={() => setAppState(previousAppState.current === 'searching' ? 'searching' : 'landing')} searchInput={searchInput} setSearchInput={setSearchInput} onSearch={(query) => handleSearch(query)} 
             setAppState={setAppState as React.Dispatch<React.SetStateAction<AppState>>} itemCount={itemCount} isAuthenticated={isAuthenticated} isAccountMenuOpen={isAccountMenuOpen} 
             setIsAccountMenuOpen={setIsAccountMenuOpen} accountMenuRef={accountMenuRef} user={user} onSignOut={handleSignOut} isCustomizationDirty={isCustomizationDirty}
             onOpenReportModal={() => setIsReportModalOpen(true)} editedImage={editedImage} isLoading={isLoading} isUpdatingDesign={isUpdatingDesign}

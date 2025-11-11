@@ -35,8 +35,8 @@ serve(async (req) => {
     console.log('[generate-sitemap] Starting to fetch designs...');
     const { data: designs, error } = await supabase
       .from('cakegenie_shared_designs')
-      .select('url_slug, updated_at')
-      .order('updated_at', { ascending: false });
+      .select('url_slug, created_at')
+      .order('created_at', { ascending: false });
 
     console.log('[generate-sitemap] Query completed');
     console.log('[generate-sitemap] Designs data:', designs);
@@ -78,8 +78,8 @@ serve(async (req) => {
     // Add dynamic shared design pages
     if (designs && designs.length > 0) {
       for (const design of designs) {
-        const lastmod = design.updated_at 
-          ? new Date(design.updated_at).toISOString().split('T')[0]
+        const lastmod = design.created_at 
+          ? new Date(design.created_at).toISOString().split('T')[0]
           : now;
         
         xml += `

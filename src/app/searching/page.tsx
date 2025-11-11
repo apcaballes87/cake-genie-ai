@@ -10,7 +10,7 @@ interface SearchingPageProps {
   error: string | null;
   isSearching: boolean;
   isLoading: boolean;
-  onSearch: () => void;
+  onSearch: (query?: string) => void;
   onClose: () => void;
   originalImageData: { data: string; mimeType: string } | null;
   onUploadClick: () => void;
