@@ -1,10 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
-import { CartProvider } from './contexts/CartContext';
+import App from './src/App';
+import { CartProvider } from './src/contexts/CartContext';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from './lib/queryClient';
-import { GoogleMapsLoaderProvider } from './contexts/GoogleMapsLoaderContext';
+import { queryClient } from './src/lib/queryClient';
+import { GoogleMapsLoaderProvider } from './src/contexts/GoogleMapsLoaderContext';
+import './src/index.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
