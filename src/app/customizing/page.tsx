@@ -150,7 +150,7 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
         gumpasteBaseBoard: false
     };
     const effectiveIcingDesign = icingDesign || defaultIcingDesign;
-    const effectiveCakeType = cakeType || 'Round';
+    const effectiveCakeType: CakeType = cakeType || '1 Tier';
     
     const tools = [
         { id: 'drip', description: 'Drip Effect', icon: <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/dripeffect.webp" alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
@@ -190,9 +190,9 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
                 return (
                     <button 
                         key={tool.id} 
-                        onClick={() => !tool.disabled && icingDesign && cakeType && onSelectItem({ id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: effectiveCakeType })}
+                        onClick={() => !tool.disabled && onSelectItem({ id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: effectiveCakeType })}
                         className={`relative w-10 h-10 p-1.5 rounded-full hover:bg-purple-100 transition-all group bg-white/80 backdrop-blur-md border border-slate-200 shadow-md ${tool.featureFlag ? 'ring-2 ring-purple-500 ring-offset-2' : ''} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
-                        disabled={tool.disabled || !icingDesign}
+                        disabled={tool.disabled}
                     >
                         {React.cloneElement(tool.icon as React.ReactElement<any>, { className: 'w-full h-full object-contain' })}
                         {tool.disabled && (
