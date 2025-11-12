@@ -169,7 +169,7 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
             if (currentIndex < tools.length) {
                 setActiveGuideIndex(currentIndex);
                 currentIndex++;
-                setTimeout(animateGuide, 600); // Show each tool for 600ms
+                setTimeout(animateGuide, 300); // Show each tool for 300ms (50% faster)
             } else {
                 setActiveGuideIndex(-1); // Reset after animation completes
             }
@@ -293,10 +293,10 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
       const startTimeout = setTimeout(() => {
         setShowIcingGuide(true);
         setHasShownGuide(true);
-        // Hide the guide after animation completes (6 tools × 600ms + buffer)
+        // Hide the guide after animation completes (6 tools × 300ms + buffer)
         const hideTimeout = setTimeout(() => {
           setShowIcingGuide(false);
-        }, 4000);
+        }, 2200);
       }, 1000); // 1 second delay before starting
       
       return () => clearTimeout(startTimeout);

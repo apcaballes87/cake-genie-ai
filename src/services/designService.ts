@@ -290,9 +290,9 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
 
     // Handle Gumpaste Base Board
     if (newIcing.gumpasteBaseBoard && !originalIcing.gumpasteBaseBoard) {
-        let instruction = `- **Add a round gumpaste-covered base board**. Preserve any existing decorations on the base area.(White base is not a decoration and is ok not to be preserved when changing from 1 tier to 2 tier or 1 tier to 3 tier.).`;
+        let instruction = `- Preserve any existing decorations on the base area.`;
         if (newIcing.colors.gumpasteBaseBoardColor) {
-            instruction += ` The color of the round gumpaste-covered BASE BOARD should be **${colorName(newIcing.colors.gumpasteBaseBoardColor)}**.`;
+            instruction += ` Make the color of the round gumpaste-covered BASE BOARD to be **${colorName(newIcing.colors.gumpasteBaseBoardColor)}**.`;
         }
         icingChanges.push(instruction);
     } else if (!newIcing.gumpasteBaseBoard && originalIcing.gumpasteBaseBoard) {
