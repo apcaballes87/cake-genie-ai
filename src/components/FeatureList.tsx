@@ -4,7 +4,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { ChevronDownIcon } from './icons';
 import { CAKE_TYPES, THICKNESS_OPTIONS_MAP, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_OPTIONS, FLAVOR_THUMBNAILS, TIER_THUMBNAILS } from '../constants';
 import { CakeBaseSkeleton } from './LoadingSkeletons';
-import { AnalysisItem } from '../../app/customizing/page';
+import { AnalysisItem } from '../app/customizing/page';
 
 
 interface FeatureListProps {
@@ -120,29 +120,30 @@ export const FeatureList = React.memo<FeatureListProps>(({
         }
     }, [analysisId]);
 
-    useEffect(() => {
-        if (!analysisId) return;
-        const timer = setTimeout(() => {
-            if (cakeInfo) {
-                const typeContainer = cakeTypeScrollContainerRef.current;
-                if (typeContainer) {
-                    const selectedTypeElement = typeContainer.querySelector(`[data-caketype="${CSS.escape(cakeInfo.type)}"]`);
-                    if (selectedTypeElement) selectedTypeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                }
-                const thicknessContainer = cakeThicknessScrollContainerRef.current;
-                if (thicknessContainer) {
-                    const selectedThicknessElement = thicknessContainer.querySelector(`[data-cakethickness="${CSS.escape(cakeInfo.thickness)}"]`);
-                    if (selectedThicknessElement) selectedThicknessElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                }
-                const sizeContainer = cakeSizeScrollContainerRef.current;
-                if (sizeContainer && basePriceOptions) {
-                     const selectedSizeElement = sizeContainer.querySelector(`[data-cakesize="${CSS.escape(cakeInfo.size)}"]`);
-                     if (selectedSizeElement) selectedSizeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                }
-            }
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [analysisId, cakeInfo, basePriceOptions]);
+    // Removed auto-scroll to cake base section after analysis
+    // useEffect(() => {
+    //     if (!analysisId) return;
+    //     const timer = setTimeout(() => {
+    //         if (cakeInfo) {
+    //             const typeContainer = cakeTypeScrollContainerRef.current;
+    //             if (typeContainer) {
+    //                 const selectedTypeElement = typeContainer.querySelector(`[data-caketype="${CSS.escape(cakeInfo.type)}"]`);
+    //                 if (selectedTypeElement) selectedTypeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    //             }
+    //             const thicknessContainer = cakeThicknessScrollContainerRef.current;
+    //             if (thicknessContainer) {
+    //                 const selectedThicknessElement = thicknessContainer.querySelector(`[data-cakethickness="${CSS.escape(cakeInfo.thickness)}"]`);
+    //                 if (selectedThicknessElement) selectedThicknessElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    //             }
+    //             const sizeContainer = cakeSizeScrollContainerRef.current;
+    //             if (sizeContainer && basePriceOptions) {
+    //                  const selectedSizeElement = sizeContainer.querySelector(`[data-cakesize="${CSS.escape(cakeInfo.size)}"]`);
+    //                  if (selectedSizeElement) selectedSizeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    //             }
+    //         }
+    //     }, 300);
+    //     return () => clearTimeout(timer);
+    // }, [analysisId, cakeInfo, basePriceOptions]);
     
     if (analysisError) return <div className="text-center p-4 bg-red-50 rounded-lg text-red-700"><p className="font-semibold">Analysis Failed</p><p className="text-sm">{analysisError}</p></div>;
     if (!icingDesign || !cakeInfo) return null;

@@ -8,7 +8,7 @@ import toast, { ToastOptions } from 'react-hot-toast';
 export const showSuccess = (message: string, options?: ToastOptions) => {
   toast.success(message, {
     duration: 3000,
-    position: 'bottom-center',
+    position: 'top-center',
     style: {
       background: '#10B981', // Green-500
       color: '#ffffff',
