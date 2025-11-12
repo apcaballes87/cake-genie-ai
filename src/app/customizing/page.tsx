@@ -137,7 +137,8 @@ interface CustomizingPageProps {
   onCakeMessageChange: (messages: CakeMessageUI[]) => void;
 }
 
-const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icingDesign: IcingDesignUI; cakeType: CakeType; isVisible: boolean }> = ({ onSelectItem, icingDesign, cakeType, isVisible }) => {
+const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icingDesign: IcingDesignUI; cakeType: CakeType; isVisible: boolean; showGuide: boolean }> = ({ onSelectItem, icingDesign, cakeType, isVisible, showGuide }) => {
+    const [activeGuideIndex, setActiveGuideIndex] = useState<number>(-1);
     const isBento = cakeType === 'Bento';
     const tools = [
         { id: 'drip', description: 'Drip Effect', icon: <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/dripeffect.webp" alt="Drip effect" />, featureFlag: icingDesign.drip },
@@ -148,24 +149,49 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
         { id: 'gumpasteBaseBoard', description: 'Gumpaste Covered Board', icon: <BaseBoardGuideIcon />, featureFlag: icingDesign.gumpasteBaseBoard, disabled: isBento },
     ];
     
+    useEffect(() => {
+        if (!showGuide) return;
+        
+        let currentIndex = 0;
+        const animateGuide = () => {
+            if (currentIndex < tools.length) {
+                setActiveGuideIndex(currentIndex);
+                currentIndex++;
+                setTimeout(animateGuide, 600); // Show each tool for 600ms
+            } else {
+                setActiveGuideIndex(-1); // Reset after animation completes
+            }
+        };
+        
+        // Start animation after a brief delay
+        const startTimeout = setTimeout(animateGuide, 300);
+        
+        return () => {
+            clearTimeout(startTimeout);
+        };
+    }, [showGuide, tools.length]);
+    
     return (
         <div className={`absolute top-1/2 -translate-y-1/2 left-4 z-10 flex flex-col gap-2 transition-opacity ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-            {tools.map(tool => (
-                <button 
-                    key={tool.id} 
-                    onClick={() => !tool.disabled && onSelectItem({ id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: cakeType })}
-                    className={`relative w-10 h-10 p-1.5 rounded-full hover:bg-purple-100 transition-colors group bg-white/80 backdrop-blur-md border border-slate-200 shadow-md ${tool.featureFlag ? 'ring-2 ring-purple-500 ring-offset-2' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
-                    disabled={tool.disabled}
-                >
-                    {React.cloneElement(tool.icon as React.ReactElement<any>, { className: 'w-full h-full object-contain' })}
-                    {tool.disabled && (
-                         <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
-                            <X className="w-5 h-5 text-white" />
-                         </div>
-                    )}
-                    <span className="icing-toolbar-tooltip">{tool.description}</span>
-                </button>
-            ))}
+            {tools.map((tool, index) => {
+                const isGuideActive = activeGuideIndex === index;
+                return (
+                    <button 
+                        key={tool.id} 
+                        onClick={() => !tool.disabled && onSelectItem({ id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: cakeType })}
+                        className={`relative w-10 h-10 p-1.5 rounded-full hover:bg-purple-100 transition-all group bg-white/80 backdrop-blur-md border border-slate-200 shadow-md ${tool.featureFlag ? 'ring-2 ring-purple-500 ring-offset-2' : ''} ${isGuideActive ? 'ring-4 ring-yellow-400 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
+                        disabled={tool.disabled}
+                    >
+                        {React.cloneElement(tool.icon as React.ReactElement<any>, { className: 'w-full h-full object-contain' })}
+                        {tool.disabled && (
+                             <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
+                                <X className="w-5 h-5 text-white" />
+                             </div>
+                        )}
+                        <span className={`icing-toolbar-tooltip ${isGuideActive ? 'force-show' : ''}`}>{tool.description}</span>
+                    </button>
+                );
+            })}
         </div>
     );
 };
@@ -234,6 +260,8 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
   const [containerDimensions, setContainerDimensions] = useState<{width: number, height: number} | null>(null);
   const [isMotifPanelOpen, setIsMotifPanelOpen] = useState(false);
   const [dynamicLoadingMessage, setDynamicLoadingMessage] = useState<string>('');
+  const [showIcingGuide, setShowIcingGuide] = useState(false);
+  const [hasShownGuide, setHasShownGuide] = useState(false);
   // Add a 'Back to Top' button that appears when the user scrolls down.
   const [showBackToTop, setShowBackToTop] = useState(false);
 
@@ -245,6 +273,19 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Show icing guide when analysis completes for the first time
+  useEffect(() => {
+    if (analysisResult && icingDesign && cakeInfo && !hasShownGuide && !isAnalyzing) {
+      setShowIcingGuide(true);
+      setHasShownGuide(true);
+      // Hide the guide after animation completes (6 tools × 600ms + initial delay)
+      const hideTimeout = setTimeout(() => {
+        setShowIcingGuide(false);
+      }, 4000);
+      return () => clearTimeout(hideTimeout);
+    }
+  }, [analysisResult, icingDesign, cakeInfo, hasShownGuide, isAnalyzing]);
 
   // Add a 'Back to Top' button that appears when the user scrolls down.
   const scrollToTop = () => {
@@ -741,6 +782,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                     icingDesign={icingDesign} 
                                     cakeType={cakeInfo.type} 
                                     isVisible={areHelpersVisible}
+                                    showGuide={showIcingGuide}
                                 />
                             )}
                             <img
