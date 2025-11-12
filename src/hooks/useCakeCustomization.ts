@@ -434,14 +434,13 @@ export const useCakeCustomization = () => {
         setIsCustomizationDirty(false);
         setDirtyFields(new Set()); 
     
-        // Removed auto-scroll toast notification after analysis
-        // const toppersFound = analysisData.main_toppers.length;
-        // const elementsFound = analysisData.support_elements.length;
-        // let analysisSummaryParts: string[] = [];
-        // if (toppersFound > 0) analysisSummaryParts.push(`${toppersFound} topper${toppersFound > 1 ? 's' : ''}`);
-        // if (elementsFound > 0) analysisSummaryParts.push(`${elementsFound} design element${elementsFound > 1 ? 's' : ''}`);
-        // const analysisSummary = analysisSummaryParts.length > 0 ? `We found ${analysisSummaryParts.join(' and ')}.` : "We've analyzed your cake's base design.";
-        // showSuccess(`Price and Design Elements updated! ${analysisSummary}`, { duration: 6000 });
+        const toppersFound = analysisData.main_toppers.length;
+        const elementsFound = analysisData.support_elements.length;
+        let analysisSummaryParts: string[] = [];
+        if (toppersFound > 0) analysisSummaryParts.push(`${toppersFound} topper${toppersFound > 1 ? 's' : ''}`);
+        if (elementsFound > 0) analysisSummaryParts.push(`${elementsFound} design element${elementsFound > 1 ? 's' : ''}`);
+        const analysisSummary = analysisSummaryParts.length > 0 ? `We found ${analysisSummaryParts.join(' and ')}.` : "We've analyzed your cake's base design.";
+        showSuccess(`Price and Design Elements updated! ${analysisSummary}`, { duration: 6000 });
     
     }, [dirtyFields]);
 
