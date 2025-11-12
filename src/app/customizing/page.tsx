@@ -289,7 +289,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
   // Show icing guide when image preview is available (before analysis completes)
   useEffect(() => {
     if (originalImagePreview && !hasShownGuide) {
-      // Start the guide 2 seconds after image appears
+      // Start the guide 1 second after image appears
       const startTimeout = setTimeout(() => {
         setShowIcingGuide(true);
         setHasShownGuide(true);
@@ -297,7 +297,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
         const hideTimeout = setTimeout(() => {
           setShowIcingGuide(false);
         }, 4000);
-      }, 2000); // 2 second delay before starting
+      }, 1000); // 1 second delay before starting
       
       return () => clearTimeout(startTimeout);
     }
