@@ -137,16 +137,28 @@ interface CustomizingPageProps {
   onCakeMessageChange: (messages: CakeMessageUI[]) => void;
 }
 
-const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icingDesign: IcingDesignUI; cakeType: CakeType; isVisible: boolean; showGuide: boolean }> = ({ onSelectItem, icingDesign, cakeType, isVisible, showGuide }) => {
+const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icingDesign: IcingDesignUI | null; cakeType: CakeType | null; isVisible: boolean; showGuide: boolean }> = ({ onSelectItem, icingDesign, cakeType, isVisible, showGuide }) => {
     const [activeGuideIndex, setActiveGuideIndex] = useState<number>(-1);
     const isBento = cakeType === 'Bento';
+    
+    // Use default values if analysis hasn't completed yet
+    const defaultIcingDesign = {
+        drip: false,
+        border_top: false,
+        border_base: false,
+        colors: { top: '#FFFFFF', side: '#FFFFFF' },
+        gumpasteBaseBoard: false
+    };
+    const effectiveIcingDesign = icingDesign || defaultIcingDesign;
+    const effectiveCakeType = cakeType || 'Round';
+    
     const tools = [
-        { id: 'drip', description: 'Drip Effect', icon: <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/dripeffect.webp" alt="Drip effect" />, featureFlag: icingDesign.drip },
-        { id: 'borderTop', description: 'Top Border', icon: <TopBorderGuideIcon />, featureFlag: icingDesign.border_top },
-        { id: 'borderBase', description: 'Base Border', icon: <BaseBorderGuideIcon />, featureFlag: icingDesign.border_base, disabled: isBento },
-        { id: 'top', description: 'Top Icing Color', icon: <TopIcingGuideIcon />, featureFlag: !!icingDesign.colors.top },
-        { id: 'side', description: 'Side Icing Color', icon: <SideIcingGuideIcon />, featureFlag: !!icingDesign.colors.side },
-        { id: 'gumpasteBaseBoard', description: 'Gumpaste Covered Board', icon: <BaseBoardGuideIcon />, featureFlag: icingDesign.gumpasteBaseBoard, disabled: isBento },
+        { id: 'drip', description: 'Drip Effect', icon: <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/dripeffect.webp" alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
+        { id: 'borderTop', description: 'Top Border', icon: <TopBorderGuideIcon />, featureFlag: effectiveIcingDesign.border_top },
+        { id: 'borderBase', description: 'Base Border', icon: <BaseBorderGuideIcon />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
+        { id: 'top', description: 'Top Icing Color', icon: <TopIcingGuideIcon />, featureFlag: !!effectiveIcingDesign.colors.top },
+        { id: 'side', description: 'Side Icing Color', icon: <SideIcingGuideIcon />, featureFlag: !!effectiveIcingDesign.colors.side },
+        { id: 'gumpasteBaseBoard', description: 'Gumpaste Covered Board', icon: <BaseBoardGuideIcon />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
     ];
     
     useEffect(() => {
@@ -178,9 +190,9 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
                 return (
                     <button 
                         key={tool.id} 
-                        onClick={() => !tool.disabled && onSelectItem({ id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: cakeType })}
+                        onClick={() => !tool.disabled && icingDesign && cakeType && onSelectItem({ id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: effectiveCakeType })}
                         className={`relative w-10 h-10 p-1.5 rounded-full hover:bg-purple-100 transition-all group bg-white/80 backdrop-blur-md border border-slate-200 shadow-md ${tool.featureFlag ? 'ring-2 ring-purple-500 ring-offset-2' : ''} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
-                        disabled={tool.disabled}
+                        disabled={tool.disabled || !icingDesign}
                     >
                         {React.cloneElement(tool.icon as React.ReactElement<any>, { className: 'w-full h-full object-contain' })}
                         {tool.disabled && (
@@ -274,10 +286,10 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Show icing guide when customization page opens
+  // Show icing guide when image preview is available (before analysis completes)
   useEffect(() => {
-    if (analysisResult && icingDesign && cakeInfo && !hasShownGuide) {
-      // Start the guide 2 seconds after page opens
+    if (originalImagePreview && !hasShownGuide) {
+      // Start the guide 2 seconds after image appears
       const startTimeout = setTimeout(() => {
         setShowIcingGuide(true);
         setHasShownGuide(true);
@@ -289,7 +301,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
       
       return () => clearTimeout(startTimeout);
     }
-  }, [analysisResult, icingDesign, cakeInfo, hasShownGuide]);
+  }, [originalImagePreview, hasShownGuide]);
 
   // Add a 'Back to Top' button that appears when the user scrolls down.
   const scrollToTop = () => {
@@ -780,15 +792,13 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
 
                     {(originalImagePreview) && (
                         <>
-                            {icingDesign && cakeInfo && (
-                                <IcingToolbar 
-                                    onSelectItem={setSelectedItem} 
-                                    icingDesign={icingDesign} 
-                                    cakeType={cakeInfo.type} 
-                                    isVisible={areHelpersVisible}
-                                    showGuide={showIcingGuide}
-                                />
-                            )}
+                            <IcingToolbar 
+                                onSelectItem={setSelectedItem} 
+                                icingDesign={icingDesign} 
+                                cakeType={cakeInfo?.type || null} 
+                                isVisible={areHelpersVisible}
+                                showGuide={showIcingGuide}
+                            />
                             <img
                                 onLoad={(e) => {
                                     const img = e.currentTarget;
