@@ -179,7 +179,7 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
                     <button 
                         key={tool.id} 
                         onClick={() => !tool.disabled && onSelectItem({ id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: cakeType })}
-                        className={`relative w-10 h-10 p-1.5 rounded-full hover:bg-purple-100 transition-all group bg-white/80 backdrop-blur-md border border-slate-200 shadow-md ${tool.featureFlag ? 'ring-2 ring-purple-500 ring-offset-2' : ''} ${isGuideActive ? 'ring-4 ring-yellow-400 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
+                        className={`relative w-10 h-10 p-1.5 rounded-full hover:bg-purple-100 transition-all group bg-white/80 backdrop-blur-md border border-slate-200 shadow-md ${tool.featureFlag ? 'ring-2 ring-purple-500 ring-offset-2' : ''} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
                         disabled={tool.disabled}
                     >
                         {React.cloneElement(tool.icon as React.ReactElement<any>, { className: 'w-full h-full object-contain' })}
@@ -274,18 +274,22 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Show icing guide when analysis completes for the first time
+  // Show icing guide when customization page opens
   useEffect(() => {
-    if (analysisResult && icingDesign && cakeInfo && !hasShownGuide && !isAnalyzing) {
-      setShowIcingGuide(true);
-      setHasShownGuide(true);
-      // Hide the guide after animation completes (6 tools × 600ms + initial delay)
-      const hideTimeout = setTimeout(() => {
-        setShowIcingGuide(false);
-      }, 4000);
-      return () => clearTimeout(hideTimeout);
+    if (analysisResult && icingDesign && cakeInfo && !hasShownGuide) {
+      // Start the guide 2 seconds after page opens
+      const startTimeout = setTimeout(() => {
+        setShowIcingGuide(true);
+        setHasShownGuide(true);
+        // Hide the guide after animation completes (6 tools × 600ms + buffer)
+        const hideTimeout = setTimeout(() => {
+          setShowIcingGuide(false);
+        }, 4000);
+      }, 2000); // 2 second delay before starting
+      
+      return () => clearTimeout(startTimeout);
     }
-  }, [analysisResult, icingDesign, cakeInfo, hasShownGuide, isAnalyzing]);
+  }, [analysisResult, icingDesign, cakeInfo, hasShownGuide]);
 
   // Add a 'Back to Top' button that appears when the user scrolls down.
   const scrollToTop = () => {
