@@ -918,45 +918,47 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                 )}
              </div>
            )}
+           
+           {/* Report/Save/Reset buttons - shown below Update Design in 2-column layout */}
+           <div className="w-full hidden lg:flex items-center justify-end gap-4">
+            {isAdmin && (
+                <button
+                onClick={() => {
+                    clearPromptCache();
+                    showSuccess("AI prompt cache cleared!");
+                }}
+                className="flex items-center justify-center text-sm text-yellow-600 hover:text-yellow-800 hover:bg-yellow-200 py-2 px-4 rounded-lg transition-colors"
+                aria-label="Clear AI prompt cache"
+                >
+                Clear Prompt Cache
+                </button>
+            )}
+             <button onClick={onOpenReportModal} disabled={!editedImage || isLoading || isReporting} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Report an issue with this image">
+                 <ReportIcon />
+                 <span className="ml-2">{isReporting ? 'Submitting...' : 'Report Issue'}</span>
+             </button>
+             <button onClick={onSave} disabled={!editedImage || isLoading || isSaving} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label={isSaving ? "Saving image" : "Save customized image"}>
+                {isSaving ? (
+                    <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span className="ml-2">Saving...</span>
+                    </>
+                ) : (
+                    <>
+                        <SaveIcon />
+                        <span className="ml-2">Save</span>
+                    </>
+                )}
+             </button>
+             <button onClick={onClearAll} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors" aria-label="Reset everything"><ResetIcon /><span className="ml-2">Reset Everything</span></button>
+           </div>
          </div>
          
-         {/* RIGHT COLUMN: Feature List and Availability at bottom */}
+         {/* RIGHT COLUMN: Availability at top, then Feature List */}
          <div className="w-full lg:w-1/2 flex flex-col gap-3">
-           <div className="w-full bg-white/70 backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-slate-200">
-               {(cakeInfo || analysisError) ? (
-                    <FeatureList
-                       analysisError={analysisError}
-                       analysisId={analysisId}
-                       cakeInfo={cakeInfo}
-                       basePriceOptions={basePriceOptions}
-                       mainToppers={mainToppers}
-                       supportElements={supportElements}
-                       cakeMessages={cakeMessages}
-                       icingDesign={icingDesign}
-                       additionalInstructions={additionalInstructions}
-                       onCakeInfoChange={onCakeInfoChange}
-                       updateMainTopper={updateMainTopper}
-                       removeMainTopper={removeMainTopper}
-                       updateSupportElement={updateSupportElement}
-                       removeSupportElement={removeSupportElement}
-                       updateCakeMessage={updateCakeMessage}
-                       removeCakeMessage={removeCakeMessage}
-                       onIcingDesignChange={onIcingDesignChange}
-                       onAdditionalInstructionsChange={onAdditionalInstructionsChange}
-                       onTopperImageReplace={onTopperImageReplace}
-                       onSupportElementImageReplace={onSupportElementImageReplace}
-                       isAnalyzing={isAnalyzing}
-                       itemPrices={itemPrices}
-                       user={user}
-                       cakeBaseSectionRef={cakeBaseSectionRef}
-                       onItemClick={handleListItemClick}
-                       markerMap={markerMap}
-                   />
-               ) : <div className="text-center p-8 text-slate-500"><p>Upload an image to get started.</p></div>}
-           </div>
-           
-           {/* Availability Section - moved to bottom of right column */}
+           {/* Availability Section - at top of right column */}
            {analysisResult && cakeInfo && icingDesign && (
+             <>
                 <div className={`w-full p-4 rounded-xl border-2 flex items-start gap-4 transition-all duration-300 animate-fade-in ${availability.bgColor} ${availability.borderColor}`}>
                 <div className="text-3xl flex-shrink-0 mt-1">
                     {availability.icon}
@@ -999,7 +1001,6 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                     )}
                 </div>
             </div>
-        )}
         
            {!isLoadingAvailabilitySettings && (
                (availabilitySettings && availabilitySettings.minimum_lead_time_days > 0 && availabilityType === 'normal') ? (
@@ -1012,11 +1013,47 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                    </div>
                ) : null
            )}
+           </>
+        )}
+           
+           <div className="w-full bg-white/70 backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-slate-200">
+               {(cakeInfo || analysisError) ? (
+                    <FeatureList
+                       analysisError={analysisError}
+                       analysisId={analysisId}
+                       cakeInfo={cakeInfo}
+                       basePriceOptions={basePriceOptions}
+                       mainToppers={mainToppers}
+                       supportElements={supportElements}
+                       cakeMessages={cakeMessages}
+                       icingDesign={icingDesign}
+                       additionalInstructions={additionalInstructions}
+                       onCakeInfoChange={onCakeInfoChange}
+                       updateMainTopper={updateMainTopper}
+                       removeMainTopper={removeMainTopper}
+                       updateSupportElement={updateSupportElement}
+                       removeSupportElement={removeSupportElement}
+                       updateCakeMessage={updateCakeMessage}
+                       removeCakeMessage={removeCakeMessage}
+                       onIcingDesignChange={onIcingDesignChange}
+                       onAdditionalInstructionsChange={onAdditionalInstructionsChange}
+                       onTopperImageReplace={onTopperImageReplace}
+                       onSupportElementImageReplace={onSupportElementImageReplace}
+                       isAnalyzing={isAnalyzing}
+                       itemPrices={itemPrices}
+                       user={user}
+                       cakeBaseSectionRef={cakeBaseSectionRef}
+                       onItemClick={handleListItemClick}
+                       markerMap={markerMap}
+                   />
+               ) : <div className="text-center p-8 text-slate-500"><p>Upload an image to get started.</p></div>}
+           </div>
          </div>
        </div>
 
+       {/* Report/Save/Reset buttons - shown below 2-column layout on mobile/single column */}
        {originalImageData && (
-         <div className="w-full flex flex-col items-center gap-3">
+         <div className="w-full lg:hidden flex flex-col items-center gap-3">
            <div className="w-full flex items-center justify-end gap-4">
             {isAdmin && (
                 <button
