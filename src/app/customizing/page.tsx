@@ -274,17 +274,6 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
   const [dynamicLoadingMessage, setDynamicLoadingMessage] = useState<string>('');
   const [showIcingGuide, setShowIcingGuide] = useState(false);
   const [hasShownGuide, setHasShownGuide] = useState(false);
-  // Add a 'Back to Top' button that appears when the user scrolls down.
-  const [showBackToTop, setShowBackToTop] = useState(false);
-
-  // Add a 'Back to Top' button that appears when the user scrolls down.
-  useEffect(() => {
-    const handleScroll = () => {
-        setShowBackToTop(window.scrollY > 400);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Show icing guide when image preview is available (before analysis completes)
   useEffect(() => {
@@ -302,11 +291,6 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
       return () => clearTimeout(startTimeout);
     }
   }, [originalImagePreview, hasShownGuide]);
-
-  // Add a 'Back to Top' button that appears when the user scrolls down.
-  const scrollToTop = () => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   const HEX_TO_COLOR_NAME_MAP = useMemo(() => COLORS.reduce((acc, color) => {
       acc[color.hex.toLowerCase()] = color.name;
@@ -808,10 +792,16 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                 onLoad={(e) => {
                                     const img = e.currentTarget;
                                     const container = markerContainerRef.current;
-                                    // Always set dimensions when image loads, regardless of tab or src
-                                    // This ensures markers are always anchored to correct positions
+                                    
+                                    // CRITICAL: Only set originalImageDimensions from the ORIGINAL image
+                                    // This keeps marker positions anchored to original coordinates
+                                    // even when viewing the customized image (which may have different resolution)
                                     if (container) {
-                                        setOriginalImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+                                        // Only update originalImageDimensions if not set OR if viewing original tab
+                                        if (!originalImageDimensions || activeTab === 'original') {
+                                            setOriginalImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+                                        }
+                                        // Always update container dimensions for proper rendering
                                         setContainerDimensions({ width: container.clientWidth, height: container.clientHeight });
                                     }
                                 }}
@@ -1117,19 +1107,6 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                 onColorChange={handleMotifColorChange}
             />
         )}
-       
-      {/* Add a 'Back to Top' button that appears when the user scrolls down. */}
-      {showBackToTop && (
-        <button
-          onClick={scrollToTop}
-          className="fixed bottom-32 right-4 z-50 p-3 bg-white/80 backdrop-blur-md rounded-full shadow-lg border border-slate-200 hover:bg-white transition-all animate-fade-in"
-          aria-label="Go to top"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
-          </svg>
-        </button>
-      )}
     </div>
    );
 };
