@@ -760,8 +760,8 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
 
        {/* Two-column layout for desktop/tablet landscape */}
        <div className="w-full flex flex-col lg:flex-row gap-6 items-start">
-         {/* LEFT COLUMN: Image and Update Design */}
-         <div className="w-full lg:w-1/2 flex flex-col gap-3">
+         {/* LEFT COLUMN: Image and Update Design - Sticky on desktop */}
+         <div className="w-full lg:w-1/2 flex flex-col gap-3 lg:sticky lg:top-4 lg:self-start">
            <div ref={mainImageContainerRef} className="w-full bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 flex flex-col">
             <div className="p-2 flex-shrink-0">
                 <div className="bg-slate-100 p-1 rounded-lg flex space-x-1">
