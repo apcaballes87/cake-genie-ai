@@ -38,8 +38,8 @@
 .analysis-marker {
   position: absolute;
   transform: translate(-50%, -50%);
-  width: 24px;
-  height: 24px;
+  width: 168px;  /* 24px * 7 */
+  height: 168px; /* 24px * 7 */
   border-radius: 50%;
   cursor: pointer;
   display: flex;
@@ -49,24 +49,24 @@
   z-index: 10;
 }
 .analysis-marker .marker-dot {
-  width: 18px;
-  height: 18px;
+  width: 126px;  /* 18px * 7 */
+  height: 126px; /* 18px * 7 */
   background-color: rgba(236, 72, 153, 0.8);
-  border: 2px solid white;
+  border: 14px solid white; /* 2px * 7 */
   border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  box-shadow: 0 14px 56px rgba(0,0,0,0.3); /* 2px * 7, 8px * 7 */
   transition: all 0.2s ease-out;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 70px; /* 10px * 7 */
   font-weight: 900;
   color: white;
   line-height: 1;
 }
 .analysis-marker .action-marker {
   background-color: rgba(34, 197, 94, 0.8);
-  font-size: 16px;
+  font-size: 112px; /* 16px * 7 */
   font-weight: bold;
   line-height: 0;
 }
@@ -87,10 +87,10 @@
 .analysis-marker.selected::before {
   content: '';
   position: absolute;
-  width: 32px;
-  height: 32px;
+  width: 224px;  /* 32px * 7 */
+  height: 224px; /* 32px * 7 */
   border-radius: 50%;
-  border: 3px solid white;
+  border: 21px solid white; /* 3px * 7 */
   animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
 }
 @keyframes pulse-ring {
