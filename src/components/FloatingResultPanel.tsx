@@ -611,7 +611,7 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
       className={`fixed bottom-28 right-4 w-80 max-w-[90vw] bg-white/90 backdrop-blur-lg shadow-2xl border border-slate-200 z-50 flex flex-col transform rounded-xl ${selectedItem && !isDragging ? 'transition-transform duration-300 ease-out' : ''} ${selectedItem ? inViewClass : outOfViewClass}`}
       style={isDragging ? { transform: `translateX(${dragDeltaX}px)` } : {}}
     >
-        <div className="p-3 flex-grow overflow-y-auto space-y-3">
+        <div className="p-3 flex-grow overflow-y-auto space-y-3 max-h-[calc(100vh-12rem)]">
             {(() => {
                 if (!upToDateItem) return null;
 
