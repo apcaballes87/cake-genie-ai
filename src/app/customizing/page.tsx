@@ -601,7 +601,10 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
   }, [originalImageDimensions, containerDimensions]);
 
   const clusteredMarkers = useMemo((): ClusteredMarker[] => {
-    // Return raw markers without clustering - each marker appears individually
+    const MIN_DISTANCE = 15; // Minimum pixel distance between markers
+    
+    // Don't return early with empty array - let clustering work even if dimensions haven't loaded yet.
+    // The rendering condition checks for dimensions, so this prevents markers from disappearing.
     if (rawMarkers.length === 0) {
         return [];
     }
@@ -611,9 +614,49 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
         return rawMarkers.map(marker => ({ ...marker, isCluster: false }));
     }
   
-    // Return all markers individually without clustering
-    return rawMarkers.map(marker => ({ ...marker, isCluster: false }));
-  }, [rawMarkers, containerDimensions, originalImageDimensions]);
+    const markers = rawMarkers;
+    const markerPositions = markers.map(m => getMarkerPosition(m.x!, m.y!));
+    const clustered: ClusteredMarker[] = [];
+    const clusteredIndices = new Set<number>();
+    
+    for (let i = 0; i < markers.length; i++) {
+        if (clusteredIndices.has(i)) continue;
+      
+        const currentClusterItems: AnalysisItem[] = [markers[i]];
+        const clusterIndices = [i];
+      
+        for (let j = i + 1; j < markers.length; j++) {
+            if (clusteredIndices.has(j)) continue;
+          
+            const pos1 = markerPositions[i];
+            const pos2 = markerPositions[j];
+            const distance = Math.sqrt(Math.pow(pos1.leftPx - pos2.leftPx, 2) + Math.pow(pos1.topPx - pos2.topPx, 2));
+          
+            if (distance < MIN_DISTANCE) {
+                currentClusterItems.push(markers[j]);
+                clusterIndices.push(j);
+            }
+        }
+      
+        if (currentClusterItems.length > 1) {
+            clusterIndices.forEach(idx => clusteredIndices.add(idx));
+            const avgX = currentClusterItems.reduce((sum, item) => sum + item.x!, 0) / currentClusterItems.length;
+            const avgY = currentClusterItems.reduce((sum, item) => sum + item.y!, 0) / currentClusterItems.length;
+            
+            clustered.push({
+                id: `cluster-${i}`,
+                x: avgX,
+                y: avgY,
+                isCluster: true,
+                items: currentClusterItems,
+            });
+        } else {
+            clustered.push({ ...markers[i], isCluster: false });
+        }
+    }
+  
+    return clustered;
+  }, [rawMarkers, getMarkerPosition, containerDimensions, originalImageDimensions]);
 
   useEffect(() => {
     if (selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'action' && selectedItem.id === 'add-baseboard-message') {
@@ -826,7 +869,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                 setIsMotifPanelOpen(false);
                                 
                                 // Find all overlapping markers at this position
-                                const OVERLAP_THRESHOLD = 120; // 240px marker / 2 = 120px radius
+                                const OVERLAP_THRESHOLD = 12; // 24px marker / 2 = 12px radius
                                 const clickedPos = getMarkerPosition(clickedItem.x!, clickedItem.y!);
                                 
                                 const overlappingItems = clusteredMarkers.filter(marker => {
