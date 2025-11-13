@@ -810,6 +810,46 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                             const isCluster = 'isCluster' in item && item.isCluster;
                             const isAction = 'itemCategory' in item && item.itemCategory === 'action';
 
+                            // Handle click to detect overlapping markers
+                            const handleMarkerClick = (e: React.MouseEvent, clickedItem: ClusteredMarker) => {
+                                e.stopPropagation();
+                                setIsMotifPanelOpen(false);
+                                
+                                // Find all overlapping markers at this position
+                                const OVERLAP_THRESHOLD = 120; // 240px marker / 2 = 120px radius
+                                const clickedPos = getMarkerPosition(clickedItem.x!, clickedItem.y!);
+                                
+                                const overlappingItems = clusteredMarkers.filter(marker => {
+                                    if (marker.x === undefined || marker.y === undefined) return false;
+                                    const markerPos = getMarkerPosition(marker.x, marker.y);
+                                    const distance = Math.sqrt(
+                                        Math.pow(markerPos.leftPx - clickedPos.leftPx, 2) + 
+                                        Math.pow(markerPos.topPx - clickedPos.topPx, 2)
+                                    );
+                                    return distance < OVERLAP_THRESHOLD;
+                                });
+                                
+                                // If multiple items overlap, create a cluster
+                                if (overlappingItems.length > 1) {
+                                    const clusterItem: ClusteredMarker = {
+                                        id: `overlap-cluster-${clickedItem.id}`,
+                                        x: clickedItem.x!,
+                                        y: clickedItem.y!,
+                                        isCluster: true,
+                                        items: overlappingItems.map(m => {
+                                            if ('isCluster' in m && m.isCluster) {
+                                                return m.items; // Flatten if somehow already clustered
+                                            }
+                                            return m as AnalysisItem;
+                                        }).flat()
+                                    };
+                                    setSelectedItem(clusterItem);
+                                } else {
+                                    // Single item - toggle selection
+                                    setSelectedItem(prev => prev?.id === clickedItem.id ? null : clickedItem);
+                                }
+                            };
+
                             return (
                                 <div
                                 key={item.id}
@@ -817,7 +857,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                 style={{ top: position.top, left: position.left }}
                                 onMouseEnter={() => setHoveredItem(item)}
                                 onMouseLeave={() => setHoveredItem(null)}
-                                onClick={(e) => { e.stopPropagation(); setSelectedItem(prev => prev?.id === item.id ? null : item); setIsMotifPanelOpen(false); }}
+                                onClick={(e) => handleMarkerClick(e, item)}
                                 >
                                 <div className={`marker-dot ${isAction ? 'action-marker' : ''}`}>
                                     {isCluster ? item.items.length : isAction ? '+' : markerMap.get(item.id)}
