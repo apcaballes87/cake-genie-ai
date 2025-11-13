@@ -584,8 +584,18 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     
     const markerYPercent = (-correctedY + imageHeight / 2) / imageHeight;
     
-    const markerX = (markerXPercent * renderedWidth) + offsetX;
-    const markerY = (markerYPercent * renderedHeight) + offsetY;
+    let markerX = (markerXPercent * renderedWidth) + offsetX;
+    let markerY = (markerYPercent * renderedHeight) + offsetY;
+
+    // Constrain markers to avoid overlapping with UI elements
+    // Avoid IcingToolbar on the left (approx 60px wide)
+    const minLeft = 60;
+    // Avoid area near bottom buttons (approx 80px from bottom)
+    const minBottom = 80;
+    
+    // Apply constraints
+    markerX = Math.max(minLeft, Math.min(markerX, renderedWidth + offsetX - 20));
+    markerY = Math.max(offsetY + 20, Math.min(markerY, renderedHeight + offsetY - minBottom));
 
     return { left: `${markerX}px`, top: `${markerY}px`, leftPx: markerX, topPx: markerY };
   }, [originalImageDimensions, containerDimensions]);
