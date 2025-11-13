@@ -700,7 +700,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center gap-3 w-full max-w-6xl mx-auto pb-28"> {/* Added padding-bottom */}
+    <div className="flex flex-col items-center gap-3 w-full max-w-7xl mx-auto pb-28"> {/* Added padding-bottom */}
        <div className="w-full flex items-center gap-2 md:gap-4">
            <button onClick={onClose} className="p-2 text-slate-600 hover:text-purple-700 transition-colors flex-shrink-0" aria-label="Go back">
                <BackIcon />
@@ -752,28 +752,33 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                <button onClick={() => setAppState('auth')} className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full text-sm font-semibold text-slate-700 hover:bg-white hover:border-slate-300 transition-all shadow-sm flex-shrink-0">
                    Login
                </button>
-           )}
+           )}  
        </div>
 
        <button
            onClick={onOpenReportModal}
            disabled={!editedImage || isLoading || isReporting}
-           className="w-full max-w-4xl text-center bg-yellow-100 border border-yellow-200 text-yellow-800 text-sm font-semibold px-4 py-2 rounded-xl shadow-sm mt-[18px] transition-colors hover:bg-yellow-200 disabled:bg-yellow-100/50 disabled:text-yellow-600 disabled:cursor-not-allowed disabled:hover:bg-yellow-100"
+           className="w-full text-center bg-yellow-100 border border-yellow-200 text-yellow-800 text-sm font-semibold px-4 py-2 rounded-xl shadow-sm mt-[18px] transition-colors hover:bg-yellow-200 disabled:bg-yellow-100/50 disabled:text-yellow-600 disabled:cursor-not-allowed disabled:hover:bg-yellow-100"
        >
            ALPHA TEST: Features are experimental. Click here to report any issues.
        </button>
        {isReporting && reportStatus === null && (
-           <div className="w-full max-w-4xl flex items-center justify-center text-sm font-semibold p-2 rounded-xl animate-fade-in bg-blue-100 text-blue-700">
+           <div className="w-full flex items-center justify-center text-sm font-semibold p-2 rounded-xl animate-fade-in bg-blue-100 text-blue-700">
                <Loader2 className="animate-spin mr-2 w-4 h-4" />
                Submitting your report... Thank you!
            </div>
        )}
        {reportStatus && (
-           <div className={`w-full max-w-4xl text-center text-sm font-semibold p-2 rounded-xl animate-fade-in ${reportStatus === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+           <div className={`w-full text-center text-sm font-semibold p-2 rounded-xl animate-fade-in ${reportStatus === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                {reportStatus === 'success' ? 'Report submitted successfully. Thank you for your feedback!' : 'Failed to submit report. Please try again.'}
            </div>
        )}
-       <div ref={mainImageContainerRef} className="w-full max-w-4xl bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 flex flex-col">
+
+       {/* Two-column layout for desktop/tablet landscape */}
+       <div className="w-full flex flex-col lg:flex-row gap-6 items-start">
+         {/* LEFT COLUMN: Image and Update Design */}
+         <div className="w-full lg:w-1/2 flex flex-col gap-3">
+           <div ref={mainImageContainerRef} className="w-full bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 flex flex-col">
             <div className="p-2 flex-shrink-0">
                 <div className="bg-slate-100 p-1 rounded-lg flex space-x-1">
                    <button onClick={() => setActiveTab('original')} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'original' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50'}`}>Original</button>
@@ -884,38 +889,75 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
             </div>
        </div>
 
-       {originalImageData && (
-         <div className="w-full max-w-4xl flex flex-col items-center gap-3">
-           <button
-             onClick={onUpdateDesign}
-             disabled={isUpdatingDesign || !originalImageData}
-             className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-4 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center text-lg"
-           >
-             {isUpdatingDesign ? (
-               <>
-                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                 Updating Design...
-               </>
-             ) : (
-               <>
-                 <MagicSparkleIcon />
-                 Update Design
-               </>
-             )}
-           </button>
-            {isAnalyzing && (
-                <div className="w-full max-w-4xl text-center animate-fade-in">
-                    <div className="w-full bg-slate-200 rounded-full h-2.5 relative overflow-hidden">
-                       <div className="absolute h-full w-1/2 bg-gradient-to-r from-pink-500 to-purple-600 animate-progress-slide"></div>
+           {originalImageData && (
+             <div className="w-full flex flex-col items-center gap-3">
+               <button
+                 onClick={onUpdateDesign}
+                 disabled={isUpdatingDesign || !originalImageData}
+                 className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-4 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center text-lg"
+               >
+                 {isUpdatingDesign ? (
+                   <>
+                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                     Updating Design...
+                   </>
+                 ) : (
+                   <>
+                     <MagicSparkleIcon />
+                     Update Design
+                   </>
+                 )}
+               </button>
+                {isAnalyzing && (
+                    <div className="w-full text-center animate-fade-in">
+                        <div className="w-full bg-slate-200 rounded-full h-2.5 relative overflow-hidden">
+                           <div className="absolute h-full w-1/2 bg-gradient-to-r from-pink-500 to-purple-600 animate-progress-slide"></div>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2 font-medium">Analyzing design elements & pricing... You can start customizing below.</p>
                     </div>
-                    <p className="text-xs text-slate-500 mt-2 font-medium">Analyzing design elements & pricing... You can start customizing below.</p>
-                </div>
-            )}
+                )}
+             </div>
+           )}
          </div>
-       )}
-       
-       {analysisResult && cakeInfo && icingDesign && (
-            <div className={`w-full max-w-4xl p-4 rounded-xl border-2 flex items-start gap-4 transition-all duration-300 animate-fade-in ${availability.bgColor} ${availability.borderColor}`}>
+         
+         {/* RIGHT COLUMN: Feature List and Availability at bottom */}
+         <div className="w-full lg:w-1/2 flex flex-col gap-3">
+           <div className="w-full bg-white/70 backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-slate-200">
+               {(cakeInfo || analysisError) ? (
+                    <FeatureList
+                       analysisError={analysisError}
+                       analysisId={analysisId}
+                       cakeInfo={cakeInfo}
+                       basePriceOptions={basePriceOptions}
+                       mainToppers={mainToppers}
+                       supportElements={supportElements}
+                       cakeMessages={cakeMessages}
+                       icingDesign={icingDesign}
+                       additionalInstructions={additionalInstructions}
+                       onCakeInfoChange={onCakeInfoChange}
+                       updateMainTopper={updateMainTopper}
+                       removeMainTopper={removeMainTopper}
+                       updateSupportElement={updateSupportElement}
+                       removeSupportElement={removeSupportElement}
+                       updateCakeMessage={updateCakeMessage}
+                       removeCakeMessage={removeCakeMessage}
+                       onIcingDesignChange={onIcingDesignChange}
+                       onAdditionalInstructionsChange={onAdditionalInstructionsChange}
+                       onTopperImageReplace={onTopperImageReplace}
+                       onSupportElementImageReplace={onSupportElementImageReplace}
+                       isAnalyzing={isAnalyzing}
+                       itemPrices={itemPrices}
+                       user={user}
+                       cakeBaseSectionRef={cakeBaseSectionRef}
+                       onItemClick={handleListItemClick}
+                       markerMap={markerMap}
+                   />
+               ) : <div className="text-center p-8 text-slate-500"><p>Upload an image to get started.</p></div>}
+           </div>
+           
+           {/* Availability Section - moved to bottom of right column */}
+           {analysisResult && cakeInfo && icingDesign && (
+                <div className={`w-full p-4 rounded-xl border-2 flex items-start gap-4 transition-all duration-300 animate-fade-in ${availability.bgColor} ${availability.borderColor}`}>
                 <div className="text-3xl flex-shrink-0 mt-1">
                     {availability.icon}
                 </div>
@@ -958,54 +1000,23 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                 </div>
             </div>
         )}
-
-        {!isLoadingAvailabilitySettings && (
-            (availabilitySettings && availabilitySettings.minimum_lead_time_days > 0 && availabilityType === 'normal') ? (
-                <div className="w-full max-w-4xl p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800 animate-fade-in text-center">
-                    <strong>Note:</strong> We are observing a minimum lead time of <strong>{availabilitySettings.minimum_lead_time_days} day(s)</strong>. Available delivery dates will be adjusted in your cart.
-                </div>
-            ) : availabilityWasOverridden ? (
-                <div className="w-full max-w-4xl p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 animate-fade-in text-center">
-                    <strong>Note:</strong> Due to high demand, availability has been adjusted. Your order will now be processed as a <strong>'{availability.type.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}'</strong> order.
-                </div>
-            ) : null
-        )}
-
-       <div className="w-full max-w-4xl bg-white/70 backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-slate-200">
-           {(cakeInfo || analysisError) ? (
-                <FeatureList
-                   analysisError={analysisError}
-                   analysisId={analysisId}
-                   cakeInfo={cakeInfo}
-                   basePriceOptions={basePriceOptions}
-                   mainToppers={mainToppers}
-                   supportElements={supportElements}
-                   cakeMessages={cakeMessages}
-                   icingDesign={icingDesign}
-                   additionalInstructions={additionalInstructions}
-                   onCakeInfoChange={onCakeInfoChange}
-                   updateMainTopper={updateMainTopper}
-                   removeMainTopper={removeMainTopper}
-                   updateSupportElement={updateSupportElement}
-                   removeSupportElement={removeSupportElement}
-                   updateCakeMessage={updateCakeMessage}
-                   removeCakeMessage={removeCakeMessage}
-                   onIcingDesignChange={onIcingDesignChange}
-                   onAdditionalInstructionsChange={onAdditionalInstructionsChange}
-                   onTopperImageReplace={onTopperImageReplace}
-                   onSupportElementImageReplace={onSupportElementImageReplace}
-                   isAnalyzing={isAnalyzing}
-                   itemPrices={itemPrices}
-                   user={user}
-                   cakeBaseSectionRef={cakeBaseSectionRef}
-                   onItemClick={handleListItemClick}
-                   markerMap={markerMap}
-               />
-           ) : <div className="text-center p-8 text-slate-500"><p>Upload an image to get started.</p></div>}
+        
+           {!isLoadingAvailabilitySettings && (
+               (availabilitySettings && availabilitySettings.minimum_lead_time_days > 0 && availabilityType === 'normal') ? (
+                   <div className="w-full p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800 animate-fade-in text-center">
+                       <strong>Note:</strong> We are observing a minimum lead time of <strong>{availabilitySettings.minimum_lead_time_days} day(s)</strong>. Available delivery dates will be adjusted in your cart.
+                   </div>
+               ) : availabilityWasOverridden ? (
+                   <div className="w-full p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 animate-fade-in text-center">
+                       <strong>Note:</strong> Due to high demand, availability has been adjusted. Your order will now be processed as a <strong>'{availability.type.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}'</strong> order.
+                   </div>
+               ) : null
+           )}
+         </div>
        </div>
 
        {originalImageData && (
-         <div className="w-full max-w-4xl flex flex-col items-center gap-3">
+         <div className="w-full flex flex-col items-center gap-3">
            <div className="w-full flex items-center justify-end gap-4">
             {isAdmin && (
                 <button
@@ -1069,6 +1080,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                 onColorChange={handleMotifColorChange}
             />
         )}
+       
       {/* Add a 'Back to Top' button that appears when the user scrolls down. */}
       {showBackToTop && (
         <button
