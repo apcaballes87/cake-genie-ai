@@ -152,13 +152,32 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
     const effectiveIcingDesign = icingDesign || defaultIcingDesign;
     const effectiveCakeType: CakeType = cakeType || '1 Tier';
     
+    // Type guard to check if effectiveIcingDesign has IcingColorDetails properties
+    const hasIcingColorDetails = (design: any): design is IcingDesignUI => {
+        return design && typeof design === 'object' && 'colors' in design;
+    };
+    
+    const getColorForTool = (toolId: string): string | undefined => {
+        if (!hasIcingColorDetails(effectiveIcingDesign)) return undefined;
+        
+        switch (toolId) {
+            case 'drip': return effectiveIcingDesign.colors?.drip;
+            case 'borderTop': return effectiveIcingDesign.colors?.borderTop;
+            case 'borderBase': return effectiveIcingDesign.colors?.borderBase;
+            case 'top': return effectiveIcingDesign.colors?.top;
+            case 'side': return effectiveIcingDesign.colors?.side;
+            case 'gumpasteBaseBoard': return effectiveIcingDesign.colors?.gumpasteBaseBoardColor;
+            default: return undefined;
+        }
+    };
+    
     const tools = [
-        { id: 'drip', description: 'Drip Effect', icon: <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/dripeffect.webp" alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
-        { id: 'borderTop', description: 'Top Border', icon: <TopBorderGuideIcon />, featureFlag: effectiveIcingDesign.border_top },
-        { id: 'borderBase', description: 'Base Border', icon: <BaseBorderGuideIcon />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
-        { id: 'top', description: 'Top Icing Color', icon: <TopIcingGuideIcon />, featureFlag: !!effectiveIcingDesign.colors.top },
-        { id: 'side', description: 'Side Icing Color', icon: <SideIcingGuideIcon />, featureFlag: !!effectiveIcingDesign.colors.side },
-        { id: 'gumpasteBaseBoard', description: 'Gumpaste Covered Board', icon: <BaseBoardGuideIcon />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
+        { id: 'drip', description: 'Drip Effect', icon: <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/dripeffect.webp" alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip, color: getColorForTool('drip') },
+        { id: 'borderTop', description: 'Top Border', icon: <TopBorderGuideIcon />, featureFlag: effectiveIcingDesign.border_top, color: getColorForTool('borderTop') },
+        { id: 'borderBase', description: 'Base Border', icon: <BaseBorderGuideIcon />, featureFlag: effectiveIcingDesign.border_base, color: getColorForTool('borderBase'), disabled: isBento },
+        { id: 'top', description: 'Top Icing Color', icon: <TopIcingGuideIcon />, featureFlag: !!effectiveIcingDesign.colors?.top, color: getColorForTool('top') },
+        { id: 'side', description: 'Side Icing Color', icon: <SideIcingGuideIcon />, featureFlag: !!effectiveIcingDesign.colors?.side, color: getColorForTool('side') },
+        { id: 'gumpasteBaseBoard', description: 'Gumpaste Covered Board', icon: <BaseBoardGuideIcon />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, color: getColorForTool('gumpasteBaseBoard'), disabled: isBento },
     ];
     
     useEffect(() => {
@@ -191,7 +210,7 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
                     <button 
                         key={tool.id} 
                         onClick={() => !tool.disabled && onSelectItem({ id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: effectiveCakeType })}
-                        className={`relative w-10 h-10 p-1.5 rounded-full hover:bg-purple-100 transition-all group bg-white/80 backdrop-blur-md border border-slate-200 shadow-md ${tool.featureFlag ? 'ring-2 ring-purple-500 ring-offset-2' : ''} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
+                        className={`relative w-10 h-10 p-1.5 rounded-full hover:bg-purple-100 transition-all group bg-white/80 backdrop-blur-md border border-slate-200 shadow-md ${tool.featureFlag ? 'ring-2 ring-purple-500 ring-offset-2' : 'opacity-60'} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
                         disabled={tool.disabled}
                     >
                         {React.cloneElement(tool.icon as React.ReactElement<any>, { className: 'w-full h-full object-contain' })}
@@ -199,6 +218,13 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
                              <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
                                 <X className="w-5 h-5 text-white" />
                              </div>
+                        )}
+                        {/* Color indicator dot */}
+                        {tool.color && (
+                            <div 
+                                className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full border border-white shadow-sm"
+                                style={{ backgroundColor: tool.color }}
+                            />
                         )}
                         <span className={`icing-toolbar-tooltip ${isGuideActive ? 'force-show' : ''}`}>{tool.description}</span>
                     </button>
