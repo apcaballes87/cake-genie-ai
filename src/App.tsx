@@ -209,7 +209,7 @@ export default function App(): React.ReactElement {
     return new Promise<void>((resolve, reject) => {
       hookImageUpload(
         file,
-        (result) => { // on analysis success
+        (result) => { // on analysis success (Phase 1: Fast features)
           // Analytics: Track when AI analysis is successfully completed
           if (typeof gtag === 'function') {
               gtag('event', 'analysis_complete', {
@@ -228,7 +228,14 @@ export default function App(): React.ReactElement {
           setAppState('landing'); // Go back to landing on critical failure
           reject(error);
         },
-        { imageUrl }
+        {
+          imageUrl,
+          onCoordinatesEnriched: (enrichedResult) => {
+            // Phase 2: Coordinates enriched - silently update the analysis
+            console.log('🎯 Coordinates enriched! Updating markers...');
+            setPendingAnalysisData(enrichedResult);
+          }
+        }
       );
     });
   }, [clearAllState, hookImageUpload, setIsAnalyzing, setAnalysisError, setPendingAnalysisData, setAppState, initializeDefaultState]);

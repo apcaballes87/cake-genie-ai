@@ -28,6 +28,14 @@ let promptCache: {
 
 const PROMPT_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
+// Cache for dynamic enums
+let typeEnumsCache: {
+  mainTopperTypes: string[];
+  supportElementTypes: string[];
+  timestamp: number;
+} | null = null;
+const ENUM_CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+
 async function getActivePrompt(): Promise<string> {
   const now = Date.now();
   
@@ -59,8 +67,72 @@ async function getActivePrompt(): Promise<string> {
   return data.prompt_text;
 }
 
+async function getDynamicTypeEnums(): Promise<{ mainTopperTypes: string[], supportElementTypes: string[] }> {
+    const now = Date.now();
+  
+    // Check cache first
+    if (typeEnumsCache && (now - typeEnumsCache.timestamp < ENUM_CACHE_DURATION)) {
+        return { 
+            mainTopperTypes: typeEnumsCache.mainTopperTypes, 
+            supportElementTypes: typeEnumsCache.supportElementTypes 
+        };
+    }
+  
+    // Fetch from Supabase pricing_rules table
+    const { data, error } = await supabase
+        .from('pricing_rules')
+        .select('item_type, category')
+        .eq('is_active', true)
+        .not('item_type', 'is', null);
+  
+    // Define a hardcoded fallback for safety
+    const fallbackEnums = {
+        mainTopperTypes: ['edible_3d_complex', 'edible_3d_ordinary', 'printout', 'toy', 'figurine', 'cardstock', 'edible_photo', 'candle', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop', 'plastic_ball'],
+        supportElementTypes: ['edible_3d_support', 'edible_2d_support', 'chocolates', 'sprinkles', 'support_printout', 'isomalt', 'dragees', 'edible_flowers', 'edible_photo_side', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread']
+    };
+
+    if (error || !data) {
+        console.warn('Failed to fetch dynamic enums from pricing_rules, using hardcoded fallback enums.');
+        return fallbackEnums;
+    }
+
+    const mainTopperTypes = new Set<string>();
+    const supportElementTypes = new Set<string>();
+
+    // Separate the types based on their category
+    data.forEach(rule => {
+        if (rule.item_type) {
+            if (rule.category === 'main_topper') {
+                mainTopperTypes.add(rule.item_type);
+            } else if (rule.category === 'support_element') {
+                supportElementTypes.add(rule.item_type);
+            }
+        }
+    });
+    
+    const result = {
+        mainTopperTypes: Array.from(mainTopperTypes),
+        supportElementTypes: Array.from(supportElementTypes),
+    };
+    
+    // If the fetched lists are empty for some reason, use the fallback
+    if (result.mainTopperTypes.length === 0 || result.supportElementTypes.length === 0) {
+         console.warn('Fetched dynamic enums but one or both lists are empty, using hardcoded fallback enums.');
+         return fallbackEnums;
+    }
+
+    // Update the cache
+    typeEnumsCache = {
+        ...result,
+        timestamp: now
+    };
+  
+    return result;
+}
+
 export function clearPromptCache() {
   promptCache = null;
+  typeEnumsCache = null; // Also clear the enum cache
 }
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
@@ -983,139 +1055,8 @@ Single-tier round cake with pastel pink and white soft icing. Large number "6" i
 **END OF GENIE.PH MASTER PROMPT v3.0 - REVISED**
 `;
 
-const hybridAnalysisResponseSchema = {
-    type: Type.OBJECT,
-    properties: {
-        main_toppers: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    type: { type: Type.STRING, enum: ['edible_3d_complex', 'edible_3d_ordinary', 'printout', 'toy', 'figurine', 'cardstock', 'edible_photo', 'candle', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop', 'plastic_ball'] },
-                    description: { type: Type.STRING },
-                    size: { type: Type.STRING, enum: ['small', 'medium', 'large', 'tiny'] },
-                    quantity: { type: Type.INTEGER },
-                    group_id: { type: Type.STRING },
-                    color: { type: Type.STRING },
-                    colors: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER }
-                },
-                required: ['type', 'description', 'size', 'quantity', 'group_id', 'x', 'y']
-            }
-        },
-        support_elements: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    type: { type: Type.STRING, enum: ['edible_3d_support', 'edible_2d_support', 'chocolates', 'sprinkles', 'support_printout', 'isomalt', 'dragees', 'edible_flowers', 'edible_photo_side', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread'] },
-                    description: { type: Type.STRING },
-                    coverage: { type: Type.STRING, enum: ['large', 'medium', 'small', 'tiny'] },
-                    group_id: { type: Type.STRING },
-                    color: { type: Type.STRING },
-                    colors: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER }
-                },
-                required: ['type', 'description', 'coverage', 'group_id', 'x', 'y']
-            }
-        },
-        cake_messages: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    type: { type: Type.STRING, enum: ['gumpaste_letters', 'icing_script', 'printout', 'cardstock'] },
-                    text: { type: Type.STRING },
-                    position: { type: Type.STRING, enum: ['top', 'side', 'base_board'] },
-                    color: { type: Type.STRING },
-                    x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER }
-                },
-                required: ['type', 'text', 'position', 'color', 'x', 'y']
-            }
-        },
-        icing_design: {
-            type: Type.OBJECT,
-            properties: {
-                base: { type: Type.STRING, enum: ['soft_icing', 'fondant'] },
-                color_type: { type: Type.STRING, enum: ['single', 'gradient_2', 'gradient_3', 'abstract'] },
-                colors: {
-                    type: Type.OBJECT,
-                    properties: {
-                        side: { type: Type.STRING },
-                        top: { type: Type.STRING },
-                        borderTop: { type: Type.STRING },
-                        borderBase: { type: Type.STRING },
-                        drip: { type: Type.STRING },
-                        gumpasteBaseBoardColor: { type: Type.STRING }
-                    }
-                },
-                border_top: { type: Type.BOOLEAN },
-                border_base: { type: Type.BOOLEAN },
-                drip: { type: Type.BOOLEAN },
-                gumpasteBaseBoard: { type: Type.BOOLEAN }
-            },
-            required: ['base', 'color_type', 'colors', 'border_top', 'border_base', 'drip', 'gumpasteBaseBoard']
-        },
-        cakeType: { type: Type.STRING, enum: CAKE_TYPES },
-        cakeThickness: { type: Type.STRING, enum: CAKE_THICKNESSES },
-        drip_effects: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    description: { type: Type.STRING },
-                    x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER },
-                },
-                required: ['description', 'x', 'y']
-            }
-        },
-        icing_surfaces: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    description: { type: Type.STRING },
-                    tier: { type: Type.INTEGER },
-                    position: { type: Type.STRING, enum: ['top', 'side'] },
-                    x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER },
-                },
-                required: ['description', 'tier', 'position', 'x', 'y']
-            }
-        },
-        icing_borders: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    description: { type: Type.STRING },
-                    tier: { type: Type.INTEGER },
-                    position: { type: Type.STRING, enum: ['top', 'base'] },
-                    x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER },
-                },
-                required: ['description', 'tier', 'position', 'x', 'y']
-            }
-        },
-        base_board: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    description: { type: Type.STRING },
-                    x: { type: Type.NUMBER },
-                    y: { type: Type.NUMBER },
-                },
-                required: ['description', 'x', 'y']
-            }
-        }
-    },
-    required: ['cakeType', 'cakeThickness', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design'],
-};
+// The hybridAnalysisResponseSchema is now dynamically generated inside analyzeCakeImage function
+// to use dynamic types from the Supabase pricing_rules table
 
 export const analyzeCakeImage = async (
     base64ImageData: string,
@@ -1170,7 +1111,144 @@ You MUST provide precise central coordinates for every single decorative element
 - **FAILURE TO PROVIDE COORDINATES FOR ANY ELEMENT WILL RESULT IN AN INVALID RESPONSE.**
 `;
 
+        // Fetch the dynamic enums and the active prompt
         const activePrompt = await getActivePrompt();
+        const { mainTopperTypes, supportElementTypes } = await getDynamicTypeEnums();
+
+        // Modify the response schema to use the dynamic lists
+        const hybridAnalysisResponseSchema = {
+            type: Type.OBJECT,
+            properties: {
+                main_toppers: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            type: { type: Type.STRING, enum: mainTopperTypes }, // <-- CHANGE HERE
+                            description: { type: Type.STRING },
+                            size: { type: Type.STRING, enum: ['small', 'medium', 'large', 'tiny'] },
+                            quantity: { type: Type.INTEGER },
+                            group_id: { type: Type.STRING },
+                            color: { type: Type.STRING },
+                            colors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER }
+                        },
+                        required: ['type', 'description', 'size', 'quantity', 'group_id', 'x', 'y']
+                    }
+                },
+                support_elements: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            type: { type: Type.STRING, enum: supportElementTypes }, // <-- CHANGE HERE
+                            description: { type: Type.STRING },
+                            coverage: { type: Type.STRING, enum: ['large', 'medium', 'small', 'tiny'] },
+                            group_id: { type: Type.STRING },
+                            color: { type: Type.STRING },
+                            colors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER }
+                        },
+                        required: ['type', 'description', 'coverage', 'group_id', 'x', 'y']
+                    }
+                },
+                cake_messages: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            type: { type: Type.STRING, enum: ['gumpaste_letters', 'icing_script', 'printout', 'cardstock'] },
+                            text: { type: Type.STRING },
+                            position: { type: Type.STRING, enum: ['top', 'side', 'base_board'] },
+                            color: { type: Type.STRING },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER }
+                        },
+                        required: ['type', 'text', 'position', 'color', 'x', 'y']
+                    }
+                },
+                icing_design: {
+                    type: Type.OBJECT,
+                    properties: {
+                        base: { type: Type.STRING, enum: ['soft_icing', 'fondant'] },
+                        color_type: { type: Type.STRING, enum: ['single', 'gradient_2', 'gradient_3', 'abstract'] },
+                        colors: {
+                            type: Type.OBJECT,
+                            properties: {
+                                side: { type: Type.STRING },
+                                top: { type: Type.STRING },
+                                borderTop: { type: Type.STRING },
+                                borderBase: { type: Type.STRING },
+                                drip: { type: Type.STRING },
+                                gumpasteBaseBoardColor: { type: Type.STRING }
+                            }
+                        },
+                        border_top: { type: Type.BOOLEAN },
+                        border_base: { type: Type.BOOLEAN },
+                        drip: { type: Type.BOOLEAN },
+                        gumpasteBaseBoard: { type: Type.BOOLEAN }
+                    },
+                    required: ['base', 'color_type', 'colors', 'border_top', 'border_base', 'drip', 'gumpasteBaseBoard']
+                },
+                cakeType: { type: Type.STRING, enum: CAKE_TYPES },
+                cakeThickness: { type: Type.STRING, enum: CAKE_THICKNESSES },
+                drip_effects: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            description: { type: Type.STRING },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER },
+                        },
+                        required: ['description', 'x', 'y']
+                    }
+                },
+                icing_surfaces: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            description: { type: Type.STRING },
+                            tier: { type: Type.INTEGER },
+                            position: { type: Type.STRING, enum: ['top', 'side'] },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER },
+                        },
+                        required: ['description', 'tier', 'position', 'x', 'y']
+                    }
+                },
+                icing_borders: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            description: { type: Type.STRING },
+                            tier: { type: Type.INTEGER },
+                            position: { type: Type.STRING, enum: ['top', 'base'] },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER },
+                        },
+                        required: ['description', 'tier', 'position', 'x', 'y']
+                    }
+                },
+                base_board: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            description: { type: Type.STRING },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER },
+                        },
+                        required: ['description', 'x', 'y']
+                    }
+                }
+            },
+            required: ['cakeType', 'cakeThickness', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design'],
+        };
 
         const response = await getAI().models.generateContent({
             model: "gemini-2.5-flash",
@@ -1279,6 +1357,463 @@ export interface ShareableTexts {
     description: string;
     altText: string;
 }
+
+// ============================================================================
+// TWO-PHASE ANALYSIS: Fast Feature Detection + Background Coordinate Enrichment
+// ============================================================================
+
+/**
+ * Phase 1: Fast feature-only analysis (no coordinates)
+ * Returns analysis with all coordinates set to 0,0 for immediate UI display
+ * This should complete in ~7-10 seconds vs 25+ seconds for full analysis
+ */
+export const analyzeCakeFeaturesOnly = async (
+    base64ImageData: string,
+    mimeType: string
+): Promise<HybridAnalysisResult> => {
+    try {
+        // Note: We don't need dimensions for this phase since coordinates are all 0,0
+        // but we validate the image can load
+        const image = new Image();
+        const imageLoadPromise = new Promise<void>((resolve, reject) => {
+            image.onload = () => resolve();
+            image.onerror = () => reject(new Error('Failed to load image to get dimensions.'));
+            image.src = `data:${mimeType};base64,${base64ImageData}`;
+        });
+        await imageLoadPromise;
+
+        // Get dynamic enums first
+        const { mainTopperTypes, supportElementTypes } = await getDynamicTypeEnums();
+
+        // Ultra-simplified prompt - NO coordinate instructions at all
+        const FAST_FEATURES_PROMPT = `
+**SPEED MODE: FEATURE IDENTIFICATION ONLY**
+
+Your ONLY task is to identify cake features as quickly as possible.
+Do NOT waste time calculating positions or coordinates.
+
+REQUIRED OUTPUT:
+1. Cake type and thickness
+2. All toppers (type, size, description, quantity)
+3. All support elements (type, coverage, description)
+4. All messages (text, type, position, color)
+5. Icing design (base, colors, borders)
+
+## CAKE TYPE (Choose one)
+- simple_design, moderate_design, tiered_regular, tiered_gravity, unique_shape
+
+## CAKE THICKNESS
+- regular (3-4 inches), tall (5-7 inches)
+
+## MAIN TOPPERS
+Classify by material: ${mainTopperTypes.join(', ')}
+Size: small, medium, large, tiny
+
+## SUPPORT ELEMENTS
+Types: ${supportElementTypes.join(', ')}
+Coverage: large, medium, small, tiny
+
+## MESSAGES
+- Type: gumpaste_letters, icing_script, printout, cardstock
+- Include actual text visible
+
+## ICING DESIGN
+- Base: soft_icing or fondant
+- Colors for: top, side, borderTop, borderBase, drip, gumpasteBaseBoardColor
+- Flags: border_top, border_base, drip, gumpasteBaseBoard (true/false)
+
+**CRITICAL:** For ALL x and y coordinates: Use 0 (zero). Do not calculate positions.
+**SPEED IS PRIORITY.** Only identify what items exist, not where they are.
+`;
+
+        // Use the same schema but coordinates will be 0,0
+        const fastAnalysisSchema = {
+            type: Type.OBJECT,
+            properties: {
+                main_toppers: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            type: { type: Type.STRING, enum: mainTopperTypes },
+                            description: { type: Type.STRING },
+                            size: { type: Type.STRING, enum: ['small', 'medium', 'large', 'tiny'] },
+                            quantity: { type: Type.INTEGER },
+                            group_id: { type: Type.STRING },
+                            color: { type: Type.STRING },
+                            colors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER }
+                        },
+                        required: ['type', 'description', 'size', 'quantity', 'group_id', 'x', 'y']
+                    }
+                },
+                support_elements: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            type: { type: Type.STRING, enum: supportElementTypes },
+                            description: { type: Type.STRING },
+                            coverage: { type: Type.STRING, enum: ['large', 'medium', 'small', 'tiny'] },
+                            group_id: { type: Type.STRING },
+                            color: { type: Type.STRING },
+                            colors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER }
+                        },
+                        required: ['type', 'description', 'coverage', 'group_id', 'x', 'y']
+                    }
+                },
+                cake_messages: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            type: { type: Type.STRING, enum: ['gumpaste_letters', 'icing_script', 'printout', 'cardstock'] },
+                            text: { type: Type.STRING },
+                            position: { type: Type.STRING, enum: ['top', 'side', 'base_board'] },
+                            color: { type: Type.STRING },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER }
+                        },
+                        required: ['type', 'text', 'position', 'color', 'x', 'y']
+                    }
+                },
+                icing_design: {
+                    type: Type.OBJECT,
+                    properties: {
+                        base: { type: Type.STRING, enum: ['soft_icing', 'fondant'] },
+                        color_type: { type: Type.STRING, enum: ['single', 'gradient_2', 'gradient_3', 'abstract'] },
+                        colors: {
+                            type: Type.OBJECT,
+                            properties: {
+                                side: { type: Type.STRING },
+                                top: { type: Type.STRING },
+                                borderTop: { type: Type.STRING },
+                                borderBase: { type: Type.STRING },
+                                drip: { type: Type.STRING },
+                                gumpasteBaseBoardColor: { type: Type.STRING }
+                            }
+                        },
+                        border_top: { type: Type.BOOLEAN },
+                        border_base: { type: Type.BOOLEAN },
+                        drip: { type: Type.BOOLEAN },
+                        gumpasteBaseBoard: { type: Type.BOOLEAN }
+                    },
+                    required: ['base', 'color_type', 'colors', 'border_top', 'border_base', 'drip', 'gumpasteBaseBoard']
+                },
+                cakeType: { type: Type.STRING, enum: CAKE_TYPES },
+                cakeThickness: { type: Type.STRING, enum: CAKE_THICKNESSES },
+                drip_effects: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            description: { type: Type.STRING },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER },
+                        },
+                        required: ['description', 'x', 'y']
+                    }
+                },
+                icing_surfaces: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            description: { type: Type.STRING },
+                            tier: { type: Type.INTEGER },
+                            position: { type: Type.STRING, enum: ['top', 'side'] },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER },
+                        },
+                        required: ['description', 'tier', 'position', 'x', 'y']
+                    }
+                },
+                icing_borders: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            description: { type: Type.STRING },
+                            tier: { type: Type.INTEGER },
+                            position: { type: Type.STRING, enum: ['top', 'base'] },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER },
+                        },
+                        required: ['description', 'tier', 'position', 'x', 'y']
+                    }
+                },
+                base_board: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            description: { type: Type.STRING },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER },
+                        },
+                        required: ['description', 'x', 'y']
+                    }
+                }
+            },
+            required: ['cakeType', 'cakeThickness', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design'],
+        };
+
+        const response = await getAI().models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [{
+                parts: [
+                    { inlineData: { mimeType, data: base64ImageData } },
+                    { text: FAST_FEATURES_PROMPT },
+                ],
+            }],
+            config: {
+                systemInstruction: "You are a fast cake feature identifier. Identify features quickly without calculating coordinates. Set all x,y to 0.",
+                responseMimeType: 'application/json',
+                responseSchema: fastAnalysisSchema,
+                temperature: 0,
+            },
+        });
+
+        const jsonText = response.text.trim();
+        const result = JSON.parse(jsonText);
+
+        if (result.rejection?.isRejected) {
+            throw new Error(result.rejection.message || "The uploaded image is not suitable for processing.");
+        }
+
+        const requiredFields = ['main_toppers', 'support_elements', 'cake_messages', 'icing_design', 'cakeType', 'cakeThickness'];
+        for (const field of requiredFields) {
+            if (result[field] === undefined) {
+                console.error("Analysis validation error: Missing field", field);
+                throw new Error("The AI returned an incomplete analysis. Please try a different image.");
+            }
+        }
+
+        return result as HybridAnalysisResult;
+
+    } catch (error) {
+        console.error("Error in fast feature analysis:", error);
+        throw error;
+    }
+};
+
+/**
+ * Phase 2: Background coordinate enrichment
+ * Takes the feature list and calculates precise coordinates for each item
+ * This runs silently in the background while user interacts with the UI
+ */
+export const enrichAnalysisWithCoordinates = async (
+    base64ImageData: string,
+    mimeType: string,
+    featureAnalysis: HybridAnalysisResult
+): Promise<HybridAnalysisResult> => {
+    try {
+        const image = new Image();
+        const imageLoadPromise = new Promise<{ width: number; height: number }>((resolve, reject) => {
+            image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+            image.onerror = () => reject(new Error('Failed to load image to get dimensions.'));
+            image.src = `data:${mimeType};base64,${base64ImageData}`;
+        });
+        const dimensions = await imageLoadPromise;
+
+        const COORDINATE_ENRICHMENT_PROMPT = `
+**COORDINATE ENRICHMENT MODE**
+
+You are provided with a complete list of all cake features that have already been identified.
+Your ONLY task is to calculate precise x,y coordinates for each item.
+
+**Image Dimensions:** ${dimensions.width}px wide × ${dimensions.height}px high
+**Coordinate System:**
+- Origin (0,0) is at the image center
+- X-axis: -${dimensions.width / 2} (left) to +${dimensions.width / 2} (right)
+- Y-axis: -${dimensions.height / 2} (bottom) to +${dimensions.height / 2} (top)
+- Positive Y goes UPWARD
+
+**Your Task:**
+1. Review the provided feature list below
+2. Locate each item visually in the image
+3. Calculate its precise center coordinates
+4. Return the SAME feature list with updated x,y values
+
+**CRITICAL RULES:**
+- Keep ALL feature descriptions, types, sizes exactly as provided
+- ONLY update the x and y coordinate values
+- Use precise coordinates reflecting true positions
+- Do not add or remove any features
+- Apply left/right bias (x ≠ 0 unless perfectly centered)
+
+**Identified Features:**
+${JSON.stringify(featureAnalysis, null, 2)}
+`;
+
+        const { mainTopperTypes, supportElementTypes } = await getDynamicTypeEnums();
+
+        const coordinateEnrichmentSchema = {
+            type: Type.OBJECT,
+            properties: {
+                main_toppers: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            type: { type: Type.STRING, enum: mainTopperTypes },
+                            description: { type: Type.STRING },
+                            size: { type: Type.STRING, enum: ['small', 'medium', 'large', 'tiny'] },
+                            quantity: { type: Type.INTEGER },
+                            group_id: { type: Type.STRING },
+                            color: { type: Type.STRING },
+                            colors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER }
+                        },
+                        required: ['type', 'description', 'size', 'quantity', 'group_id', 'x', 'y']
+                    }
+                },
+                support_elements: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            type: { type: Type.STRING, enum: supportElementTypes },
+                            description: { type: Type.STRING },
+                            coverage: { type: Type.STRING, enum: ['large', 'medium', 'small', 'tiny'] },
+                            group_id: { type: Type.STRING },
+                            color: { type: Type.STRING },
+                            colors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER }
+                        },
+                        required: ['type', 'description', 'coverage', 'group_id', 'x', 'y']
+                    }
+                },
+                cake_messages: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            type: { type: Type.STRING, enum: ['gumpaste_letters', 'icing_script', 'printout', 'cardstock'] },
+                            text: { type: Type.STRING },
+                            position: { type: Type.STRING, enum: ['top', 'side', 'base_board'] },
+                            color: { type: Type.STRING },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER }
+                        },
+                        required: ['type', 'text', 'position', 'color', 'x', 'y']
+                    }
+                },
+                icing_design: {
+                    type: Type.OBJECT,
+                    properties: {
+                        base: { type: Type.STRING, enum: ['soft_icing', 'fondant'] },
+                        color_type: { type: Type.STRING, enum: ['single', 'gradient_2', 'gradient_3', 'abstract'] },
+                        colors: {
+                            type: Type.OBJECT,
+                            properties: {
+                                side: { type: Type.STRING },
+                                top: { type: Type.STRING },
+                                borderTop: { type: Type.STRING },
+                                borderBase: { type: Type.STRING },
+                                drip: { type: Type.STRING },
+                                gumpasteBaseBoardColor: { type: Type.STRING }
+                            }
+                        },
+                        border_top: { type: Type.BOOLEAN },
+                        border_base: { type: Type.BOOLEAN },
+                        drip: { type: Type.BOOLEAN },
+                        gumpasteBaseBoard: { type: Type.BOOLEAN }
+                    },
+                    required: ['base', 'color_type', 'colors', 'border_top', 'border_base', 'drip', 'gumpasteBaseBoard']
+                },
+                cakeType: { type: Type.STRING, enum: CAKE_TYPES },
+                cakeThickness: { type: Type.STRING, enum: CAKE_THICKNESSES },
+                drip_effects: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            description: { type: Type.STRING },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER },
+                        },
+                        required: ['description', 'x', 'y']
+                    }
+                },
+                icing_surfaces: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            description: { type: Type.STRING },
+                            tier: { type: Type.INTEGER },
+                            position: { type: Type.STRING, enum: ['top', 'side'] },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER },
+                        },
+                        required: ['description', 'tier', 'position', 'x', 'y']
+                    }
+                },
+                icing_borders: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            description: { type: Type.STRING },
+                            tier: { type: Type.INTEGER },
+                            position: { type: Type.STRING, enum: ['top', 'base'] },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER },
+                        },
+                        required: ['description', 'tier', 'position', 'x', 'y']
+                    }
+                },
+                base_board: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            description: { type: Type.STRING },
+                            x: { type: Type.NUMBER },
+                            y: { type: Type.NUMBER },
+                        },
+                        required: ['description', 'x', 'y']
+                    }
+                }
+            },
+            required: ['cakeType', 'cakeThickness', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design'],
+        };
+
+        const response = await getAI().models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [{
+                parts: [
+                    { inlineData: { mimeType, data: base64ImageData } },
+                    { text: COORDINATE_ENRICHMENT_PROMPT },
+                ],
+            }],
+            config: {
+                systemInstruction: "You are a precise coordinate calculator. Update only x,y values, keep all other fields unchanged.",
+                responseMimeType: 'application/json',
+                responseSchema: coordinateEnrichmentSchema,
+                temperature: 0,
+            },
+        });
+
+        const jsonText = response.text.trim();
+        const enrichedResult = JSON.parse(jsonText);
+
+        return enrichedResult as HybridAnalysisResult;
+
+    } catch (error) {
+        console.error("Error enriching coordinates:", error);
+        // Return original analysis if enrichment fails
+        return featureAnalysis;
+    }
+};
+
+// ============================================================================
 
 export const generateShareableTexts = async (
     analysisResult: HybridAnalysisResult,

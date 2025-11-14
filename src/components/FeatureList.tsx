@@ -24,6 +24,7 @@ interface FeatureListProps {
   removeSupportElement: (id: string) => void;
   updateCakeMessage: (id: string, updates: Partial<CakeMessageUI>) => void;
   removeCakeMessage: (id: string) => void;
+  addCakeMessage: (position: 'top' | 'side' | 'base_board') => void;
   onIcingDesignChange: (design: IcingDesignUI) => void;
   onAdditionalInstructionsChange: (instructions: string) => void;
   onTopperImageReplace: (topperId: string, file: File) => void;
@@ -101,7 +102,7 @@ ListItem.displayName = 'ListItem';
 
 export const FeatureList = React.memo<FeatureListProps>(({
     analysisError, analysisId, cakeInfo, basePriceOptions, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions,
-    onCakeInfoChange, onAdditionalInstructionsChange, isAnalyzing, shopifyFixedSize, shopifyBasePrice, cakeBaseSectionRef,
+    onCakeInfoChange, onAdditionalInstructionsChange, updateCakeMessage, removeCakeMessage, addCakeMessage, isAnalyzing, shopifyFixedSize, shopifyBasePrice, cakeBaseSectionRef,
     onItemClick, markerMap
 }) => {
     const cakeTypeScrollContainerRef = useRef<HTMLDivElement>(null);
@@ -120,31 +121,51 @@ export const FeatureList = React.memo<FeatureListProps>(({
         }
     }, [analysisId]);
 
-    // Removed auto-scroll to cake base section after analysis
-    // useEffect(() => {
-    //     if (!analysisId) return;
-    //     const timer = setTimeout(() => {
-    //         if (cakeInfo) {
-    //             const typeContainer = cakeTypeScrollContainerRef.current;
-    //             if (typeContainer) {
-    //                 const selectedTypeElement = typeContainer.querySelector(`[data-caketype="${CSS.escape(cakeInfo.type)}"]`);
-    //                 if (selectedTypeElement) selectedTypeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    //             }
-    //             const thicknessContainer = cakeThicknessScrollContainerRef.current;
-    //             if (thicknessContainer) {
-    //                 const selectedThicknessElement = thicknessContainer.querySelector(`[data-cakethickness="${CSS.escape(cakeInfo.thickness)}"]`);
-    //                 if (selectedThicknessElement) selectedThicknessElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    //             }
-    //             const sizeContainer = cakeSizeScrollContainerRef.current;
-    //             if (sizeContainer && basePriceOptions) {
-    //                  const selectedSizeElement = sizeContainer.querySelector(`[data-cakesize="${CSS.escape(cakeInfo.size)}"]`);
-    //                  if (selectedSizeElement) selectedSizeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    //             }
-    //         }
-    //     }, 300);
-    //     return () => clearTimeout(timer);
-    // }, [analysisId, cakeInfo, basePriceOptions]);
-    
+    // Auto-scroll to selected thumbnails after AI analysis
+    useEffect(() => {
+        if (!analysisId || !cakeInfo) return;
+
+        const timer = setTimeout(() => {
+            // Scroll to selected cake type
+            const typeContainer = cakeTypeScrollContainerRef.current;
+            if (typeContainer) {
+                const selectedTypeElement = typeContainer.querySelector(`[data-caketype="${CSS.escape(cakeInfo.type)}"]`);
+                if (selectedTypeElement) {
+                    selectedTypeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+
+            // Scroll to selected thickness
+            const thicknessContainer = cakeThicknessScrollContainerRef.current;
+            if (thicknessContainer) {
+                const selectedThicknessElement = thicknessContainer.querySelector(`[data-cakethickness="${CSS.escape(cakeInfo.thickness)}"]`);
+                if (selectedThicknessElement) {
+                    selectedThicknessElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+
+            // Scroll to selected size
+            const sizeContainer = cakeSizeScrollContainerRef.current;
+            if (sizeContainer && basePriceOptions) {
+                const selectedSizeElement = sizeContainer.querySelector(`[data-cakesize="${CSS.escape(cakeInfo.size)}"]`);
+                if (selectedSizeElement) {
+                    selectedSizeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+        }, 500); // Delay to ensure UI has rendered
+
+        return () => clearTimeout(timer);
+    }, [analysisId, cakeInfo, basePriceOptions]);
+
+    // Determine which message positions are missing
+    const existingPositions = useMemo(() => {
+        return new Set(cakeMessages.map(msg => msg.position));
+    }, [cakeMessages]);
+
+    const missingTopMessage = !existingPositions.has('top');
+    const missingSideMessage = !existingPositions.has('side');
+    const missingBaseBoardMessage = !existingPositions.has('base_board');
+
     if (analysisError) return <div className="text-center p-4 bg-red-50 rounded-lg text-red-700"><p className="font-semibold">Analysis Failed</p><p className="text-sm">{analysisError}</p></div>;
     if (!icingDesign || !cakeInfo) return null;
 
@@ -233,20 +254,51 @@ export const FeatureList = React.memo<FeatureListProps>(({
             </Section>
             
             <Section title="Cake Messages" defaultOpen={!isAnalyzing} analysisText={isAnalyzing && cakeMessages.length === 0 ? 'analyzing messages...' : undefined}>
-                {cakeMessages.length > 0 ? (
-                     <div className="space-y-2">
-                        {cakeMessages.map((message) => (
-                            <ListItem
-                                key={message.id}
-                                item={{ ...message, itemCategory: 'message' }}
-                                marker={markerMap.get(message.id)}
-                                onClick={onItemClick}
-                            />
-                        ))}
-                    </div>
-                ) : (
-                   <p className="text-sm text-slate-500 text-center py-4">No messages detected.</p>
-                )}
+                <div className="space-y-2">
+                    {cakeMessages.length > 0 && cakeMessages.map((message) => (
+                        <ListItem
+                            key={message.id}
+                            item={{ ...message, itemCategory: 'message' }}
+                            marker={markerMap.get(message.id)}
+                            onClick={onItemClick}
+                        />
+                    ))}
+
+                    {/* Add Message buttons for missing positions */}
+                    {missingTopMessage && (
+                        <button
+                            type="button"
+                            onClick={() => addCakeMessage('top')}
+                            className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2.5 px-4 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-sm flex items-center gap-2"
+                        >
+                            <span className="text-lg">+</span> Add Message (Cake Top Side)
+                        </button>
+                    )}
+
+                    {missingSideMessage && (
+                        <button
+                            type="button"
+                            onClick={() => addCakeMessage('side')}
+                            className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2.5 px-4 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-sm flex items-center gap-2"
+                        >
+                            <span className="text-lg">+</span> Add Message (Cake Front Side)
+                        </button>
+                    )}
+
+                    {missingBaseBoardMessage && (
+                        <button
+                            type="button"
+                            onClick={() => addCakeMessage('base_board')}
+                            className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2.5 px-4 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-sm flex items-center gap-2"
+                        >
+                            <span className="text-lg">+</span> Add Message (Base Board)
+                        </button>
+                    )}
+
+                    {cakeMessages.length === 0 && missingTopMessage && missingSideMessage && missingBaseBoardMessage && (
+                        <p className="text-sm text-slate-500 text-center py-2">No messages detected.</p>
+                    )}
+                </div>
             </Section>
 
              <Section title="Additional Instructions" defaultOpen={true}>

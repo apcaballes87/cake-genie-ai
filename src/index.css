@@ -1,5 +1,20 @@
 /* Custom styles */
 
+/* --- Progress Bar Animation --- */
+.progress-bar-fill {
+  width: 0%;
+  animation: fillProgressBar 15s linear forwards;
+}
+
+@keyframes fillProgressBar {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
 /* --- Search Pagination Styles --- */
 .gsc-cursor-box {
   display: block !important;
@@ -47,6 +62,22 @@
   justify-content: center;
   transition: transform 0.2s ease-out;
   z-index: 10;
+  /* Smooth fade-in animation for markers when coordinates load */
+  animation: markerFadeIn 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  opacity: 0;
+}
+@keyframes markerFadeIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 .analysis-marker .marker-dot {
   width: 18px;

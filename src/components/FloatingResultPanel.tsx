@@ -46,6 +46,7 @@ interface FloatingResultPanelProps {
   cakeMessages: CakeMessageUI[];
   updateCakeMessage: (id: string, updates: Partial<CakeMessageUI>) => void;
   removeCakeMessage: (id: string) => void;
+  addCakeMessage: (position: 'top' | 'side' | 'base_board') => void;
   onCakeMessageChange: (messages: CakeMessageUI[]) => void;
   icingDesign: IcingDesignUI | null;
   onIcingDesignChange: (design: IcingDesignUI) => void;
@@ -92,15 +93,15 @@ const PanelToggle: React.FC<{ label: React.ReactNode; isEnabled: boolean; onChan
 );
 
 
-export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({ 
-    selectedItem, 
+export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
+    selectedItem,
     onClose,
     mainToppers, updateMainTopper, removeMainTopper, onTopperImageReplace,
     supportElements, updateSupportElement, removeSupportElement, onSupportElementImageReplace,
-    cakeMessages, updateCakeMessage, removeCakeMessage, onCakeMessageChange,
+    cakeMessages, updateCakeMessage, removeCakeMessage, addCakeMessage, onCakeMessageChange,
     icingDesign, onIcingDesignChange,
     analysisResult,
-    itemPrices, isAdmin 
+    itemPrices, isAdmin
 }) => {
   const [dragStartX, setDragStartX] = useState<number | null>(null);
   const [dragDeltaX, setDragDeltaX] = useState(0);
@@ -518,36 +519,47 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
                 }
             };
             
+            const isEnabled = icingDesign[featureKey];
+            const isDisabled = (featureKey === 'border_base' || featureKey === 'gumpasteBaseBoard') && isBento;
+
             return (
                 <>
                     <SimpleToggle
                         label={label}
-                        isEnabled={icingDesign[featureKey]}
-                        disabled={ (featureKey === 'border_base' || featureKey === 'gumpasteBaseBoard') && isBento}
-                        onChange={(isEnabled) => {
-                            const newIcingDesign = { ...icingDesign, [featureKey]: isEnabled };
-                            if (isEnabled && !newIcingDesign.colors[colorKey]) {
+                        isEnabled={isEnabled}
+                        disabled={isDisabled}
+                        onChange={(enabled) => {
+                            const newIcingDesign = { ...icingDesign, [featureKey]: enabled };
+                            if (enabled && !newIcingDesign.colors[colorKey]) {
                                 newIcingDesign.colors = { ...newIcingDesign.colors, [colorKey]: '#FFFFFF' };
                             }
                             onIcingDesignChange(newIcingDesign);
                         }}
                     />
-                    {icingDesign[featureKey] && (
-                        <div className="mt-2 pt-2 border-t border-slate-100 pl-1">
-                            <div className="flex justify-between items-center mb-2">
-                                <label className="block text-sm font-medium text-slate-600">Color</label>
-                                {canRevert && (
-                                    <button onClick={handleRevert} className="flex items-center gap-1 text-xs font-semibold text-purple-600 hover:text-purple-800 p-1 rounded-md hover:bg-purple-50">
-                                        <ResetIcon className="w-3 h-3" />
-                                        Revert to Original
-                                    </button>
-                                )}
-                            </div>
-                            <ColorPalette selectedColor={icingDesign.colors[colorKey] || ''} onColorChange={(newHex) => {
-                                onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: newHex } });
-                            }} />
+                    {/* Always show color picker, but grey it out when disabled */}
+                    <div className={`mt-2 pt-2 border-t border-slate-100 pl-1 transition-opacity ${!isEnabled ? 'opacity-40' : ''}`}>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="block text-sm font-medium text-slate-600">Color</label>
+                            {canRevert && isEnabled && (
+                                <button onClick={handleRevert} className="flex items-center gap-1 text-xs font-semibold text-purple-600 hover:text-purple-800 p-1 rounded-md hover:bg-purple-50">
+                                    <ResetIcon className="w-3 h-3" />
+                                    Revert to Original
+                                </button>
+                            )}
                         </div>
-                    )}
+                        <ColorPalette
+                            selectedColor={icingDesign.colors[colorKey] || ''}
+                            onColorChange={(newHex) => {
+                                // Automatically enable the feature when color is changed
+                                const newIcingDesign = {
+                                    ...icingDesign,
+                                    [featureKey]: true,
+                                    colors: { ...icingDesign.colors, [colorKey]: newHex }
+                                };
+                                onIcingDesignChange(newIcingDesign);
+                            }}
+                        />
+                    </div>
                 </>
             );
         };
@@ -556,12 +568,26 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
             const originalColor = analysisResult?.icing_design.colors[colorKey];
             const currentColor = icingDesign.colors[colorKey];
             const canRevert = originalColor && currentColor !== originalColor;
-            
+
             const handleRevert = () => {
                 if (canRevert) {
                     onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: originalColor } });
                 }
             };
+
+            // Determine message position and check if message exists
+            let messagePosition: 'top' | 'side' | null = null;
+            let messageButtonLabel = '';
+
+            if (label === 'Top Icing Color') {
+                messagePosition = 'top';
+                messageButtonLabel = '+ Add Message (Cake Top Side)';
+            } else if (label === 'Side Icing Color') {
+                messagePosition = 'side';
+                messageButtonLabel = '+ Add Message (Cake Front Side)';
+            }
+
+            const hasMessage = messagePosition ? cakeMessages.some(msg => msg.position === messagePosition) : false;
 
             return (
                 <div>
@@ -577,6 +603,17 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
                     <ColorPalette selectedColor={icingDesign.colors[colorKey] || ''} onColorChange={(newHex) => {
                         onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: newHex } });
                     }} />
+
+                    {/* Add Message button */}
+                    {messagePosition && !hasMessage && (
+                        <button
+                            type="button"
+                            onClick={() => addCakeMessage(messagePosition as 'top' | 'side')}
+                            className="w-full mt-3 text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
+                        >
+                            <span className="text-base">+</span> {messageButtonLabel}
+                        </button>
+                    )}
                 </div>
             );
         };

@@ -583,45 +583,35 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     const { width: containerWidth, height: containerHeight } = containerDimensions;
     const { width: imageWidth, height: imageHeight } = originalImageDimensions;
 
-    const imageAspectRatio = imageWidth / imageHeight;
-    const containerAspectRatio = containerWidth / containerHeight;
-    
-    let renderedWidth, renderedHeight, offsetX, offsetY;
-
-    if (imageAspectRatio > containerAspectRatio) {
-        renderedWidth = containerWidth;
-        renderedHeight = containerWidth / imageAspectRatio;
-        offsetX = 0;
-        offsetY = (containerHeight - renderedHeight) / 2;
-    } else {
-        renderedHeight = containerHeight;
-        renderedWidth = containerHeight * imageAspectRatio;
-        offsetY = 0;
-        offsetX = (containerWidth - renderedWidth) / 2;
-    }
+    // Since we set the container's aspect-ratio CSS to match the image,
+    // the container and image should have the same aspect ratio.
+    // The image fills the container completely with object-contain.
+    const renderedWidth = containerWidth;
+    const renderedHeight = containerHeight;
+    const offsetX = 0;
+    const offsetY = 0;
 
     const markerXPercent = (x + imageWidth / 2) / imageWidth;
+    const markerYPercent = (-y + imageHeight / 2) / imageHeight;
 
-    // Apply a small downward correction to the y-coordinate.
-    // The AI seems to have a consistent upward offset in its y-coordinate reporting.
-    // This empirically corrects for that observation. A 2% downward shift.
-    const yCorrection = imageHeight * 0.02; 
-    const correctedY = y - yCorrection;
-    
-    const markerYPercent = (-correctedY + imageHeight / 2) / imageHeight;
-    
     let markerX = (markerXPercent * renderedWidth) + offsetX;
     let markerY = (markerYPercent * renderedHeight) + offsetY;
 
+    // Apply a small upward correction to the y-coordinate in pixel space.
+    // The AI seems to have a consistent downward offset in its y-coordinate reporting.
+    // This empirically corrects for that observation with a 2% upward shift.
+    const yCorrection = renderedHeight * 0.02;
+    markerY -= yCorrection;
+
     // Constrain markers to avoid overlapping with UI elements
-    // Avoid IcingToolbar on the left (approx 60px wide)
-    const minLeft = 60;
-    // Avoid area near bottom buttons (approx 80px from bottom)
-    const minBottom = 80;
-    
-    // Apply constraints
-    markerX = Math.max(minLeft, Math.min(markerX, renderedWidth + offsetX - 20));
-    markerY = Math.max(offsetY + 20, Math.min(markerY, renderedHeight + offsetY - minBottom));
+    // Avoid IcingToolbar on the left (48px for 40px button + 8px padding)
+    const minLeft = 50;
+    // Avoid area near bottom buttons (40px for button height + some padding)
+    const minBottom = 45;
+
+    // Apply constraints only to markers that would overlap UI elements
+    markerX = Math.max(minLeft, Math.min(markerX, renderedWidth + offsetX - 12));
+    markerY = Math.max(offsetY + 12, Math.min(markerY, renderedHeight + offsetY - minBottom));
 
     return { left: `${markerX}px`, top: `${markerY}px`, leftPx: markerX, topPx: markerY };
   }, [originalImageDimensions, containerDimensions]);
@@ -710,6 +700,40 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     }
   }, [selectedItem, onCakeMessageChange, cakeMessages, analysisResult]);
 
+  const addCakeMessage = useCallback((position: 'top' | 'side' | 'base_board') => {
+    let coords: { x?: number, y?: number } = {};
+
+    // Get default coordinates based on position
+    if (position === 'base_board') {
+      const baseBoardCoords = analysisResult?.base_board?.[0];
+      coords = { x: baseBoardCoords?.x, y: baseBoardCoords?.y };
+    } else if (position === 'top') {
+      // Default to center-top area for top messages
+      coords = { x: 0, y: 0.3 };
+    } else if (position === 'side') {
+      // Default to center for side messages
+      coords = { x: 0, y: 0 };
+    }
+
+    const newMessage: CakeMessageUI = {
+      id: crypto.randomUUID(),
+      type: 'gumpaste_letters',
+      text: 'Your Text Here',
+      position: position,
+      color: '#000000',
+      isEnabled: true,
+      price: 0,
+      x: coords.x,
+      y: coords.y,
+    };
+
+    onCakeMessageChange([...cakeMessages, newMessage]);
+
+    // After a short delay, select the newly created message to open its editor
+    setTimeout(() => {
+      setSelectedItem({ ...newMessage, itemCategory: 'message' });
+    }, 100);
+  }, [onCakeMessageChange, cakeMessages, analysisResult]);
 
   const handleCustomizedTabClick = () => {
     if (isCustomizationDirty) {
@@ -804,12 +828,25 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                    <button onClick={() => setActiveTab('original')} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'original' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50'}`}>Original</button>
                    <button onClick={handleCustomizedTabClick} disabled={(!editedImage && !isCustomizationDirty) || isUpdatingDesign} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'customized' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50 disabled:text-slate-400 disabled:hover:bg-transparent disabled:cursor-not-allowed'}`}>Customized</button>
                 </div>
+                {isAnalyzing && (
+                    <div className="mt-3 w-full text-center animate-fade-in">
+                        <div className="w-full bg-slate-200 rounded-full h-2.5 relative overflow-hidden">
+                           <div className="h-full bg-gradient-to-r from-pink-500 to-purple-600 progress-bar-fill"></div>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2 font-medium">Analyzing design elements & pricing... You can start customizing below.</p>
+                    </div>
+                )}
            </div>
             <div className="p-2 pt-0 flex-grow">
                 <div
                     ref={markerContainerRef}
-                    className="relative w-full aspect-square"
+                    className="relative w-full min-h-[400px]"
                     onContextMenu={(e) => e.preventDefault()}
+                    style={{
+                        aspectRatio: originalImageDimensions
+                            ? `${originalImageDimensions.width} / ${originalImageDimensions.height}`
+                            : '1 / 1'
+                    }}
                 >
                     {isUpdatingDesign && <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-2xl z-20"><LoadingSpinner /><p className="mt-4 text-slate-500 font-semibold">{dynamicLoadingMessage}</p></div>}
                     {error && <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-b-2xl z-20 p-4"><ErrorIcon /><p className="mt-4 font-semibold text-red-600">Update Failed</p><p className="text-sm text-red-500 text-center">{error}</p></div>}
@@ -884,6 +921,11 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                             )}
                             {originalImageDimensions && containerDimensions && containerDimensions.height > 0 && areHelpersVisible && clusteredMarkers.map((item) => {
                             if(item.x === undefined || item.y === undefined) return null;
+
+                            // Hide markers during Phase 1 (coordinates are 0,0)
+                            // They'll fade in during Phase 2 when real coordinates arrive
+                            if(item.x === 0 && item.y === 0) return null;
+
                             const position = getMarkerPosition(item.x, item.y);
                             const isSelected = selectedItem?.id === item.id;
                             const isCluster = 'isCluster' in item && item.isCluster;
@@ -974,14 +1016,6 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                    </>
                  )}
                </button>
-                {isAnalyzing && (
-                    <div className="w-full text-center animate-fade-in">
-                        <div className="w-full bg-slate-200 rounded-full h-2.5 relative overflow-hidden">
-                           <div className="absolute h-full w-1/2 bg-gradient-to-r from-pink-500 to-purple-600 animate-progress-slide"></div>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-2 font-medium">Analyzing design elements & pricing... You can start customizing below.</p>
-                    </div>
-                )}
              </div>
            )}
            
@@ -1101,6 +1135,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                        removeSupportElement={removeSupportElement}
                        updateCakeMessage={updateCakeMessage}
                        removeCakeMessage={removeCakeMessage}
+                       addCakeMessage={addCakeMessage}
                        onIcingDesignChange={onIcingDesignChange}
                        onAdditionalInstructionsChange={onAdditionalInstructionsChange}
                        onTopperImageReplace={onTopperImageReplace}
@@ -1168,6 +1203,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
             cakeMessages={cakeMessages}
             updateCakeMessage={updateCakeMessage}
             removeCakeMessage={removeCakeMessage}
+            addCakeMessage={addCakeMessage}
             onCakeMessageChange={onCakeMessageChange}
             icingDesign={icingDesign}
             onIcingDesignChange={onIcingDesignChange}

@@ -31,3 +31,13 @@ export const generateShareableTexts = async (...args: Parameters<typeof GeminiSe
   const { generateShareableTexts: fn } = await loadGeminiService();
   return fn(...args);
 };
+
+export const analyzeCakeFeaturesOnly = async (...args: Parameters<typeof GeminiService.analyzeCakeFeaturesOnly>) => {
+  const { analyzeCakeFeaturesOnly: fn } = await loadGeminiService();
+  return fn(...args);
+};
+
+export const enrichAnalysisWithCoordinates = async (...args: Parameters<typeof GeminiService.enrichAnalysisWithCoordinates>) => {
+  const { enrichAnalysisWithCoordinates: fn } = await loadGeminiService();
+  return fn(...args);
+};

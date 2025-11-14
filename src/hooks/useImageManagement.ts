@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { toast as toastHot } from 'react-hot-toast';
-import { fileToBase64, analyzeCakeImage } from '../services/geminiService.lazy';
+import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithCoordinates } from '../services/geminiService.lazy';
 import { getSupabaseClient } from '../lib/supabase/client';
 import { compressImage, dataURItoBlob } from '../lib/utils/imageOptimization';
 import { showSuccess, showError, showLoading, showInfo } from '../lib/utils/toast';
@@ -102,7 +102,7 @@ export const useImageManagement = () => {
     file: File,
     onSuccess: (result: HybridAnalysisResult) => void,
     onError: (error: Error) => void,
-    options?: { imageUrl?: string }
+    options?: { imageUrl?: string; onCoordinatesEnriched?: (result: HybridAnalysisResult) => void }
   ) => {
     setIsLoading(true); // For file processing
     setError(null);
@@ -168,17 +168,41 @@ export const useImageManagement = () => {
         }
         // --- END OF COMPRESSION LOGIC ---
 
-        // --- STEP 3: CALL AI FOR ANALYSIS ---
-        console.log('🤖 Calling Gemini AI for analysis...');
-        
+        // --- STEP 3: TWO-PHASE AI ANALYSIS ---
+        console.log('🤖 Phase 1: Fast feature detection...');
+
         try {
-            const result = await analyzeCakeImage(
+            // PHASE 1: Fast feature-only analysis (coordinates all 0,0)
+            const fastResult = await analyzeCakeFeaturesOnly(
                 compressedImageData.data,
                 compressedImageData.mimeType
             );
-            onSuccess(result);
-            // Fire-and-forget caching, now with the uploaded URL
-            cacheAnalysisResult(pHash, result, uploadedImageUrl);
+
+            console.log('✅ Phase 1 complete! Features identified. Displaying results...');
+            onSuccess(fastResult); // User can now see features and price immediately!
+
+            // PHASE 2: Background coordinate enrichment (silent, non-blocking)
+            console.log('🔄 Phase 2: Calculating precise coordinates in background...');
+            enrichAnalysisWithCoordinates(
+                compressedImageData.data,
+                compressedImageData.mimeType,
+                fastResult
+            ).then(enrichedResult => {
+                console.log('✅ Phase 2 complete! Coordinates enriched. Markers will fade in...');
+
+                // Notify the UI to update with enriched coordinates
+                if (options?.onCoordinatesEnriched) {
+                    options.onCoordinatesEnriched(enrichedResult);
+                }
+
+                // Cache the fully enriched result
+                cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl);
+            }).catch(enrichmentError => {
+                console.warn('⚠️ Coordinate enrichment failed, but features are still available:', enrichmentError);
+                // Still cache the fast result even if enrichment fails
+                cacheAnalysisResult(pHash, fastResult, uploadedImageUrl);
+            });
+
         } catch (error) {
             onError(error instanceof Error ? error : new Error('Failed to analyze image'));
         }
