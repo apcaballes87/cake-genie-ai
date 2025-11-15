@@ -736,11 +736,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
   }, [onCakeMessageChange, cakeMessages, analysisResult]);
 
   const handleCustomizedTabClick = () => {
-    if (isCustomizationDirty) {
-      onUpdateDesign();
-    } else {
-      setActiveTab('customized');
-    }
+    setActiveTab('customized');
   };
 
   return (
@@ -826,7 +822,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
             <div className="p-2 flex-shrink-0">
                 <div className="bg-slate-100 p-1 rounded-lg flex space-x-1">
                    <button onClick={() => setActiveTab('original')} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'original' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50'}`}>Original</button>
-                   <button onClick={handleCustomizedTabClick} disabled={(!editedImage && !isCustomizationDirty) || isUpdatingDesign} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'customized' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50 disabled:text-slate-400 disabled:hover:bg-transparent disabled:cursor-not-allowed'}`}>Customized</button>
+                   <button onClick={handleCustomizedTabClick} disabled={!editedImage} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'customized' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50 disabled:text-slate-400 disabled:hover:bg-transparent disabled:cursor-not-allowed'}`}>Customized</button>
                 </div>
                 {isAnalyzing && (
                     <div className="mt-3 w-full text-center animate-fade-in">
