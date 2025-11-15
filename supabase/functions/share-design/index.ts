@@ -54,14 +54,14 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseServiceKey) {
         throw new Error('Supabase environment variables are not set.');
     }
 
-    // Use anon key for public access to shared designs
-    const supabaseAdmin = createClient(supabaseUrl, supabaseAnonKey, {
+    // Use service role key for unrestricted access to shared designs
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false
@@ -86,10 +86,10 @@ serve(async (req) => {
     const isBotRequest = isBot(userAgent);
     console.log(`[share-design] User-Agent: ${userAgent}, isBot: ${isBotRequest}`);
 
-    // 2. Fetch the design from Supabase
+    // 2. Fetch the design from Supabase with all necessary fields
     const { data, error } = await supabaseAdmin
         .from('cakegenie_shared_designs')
-        .select('title, description, alt_text, customized_image_url, url_slug')
+        .select('title, description, alt_text, customized_image_url, url_slug, cake_type, cake_size, cake_thickness, final_price, availability_type')
         .eq('url_slug', slug)
         .single();
     
@@ -123,29 +123,79 @@ serve(async (req) => {
 
     // 5. For bots, serve HTML with Open Graph tags
     console.log(`[share-design] Serving OG tags for bot`);
-    const title = escapeHtml(data.title || "Check out this Cake Design!");
-    const description = escapeHtml(data.description || "I created this custom cake design using Genie. What do you think?");
+
+    // Build SEO-optimized title
+    const baseTitle = data.title || "Custom Cake Design";
+    const title = escapeHtml(baseTitle);
+
+    // Build SEO-optimized description with key details
+    const baseDescription = data.description || "Custom cake design created with Genie";
+    const cakeDetails = `${data.cake_type || 'Custom'} ${data.cake_size || ''} cake`.trim();
+    const priceText = data.final_price ? `Starting at ₱${data.final_price.toFixed(2)}` : '';
+    const availabilityText = data.availability_type === 'rush' ? 'Rush order available (30 min)' :
+                            data.availability_type === 'same-day' ? 'Same-day delivery (3 hours)' :
+                            'Order now for delivery';
+
+    const enhancedDescription = `${baseDescription} - ${cakeDetails}. ${priceText}. ${availabilityText}. Customize and order online at Genie.ph`;
+    const description = escapeHtml(enhancedDescription);
+
     // Use alt_text if available, otherwise fall back to title, then generic text
     const altText = data.alt_text ? escapeHtml(data.alt_text) : (data.title ? escapeHtml(data.title) : "Custom cake design");
     const imageUrl = data.customized_image_url;
 
-    // Create structured data for SEO
+    // Create enhanced structured data for SEO
+    const availabilityMap: Record<string, string> = {
+      'rush': 'https://schema.org/InStock',
+      'same-day': 'https://schema.org/InStock',
+      'normal': 'https://schema.org/PreOrder'
+    };
+
     const structuredData = {
       "@context": "https://schema.org",
       "@type": "Product",
       "name": data.title || "Custom Cake Design",
       "description": data.description || "Custom cake design created with Genie",
-      "image": imageUrl,
+      "image": {
+        "@type": "ImageObject",
+        "url": imageUrl,
+        "contentUrl": imageUrl
+      },
       "url": canonicalUrl,
+      "sku": data.url_slug || slug,
+      "category": "Custom Cakes",
       "brand": {
         "@type": "Brand",
-        "name": "Genie"
+        "name": "Genie.ph"
       },
       "offers": {
         "@type": "Offer",
-        "availability": "https://schema.org/InStock",
-        "url": canonicalUrl
-      }
+        "url": canonicalUrl,
+        "priceCurrency": "PHP",
+        "price": data.final_price ? data.final_price.toFixed(2) : "0.00",
+        "availability": availabilityMap[data.availability_type as string] || "https://schema.org/InStock",
+        "priceValidUntil": new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        "seller": {
+          "@type": "Organization",
+          "name": "Genie.ph"
+        }
+      },
+      "additionalProperty": [
+        {
+          "@type": "PropertyValue",
+          "name": "Cake Type",
+          "value": data.cake_type || "Custom"
+        },
+        {
+          "@type": "PropertyValue",
+          "name": "Size",
+          "value": data.cake_size || "Custom Size"
+        },
+        {
+          "@type": "PropertyValue",
+          "name": "Thickness",
+          "value": data.cake_thickness || "Standard"
+        }
+      ]
     };
 
     const html = `
@@ -157,12 +207,12 @@ serve(async (req) => {
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         
         <!-- Primary Meta Tags -->
-        <title>${title} | Genie - Custom Cake Design</title>
-        <meta name="title" content="${title}">
+        <title>${title} - ${escapeHtml(cakeDetails)} | Genie.ph Custom Cakes Cebu</title>
+        <meta name="title" content="${title} - ${escapeHtml(cakeDetails)}">
         <meta name="description" content="${description}">
-        <meta name="keywords" content="custom cake design, cake customization, cake design tool, ${escapeHtml(data.title || 'cake')}">
-        <meta name="author" content="Genie">
-        <meta name="robots" content="index, follow">
+        <meta name="keywords" content="custom cake, ${escapeHtml(data.cake_type || 'cake')}, ${escapeHtml(data.cake_size || '')}, Cebu cakes, birthday cake, cake design, ${escapeHtml(data.availability_type || '')} delivery, ${escapeHtml(data.title || 'custom cake')}">
+        <meta name="author" content="Genie.ph">
+        <meta name="robots" content="index, follow, max-image-preview:large">
         <link rel="canonical" href="${canonicalUrl}">
 
         <!-- Open Graph / Facebook / Messenger -->
