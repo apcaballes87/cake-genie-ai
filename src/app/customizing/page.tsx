@@ -137,6 +137,22 @@ interface CustomizingPageProps {
   onCakeMessageChange: (messages: CakeMessageUI[]) => void;
 }
 
+// Simple toggle switch component for icing features
+const SimpleToggle: React.FC<{ label: string; isEnabled: boolean; onChange: (enabled: boolean) => void; disabled?: boolean; }> = ({ label, isEnabled, onChange, disabled=false }) => (
+    <div className={`flex justify-between items-center p-1 ${disabled ? 'opacity-50' : ''}`}>
+        <label className="text-sm font-medium text-slate-700">{label}</label>
+        <button
+            type="button"
+            onClick={() => !disabled && onChange(!isEnabled)}
+            disabled={disabled}
+            className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isEnabled ? 'bg-purple-600' : 'bg-slate-300'}`}
+            aria-pressed={isEnabled}
+        >
+            <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+        </button>
+    </div>
+);
+
 const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icingDesign: IcingDesignUI | null; cakeType: CakeType | null; isVisible: boolean; showGuide: boolean }> = ({ onSelectItem, icingDesign, cakeType, isVisible, showGuide }) => {
     const [activeGuideIndex, setActiveGuideIndex] = useState<number>(-1);
     const isBento = cakeType === 'Bento';
@@ -159,7 +175,7 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
     
     const getColorForTool = (toolId: string): string | undefined => {
         if (!hasIcingColorDetails(effectiveIcingDesign)) return undefined;
-        
+
         switch (toolId) {
             case 'drip': return effectiveIcingDesign.colors?.drip;
             case 'borderTop': return effectiveIcingDesign.colors?.borderTop;
@@ -170,14 +186,130 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
             default: return undefined;
         }
     };
-    
-    const tools = [
-        { id: 'drip', description: 'Drip Effect', icon: <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/dripeffect.webp" alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip, color: getColorForTool('drip') },
-        { id: 'borderTop', description: 'Top Border', icon: <TopBorderGuideIcon />, featureFlag: effectiveIcingDesign.border_top, color: getColorForTool('borderTop') },
-        { id: 'borderBase', description: 'Base Border', icon: <BaseBorderGuideIcon />, featureFlag: effectiveIcingDesign.border_base, color: getColorForTool('borderBase'), disabled: isBento },
-        { id: 'top', description: 'Top Icing Color', icon: <TopIcingGuideIcon />, featureFlag: !!effectiveIcingDesign.colors?.top, color: getColorForTool('top') },
-        { id: 'side', description: 'Side Icing Color', icon: <SideIcingGuideIcon />, featureFlag: !!effectiveIcingDesign.colors?.side, color: getColorForTool('side') },
-        { id: 'gumpasteBaseBoard', description: 'Gumpaste Covered Board', icon: <BaseBoardGuideIcon />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, color: getColorForTool('gumpasteBaseBoard'), disabled: isBento },
+
+    // Helper function to convert hex color to RGB
+    const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
+    };
+
+    // Helper function to find closest color match
+    const findClosestColor = (color: string, availableColors: { name: string; keywords: string[]; hex: string }[]): string => {
+        const colorLower = color.toLowerCase().trim();
+
+        // First, try exact keyword match (e.g., "red", "light red", "dark blue")
+        // Check longer keywords first to avoid partial matches (e.g., "light blue" before "blue")
+        for (const colorOption of availableColors) {
+            // Sort keywords by length (longest first) to match "light blue" before "blue"
+            const sortedKeywords = [...colorOption.keywords].sort((a, b) => b.length - a.length);
+            for (const keyword of sortedKeywords) {
+                if (colorLower.includes(keyword)) {
+                    return colorOption.name;
+                }
+            }
+        }
+
+        // If it's a hex color, find closest match by RGB distance
+        if (colorLower.startsWith('#')) {
+            const inputRgb = hexToRgb(colorLower);
+            if (inputRgb) {
+                let closestColor = availableColors[0].name;
+                let minDistance = Infinity;
+
+                for (const colorOption of availableColors) {
+                    const optionRgb = hexToRgb(colorOption.hex);
+                    if (optionRgb) {
+                        const distance = Math.sqrt(
+                            Math.pow(inputRgb.r - optionRgb.r, 2) +
+                            Math.pow(inputRgb.g - optionRgb.g, 2) +
+                            Math.pow(inputRgb.b - optionRgb.b, 2)
+                        );
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            closestColor = colorOption.name;
+                        }
+                    }
+                }
+                return closestColor;
+            }
+        }
+
+        // Default to white if no match found
+        return 'white';
+    };
+
+    // Helper function to get color-aware baseboard image
+    const getBaseboardImage = (): string => {
+        const baseboardColor = effectiveIcingDesign.colors?.gumpasteBaseBoardColor;
+        const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
+
+        if (!baseboardColor) {
+            return baseUrl + 'baseboardwhite.webp';
+        }
+
+        const availableColors = [
+            { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
+            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey'], hex: '#FFFFFF' },
+            { name: 'red', keywords: ['light red', 'dark red', 'red'], hex: '#FF0000' },
+            { name: 'blue', keywords: ['light blue', 'dark blue', 'blue'], hex: '#0000FF' },
+            { name: 'purple', keywords: ['light purple', 'purple', 'violet'], hex: '#800080' },
+            { name: 'green', keywords: ['light green', 'dark green', 'green'], hex: '#00FF00' },
+            { name: 'yellow', keywords: ['light yellow', 'yellow'], hex: '#FFFF00' },
+            { name: 'pink', keywords: ['light pink', 'pink'], hex: '#FFC0CB' },
+        ];
+
+        const matchedColor = findClosestColor(baseboardColor, availableColors);
+        return baseUrl + `baseboard${matchedColor}.webp`;
+    };
+
+    // Helper function to get color-aware icing image
+    const getIcingImage = (colorKey: 'top' | 'side'): string => {
+        const icingColor = effectiveIcingDesign.colors?.[colorKey];
+        const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
+
+        if (!icingColor) {
+            return baseUrl + 'icing_white.webp';
+        }
+
+        const availableColors = [
+            { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
+            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey'], hex: '#FFFFFF' },
+            { name: 'red', keywords: ['light red', 'dark red', 'red'], hex: '#FF0000' },
+            { name: 'blue', keywords: ['light blue', 'dark blue', 'blue'], hex: '#0000FF' },
+            { name: 'purple', keywords: ['light purple', 'purple', 'violet'], hex: '#800080' },
+            { name: 'green', keywords: ['light green', 'dark green', 'green'], hex: '#00FF00' },
+            { name: 'yellow', keywords: ['light yellow', 'yellow'], hex: '#FFFF00' },
+            { name: 'orange', keywords: ['light orange', 'orange'], hex: '#FFA500' },
+            { name: 'brown', keywords: ['brown', 'chocolate', 'tan'], hex: '#8B4513' },
+            { name: 'pink', keywords: ['light pink', 'pink'], hex: '#FFC0CB' },
+        ];
+
+        const matchedColor = findClosestColor(icingColor, availableColors);
+        return baseUrl + `icing_${matchedColor}.webp`;
+    };
+
+    // Check if top and side icing colors are the same
+    const topColor = effectiveIcingDesign.colors?.top;
+    const sideColor = effectiveIcingDesign.colors?.side;
+    const icingColorsSame = topColor && sideColor && topColor.toUpperCase() === sideColor.toUpperCase();
+
+    const tools = icingColorsSame ? [
+        { id: 'drip', description: 'Drip', icon: <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/dripeffect.webp" alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
+        { id: 'borderTop', description: 'Top', icon: <TopBorderGuideIcon />, featureFlag: effectiveIcingDesign.border_top },
+        { id: 'borderBase', description: 'Bottom', icon: <BaseBorderGuideIcon />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
+        { id: 'icing', description: 'Icing', icon: <img src={getIcingImage('top')} alt="Icing color" />, featureFlag: !!(effectiveIcingDesign.colors?.top || effectiveIcingDesign.colors?.side) },
+        { id: 'gumpasteBaseBoard', description: 'Board', icon: <img src={getBaseboardImage()} alt="Gumpaste baseboard" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
+    ] : [
+        { id: 'drip', description: 'Drip', icon: <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/dripeffect.webp" alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
+        { id: 'borderTop', description: 'Top', icon: <TopBorderGuideIcon />, featureFlag: effectiveIcingDesign.border_top },
+        { id: 'borderBase', description: 'Bottom', icon: <BaseBorderGuideIcon />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
+        { id: 'top', description: 'Icing', icon: <img src={getIcingImage('top')} alt="Top icing" />, featureFlag: !!effectiveIcingDesign.colors?.top },
+        { id: 'side', description: 'Icing', icon: <img src={getIcingImage('side')} alt="Side icing" />, featureFlag: !!effectiveIcingDesign.colors?.side },
+        { id: 'gumpasteBaseBoard', description: 'Board', icon: <img src={getBaseboardImage()} alt="Gumpaste baseboard" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
     ];
     
     useEffect(() => {
@@ -203,28 +335,21 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
     }, [showGuide, tools.length]);
     
     return (
-        <div className={`absolute top-1/2 -translate-y-1/2 left-4 z-10 flex flex-col gap-2 transition-opacity ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className={`flex flex-row gap-2 justify-center transition-opacity ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             {tools.map((tool, index) => {
                 const isGuideActive = activeGuideIndex === index;
                 return (
-                    <button 
-                        key={tool.id} 
+                    <button
+                        key={tool.id}
                         onClick={() => !tool.disabled && onSelectItem({ id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: effectiveCakeType })}
-                        className={`relative w-10 h-10 p-1.5 rounded-full hover:bg-purple-100 transition-all group bg-white/80 backdrop-blur-md border border-slate-200 shadow-md ${tool.featureFlag ? 'ring-2 ring-purple-500 ring-offset-2' : 'opacity-60'} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
+                        className={`relative w-12 h-12 p-2 rounded-full hover:bg-purple-100 transition-all group bg-white/80 backdrop-blur-md border border-slate-200 shadow-md ${tool.featureFlag ? 'ring-2 ring-purple-500 ring-offset-2' : 'opacity-60'} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
                         disabled={tool.disabled}
                     >
                         {React.cloneElement(tool.icon as React.ReactElement<any>, { className: 'w-full h-full object-contain' })}
                         {tool.disabled && (
                              <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
-                                <X className="w-5 h-5 text-white" />
+                                <X className="w-6 h-6 text-white" />
                              </div>
-                        )}
-                        {/* Color indicator dot */}
-                        {tool.color && (
-                            <div 
-                                className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full border border-white shadow-sm"
-                                style={{ backgroundColor: tool.color }}
-                            />
                         )}
                         <span className={`icing-toolbar-tooltip ${isGuideActive ? 'force-show' : ''}`}>{tool.description}</span>
                     </button>
@@ -604,8 +729,8 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     markerY -= yCorrection;
 
     // Constrain markers to avoid overlapping with UI elements
-    // Avoid IcingToolbar on the left (48px for 40px button + 8px padding)
-    const minLeft = 50;
+    // No need to avoid left side anymore since toolbar is below image
+    const minLeft = 10;
     // Avoid area near bottom buttons (40px for button height + some padding)
     const minBottom = 45;
 
@@ -850,13 +975,6 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
 
                     {(originalImagePreview) && (
                         <>
-                            <IcingToolbar 
-                                onSelectItem={setSelectedItem} 
-                                icingDesign={icingDesign} 
-                                cakeType={cakeInfo?.type || null} 
-                                isVisible={areHelpersVisible}
-                                showGuide={showIcingGuide}
-                            />
                             <img
                                 onLoad={(e) => {
                                     const img = e.currentTarget;
@@ -879,20 +997,6 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                 alt={activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake"} 
                                 className="w-full h-full object-contain rounded-lg"
                             />
-                            {dominantMotif && areHelpersVisible && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setIsMotifPanelOpen(true);
-                                        setSelectedItem(null); // Close other panels
-                                    }}
-                                    className="absolute top-3 left-3 z-10 bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-semibold hover:bg-black/60 transition-all shadow-md px-3 py-1.5 flex items-center gap-1.5"
-                                    aria-label="Change Motif Color"
-                                >
-                                    <Wand2 className="w-4 h-4" />
-                                    Motif
-                                </button>
-                            )}
                             <button
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -992,6 +1096,246 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                 </div>
             </div>
        </div>
+
+           {/* Icing Toolbar - Below image container */}
+           {originalImagePreview && (
+             <div className="w-full bg-white/70 backdrop-blur-sm rounded-xl border border-slate-200 p-3">
+               <h3 className="text-sm font-semibold text-slate-700 mb-2 text-center">Change Icing Colors</h3>
+               <IcingToolbar
+                 onSelectItem={setSelectedItem}
+                 icingDesign={icingDesign}
+                 cakeType={cakeInfo?.type || null}
+                 isVisible={areHelpersVisible}
+                 showGuide={showIcingGuide}
+               />
+
+               {/* Inline Icing Editor Panel - Slides down below toolbar */}
+               {selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'icing' && (
+                 <div
+                   className="overflow-hidden transition-all duration-300 ease-in-out"
+                   style={{
+                     maxHeight: selectedItem ? '500px' : '0px',
+                   }}
+                 >
+                   <div className="mt-3 pt-3 border-t border-slate-200">
+                     {(() => {
+                       const description = selectedItem.description;
+                       const isBento = cakeInfo?.type === 'Bento';
+
+                       // Helper function for toggle + color picker (drip, borders, baseboard)
+                       const renderToggleAndColor = (
+                         featureKey: 'drip' | 'border_top' | 'border_base' | 'gumpasteBaseBoard',
+                         colorKey: keyof IcingColorDetails,
+                         label: string
+                       ) => {
+                         const originalColor = analysisResult?.icing_design.colors[colorKey];
+                         const currentColor = icingDesign.colors[colorKey];
+                         const canRevert = originalColor && currentColor !== originalColor;
+
+                         const handleRevert = () => {
+                           if (canRevert) {
+                             onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: originalColor } });
+                           }
+                         };
+
+                         const isEnabled = icingDesign[featureKey];
+                         const isDisabled = (featureKey === 'border_base' || featureKey === 'gumpasteBaseBoard') && isBento;
+
+                         return (
+                           <>
+                             <SimpleToggle
+                               label={label}
+                               isEnabled={isEnabled}
+                               disabled={isDisabled}
+                               onChange={(enabled) => {
+                                 const newIcingDesign = { ...icingDesign, [featureKey]: enabled };
+                                 if (enabled && !newIcingDesign.colors[colorKey]) {
+                                   newIcingDesign.colors = { ...newIcingDesign.colors, [colorKey]: '#FFFFFF' };
+                                 }
+                                 onIcingDesignChange(newIcingDesign);
+                               }}
+                             />
+                             <div className={`mt-2 pt-2 border-t border-slate-100 pl-1 transition-opacity ${!isEnabled ? 'opacity-40' : ''}`}>
+                               <div className="flex justify-between items-center mb-2">
+                                 <label className="block text-sm font-medium text-slate-600">Color</label>
+                                 {canRevert && isEnabled && (
+                                   <button onClick={handleRevert} className="flex items-center gap-1 text-xs font-semibold text-purple-600 hover:text-purple-800 p-1 rounded-md hover:bg-purple-50">
+                                     <ResetIcon className="w-3 h-3" />
+                                     Revert to Original
+                                   </button>
+                                 )}
+                               </div>
+                               <ColorPalette
+                                 selectedColor={icingDesign.colors[colorKey] || ''}
+                                 onColorChange={(newHex) => {
+                                   const newIcingDesign = {
+                                     ...icingDesign,
+                                     [featureKey]: true,
+                                     colors: { ...icingDesign.colors, [colorKey]: newHex }
+                                   };
+                                   onIcingDesignChange(newIcingDesign);
+                                 }}
+                               />
+                             </div>
+                           </>
+                         );
+                       };
+
+                       // Helper function for color picker only (top/side icing)
+                       const renderColorOnly = (colorKey: keyof IcingColorDetails, label: string) => {
+                         const originalColor = analysisResult?.icing_design.colors[colorKey];
+                         const currentColor = icingDesign.colors[colorKey];
+                         const canRevert = originalColor && currentColor !== originalColor;
+
+                         const handleRevert = () => {
+                           if (canRevert) {
+                             onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: originalColor } });
+                           }
+                         };
+
+                         let messagePosition: 'top' | 'side' | null = null;
+                         let messageButtonLabel = '';
+
+                         if (label === 'Top Icing Color') {
+                           messagePosition = 'top';
+                           messageButtonLabel = '+ Add Message (Cake Top Side)';
+                         } else if (label === 'Side Icing Color') {
+                           messagePosition = 'side';
+                           messageButtonLabel = '+ Add Message (Cake Front Side)';
+                         }
+
+                         const hasMessage = messagePosition ? cakeMessages.some(msg => msg.position === messagePosition) : false;
+
+                         return (
+                           <div>
+                             <div className="flex justify-between items-center mb-2">
+                               <label className="block text-sm font-medium text-slate-800">{label}</label>
+                               {canRevert && (
+                                 <button onClick={handleRevert} className="flex items-center gap-1 text-xs font-semibold text-purple-600 hover:text-purple-800 p-1 rounded-md hover:bg-purple-50">
+                                   <ResetIcon className="w-3 h-3" />
+                                   Revert to Original
+                                 </button>
+                               )}
+                             </div>
+                             <ColorPalette
+                               selectedColor={icingDesign.colors[colorKey] || ''}
+                               onColorChange={(newHex) => {
+                                 onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: newHex } });
+                               }}
+                             />
+                             {messagePosition && !hasMessage && (
+                               <button
+                                 type="button"
+                                 onClick={() => addCakeMessage(messagePosition as 'top' | 'side')}
+                                 className="w-full mt-3 text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
+                               >
+                                 <span className="text-base">+</span> {messageButtonLabel}
+                               </button>
+                             )}
+                           </div>
+                         );
+                       };
+
+                       // Helper function for combined icing color picker
+                       const renderCombinedIcingColor = () => {
+                         const originalTopColor = analysisResult?.icing_design.colors.top;
+                         const originalSideColor = analysisResult?.icing_design.colors.side;
+                         const currentColor = icingDesign.colors.top || icingDesign.colors.side || '#FFFFFF';
+
+                         const canRevertTop = originalTopColor && icingDesign.colors.top !== originalTopColor;
+                         const canRevertSide = originalSideColor && icingDesign.colors.side !== originalSideColor;
+                         const canRevert = canRevertTop || canRevertSide;
+
+                         const handleRevert = () => {
+                           const newColors = { ...icingDesign.colors };
+                           if (canRevertTop && originalTopColor) newColors.top = originalTopColor;
+                           if (canRevertSide && originalSideColor) newColors.side = originalSideColor;
+                           onIcingDesignChange({ ...icingDesign, colors: newColors });
+                         };
+
+                         const hasTopMessage = cakeMessages.some(msg => msg.position === 'top');
+                         const hasSideMessage = cakeMessages.some(msg => msg.position === 'side');
+
+                         return (
+                           <div>
+                             <div className="flex justify-between items-center mb-2">
+                               <label className="block text-sm font-medium text-slate-800">Icing Color</label>
+                               {canRevert && (
+                                 <button onClick={handleRevert} className="flex items-center gap-1 text-xs font-semibold text-purple-600 hover:text-purple-800 p-1 rounded-md hover:bg-purple-50">
+                                   <ResetIcon className="w-3 h-3" />
+                                   Revert to Original
+                                 </button>
+                               )}
+                             </div>
+                             <ColorPalette
+                               selectedColor={currentColor}
+                               onColorChange={(newHex) => {
+                                 onIcingDesignChange({
+                                   ...icingDesign,
+                                   colors: {
+                                     ...icingDesign.colors,
+                                     top: newHex,
+                                     side: newHex
+                                   }
+                                 });
+                               }}
+                             />
+                             {!hasTopMessage && (
+                               <button
+                                 type="button"
+                                 onClick={() => addCakeMessage('top')}
+                                 className="w-full mt-3 text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
+                               >
+                                 <span className="text-base">+</span> + Add Message (Cake Top Side)
+                               </button>
+                             )}
+                             {!hasSideMessage && (
+                               <button
+                                 type="button"
+                                 onClick={() => addCakeMessage('side')}
+                                 className="w-full mt-3 text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
+                               >
+                                 <span className="text-base">+</span> + Add Message (Cake Front Side)
+                               </button>
+                             )}
+                           </div>
+                         );
+                       };
+
+                       // Switch based on description to render appropriate editor
+                       switch (description) {
+                         case 'Drip':
+                           return renderToggleAndColor('drip', 'drip', 'Enable Drip Effect');
+                         case 'Top':
+                           return renderToggleAndColor('border_top', 'borderTop', 'Enable Top Border');
+                         case 'Bottom':
+                           return renderToggleAndColor('border_base', 'borderBase', 'Enable Base Border');
+                         case 'Board':
+                           return renderToggleAndColor('gumpasteBaseBoard', 'gumpasteBaseBoardColor', 'Enable Covered Board');
+                         case 'Icing':
+                           const topColor = icingDesign.colors?.top;
+                           const sideColor = icingDesign.colors?.side;
+                           const sameColors = topColor && sideColor && topColor.toUpperCase() === sideColor.toUpperCase();
+
+                           if (sameColors) {
+                             return renderCombinedIcingColor();
+                           } else {
+                             const itemId = (selectedItem as any).id || '';
+                             if (itemId.includes('top')) {
+                               return renderColorOnly('top', 'Top Icing Color');
+                             } else {
+                               return renderColorOnly('side', 'Side Icing Color');
+                             }
+                           }
+                         default:
+                           return <p className="p-2 text-xs text-slate-500">Select an icing feature to edit.</p>;
+                       }
+                     })()}
+                   </div>
+                 </div>
+               )}
+             </div>
+           )}
 
            {originalImageData && (
              <div className="w-full flex flex-col items-center gap-3">
@@ -1185,28 +1529,31 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
            </div>
          </div>
        )}
-       <FloatingResultPanel
-            selectedItem={selectedItem}
-            onClose={() => setSelectedItem(null)}
-            mainToppers={mainToppers}
-            updateMainTopper={updateMainTopper}
-            removeMainTopper={removeMainTopper}
-            onTopperImageReplace={onTopperImageReplace}
-            supportElements={supportElements}
-            updateSupportElement={updateSupportElement}
-            removeSupportElement={removeSupportElement}
-            onSupportElementImageReplace={onSupportElementImageReplace}
-            cakeMessages={cakeMessages}
-            updateCakeMessage={updateCakeMessage}
-            removeCakeMessage={removeCakeMessage}
-            addCakeMessage={addCakeMessage}
-            onCakeMessageChange={onCakeMessageChange}
-            icingDesign={icingDesign}
-            onIcingDesignChange={onIcingDesignChange}
-            analysisResult={analysisResult}
-            itemPrices={itemPrices}
-            isAdmin={isAdmin}
-        />
+       {/* FloatingResultPanel - Only show for non-icing items */}
+       {selectedItem && !('itemCategory' in selectedItem && selectedItem.itemCategory === 'icing') && (
+         <FloatingResultPanel
+              selectedItem={selectedItem}
+              onClose={() => setSelectedItem(null)}
+              mainToppers={mainToppers}
+              updateMainTopper={updateMainTopper}
+              removeMainTopper={removeMainTopper}
+              onTopperImageReplace={onTopperImageReplace}
+              supportElements={supportElements}
+              updateSupportElement={updateSupportElement}
+              removeSupportElement={removeSupportElement}
+              onSupportElementImageReplace={onSupportElementImageReplace}
+              cakeMessages={cakeMessages}
+              updateCakeMessage={updateCakeMessage}
+              removeCakeMessage={removeCakeMessage}
+              addCakeMessage={addCakeMessage}
+              onCakeMessageChange={onCakeMessageChange}
+              icingDesign={icingDesign}
+              onIcingDesignChange={onIcingDesignChange}
+              analysisResult={analysisResult}
+              itemPrices={itemPrices}
+              isAdmin={isAdmin}
+          />
+       )}
         {dominantMotif && (
             <MotifPanel
                 isOpen={isMotifPanelOpen}
