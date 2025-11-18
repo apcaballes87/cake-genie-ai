@@ -2,7 +2,7 @@ import React, { Dispatch, SetStateAction, useEffect, useState, useMemo, useCallb
 import { X, Wand2 } from 'lucide-react';
 import { FeatureList } from '../../components/FeatureList';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, CartIcon, BackIcon, ReportIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon, SideIcingGuideIcon, TopIcingGuideIcon, TopBorderGuideIcon, BaseBorderGuideIcon, BaseBoardGuideIcon } from '../../components/icons';
+import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, CartIcon, BackIcon, ReportIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon, SideIcingGuideIcon, TopIcingGuideIcon, TopBorderGuideIcon, BaseBorderGuideIcon, BaseBoardGuideIcon, TrashIcon } from '../../components/icons';
 import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType, AvailabilitySettings, IcingColorDetails } from '../../types';
 import { SearchAutocomplete } from '../../components/SearchAutocomplete';
 import { AvailabilityType } from '../../lib/utils/availability';
@@ -153,7 +153,7 @@ const SimpleToggle: React.FC<{ label: string; isEnabled: boolean; onChange: (ena
     </div>
 );
 
-const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icingDesign: IcingDesignUI | null; cakeType: CakeType | null; isVisible: boolean; showGuide: boolean }> = ({ onSelectItem, icingDesign, cakeType, isVisible, showGuide }) => {
+const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icingDesign: IcingDesignUI | null; cakeType: CakeType | null; isVisible: boolean; showGuide: boolean; selectedItem: ClusteredMarker | null }> = ({ onSelectItem, icingDesign, cakeType, isVisible, showGuide, selectedItem }) => {
     const [activeGuideIndex, setActiveGuideIndex] = useState<number>(-1);
     const isBento = cakeType === 'Bento';
     
@@ -292,21 +292,99 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
         return baseUrl + `icing_${matchedColor}.webp`;
     };
 
+    // Helper function to get color-aware drip image
+    const getDripImage = (): string => {
+        const dripColor = effectiveIcingDesign.colors?.drip;
+        const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
+
+        if (!dripColor) {
+            return baseUrl + 'drip_black.webp';
+        }
+
+        const availableColors = [
+            { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
+            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey'], hex: '#FFFFFF' },
+            { name: 'red', keywords: ['light red', 'dark red', 'red'], hex: '#FF0000' },
+            { name: 'blue', keywords: ['light blue', 'dark blue', 'blue'], hex: '#0000FF' },
+            { name: 'purple', keywords: ['light purple', 'purple', 'violet'], hex: '#800080' },
+            { name: 'green', keywords: ['light green', 'dark green', 'green'], hex: '#00FF00' },
+            { name: 'yellow', keywords: ['light yellow', 'yellow'], hex: '#FFFF00' },
+            { name: 'orange', keywords: ['light orange', 'orange'], hex: '#FFA500' },
+            { name: 'brown', keywords: ['brown', 'chocolate', 'tan'], hex: '#8B4513' },
+            { name: 'pink', keywords: ['light pink', 'pink'], hex: '#FFC0CB' },
+        ];
+
+        const matchedColor = findClosestColor(dripColor, availableColors);
+        return baseUrl + `drip_${matchedColor}.webp`;
+    };
+
+    // Helper function to get color-aware top border image
+    const getTopBorderImage = (): string => {
+        const borderColor = effectiveIcingDesign.colors?.borderTop;
+        const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
+
+        if (!borderColor) {
+            return baseUrl + 'top_black.webp';
+        }
+
+        const availableColors = [
+            { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
+            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey'], hex: '#FFFFFF' },
+            { name: 'red', keywords: ['light red', 'dark red', 'red'], hex: '#FF0000' },
+            { name: 'blue', keywords: ['light blue', 'dark blue', 'blue'], hex: '#0000FF' },
+            { name: 'purple', keywords: ['light purple', 'purple', 'violet'], hex: '#800080' },
+            { name: 'green', keywords: ['light green', 'dark green', 'green'], hex: '#00FF00' },
+            { name: 'yellow', keywords: ['light yellow', 'yellow'], hex: '#FFFF00' },
+            { name: 'orange', keywords: ['light orange', 'orange'], hex: '#FFA500' },
+            { name: 'brown', keywords: ['brown', 'chocolate', 'tan'], hex: '#8B4513' },
+            { name: 'pink', keywords: ['light pink', 'pink'], hex: '#FFC0CB' },
+        ];
+
+        const matchedColor = findClosestColor(borderColor, availableColors);
+        return baseUrl + `top_${matchedColor}.webp`;
+    };
+
+    // Helper function to get color-aware base border image
+    const getBaseBorderImage = (): string => {
+        const borderColor = effectiveIcingDesign.colors?.borderBase;
+        const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
+
+        if (!borderColor) {
+            return baseUrl + 'baseborder_black.webp';
+        }
+
+        const availableColors = [
+            { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
+            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey'], hex: '#FFFFFF' },
+            { name: 'red', keywords: ['light red', 'dark red', 'red'], hex: '#FF0000' },
+            { name: 'blue', keywords: ['light blue', 'dark blue', 'blue'], hex: '#0000FF' },
+            { name: 'purple', keywords: ['light purple', 'purple', 'violet'], hex: '#800080' },
+            { name: 'green', keywords: ['light green', 'dark green', 'green'], hex: '#00FF00' },
+            { name: 'yellow', keywords: ['light yellow', 'yellow'], hex: '#FFFF00' },
+            { name: 'orange', keywords: ['light orange', 'orange'], hex: '#FFA500' },
+            { name: 'brown', keywords: ['brown', 'chocolate', 'tan'], hex: '#8B4513' },
+            { name: 'pink', keywords: ['light pink', 'pink'], hex: '#FFC0CB' },
+        ];
+
+        const matchedColor = findClosestColor(borderColor, availableColors);
+        return baseUrl + `baseborder_${matchedColor}.webp`;
+    };
+
     // Check if top and side icing colors are the same
     const topColor = effectiveIcingDesign.colors?.top;
     const sideColor = effectiveIcingDesign.colors?.side;
     const icingColorsSame = topColor && sideColor && topColor.toUpperCase() === sideColor.toUpperCase();
 
     const tools = icingColorsSame ? [
-        { id: 'drip', description: 'Drip', icon: <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/dripeffect.webp" alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
-        { id: 'borderTop', description: 'Top', icon: <TopBorderGuideIcon />, featureFlag: effectiveIcingDesign.border_top },
-        { id: 'borderBase', description: 'Bottom', icon: <BaseBorderGuideIcon />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
+        { id: 'drip', description: 'Drip', icon: <img src={getDripImage()} alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
+        { id: 'borderTop', description: 'Top', icon: <img src={getTopBorderImage()} alt="Top border" />, featureFlag: effectiveIcingDesign.border_top },
+        { id: 'borderBase', description: 'Bottom', icon: <img src={getBaseBorderImage()} alt="Base border" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
         { id: 'icing', description: 'Icing', icon: <img src={getIcingImage('top')} alt="Icing color" />, featureFlag: !!(effectiveIcingDesign.colors?.top || effectiveIcingDesign.colors?.side) },
         { id: 'gumpasteBaseBoard', description: 'Board', icon: <img src={getBaseboardImage()} alt="Gumpaste baseboard" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
     ] : [
-        { id: 'drip', description: 'Drip', icon: <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/dripeffect.webp" alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
-        { id: 'borderTop', description: 'Top', icon: <TopBorderGuideIcon />, featureFlag: effectiveIcingDesign.border_top },
-        { id: 'borderBase', description: 'Bottom', icon: <BaseBorderGuideIcon />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
+        { id: 'drip', description: 'Drip', icon: <img src={getDripImage()} alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
+        { id: 'borderTop', description: 'Top', icon: <img src={getTopBorderImage()} alt="Top border" />, featureFlag: effectiveIcingDesign.border_top },
+        { id: 'borderBase', description: 'Bottom', icon: <img src={getBaseBorderImage()} alt="Base border" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
         { id: 'top', description: 'Icing', icon: <img src={getIcingImage('top')} alt="Top icing" />, featureFlag: !!effectiveIcingDesign.colors?.top },
         { id: 'side', description: 'Icing', icon: <img src={getIcingImage('side')} alt="Side icing" />, featureFlag: !!effectiveIcingDesign.colors?.side },
         { id: 'gumpasteBaseBoard', description: 'Board', icon: <img src={getBaseboardImage()} alt="Gumpaste baseboard" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
@@ -338,11 +416,12 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
         <div className={`flex flex-row gap-2 justify-center transition-opacity ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             {tools.map((tool, index) => {
                 const isGuideActive = activeGuideIndex === index;
+                const isSelected = selectedItem && 'description' in selectedItem && selectedItem.description === tool.description;
                 return (
                     <button
                         key={tool.id}
                         onClick={() => !tool.disabled && onSelectItem({ id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: effectiveCakeType })}
-                        className={`relative w-12 h-12 p-2 rounded-full hover:bg-purple-100 transition-all group bg-white/80 backdrop-blur-md border border-slate-200 shadow-md ${tool.featureFlag ? 'ring-2 ring-purple-500 ring-offset-2' : 'opacity-60'} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
+                        className={`relative w-14 h-14 p-2 rounded-full hover:bg-purple-100 transition-all group ${isSelected ? 'bg-purple-100' : 'bg-white/80'} backdrop-blur-md border border-slate-200 shadow-md ${tool.featureFlag ? '' : 'opacity-60'} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
                         disabled={tool.disabled}
                     >
                         {React.cloneElement(tool.icon as React.ReactElement<any>, { className: 'w-full h-full object-contain' })}
@@ -351,7 +430,6 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
                                 <X className="w-6 h-6 text-white" />
                              </div>
                         )}
-                        <span className={`icing-toolbar-tooltip ${isGuideActive ? 'force-show' : ''}`}>{tool.description}</span>
                     </button>
                 );
             })}
@@ -425,6 +503,8 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
   const [dynamicLoadingMessage, setDynamicLoadingMessage] = useState<string>('');
   const [showIcingGuide, setShowIcingGuide] = useState(false);
   const [hasShownGuide, setHasShownGuide] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false); // Collapsible color picker state
+  const [showMessagesPanel, setShowMessagesPanel] = useState(false); // Messages panel visibility
 
   // Show icing guide when image preview is available (before analysis completes)
   useEffect(() => {
@@ -675,7 +755,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
   const rawMarkers = useMemo((): AnalysisItem[] => {
     const markers: AnalysisItem[] = analysisItems.filter(item => typeof item.x === 'number' && typeof item.y === 'number');
     const hasBaseBoardMessage = cakeMessages.some(m => m.position === 'base_board' && m.isEnabled);
-    
+
     const isBento = cakeInfo?.type === 'Bento';
 
     if (!isBento && !hasBaseBoardMessage && analysisResult?.base_board?.[0]) {
@@ -997,28 +1077,53 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                 alt={activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake"} 
                                 className="w-full h-full object-contain rounded-lg"
                             />
-                            <button
+                            {/* Action buttons in top right corner */}
+                            <div className="absolute top-3 right-3 z-10 flex gap-2">
+                                {/* Edit Messages button - always visible if messages exist */}
+                                {cakeMessages.length > 0 && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowMessagesPanel(true);
+                                        }}
+                                        className="bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-semibold hover:bg-black/60 transition-all shadow-md px-3 py-1.5"
+                                        aria-label="Edit messages"
+                                    >
+                                        Edit Messages
+                                    </button>
+                                )}
+                                {/* Edible Photo button - only for edible photo cakes */}
+                                {(mainToppers.some(t => t.isEnabled && t.type === 'edible_photo') ||
+                                  supportElements.some(s => s.isEnabled && s.type === 'edible_photo_side')) && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            // Find the edible photo item and select it
+                                            const ediblePhotoTopper = mainToppers.find(t => t.isEnabled && t.type === 'edible_photo');
+                                            const ediblePhotoSupport = supportElements.find(s => s.isEnabled && s.type === 'edible_photo_side');
+                                            const ediblePhotoItem = ediblePhotoTopper || ediblePhotoSupport;
+                                            if (ediblePhotoItem) {
+                                                setSelectedItem(ediblePhotoItem as any);
+                                            }
+                                        }}
+                                        className="bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-semibold hover:bg-black/60 transition-all shadow-md px-3 py-1.5"
+                                        aria-label="Edit edible photo"
+                                    >
+                                        Edible Photo
+                                    </button>
+                                )}
+                                {/* Cake Options button */}
+                                <button
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         handleScrollToCakeBase();
                                     }}
-                                    className="absolute top-3 right-3 z-10 bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-semibold hover:bg-black/60 transition-all shadow-md px-3 py-1.5"
+                                    className="bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-semibold hover:bg-black/60 transition-all shadow-md px-3 py-1.5"
                                     aria-label="Scroll to cake options"
                                 >
                                     Cake Options
-                            </button>
-                            {originalImageDimensions && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setAreHelpersVisible(prev => !prev);
-                                    }}
-                                    className="absolute bottom-3 right-3 z-10 bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-semibold hover:bg-black/60 transition-all shadow-md px-3 py-1.5"
-                                    aria-label={areHelpersVisible ? "Hide design helpers" : "Show design helpers"}
-                                >
-                                    {areHelpersVisible ? 'Hide Helpers' : 'Show Helpers'}
                                 </button>
-                            )}
+                            </div>
                             {originalImageDimensions && containerDimensions && containerDimensions.height > 0 && areHelpersVisible && clusteredMarkers.map((item) => {
                             if(item.x === undefined || item.y === undefined) return null;
 
@@ -1099,7 +1204,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
 
            {/* Icing Toolbar - Below image container */}
            {originalImagePreview && (
-             <div className="w-full bg-white/70 backdrop-blur-sm rounded-xl border border-slate-200 p-3">
+             <div className="w-full bg-white/70 backdrop-blur-sm rounded-xl border border-slate-200 px-4 pt-4 pb-8">
                <h3 className="text-sm font-semibold text-slate-700 mb-2 text-center">Change Icing Colors</h3>
                <IcingToolbar
                  onSelectItem={setSelectedItem}
@@ -1107,6 +1212,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                  cakeType={cakeInfo?.type || null}
                  isVisible={areHelpersVisible}
                  showGuide={showIcingGuide}
+                 selectedItem={selectedItem}
                />
 
                {/* Inline Icing Editor Panel - Slides down below toolbar */}
@@ -1117,7 +1223,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                      maxHeight: selectedItem ? '500px' : '0px',
                    }}
                  >
-                   <div className="mt-3 pt-3 border-t border-slate-200">
+                   <div className="mt-3 pt-3">
                      {(() => {
                        const description = selectedItem.description;
                        const isBento = cakeInfo?.type === 'Bento';
@@ -1155,27 +1261,28 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                  onIcingDesignChange(newIcingDesign);
                                }}
                              />
-                             <div className={`mt-2 pt-2 border-t border-slate-100 pl-1 transition-opacity ${!isEnabled ? 'opacity-40' : ''}`}>
-                               <div className="flex justify-between items-center mb-2">
-                                 <label className="block text-sm font-medium text-slate-600">Color</label>
-                                 {canRevert && isEnabled && (
+                             <div className={`mt-2 ${!isEnabled && !isDisabled ? 'opacity-40 pointer-events-none' : ''}`}>
+                               {canRevert && isEnabled && (
+                                 <div className="flex justify-end mb-2">
                                    <button onClick={handleRevert} className="flex items-center gap-1 text-xs font-semibold text-purple-600 hover:text-purple-800 p-1 rounded-md hover:bg-purple-50">
                                      <ResetIcon className="w-3 h-3" />
                                      Revert to Original
                                    </button>
-                                 )}
+                                 </div>
+                               )}
+                               <div className={`pb-2 ${!isEnabled && !isDisabled ? 'pointer-events-auto' : ''}`}>
+                                 <ColorPalette
+                                   selectedColor={icingDesign.colors[colorKey] || ''}
+                                   onColorChange={(newHex) => {
+                                     const newIcingDesign = {
+                                       ...icingDesign,
+                                       [featureKey]: true,
+                                       colors: { ...icingDesign.colors, [colorKey]: newHex }
+                                     };
+                                     onIcingDesignChange(newIcingDesign);
+                                   }}
+                                 />
                                </div>
-                               <ColorPalette
-                                 selectedColor={icingDesign.colors[colorKey] || ''}
-                                 onColorChange={(newHex) => {
-                                   const newIcingDesign = {
-                                     ...icingDesign,
-                                     [featureKey]: true,
-                                     colors: { ...icingDesign.colors, [colorKey]: newHex }
-                                   };
-                                   onIcingDesignChange(newIcingDesign);
-                                 }}
-                               />
                              </div>
                            </>
                          );
@@ -1207,16 +1314,15 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                          const hasMessage = messagePosition ? cakeMessages.some(msg => msg.position === messagePosition) : false;
 
                          return (
-                           <div>
-                             <div className="flex justify-between items-center mb-2">
-                               <label className="block text-sm font-medium text-slate-800">{label}</label>
-                               {canRevert && (
+                           <div className="pb-2">
+                             {canRevert && (
+                               <div className="flex justify-end mb-2">
                                  <button onClick={handleRevert} className="flex items-center gap-1 text-xs font-semibold text-purple-600 hover:text-purple-800 p-1 rounded-md hover:bg-purple-50">
                                    <ResetIcon className="w-3 h-3" />
                                    Revert to Original
                                  </button>
-                               )}
-                             </div>
+                               </div>
+                             )}
                              <ColorPalette
                                selectedColor={icingDesign.colors[colorKey] || ''}
                                onColorChange={(newHex) => {
@@ -1257,16 +1363,15 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                          const hasSideMessage = cakeMessages.some(msg => msg.position === 'side');
 
                          return (
-                           <div>
-                             <div className="flex justify-between items-center mb-2">
-                               <label className="block text-sm font-medium text-slate-800">Icing Color</label>
-                               {canRevert && (
+                           <div className="pb-2">
+                             {canRevert && (
+                               <div className="flex justify-end mb-2">
                                  <button onClick={handleRevert} className="flex items-center gap-1 text-xs font-semibold text-purple-600 hover:text-purple-800 p-1 rounded-md hover:bg-purple-50">
                                    <ResetIcon className="w-3 h-3" />
                                    Revert to Original
                                  </button>
-                               )}
-                             </div>
+                               </div>
+                             )}
                              <ColorPalette
                                selectedColor={currentColor}
                                onColorChange={(newHex) => {
@@ -1554,6 +1659,92 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
               isAdmin={isAdmin}
           />
        )}
+        {/* Messages Panel */}
+        {showMessagesPanel && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowMessagesPanel(false)}>
+                <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                    <div className="sticky top-0 bg-white border-b border-slate-200 p-4 flex justify-between items-center rounded-t-xl">
+                        <h2 className="text-lg font-bold text-slate-800">Cake Messages</h2>
+                        <button
+                            onClick={() => setShowMessagesPanel(false)}
+                            className="text-slate-400 hover:text-slate-600 transition-colors"
+                            aria-label="Close messages panel"
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div className="p-4 space-y-4">
+                        {/* List all messages */}
+                        {cakeMessages.map((message) => (
+                            <div key={message.id} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="flex-1">
+                                        <div className="text-xs font-semibold text-purple-600 uppercase mb-1">
+                                            {message.position === 'top' ? 'Cake Top' : message.position === 'side' ? 'Cake Front' : 'Base Board'}
+                                        </div>
+                                        <div className="text-sm font-medium text-slate-800">{message.text}</div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            removeCakeMessage(message.id);
+                                            if (cakeMessages.length === 1) {
+                                                setShowMessagesPanel(false);
+                                            }
+                                        }}
+                                        className="text-red-500 hover:text-red-700 transition-colors ml-2"
+                                        aria-label="Delete message"
+                                    >
+                                        <TrashIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                <div className="flex gap-2 text-xs text-slate-600">
+                                    <span>Font: {message.font}</span>
+                                    <span>•</span>
+                                    <span>Color: {message.color}</span>
+                                </div>
+                            </div>
+                        ))}
+
+                        {/* Add message buttons */}
+                        <div className="space-y-2 pt-2 border-t border-slate-200">
+                            <div className="text-xs font-semibold text-slate-600 mb-2">Add New Message</div>
+                            {!cakeMessages.some(m => m.position === 'top') && (
+                                <button
+                                    onClick={() => {
+                                        addCakeMessage('top');
+                                    }}
+                                    className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
+                                >
+                                    <span className="text-base">+</span> Add Message (Cake Top)
+                                </button>
+                            )}
+                            {!cakeMessages.some(m => m.position === 'side') && (
+                                <button
+                                    onClick={() => {
+                                        addCakeMessage('side');
+                                    }}
+                                    className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
+                                >
+                                    <span className="text-base">+</span> Add Message (Cake Front)
+                                </button>
+                            )}
+                            {!cakeMessages.some(m => m.position === 'base_board') && cakeInfo?.type !== 'Bento' && (
+                                <button
+                                    onClick={() => {
+                                        addCakeMessage('base_board');
+                                    }}
+                                    className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
+                                >
+                                    <span className="text-base">+</span> Add Message (Base Board)
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
         {dominantMotif && (
             <MotifPanel
                 isOpen={isMotifPanelOpen}

@@ -10,7 +10,7 @@ export const ColorPalette: React.FC<ColorPaletteProps> = React.memo(({ selectedC
   const ringClass = 'ring-2 ring-offset-2 ring-offset-slate-50';
 
   return (
-    <div className={`flex flex-wrap gap-2`}>
+    <div className={`flex flex-wrap gap-2 justify-center`}>
       {COLORS.map((color) => (
         <button
           key={color.name}
