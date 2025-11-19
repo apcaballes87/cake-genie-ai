@@ -2,7 +2,7 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { MainTopperUI, SupportElementUI, CakeMessageUI, MainTopperType, SupportElementType, IcingDesignUI, IcingColorDetails, CakeType, HybridAnalysisResult } from '../types';
 // FIX: Changed import from non-existent ArrowLeft to BackIcon.
-import { PencilIcon, PhotoIcon, TrashIcon, BackIcon, Loader2, ResetIcon } from './icons';
+import { PencilIcon, PhotoIcon, TrashIcon, BackIcon, Loader2, ResetIcon, MagicSparkleIcon } from './icons';
 import { ColorPalette } from './ColorPalette';
 import { MultiColorEditor } from './MultiColorEditor';
 import { ClusteredMarker, AnalysisItem } from '../app/customizing/page';
@@ -53,6 +53,8 @@ interface FloatingResultPanelProps {
   analysisResult: HybridAnalysisResult | null;
   itemPrices: Map<string, number>;
   isAdmin?: boolean;
+  onUpdateDesign: () => void;
+  isUpdatingDesign: boolean;
 }
 
 const SimpleToggle: React.FC<{ label: string; isEnabled: boolean; onChange: (enabled: boolean) => void; disabled?: boolean; }> = ({ label, isEnabled, onChange, disabled=false }) => (
@@ -62,29 +64,29 @@ const SimpleToggle: React.FC<{ label: string; isEnabled: boolean; onChange: (ena
             type="button"
             onClick={() => !disabled && onChange(!isEnabled)}
             disabled={disabled}
-            className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isEnabled ? 'bg-purple-600' : 'bg-slate-300'}`}
+            className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors duration-200 ease-in-out ${isEnabled ? 'bg-purple-600' : 'bg-slate-300'}`}
             aria-pressed={isEnabled}
         >
-            <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+            <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out ${isEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
     </div>
 );
 
 const PanelToggle: React.FC<{ label: React.ReactNode; isEnabled: boolean; onChange: (enabled: boolean) => void; price?: number; children?: React.ReactNode; onDelete?: () => void; disabled?: boolean; }> = ({ label, isEnabled, onChange, price, children, onDelete, disabled = false }) => (
-    <div className={`p-2 rounded-md transition-opacity ${isEnabled ? 'opacity-100' : 'opacity-60'} ${disabled ? 'opacity-50 bg-slate-50 cursor-not-allowed' : ''}`}>
+    <div className={`p-2 rounded-md transition-opacity duration-200 ${isEnabled ? 'opacity-100' : 'opacity-60'} ${disabled ? 'opacity-50 bg-slate-50 cursor-not-allowed' : ''}`}>
         <div className="flex justify-between items-center">
              <div className="flex items-center gap-3">
-                <div className={`text-xs font-medium ${isEnabled ? 'text-slate-800' : 'text-slate-500 line-through'} ${disabled ? 'text-slate-400' : ''}`}>{label}</div>
+                <div className={`text-xs font-medium transition-colors duration-200 ${isEnabled ? 'text-slate-800' : 'text-slate-500 line-through'} ${disabled ? 'text-slate-400' : ''}`}>{label}</div>
             </div>
             <div className="flex items-center space-x-2">
-                {price !== undefined && price > 0 && <span className={`text-xs font-semibold ${isEnabled ? 'text-green-600' : 'text-slate-400 line-through'}`}>₱{price}</span>}
+                {price !== undefined && price > 0 && <span className={`text-xs font-semibold transition-colors duration-200 ${isEnabled ? 'text-green-600' : 'text-slate-400 line-through'}`}>₱{price}</span>}
                 {onDelete && (
-                    <button type="button" onClick={!disabled ? onDelete : undefined} disabled={disabled} className="p-1.5 text-slate-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-colors disabled:opacity-50" aria-label="Remove item">
+                    <button type="button" onClick={!disabled ? onDelete : undefined} disabled={disabled} className="p-1.5 text-slate-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-colors duration-200 disabled:opacity-50" aria-label="Remove item">
                         <TrashIcon className="w-4 h-4" />
                     </button>
                 )}
-                <button type="button" onClick={() => !disabled && onChange(!isEnabled)} disabled={disabled} className={`relative inline-flex items-center h-5 w-9 transition-colors rounded-full ${isEnabled ? 'bg-purple-600' : 'bg-slate-300'} ${disabled ? 'cursor-not-allowed' : ''}`} aria-pressed={isEnabled}>
-                    <span className={`inline-block w-3.5 h-3.5 transform bg-white rounded-full transition-transform ${isEnabled ? 'translate-x-4' : 'translate-x-1'}`} />
+                <button type="button" onClick={() => !disabled && onChange(!isEnabled)} disabled={disabled} className={`relative inline-flex items-center h-5 w-9 transition-colors duration-200 ease-in-out rounded-full ${isEnabled ? 'bg-purple-600' : 'bg-slate-300'} ${disabled ? 'cursor-not-allowed' : ''}`} aria-pressed={isEnabled}>
+                    <span className={`inline-block w-3.5 h-3.5 transform bg-white rounded-full transition-transform duration-200 ease-in-out ${isEnabled ? 'translate-x-4' : 'translate-x-1'}`} />
                 </button>
             </div>
         </div>
@@ -101,7 +103,8 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
     cakeMessages, updateCakeMessage, removeCakeMessage, addCakeMessage, onCakeMessageChange,
     icingDesign, onIcingDesignChange,
     analysisResult,
-    itemPrices, isAdmin
+    itemPrices, isAdmin,
+    onUpdateDesign, isUpdatingDesign
 }) => {
   const [dragStartX, setDragStartX] = useState<number | null>(null);
   const [dragDeltaX, setDragDeltaX] = useState(0);
@@ -261,7 +264,59 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
 
   const inViewClass = 'translate-x-0';
   const outOfViewClass = 'translate-x-[calc(100%+2rem)]';
-  
+
+  // Check if there are any changes in the current item(s) compared to original
+  const hasChanges = useMemo(() => {
+    if (!upToDateItem || !analysisResult) return false;
+
+    const checkItemChanges = (item: AnalysisItem): boolean => {
+      if (item.itemCategory === 'topper') {
+        const topper = item as MainTopperUI;
+        const original = analysisResult.main_toppers?.find(t => t.id === topper.id);
+        if (!original) return false;
+        return (
+          topper.type !== original.type ||
+          topper.color !== original.color ||
+          topper.isEnabled !== original.isEnabled ||
+          JSON.stringify(topper.colors) !== JSON.stringify(original.colors) ||
+          !!topper.replacementImage
+        );
+      }
+
+      if (item.itemCategory === 'element') {
+        const element = item as SupportElementUI;
+        const original = analysisResult.support_elements?.find(e => e.id === element.id);
+        if (!original) return false;
+        return (
+          element.type !== original.type ||
+          element.color !== original.color ||
+          element.isEnabled !== original.isEnabled ||
+          JSON.stringify(element.colors) !== JSON.stringify(original.colors) ||
+          !!element.replacementImage
+        );
+      }
+
+      if (item.itemCategory === 'message') {
+        const message = item as CakeMessageUI;
+        const original = analysisResult.cake_messages?.find(m => m.id === message.id);
+        if (!original) return true; // New message
+        return (
+          message.text !== original.text ||
+          message.color !== original.color ||
+          message.isEnabled !== original.isEnabled
+        );
+      }
+
+      return false;
+    };
+
+    if ('isCluster' in upToDateItem && upToDateItem.isCluster) {
+      return upToDateItem.items.some(item => checkItemChanges(item));
+    }
+
+    return checkItemChanges(upToDateItem as AnalysisItem);
+  }, [upToDateItem, analysisResult]);
+
   const renderSingleItemEditor = (itemToRender: AnalysisItem) => {
     if (itemToRender.itemCategory === 'topper' || itemToRender.itemCategory === 'element') {
         const item = itemToRender as MainTopperUI | SupportElementUI;
@@ -436,18 +491,9 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
                                             </button>
                                         )}
                                     </div>
-                                    {editingColorForItemId === item.id ? (
-                                        <div className="animate-fade-in-fast">
-                                            <ColorPalette selectedColor={currentColor || ''} onColorChange={(newHex) => { (isTopper ? updateMainTopper : updateSupportElement)(item.id, { color: newHex }); setEditingColorForItemId(null); }} />
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-5 h-5 rounded-full border border-slate-300" style={{ backgroundColor: currentColor || '#FFFFFF' }}></div>
-                                            <button type="button" onClick={() => setEditingColorForItemId(item.id)} className="flex items-center gap-1.5 text-xs font-semibold text-purple-600 hover:text-purple-800 p-1 rounded-md hover:bg-purple-50">
-                                                <PencilIcon className="w-3 h-3" /> Change
-                                            </button>
-                                        </div>
-                                    )}
+                                    <div className="animate-fade-in-fast">
+                                        <ColorPalette selectedColor={currentColor || ''} onColorChange={(newHex) => { (isTopper ? updateMainTopper : updateSupportElement)(item.id, { color: newHex }); }} />
+                                    </div>
                                 </div>
                             );
                         })()}
@@ -479,18 +525,9 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
                     </div>
                     <div>
                         <label className="block text-[10px] font-medium text-slate-600 mb-1">Color</label>
-                        {editingColorForItemId === message.id ? (
-                            <div className="animate-fade-in-fast">
-                                <ColorPalette selectedColor={message.color} onColorChange={(hex) => { updateCakeMessage(message.id, { color: hex }); setEditingColorForItemId(null); }} />
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-full border border-slate-300" style={{ backgroundColor: message.color || '#FFFFFF' }}></div>
-                                <button type="button" onClick={() => setEditingColorForItemId(message.id)} className="flex items-center gap-1.5 text-xs font-semibold text-purple-600 hover:text-purple-800 p-1 rounded-md hover:bg-purple-50">
-                                    <PencilIcon className="w-3 h-3" /> Change
-                                </button>
-                            </div>
-                        )}
+                        <div className="animate-fade-in-fast">
+                            <ColorPalette selectedColor={message.color} onColorChange={(hex) => { updateCakeMessage(message.id, { color: hex }); }} />
+                        </div>
                     </div>
                 </div>
             </PanelToggle>
@@ -618,19 +655,103 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
             );
         };
 
+        // Helper function for rendering combined icing color picker
+        const renderCombinedIcingColor = () => {
+            const originalTopColor = analysisResult?.icing_design.colors.top;
+            const originalSideColor = analysisResult?.icing_design.colors.side;
+            const currentColor = icingDesign.colors.top || icingDesign.colors.side || '#FFFFFF';
+
+            const canRevertTop = originalTopColor && icingDesign.colors.top !== originalTopColor;
+            const canRevertSide = originalSideColor && icingDesign.colors.side !== originalSideColor;
+            const canRevert = canRevertTop || canRevertSide;
+
+            const handleRevert = () => {
+                const newColors = { ...icingDesign.colors };
+                if (canRevertTop && originalTopColor) newColors.top = originalTopColor;
+                if (canRevertSide && originalSideColor) newColors.side = originalSideColor;
+                onIcingDesignChange({ ...icingDesign, colors: newColors });
+            };
+
+            // Check if messages exist for top or side
+            const hasTopMessage = cakeMessages.some(msg => msg.position === 'top');
+            const hasSideMessage = cakeMessages.some(msg => msg.position === 'side');
+
+            return (
+                <div>
+                    <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-medium text-slate-800">Icing Color</label>
+                        {canRevert && (
+                            <button onClick={handleRevert} className="flex items-center gap-1 text-xs font-semibold text-purple-600 hover:text-purple-800 p-1 rounded-md hover:bg-purple-50">
+                                <ResetIcon className="w-3 h-3" />
+                                Revert to Original
+                            </button>
+                        )}
+                    </div>
+                    <ColorPalette
+                        selectedColor={currentColor}
+                        onColorChange={(newHex) => {
+                            // Update both top and side colors
+                            onIcingDesignChange({
+                                ...icingDesign,
+                                colors: {
+                                    ...icingDesign.colors,
+                                    top: newHex,
+                                    side: newHex
+                                }
+                            });
+                        }}
+                    />
+
+                    {/* Add Message buttons for both positions */}
+                    {!hasTopMessage && (
+                        <button
+                            type="button"
+                            onClick={() => addCakeMessage('top')}
+                            className="w-full mt-3 text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
+                        >
+                            <span className="text-base">+</span> + Add Message (Cake Top Side)
+                        </button>
+                    )}
+                    {!hasSideMessage && (
+                        <button
+                            type="button"
+                            onClick={() => addCakeMessage('side')}
+                            className="w-full mt-3 text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
+                        >
+                            <span className="text-base">+</span> + Add Message (Cake Front Side)
+                        </button>
+                    )}
+                </div>
+            );
+        };
+
         switch (description) {
-            case 'Drip Effect':
+            case 'Drip':
                 return renderToggleAndColor('drip', 'drip', 'Enable Drip Effect');
-            case 'Top Border':
+            case 'Top':
                 return renderToggleAndColor('border_top', 'borderTop', 'Enable Top Border');
-            case 'Base Border':
+            case 'Bottom':
                 return renderToggleAndColor('border_base', 'borderBase', 'Enable Base Border');
-            case 'Gumpaste Covered Board':
+            case 'Board':
                 return renderToggleAndColor('gumpasteBaseBoard', 'gumpasteBaseBoardColor', 'Enable Covered Board');
-            case 'Side Icing Color':
-                return renderColorOnly('side', 'Side Icing Color');
-            case 'Top Icing Color':
-                return renderColorOnly('top', 'Top Icing Color');
+            case 'Icing':
+                // Check if top and side colors are the same
+                const topColor = icingDesign.colors?.top;
+                const sideColor = icingDesign.colors?.side;
+                const sameColors = topColor && sideColor && topColor.toUpperCase() === sideColor.toUpperCase();
+
+                if (sameColors) {
+                    // Show combined color picker
+                    return renderCombinedIcingColor();
+                } else {
+                    // Determine which color to show based on item id if available
+                    const itemId = (itemToRender as any).id || '';
+                    if (itemId.includes('top')) {
+                        return renderColorOnly('top', 'Top Icing Color');
+                    } else {
+                        return renderColorOnly('side', 'Side Icing Color');
+                    }
+                }
             default:
                 return <p className="p-2 text-xs text-slate-500">Select an icing feature to edit.</p>;
         }
@@ -648,28 +769,52 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
       className={`fixed bottom-28 right-4 w-80 max-w-[90vw] bg-white/90 backdrop-blur-lg shadow-2xl border border-slate-200 z-50 flex flex-col transform rounded-xl ${selectedItem && !isDragging ? 'transition-transform duration-300 ease-out' : ''} ${selectedItem ? inViewClass : outOfViewClass}`}
       style={isDragging ? { transform: `translateX(${dragDeltaX}px)` } : {}}
     >
-        <div className="p-3 flex-grow overflow-y-auto space-y-3 max-h-[calc(100vh-12rem)]">
-            {(() => {
-                if (!upToDateItem) return null;
+        <div className="relative flex-1 flex flex-col">
+            <div className={`p-3 flex-grow overflow-y-auto space-y-3 max-h-[calc(100vh-12rem)] transition-all duration-200 ${hasChanges || isUpdatingDesign ? 'pb-14' : 'pb-3'}`}>
+                {(() => {
+                    if (!upToDateItem) return null;
 
-                if ('isCluster' in upToDateItem && upToDateItem.isCluster) {
-                    return (
-                        <div>
-                            <h3 className="text-xs font-semibold text-slate-500 mb-2">{upToDateItem.items.length} Items Found Here</h3>
-                            <div className="space-y-2">
-                                {upToDateItem.items.map(item => (
-                                    <div key={item.id} className="border border-slate-200 rounded-lg bg-white">
-                                        {renderSingleItemEditor(item)}
-                                    </div>
-                                ))}
+                    if ('isCluster' in upToDateItem && upToDateItem.isCluster) {
+                        return (
+                            <div>
+                                <h3 className="text-xs font-semibold text-slate-500 mb-2">{upToDateItem.items.length} Items Found Here</h3>
+                                <div className="space-y-2">
+                                    {upToDateItem.items.map(item => (
+                                        <div key={item.id} className="border border-slate-200 rounded-lg bg-white">
+                                            {renderSingleItemEditor(item)}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    );
-                }
-                
-                // It's a single item
-                return renderSingleItemEditor(upToDateItem as AnalysisItem);
-            })()}
+                        );
+                    }
+
+                    // It's a single item
+                    return renderSingleItemEditor(upToDateItem as AnalysisItem);
+                })()}
+            </div>
+
+            {/* Apply button in lower right corner - only show when there are changes */}
+            {(hasChanges || isUpdatingDesign) && (
+                <button
+                    onClick={onUpdateDesign}
+                    disabled={isUpdatingDesign}
+                    className="absolute bottom-2 right-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold py-1.5 px-3.5 rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center gap-1.5 text-sm"
+                    title="Apply changes to design"
+                >
+                    {isUpdatingDesign ? (
+                        <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Updating...
+                        </>
+                    ) : (
+                        <>
+                            <MagicSparkleIcon className="w-3.5 h-3.5" />
+                            Apply
+                        </>
+                    )}
+                </button>
+            )}
         </div>
     </div>
   );
