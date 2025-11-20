@@ -270,29 +270,35 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
     };
 
     // Helper function to get color-aware icing image
-    const getIcingImage = (colorKey: 'top' | 'side'): string => {
+    const getIcingImage = (colorKey: 'top' | 'side', isTopSpecific: boolean = false): string => {
         const icingColor = effectiveIcingDesign.colors?.[colorKey];
         const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
 
+        // Determine prefix based on colorKey and flag
+        // Only use topicing_ prefix if it is explicitly the Top Icing tool in dual-color mode
+        const useTopPrefix = colorKey === 'top' && isTopSpecific;
+        const prefix = useTopPrefix ? 'topicing_' : 'icing_';
+        const defaultImage = useTopPrefix ? 'topicing_white.webp' : 'icing_white.webp';
+
         if (!icingColor) {
-            return baseUrl + 'icing_white.webp';
+            return baseUrl + defaultImage;
         }
 
         const availableColors = [
             { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
-            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey'], hex: '#FFFFFF' },
-            { name: 'red', keywords: ['light red', 'dark red', 'red'], hex: '#FF0000' },
-            { name: 'blue', keywords: ['light blue', 'dark blue', 'blue'], hex: '#0000FF' },
-            { name: 'purple', keywords: ['light purple', 'purple', 'violet'], hex: '#800080' },
-            { name: 'green', keywords: ['light green', 'dark green', 'green'], hex: '#00FF00' },
-            { name: 'yellow', keywords: ['light yellow', 'yellow'], hex: '#FFFF00' },
+            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey', 'silver'], hex: '#FFFFFF' },
+            { name: 'blue', keywords: ['light blue', 'dark blue', 'blue', 'cyan', 'sky', 'azure', 'baby blue'], hex: '#0000FF' },
+            { name: 'red', keywords: ['light red', 'dark red', 'red', 'maroon', 'crimson'], hex: '#FF0000' },
+            { name: 'purple', keywords: ['light purple', 'purple', 'violet', 'lavender', 'lilac'], hex: '#800080' },
+            { name: 'green', keywords: ['light green', 'dark green', 'green', 'lime', 'mint'], hex: '#00FF00' },
+            { name: 'yellow', keywords: ['light yellow', 'yellow', 'gold'], hex: '#FFFF00' },
             { name: 'orange', keywords: ['light orange', 'orange'], hex: '#FFA500' },
             { name: 'brown', keywords: ['brown', 'chocolate', 'tan'], hex: '#8B4513' },
-            { name: 'pink', keywords: ['light pink', 'pink'], hex: '#FFC0CB' },
+            { name: 'pink', keywords: ['light pink', 'pink', 'rose', 'magenta', 'fuchsia'], hex: '#FFC0CB' },
         ];
 
         const matchedColor = findClosestColor(icingColor, availableColors);
-        return baseUrl + `icing_${matchedColor}.webp`;
+        return baseUrl + `${prefix}${matchedColor}.webp`;
     };
 
     // Helper function to get color-aware drip image
@@ -382,14 +388,14 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
         { id: 'drip', description: 'Drip', label: 'Drip', icon: <img src={getDripImage()} alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
         { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <img src={getTopBorderImage()} alt="Top border" />, featureFlag: effectiveIcingDesign.border_top },
         { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <img src={getBaseBorderImage()} alt="Base border" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
-        { id: 'icing', description: 'Icing', label: 'Body Icing', icon: <img src={getIcingImage('top')} alt="Icing color" />, featureFlag: !!(effectiveIcingDesign.colors?.top || effectiveIcingDesign.colors?.side) },
+        { id: 'icing', description: 'Body Icing', label: 'Body Icing', icon: <img src={getIcingImage('top', false)} alt="Icing color" />, featureFlag: !!(effectiveIcingDesign.colors?.top || effectiveIcingDesign.colors?.side) },
         { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <img src={getBaseboardImage()} alt="Gumpaste baseboard" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
     ] : [
         { id: 'drip', description: 'Drip', label: 'Drip', icon: <img src={getDripImage()} alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
         { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <img src={getTopBorderImage()} alt="Top border" />, featureFlag: effectiveIcingDesign.border_top },
         { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <img src={getBaseBorderImage()} alt="Base border" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
-        { id: 'top', description: 'Icing', label: 'Body Icing', icon: <img src={getIcingImage('top')} alt="Top icing" />, featureFlag: !!effectiveIcingDesign.colors?.top },
-        { id: 'side', description: 'Icing', label: 'Body Icing', icon: <img src={getIcingImage('side')} alt="Side icing" />, featureFlag: !!effectiveIcingDesign.colors?.side },
+        { id: 'top', description: 'Top Icing', label: 'Top Icing', icon: <img src={getIcingImage('top', true)} alt="Top icing" />, featureFlag: !!effectiveIcingDesign.colors?.top },
+        { id: 'side', description: 'Side Icing', label: 'Body Icing', icon: <img src={getIcingImage('side', false)} alt="Side icing" />, featureFlag: !!effectiveIcingDesign.colors?.side },
         { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <img src={getBaseboardImage()} alt="Gumpaste baseboard" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
     ];
 
@@ -419,7 +425,7 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
         <div className={`flex flex-row gap-3 justify-center transition-opacity ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             {tools.map((tool, index) => {
                 const isGuideActive = activeGuideIndex === index;
-                const isSelected = selectedItem && 'description' in selectedItem && selectedItem.description === tool.description;
+                const isSelected = selectedItem && 'id' in selectedItem && selectedItem.id === `icing-edit-${tool.id}`;
                 return (
                     <div key={tool.id} className="flex flex-col items-center gap-1 group">
                         <button
@@ -1198,223 +1204,214 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                         );
 
                         return (
-                        <div className={`w-full bg-white/70 backdrop-blur-sm rounded-xl border border-slate-200 px-4 pt-4 relative transition-all duration-200 ${hasIcingChanges || isUpdatingDesign ? 'pb-16' : 'pb-8'}`}>
-                            <div className="flex justify-between items-center mb-2">
-                                <h3 className="text-sm font-semibold text-slate-700">Change Icing Colors</h3>
-                                <button
-                                    onClick={() => {
-                                        if (analysisResult?.icing_design) {
-                                            onIcingDesignChange(analysisResult.icing_design);
-                                            setSelectedItem(null);
-                                        }
-                                    }}
-                                    className="text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors flex items-center gap-1"
-                                >
-                                    <ResetIcon className="w-3 h-3" />
-                                    Revert to Original
-                                </button>
-                            </div>
-                            <IcingToolbar
-                                onSelectItem={setSelectedItem}
-                                icingDesign={icingDesign}
-                                cakeType={cakeInfo?.type || null}
-                                isVisible={areHelpersVisible}
-                                showGuide={showIcingGuide}
-                                selectedItem={selectedItem}
-                            />
-
-                            {/* Inline Icing Editor Panel - Slides down below toolbar */}
-                            {selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'icing' && (
-                                <div
-                                    className="overflow-hidden transition-all duration-300 ease-in-out"
-                                    style={{
-                                        maxHeight: selectedItem ? '500px' : '0px',
-                                    }}
-                                >
-                                    <div className="mt-3 pt-3">
-                                        {(() => {
-                                            const description = selectedItem.description;
-                                            const isBento = cakeInfo?.type === 'Bento';
-
-                                            // Helper function for toggle + color picker (drip, borders, baseboard)
-                                            const renderToggleAndColor = (
-                                                featureKey: 'drip' | 'border_top' | 'border_base' | 'gumpasteBaseBoard',
-                                                colorKey: keyof IcingColorDetails,
-                                                label: string
-                                            ) => {
-                                                const originalColor = analysisResult?.icing_design.colors[colorKey];
-                                                const currentColor = icingDesign.colors[colorKey];
-                                                const canRevert = originalColor && currentColor !== originalColor;
-
-                                                const handleRevert = () => {
-                                                    if (canRevert) {
-                                                        onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: originalColor } });
-                                                    }
-                                                };
-
-                                                const isEnabled = icingDesign[featureKey];
-                                                const isDisabled = (featureKey === 'border_base' || featureKey === 'gumpasteBaseBoard') && isBento;
-
-                                                return (
-                                                    <>
-                                                        <SimpleToggle
-                                                            label={label}
-                                                            isEnabled={isEnabled}
-                                                            disabled={isDisabled}
-                                                            onChange={(enabled) => {
-                                                                const newIcingDesign = { ...icingDesign, [featureKey]: enabled };
-                                                                if (enabled && !newIcingDesign.colors[colorKey]) {
-                                                                    newIcingDesign.colors = { ...newIcingDesign.colors, [colorKey]: '#FFFFFF' };
-                                                                }
-                                                                onIcingDesignChange(newIcingDesign);
-                                                            }}
-                                                        />
-                                                        <div className={`mt-2 ${!isEnabled && !isDisabled ? 'opacity-40 pointer-events-none' : ''}`}>
-                                                            <div className={`pb-2 ${!isEnabled && !isDisabled ? 'pointer-events-auto' : ''}`}>
-                                                                <ColorPalette
-                                                                    selectedColor={icingDesign.colors[colorKey] || ''}
-                                                                    onColorChange={(newHex) => {
-                                                                        const newIcingDesign = {
-                                                                            ...icingDesign,
-                                                                            [featureKey]: true,
-                                                                            colors: { ...icingDesign.colors, [colorKey]: newHex }
-                                                                        };
-                                                                        onIcingDesignChange(newIcingDesign);
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </>
-                                                );
-                                            };
-
-                                            // Helper function for color picker only (top/side icing)
-                                            const renderColorOnly = (colorKey: keyof IcingColorDetails, label: string) => {
-                                                const originalColor = analysisResult?.icing_design.colors[colorKey];
-                                                const currentColor = icingDesign.colors[colorKey];
-                                                const canRevert = originalColor && currentColor !== originalColor;
-
-                                                const handleRevert = () => {
-                                                    if (canRevert) {
-                                                        onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: originalColor } });
-                                                    }
-                                                };
-
-                                                return (
-                                                    <div className="pb-2">
-                                                        <ColorPalette
-                                                            selectedColor={icingDesign.colors[colorKey] || ''}
-                                                            onColorChange={(newHex) => {
-                                                                onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: newHex } });
-                                                            }}
-                                                        />
-                                                    </div>
-                                                );
-                                            };
-
-                                            // Helper function for combined icing color picker
-                                            const renderCombinedIcingColor = () => {
-                                                const originalTopColor = analysisResult?.icing_design.colors.top;
-                                                const originalSideColor = analysisResult?.icing_design.colors.side;
-                                                const currentColor = icingDesign.colors.top || icingDesign.colors.side || '#FFFFFF';
-
-                                                const canRevertTop = originalTopColor && icingDesign.colors.top !== originalTopColor;
-                                                const canRevertSide = originalSideColor && icingDesign.colors.side !== originalSideColor;
-                                                const canRevert = canRevertTop || canRevertSide;
-
-                                                const handleRevert = () => {
-                                                    const newColors = { ...icingDesign.colors };
-                                                    if (canRevertTop && originalTopColor) newColors.top = originalTopColor;
-                                                    if (canRevertSide && originalSideColor) newColors.side = originalSideColor;
-                                                    onIcingDesignChange({ ...icingDesign, colors: newColors });
-                                                };
-
-                                                return (
-                                                    <div className="pb-2">
-                                                        <ColorPalette
-                                                            selectedColor={currentColor}
-                                                            onColorChange={(newHex) => {
-                                                                onIcingDesignChange({
-                                                                    ...icingDesign,
-                                                                    colors: {
-                                                                        ...icingDesign.colors,
-                                                                        top: newHex,
-                                                                        side: newHex
-                                                                    }
-                                                                });
-                                                            }}
-                                                        />
-                                                    </div>
-                                                );
-                                            };
-
-                                            // Switch based on description to render appropriate editor
-                                            switch (description) {
-                                                case 'Drip':
-                                                    return renderToggleAndColor('drip', 'drip', 'Enable Drip Effect');
-                                                case 'Top':
-                                                    return renderToggleAndColor('border_top', 'borderTop', 'Enable Top Border');
-                                                case 'Bottom':
-                                                    return renderToggleAndColor('border_base', 'borderBase', 'Enable Base Border');
-                                                case 'Board':
-                                                    return renderToggleAndColor('gumpasteBaseBoard', 'gumpasteBaseBoardColor', 'Enable Covered Board');
-                                                case 'Icing':
-                                                    const topColor = icingDesign.colors?.top;
-                                                    const sideColor = icingDesign.colors?.side;
-                                                    const sameColors = topColor && sideColor && topColor.toUpperCase() === sideColor.toUpperCase();
-
-                                                    if (sameColors) {
-                                                        return renderCombinedIcingColor();
-                                                    } else {
-                                                        const itemId = (selectedItem as any).id || '';
-                                                        if (itemId.includes('top')) {
-                                                            return renderColorOnly('top', 'Top Icing Color');
-                                                        } else {
-                                                            return renderColorOnly('side', 'Side Icing Color');
-                                                        }
-                                                    }
-                                                default:
-                                                    return <p className="p-2 text-xs text-slate-500">Select an icing feature to edit.</p>;
-                                            }
-                                        })()}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Small Apply button in lower right corner - only show when there are changes */}
-                            {(() => {
-                                const hasIcingChanges = analysisResult?.icing_design && icingDesign && (
-                                    JSON.stringify(icingDesign.colors) !== JSON.stringify(analysisResult.icing_design.colors) ||
-                                    icingDesign.drip !== analysisResult.icing_design.drip ||
-                                    icingDesign.border_top !== analysisResult.icing_design.border_top ||
-                                    icingDesign.border_base !== analysisResult.icing_design.border_base ||
-                                    icingDesign.gumpasteBaseBoard !== analysisResult.icing_design.gumpasteBaseBoard
-                                );
-
-                                if (!hasIcingChanges && !isUpdatingDesign) return null;
-
-                                return (
+                            <div className={`w-full bg-white/70 backdrop-blur-sm rounded-xl border border-slate-200 px-4 pt-4 relative transition-all duration-200 ${hasIcingChanges || isUpdatingDesign ? 'pb-16' : 'pb-8'}`}>
+                                <div className="flex justify-between items-center mb-2">
+                                    <h3 className="text-sm font-semibold text-slate-700">Change Icing Colors</h3>
                                     <button
-                                        onClick={onUpdateDesign}
-                                        disabled={isUpdatingDesign || !originalImageData}
-                                        className="absolute bottom-4 right-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold py-1.5 px-3.5 rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center gap-1.5 text-sm"
-                                        title="Apply icing color changes"
+                                        onClick={() => {
+                                            if (analysisResult?.icing_design) {
+                                                onIcingDesignChange(analysisResult.icing_design);
+                                                setSelectedItem(null);
+                                            }
+                                        }}
+                                        className="text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors flex items-center gap-1"
                                     >
-                                        {isUpdatingDesign ? (
-                                            <>
-                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                Updating...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <MagicSparkleIcon className="w-3.5 h-3.5" />
-                                                Apply
-                                            </>
-                                        )}
+                                        <ResetIcon className="w-3 h-3" />
+                                        Revert to Original
                                     </button>
-                                );
-                            })()}
-                        </div>
+                                </div>
+                                <IcingToolbar
+                                    onSelectItem={setSelectedItem}
+                                    icingDesign={icingDesign}
+                                    cakeType={cakeInfo?.type || null}
+                                    isVisible={areHelpersVisible}
+                                    showGuide={showIcingGuide}
+                                    selectedItem={selectedItem}
+                                />
+
+                                {/* Inline Icing Editor Panel - Slides down below toolbar */}
+                                {selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'icing' && (
+                                    <div
+                                        className="overflow-hidden transition-all duration-300 ease-in-out"
+                                        style={{
+                                            maxHeight: selectedItem ? '500px' : '0px',
+                                        }}
+                                    >
+                                        <div className="mt-3 pt-3">
+                                            {(() => {
+                                                const description = selectedItem.description;
+                                                const isBento = cakeInfo?.type === 'Bento';
+
+                                                // Helper function for toggle + color picker (drip, borders, baseboard)
+                                                const renderToggleAndColor = (
+                                                    featureKey: 'drip' | 'border_top' | 'border_base' | 'gumpasteBaseBoard',
+                                                    colorKey: keyof IcingColorDetails,
+                                                    label: string
+                                                ) => {
+                                                    const originalColor = analysisResult?.icing_design.colors[colorKey];
+                                                    const currentColor = icingDesign.colors[colorKey];
+                                                    const canRevert = originalColor && currentColor !== originalColor;
+
+                                                    const handleRevert = () => {
+                                                        if (canRevert) {
+                                                            onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: originalColor } });
+                                                        }
+                                                    };
+
+                                                    const isEnabled = icingDesign[featureKey];
+                                                    const isDisabled = (featureKey === 'border_base' || featureKey === 'gumpasteBaseBoard') && isBento;
+
+                                                    return (
+                                                        <>
+                                                            <SimpleToggle
+                                                                label={label}
+                                                                isEnabled={isEnabled}
+                                                                disabled={isDisabled}
+                                                                onChange={(enabled) => {
+                                                                    const newIcingDesign = { ...icingDesign, [featureKey]: enabled };
+                                                                    if (enabled && !newIcingDesign.colors[colorKey]) {
+                                                                        newIcingDesign.colors = { ...newIcingDesign.colors, [colorKey]: '#FFFFFF' };
+                                                                    }
+                                                                    onIcingDesignChange(newIcingDesign);
+                                                                }}
+                                                            />
+                                                            <div className={`mt-2 ${!isEnabled && !isDisabled ? 'opacity-40 pointer-events-none' : ''}`}>
+                                                                <div className={`pb-2 ${!isEnabled && !isDisabled ? 'pointer-events-auto' : ''}`}>
+                                                                    <ColorPalette
+                                                                        selectedColor={icingDesign.colors[colorKey] || ''}
+                                                                        onColorChange={(newHex) => {
+                                                                            const newIcingDesign = {
+                                                                                ...icingDesign,
+                                                                                [featureKey]: true,
+                                                                                colors: { ...icingDesign.colors, [colorKey]: newHex }
+                                                                            };
+                                                                            onIcingDesignChange(newIcingDesign);
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </>
+                                                    );
+                                                };
+
+                                                // Helper function for color picker only (top/side icing)
+                                                const renderColorOnly = (colorKey: keyof IcingColorDetails, label: string) => {
+                                                    const originalColor = analysisResult?.icing_design.colors[colorKey];
+                                                    const currentColor = icingDesign.colors[colorKey];
+                                                    const canRevert = originalColor && currentColor !== originalColor;
+
+                                                    const handleRevert = () => {
+                                                        if (canRevert) {
+                                                            onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: originalColor } });
+                                                        }
+                                                    };
+
+                                                    return (
+                                                        <div className="pb-2">
+                                                            <ColorPalette
+                                                                selectedColor={icingDesign.colors[colorKey] || ''}
+                                                                onColorChange={(newHex) => {
+                                                                    onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: newHex } });
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    );
+                                                };
+
+                                                // Helper function for combined icing color picker
+                                                const renderCombinedIcingColor = () => {
+                                                    const originalTopColor = analysisResult?.icing_design.colors.top;
+                                                    const originalSideColor = analysisResult?.icing_design.colors.side;
+                                                    const currentColor = icingDesign.colors.top || icingDesign.colors.side || '#FFFFFF';
+
+                                                    const canRevertTop = originalTopColor && icingDesign.colors.top !== originalTopColor;
+                                                    const canRevertSide = originalSideColor && icingDesign.colors.side !== originalSideColor;
+                                                    const canRevert = canRevertTop || canRevertSide;
+
+                                                    const handleRevert = () => {
+                                                        const newColors = { ...icingDesign.colors };
+                                                        if (canRevertTop && originalTopColor) newColors.top = originalTopColor;
+                                                        if (canRevertSide && originalSideColor) newColors.side = originalSideColor;
+                                                        onIcingDesignChange({ ...icingDesign, colors: newColors });
+                                                    };
+
+                                                    return (
+                                                        <div className="pb-2">
+                                                            <ColorPalette
+                                                                selectedColor={currentColor}
+                                                                onColorChange={(newHex) => {
+                                                                    onIcingDesignChange({
+                                                                        ...icingDesign,
+                                                                        colors: {
+                                                                            ...icingDesign.colors,
+                                                                            top: newHex,
+                                                                            side: newHex
+                                                                        }
+                                                                    });
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    );
+                                                };
+
+                                                // Switch based on description to render appropriate editor
+                                                switch (description) {
+                                                    case 'Drip':
+                                                        return renderToggleAndColor('drip', 'drip', 'Enable Drip Effect');
+                                                    case 'Top':
+                                                        return renderToggleAndColor('border_top', 'borderTop', 'Enable Top Border');
+                                                    case 'Bottom':
+                                                        return renderToggleAndColor('border_base', 'borderBase', 'Enable Base Border');
+                                                    case 'Board':
+                                                        return renderToggleAndColor('gumpasteBaseBoard', 'gumpasteBaseBoardColor', 'Enable Covered Board');
+                                                    case 'Body Icing':
+                                                        return renderCombinedIcingColor();
+                                                    case 'Top Icing':
+                                                        return renderColorOnly('top', 'Top Icing Color');
+                                                    case 'Side Icing':
+                                                        return renderColorOnly('side', 'Side Icing Color');
+                                                    default:
+                                                        return <p className="p-2 text-xs text-slate-500">Select an icing feature to edit.</p>;
+                                                }
+                                            })()}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Small Apply button in lower right corner - only show when there are changes */}
+                                {(() => {
+                                    const hasIcingChanges = analysisResult?.icing_design && icingDesign && (
+                                        JSON.stringify(icingDesign.colors) !== JSON.stringify(analysisResult.icing_design.colors) ||
+                                        icingDesign.drip !== analysisResult.icing_design.drip ||
+                                        icingDesign.border_top !== analysisResult.icing_design.border_top ||
+                                        icingDesign.border_base !== analysisResult.icing_design.border_base ||
+                                        icingDesign.gumpasteBaseBoard !== analysisResult.icing_design.gumpasteBaseBoard
+                                    );
+
+                                    if (!hasIcingChanges && !isUpdatingDesign) return null;
+
+                                    return (
+                                        <button
+                                            onClick={onUpdateDesign}
+                                            disabled={isUpdatingDesign || !originalImageData}
+                                            className="absolute bottom-4 right-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold py-1.5 px-3.5 rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center gap-1.5 text-sm"
+                                            title="Apply icing color changes"
+                                        >
+                                            {isUpdatingDesign ? (
+                                                <>
+                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                    Updating...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <MagicSparkleIcon className="w-3.5 h-3.5" />
+                                                    Apply
+                                                </>
+                                            )}
+                                        </button>
+                                    );
+                                })()}
+                            </div>
                         );
                     })()}
 

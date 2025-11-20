@@ -118,6 +118,7 @@ export interface CakeGenieOrder {
   subtotal: number;
   delivery_fee: number;
   discount_amount: number;
+  discount_code_id: string | null; // UUID, tracks which discount code was used
   total_amount: number;
   order_status: OrderStatus;
   payment_status: PaymentStatus;

@@ -11,7 +11,7 @@ import {
     CakeFlavor,
     IcingColorDetails,
 } from '../types';
-import { DEFAULT_THICKNESS_MAP, DEFAULT_SIZE_MAP, COLORS, CAKE_TYPES } from '../constants';
+import { DEFAULT_THICKNESS_MAP, DEFAULT_SIZE_MAP, COLORS, CAKE_TYPES, SHOPIFY_TAGS, DEFAULT_ICING_DESIGN, FLAVOR_OPTIONS } from '../constants';
 import { showSuccess } from '../lib/utils/toast';
 import { ShopifyCustomizationRequest } from '../services/supabaseService';
 import { calculateCustomizingAvailability, AvailabilityType } from '../lib/utils/availability';
@@ -33,7 +33,7 @@ export const useCakeCustomization = () => {
     const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
     const [analysisError, setAnalysisError] = useState<string | null>(null);
     const [pendingAnalysisData, setPendingAnalysisData] = useState<HybridAnalysisResult | null>(null);
-    
+
     const [isCustomizationDirty, setIsCustomizationDirty] = useState(false);
     const [dirtyFields, setDirtyFields] = useState<Set<string>>(new Set());
     const [availability, setAvailability] = useState<AvailabilityType>('normal');
@@ -65,17 +65,7 @@ export const useCakeCustomization = () => {
         setMainToppers([]);
         setSupportElements([]);
         setCakeMessages([]);
-        setIcingDesign({
-            base: 'soft_icing',
-            color_type: 'single',
-            colors: { side: '#FFFFFF' },
-            border_top: false,
-            border_base: false,
-            drip: false,
-            gumpasteBaseBoard: false,
-            dripPrice: 100,
-            gumpasteBaseBoardPrice: 100,
-        });
+        setIcingDesign(DEFAULT_ICING_DESIGN);
         setAdditionalInstructions('');
         setIsCustomizationDirty(false);
         setDirtyFields(new Set());
@@ -87,21 +77,21 @@ export const useCakeCustomization = () => {
 
         requestData.shopify_product_tags.forEach(tag => {
             const [key, value] = tag.split(':').map(s => s.trim());
-            if (key === 'tier') {
+            if (key === SHOPIFY_TAGS.TIER) {
                 const tierNum = parseInt(value, 10);
                 if (tierNum === 2) cakeType = '2 Tier';
                 if (tierNum === 3) cakeType = '3 Tier';
             }
-            if (key === 'type') {
+            if (key === SHOPIFY_TAGS.TYPE) {
                 if ((CAKE_TYPES as readonly string[]).includes(value)) {
                     cakeType = value as CakeType;
                 }
             }
-            if (key === 'flavor' && ['Chocolate Cake', 'Ube Cake', 'Vanilla Cake', 'Mocha Cake'].includes(value)) {
+            if (key === SHOPIFY_TAGS.FLAVOR && FLAVOR_OPTIONS.includes(value as CakeFlavor)) {
                 flavor = value as CakeFlavor;
             }
         });
-        
+
         const getFlavorCount = (type: CakeType): number => {
             if (type.includes('2 Tier')) return 2;
             if (type.includes('3 Tier')) return 3;
@@ -122,20 +112,13 @@ export const useCakeCustomization = () => {
         setSupportElements([]);
         setCakeMessages([]);
         setIcingDesign({
+            ...DEFAULT_ICING_DESIGN,
             base: cakeType.includes('Fondant') ? 'fondant' : 'soft_icing',
-            color_type: 'single',
-            colors: { side: '#FFFFFF' },
-            border_top: false,
-            border_base: false,
-            drip: false,
-            gumpasteBaseBoard: false,
-            dripPrice: 100,
-            gumpasteBaseBoardPrice: 100,
         });
         setAdditionalInstructions('');
         setIsCustomizationDirty(false);
         setDirtyFields(new Set());
-        
+
         // Mock a minimal analysis result so pricing logic can function
         setAnalysisResult({
             cakeType: cakeType,
@@ -160,12 +143,12 @@ export const useCakeCustomization = () => {
     ) => {
         setCakeInfo(prev => {
             if (!prev) return null;
-            
+
             const newState = { ...prev, ...updates };
-            
+
             if (updates.type && updates.type !== prev.type) {
                 const newType = updates.type;
-                
+
                 newState.thickness = DEFAULT_THICKNESS_MAP[newType];
                 newState.size = DEFAULT_SIZE_MAP[newType];
 
@@ -178,10 +161,10 @@ export const useCakeCustomization = () => {
                 const newFlavors: CakeFlavor[] = Array(newFlavorCount).fill('Chocolate Cake');
                 newState.flavors = newFlavors;
             }
-            
+
             return newState;
         });
-        
+
         // Side effects for switching to Bento type
         if (updates.type === 'Bento') {
             setIcingDesign(prevIcing => {
@@ -202,11 +185,11 @@ export const useCakeCustomization = () => {
         }
 
         if (!options?.isSystemCorrection) {
-          setIsCustomizationDirty(true);
-          setDirtyFields(prev => new Set(prev).add('cakeInfo'));
+            setIsCustomizationDirty(true);
+            setDirtyFields(prev => new Set(prev).add('cakeInfo'));
         }
     }, [setIsCustomizationDirty]);
-    
+
     // --- NEW ROBUST STATE UPDATERS ---
     const markDirty = (field: DirtyField) => {
         setIsCustomizationDirty(true);
@@ -227,7 +210,7 @@ export const useCakeCustomization = () => {
         setMainToppers(toppers);
         markDirty('mainToppers');
     }, []);
-    
+
     const updateSupportElement = useCallback((id: string, updates: Partial<SupportElementUI>) => {
         setSupportElements(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
         markDirty('supportElements');
@@ -237,7 +220,7 @@ export const useCakeCustomization = () => {
         setSupportElements(prev => prev.filter(e => e.id !== id));
         markDirty('supportElements');
     }, []);
-    
+
     const updateCakeMessage = useCallback((id: string, updates: Partial<CakeMessageUI>) => {
         setCakeMessages(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
         markDirty('cakeMessages');
@@ -252,45 +235,45 @@ export const useCakeCustomization = () => {
         setCakeMessages(messages);
         markDirty('cakeMessages');
     }, []);
-    
+
     // --- END NEW ROBUST STATE UPDATERS ---
 
     const onIcingDesignChange = useCallback((newDesign: IcingDesignUI) => {
         setIcingDesign(prevIcing => {
             if (!prevIcing) return newDesign;
-    
+
             setDirtyFields(prevDirty => {
                 const newDirtyFields = new Set(prevDirty);
-    
+
                 // Compare all boolean and string fields
                 if (newDesign.drip !== prevIcing.drip) newDirtyFields.add('icingDesign.drip');
                 if (newDesign.gumpasteBaseBoard !== prevIcing.gumpasteBaseBoard) newDirtyFields.add('icingDesign.gumpasteBaseBoard');
                 if (newDesign.border_top !== prevIcing.border_top) newDirtyFields.add('icingDesign.border_top');
                 if (newDesign.border_base !== prevIcing.border_base) newDirtyFields.add('icingDesign.base');
                 if (newDesign.color_type !== prevIcing.color_type) newDirtyFields.add('icingDesign.color_type');
-                
+
                 // Compare color fields
                 const allColorKeys = new Set([
-                    ...Object.keys(prevIcing.colors), 
+                    ...Object.keys(prevIcing.colors),
                     ...Object.keys(newDesign.colors)
                 ]) as Set<keyof typeof newDesign.colors>;
-                
-                for(const key of allColorKeys){
+
+                for (const key of allColorKeys) {
                     // FIX: Explicitly cast key to avoid symbol conversion error in strict mode.
                     const k = key as keyof IcingColorDetails;
-                    if(prevIcing.colors[k] !== newDesign.colors[k]){
+                    if (prevIcing.colors[k] !== newDesign.colors[k]) {
                         newDirtyFields.add(`icingDesign.colors.${k}`);
                     }
                 }
                 return newDirtyFields;
             });
-    
+
             return newDesign;
         });
-    
+
         setIsCustomizationDirty(true);
     }, [setIsCustomizationDirty]);
-    
+
     const onAdditionalInstructionsChange = useCallback((instructions: string) => {
         setAdditionalInstructions(instructions);
         markDirty('additionalInstructions');
@@ -314,7 +297,7 @@ export const useCakeCustomization = () => {
     const handleApplyAnalysis = useCallback((analysisData: HybridAnalysisResult) => {
         setAnalysisId(uuidv4());
         setAnalysisResult(analysisData);
-    
+
         if (!dirtyFields.has('cakeInfo')) {
             const getFlavorCount = (type: CakeType): number => {
                 if (type.includes('2 Tier')) return 2;
@@ -323,14 +306,14 @@ export const useCakeCustomization = () => {
             };
             const flavorCount = getFlavorCount(analysisData.cakeType);
             const initialFlavors: CakeFlavor[] = Array(flavorCount).fill('Chocolate Cake');
-            setCakeInfo({ 
-                type: analysisData.cakeType, 
-                thickness: analysisData.cakeThickness, 
+            setCakeInfo({
+                type: analysisData.cakeType,
+                thickness: analysisData.cakeThickness,
                 flavors: initialFlavors,
                 size: DEFAULT_SIZE_MAP[analysisData.cakeType]
             });
         }
-    
+
         if (!dirtyFields.has('mainToppers')) {
             const newMainToppers = analysisData.main_toppers.map((t): MainTopperUI => {
                 let initialType = t.type;
@@ -341,7 +324,7 @@ export const useCakeCustomization = () => {
                 if (canBePrintout && isCharacterOrLogo) {
                     initialType = 'printout';
                 }
-                
+
                 return {
                     ...t,
                     x: t.x, // Explicitly carry over x
@@ -358,7 +341,7 @@ export const useCakeCustomization = () => {
             });
             setMainToppers(newMainToppers);
         }
-    
+
         if (!dirtyFields.has('supportElements')) {
             const newSupportElements = analysisData.support_elements.map((s): SupportElementUI => {
                 let initialType = s.type;
@@ -383,30 +366,30 @@ export const useCakeCustomization = () => {
             });
             setSupportElements(newSupportElements);
         }
-    
+
         if (!dirtyFields.has('cakeMessages')) {
             const newCakeMessages = analysisData.cake_messages.map((msg): CakeMessageUI => ({
-                 ...msg,
-                 x: msg.x, // Explicitly carry over x
-                 y: msg.y, // Explicitly carry over y
-                 id: uuidv4(),
-                 isEnabled: true,
-                 price: 0,
-                 originalMessage: { ...msg }
+                ...msg,
+                x: msg.x, // Explicitly carry over x
+                y: msg.y, // Explicitly carry over y
+                id: uuidv4(),
+                isEnabled: true,
+                price: 0,
+                originalMessage: { ...msg }
             }));
             setCakeMessages(newCakeMessages);
         }
-    
+
         setIcingDesign(prev => {
             const analysisIcing = analysisData.icing_design;
             if (!prev) return { ...analysisIcing, dripPrice: 100, gumpasteBaseBoardPrice: 100 };
-            
+
             const newIcing = { ...prev, colors: { ...prev.colors } };
-    
+
             if (!dirtyFields.has('icingDesign.base')) newIcing.base = analysisIcing.base;
             if (!dirtyFields.has('icingDesign.color_type')) newIcing.color_type = analysisIcing.color_type;
             if (!dirtyFields.has('icingDesign.drip')) newIcing.drip = analysisIcing.drip;
-            
+
             if (!dirtyFields.has('icingDesign.gumpasteBaseBoard')) {
                 const isBaseBoardWhite = analysisIcing.colors.gumpasteBaseBoardColor?.toLowerCase() === '#ffffff';
                 // The feature is enabled only if the AI detects it AND the color is not white.
@@ -415,25 +398,24 @@ export const useCakeCustomization = () => {
 
             if (!dirtyFields.has('icingDesign.border_top')) newIcing.border_top = analysisIcing.border_top;
             if (!dirtyFields.has('icingDesign.border_base')) newIcing.border_base = analysisIcing.border_base;
-            
-            const allAnalysisColorKeys = Object.keys(analysisIcing.colors) as Array<keyof typeof analysisIcing.colors>;
+
+            const allAnalysisColorKeys = Object.keys(analysisIcing.colors) as Array<keyof IcingColorDetails>;
             for (const colorKey of allAnalysisColorKeys) {
-                // FIX: Explicitly cast key to string to avoid symbol conversion error in strict mode.
                 if (!dirtyFields.has(`icingDesign.colors.${String(colorKey)}`)) {
-                    (newIcing.colors as any)[colorKey] = (analysisIcing.colors as any)[colorKey];
+                    newIcing.colors[colorKey] = analysisIcing.colors[colorKey];
                 }
             }
-            
+
             return newIcing;
         });
-        
+
         if (!dirtyFields.has('additionalInstructions')) {
             setAdditionalInstructions('');
         }
-    
+
         setIsCustomizationDirty(false);
-        setDirtyFields(new Set()); 
-    
+        setDirtyFields(new Set());
+
         const toppersFound = analysisData.main_toppers.length;
         const elementsFound = analysisData.support_elements.length;
         let analysisSummaryParts: string[] = [];
@@ -441,7 +423,7 @@ export const useCakeCustomization = () => {
         if (elementsFound > 0) analysisSummaryParts.push(`${elementsFound} design element${elementsFound > 1 ? 's' : ''}`);
         const analysisSummary = analysisSummaryParts.length > 0 ? `We found ${analysisSummaryParts.join(' and ')}.` : "We've analyzed your cake's base design.";
         showSuccess(`Price and Design Elements updated! ${analysisSummary}`, { duration: 6000 });
-    
+
     }, [dirtyFields]);
 
     useEffect(() => {
@@ -450,7 +432,7 @@ export const useCakeCustomization = () => {
             setPendingAnalysisData(null); // Clear after applying to prevent re-runs
         }
     }, [pendingAnalysisData, handleApplyAnalysis]);
-    
+
     const handleTopperImageReplace = useCallback(async (topperId: string, file: File) => {
         try {
             const { fileToBase64 } = await import('../services/geminiService.lazy');

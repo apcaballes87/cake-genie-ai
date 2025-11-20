@@ -65,7 +65,7 @@ export interface ShareDesignData {
   cakeSize: string;
   cakeFlavor: string;
   cakeThickness?: string;
-  icingColors?: Array<{name: string, hex: string}>;
+  icingColors?: Array<{ name: string, hex: string }>;
   accessories?: string[];
   basePrice: number;
   finalPrice: number;
@@ -122,24 +122,24 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
         return null;
       }
     }
-    
+
     const designId = uuidv4();
     const urlSlug = generateUrlSlug(data.title, designId);
 
     // Upload image to storage if it's a data URI
     let imageUrl = data.customizedImageUrl;
     if (data.customizedImageUrl.startsWith('data:')) {
-      console.log('📤 Uploading image to Supabase Storage...');
+
       imageUrl = await uploadImageToStorage(data.customizedImageUrl, designId);
-      console.log('✅ Image uploaded successfully:', imageUrl);
+
     }
 
     // Upload original image if it's a data URI
     let originalImageUrl = data.originalImageUrl;
     if (originalImageUrl && originalImageUrl.startsWith('data:')) {
-      console.log('📤 Uploading original image to Supabase Storage...');
+
       originalImageUrl = await uploadImageToStorage(originalImageUrl, `${designId}-original`);
-      console.log('✅ Original image uploaded successfully:', originalImageUrl);
+
     }
 
     const { error } = await supabase
@@ -184,9 +184,9 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
     const clientDomain = window.location.origin;
     const shareUrl = `${clientDomain}/#/designs/${urlSlug}`;
     const botShareUrl = `https://genie.ph/designs/${urlSlug}`;
-    
+
     showSuccess('Share link created!');
-    
+
     return {
       designId: designId,
       shareUrl,
@@ -225,8 +225,8 @@ export async function updateSharedDesignTexts(
       // CRITICAL: Throw the error so the caller knows it failed
       throw new Error(`Failed to update shared design: ${error.message}`);
     }
-    
-    console.log('✅ Successfully enriched shared design:', designId);
+
+
   } catch (error) {
     console.error('❌ Exception updating shared design texts:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     // Re-throw so the background task knows it failed
@@ -245,25 +245,25 @@ export async function updateSharedDesignTextsWithRetry(
   maxRetries: number = 3
 ): Promise<void> {
   let lastError: Error | null = null;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       await updateSharedDesignTexts(designId, title, description, altText);
-      console.log(`✅ Enrichment succeeded on attempt ${attempt}`);
+
       return; // Success!
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       console.warn(`⚠️ Enrichment attempt ${attempt}/${maxRetries} failed:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-      
+
       if (attempt < maxRetries) {
         // Exponential backoff: 1s, 2s, 4s
         const delayMs = Math.pow(2, attempt - 1) * 1000;
-        console.log(`⏳ Retrying in ${delayMs}ms...`);
+
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
   }
-  
+
   // All retries failed
   throw new Error(`Failed to enrich design after ${maxRetries} attempts: ${lastError?.message}`);
 }
@@ -273,31 +273,28 @@ export async function updateSharedDesignTextsWithRetry(
  * Get a shared design by ID or slug - WITH DETAILED LOGGING
  */
 export async function getSharedDesign(identifier: string) {
-  console.log('🔍 [getSharedDesign] Starting fetch for identifier:', identifier);
-  console.log('🔍 [getSharedDesign] Supabase client initialized:', !!supabase);
-  
+
+
+
   try {
-    console.log('📡 [getSharedDesign] Calling Supabase query...');
-    
+
+
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
-    
+
     const query = supabase
       .from('cakegenie_shared_designs')
       .select('*');
 
     if (isUuid) {
-        query.eq('design_id', identifier);
+      query.eq('design_id', identifier);
     } else {
-        query.eq('url_slug', identifier);
+      query.eq('url_slug', identifier);
     }
-    
+
     const { data, error } = await query.single();
 
-    console.log('📊 [getSharedDesign] Query response:', { 
-      hasData: !!data, 
-      hasError: !!error,
-      errorDetails: error ? JSON.stringify(error, null, 2) : null
-    });
+
+
 
     if (error) {
       console.error('❌ [getSharedDesign] Supabase error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
@@ -309,7 +306,7 @@ export async function getSharedDesign(identifier: string) {
       return null;
     }
 
-    console.log('✅ [getSharedDesign] Successfully fetched design:', data.title);
+
 
     // Increment view count but don't wait for it to finish (fire-and-forget).
     // This prevents the main data fetch from hanging if the RPC call is slow or fails.
@@ -323,7 +320,7 @@ export async function getSharedDesign(identifier: string) {
             console.warn('Failed to increment view count:', rpcError);
           }
         } catch (err) {
-            console.warn('Exception during fire-and-forget view count increment:', err);
+          console.warn('Exception during fire-and-forget view count increment:', err);
         }
       })();
     }
@@ -349,7 +346,7 @@ export function incrementShareCount(designId: string) {
         console.warn('Error incrementing share count:', error);
       }
     } catch (err) {
-        console.warn('Exception during fire-and-forget share count increment:', err);
+      console.warn('Exception during fire-and-forget share count increment:', err);
     }
   })();
 }
@@ -368,7 +365,7 @@ export function generateSocialShareUrl(
   switch (platform) {
     case 'facebook':
       return `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
-    
+
     case 'messenger':
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       if (isMobile) {
@@ -378,10 +375,10 @@ export function generateSocialShareUrl(
       // We use a generic Facebook app_id here to make it more reliable on desktop.
       const facebookAppId = '966242223397117'; // A common public app_id for sharing
       return `https://www.facebook.com/dialog/send?app_id=${facebookAppId}&link=${encodedUrl}&redirect_uri=${encodedUrl}`;
-    
+
     case 'twitter':
       return `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`;
-    
+
     default:
       return shareUrl;
   }
@@ -431,13 +428,9 @@ export async function createContribution(
     if (!design.bill_sharing_enabled) {
       return { success: false, error: 'Bill sharing is not enabled for this design' };
     }
-    
-    console.log('🎯 Creating contribution:', {
-      designId,
-      contributorName,
-      amount,
-      design_bill_sharing: design.bill_sharing_enabled
-    });
+
+
+
 
     // 2. Check remaining amount
     const remaining = design.final_price - (design.amount_collected || 0);
@@ -501,11 +494,8 @@ export async function createContribution(
       }
     );
 
-    console.log('💳 Xendit response:', {
-      success: paymentData.success,
-      hasPaymentUrl: !!paymentData.paymentUrl,
-      invoiceId: paymentData.invoiceId
-    });
+
+
 
     if (paymentError || !paymentData.success) {
       console.error('Error creating Xendit payment:', paymentError);
@@ -553,7 +543,7 @@ export async function trackReferral(
         design_id: designId,
         contribution_id: contributionId
       });
-    
+
     if (error && error.code !== '23505') { // Ignore duplicate key errors
       console.error('Error tracking referral:', error);
     }
@@ -567,10 +557,10 @@ export async function trackReferral(
  */
 export const SOCIAL_MESSAGES = {
   facebook: "🎂 Check out this AMAZING custom cake I just designed!\nWhat do you think? Should I order it? 😍\n\nDesign yours at CakeGenie!",
-  
+
   messenger: "Hey! 👋 What do you think of this cake design I made?\nBe honest! 😅🎂",
-  
+
   twitter: "Just designed the perfect cake using AI! 🎂✨\nCheck it out 👇\n\n#CakeDesign #CustomCake #CakeGenie",
-  
+
   instagram: "🎂 Designed my dream cake using AI!\nWhat do you think? 😍\n\n🔗 Link in bio to see the full design!\nTag someone who needs to see this! 👇\n\n#CakeGenie #CustomCake #DreamCake #BirthdayCake"
 };

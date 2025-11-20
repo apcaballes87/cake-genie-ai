@@ -6,6 +6,7 @@ import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
 import LazyImage from '../../components/LazyImage';
 import { AvailabilityType } from '../../lib/utils/availability';
 import { ContributionSuccessModal } from '../../components/ContributionSuccessModal';
+import { useSEO, generateCakeStructuredData } from '../../hooks/useSEO';
 
 interface SharedDesign {
   design_id: string;
@@ -159,6 +160,30 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
       fetchContributions();
     }
   }, [design]);
+
+  // Dynamic SEO for better Google indexing
+  useSEO({
+    title: design ? `${design.title} | Genie.ph - Custom Cakes in Cebu` : 'Cake Design | Genie.ph',
+    description: design
+      ? `${design.description} - ${design.cake_type} ${design.cake_size} cake available for ${AVAILABILITY_INFO[design.availability_type]?.label || 'order'}. Starting at ₱${design.final_price.toFixed(2)}`
+      : 'Beautiful custom cake design. Customize and order your dream cake with Genie.ph',
+    image: design?.customized_image_url,
+    url: design ? `https://genie.ph/designs/${design.url_slug || design.design_id}` : window.location.href,
+    type: 'product',
+    keywords: design
+      ? `${design.cake_type}, ${design.cake_size}, custom cake, ${design.icing_colors.map(c => c.name).join(', ')}, ${AVAILABILITY_INFO[design.availability_type]?.label}, Cebu cake, birthday cake, custom cake design`
+      : 'custom cake, cake design, birthday cake, Cebu',
+    structuredData: design ? generateCakeStructuredData({
+      title: design.title,
+      description: design.description,
+      image: design.customized_image_url,
+      price: design.final_price,
+      url: `https://genie.ph/designs/${design.url_slug || design.design_id}`,
+      cakeType: design.cake_type,
+      cakeSize: design.cake_size,
+      availability: design.availability_type,
+    }) : undefined,
+  });
 
   const handlePaymentVerification = async (contributionId: string) => {
     setIsVerifyingPayment(true);

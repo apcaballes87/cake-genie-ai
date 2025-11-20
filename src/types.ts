@@ -19,142 +19,142 @@ export interface Color {
 }
 
 export interface MainTopper {
-    type: MainTopperType;
-    description: string;
-    size: Size;
-    quantity: number;
-    group_id: string;
-    classification: 'hero' | 'support' | 'hero + support';
-    color?: string;
-    colors?: (string | null)[];
-    x?: number;
-    y?: number;
+  type: MainTopperType;
+  description: string;
+  size: Size;
+  quantity: number;
+  group_id: string;
+  classification: 'hero' | 'support' | 'hero + support';
+  color?: string;
+  colors?: (string | null)[];
+  x?: number;
+  y?: number;
 }
 
 export interface SupportElement {
-    type: SupportElementType;
-    description: string;
-    coverage: Coverage;
-    group_id: string;
-    color?: string;
-    colors?: (string | null)[];
-    x?: number;
-    y?: number;
+  type: SupportElementType;
+  description: string;
+  coverage: Coverage;
+  group_id: string;
+  color?: string;
+  colors?: (string | null)[];
+  x?: number;
+  y?: number;
 }
 
 export interface CakeMessage {
-    type: CakeMessageType;
-    text: string;
-    position: 'top' | 'side' | 'base_board';
-    color: string;
-    x?: number;
-    y?: number;
+  type: CakeMessageType;
+  text: string;
+  position: 'top' | 'side' | 'base_board';
+  color: string;
+  x?: number;
+  y?: number;
 }
 
 export interface IcingColorDetails {
-    side?: string;
-    top?: string;
-    borderTop?: string;
-    borderBase?: string;
-    drip?: string;
-    gumpasteBaseBoardColor?: string;
+  side?: string;
+  top?: string;
+  borderTop?: string;
+  borderBase?: string;
+  drip?: string;
+  gumpasteBaseBoardColor?: string;
 }
 
 export interface IcingDesign {
-    base: 'soft_icing' | 'fondant';
-    color_type: 'single' | 'gradient_2' | 'gradient_3' | 'abstract';
-    colors: IcingColorDetails;
-    border_top: boolean;
-    border_base: boolean;
-    drip: boolean;
-    gumpasteBaseBoard: boolean;
+  base: 'soft_icing' | 'fondant';
+  color_type: 'single' | 'gradient_2' | 'gradient_3' | 'abstract';
+  colors: IcingColorDetails;
+  border_top: boolean;
+  border_base: boolean;
+  drip: boolean;
+  gumpasteBaseBoard: boolean;
 }
 
 export interface DripEffect {
-    description: string;
-    x: number;
-    y: number;
+  description: string;
+  x: number;
+  y: number;
 }
 
 export interface IcingSurface {
-    description: string;
-    tier: number;
-    position: 'top' | 'side';
-    x: number;
-    y: number;
+  description: string;
+  tier: number;
+  position: 'top' | 'side';
+  x: number;
+  y: number;
 }
 
 export interface IcingBorder {
-    description: string;
-    tier: number;
-    position: 'top' | 'base';
-    x: number;
-    y: number;
+  description: string;
+  tier: number;
+  position: 'top' | 'base';
+  x: number;
+  y: number;
 }
 
 export interface BaseBoard {
-    description: string;
-    x: number;
-    y: number;
+  description: string;
+  x: number;
+  y: number;
 }
 
 export interface HybridAnalysisResult {
-    cakeType: CakeType;
-    cakeThickness: CakeThickness;
-    main_toppers: MainTopper[];
-    support_elements: SupportElement[];
-    cake_messages: CakeMessage[];
-    icing_design: IcingDesign;
-    rejection?: {
-        isRejected: boolean;
-        message: string;
-    };
-    drip_effects?: DripEffect[];
-    icing_surfaces?: IcingSurface[];
-    icing_borders?: IcingBorder[];
-    base_board?: BaseBoard[];
+  cakeType: CakeType;
+  cakeThickness: CakeThickness;
+  main_toppers: MainTopper[];
+  support_elements: SupportElement[];
+  cake_messages: CakeMessage[];
+  icing_design: IcingDesign;
+  rejection?: {
+    isRejected: boolean;
+    message: string;
+  };
+  drip_effects?: DripEffect[];
+  icing_surfaces?: IcingSurface[];
+  icing_borders?: IcingBorder[];
+  base_board?: BaseBoard[];
 }
 
 // --- UI-specific types (extended from base types) ---
 
 export interface MainTopperUI extends MainTopper {
-    id: string;
-    isEnabled: boolean;
-    price: number;
-    original_type: MainTopperType;
-    replacementImage?: { data: string; mimeType: string };
-    original_color?: string;
-    original_colors?: (string | null)[];
+  id: string;
+  isEnabled: boolean;
+  price: number;
+  original_type: MainTopperType;
+  replacementImage?: { data: string; mimeType: string };
+  original_color?: string;
+  original_colors?: (string | null)[];
 }
 
 export interface SupportElementUI extends SupportElement {
-    id: string;
-    isEnabled: boolean;
-    price: number;
-    original_type: SupportElementType;
-    replacementImage?: { data: string; mimeType: string };
-    original_color?: string;
-    original_colors?: (string | null)[];
+  id: string;
+  isEnabled: boolean;
+  price: number;
+  original_type: SupportElementType;
+  replacementImage?: { data: string; mimeType: string };
+  original_color?: string;
+  original_colors?: (string | null)[];
 }
 
 export interface CakeMessageUI extends CakeMessage {
-    id: string;
-    isEnabled: boolean;
-    price: number;
-    originalMessage?: CakeMessage; // To track changes
-    useDefaultColor?: boolean; // For Shopify flow
+  id: string;
+  isEnabled: boolean;
+  price: number;
+  originalMessage?: CakeMessage; // To track changes
+  useDefaultColor?: boolean; // For Shopify flow
 }
 
 export interface IcingDesignUI extends IcingDesign {
-    dripPrice: number;
-    gumpasteBaseBoardPrice: number;
+  dripPrice: number;
+  gumpasteBaseBoardPrice: number;
 }
 
 export interface CakeInfoUI {
-    type: CakeType;
-    thickness: CakeThickness;
-    size: CakeSize;
-    flavors: CakeFlavor[];
+  type: CakeType;
+  thickness: CakeThickness;
+  size: CakeSize;
+  flavors: CakeFlavor[];
 }
 
 
@@ -185,28 +185,34 @@ export interface CartItemDetails {
 }
 
 export interface CartItem {
-    id: string;
-    image: string | null;
-    status: 'pending' | 'complete' | 'error';
-    type: string;
-    thickness: string;
-    size: string;
-    totalPrice: number;
-    details: CartItemDetails;
-    errorMessage?: string;
+  id: string;
+  image: string | null;
+  status: 'pending' | 'complete' | 'error';
+  type: string;
+  thickness: string;
+  size: string;
+  totalPrice: number;
+  details: CartItemDetails;
+  errorMessage?: string;
 }
 
 export interface AddOnPricing {
-    addOnPrice: number;
-    breakdown: { item: string; price: number }[];
+  addOnPrice: number;
+  breakdown: { item: string; price: number }[];
 }
 
 export interface BasePriceInfo {
-    size: CakeSize;
-    price: number;
+  size: CakeSize;
+  price: number;
 }
 
 // Pricing Rule from database
+export interface SpecialConditions {
+  bento_price?: number;
+  allowance_eligible?: boolean;
+  [key: string]: any; // Allow extensibility while enforcing known keys
+}
+
 export interface PricingRule {
   rule_id: number;
   item_key: string;
@@ -219,7 +225,7 @@ export interface PricingRule {
   category: 'main_topper' | 'support_element' | 'special' | 'message' | 'icing_feature' | null;
   quantity_rule: 'per_piece' | 'per_3_pieces' | 'per_digit' | null;
   multiplier_rule: 'tier_count' | null;
-  special_conditions: Record<string, any> | null;
+  special_conditions: SpecialConditions | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -237,15 +243,15 @@ export interface DiscountValidationResult {
 // --- Service Payloads ---
 
 export interface ReportPayload {
-    original_image: string;
-    customized_image: string;
-    prompt_sent_gemini: string;
-    maintoppers: string;
-    supportelements: string;
-    cakemessages: string;
-    icingdesign: string;
-    addon_price: number;
-    user_report?: string;
+  original_image: string;
+  customized_image: string;
+  prompt_sent_gemini: string;
+  maintoppers: string;
+  supportelements: string;
+  cakemessages: string;
+  icingdesign: string;
+  addon_price: number;
+  user_report?: string;
 }
 
 export interface AiPrompt {
@@ -269,4 +275,25 @@ export interface AvailabilitySettings {
   rush_to_same_day_enabled: boolean;
   rush_same_to_standard_enabled: boolean;
   minimum_lead_time_days: number;
+}
+
+// --- Google CSE Types ---
+export interface GoogleCSEElement {
+  execute: (query: string) => void;
+  clearAllResults: () => void;
+}
+
+export interface GoogleCSE {
+  search: {
+    cse: {
+      element: {
+        render: (options: {
+          div: string;
+          tag: string;
+          gname: string;
+          attributes: Record<string, any>;
+        }) => GoogleCSEElement;
+      };
+    };
+  };
 }

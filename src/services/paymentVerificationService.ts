@@ -18,7 +18,7 @@ export async function verifyContributionPayment(
   contributionId: string
 ): Promise<PaymentVerificationResult> {
   try {
-    console.log('🔍 Verifying payment for contribution:', contributionId);
+
 
     const { data, error } = await supabase.functions.invoke('verify-contribution-payment', {
       body: { contributionId }
@@ -33,7 +33,7 @@ export async function verifyContributionPayment(
       };
     }
 
-    console.log('✅ Verification result:', data);
+
     return data;
   } catch (error) {
     console.error('❌ Exception during verification:', error);
@@ -53,10 +53,10 @@ export async function pollPaymentStatus(
   maxAttempts: number = 10,
   intervalMs: number = 3000
 ): Promise<PaymentVerificationResult> {
-  console.log(`🔄 Starting payment polling (max ${maxAttempts} attempts)`);
-  
+
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    console.log(`Attempt ${attempt}/${maxAttempts}`);
+
 
     // First check database
     const { data: contribution, error } = await supabase
@@ -66,7 +66,7 @@ export async function pollPaymentStatus(
       .single();
 
     if (!error && contribution?.status === 'paid') {
-      console.log('✅ Payment confirmed in database!');
+
       return {
         success: true,
         status: 'paid',
@@ -76,9 +76,9 @@ export async function pollPaymentStatus(
 
     // If still pending after 3 attempts, trigger manual verification
     if (attempt >= 3) {
-      console.log('⏰ Triggering manual verification...');
+
       const verificationResult = await verifyContributionPayment(contributionId);
-      
+
       if (verificationResult.status === 'paid') {
         return verificationResult;
       }
@@ -90,7 +90,7 @@ export async function pollPaymentStatus(
     }
   }
 
-  console.log('⏰ Polling timeout - payment not confirmed');
+
   return {
     success: false,
     status: 'pending',

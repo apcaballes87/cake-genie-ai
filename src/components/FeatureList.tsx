@@ -43,6 +43,7 @@ interface FeatureListProps {
   shopifyFixedSize?: string;
   shopifyBasePrice?: number;
   cakeBaseSectionRef?: React.RefObject<HTMLDivElement>;
+  cakeMessagesSectionRef?: React.RefObject<HTMLDivElement>;
   // New props for interaction
   onItemClick: (item: AnalysisItem) => void;
   markerMap: Map<string, string>;
@@ -102,7 +103,7 @@ ListItem.displayName = 'ListItem';
 
 export const FeatureList = React.memo<FeatureListProps>(({
     analysisError, analysisId, cakeInfo, basePriceOptions, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions,
-    onCakeInfoChange, onAdditionalInstructionsChange, updateCakeMessage, removeCakeMessage, addCakeMessage, isAnalyzing, shopifyFixedSize, shopifyBasePrice, cakeBaseSectionRef,
+    onCakeInfoChange, onAdditionalInstructionsChange, updateCakeMessage, removeCakeMessage, addCakeMessage, isAnalyzing, shopifyFixedSize, shopifyBasePrice, cakeBaseSectionRef, cakeMessagesSectionRef,
     onItemClick, markerMap
 }) => {
     const cakeTypeScrollContainerRef = useRef<HTMLDivElement>(null);
@@ -120,42 +121,6 @@ export const FeatureList = React.memo<FeatureListProps>(({
             prevAnalysisIdRef.current = analysisId;
         }
     }, [analysisId]);
-
-    // Auto-scroll to selected thumbnails after AI analysis
-    useEffect(() => {
-        if (!analysisId || !cakeInfo) return;
-
-        const timer = setTimeout(() => {
-            // Scroll to selected cake type
-            const typeContainer = cakeTypeScrollContainerRef.current;
-            if (typeContainer) {
-                const selectedTypeElement = typeContainer.querySelector(`[data-caketype="${CSS.escape(cakeInfo.type)}"]`);
-                if (selectedTypeElement) {
-                    selectedTypeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                }
-            }
-
-            // Scroll to selected thickness
-            const thicknessContainer = cakeThicknessScrollContainerRef.current;
-            if (thicknessContainer) {
-                const selectedThicknessElement = thicknessContainer.querySelector(`[data-cakethickness="${CSS.escape(cakeInfo.thickness)}"]`);
-                if (selectedThicknessElement) {
-                    selectedThicknessElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                }
-            }
-
-            // Scroll to selected size
-            const sizeContainer = cakeSizeScrollContainerRef.current;
-            if (sizeContainer && basePriceOptions) {
-                const selectedSizeElement = sizeContainer.querySelector(`[data-cakesize="${CSS.escape(cakeInfo.size)}"]`);
-                if (selectedSizeElement) {
-                    selectedSizeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                }
-            }
-        }, 500); // Delay to ensure UI has rendered
-
-        return () => clearTimeout(timer);
-    }, [analysisId, cakeInfo, basePriceOptions]);
 
     // Determine which message positions are missing
     const existingPositions = useMemo(() => {
@@ -213,7 +178,7 @@ export const FeatureList = React.memo<FeatureListProps>(({
                                 )}
                             </div>
                         )}
-                        <div className="space-y-4 pt-4 border-t border-slate-200">{tierLabels.map((label, index) => { const tierThumbnailUrl = TIER_THUMBNAILS[tierCount]?.[index]; return (<div key={index}><div className="flex items-center gap-3">{tierThumbnailUrl && (<img src={tierThumbnailUrl} alt={`Tier ${index + 1}`} className="w-12 h-12 object-contain rounded-md" />)}<span className="text-sm font-medium text-slate-800">{label}</span></div><div className="mt-3"><div className="relative"><div className="flex gap-4 overflow-x-auto pb-3 -mb-3 scrollbar-hide">{FLAVOR_OPTIONS.map(flavor => { const isBento = cakeInfo.type === 'Bento'; const isFlavorDisabled = isBento && (flavor === 'Ube Cake' || flavor === 'Mocha Cake'); return (<button key={flavor} type="button" disabled={isFlavorDisabled} onClick={() => { if (isFlavorDisabled) return; const newFlavors = [...cakeInfo.flavors]; newFlavors[index] = flavor; onCakeInfoChange({ flavors: newFlavors }); }} className={`group flex-shrink-0 w-24 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 transition-opacity ${isFlavorDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}><div className={`w-full aspect-[5/4] rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.flavors[index] === flavor ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}><img src={FLAVOR_THUMBNAILS[flavor]} alt={flavor} className={`w-full h-full object-cover transition-all ${isFlavorDisabled ? 'filter grayscale' : ''}`} /></div><span className="mt-2 text-xs font-medium text-slate-700 leading-tight">{flavor}</span></button>);})}</div></div></div></div>);})}</div>
+                        <div className="space-y-4 pt-4 border-t border-slate-200">{tierLabels.map((label, index) => { return (<div key={index}><div className="flex items-center gap-3"><span className="text-sm font-medium text-slate-800">{label}</span></div><div className="mt-3"><div className="relative"><div className="flex gap-4 overflow-x-auto pb-3 -mb-3 scrollbar-hide">{FLAVOR_OPTIONS.map(flavor => { const isBento = cakeInfo.type === 'Bento'; const isFlavorDisabled = isBento && (flavor === 'Ube Cake' || flavor === 'Mocha Cake'); return (<button key={flavor} type="button" disabled={isFlavorDisabled} onClick={() => { if (isFlavorDisabled) return; const newFlavors = [...cakeInfo.flavors]; newFlavors[index] = flavor; onCakeInfoChange({ flavors: newFlavors }); }} className={`group flex-shrink-0 w-24 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 transition-opacity ${isFlavorDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}><div className={`w-full aspect-[5/4] rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.flavors[index] === flavor ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}><img src={FLAVOR_THUMBNAILS[flavor]} alt={flavor} className={`w-full h-full object-cover transition-all ${isFlavorDisabled ? 'filter grayscale' : ''}`} /></div><span className="mt-2 text-xs font-medium text-slate-700 leading-tight">{flavor}</span></button>);})}</div></div></div></div>);})}</div>
                     </div>
                     )}
                 </Section>
@@ -252,9 +217,10 @@ export const FeatureList = React.memo<FeatureListProps>(({
                     <p className="text-sm text-slate-500 text-center py-4">No support elements detected.</p>
                 )}
             </Section>
-            
-            <Section title="Cake Messages" defaultOpen={!isAnalyzing} analysisText={isAnalyzing && cakeMessages.length === 0 ? 'analyzing messages...' : undefined}>
-                <div className="space-y-2">
+
+            <div ref={cakeMessagesSectionRef}>
+                <Section title="Cake Messages" defaultOpen={!isAnalyzing} analysisText={isAnalyzing && cakeMessages.length === 0 ? 'analyzing messages...' : undefined}>
+                    <div className="space-y-2">
                     {cakeMessages.length > 0 && cakeMessages.map((message) => (
                         <ListItem
                             key={message.id}
@@ -300,6 +266,7 @@ export const FeatureList = React.memo<FeatureListProps>(({
                     )}
                 </div>
             </Section>
+            </div>
 
              <Section title="Additional Instructions" defaultOpen={true}>
                 {showAdditionalInstructions ? (

@@ -587,14 +587,29 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                                     {isLoadingDates || isLoadingBlockedDates ? (
                                         <div className="h-16 flex items-center"><Loader2 className="animate-spin text-slate-400"/></div>
                                     ) : (
-                                        <div className="relative">
-                                            <div className="flex gap-2 overflow-x-auto overflow-y-visible pt-12 -mt-12 pb-2 -mb-2 scrollbar-hide">
-                                                {correctedDates.slice(0, 14).map(dateInfo => {
+                                        <div className="relative overflow-visible">
+                                            <div className="flex gap-2 overflow-x-auto pt-16 -mt-16 pb-2 -mb-2 scrollbar-hide" style={{ overflowY: 'visible' }}>
+                                                {correctedDates.slice(0, 14).map((dateInfo, index) => {
                                                     const { isDisabled, reason } = getDateStatus(dateInfo);
                                                     const isSelected = eventDate === dateInfo.available_date;
                                                     const dateObj = new Date(dateInfo.available_date + 'T00:00:00');
                                                     const day = dateObj.toLocaleDateString('en-US', { day: 'numeric' });
                                                     const month = dateObj.toLocaleDateString('en-US', { month: 'short' });
+
+                                                    // Determine tooltip position based on index
+                                                    const totalDates = correctedDates.slice(0, 14).length;
+                                                    let tooltipPositionClass = 'left-1/2 -translate-x-1/2'; // center (default)
+                                                    let arrowPositionClass = 'left-1/2 -translate-x-1/2'; // center arrow
+
+                                                    if (index === 0) {
+                                                        // First date: align tooltip to left
+                                                        tooltipPositionClass = 'left-0';
+                                                        arrowPositionClass = 'left-8';
+                                                    } else if (index === totalDates - 1) {
+                                                        // Last date: align tooltip to right
+                                                        tooltipPositionClass = 'right-0';
+                                                        arrowPositionClass = 'right-8';
+                                                    }
 
                                                     return (
                                                         <div key={dateInfo.available_date} className="relative flex-shrink-0">
@@ -613,9 +628,9 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                                                                 <span className="block text-[10px] font-medium text-slate-500">{dateInfo.day_of_week.substring(0, 3)}</span>
                                                             </button>
                                                             {tooltip && tooltip.date === dateInfo.available_date && (
-                                                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max max-w-[200px] px-3 py-1.5 bg-slate-800 text-white text-xs text-center font-semibold rounded-md z-10 animate-fade-in-fast shadow-lg">
+                                                                <div className={`absolute bottom-full mb-2 ${tooltipPositionClass} w-max max-w-[200px] px-3 py-1.5 bg-slate-800 text-white text-xs text-center font-semibold rounded-md z-[100] animate-fade-in-fast shadow-lg pointer-events-none whitespace-normal`}>
                                                                     {tooltip.reason}
-                                                                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-800"></div>
+                                                                    <div className={`absolute ${arrowPositionClass} top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-800`}></div>
                                                                 </div>
                                                             )}
                                                         </div>

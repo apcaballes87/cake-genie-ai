@@ -24,7 +24,8 @@ const INPAINTING_STYLE_SYSTEM_INSTRUCTION = `You are an expert, non-destructive 
 1.  **CRITICAL: TEXTURE-PRESERVING COLOR TINTING (Your ONLY Job)**
     *   When asked to change a color, you MUST perform a "hue-shift" or "color tinting" operation only."
     *   Analogy: You are applying a "Hue/Saturation" adjustment layer in Photoshop.
-2.  **PRESERVE EVERYTHING ELSE:** Do NOT add, remove, or change the shape of any element. The final output image MUST have the exact same dimensions, aspect ratio, background, lighting, shadows, and all other unmentioned details as the original input image.`;
+2.  **PRESERVE EVERYTHING ELSE:** Do NOT add, remove, or change the shape of any element. The final output image MUST have the exact same dimensions, aspect ratio, background, lighting, shadows, and all other unmentioned details as the original input image.
+3.  **Remove watermarks and digitally overlayed logos (If there are any).**`;
 
 const GENERATIVE_DESIGN_SYSTEM_INSTRUCTION = `You are a master digital cake artist performing photorealistic edits on a cake image. Your goal is to apply ONLY the specific changes listed in the prompt, while preserving the original image's style, lighting, and composition.
 
@@ -36,7 +37,8 @@ const GENERATIVE_DESIGN_SYSTEM_INSTRUCTION = `You are a master digital cake arti
 3.  **Realistic Interaction:** When adding a new element (like a drip or a base board), it must interact realistically with the scene. It should adopt the same lighting, cast subtle shadows, and flow around existing decorations, not erase them.
 4.  **Preserve Unmentioned Details:** Any feature from the original image not mentioned in the list of changes MUST be preserved exactly as it is. This includes background, cake stand, and non-targeted decorations.
 5.  **Clean Removals:** When asked to remove an element, you must cleanly erase it and realistically in-paint the background area to seamlessly match the surrounding texture and lighting.
-6.  **Texture-Preserving Color Changes:** When asked to change an existing color, you MUST perform a "hue-shift" or "color tinting" operation. Preserve 100% of the original surface details and micro-textures (like icing strokes). The brightness and darkness (luminance) of every pixel should remain identical to the original; only the hue and saturation should change. Avoid flat, "plastic" looks.`;
+6.  **Texture-Preserving Color Changes:** When asked to change an existing color, you MUST perform a "hue-shift" or "color tinting" operation. Preserve 100% of the original surface details and micro-textures (like icing strokes). The brightness and darkness (luminance) of every pixel should remain identical to the original; only the hue and saturation should change. Avoid flat, "plastic" looks.
+7.  **Remove watermarks and digitally overlayed logos (If there are any).**`;
 
 const THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION = `You are a master digital cake artist tasked with reconstructing a cake design into a new 3-tier structure. You will be given an original cake image for its design language and a reference image for the 3-tier structure.
 
@@ -320,30 +322,17 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
 
     changes.push(...icingChanges);
 
-    // 5. Cake Message Changes (DEBUG VERSION)
+    // 5. Cake Message Changes
     const messageChanges: string[] = [];
     const originalMessages = originalAnalysis.cake_messages || [];
     const currentUIMessages = cakeMessages;
-    
-    console.log('=== DEBUG: Message Change Detection ===');
-    console.log('Step 1: Input Data');
-    console.log('  originalMessages:', JSON.stringify(originalMessages, null, 2));
-    console.log('  currentUIMessages:', currentUIMessages.map(m => ({
-        text: m.text,
-        hasOriginalMessage: !!m.originalMessage,
-        originalMessageText: m.originalMessage?.text,
-        color: m.color
-    })));
-    
+
     const availableUIMessages = [...currentUIMessages];
-    
-    originalMessages.forEach((originalMsg, idx) => {
-        console.log(`\nStep 2.${idx}: Processing "${originalMsg.text}"`);
-        
+
+    originalMessages.forEach((originalMsg) => {
         // MATCHING
         const uiMsgIndex = availableUIMessages.findIndex(uiMsg => {
             if (!uiMsg.originalMessage) {
-                console.log(`  Checking "${uiMsg.text}": NO originalMessage`);
                 return false;
             }
             const o = uiMsg.originalMessage;
@@ -353,31 +342,23 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                 type: o.type === originalMsg.type,
                 color: o.color.toLowerCase() === originalMsg.color.toLowerCase()
             };
-            console.log(`  Checking "${uiMsg.text}":`, matches);
             return matches.text && matches.pos && matches.type && matches.color;
         });
-    
+
         let correspondingUIMsg: CakeMessageUI | undefined;
         if (uiMsgIndex > -1) {
             correspondingUIMsg = availableUIMessages.splice(uiMsgIndex, 1)[0];
-            console.log(`  ✓ MATCHED at index ${uiMsgIndex}`);
-        } else {
-            console.log(`  ✗ NO MATCH - will erase`);
         }
-    
+
         if (!correspondingUIMsg || !correspondingUIMsg.isEnabled) {
             messageChanges.push(`- **Erase the text** that says "${originalMsg.text}" from the cake's **${originalMsg.position}**. The area should be clean as if the text was never there.`);
         } else {
             const uiMsg = correspondingUIMsg;
             const changesInMessage = [];
-            
-            console.log(`  Step 3: Comparing changes`);
+
             const textChanged = uiMsg.text !== uiMsg.originalMessage.text;
             const colorChanged = uiMsg.color.toLowerCase() !== uiMsg.originalMessage.color.toLowerCase();
-            
-            console.log(`    Text: "${uiMsg.originalMessage.text}" vs "${uiMsg.text}" = ${textChanged}`);
-            console.log(`    Color: ${uiMsg.originalMessage.color} vs ${uiMsg.color} = ${colorChanged}`);
-            
+
             if (textChanged) {
                 changesInMessage.push(`change the text from "${uiMsg.originalMessage.text}" to "${uiMsg.text}"`);
             }
@@ -390,9 +371,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             if (uiMsg.type !== uiMsg.originalMessage.type) {
                 changesInMessage.push(`change the style to ${uiMsg.type}`);
             }
-            
-            console.log(`    changesInMessage.length: ${changesInMessage.length}`);
-            
+
             if (changesInMessage.length > 0) {
                 messageChanges.push(`- Regarding the message on the **${uiMsg.originalMessage.position}** that originally said "${uiMsg.originalMessage.text}", please ${changesInMessage.join(' and ')}.`);
             }
@@ -405,15 +384,10 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             messageChanges.push(`- **Add new text**: Write "${uiMsg.text}" on the **${uiMsg.position}** using small ${uiMsg.type} style in the color ${colorName(uiMsg.color)}.`);
         }
     });
-    
-    console.log('\nStep 4: Final Results');
-    console.log('  messageChanges.length:', messageChanges.length);
-    console.log('  messageChanges:', messageChanges);
-    
+
     if (messageChanges.length > 0) {
         changes.push(...[...new Set(messageChanges)]);
     }
-    console.log('=== END DEBUG ===\n');
 
 
     // 6. Bento-specific instruction
@@ -532,8 +506,6 @@ export async function updateDesign({
 
     const isThreeTierReconstruction = cakeInfo.type !== (analysisResult?.cakeType || cakeInfo.type) && cakeInfo.type.includes('3 Tier');
     const useInpaintingStyle = isColorOnlyChange(changesList);
-
-    console.log('[Design Service] Change analysis:', { isThreeTierReconstruction, useInpaintingStyle });
     
     let systemInstruction = 
         isThreeTierReconstruction ? THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION :
