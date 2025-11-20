@@ -4,7 +4,7 @@ import { useCart } from './contexts/CartContext';
 import { showSuccess, showError, showInfo } from './lib/utils/toast';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { CartIcon, UserCircleIcon, LogOutIcon, MapPinIcon, PackageIcon, ErrorIcon } from './components/icons';
-import { reportCustomization } from './services/supabaseService';
+import { reportCustomization, uploadReportImage } from './services/supabaseService';
 import { CartItem, CartItemDetails, CakeType } from './types';
 import { COLORS, DEFAULT_THICKNESS_MAP } from './constants';
 import { CakeGenieCartItem } from './lib/database.types';
@@ -343,9 +343,18 @@ ${systemInstruction}
 --- USER PROMPT ---
 ${prompt}
 `;
+
+      // Upload images to Supabase storage first
+      showInfo("Uploading images...");
+      const [originalImageUrl, customizedImageUrl] = await Promise.all([
+        uploadReportImage(originalImageData.data, 'original'),
+        uploadReportImage(editedImage, 'customized')
+      ]);
+
+      // Submit report with image URLs
       await reportCustomization({
-        original_image: originalImageData.data,
-        customized_image: editedImage.split(',')[1],
+        original_image: originalImageUrl,
+        customized_image: customizedImageUrl,
         prompt_sent_gemini: fullPrompt.trim(),
         maintoppers: JSON.stringify(mainToppers.filter(t => t.isEnabled)),
         supportelements: JSON.stringify(supportElements.filter(s => s.isEnabled)),

@@ -457,19 +457,55 @@ export const useCakeCustomization = () => {
     const syncAnalysisResultWithCurrentState = useCallback(() => {
         if (!analysisResult) return;
 
+        // Update the analysisResult to reflect the current applied state
         setAnalysisResult(prev => {
             if (!prev) return prev;
+
+            // Sync main toppers: update original_* fields to match current state
+            const syncedMainToppers = mainToppers.map(t => ({
+                ...t,
+                original_type: t.type,
+                original_color: t.color,
+                original_colors: t.colors,
+            }));
+
+            // Sync support elements: update original_* fields to match current state
+            const syncedSupportElements = supportElements.map(s => ({
+                ...s,
+                original_type: s.type,
+                original_color: s.color,
+                original_colors: s.colors,
+            }));
+
             return {
                 ...prev,
-                main_toppers: mainToppers,
-                support_elements: supportElements,
+                main_toppers: syncedMainToppers,
+                support_elements: syncedSupportElements,
                 cake_messages: cakeMessages,
                 icing_design: icingDesign || prev.icing_design,
+                cakeType: cakeInfo?.type || prev.cakeType,
+                cakeThickness: cakeInfo?.thickness || prev.cakeThickness,
             };
         });
+
+        // Update the UI state objects to also reset their original_* fields
+        setMainToppers(prev => prev.map(t => ({
+            ...t,
+            original_type: t.type,
+            original_color: t.color,
+            original_colors: t.colors,
+        })));
+
+        setSupportElements(prev => prev.map(s => ({
+            ...s,
+            original_type: s.type,
+            original_color: s.color,
+            original_colors: s.colors,
+        })));
+
         setIsCustomizationDirty(false);
         setDirtyFields(new Set());
-    }, [analysisResult, mainToppers, supportElements, cakeMessages, icingDesign]);
+    }, [analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo]);
 
 
     return {

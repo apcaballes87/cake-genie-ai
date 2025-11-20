@@ -39,63 +39,114 @@ export interface AvailableDate {
 }
 
 export interface BlockedDateInfo {
-    closure_reason: string | null;
-    is_all_day: boolean;
-    blocked_time_start: string | null;
-    blocked_time_end: string | null;
+  closure_reason: string | null;
+  is_all_day: boolean;
+  blocked_time_start: string | null;
+  blocked_time_end: string | null;
 }
 
 // --- Dynamic Config Fetchers ---
 
 export const savePricingFeedback = async (feedback: PricingFeedback): Promise<void> => {
-    try {
-        const { error } = await supabase
-            .from('pricing_feedback')
-            .insert([feedback]);
-        
-        if (error) {
-            throw new Error(error.message);
-        }
-    } catch (err) {
-        console.error("Error saving pricing feedback:", err);
-        throw new Error("Could not save feedback to the database.");
+  try {
+    const { error } = await supabase
+      .from('pricing_feedback')
+      .insert([feedback]);
+
+    if (error) {
+      throw new Error(error.message);
     }
+  } catch (err) {
+    console.error("Error saving pricing feedback:", err);
+    throw new Error("Could not save feedback to the database.");
+  }
 };
 
 
 export const getCakeBasePriceOptions = async (
-    type: CakeType,
-    thickness: CakeThickness
+  type: CakeType,
+  thickness: CakeThickness
 ): Promise<BasePriceInfo[]> => {
-    try {
-        const { data, error } = await supabase
-            .from('productsizes_cakegenie')
-            .select('cakesize, price, display_order')
-            .eq('type', type)
-            .eq('thickness', thickness)
-            .order('display_order', { ascending: true })
-            .order('cakesize', { ascending: true });
+  try {
+    const { data, error } = await supabase
+      .from('productsizes_cakegenie')
+      .select('cakesize, price, display_order')
+      .eq('type', type)
+      .eq('thickness', thickness)
+      .order('display_order', { ascending: true })
+      .order('cakesize', { ascending: true });
 
-        if (error) {
-            console.error("Supabase error:", error.message);
-            throw new Error(error.message);
-        }
-        
-        if (data && data.length > 0) {
-            return data.map(item => ({ size: item.cakesize, price: item.price }));
-        }
-
-        // Return empty array instead of throwing error if no options are found
-        return [];
-
-    } catch (err) {
-        // FIX: Serialize error object to prevent '[object Object]' in logs.
-        console.error("Error fetching cake base price options:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
-        if (err instanceof Error && err.message.includes('not available')) {
-            throw err;
-        }
-        throw new Error("Could not connect to the pricing database.");
+    if (error) {
+      console.error("Supabase error:", error.message);
+      throw new Error(error.message);
     }
+
+    if (data && data.length > 0) {
+      return data.map(item => ({ size: item.cakesize, price: item.price }));
+    }
+
+    // Return empty array instead of throwing error if no options are found
+    return [];
+
+  } catch (err) {
+    // FIX: Serialize error object to prevent '[object Object]' in logs.
+    console.error("Error fetching cake base price options:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+    if (err instanceof Error && err.message.includes('not available')) {
+      throw err;
+    }
+    throw new Error("Could not connect to the pricing database.");
+  }
+};
+
+/**
+ * Uploads a base64 image to Supabase storage for report purposes.
+ * @param base64Data The base64 image data (with or without data URL prefix)
+ * @param imageType 'original' or 'customized'
+ * @returns The public URL of the uploaded image
+ */
+export const uploadReportImage = async (base64Data: string, imageType: 'original' | 'customized'): Promise<string> => {
+  try {
+    // Remove data URL prefix if present
+    const base64String = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
+
+    // Convert base64 to blob
+    const byteCharacters = atob(base64String);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'image/webp' });
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const randomId = uuidv4().substring(0, 8);
+    const fileName = `${imageType}_${timestamp}_${randomId}.webp`;
+    const filePath = `reported_cakes/${fileName}`;
+
+    // Upload to Supabase storage
+    const { error: uploadError } = await supabase.storage
+      .from('cakegenie')
+      .upload(filePath, blob, {
+        contentType: 'image/webp',
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw new Error(`Failed to upload ${imageType} image: ${uploadError.message}`);
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('cakegenie')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  } catch (err) {
+    console.error(`Error uploading ${imageType} report image:`, err);
+    throw new Error(`Could not upload ${imageType} image to storage.`);
+  }
 };
 
 export const reportCustomization = async (payload: ReportPayload): Promise<void> => {
@@ -149,7 +200,7 @@ export async function findSimilarAnalysisByHash(pHash: string): Promise<HybridAn
     const { data, error } = await supabase.rpc('find_similar_analysis', {
       new_hash: pHash,
     });
-    
+
     if (error) {
       console.error('❌ Analysis cache lookup error:', error);
       console.error('Error details:', { code: error.code, message: error.message, hint: error.hint });
@@ -200,7 +251,7 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
         console.log('✅ Analysis result cached successfully with pHash:', pHash);
       }
     } catch (err) {
-        console.error('❌ Exception during fire-and-forget cache write:', err);
+      console.error('❌ Exception during fire-and-forget cache write:', err);
     }
   })();
 }
@@ -228,7 +279,7 @@ export async function getCartItems(
       .select('*')
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false });
-    
+
     if (userId) {
       query = query.eq('user_id', userId);
     } else if (sessionId) {
@@ -240,7 +291,7 @@ export async function getCartItems(
     if (error) {
       return { data: null, error };
     }
-    
+
     return { data, error: null };
   } catch (err) {
     return { data: null, error: err as Error };
@@ -253,26 +304,26 @@ export async function getCartItems(
  * @returns An object containing the newly added cart item or an error.
  */
 export async function addToCart(
-    params: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>
+  params: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>
 ): Promise<SupabaseServiceResponse<CakeGenieCartItem>> {
-    try {
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7); // Item expires in 7 days
+  try {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // Item expires in 7 days
 
-        const { data, error } = await supabase
-            .from('cakegenie_cart')
-            .insert({ ...params, expires_at: expiresAt.toISOString() })
-            .select()
-            .single();
+    const { data, error } = await supabase
+      .from('cakegenie_cart')
+      .insert({ ...params, expires_at: expiresAt.toISOString() })
+      .select()
+      .single();
 
-        if (error) {
-            return { data: null, error };
-        }
-        
-        return { data, error: null };
-    } catch (err) {
-        return { data: null, error: err as Error };
+    if (error) {
+      return { data: null, error };
     }
+
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
 }
 
 /**
@@ -297,11 +348,11 @@ export async function updateCartItemQuantity(
       .eq('cart_item_id', cartItemId)
       .select()
       .single();
-      
+
     if (error) {
       return { data: null, error };
     }
-    
+
     return { data, error: null };
   } catch (err) {
     return { data: null, error: err as Error };
@@ -375,7 +426,7 @@ export async function addAddress(
         .from('cakegenie_addresses')
         .update({ is_default: false })
         .eq('user_id', userId);
-      
+
       if (unsetError) {
         return { data: null, error: unsetError };
       }
@@ -415,7 +466,7 @@ export async function updateAddress(
         .update({ is_default: false })
         .eq('user_id', userId)
         .neq('address_id', addressId); // Don't unset the one we're about to set
-      
+
       if (unsetError) {
         return { data: null, error: unsetError };
       }
@@ -450,7 +501,7 @@ export async function deleteAddress(
       .from('cakegenie_addresses')
       .delete()
       .eq('address_id', addressId);
-    
+
     if (error) {
       return { data: null, error };
     }
@@ -474,11 +525,11 @@ export async function setDefaultAddress(
       p_user_id: userId,
       p_address_id: addressId
     });
-    
+
     if (error) {
       return { data: null, error };
     }
-    
+
     return { data: null, error: null };
   } catch (err) {
     return { data: null, error: err as Error };
@@ -499,7 +550,7 @@ export async function createOrderFromCart(
   }
 ): Promise<{ success: boolean, order?: any, error?: Error }> {
   const { cartItems, eventDate, eventTime, deliveryAddressId, deliveryInstructions, discountAmount, discountCodeId } = params;
-  
+
   try {
     if (!cartItems || cartItems.length === 0) {
       throw new Error('Cart is empty');
@@ -509,7 +560,7 @@ export async function createOrderFromCart(
     // up-to-date session is used, preventing RLS violations.
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        throw new Error("Authentication error: User session not found.");
+      throw new Error("Authentication error: User session not found.");
     }
 
     const subtotal = cartItems.reduce((sum, item) => sum + (item.final_price * item.quantity), 0);
@@ -529,10 +580,10 @@ export async function createOrderFromCart(
     });
 
     if (error) throw error;
-    
+
     // The RPC returns an array with one row
     const orderResult = data[0];
-    
+
     // Fetch the complete order with items for return
     const { data: fullOrder, error: fetchError } = await supabase
       .from('cakegenie_orders')
@@ -543,7 +594,7 @@ export async function createOrderFromCart(
       `)
       .eq('order_id', orderResult.order_id)
       .single();
-      
+
     if (fetchError) throw fetchError;
 
     return { success: true, order: fullOrder };
@@ -570,12 +621,12 @@ export async function getUserOrders(
     const limit = options?.limit ?? 20;
     const offset = options?.offset ?? 0;
     const includeItems = options?.includeItems ?? true;
-    
+
     // Build the select query. If not including items, fetch item count for efficiency.
     const selectQuery = includeItems
       ? `*, cakegenie_order_items(*), cakegenie_addresses(*)`
       : `*, cakegenie_order_items(count), cakegenie_addresses(*)`;
-    
+
     const { data, error, count } = await supabase
       .from('cakegenie_orders')
       .select(selectQuery, { count: 'exact' })
@@ -587,12 +638,12 @@ export async function getUserOrders(
       return { data: null, error };
     }
 
-    return { 
-      data: { 
-        orders: data || [], 
-        totalCount: count || 0 
-      }, 
-      error: null 
+    return {
+      data: {
+        orders: data || [],
+        totalCount: count || 0
+      },
+      error: null
     };
   } catch (err) {
     return { data: null, error: err as Error };
@@ -618,7 +669,7 @@ export async function getSingleOrder(
     if (error) {
       return { data: null, error };
     }
-    
+
     return { data, error: null };
   } catch (err) {
     return { data: null, error: err as Error };
@@ -686,7 +737,7 @@ export async function mergeAnonymousCartToUser(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = getSupabaseClient();
-    
+
     const { data, error } = await supabase.rpc('merge_anonymous_cart_to_user', {
       p_anonymous_user_id: anonymousUserId,
       p_real_user_id: realUserId
@@ -726,7 +777,7 @@ export async function cancelOrder(
     if (rpcError) {
       return { data: null, error: rpcError };
     }
-    
+
     // After a successful cancellation, fetch the updated order to return the full object.
     const { data, error } = await supabase
       .from('cakegenie_orders')
@@ -738,7 +789,7 @@ export async function cancelOrder(
     if (error) {
       return { data: null, error };
     }
-    
+
     return { data, error: null };
   } catch (err) {
     return { data: null, error: err as Error };
@@ -862,9 +913,9 @@ export async function getPopularKeywords(): Promise<string[]> {
 export async function getCartPageData(
   userId: string | null,
   sessionId: string | null
-): Promise<{ 
-  cartData: SupabaseServiceResponse<CakeGenieCartItem[]>, 
-  addressesData: SupabaseServiceResponse<CakeGenieAddress[]> 
+): Promise<{
+  cartData: SupabaseServiceResponse<CakeGenieCartItem[]>,
+  addressesData: SupabaseServiceResponse<CakeGenieAddress[]>
 }> {
   const isAnonymous = !userId && !!sessionId;
 
@@ -883,51 +934,51 @@ export async function getCartPageData(
 
 // --- New Functions for Delivery Date ---
 export async function getAvailableDeliveryDates(startDate: string, numDays: number): Promise<AvailableDate[]> {
-    const { data, error } = await supabase.rpc('get_available_delivery_dates', {
-      start_date: startDate,
-      num_days: numDays,
-    });
-    if (error) {
-        console.error("Error fetching available dates:", error);
-        throw new Error("Could not fetch available delivery dates.");
-    }
-    return data || [];
+  const { data, error } = await supabase.rpc('get_available_delivery_dates', {
+    start_date: startDate,
+    num_days: numDays,
+  });
+  if (error) {
+    console.error("Error fetching available dates:", error);
+    throw new Error("Could not fetch available delivery dates.");
+  }
+  return data || [];
 }
 
 export async function getBlockedDatesInRange(startDate: string, endDate: string): Promise<Record<string, BlockedDateInfo[]>> {
-    try {
-        const { data, error } = await supabase
-            .from('blocked_dates')
-            .select('blocked_date, closure_reason, is_all_day, blocked_time_start, blocked_time_end')
-            .gte('blocked_date', startDate)
-            .lte('blocked_date', endDate)
-            .eq('is_active', true);
+  try {
+    const { data, error } = await supabase
+      .from('blocked_dates')
+      .select('blocked_date, closure_reason, is_all_day, blocked_time_start, blocked_time_end')
+      .gte('blocked_date', startDate)
+      .lte('blocked_date', endDate)
+      .eq('is_active', true);
 
-        if (error) {
-            throw error;
-        }
-
-        const groupedByDate: Record<string, BlockedDateInfo[]> = {};
-        (data || []).forEach(row => {
-            const date = row.blocked_date;
-            if (!groupedByDate[date]) {
-                groupedByDate[date] = [];
-            }
-            groupedByDate[date].push({
-                closure_reason: row.closure_reason,
-                is_all_day: row.is_all_day,
-                blocked_time_start: row.blocked_time_start,
-                blocked_time_end: row.blocked_time_end,
-            });
-        });
-
-        return groupedByDate;
-
-    } catch(err) {
-        const error = err as PostgrestError;
-        console.error("Error in getBlockedDatesInRange:", error);
-        throw new Error("Could not verify date availability.");
+    if (error) {
+      throw error;
     }
+
+    const groupedByDate: Record<string, BlockedDateInfo[]> = {};
+    (data || []).forEach(row => {
+      const date = row.blocked_date;
+      if (!groupedByDate[date]) {
+        groupedByDate[date] = [];
+      }
+      groupedByDate[date].push({
+        closure_reason: row.closure_reason,
+        is_all_day: row.is_all_day,
+        blocked_time_start: row.blocked_time_start,
+        blocked_time_end: row.blocked_time_end,
+      });
+    });
+
+    return groupedByDate;
+
+  } catch (err) {
+    const error = err as PostgrestError;
+    console.error("Error in getBlockedDatesInRange:", error);
+    throw new Error("Could not verify date availability.");
+  }
 }
 
 

@@ -156,9 +156,10 @@ const SimpleToggle: React.FC<{ label: string; isEnabled: boolean; onChange: (ena
     </div>
 );
 
-const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icingDesign: IcingDesignUI | null; cakeType: CakeType | null; isVisible: boolean; showGuide: boolean; selectedItem: ClusteredMarker | null }> = ({ onSelectItem, icingDesign, cakeType, isVisible, showGuide, selectedItem }) => {
+const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icingDesign: IcingDesignUI | null; cakeType: CakeType | null; isVisible: boolean; showGuide: boolean; selectedItem: ClusteredMarker | null; mainToppers: MainTopperUI[] }> = ({ onSelectItem, icingDesign, cakeType, isVisible, showGuide, selectedItem, mainToppers }) => {
     const [activeGuideIndex, setActiveGuideIndex] = useState<number>(-1);
     const isBento = cakeType === 'Bento';
+    const hasEdiblePhotoOnTop = mainToppers.some(t => t.isEnabled && t.type === 'edible_photo');
 
     // Use default values if analysis hasn't completed yet
     const defaultIcingDesign = {
@@ -419,7 +420,7 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
     const sideColor = effectiveIcingDesign.colors?.side;
     const icingColorsSame = topColor && sideColor && topColor.toUpperCase() === sideColor.toUpperCase();
 
-    const tools = icingColorsSame ? [
+    const tools = (icingColorsSame ? [
         { id: 'drip', description: 'Drip', label: 'Drip', icon: <img src={getDripImage()} alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
         { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <img src={getTopBorderImage()} alt="Top border" />, featureFlag: effectiveIcingDesign.border_top },
         { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <img src={getBaseBorderImage()} alt="Base border" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
@@ -432,7 +433,13 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
         { id: 'top', description: 'Top Icing', label: 'Top Icing', icon: <img src={getIcingImage('top', true)} alt="Top icing" />, featureFlag: !!effectiveIcingDesign.colors?.top },
         { id: 'side', description: 'Side Icing', label: 'Body Icing', icon: <img src={getIcingImage('side', false)} alt="Side icing" />, featureFlag: !!effectiveIcingDesign.colors?.side },
         { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <img src={getBaseboardImage()} alt="Gumpaste baseboard" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
-    ];
+    ]).filter(tool => {
+        // Hide Top Icing tool when there's an edible photo on top (top will be covered)
+        if (tool.id === 'top' && hasEdiblePhotoOnTop) {
+            return false;
+        }
+        return true;
+    });
 
     useEffect(() => {
         if (!showGuide) return;
@@ -461,6 +468,16 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
             {tools.map((tool, index) => {
                 const isGuideActive = activeGuideIndex === index;
                 const isSelected = selectedItem && 'id' in selectedItem && selectedItem.id === `icing-edit-${tool.id}`;
+
+                // Dynamic sizing based on number of tools and screen width
+                // 6 tools: smaller at 465px breakpoint
+                // 5 tools: smaller at 400px breakpoint
+                const buttonSizeClasses = tools.length === 6
+                    ? 'w-14 h-14 max-[465px]:w-11 max-[465px]:h-11'
+                    : tools.length === 5
+                    ? 'w-14 h-14 max-[400px]:w-11 max-[400px]:h-11'
+                    : 'w-14 h-14';
+
                 return (
                     <div key={tool.id} className="flex flex-col items-center gap-1 group">
                         <button
@@ -473,7 +490,7 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
                                     onSelectItem({ id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: effectiveCakeType });
                                 }
                             }}
-                            className={`relative w-14 h-14 p-2 rounded-full hover:bg-purple-100 transition-all ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500' : 'bg-white/80'} backdrop-blur-md border border-slate-200 shadow-md ${tool.featureFlag ? '' : 'opacity-60'} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
+                            className={`relative ${buttonSizeClasses} p-2 rounded-full hover:bg-purple-100 transition-all ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500' : 'bg-white/80'} backdrop-blur-md border border-slate-200 shadow-md ${tool.featureFlag ? '' : 'opacity-60'} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
                             disabled={tool.disabled}
                         >
                             {React.cloneElement(tool.icon as React.ReactElement<any>, { className: 'w-full h-full object-contain' })}
@@ -1274,6 +1291,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                     isVisible={areHelpersVisible}
                                     showGuide={showIcingGuide}
                                     selectedItem={selectedItem}
+                                    mainToppers={mainToppers}
                                 />
 
                                 {/* Inline Icing Editor Panel - Slides down below toolbar */}
