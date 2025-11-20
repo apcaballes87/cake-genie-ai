@@ -77,7 +77,7 @@ export default function App(): React.ReactElement {
   const {
     originalImageData, originalImagePreview, editedImage, threeTierReferenceImage,
     isLoading: isImageManagementLoading, error: imageManagementError,
-    setEditedImage, setError: setImageManagementError,
+    setEditedImage, setError: setImageManagementError, setOriginalImageData,
     handleImageUpload: hookImageUpload, handleSave, uploadCartImages, clearImages,
     loadImageWithoutAnalysis,
   } = useImageManagement();
@@ -131,6 +131,15 @@ export default function App(): React.ReactElement {
       setEditedImage(editedImageResult);
       setActiveTab('customized');
       syncAnalysisResultWithCurrentState();
+
+      // CRITICAL: Update originalImageData to the edited result so next edit builds on this one
+      // Extract mime type from data URI (e.g., "data:image/png;base64,...")
+      const mimeMatch = editedImageResult.match(/^data:([^;]+);/);
+      const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
+      setOriginalImageData({
+        data: editedImageResult,
+        mimeType: mimeType
+      });
     },
   });
 

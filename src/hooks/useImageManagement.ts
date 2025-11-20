@@ -374,6 +374,7 @@ export const useImageManagement = () => {
         setEditedImage,
         setError,
         setIsLoading,
+        setOriginalImageData,
 
         // Functions
         handleImageUpload,

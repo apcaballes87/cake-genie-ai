@@ -1885,24 +1885,34 @@ export const editCakeImage = async (
     systemInstruction: string,
 ): Promise<string> => {
 
+    // Helper function to strip data URI prefix and return only base64 data
+    const stripDataUriPrefix = (dataUri: string): string => {
+        const base64Prefix = 'base64,';
+        const base64Index = dataUri.indexOf(base64Prefix);
+        if (base64Index !== -1) {
+            return dataUri.substring(base64Index + base64Prefix.length);
+        }
+        return dataUri; // Already base64 only
+    };
+
     const parts: ({ text: string } | { inlineData: { mimeType: string, data: string } })[] = [];
 
     // 1. Original Image (Source for style)
-    parts.push({ inlineData: { mimeType: originalImage.mimeType, data: originalImage.data } });
+    parts.push({ inlineData: { mimeType: originalImage.mimeType, data: stripDataUriPrefix(originalImage.data) } });
 
     // 2. Reference Image (Source for structure, if provided)
     if (threeTierReferenceImage) {
-        parts.push({ inlineData: { mimeType: threeTierReferenceImage.mimeType, data: threeTierReferenceImage.data } });
+        parts.push({ inlineData: { mimeType: threeTierReferenceImage.mimeType, data: stripDataUriPrefix(threeTierReferenceImage.data) } });
     }
-    
+
     // 3. Replacement images for printouts, edible photos, and doodles (main toppers)
     mainToppers.forEach(topper => {
         if (topper.isEnabled && (topper.type === 'printout' || topper.type === 'edible_photo' || topper.type === 'icing_doodle') && topper.replacementImage) {
-            parts.push({ 
-                inlineData: { 
-                    mimeType: topper.replacementImage.mimeType, 
-                    data: topper.replacementImage.data 
-                } 
+            parts.push({
+                inlineData: {
+                    mimeType: topper.replacementImage.mimeType,
+                    data: stripDataUriPrefix(topper.replacementImage.data)
+                }
             });
         }
     });
@@ -1910,11 +1920,11 @@ export const editCakeImage = async (
     // 4. Replacement images for printouts and edible photos (support elements)
     supportElements.forEach(element => {
         if (element.isEnabled && (element.type === 'support_printout' || element.type === 'edible_photo_side') && element.replacementImage) {
-            parts.push({ 
-                inlineData: { 
-                    mimeType: element.replacementImage.mimeType, 
-                    data: element.replacementImage.data 
-                } 
+            parts.push({
+                inlineData: {
+                    mimeType: element.replacementImage.mimeType,
+                    data: stripDataUriPrefix(element.replacementImage.data)
+                }
             });
         }
     });

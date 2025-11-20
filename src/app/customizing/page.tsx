@@ -579,6 +579,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     const [hasShownGuide, setHasShownGuide] = useState(false);
     const [showColorPicker, setShowColorPicker] = useState(false); // Collapsible color picker state
     const [showMessagesPanel, setShowMessagesPanel] = useState(false); // Messages panel visibility
+    const [wasUpdating, setWasUpdating] = useState(false); // Track if we were updating
 
     // Show icing guide when image preview is available (before analysis completes)
     useEffect(() => {
@@ -664,6 +665,18 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
             return () => clearInterval(interval);
         }
     }, [isUpdatingDesign, analysisResult, cakeInfo, icingDesign, mainToppers, cakeMessages, HEX_TO_COLOR_NAME_MAP]);
+
+    // Close the color picker panel after design update completes
+    useEffect(() => {
+        if (isUpdatingDesign) {
+            // Track that we started updating
+            setWasUpdating(true);
+        } else if (wasUpdating && selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'icing') {
+            // Update just completed, close the color picker
+            setSelectedItem(null);
+            setWasUpdating(false);
+        }
+    }, [isUpdatingDesign, selectedItem, wasUpdating]);
 
     const dominantMotif = useMemo(() => {
         if (!analysisResult) return null;
