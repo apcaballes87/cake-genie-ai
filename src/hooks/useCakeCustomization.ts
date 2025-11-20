@@ -294,7 +294,21 @@ export const useCakeCustomization = () => {
         setDirtyFields(new Set());
     }, []);
 
-    const handleApplyAnalysis = useCallback((analysisData: HybridAnalysisResult) => {
+    const handleApplyAnalysis = useCallback((rawData: HybridAnalysisResult) => {
+        // Create a shallow copy to apply business logic adjustments without mutating original
+        const analysisData = {
+            ...rawData,
+            icing_design: { ...rawData.icing_design }
+        };
+
+        // Apply business logic: Disable gumpaste base board if it's white.
+        // This prevents the "dirty state" (Apply/Revert buttons) from appearing immediately
+        // because the app logic automatically disables white baseboards.
+        const isBaseBoardWhite = analysisData.icing_design.colors.gumpasteBaseBoardColor?.toLowerCase() === '#ffffff';
+        if (analysisData.icing_design.gumpasteBaseBoard && isBaseBoardWhite) {
+            analysisData.icing_design.gumpasteBaseBoard = false;
+        }
+
         setAnalysisId(uuidv4());
         setAnalysisResult(analysisData);
 
@@ -317,7 +331,7 @@ export const useCakeCustomization = () => {
         if (!dirtyFields.has('mainToppers')) {
             const newMainToppers = analysisData.main_toppers.map((t): MainTopperUI => {
                 let initialType = t.type;
-                const canBePrintout = ['edible_3d', 'toy', 'figurine', 'edible_photo'].includes(t.type);
+                const canBePrintout = ['edible_3d', 'toy', 'figurine', 'edible_photo_top'].includes(t.type);
                 const isCharacterOrLogo = /character|figure|logo|brand/i.test(t.description);
 
                 // Default to 'printout' for characters, logos, etc., if it's a valid alternative
@@ -391,18 +405,26 @@ export const useCakeCustomization = () => {
             if (!dirtyFields.has('icingDesign.drip')) newIcing.drip = analysisIcing.drip;
 
             if (!dirtyFields.has('icingDesign.gumpasteBaseBoard')) {
-                const isBaseBoardWhite = analysisIcing.colors.gumpasteBaseBoardColor?.toLowerCase() === '#ffffff';
-                // The feature is enabled only if the AI detects it AND the color is not white.
-                newIcing.gumpasteBaseBoard = analysisIcing.gumpasteBaseBoard && !isBaseBoardWhite;
+                // Logic for white baseboard is now handled at the start of the function
+                newIcing.gumpasteBaseBoard = analysisIcing.gumpasteBaseBoard;
             }
 
             if (!dirtyFields.has('icingDesign.border_top')) newIcing.border_top = analysisIcing.border_top;
             if (!dirtyFields.has('icingDesign.border_base')) newIcing.border_base = analysisIcing.border_base;
 
-            const allAnalysisColorKeys = Object.keys(analysisIcing.colors) as Array<keyof IcingColorDetails>;
-            for (const colorKey of allAnalysisColorKeys) {
-                if (!dirtyFields.has(`icingDesign.colors.${String(colorKey)}`)) {
-                    newIcing.colors[colorKey] = analysisIcing.colors[colorKey];
+            // Handle colors: If no specific color fields are dirty, we want to adopt the analysis colors EXACTLY
+            // to avoid key-order mismatches in JSON.stringify comparisons later.
+            const areAnyColorsDirty = Object.keys(prev.colors).some(k => dirtyFields.has(`icingDesign.colors.${k}`));
+
+            if (!areAnyColorsDirty) {
+                newIcing.colors = { ...analysisIcing.colors };
+            } else {
+                // Fallback to merging if user has modified some colors
+                const allAnalysisColorKeys = Object.keys(analysisIcing.colors) as Array<keyof IcingColorDetails>;
+                for (const colorKey of allAnalysisColorKeys) {
+                    if (!dirtyFields.has(`icingDesign.colors.${String(colorKey)}`)) {
+                        newIcing.colors[colorKey] = analysisIcing.colors[colorKey];
+                    }
                 }
             }
 
@@ -430,6 +452,10 @@ export const useCakeCustomization = () => {
         if (pendingAnalysisData) {
             handleApplyAnalysis(pendingAnalysisData);
             setPendingAnalysisData(null); // Clear after applying to prevent re-runs
+            // Ensure dirty state is cleared after analysis is applied
+            // This handles any state updates that might have occurred during handleApplyAnalysis
+            setIsCustomizationDirty(false);
+            setDirtyFields(new Set());
         }
     }, [pendingAnalysisData, handleApplyAnalysis]);
 

@@ -159,18 +159,24 @@ const SimpleToggle: React.FC<{ label: string; isEnabled: boolean; onChange: (ena
 const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icingDesign: IcingDesignUI | null; cakeType: CakeType | null; isVisible: boolean; showGuide: boolean; selectedItem: ClusteredMarker | null; mainToppers: MainTopperUI[] }> = ({ onSelectItem, icingDesign, cakeType, isVisible, showGuide, selectedItem, mainToppers }) => {
     const [activeGuideIndex, setActiveGuideIndex] = useState<number>(-1);
     const isBento = cakeType === 'Bento';
-    const hasEdiblePhotoOnTop = mainToppers.some(t => t.isEnabled && t.type === 'edible_photo');
+    const hasEdiblePhotoOnTop = mainToppers.some(t => t.isEnabled && t.type === 'edible_photo_top');
 
     // Use default values if analysis hasn't completed yet
-    const defaultIcingDesign = {
+    const defaultIcingDesign: IcingDesignUI = {
+        base: 'soft_icing',
+        color_type: 'single',
         drip: false,
         border_top: false,
         border_base: false,
         colors: { top: '#FFFFFF', side: '#FFFFFF' },
-        gumpasteBaseBoard: false
+        gumpasteBaseBoard: false,
+        dripPrice: 0,
+        gumpasteBaseBoardPrice: 0
     };
     const effectiveIcingDesign = icingDesign || defaultIcingDesign;
     const effectiveCakeType: CakeType = cakeType || '1 Tier';
+
+
 
     // Type guard to check if effectiveIcingDesign has IcingColorDetails properties
     const hasIcingColorDetails = (design: any): design is IcingDesignUI => {
@@ -475,8 +481,8 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
                 const buttonSizeClasses = tools.length === 6
                     ? 'w-14 h-14 max-[465px]:w-11 max-[465px]:h-11'
                     : tools.length === 5
-                    ? 'w-14 h-14 max-[400px]:w-11 max-[400px]:h-11'
-                    : 'w-14 h-14';
+                        ? 'w-14 h-14 max-[400px]:w-11 max-[400px]:h-11'
+                        : 'w-14 h-14';
 
                 return (
                     <div key={tool.id} className="flex flex-col items-center gap-1 group">
@@ -580,6 +586,20 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     const [showColorPicker, setShowColorPicker] = useState(false); // Collapsible color picker state
     const [showMessagesPanel, setShowMessagesPanel] = useState(false); // Messages panel visibility
     const [wasUpdating, setWasUpdating] = useState(false); // Track if we were updating
+
+
+
+    // Calculate icing changes at the top level to avoid hook errors
+    const hasIcingChanges = useMemo(() => {
+        if (!analysisResult?.icing_design || !icingDesign) return false;
+        return (
+            JSON.stringify(icingDesign.colors) !== JSON.stringify(analysisResult.icing_design.colors) ||
+            icingDesign.drip !== analysisResult.icing_design.drip ||
+            icingDesign.border_top !== analysisResult.icing_design.border_top ||
+            icingDesign.border_base !== analysisResult.icing_design.border_base ||
+            icingDesign.gumpasteBaseBoard !== analysisResult.icing_design.gumpasteBaseBoard
+        );
+    }, [icingDesign, analysisResult]);
 
     // Show icing guide when image preview is available (before analysis completes)
     useEffect(() => {
@@ -1161,17 +1181,19 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                                 </button>
                                             )}
                                             {/* Edible Photo button - only for edible photo cakes */}
-                                            {(mainToppers.some(t => t.isEnabled && t.type === 'edible_photo') ||
+                                            {(mainToppers.some(t => t.isEnabled && t.type === 'edible_photo_top') ||
                                                 supportElements.some(s => s.isEnabled && s.type === 'edible_photo_side')) && (
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             // Find the edible photo item and select it
-                                                            const ediblePhotoTopper = mainToppers.find(t => t.isEnabled && t.type === 'edible_photo');
+                                                            const ediblePhotoTopper = mainToppers.find(t => t.isEnabled && t.type === 'edible_photo_top');
                                                             const ediblePhotoSupport = supportElements.find(s => s.isEnabled && s.type === 'edible_photo_side');
-                                                            const ediblePhotoItem = ediblePhotoTopper || ediblePhotoSupport;
-                                                            if (ediblePhotoItem) {
-                                                                setSelectedItem(ediblePhotoItem as any);
+
+                                                            if (ediblePhotoTopper) {
+                                                                setSelectedItem({ ...ediblePhotoTopper, itemCategory: 'topper' as const });
+                                                            } else if (ediblePhotoSupport) {
+                                                                setSelectedItem({ ...ediblePhotoSupport, itemCategory: 'element' as const });
                                                             }
                                                         }}
                                                         className="bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-semibold hover:bg-black/60 transition-all shadow-md px-3 py-1.5"
@@ -1271,23 +1293,20 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                     </div>
 
                     {/* Icing Toolbar - Below image container */}
-                    {originalImagePreview && (() => {
-                        const hasIcingChanges = analysisResult?.icing_design && icingDesign && (
-                            JSON.stringify(icingDesign.colors) !== JSON.stringify(analysisResult.icing_design.colors) ||
-                            icingDesign.drip !== analysisResult.icing_design.drip ||
-                            icingDesign.border_top !== analysisResult.icing_design.border_top ||
-                            icingDesign.border_base !== analysisResult.icing_design.border_base ||
-                            icingDesign.gumpasteBaseBoard !== analysisResult.icing_design.gumpasteBaseBoard
-                        );
-
-                        return (
-                            <div className={`w-full bg-white/70 backdrop-blur-sm rounded-xl border border-slate-200 px-4 pt-4 relative transition-all duration-200 ${hasIcingChanges || isUpdatingDesign ? 'pb-16' : 'pb-8'}`}>
-                                <div className="flex justify-between items-center mb-2">
-                                    <h3 className="text-sm font-semibold text-slate-700">Change Icing Colors</h3>
+                    {/* Icing Toolbar - Below image container */}
+                    {originalImagePreview && (
+                        <div className={`w-full bg-white/70 backdrop-blur-sm rounded-xl border border-slate-200 px-4 pt-4 relative transition-all duration-200 ${hasIcingChanges || isUpdatingDesign ? 'pb-16' : 'pb-8'}`}>
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-sm font-semibold text-slate-700">Change Icing Colors</h3>
+                                {hasIcingChanges && (
                                     <button
                                         onClick={() => {
-                                            if (analysisResult?.icing_design) {
-                                                onIcingDesignChange(analysisResult.icing_design);
+                                            if (analysisResult?.icing_design && icingDesign) {
+                                                onIcingDesignChange({
+                                                    ...analysisResult.icing_design,
+                                                    dripPrice: icingDesign.dripPrice,
+                                                    gumpasteBaseBoardPrice: icingDesign.gumpasteBaseBoardPrice
+                                                });
                                                 setSelectedItem(null);
                                             }
                                         }}
@@ -1296,202 +1315,190 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                         <ResetIcon className="w-3 h-3" />
                                         Revert to Original
                                     </button>
-                                </div>
-                                <IcingToolbar
-                                    onSelectItem={setSelectedItem}
-                                    icingDesign={icingDesign}
-                                    cakeType={cakeInfo?.type || null}
-                                    isVisible={areHelpersVisible}
-                                    showGuide={showIcingGuide}
-                                    selectedItem={selectedItem}
-                                    mainToppers={mainToppers}
-                                />
-
-                                {/* Inline Icing Editor Panel - Slides down below toolbar */}
-                                {selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'icing' && (
-                                    <div
-                                        className="overflow-hidden transition-all duration-300 ease-in-out"
-                                        style={{
-                                            maxHeight: selectedItem ? '500px' : '0px',
-                                        }}
-                                    >
-                                        <div className="mt-3 pt-3">
-                                            {(() => {
-                                                const description = selectedItem.description;
-                                                const isBento = cakeInfo?.type === 'Bento';
-
-                                                // Helper function for toggle + color picker (drip, borders, baseboard)
-                                                const renderToggleAndColor = (
-                                                    featureKey: 'drip' | 'border_top' | 'border_base' | 'gumpasteBaseBoard',
-                                                    colorKey: keyof IcingColorDetails,
-                                                    label: string
-                                                ) => {
-                                                    const originalColor = analysisResult?.icing_design.colors[colorKey];
-                                                    const currentColor = icingDesign.colors[colorKey];
-                                                    const canRevert = originalColor && currentColor !== originalColor;
-
-                                                    const handleRevert = () => {
-                                                        if (canRevert) {
-                                                            onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: originalColor } });
-                                                        }
-                                                    };
-
-                                                    const isEnabled = icingDesign[featureKey];
-                                                    const isDisabled = (featureKey === 'border_base' || featureKey === 'gumpasteBaseBoard') && isBento;
-
-                                                    return (
-                                                        <>
-                                                            <SimpleToggle
-                                                                label={label}
-                                                                isEnabled={isEnabled}
-                                                                disabled={isDisabled}
-                                                                onChange={(enabled) => {
-                                                                    const newIcingDesign = { ...icingDesign, [featureKey]: enabled };
-                                                                    if (enabled && !newIcingDesign.colors[colorKey]) {
-                                                                        newIcingDesign.colors = { ...newIcingDesign.colors, [colorKey]: '#FFFFFF' };
-                                                                    }
-                                                                    onIcingDesignChange(newIcingDesign);
-                                                                }}
-                                                            />
-                                                            <div className={`mt-2 ${!isEnabled && !isDisabled ? 'opacity-40 pointer-events-none' : ''}`}>
-                                                                <div className={`pb-2 ${!isEnabled && !isDisabled ? 'pointer-events-auto' : ''}`}>
-                                                                    <ColorPalette
-                                                                        selectedColor={icingDesign.colors[colorKey] || ''}
-                                                                        onColorChange={(newHex) => {
-                                                                            const newIcingDesign = {
-                                                                                ...icingDesign,
-                                                                                [featureKey]: true,
-                                                                                colors: { ...icingDesign.colors, [colorKey]: newHex }
-                                                                            };
-                                                                            onIcingDesignChange(newIcingDesign);
-                                                                        }}
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        </>
-                                                    );
-                                                };
-
-                                                // Helper function for color picker only (top/side icing)
-                                                const renderColorOnly = (colorKey: keyof IcingColorDetails, label: string) => {
-                                                    const originalColor = analysisResult?.icing_design.colors[colorKey];
-                                                    const currentColor = icingDesign.colors[colorKey];
-                                                    const canRevert = originalColor && currentColor !== originalColor;
-
-                                                    const handleRevert = () => {
-                                                        if (canRevert) {
-                                                            onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: originalColor } });
-                                                        }
-                                                    };
-
-                                                    return (
-                                                        <div className="pb-2">
-                                                            <ColorPalette
-                                                                selectedColor={icingDesign.colors[colorKey] || ''}
-                                                                onColorChange={(newHex) => {
-                                                                    onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: newHex } });
-                                                                }}
-                                                            />
-                                                        </div>
-                                                    );
-                                                };
-
-                                                // Helper function for combined icing color picker
-                                                const renderCombinedIcingColor = () => {
-                                                    const originalTopColor = analysisResult?.icing_design.colors.top;
-                                                    const originalSideColor = analysisResult?.icing_design.colors.side;
-                                                    const currentColor = icingDesign.colors.top || icingDesign.colors.side || '#FFFFFF';
-
-                                                    const canRevertTop = originalTopColor && icingDesign.colors.top !== originalTopColor;
-                                                    const canRevertSide = originalSideColor && icingDesign.colors.side !== originalSideColor;
-                                                    const canRevert = canRevertTop || canRevertSide;
-
-                                                    const handleRevert = () => {
-                                                        const newColors = { ...icingDesign.colors };
-                                                        if (canRevertTop && originalTopColor) newColors.top = originalTopColor;
-                                                        if (canRevertSide && originalSideColor) newColors.side = originalSideColor;
-                                                        onIcingDesignChange({ ...icingDesign, colors: newColors });
-                                                    };
-
-                                                    return (
-                                                        <div className="pb-2">
-                                                            <ColorPalette
-                                                                selectedColor={currentColor}
-                                                                onColorChange={(newHex) => {
-                                                                    onIcingDesignChange({
-                                                                        ...icingDesign,
-                                                                        colors: {
-                                                                            ...icingDesign.colors,
-                                                                            top: newHex,
-                                                                            side: newHex
-                                                                        }
-                                                                    });
-                                                                }}
-                                                            />
-                                                        </div>
-                                                    );
-                                                };
-
-                                                // Switch based on description to render appropriate editor
-                                                switch (description) {
-                                                    case 'Drip':
-                                                        return renderToggleAndColor('drip', 'drip', 'Enable Drip Effect');
-                                                    case 'Top':
-                                                        return renderToggleAndColor('border_top', 'borderTop', 'Enable Top Border');
-                                                    case 'Bottom':
-                                                        return renderToggleAndColor('border_base', 'borderBase', 'Enable Base Border');
-                                                    case 'Board':
-                                                        return renderToggleAndColor('gumpasteBaseBoard', 'gumpasteBaseBoardColor', 'Enable Covered Board');
-                                                    case 'Body Icing':
-                                                        return renderCombinedIcingColor();
-                                                    case 'Top Icing':
-                                                        return renderColorOnly('top', 'Top Icing Color');
-                                                    case 'Side Icing':
-                                                        return renderColorOnly('side', 'Side Icing Color');
-                                                    default:
-                                                        return <p className="p-2 text-xs text-slate-500">Select an icing feature to edit.</p>;
-                                                }
-                                            })()}
-                                        </div>
-                                    </div>
                                 )}
-
-                                {/* Small Apply button in lower right corner - only show when there are changes */}
-                                {(() => {
-                                    const hasIcingChanges = analysisResult?.icing_design && icingDesign && (
-                                        JSON.stringify(icingDesign.colors) !== JSON.stringify(analysisResult.icing_design.colors) ||
-                                        icingDesign.drip !== analysisResult.icing_design.drip ||
-                                        icingDesign.border_top !== analysisResult.icing_design.border_top ||
-                                        icingDesign.border_base !== analysisResult.icing_design.border_base ||
-                                        icingDesign.gumpasteBaseBoard !== analysisResult.icing_design.gumpasteBaseBoard
-                                    );
-
-                                    if (!hasIcingChanges && !isUpdatingDesign) return null;
-
-                                    return (
-                                        <button
-                                            onClick={onUpdateDesign}
-                                            disabled={isUpdatingDesign || !originalImageData}
-                                            className="absolute bottom-4 right-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold py-1.5 px-3.5 rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center gap-1.5 text-sm"
-                                            title="Apply icing color changes"
-                                        >
-                                            {isUpdatingDesign ? (
-                                                <>
-                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                    Updating...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <MagicSparkleIcon className="w-3.5 h-3.5" />
-                                                    Apply
-                                                </>
-                                            )}
-                                        </button>
-                                    );
-                                })()}
                             </div>
-                        );
-                    })()}
+                            <IcingToolbar
+                                onSelectItem={setSelectedItem}
+                                icingDesign={icingDesign}
+                                cakeType={cakeInfo?.type || null}
+                                isVisible={areHelpersVisible}
+                                showGuide={showIcingGuide}
+                                selectedItem={selectedItem}
+                                mainToppers={mainToppers}
+                            />
+
+                            {/* Inline Icing Editor Panel - Slides down below toolbar */}
+                            {selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'icing' && (
+                                <div
+                                    className="overflow-hidden transition-all duration-300 ease-in-out"
+                                    style={{
+                                        maxHeight: selectedItem ? '500px' : '0px',
+                                    }}
+                                >
+                                    <div className="mt-3 pt-3">
+                                        {(() => {
+                                            const description = selectedItem.description;
+                                            const isBento = cakeInfo?.type === 'Bento';
+
+                                            // Helper function for toggle + color picker (drip, borders, baseboard)
+                                            const renderToggleAndColor = (
+                                                featureKey: 'drip' | 'border_top' | 'border_base' | 'gumpasteBaseBoard',
+                                                colorKey: keyof IcingColorDetails,
+                                                label: string
+                                            ) => {
+                                                const originalColor = analysisResult?.icing_design.colors[colorKey];
+                                                const currentColor = icingDesign.colors[colorKey];
+                                                const canRevert = originalColor && currentColor !== originalColor;
+
+                                                const handleRevert = () => {
+                                                    if (canRevert) {
+                                                        onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: originalColor } });
+                                                    }
+                                                };
+
+                                                const isEnabled = icingDesign[featureKey];
+                                                const isDisabled = (featureKey === 'border_base' || featureKey === 'gumpasteBaseBoard') && isBento;
+
+                                                return (
+                                                    <>
+                                                        <SimpleToggle
+                                                            label={label}
+                                                            isEnabled={isEnabled}
+                                                            disabled={isDisabled}
+                                                            onChange={(enabled) => {
+                                                                const newIcingDesign = { ...icingDesign, [featureKey]: enabled };
+                                                                if (enabled && !newIcingDesign.colors[colorKey]) {
+                                                                    newIcingDesign.colors = { ...newIcingDesign.colors, [colorKey]: '#FFFFFF' };
+                                                                }
+                                                                onIcingDesignChange(newIcingDesign);
+                                                            }}
+                                                        />
+                                                        <div className={`mt-2 ${!isEnabled && !isDisabled ? 'opacity-40 pointer-events-none' : ''}`}>
+                                                            <div className={`pb-2 ${!isEnabled && !isDisabled ? 'pointer-events-auto' : ''}`}>
+                                                                <ColorPalette
+                                                                    selectedColor={icingDesign.colors[colorKey] || ''}
+                                                                    onColorChange={(newHex) => {
+                                                                        const newIcingDesign = {
+                                                                            ...icingDesign,
+                                                                            [featureKey]: true,
+                                                                            colors: { ...icingDesign.colors, [colorKey]: newHex }
+                                                                        };
+                                                                        onIcingDesignChange(newIcingDesign);
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                );
+                                            };
+
+                                            // Helper function for color picker only (top/side icing)
+                                            const renderColorOnly = (colorKey: keyof IcingColorDetails, label: string) => {
+                                                const originalColor = analysisResult?.icing_design.colors[colorKey];
+                                                const currentColor = icingDesign.colors[colorKey];
+                                                const canRevert = originalColor && currentColor !== originalColor;
+
+                                                const handleRevert = () => {
+                                                    if (canRevert) {
+                                                        onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: originalColor } });
+                                                    }
+                                                };
+
+                                                return (
+                                                    <div className="pb-2">
+                                                        <ColorPalette
+                                                            selectedColor={icingDesign.colors[colorKey] || ''}
+                                                            onColorChange={(newHex) => {
+                                                                onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: newHex } });
+                                                            }}
+                                                        />
+                                                    </div>
+                                                );
+                                            };
+
+                                            // Helper function for combined icing color picker
+                                            const renderCombinedIcingColor = () => {
+                                                const originalTopColor = analysisResult?.icing_design.colors.top;
+                                                const originalSideColor = analysisResult?.icing_design.colors.side;
+                                                const currentColor = icingDesign.colors.top || icingDesign.colors.side || '#FFFFFF';
+
+                                                const canRevertTop = originalTopColor && icingDesign.colors.top !== originalTopColor;
+                                                const canRevertSide = originalSideColor && icingDesign.colors.side !== originalSideColor;
+                                                const canRevert = canRevertTop || canRevertSide;
+
+                                                const handleRevert = () => {
+                                                    const newColors = { ...icingDesign.colors };
+                                                    if (canRevertTop && originalTopColor) newColors.top = originalTopColor;
+                                                    if (canRevertSide && originalSideColor) newColors.side = originalSideColor;
+                                                    onIcingDesignChange({ ...icingDesign, colors: newColors });
+                                                };
+
+                                                return (
+                                                    <div className="pb-2">
+                                                        <ColorPalette
+                                                            selectedColor={currentColor}
+                                                            onColorChange={(newHex) => {
+                                                                onIcingDesignChange({
+                                                                    ...icingDesign,
+                                                                    colors: {
+                                                                        ...icingDesign.colors,
+                                                                        top: newHex,
+                                                                        side: newHex
+                                                                    }
+                                                                });
+                                                            }}
+                                                        />
+                                                    </div>
+                                                );
+                                            };
+
+                                            // Switch based on description to render appropriate editor
+                                            switch (description) {
+                                                case 'Drip':
+                                                    return renderToggleAndColor('drip', 'drip', 'Enable Drip Effect');
+                                                case 'Top':
+                                                    return renderToggleAndColor('border_top', 'borderTop', 'Enable Top Border');
+                                                case 'Bottom':
+                                                    return renderToggleAndColor('border_base', 'borderBase', 'Enable Base Border');
+                                                case 'Board':
+                                                    return renderToggleAndColor('gumpasteBaseBoard', 'gumpasteBaseBoardColor', 'Enable Covered Board');
+                                                case 'Body Icing':
+                                                    return renderCombinedIcingColor();
+                                                case 'Top Icing':
+                                                    return renderColorOnly('top', 'Top Icing Color');
+                                                case 'Side Icing':
+                                                    return renderColorOnly('side', 'Side Icing Color');
+                                                default:
+                                                    return <p className="p-2 text-xs text-slate-500">Select an icing feature to edit.</p>;
+                                            }
+                                        })()}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Small Apply button in lower right corner - only show when there are changes */}
+                            {(hasIcingChanges || isUpdatingDesign) && (
+                                <button
+                                    onClick={onUpdateDesign}
+                                    disabled={isUpdatingDesign || !originalImageData}
+                                    className="absolute bottom-4 right-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold py-1.5 px-3.5 rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center gap-1.5 text-sm"
+                                    title="Apply icing color changes"
+                                >
+                                    {isUpdatingDesign ? (
+                                        <>
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            Updating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <MagicSparkleIcon className="w-3.5 h-3.5" />
+                                            Apply
+                                        </>
+                                    )}
+                                </button>
+                            )}
+                        </div>
+                    )}
 
 
                     {/* Report/Save/Reset buttons - shown below Update Design in 2-column layout */}
@@ -1629,164 +1636,172 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
             </div>
 
             {/* Report/Save/Reset buttons - shown below 2-column layout on mobile/single column */}
-            {originalImageData && (
-                <div className="w-full lg:hidden flex flex-col items-center gap-3">
-                    <div className="w-full flex items-center justify-end gap-4">
-                        {isAdmin && (
-                            <button
-                                onClick={() => {
-                                    clearPromptCache();
-                                    showSuccess("AI prompt cache cleared!");
-                                }}
-                                className="flex items-center justify-center text-sm text-yellow-600 hover:text-yellow-800 hover:bg-yellow-200 py-2 px-4 rounded-lg transition-colors"
-                                aria-label="Clear AI prompt cache"
-                            >
-                                Clear Prompt Cache
-                            </button>
-                        )}
-                        <button onClick={onOpenReportModal} disabled={!editedImage || isLoading || isReporting} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Report an issue with this image">
-                            <ReportIcon />
-                            <span className="ml-2">{isReporting ? 'Submitting...' : 'Report Issue'}</span>
-                        </button>
-                        <button onClick={onSave} disabled={!editedImage || isLoading || isSaving} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label={isSaving ? "Saving image" : "Save customized image"}>
-                            {isSaving ? (
-                                <>
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    <span className="ml-2">Saving...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <SaveIcon />
-                                    <span className="ml-2">Save</span>
-                                </>
+            {
+                originalImageData && (
+                    <div className="w-full lg:hidden flex flex-col items-center gap-3">
+                        <div className="w-full flex items-center justify-end gap-4">
+                            {isAdmin && (
+                                <button
+                                    onClick={() => {
+                                        clearPromptCache();
+                                        showSuccess("AI prompt cache cleared!");
+                                    }}
+                                    className="flex items-center justify-center text-sm text-yellow-600 hover:text-yellow-800 hover:bg-yellow-200 py-2 px-4 rounded-lg transition-colors"
+                                    aria-label="Clear AI prompt cache"
+                                >
+                                    Clear Prompt Cache
+                                </button>
                             )}
-                        </button>
-                        <button onClick={onClearAll} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors" aria-label="Reset everything"><ResetIcon /><span className="ml-2">Reset Everything</span></button>
-                    </div>
-                </div>
-            )}
-            {/* FloatingResultPanel - Only show for non-icing items */}
-            {selectedItem && !('itemCategory' in selectedItem && selectedItem.itemCategory === 'icing') && (
-                <FloatingResultPanel
-                    selectedItem={selectedItem}
-                    onClose={() => setSelectedItem(null)}
-                    mainToppers={mainToppers}
-                    updateMainTopper={updateMainTopper}
-                    removeMainTopper={removeMainTopper}
-                    onTopperImageReplace={onTopperImageReplace}
-                    supportElements={supportElements}
-                    updateSupportElement={updateSupportElement}
-                    removeSupportElement={removeSupportElement}
-                    onSupportElementImageReplace={onSupportElementImageReplace}
-                    cakeMessages={cakeMessages}
-                    updateCakeMessage={updateCakeMessage}
-                    removeCakeMessage={removeCakeMessage}
-                    addCakeMessage={addCakeMessage}
-                    onCakeMessageChange={onCakeMessageChange}
-                    icingDesign={icingDesign}
-                    onIcingDesignChange={onIcingDesignChange}
-                    analysisResult={analysisResult}
-                    itemPrices={itemPrices}
-                    isAdmin={isAdmin}
-                    onUpdateDesign={onUpdateDesign}
-                    isUpdatingDesign={isUpdatingDesign}
-                />
-            )}
-            {/* Messages Panel */}
-            {showMessagesPanel && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowMessagesPanel(false)}>
-                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                        <div className="sticky top-0 bg-white border-b border-slate-200 p-4 flex justify-between items-center rounded-t-xl">
-                            <h2 className="text-lg font-bold text-slate-800">Cake Messages</h2>
-                            <button
-                                onClick={() => setShowMessagesPanel(false)}
-                                className="text-slate-400 hover:text-slate-600 transition-colors"
-                                aria-label="Close messages panel"
-                            >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                            <button onClick={onOpenReportModal} disabled={!editedImage || isLoading || isReporting} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Report an issue with this image">
+                                <ReportIcon />
+                                <span className="ml-2">{isReporting ? 'Submitting...' : 'Report Issue'}</span>
                             </button>
+                            <button onClick={onSave} disabled={!editedImage || isLoading || isSaving} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label={isSaving ? "Saving image" : "Save customized image"}>
+                                {isSaving ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <span className="ml-2">Saving...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <SaveIcon />
+                                        <span className="ml-2">Save</span>
+                                    </>
+                                )}
+                            </button>
+                            <button onClick={onClearAll} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors" aria-label="Reset everything"><ResetIcon /><span className="ml-2">Reset Everything</span></button>
                         </div>
-                        <div className="p-4 space-y-4">
-                            {/* List all messages */}
-                            {cakeMessages.map((message) => (
-                                <div key={message.id} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex-1">
-                                            <div className="text-xs font-semibold text-purple-600 uppercase mb-1">
-                                                {message.position === 'top' ? 'Cake Top' : message.position === 'side' ? 'Cake Front' : 'Base Board'}
+                    </div>
+                )
+            }
+            {/* FloatingResultPanel - Only show for non-icing items */}
+            {
+                selectedItem && !('itemCategory' in selectedItem && selectedItem.itemCategory === 'icing') && (
+                    <FloatingResultPanel
+                        selectedItem={selectedItem}
+                        onClose={() => setSelectedItem(null)}
+                        mainToppers={mainToppers}
+                        updateMainTopper={updateMainTopper}
+                        removeMainTopper={removeMainTopper}
+                        onTopperImageReplace={onTopperImageReplace}
+                        supportElements={supportElements}
+                        updateSupportElement={updateSupportElement}
+                        removeSupportElement={removeSupportElement}
+                        onSupportElementImageReplace={onSupportElementImageReplace}
+                        cakeMessages={cakeMessages}
+                        updateCakeMessage={updateCakeMessage}
+                        removeCakeMessage={removeCakeMessage}
+                        addCakeMessage={addCakeMessage}
+                        onCakeMessageChange={onCakeMessageChange}
+                        icingDesign={icingDesign}
+                        onIcingDesignChange={onIcingDesignChange}
+                        analysisResult={analysisResult}
+                        itemPrices={itemPrices}
+                        isAdmin={isAdmin}
+                        onUpdateDesign={onUpdateDesign}
+                        isUpdatingDesign={isUpdatingDesign}
+                    />
+                )
+            }
+            {/* Messages Panel */}
+            {
+                showMessagesPanel && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowMessagesPanel(false)}>
+                        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                            <div className="sticky top-0 bg-white border-b border-slate-200 p-4 flex justify-between items-center rounded-t-xl">
+                                <h2 className="text-lg font-bold text-slate-800">Cake Messages</h2>
+                                <button
+                                    onClick={() => setShowMessagesPanel(false)}
+                                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                                    aria-label="Close messages panel"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div className="p-4 space-y-4">
+                                {/* List all messages */}
+                                {cakeMessages.map((message) => (
+                                    <div key={message.id} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="flex-1">
+                                                <div className="text-xs font-semibold text-purple-600 uppercase mb-1">
+                                                    {message.position === 'top' ? 'Cake Top' : message.position === 'side' ? 'Cake Front' : 'Base Board'}
+                                                </div>
+                                                <div className="text-sm font-medium text-slate-800">{message.text}</div>
                                             </div>
-                                            <div className="text-sm font-medium text-slate-800">{message.text}</div>
+                                            <button
+                                                onClick={() => {
+                                                    removeCakeMessage(message.id);
+                                                    if (cakeMessages.length === 1) {
+                                                        setShowMessagesPanel(false);
+                                                    }
+                                                }}
+                                                className="text-red-500 hover:text-red-700 transition-colors ml-2"
+                                                aria-label="Delete message"
+                                            >
+                                                <TrashIcon className="w-4 h-4" />
+                                            </button>
                                         </div>
+                                        <div className="flex gap-2 text-xs text-slate-600">
+                                            <span>Type: {message.type.replace('_', ' ')}</span>
+                                            <span>•</span>
+                                            <span>Color: {message.color}</span>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* Add message buttons */}
+                                <div className="space-y-2 pt-2 border-t border-slate-200">
+                                    <div className="text-xs font-semibold text-slate-600 mb-2">Add New Message</div>
+                                    {!cakeMessages.some(m => m.position === 'top') && (
                                         <button
                                             onClick={() => {
-                                                removeCakeMessage(message.id);
-                                                if (cakeMessages.length === 1) {
-                                                    setShowMessagesPanel(false);
-                                                }
+                                                addCakeMessage('top');
                                             }}
-                                            className="text-red-500 hover:text-red-700 transition-colors ml-2"
-                                            aria-label="Delete message"
+                                            className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
                                         >
-                                            <TrashIcon className="w-4 h-4" />
+                                            <span className="text-base">+</span> Add Message (Cake Top)
                                         </button>
-                                    </div>
-                                    <div className="flex gap-2 text-xs text-slate-600">
-                                        <span>Font: {message.font}</span>
-                                        <span>•</span>
-                                        <span>Color: {message.color}</span>
-                                    </div>
+                                    )}
+                                    {!cakeMessages.some(m => m.position === 'side') && (
+                                        <button
+                                            onClick={() => {
+                                                addCakeMessage('side');
+                                            }}
+                                            className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
+                                        >
+                                            <span className="text-base">+</span> Add Message (Cake Front)
+                                        </button>
+                                    )}
+                                    {!cakeMessages.some(m => m.position === 'base_board') && cakeInfo?.type !== 'Bento' && (
+                                        <button
+                                            onClick={() => {
+                                                addCakeMessage('base_board');
+                                            }}
+                                            className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
+                                        >
+                                            <span className="text-base">+</span> Add Message (Base Board)
+                                        </button>
+                                    )}
                                 </div>
-                            ))}
-
-                            {/* Add message buttons */}
-                            <div className="space-y-2 pt-2 border-t border-slate-200">
-                                <div className="text-xs font-semibold text-slate-600 mb-2">Add New Message</div>
-                                {!cakeMessages.some(m => m.position === 'top') && (
-                                    <button
-                                        onClick={() => {
-                                            addCakeMessage('top');
-                                        }}
-                                        className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
-                                    >
-                                        <span className="text-base">+</span> Add Message (Cake Top)
-                                    </button>
-                                )}
-                                {!cakeMessages.some(m => m.position === 'side') && (
-                                    <button
-                                        onClick={() => {
-                                            addCakeMessage('side');
-                                        }}
-                                        className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
-                                    >
-                                        <span className="text-base">+</span> Add Message (Cake Front)
-                                    </button>
-                                )}
-                                {!cakeMessages.some(m => m.position === 'base_board') && cakeInfo?.type !== 'Bento' && (
-                                    <button
-                                        onClick={() => {
-                                            addCakeMessage('base_board');
-                                        }}
-                                        className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
-                                    >
-                                        <span className="text-base">+</span> Add Message (Base Board)
-                                    </button>
-                                )}
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-            {dominantMotif && (
-                <MotifPanel
-                    isOpen={isMotifPanelOpen}
-                    onClose={() => setIsMotifPanelOpen(false)}
-                    dominantMotif={dominantMotif}
-                    onColorChange={handleMotifColorChange}
-                />
-            )}
-        </div>
+                )
+            }
+            {
+                dominantMotif && (
+                    <MotifPanel
+                        isOpen={isMotifPanelOpen}
+                        onClose={() => setIsMotifPanelOpen(false)}
+                        dominantMotif={dominantMotif}
+                        onColorChange={handleMotifColorChange}
+                    />
+                )
+            }
+        </div >
     );
 };
 
