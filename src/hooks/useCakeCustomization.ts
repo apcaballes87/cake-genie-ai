@@ -453,6 +453,24 @@ export const useCakeCustomization = () => {
         }
     }, [updateSupportElement]);
 
+    // Function to sync analysisResult with current state (used after successful design update)
+    const syncAnalysisResultWithCurrentState = useCallback(() => {
+        if (!analysisResult) return;
+
+        setAnalysisResult(prev => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                main_toppers: mainToppers,
+                support_elements: supportElements,
+                cake_messages: cakeMessages,
+                icing_design: icingDesign || prev.icing_design,
+            };
+        });
+        setIsCustomizationDirty(false);
+        setDirtyFields(new Set());
+    }, [analysisResult, mainToppers, supportElements, cakeMessages, icingDesign]);
+
 
     return {
         // State
@@ -493,5 +511,6 @@ export const useCakeCustomization = () => {
         clearCustomization,
         initializeDefaultState,
         initializeFromShopify,
+        syncAnalysisResultWithCurrentState,
     };
 };

@@ -148,10 +148,10 @@ const SimpleToggle: React.FC<{ label: string; isEnabled: boolean; onChange: (ena
                 if (!disabled) onChange(!isEnabled);
             }}
             disabled={disabled}
-            className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isEnabled ? 'bg-purple-600' : 'bg-slate-300'}`}
+            className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${isEnabled ? 'bg-purple-600' : 'bg-slate-400'}`}
             aria-pressed={isEnabled}
         >
-            <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+            <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform shadow-sm ${isEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
     </div>
 );
@@ -202,6 +202,33 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
 
     // Helper function to find closest color match
     const findClosestColor = (color: string, availableColors: { name: string; keywords: string[]; hex: string }[]): string => {
+        // 1. Direct Map Check for known palette colors
+        const DIRECT_COLOR_MAP: Record<string, string> = {
+            '#EF4444': 'red',       // Red
+            '#FCA5A5': 'red',       // Light Red
+            '#F97316': 'orange',    // Orange
+            '#EAB308': 'yellow',    // Yellow
+            '#16A34A': 'green',     // Green
+            '#4ADE80': 'green',     // Light Green
+            '#14B8A6': 'green',     // Teal -> Green
+            '#3B82F6': 'blue',      // Blue
+            '#93C5FD': 'blue',      // Light Blue
+            '#8B5CF6': 'purple',    // Purple
+            '#C4B5FD': 'purple',    // Light Purple
+            '#EC4899': 'pink',      // Pink
+            '#FBCFE8': 'pink',      // Light Pink
+            '#78350F': 'brown',     // Brown
+            '#B45309': 'brown',     // Light Brown
+            '#64748B': 'white',     // Gray -> White
+            '#FFFFFF': 'white',     // White
+            '#000000': 'black',     // Black
+        };
+
+        const normalizedColor = color.toUpperCase();
+        if (DIRECT_COLOR_MAP[normalizedColor]) {
+            return DIRECT_COLOR_MAP[normalizedColor];
+        }
+
         const colorLower = color.toLowerCase().trim();
 
         // First, try exact keyword match (e.g., "red", "light red", "dark blue")
@@ -287,11 +314,19 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
         const availableColors = [
             { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
             { name: 'white', keywords: ['white', 'light white', 'gray', 'grey', 'silver'], hex: '#FFFFFF' },
+            { name: 'white', keywords: [], hex: '#808080' }, // Gray anchor
+            { name: 'white', keywords: [], hex: '#C0C0C0' }, // Silver anchor
             { name: 'blue', keywords: ['light blue', 'dark blue', 'blue', 'cyan', 'sky', 'azure', 'baby blue'], hex: '#0000FF' },
+            { name: 'blue', keywords: [], hex: '#87CEEB' }, // Light Blue anchor
             { name: 'red', keywords: ['light red', 'dark red', 'red', 'maroon', 'crimson'], hex: '#FF0000' },
+            { name: 'red', keywords: [], hex: '#FA8072' }, // Light Red anchor (Salmon)
+            { name: 'red', keywords: [], hex: '#FFCCCB' }, // Light Red anchor (Pastel)
             { name: 'purple', keywords: ['light purple', 'purple', 'violet', 'lavender', 'lilac'], hex: '#800080' },
+            { name: 'purple', keywords: [], hex: '#D8BFD8' }, // Light Purple anchor
             { name: 'green', keywords: ['light green', 'dark green', 'green', 'lime', 'mint'], hex: '#00FF00' },
+            { name: 'green', keywords: [], hex: '#98FB98' }, // Light Green anchor
             { name: 'yellow', keywords: ['light yellow', 'yellow', 'gold'], hex: '#FFFF00' },
+            { name: 'yellow', keywords: [], hex: '#FFFFE0' }, // Light Yellow anchor
             { name: 'orange', keywords: ['light orange', 'orange'], hex: '#FFA500' },
             { name: 'brown', keywords: ['brown', 'chocolate', 'tan'], hex: '#8B4513' },
             { name: 'pink', keywords: ['light pink', 'pink', 'rose', 'magenta', 'fuchsia'], hex: '#FFC0CB' },
@@ -1069,8 +1104,8 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                         />
                                         {/* Action buttons in top right corner */}
                                         <div className="absolute top-3 right-3 z-10 flex gap-2">
-                                            {/* Edit Messages button - always visible if messages exist */}
-                                            {cakeMessages.length > 0 && (
+                                            {/* Add/Edit Messages button */}
+                                            {cakeMessages.length > 0 ? (
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -1081,6 +1116,18 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                                     aria-label="Edit messages"
                                                 >
                                                     Edit Messages
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedItem(null);
+                                                        handleScrollToCakeMessages();
+                                                    }}
+                                                    className="bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-semibold hover:bg-black/60 transition-all shadow-md px-3 py-1.5"
+                                                    aria-label="Add message"
+                                                >
+                                                    Add Message
                                                 </button>
                                             )}
                                             {/* Edible Photo button - only for edible photo cakes */}
