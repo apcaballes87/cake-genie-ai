@@ -1,4 +1,5 @@
 import imageCompression from 'browser-image-compression';
+import { devLog } from './devLog';
 
 export interface CompressionOptions {
   maxSizeMB?: number;
@@ -24,16 +25,16 @@ export async function compressImage(
   const compressionOptions = { ...defaultOptions, ...options };
 
   try {
-    console.log('Original file size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
-    
+    devLog.log('Original file size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+
     const compressedFile = await imageCompression(file, compressionOptions);
-    
-    console.log('Compressed file size:', (compressedFile.size / 1024 / 1024).toFixed(2), 'MB');
-    console.log('Compression ratio:', ((1 - compressedFile.size / file.size) * 100).toFixed(2), '%');
-    
+
+    devLog.log('Compressed file size:', (compressedFile.size / 1024 / 1024).toFixed(2), 'MB');
+    devLog.log('Compression ratio:', ((1 - compressedFile.size / file.size) * 100).toFixed(2), '%');
+
     return compressedFile;
   } catch (error) {
-    console.error('Error compressing image:', error);
+    devLog.error('Error compressing image:', error);
     // Return original file if compression fails
     return file;
   }
@@ -64,7 +65,7 @@ export function getOptimizedImageUrl(
   } = {}
 ): string {
   const { width = 800, height = 800, quality = 80, format = 'webp' } = options;
-  
+
   // Supabase storage transform URL format
   const transformParams = `width=${width}&height=${height}&quality=${quality}&format=${format}`;
   return `${supabaseUrl}/storage/v1/render/image/public/${bucketName}/${filePath}?${transformParams}`;
@@ -117,12 +118,12 @@ export function createImagePreview(file: File): Promise<string> {
  */
 // FIX: Add dataURItoBlob utility function to be shared.
 export function dataURItoBlob(dataURI: string): Blob {
-    const byteString = atob(dataURI.split(',')[1]);
-    const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-    for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-    }
-    return new Blob([ab], { type: mimeString });
+  const byteString = atob(dataURI.split(',')[1]);
+  const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
+  return new Blob([ab], { type: mimeString });
 }

@@ -142,7 +142,7 @@ export const calculatePrice = (
             case 'printout':
                 price = 0;
                 break;
-            case 'edible_photo':
+            case 'edible_photo_top':
                 price = 50; // Flat price for top edible photo
                 nonGumpasteTotal += price;
                 break;

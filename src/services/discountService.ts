@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '../lib/supabase/client';
 import type { DiscountValidationResult } from '../types';
+import { devLog } from '../lib/utils/devLog';
 
 const supabase = getSupabaseClient();
 
@@ -13,7 +14,7 @@ export async function validateDiscountCode(
 ): Promise<DiscountValidationResult> {
   try {
     const normalizedCode = code.trim().toUpperCase();
-    console.log('🎫 Validating discount code:', { code: normalizedCode, orderAmount });
+    devLog.log('🎫 Validating discount code:', { code: normalizedCode, orderAmount });
 
     // Query the discount_codes table
     const { data: discountCode, error } = await supabase
@@ -107,10 +108,10 @@ export async function validateDiscountCode(
 
     // Check new users only restriction
     if (discountCode.new_users_only && user) {
-        const { count } = await supabase
-            .from('cakegenie_orders')
-            .select('order_id', { count: 'exact', head: true })
-            .eq('user_id', user.id);
+      const { count } = await supabase
+        .from('cakegenie_orders')
+        .select('order_id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
 
       if (count && count > 0) {
         return {
@@ -125,11 +126,11 @@ export async function validateDiscountCode(
 
     // Check one-per-user restriction
     if (discountCode.one_per_user && user) {
-        const { count } = await supabase
-            .from('discount_code_usage')
-            .select('usage_id', { count: 'exact', head: true })
-            .eq('discount_code_id', discountCode.code_id)
-            .eq('user_id', user.id);
+      const { count } = await supabase
+        .from('discount_code_usage')
+        .select('usage_id', { count: 'exact', head: true })
+        .eq('discount_code_id', discountCode.code_id)
+        .eq('user_id', user.id);
 
       if (count && count > 0) {
         return {

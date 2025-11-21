@@ -44,7 +44,7 @@ function getDesignAvailability(design: DesignData): AvailabilityType {
     const hasSameDayDecorations = allItems.some(item =>
         item.type === 'edible_2d_support' || // Flat 2D cutouts (was 'edible_2d_gumpaste')
         (item.type === 'edible_3d_support' && !item.description.toLowerCase().includes('dots')) || // Small non-dot gumpaste items (was 'small_gumpaste')
-        item.type === 'edible_photo' ||
+        item.type === 'edible_photo_top' ||
         item.type === 'edible_photo_side' ||
         item.type === 'icing_doodle' // Piped doodles require more time than rush orders.
     );

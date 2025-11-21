@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { devLog } from '../lib/utils/devLog';
 
 // Define and export the AppState type for use in other components
 export type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'shopify_customizing' | 'pricing_sandbox';
@@ -24,13 +25,13 @@ export const useAppNavigation = () => {
     // Effect for SPA routing via URL hash
     useEffect(() => {
         const handleRouting = () => {
-            console.log('[Routing] Handling route for hash:', window.location.hash);
+            devLog.log('[Routing] Handling route for hash:', window.location.hash);
             const pathWithQuery = window.location.hash.substring(1) || ''; // e.g., /order-confirmation?order_id=...
 
             const [path = '', queryString] = pathWithQuery.split('?');
             const params = new URLSearchParams(queryString || '');
-            
-            console.log('[Routing] Parsed Path:', path, 'Query:', queryString);
+
+            devLog.log('[Routing] Parsed Path:', path, 'Query:', queryString);
 
             // Ensure path is a string before calling .match()
             if (!path || typeof path !== 'string') {
@@ -50,7 +51,7 @@ export const useAppNavigation = () => {
 
             if (orderConfirmationMatch && params.get('order_id')) {
                 const orderId = params.get('order_id');
-                console.log('[Routing] Matched order confirmation with orderId:', orderId);
+                devLog.log('[Routing] Matched order confirmation with orderId:', orderId);
                 if (orderId) {
                     setConfirmedOrderId(orderId);
                     setAppState('order_confirmation');
@@ -79,7 +80,7 @@ export const useAppNavigation = () => {
 
         // Listen for direct hash changes
         window.addEventListener('hashchange', handleRouting);
-        
+
         // Listen for browser back/forward button clicks
         window.addEventListener('popstate', handleRouting);
 

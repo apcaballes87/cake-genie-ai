@@ -6,7 +6,7 @@ export type CakeThickness = '2 in' | '3 in' | '4 in' | '5 in' | '6 in';
 export type CakeSize = string; // e.g., '6" Round', '6"/8" Round'
 export type CakeFlavor = 'Chocolate Cake' | 'Ube Cake' | 'Vanilla Cake' | 'Mocha Cake';
 
-export type MainTopperType = 'edible_3d_complex' | 'edible_3d_ordinary' | 'printout' | 'toy' | 'figurine' | 'cardstock' | 'edible_photo' | 'candle' | 'icing_doodle' | 'icing_palette_knife' | 'icing_brush_stroke' | 'icing_splatter' | 'icing_minimalist_spread' | 'meringue_pop' | 'plastic_ball';
+export type MainTopperType = 'edible_3d_complex' | 'edible_3d_ordinary' | 'printout' | 'toy' | 'figurine' | 'cardstock' | 'edible_photo_top' | 'candle' | 'icing_doodle' | 'icing_palette_knife' | 'icing_brush_stroke' | 'icing_splatter' | 'icing_minimalist_spread' | 'meringue_pop' | 'plastic_ball';
 export type SupportElementType = 'edible_3d_support' | 'edible_2d_support' | 'chocolates' | 'sprinkles' | 'support_printout' | 'isomalt' | 'dragees' | 'edible_flowers' | 'edible_photo_side' | 'icing_doodle' | 'icing_palette_knife' | 'icing_brush_stroke' | 'icing_splatter' | 'icing_minimalist_spread';
 export type CakeMessageType = 'gumpaste_letters' | 'icing_script' | 'printout' | 'cardstock';
 

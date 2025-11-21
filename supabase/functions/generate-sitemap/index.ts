@@ -17,25 +17,25 @@ serve(async (req) => {
   }
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error('Supabase environment variables are not set.');
     }
 
-    // Use anon key for public access
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    // Use service role key for unrestricted access
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false
       }
     });
 
-    // Fetch all shared designs
+    // Fetch all shared designs with image data
     console.log('[generate-sitemap] Starting to fetch designs...');
     const { data: designs, error } = await supabase
       .from('cakegenie_shared_designs')
-      .select('url_slug, created_at')
+      .select('url_slug, created_at, title, customized_image_url, alt_text, cake_type')
       .order('created_at', { ascending: false });
 
     console.log('[generate-sitemap] Query completed');
@@ -60,9 +60,10 @@ serve(async (req) => {
       { loc: 'https://genie.ph/#/reviews', changefreq: 'weekly', priority: '0.7', lastmod: now },
     ];
 
-    // Build XML sitemap
+    // Build XML sitemap with image namespace
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">`;
 
     // Add static pages
     for (const page of staticPages) {
@@ -75,19 +76,35 @@ serve(async (req) => {
   </url>`;
     }
 
-    // Add dynamic shared design pages
+    // Add dynamic shared design pages with image data
     if (designs && designs.length > 0) {
       for (const design of designs) {
-        const lastmod = design.created_at 
+        const lastmod = design.created_at
           ? new Date(design.created_at).toISOString().split('T')[0]
           : now;
-        
+
+        const imageUrl = design.customized_image_url || '';
+        const imageCaption = design.alt_text || design.title || 'Custom Cake Design';
+        const imageTitle = design.title || 'Custom Cake Design';
+
         xml += `
   <url>
     <loc>https://genie.ph/designs/${design.url_slug}</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
-    <lastmod>${lastmod}</lastmod>
+    <lastmod>${lastmod}</lastmod>`;
+
+        // Add image data if available
+        if (imageUrl) {
+          xml += `
+    <image:image>
+      <image:loc>${imageUrl}</image:loc>
+      <image:caption>${imageCaption.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')}</image:caption>
+      <image:title>${imageTitle.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')}</image:title>
+    </image:image>`;
+        }
+
+        xml += `
   </url>`;
       }
     }

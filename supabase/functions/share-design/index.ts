@@ -158,7 +158,13 @@ serve(async (req) => {
       "image": {
         "@type": "ImageObject",
         "url": imageUrl,
-        "contentUrl": imageUrl
+        "contentUrl": imageUrl,
+        "width": "1200",
+        "height": "630",
+        "caption": data.alt_text || data.title || "Custom Cake Design",
+        "thumbnail": imageUrl,
+        "representativeOfPage": true,
+        "encodingFormat": "image/jpeg"
       },
       "url": canonicalUrl,
       "sku": data.url_slug || slug,
@@ -302,12 +308,14 @@ serve(async (req) => {
           <article itemscope itemtype="https://schema.org/Product">
             <h1 itemprop="name">${title}</h1>
             <p class="description" itemprop="description">${description}</p>
-            <img 
-              src="${imageUrl}" 
-              alt="${altText}" 
+            <img
+              src="${imageUrl}"
+              alt="${altText}"
               class="cake-image"
               itemprop="image"
               loading="eager"
+              width="1200"
+              height="630"
             >
             <div itemprop="offers" itemscope itemtype="https://schema.org/Offer">
               <meta itemprop="availability" content="https://schema.org/InStock">

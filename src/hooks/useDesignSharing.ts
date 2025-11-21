@@ -64,8 +64,8 @@ function calculateAvailabilityForSharing(mainToppers: MainTopperUI[], supportEle
     // FIX: The 'gumpaste_panel' and 'small_gumpaste' types no longer exist.
     // Updated to check for the current gumpaste support types 'edible_3d_support' and 'edible_2d_support'.
     const hasGumpasteSupport = supportElements.some(s => s.isEnabled && (s.type === 'edible_3d_support' || s.type === 'edible_2d_support'));
-    const hasEdiblePhoto = 
-        mainToppers.some(t => t.isEnabled && t.type === 'edible_photo') || 
+    const hasEdiblePhoto =
+        mainToppers.some(t => t.isEnabled && t.type === 'edible_photo_top') ||
         supportElements.some(s => s.isEnabled && s.type === 'edible_photo_side');
 
     if (hasGumpasteSupport || hasEdiblePhoto) {

@@ -143,7 +143,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                     }
                 } else if (t.type === 'edible_3d_complex' || t.type === 'edible_3d_ordinary') {
                     itemChanges.push(`**re-sculpt this 3D gumpaste figure based on the new reference image provided**. The new figure must be in the same **3D gumpaste style** as the original cake. Capture the likeness, pose, and details from the reference photo but render it as a hand-sculpted, edible gumpaste figure.`);
-                } else if (t.type === 'edible_photo') {
+                } else if (t.type === 'edible_photo_top') {
                     let instruction = `replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it. Crop it if necessary to fit the original edible photo's shape on the cake.`;
                     // Check if original description implies full coverage
                     if (t.description.toLowerCase().includes('full top') || t.description.toLowerCase().includes('entire top')) {

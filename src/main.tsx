@@ -6,14 +6,15 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import { GoogleMapsLoaderProvider } from './contexts/GoogleMapsLoaderContext';
 import './index.css';
+import { devLog } from './lib/utils/devLog';
 
-console.log('main.tsx: File loaded');
+devLog.log('main.tsx: File loaded');
 
 // Suppress the harmless "Multiple GoTrueClient instances" warning that occurs in development
 // due to React.StrictMode double-invoking effects. This is not an issue in production.
 if (import.meta.env.DEV) {
   const originalWarn = console.warn;
-  console.warn = function(...args: any[]) {
+  console.warn = function (...args: any[]) {
     if (args[0]?.includes?.('Multiple GoTrueClient instances')) {
       return; // Suppress this specific warning
     }
@@ -32,7 +33,7 @@ root.render(
     <QueryClientProvider client={queryClient}>
       <GoogleMapsLoaderProvider>
         <CartProvider>
-            <App />
+          <App />
         </CartProvider>
       </GoogleMapsLoaderProvider>
     </QueryClientProvider>

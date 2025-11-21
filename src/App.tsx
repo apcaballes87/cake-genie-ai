@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo, lazy, Suspens
 import { Toaster } from 'react-hot-toast';
 import { useCart } from './contexts/CartContext';
 import { showSuccess, showError, showInfo } from './lib/utils/toast';
+import { devLog } from './lib/utils/devLog';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { CartIcon, UserCircleIcon, LogOutIcon, MapPinIcon, PackageIcon, ErrorIcon } from './components/icons';
 import { reportCustomization, uploadReportImage } from './services/supabaseService';
@@ -13,7 +14,7 @@ import StickyAddToCartBar from './components/StickyAddToCartBar';
 import AnimatedBlobs from './components/UI/AnimatedBlobs';
 
 // Build: v1.2.8 - Fixed .match() errors with defensive checks
-console.log('App.tsx: File loaded');
+devLog.log('App.tsx: File loaded');
 
 // --- Custom Hooks for Core Logic (Simplified Import) ---
 import {
@@ -242,7 +243,7 @@ export default function App(): React.ReactElement {
           imageUrl,
           onCoordinatesEnriched: (enrichedResult) => {
             // Phase 2: Coordinates enriched - silently update the analysis
-            console.log('🎯 Coordinates enriched! Updating markers...');
+            devLog.log('🎯 Coordinates enriched! Updating markers...');
             setPendingAnalysisData(enrichedResult);
           }
         }

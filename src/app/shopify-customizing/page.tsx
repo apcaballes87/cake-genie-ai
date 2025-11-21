@@ -3,7 +3,8 @@ import {
   getShopifyCustomizationRequest,
   updateShopifyCustomizationRequest,
   ShopifyCustomizationRequest,
-  reportCustomization
+  reportCustomization,
+  uploadReportImage
 } from '../../services/supabaseService';
 import {
   useImageManagement,
@@ -86,6 +87,20 @@ const ShopifyCustomizingPage: React.FC<ShopifyCustomizingPageProps> = ({ session
     initializeFromShopify,
   } = useCakeCustomization();
 
+  const addCakeMessage = useCallback((position: 'top' | 'side' | 'base_board') => {
+    const newMessage: CakeMessageUI = {
+      id: crypto.randomUUID(),
+      type: 'icing_script',
+      text: '',
+      position,
+      color: '#000000',
+      isEnabled: true,
+      price: 0,
+      useDefaultColor: true,
+    };
+    onCakeMessageChange([...cakeMessages, newMessage]);
+  }, [cakeMessages, onCakeMessageChange]);
+
   // FIX: Destructure `itemPrices` from the `usePricing` hook.
   const { addOnPricing, finalPrice, itemPrices } = usePricing({
     analysisResult,
@@ -164,7 +179,7 @@ const ShopifyCustomizingPage: React.FC<ShopifyCustomizingPageProps> = ({ session
         setIsMainImageVisible(entry.isIntersecting);
       },
       {
-        root: null, 
+        root: null,
         rootMargin: '0px',
         threshold: 0.1,
       }
@@ -178,7 +193,7 @@ const ShopifyCustomizingPage: React.FC<ShopifyCustomizingPageProps> = ({ session
       observer.unobserve(element);
     };
   }, [pageIsLoading]);
-  
+
   // --- Derived State & Memos ---
   const pageError = error || imageError || designUpdateError;
   const totalAddOnPrice = addOnPricing?.addOnPrice ?? 0;
@@ -211,189 +226,198 @@ const ShopifyCustomizingPage: React.FC<ShopifyCustomizingPageProps> = ({ session
   };
 
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const buildCartItemDetails = useCallback((): CartItemDetails | null => {
     if (!cakeInfo || !icingDesign) return null;
     const hexToName = (hex: string) => HEX_TO_COLOR_NAME_MAP[hex.toLowerCase()] || hex;
     return {
-        flavors: cakeInfo.flavors,
-        mainToppers: mainToppers.filter(t => t.isEnabled).map(t => ({
-            description: `${t.description} (${t.size})`,
-            type: t.type,
-            size: t.size,
-        })),
-        supportElements: supportElements.filter(s => s.isEnabled).map(s => ({
-            description: `${s.description} (${s.coverage})`,
-            type: s.type,
-            coverage: s.coverage,
-        })),
-        cakeMessages: cakeMessages.filter(m => m.isEnabled).map(m => ({ text: m.text, color: hexToName(m.color) })),
-        icingDesign: {
-            drip: icingDesign.drip,
-            gumpasteBaseBoard: icingDesign.gumpasteBaseBoard,
-            colors: Object.entries(icingDesign.colors).reduce((acc, [key, value]) => {
-                if (typeof value === 'string' && value) acc[key] = hexToName(value);
-                return acc;
-            }, {} as Record<string, string>),
-        },
-        additionalInstructions: additionalInstructions.trim(),
+      flavors: cakeInfo.flavors,
+      mainToppers: mainToppers.filter(t => t.isEnabled).map(t => ({
+        description: `${t.description} (${t.size})`,
+        type: t.type,
+        size: t.size,
+      })),
+      supportElements: supportElements.filter(s => s.isEnabled).map(s => ({
+        description: `${s.description} (${s.coverage})`,
+        type: s.type,
+        coverage: s.coverage,
+      })),
+      cakeMessages: cakeMessages.filter(m => m.isEnabled).map(m => ({ text: m.text, color: hexToName(m.color) })),
+      icingDesign: {
+        drip: icingDesign.drip,
+        gumpasteBaseBoard: icingDesign.gumpasteBaseBoard,
+        colors: Object.entries(icingDesign.colors).reduce((acc, [key, value]) => {
+          if (typeof value === 'string' && value) acc[key] = hexToName(value);
+          return acc;
+        }, {} as Record<string, string>),
+      },
+      additionalInstructions: additionalInstructions.trim(),
     };
   }, [cakeInfo, icingDesign, mainToppers, supportElements, cakeMessages, additionalInstructions, HEX_TO_COLOR_NAME_MAP]);
-  
+
   const generateCustomizationProperties = useCallback(() => {
     const properties: Record<string, string> = {};
     if (!cakeInfo || !icingDesign) return properties;
 
     properties['Cake Size'] = cakeInfo.size;
     cakeInfo.flavors.forEach((flavor, index) => {
-        const tierLabel = cakeInfo.flavors.length > 1 ? `Tier ${index + 1} ` : '';
-        properties[`${tierLabel}Flavor`] = flavor;
+      const tierLabel = cakeInfo.flavors.length > 1 ? `Tier ${index + 1} ` : '';
+      properties[`${tierLabel} Flavor`] = flavor;
     });
 
     mainToppers.filter(t => t.isEnabled).forEach((topper, i) => {
-        let topperString = `${topper.description} (${topper.size})`;
-        // Check if color was customized
-        // FIX: Add type guard for topper.color to ensure it's a string before calling string methods.
-        if (topper.color && typeof topper.color === 'string' && topper.color !== topper.original_color) {
-            const colorName = HEX_TO_COLOR_NAME_MAP[topper.color.toLowerCase()] || '';
-            const colorString = `${topper.color.toUpperCase()} ${colorName.toUpperCase()}`.trim();
-            topperString += ` (Color: ${colorString})`;
-        }
-        properties[`Topper ${i + 1}`] = topperString;
+      let topperString = `${topper.description} (${topper.size})`;
+      // Check if color was customized
+      // FIX: Add type guard for topper.color to ensure it's a string before calling string methods.
+      if (topper.color && typeof topper.color === 'string' && topper.color !== topper.original_color) {
+        const colorName = HEX_TO_COLOR_NAME_MAP[topper.color.toLowerCase()] || '';
+        const colorString = `${topper.color.toUpperCase()} ${colorName.toUpperCase()} `.trim();
+        topperString += ` (Color: ${colorString})`;
+      }
+      properties[`Topper ${i + 1} `] = topperString;
     });
 
     cakeMessages.filter(m => m.isEnabled && m.text.trim()).forEach((msg, i) => {
-        let messageString = `"${msg.text}"`;
-        // Check if color was customized by user
-        if (msg.useDefaultColor === false) {
-             const colorName = HEX_TO_COLOR_NAME_MAP[msg.color.toLowerCase()] || '';
-             const colorString = `${msg.color.toUpperCase()} ${colorName.toUpperCase()}`.trim();
-             messageString += ` (Color: ${colorString})`;
-        }
-        properties[`Message ${i + 1}`] = messageString;
+      let messageString = `"${msg.text}"`;
+      // Check if color was customized by user
+      if (msg.useDefaultColor === false) {
+        const colorName = HEX_TO_COLOR_NAME_MAP[msg.color.toLowerCase()] || '';
+        const colorString = `${msg.color.toUpperCase()} ${colorName.toUpperCase()} `.trim();
+        messageString += ` (Color: ${colorString})`;
+      }
+      properties[`Message ${i + 1} `] = messageString;
     });
 
     if (icingDesign.drip) properties['Icing Drip'] = 'Yes';
     Object.entries(icingDesign.colors).forEach(([key, value]) => {
-        if (value && typeof value === 'string') {
-            const keyName = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-            const colorName = HEX_TO_COLOR_NAME_MAP[value.toLowerCase()] || '';
-            const colorString = `${value.toUpperCase()} ${colorName.toUpperCase()}`.trim();
-            properties[`${keyName} Color`] = colorString;
-        }
+      if (value && typeof value === 'string') {
+        const keyName = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+        const colorName = HEX_TO_COLOR_NAME_MAP[value.toLowerCase()] || '';
+        const colorString = `${value.toUpperCase()} ${colorName.toUpperCase()} `.trim();
+        properties[`${keyName} Color`] = colorString;
+      }
     });
 
     if (additionalInstructions.trim()) {
-        properties['Instructions'] = additionalInstructions.trim();
+      properties['Instructions'] = additionalInstructions.trim();
     }
-    
-    properties['Add-on Cost'] = `₱${totalAddOnPrice.toLocaleString()}`;
+
+    properties['Add-on Cost'] = `₱${totalAddOnPrice.toLocaleString()} `;
 
     return properties;
-}, [cakeInfo, icingDesign, mainToppers, cakeMessages, additionalInstructions, totalAddOnPrice, HEX_TO_COLOR_NAME_MAP]);
-  
-const handleShopifyAddToCart = useCallback(async () => {
+  }, [cakeInfo, icingDesign, mainToppers, cakeMessages, additionalInstructions, totalAddOnPrice, HEX_TO_COLOR_NAME_MAP]);
+
+  const handleShopifyAddToCart = useCallback(async () => {
     if (!requestData) return;
     setIsSaving(true);
     try {
-        let finalImageToUpload = editedImage;
+      let finalImageToUpload = editedImage;
 
-        // If customization is dirty, generate the final image first
-        if (isCustomizationDirty) {
-            showInfo("Updating your design before adding to cart...");
-            const newImage = await handleUpdateDesign();
-            if (!newImage) throw new Error("Failed to generate the final design.");
-            finalImageToUpload = newImage;
-        }
+      // If customization is dirty, generate the final image first
+      if (isCustomizationDirty) {
+        showInfo("Updating your design before adding to cart...");
+        const newImage = await handleUpdateDesign();
+        if (!newImage) throw new Error("Failed to generate the final design.");
+        finalImageToUpload = newImage;
+      }
 
-        // Upload images to Supabase Storage and get a public URL
-        const { finalImageUrl } = await uploadCartImages({ editedImageDataUri: finalImageToUpload });
+      // Upload images to Supabase Storage and get a public URL
+      const { finalImageUrl } = await uploadCartImages({ editedImageDataUri: finalImageToUpload });
 
-        // Generate properties for Shopify for the main cake
-        const properties = generateCustomizationProperties();
-        properties['Custom Image URL'] = finalImageUrl;
-        properties['_Final Price'] = finalShopifyPrice.toString(); // For display/logic in Shopify theme
+      // Generate properties for Shopify for the main cake
+      const properties = generateCustomizationProperties();
+      properties['Custom Image URL'] = finalImageUrl;
+      properties['_Final Price'] = finalShopifyPrice.toString(); // For display/logic in Shopify theme
 
-        // Construct the Shopify Add to Cart URL for multiple items
-        const shopifyDomain = "https://cakesandmemories.com";
-        const cartUrl = new URL(`${shopifyDomain}/cart/add`);
+      // Construct the Shopify Add to Cart URL for multiple items
+      const shopifyDomain = "https://cakesandmemories.com";
+      const cartUrl = new URL(`${shopifyDomain} /cart/add`);
 
-        // Item 0: The main cake
-        cartUrl.searchParams.append('items[0][id]', requestData.shopify_variant_id);
-        cartUrl.searchParams.append('items[0][quantity]', '1');
-        for (const [key, value] of Object.entries(properties)) {
-            // FIX: Cast value to string as Object.entries can return `unknown` in strict TypeScript configurations.
-            cartUrl.searchParams.append(`items[0][properties][${key}]`, value as string);
-        }
+      // Item 0: The main cake
+      cartUrl.searchParams.append('items[0][id]', requestData.shopify_variant_id);
+      cartUrl.searchParams.append('items[0][quantity]', '1');
+      for (const [key, value] of Object.entries(properties)) {
+        // FIX: Cast value to string as Object.entries can return `unknown` in strict TypeScript configurations.
+        cartUrl.searchParams.append(`items[0][properties][${key}]`, value as string);
+      }
 
-        let itemIndex = 1;
+      let itemIndex = 1;
 
-        // Item 1 (optional): Drip effect
-        if (icingDesign?.drip) {
-            cartUrl.searchParams.append(`items[${itemIndex}][id]`, '47132107440384');
-            cartUrl.searchParams.append(`items[${itemIndex}][quantity]`, '1');
-            itemIndex++;
-        }
+      // Item 1 (optional): Drip effect
+      if (icingDesign?.drip) {
+        cartUrl.searchParams.append(`items[${itemIndex}][id]`, '47132107440384');
+        cartUrl.searchParams.append(`items[${itemIndex}][quantity]`, '1');
+        itemIndex++;
+      }
 
-        // Item 2 (optional): Gumpaste base board
-        if (icingDesign?.gumpasteBaseBoard) {
-            cartUrl.searchParams.append(`items[${itemIndex}][id]`, '47132107473152');
-            cartUrl.searchParams.append(`items[${itemIndex}][quantity]`, '1');
-            itemIndex++;
-        }
-        
-        // Update the Supabase record in the background (fire-and-forget)
-        const cartDetails = buildCartItemDetails();
-        if(cartDetails) {
-            updateShopifyCustomizationRequest(sessionId, {
-                customized_image_url: finalImageUrl,
-                customization_details: cartDetails
-            }).catch(console.error);
-        }
+      // Item 2 (optional): Gumpaste base board
+      if (icingDesign?.gumpasteBaseBoard) {
+        cartUrl.searchParams.append(`items[${itemIndex}][id]`, '47132107473152');
+        cartUrl.searchParams.append(`items[${itemIndex}][quantity]`, '1');
+        itemIndex++;
+      }
 
-        // Redirect user to Shopify cart
-        window.location.href = cartUrl.toString();
+      // Update the Supabase record in the background (fire-and-forget)
+      const cartDetails = buildCartItemDetails();
+      if (cartDetails) {
+        updateShopifyCustomizationRequest(sessionId, {
+          customized_image_url: finalImageUrl,
+          customization_details: cartDetails
+        }).catch(console.error);
+      }
+
+      // Redirect user to Shopify cart
+      window.location.href = cartUrl.toString();
 
     } catch (err: any) {
-        showError(err.message || "Failed to add to cart.");
-        setIsSaving(false);
+      showError(err.message || "Failed to add to cart.");
+      setIsSaving(false);
     }
-}, [requestData, editedImage, isCustomizationDirty, handleUpdateDesign, uploadCartImages, generateCustomizationProperties, buildCartItemDetails, sessionId, finalShopifyPrice, icingDesign]);
+  }, [requestData, editedImage, isCustomizationDirty, handleUpdateDesign, uploadCartImages, generateCustomizationProperties, buildCartItemDetails, sessionId, finalShopifyPrice, icingDesign]);
 
-const handleReport = useCallback(async (userFeedback: string) => {
+  const handleReport = useCallback(async (userFeedback: string) => {
     if (!editedImage || !originalImageData?.data || !lastGenerationInfoRef.current) {
-        showError("Missing critical data for report.");
-        return;
+      showError("Missing critical data for report.");
+      return;
     }
     setIsReporting(true);
     try {
-        const { prompt, systemInstruction } = lastGenerationInfoRef.current;
-        const fullPrompt = `--- SYSTEM PROMPT ---
+      const { prompt, systemInstruction } = lastGenerationInfoRef.current;
+      const fullPrompt = `--- SYSTEM PROMPT ---
 ${systemInstruction}
 
 --- USER PROMPT ---
 ${prompt}
 `;
-        await reportCustomization({
-            original_image: originalImageData.data,
-            customized_image: editedImage.split(',')[1],
-            prompt_sent_gemini: fullPrompt.trim(),
-            maintoppers: JSON.stringify(mainToppers.filter(t => t.isEnabled)),
-            supportelements: JSON.stringify(supportElements.filter(s => s.isEnabled)),
-            cakemessages: JSON.stringify(cakeMessages.filter(m => m.isEnabled)),
-            icingdesign: JSON.stringify(icingDesign),
-            addon_price: addOnPricing?.addOnPrice ?? 0,
-            user_report: userFeedback.trim() || undefined,
-        });
-        showSuccess("Report submitted. Thank you!");
-        setIsReportModalOpen(false);
+
+      // Upload images to Supabase storage first
+      showInfo("Uploading images...");
+      const [originalImageUrl, customizedImageUrl] = await Promise.all([
+        uploadReportImage(originalImageData.data, 'original'),
+        uploadReportImage(editedImage, 'customized')
+      ]);
+
+      // Submit report with image URLs
+      await reportCustomization({
+        original_image: originalImageUrl,
+        customized_image: customizedImageUrl,
+        prompt_sent_gemini: fullPrompt.trim(),
+        maintoppers: JSON.stringify(mainToppers.filter(t => t.isEnabled)),
+        supportelements: JSON.stringify(supportElements.filter(s => s.isEnabled)),
+        cakemessages: JSON.stringify(cakeMessages.filter(m => m.isEnabled)),
+        icingdesign: JSON.stringify(icingDesign),
+        addon_price: addOnPricing?.addOnPrice ?? 0,
+        user_report: userFeedback.trim() || undefined,
+      });
+      showSuccess("Report submitted. Thank you!");
+      setIsReportModalOpen(false);
     } catch (err) {
-        showError("Failed to submit report.");
+      showError("Failed to submit report.");
     } finally {
-        setIsReporting(false);
+      setIsReporting(false);
     }
-}, [editedImage, originalImageData, lastGenerationInfoRef, mainToppers, supportElements, cakeMessages, icingDesign, addOnPricing]);
-  
+  }, [editedImage, originalImageData, lastGenerationInfoRef, mainToppers, supportElements, cakeMessages, icingDesign, addOnPricing]);
+
   // --- Render Logic ---
   if (pageIsLoading) {
     return (
@@ -413,7 +437,7 @@ ${prompt}
       </div>
     );
   }
-  
+
   if (!requestData || !cakeInfo || !icingDesign) {
     return null; // Or another loading/error state
   }
@@ -421,18 +445,18 @@ ${prompt}
   return (
     <>
       <FloatingImagePreview
-          isVisible={!isMainImageVisible}
-          originalImage={originalImagePreview}
-          customizedImage={editedImage}
-          isLoading={isUpdatingDesign}
-          isUpdatingDesign={isUpdatingDesign}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onUpdateDesign={handleUpdateDesign}
-          isAnalyzing={false}
-          analysisResult={analysisResult}
-          isCustomizationDirty={isCustomizationDirty}
-        />
+        isVisible={!isMainImageVisible}
+        originalImage={originalImagePreview}
+        customizedImage={editedImage}
+        isLoading={isUpdatingDesign}
+        isUpdatingDesign={isUpdatingDesign}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onUpdateDesign={handleUpdateDesign}
+        isAnalyzing={false}
+        analysisResult={analysisResult}
+        isCustomizationDirty={isCustomizationDirty}
+      />
       <ImageZoomModal
         isOpen={isMainZoomModalOpen}
         onClose={() => setIsMainZoomModalOpen(false)}
@@ -440,7 +464,7 @@ ${prompt}
         customizedImage={editedImage}
         initialTab={activeTab}
       />
-       <ReportModal
+      <ReportModal
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         onSubmit={handleReport}
@@ -452,33 +476,33 @@ ${prompt}
       <div className="flex flex-col items-center gap-6 w-full max-w-6xl mx-auto py-8 px-4 pb-28">
         {/* Header */}
         <div className="text-center w-full max-w-4xl">
-            <h1 className="text-5xl font-extrabold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text mb-2">
-                Genie
-            </h1>
-            <h2 className="text-2xl font-bold text-slate-800">Customize Your Cake</h2>
-            <p className="text-slate-600 mt-1">{requestData.shopify_product_title}</p>
+          <h1 className="text-5xl font-extrabold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text mb-2">
+            Genie
+          </h1>
+          <h2 className="text-2xl font-bold text-slate-800">Customize Your Cake</h2>
+          <p className="text-slate-600 mt-1">{requestData.shopify_product_title}</p>
         </div>
-        
+
         {/* Main Layout: Image + Features */}
         <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Image Column */}
           <div>
             <div ref={mainImageContainerRef} className="w-full max-w-4xl aspect-[7/6] bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 flex flex-col">
               <div className="p-2 flex-shrink-0">
-                  <div className="bg-slate-100 p-1 rounded-lg flex space-x-1">
-                      <button onClick={() => setActiveTab('original')} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'original' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50'}`}>Original</button>
-                      <button onClick={handleCustomizedTabClick} disabled={(!editedImage && !isCustomizationDirty) || isUpdatingDesign} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'customized' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50 disabled:text-slate-400 disabled:hover:bg-transparent disabled:cursor-not-allowed'}`}>Customized</button>
-                  </div>
+                <div className="bg-slate-100 p-1 rounded-lg flex space-x-1">
+                  <button onClick={() => setActiveTab('original')} className={`w - 1 / 2 py - 2 text - sm font - semibold rounded - md transition - all duration - 200 ease -in -out ${activeTab === 'original' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50'} `}>Original</button>
+                  <button onClick={handleCustomizedTabClick} disabled={(!editedImage && !isCustomizationDirty) || isUpdatingDesign} className={`w - 1 / 2 py - 2 text - sm font - semibold rounded - md transition - all duration - 200 ease -in -out ${activeTab === 'customized' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50 disabled:text-slate-400 disabled:hover:bg-transparent disabled:cursor-not-allowed'} `}>Customized</button>
+                </div>
               </div>
               <div className="relative flex-grow flex items-center justify-center p-2 pt-0 min-h-0">
-                  {(isUpdatingDesign) && <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-b-2xl z-20"><LoadingSpinner /><p className="mt-4 text-slate-500 font-semibold">Updating Design...</p></div>}
-                  <button
-                    type="button"
-                    onClick={() => setIsMainZoomModalOpen(true)}
-                    className="w-full h-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-lg"
-                  >
-                    <img key={activeTab} src={activeTab === 'customized' ? (editedImage || originalImagePreview) : originalImagePreview} alt={activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake"} className="w-full h-full object-contain rounded-lg"/>
-                  </button>
+                {(isUpdatingDesign) && <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-b-2xl z-20"><LoadingSpinner /><p className="mt-4 text-slate-500 font-semibold">Updating Design...</p></div>}
+                <button
+                  type="button"
+                  onClick={() => setIsMainZoomModalOpen(true)}
+                  className="w-full h-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-lg"
+                >
+                  <img key={activeTab} src={activeTab === 'customized' ? (editedImage || originalImagePreview) : originalImagePreview} alt={activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake"} className="w-full h-full object-contain rounded-lg" />
+                </button>
               </div>
             </div>
             <button
@@ -497,16 +521,16 @@ ${prompt}
                 className="w-full text-center bg-white border border-dashed border-slate-400 text-slate-600 font-semibold py-2 px-4 rounded-lg hover:bg-slate-50 transition-colors text-sm"
                 onClick={() => {
                   const newTopper: MainTopperUI = {
-                      id: crypto.randomUUID(),
-                      type: 'printout',
-                      original_type: 'printout',
-                      description: 'New Printout Topper',
-                      size: 'medium',
-                      quantity: 1,
-                      group_id: `new-${Date.now()}`,
-                      classification: 'hero',
-                      isEnabled: true,
-                      price: 0,
+                    id: crypto.randomUUID(),
+                    type: 'printout',
+                    original_type: 'printout',
+                    description: 'New Printout Topper',
+                    size: 'medium',
+                    quantity: 1,
+                    group_id: `new- ${Date.now()} `,
+                    classification: 'hero',
+                    isEnabled: true,
+                    price: 0,
                   };
                   onMainTopperChange([...mainToppers, newTopper]);
                 }}
@@ -517,15 +541,15 @@ ${prompt}
                 className="w-full text-center bg-white border border-dashed border-slate-400 text-slate-600 font-semibold py-2 px-4 rounded-lg hover:bg-slate-50 transition-colors text-sm"
                 onClick={() => {
                   if (!primaryMessage) {
-                    const newMessage: CakeMessageUI = { 
-                        id: crypto.randomUUID(), 
-                        type: 'icing_script', 
-                        text: 'Happy Birthday!', 
-                        position: 'top', 
-                        color: '#000000',
-                        isEnabled: true, 
-                        price: 0,
-                        useDefaultColor: true,
+                    const newMessage: CakeMessageUI = {
+                      id: crypto.randomUUID(),
+                      type: 'icing_script',
+                      text: 'Happy Birthday!',
+                      position: 'top',
+                      color: '#000000',
+                      isEnabled: true,
+                      price: 0,
+                      useDefaultColor: true,
                     };
                     onCakeMessageChange([...cakeMessages, newMessage]);
                   }
@@ -536,35 +560,36 @@ ${prompt}
             </div>
             {/* FIX: Pass the required `itemPrices` and correct update/remove props to the FeatureList component. */}
             <FeatureList
-                analysisError={null}
-                analysisId={"shopify"}
-                cakeInfo={cakeInfo}
-                basePriceOptions={null} // Base price is fixed from Shopify
-                mainToppers={mainToppers}
-                supportElements={supportElements}
-                cakeMessages={cakeMessages}
-                icingDesign={icingDesign}
-                additionalInstructions={additionalInstructions}
-                onCakeInfoChange={handleCakeInfoChange}
-                updateMainTopper={updateMainTopper}
-                removeMainTopper={removeMainTopper}
-                updateSupportElement={updateSupportElement}
-                removeSupportElement={removeSupportElement}
-                updateCakeMessage={updateCakeMessage}
-                removeCakeMessage={removeCakeMessage}
-                onIcingDesignChange={onIcingDesignChange}
-                onAdditionalInstructionsChange={onAdditionalInstructionsChange}
-                onTopperImageReplace={handleTopperImageReplace}
-                onSupportElementImageReplace={handleSupportElementImageReplace}
-                isAnalyzing={false}
-                itemPrices={itemPrices}
-                // Shopify-specific props
-                shopifyFixedSize={requestData.shopify_variant_title}
-                shopifyBasePrice={requestData.shopify_base_price}
-                onItemClick={handleListItemClick}
-                markerMap={markerMap}
-                user={user}
-              />
+              analysisError={null}
+              analysisId={"shopify"}
+              cakeInfo={cakeInfo}
+              basePriceOptions={null} // Base price is fixed from Shopify
+              mainToppers={mainToppers}
+              supportElements={supportElements}
+              cakeMessages={cakeMessages}
+              icingDesign={icingDesign}
+              additionalInstructions={additionalInstructions}
+              onCakeInfoChange={handleCakeInfoChange}
+              updateMainTopper={updateMainTopper}
+              removeMainTopper={removeMainTopper}
+              updateSupportElement={updateSupportElement}
+              removeSupportElement={removeSupportElement}
+              updateCakeMessage={updateCakeMessage}
+              removeCakeMessage={removeCakeMessage}
+              addCakeMessage={addCakeMessage}
+              onIcingDesignChange={onIcingDesignChange}
+              onAdditionalInstructionsChange={onAdditionalInstructionsChange}
+              onTopperImageReplace={handleTopperImageReplace}
+              onSupportElementImageReplace={handleSupportElementImageReplace}
+              isAnalyzing={false}
+              itemPrices={itemPrices}
+              // Shopify-specific props
+              shopifyFixedSize={requestData.shopify_variant_title}
+              shopifyBasePrice={requestData.shopify_base_price}
+              onItemClick={handleListItemClick}
+              markerMap={markerMap}
+              user={user}
+            />
           </div>
         </div>
 
@@ -579,15 +604,15 @@ ${prompt}
             <span className="ml-2">{isReporting ? 'Submitting...' : 'Report Issue'}</span>
           </button>
         </div>
-        
+
         {/* Sticky Footer for Pricing and Save */}
         <div className="fixed bottom-0 left-0 right-0 z-40">
           <div className="bg-white/80 backdrop-blur-lg p-3 shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] border-t border-slate-200">
             <div className="max-w-6xl mx-auto flex justify-between items-center gap-4">
               <div className="flex-1">
                 <div className="text-left">
-                    <span className="text-lg font-bold text-slate-800">₱{finalShopifyPrice.toLocaleString()}</span>
-                    <span className="text-xs text-slate-500 block">Final Price</span>
+                  <span className="text-lg font-bold text-slate-800">₱{finalShopifyPrice.toLocaleString()}</span>
+                  <span className="text-xs text-slate-500 block">Final Price</span>
                 </div>
                 {totalAddOnPrice > 0 && <p className="text-xs text-green-600 font-medium">+ ₱{totalAddOnPrice.toLocaleString()} add-ons</p>}
               </div>
@@ -624,6 +649,9 @@ ${prompt}
         analysisResult={analysisResult}
         itemPrices={itemPrices}
         isAdmin={user?.email === 'apcaballes@gmail.com'}
+        addCakeMessage={addCakeMessage}
+        onUpdateDesign={handleUpdateDesign}
+        isUpdatingDesign={isUpdatingDesign}
       />
     </>
   );

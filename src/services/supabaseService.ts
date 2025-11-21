@@ -5,6 +5,7 @@ import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem } from '../lib/database.types';
 import { compressImage, validateImageFile } from '../lib/utils/imageOptimization';
+import { devLog } from '../lib/utils/devLog';
 
 const supabase: SupabaseClient = getSupabaseClient();
 
@@ -196,7 +197,7 @@ export async function trackSearchTerm(term: string): Promise<void> {
  */
 export async function findSimilarAnalysisByHash(pHash: string): Promise<HybridAnalysisResult | null> {
   try {
-    console.log('🔍 Calling find_similar_analysis RPC with pHash:', pHash);
+    devLog.log('🔍 Calling find_similar_analysis RPC with pHash:', pHash);
     const { data, error } = await supabase.rpc('find_similar_analysis', {
       new_hash: pHash,
     });
@@ -208,9 +209,9 @@ export async function findSimilarAnalysisByHash(pHash: string): Promise<HybridAn
     }
 
     if (data) {
-      console.log('✅ Cache HIT! Found matching analysis for pHash:', pHash);
+      devLog.log('✅ Cache HIT! Found matching analysis for pHash:', pHash);
     } else {
-      console.log('⚫️ Cache MISS. No matching pHash found in database.');
+      devLog.log('⚫️ Cache MISS. No matching pHash found in database.');
     }
     return data; // Returns the JSONB object or null
   } catch (err) {
@@ -230,7 +231,7 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
   // as the Supabase query builder is a 'thenable' but may not have a .catch method.
   (async () => {
     try {
-      console.log('💾 Attempting to cache analysis result with pHash:', pHash);
+      devLog.log('💾 Attempting to cache analysis result with pHash:', pHash);
       const { error } = await supabase
         .from('cakegenie_analysis_cache')
         .insert({
@@ -241,17 +242,17 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
 
       if (error) {
         // Log error but don't interrupt the user. A unique constraint violation is expected and fine.
-        if (error.code !== '23505') { // 23505 is unique_violation
-          console.error('❌ Failed to cache analysis result:', error);
-          console.error('Error details:', { code: error.code, message: error.message, hint: error.hint });
-        } else {
-          console.log('ℹ️ Analysis already cached (duplicate pHash - this is fine).');
+        if (error.code === '23505') { // Unique violation
+          devLog.log('ℹ️ Analysis already cached (duplicate pHash - this is fine).');
+          return;
         }
+        devLog.error('❌ Failed to cache analysis result:', error);
+        devLog.error('Error details:', { code: error.code, message: error.message, hint: error.hint });
       } else {
-        console.log('✅ Analysis result cached successfully with pHash:', pHash);
+        devLog.log('✅ Analysis result cached successfully with pHash:', pHash);
       }
     } catch (err) {
-      console.error('❌ Exception during fire-and-forget cache write:', err);
+      devLog.error('❌ Exception during fire-and-forget cache write:', err);
     }
   })();
 }
@@ -690,7 +691,7 @@ export async function uploadPaymentProof(
     }
 
     // Compress image before upload, forcing JPEG format
-    console.log('Compressing payment proof image to JPEG...');
+    devLog.log('Compressing payment proof image to JPEG...');
     const compressedFile = await compressImage(file, {
       maxSizeMB: 2,
       maxWidthOrHeight: 1920,
@@ -748,7 +749,7 @@ export async function mergeAnonymousCartToUser(
       return { success: false, error: error.message };
     }
 
-    console.log('Cart merge result:', data);
+    devLog.log('Cart merge result:', data);
     return { success: true };
   } catch (error: any) {
     console.error('Exception merging cart:', error);
