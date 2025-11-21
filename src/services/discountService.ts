@@ -1,6 +1,5 @@
 import { getSupabaseClient } from '../lib/supabase/client';
 import type { DiscountValidationResult } from '../types';
-import { devLog } from '../lib/utils/devLog';
 
 const supabase = getSupabaseClient();
 
@@ -14,7 +13,7 @@ export async function validateDiscountCode(
 ): Promise<DiscountValidationResult> {
   try {
     const normalizedCode = code.trim().toUpperCase();
-    devLog.log('🎫 Validating discount code:', { code: normalizedCode, orderAmount });
+    console.log('🎫 Validating discount code:', { code: normalizedCode, orderAmount });
 
     // Query the discount_codes table
     const { data: discountCode, error } = await supabase

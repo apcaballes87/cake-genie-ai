@@ -87,20 +87,6 @@ const ShopifyCustomizingPage: React.FC<ShopifyCustomizingPageProps> = ({ session
     initializeFromShopify,
   } = useCakeCustomization();
 
-  const addCakeMessage = useCallback((position: 'top' | 'side' | 'base_board') => {
-    const newMessage: CakeMessageUI = {
-      id: crypto.randomUUID(),
-      type: 'icing_script',
-      text: '',
-      position,
-      color: '#000000',
-      isEnabled: true,
-      price: 0,
-      useDefaultColor: true,
-    };
-    onCakeMessageChange([...cakeMessages, newMessage]);
-  }, [cakeMessages, onCakeMessageChange]);
-
   // FIX: Destructure `itemPrices` from the `usePricing` hook.
   const { addOnPricing, finalPrice, itemPrices } = usePricing({
     analysisResult,
@@ -399,8 +385,8 @@ ${prompt}
 
       // Submit report with image URLs
       await reportCustomization({
-        original_image: originalImageUrl,
-        customized_image: customizedImageUrl,
+        original_image_url: originalImageUrl,
+        customized_image_url: customizedImageUrl,
         prompt_sent_gemini: fullPrompt.trim(),
         maintoppers: JSON.stringify(mainToppers.filter(t => t.isEnabled)),
         supportelements: JSON.stringify(supportElements.filter(s => s.isEnabled)),
@@ -576,7 +562,6 @@ ${prompt}
               removeSupportElement={removeSupportElement}
               updateCakeMessage={updateCakeMessage}
               removeCakeMessage={removeCakeMessage}
-              addCakeMessage={addCakeMessage}
               onIcingDesignChange={onIcingDesignChange}
               onAdditionalInstructionsChange={onAdditionalInstructionsChange}
               onTopperImageReplace={handleTopperImageReplace}
@@ -649,9 +634,6 @@ ${prompt}
         analysisResult={analysisResult}
         itemPrices={itemPrices}
         isAdmin={user?.email === 'apcaballes@gmail.com'}
-        addCakeMessage={addCakeMessage}
-        onUpdateDesign={handleUpdateDesign}
-        isUpdatingDesign={isUpdatingDesign}
       />
     </>
   );

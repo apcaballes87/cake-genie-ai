@@ -1,5 +1,4 @@
 import { getSupabaseClient } from '../lib/supabase/client';
-import { devLog } from '../lib/utils/devLog';
 
 const supabase = getSupabaseClient();
 
@@ -28,7 +27,7 @@ export async function generateContributorDiscountCode(
       // If the code already exists (e.g., user contributed before), it's not a critical failure.
       // We can just return the predictable code.
       if (error.code === '23505') { // unique_violation
-        devLog.log(`Discount code ${code} already exists for user ${userId}. Reusing it.`);
+        console.log(`Discount code ${code} already exists for user ${userId}. Reusing it.`);
         return code;
       }
       console.error('Error creating discount code:', error);

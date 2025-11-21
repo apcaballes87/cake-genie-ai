@@ -1,5 +1,4 @@
 import imageCompression from 'browser-image-compression';
-import { devLog } from './devLog';
 
 export interface CompressionOptions {
   maxSizeMB?: number;
@@ -25,16 +24,16 @@ export async function compressImage(
   const compressionOptions = { ...defaultOptions, ...options };
 
   try {
-    devLog.log('Original file size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+    console.log('Original file size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
 
     const compressedFile = await imageCompression(file, compressionOptions);
 
-    devLog.log('Compressed file size:', (compressedFile.size / 1024 / 1024).toFixed(2), 'MB');
-    devLog.log('Compression ratio:', ((1 - compressedFile.size / file.size) * 100).toFixed(2), '%');
+    console.log('Compressed file size:', (compressedFile.size / 1024 / 1024).toFixed(2), 'MB');
+    console.log('Compression ratio:', ((1 - compressedFile.size / file.size) * 100).toFixed(2), '%');
 
     return compressedFile;
   } catch (error) {
-    devLog.error('Error compressing image:', error);
+    console.error('Error compressing image:', error);
     // Return original file if compression fails
     return file;
   }

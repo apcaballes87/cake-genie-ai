@@ -272,12 +272,12 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
         const checkItemChanges = (item: AnalysisItem): boolean => {
             if (item.itemCategory === 'topper') {
                 const topper = item as MainTopperUI;
-                const original = analysisResult.main_toppers?.find(t => t.group_id === topper.group_id);
+                const original = analysisResult.main_toppers?.find(t => t.id === topper.id);
                 if (!original) return false;
                 return (
                     topper.type !== original.type ||
                     topper.color !== original.color ||
-                    !topper.isEnabled || // Original is assumed enabled
+                    topper.isEnabled !== original.isEnabled ||
                     JSON.stringify(topper.colors) !== JSON.stringify(original.colors) ||
                     !!topper.replacementImage
                 );
@@ -285,12 +285,12 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
 
             if (item.itemCategory === 'element') {
                 const element = item as SupportElementUI;
-                const original = analysisResult.support_elements?.find(e => e.group_id === element.group_id);
+                const original = analysisResult.support_elements?.find(e => e.id === element.id);
                 if (!original) return false;
                 return (
                     element.type !== original.type ||
                     element.color !== original.color ||
-                    !element.isEnabled || // Original is assumed enabled
+                    element.isEnabled !== original.isEnabled ||
                     JSON.stringify(element.colors) !== JSON.stringify(original.colors) ||
                     !!element.replacementImage
                 );
@@ -298,9 +298,13 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
 
             if (item.itemCategory === 'message') {
                 const message = item as CakeMessageUI;
-                // Cannot reliably match messages back to original analysis without IDs
-                // Assuming not dirty for now to avoid TS errors
-                return false;
+                const original = analysisResult.cake_messages?.find(m => m.id === message.id);
+                if (!original) return true; // New message
+                return (
+                    message.text !== original.text ||
+                    message.color !== original.color ||
+                    message.isEnabled !== original.isEnabled
+                );
             }
 
             return false;
