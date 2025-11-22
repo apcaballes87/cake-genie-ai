@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+// Force rebuild for style update
 import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, CakeType, CakeThickness, CakeFlavor, BasePriceInfo } from '../types';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ChevronDownIcon } from './icons';
