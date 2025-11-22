@@ -1,7 +1,7 @@
 // services/designService.ts
 import {
     editCakeImage
-} from './geminiService.lazy';
+} from './geminiService';
 import {
     DEFAULT_THICKNESS_MAP,
     COLORS
@@ -260,7 +260,8 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
         icingChanges.push(instruction);
     } else if (!newIcing.drip && originalIcing.drip) {
         icingChanges.push(`- **Remove the drip effect**.`);
-    } else if (newIcing.drip && originalIcing.drip && newIcing.colors.drip !== originalIcing.colors.drip) {
+    } else if (newIcing.drip && originalIcing.drip &&
+               newIcing.colors.drip?.toUpperCase() !== originalIcing.colors.drip?.toUpperCase()) {
         icingChanges.push(`- **Recolor the drip**. The new DRIP color should be **${colorName(newIcing.colors.drip!)}**. Preserve all other details.`);
     }
 
@@ -273,10 +274,11 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
         icingChanges.push(instruction);
     } else if (!newIcing.border_top && originalIcing.border_top) {
         icingChanges.push(`- **Remove the top border**.`);
-    } else if (newIcing.border_top && originalIcing.border_top && newIcing.colors.borderTop !== originalIcing.colors.borderTop) {
+    } else if (newIcing.border_top && originalIcing.border_top &&
+               newIcing.colors.borderTop?.toUpperCase() !== originalIcing.colors.borderTop?.toUpperCase()) {
         icingChanges.push(`- **Re-hue the shade of the top icing border** to **${colorName(newIcing.colors.borderTop!)}**.`);
     }
-    
+
     // Handle Base Border
     if (newIcing.border_base && !originalIcing.border_base) {
         let instruction = `- **Add a decorative base border**.`;
@@ -286,7 +288,8 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
         icingChanges.push(instruction);
     } else if (!newIcing.border_base && originalIcing.border_base) {
         icingChanges.push(`- **Remove the base border**.`);
-    } else if (newIcing.border_base && originalIcing.border_base && newIcing.colors.borderBase !== originalIcing.colors.borderBase) {
+    } else if (newIcing.border_base && originalIcing.border_base &&
+               newIcing.colors.borderBase?.toUpperCase() !== originalIcing.colors.borderBase?.toUpperCase()) {
         icingChanges.push(`- **Re-hue the shade of the base icing border** to **${colorName(newIcing.colors.borderBase!)}**.`);
     }
 
@@ -299,14 +302,26 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
         icingChanges.push(instruction);
     } else if (!newIcing.gumpasteBaseBoard && originalIcing.gumpasteBaseBoard) {
         icingChanges.push(`- **Remove the gumpaste-covered base board**.`);
-    } else if (newIcing.gumpasteBaseBoard && originalIcing.gumpasteBaseBoard && newIcing.colors.gumpasteBaseBoardColor !== originalIcing.colors.gumpasteBaseBoardColor) {
-        icingChanges.push(`- **Recolor the gumpaste base board shade**. to **${colorName(newIcing.colors.gumpasteBaseBoardColor!)}**. Preserve all other details.`);
+    } else if (newIcing.gumpasteBaseBoard && originalIcing.gumpasteBaseBoard) {
+        // Board exists in both - check if color changed
+        const originalColor = originalIcing.colors.gumpasteBaseBoardColor?.toUpperCase();
+        const newColor = newIcing.colors.gumpasteBaseBoardColor?.toUpperCase();
+
+        // Handle color change - need both colors to exist and be different
+        // Or if original doesn't exist but new does (first time setting color)
+        const hasColorChange = (originalColor !== newColor) && newColor;
+
+        if (hasColorChange) {
+            icingChanges.push(`- **Recolor the gumpaste base board shade** to **${colorName(newIcing.colors.gumpasteBaseBoardColor!)}**. Preserve all other details.`);
+        }
     }
 
-    // Handle core icing colors with explicit preservation
+    // Handle core icing colors with explicit preservation (case-insensitive comparison)
     const originalIcingColors = originalIcing.colors;
-    const sideColorChanged = newIcing.colors.side !== undefined && newIcing.colors.side !== originalIcingColors.side;
-    const topColorChanged = newIcing.colors.top !== undefined && newIcing.colors.top !== originalIcingColors.top;
+    const sideColorChanged = newIcing.colors.side !== undefined &&
+        newIcing.colors.side.toUpperCase() !== originalIcingColors.side?.toUpperCase();
+    const topColorChanged = newIcing.colors.top !== undefined &&
+        newIcing.colors.top.toUpperCase() !== originalIcingColors.top?.toUpperCase();
 
     if (sideColorChanged && !topColorChanged) {
         const instruction = `- **Re-hue the side icing shade ONLY** to shades of**${colorName(newIcing.colors.side)}**.`;
@@ -330,19 +345,16 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     const availableUIMessages = [...currentUIMessages];
 
     originalMessages.forEach((originalMsg) => {
-        // MATCHING
+        // MATCHING - Match by position and original text only (not current text/color/type)
+        // This allows us to detect when a message has been changed
         const uiMsgIndex = availableUIMessages.findIndex(uiMsg => {
             if (!uiMsg.originalMessage) {
                 return false;
             }
             const o = uiMsg.originalMessage;
-            const matches = {
-                text: o.text === originalMsg.text,
-                pos: o.position === originalMsg.position,
-                type: o.type === originalMsg.type,
-                color: o.color.toLowerCase() === originalMsg.color.toLowerCase()
-            };
-            return matches.text && matches.pos && matches.type && matches.color;
+            // Match based on the ORIGINAL properties only (position, text)
+            // This ensures we can still find the message even if user changed its text/color
+            return o.position === originalMsg.position && o.text === originalMsg.text;
         });
 
         let correspondingUIMsg: CakeMessageUI | undefined;
@@ -351,29 +363,30 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
         }
 
         if (!correspondingUIMsg || !correspondingUIMsg.isEnabled) {
+            // Message was disabled or deleted - erase it
             messageChanges.push(`- **Erase the text** that says "${originalMsg.text}" from the cake's **${originalMsg.position}**. The area should be clean as if the text was never there.`);
         } else {
             const uiMsg = correspondingUIMsg;
             const changesInMessage = [];
 
-            const textChanged = uiMsg.text !== uiMsg.originalMessage.text;
-            const colorChanged = uiMsg.color.toLowerCase() !== uiMsg.originalMessage.color.toLowerCase();
+            const textChanged = uiMsg.text !== uiMsg.originalMessage!.text;
+            const colorChanged = uiMsg.color.toLowerCase() !== uiMsg.originalMessage!.color.toLowerCase();
 
             if (textChanged) {
-                changesInMessage.push(`change the text from "${uiMsg.originalMessage.text}" to "${uiMsg.text}"`);
+                changesInMessage.push(`change the text from "${uiMsg.originalMessage!.text}" to "${uiMsg.text}"`);
             }
             if (colorChanged) {
                 changesInMessage.push(`change the color to ${colorName(uiMsg.color)}`);
             }
-            if (uiMsg.position !== uiMsg.originalMessage.position) {
-                changesInMessage.push(`move it from the ${uiMsg.originalMessage.position} to the ${uiMsg.position}`);
+            if (uiMsg.position !== uiMsg.originalMessage!.position) {
+                changesInMessage.push(`move it from the ${uiMsg.originalMessage!.position} to the ${uiMsg.position}`);
             }
-            if (uiMsg.type !== uiMsg.originalMessage.type) {
+            if (uiMsg.type !== uiMsg.originalMessage!.type) {
                 changesInMessage.push(`change the style to ${uiMsg.type}`);
             }
 
             if (changesInMessage.length > 0) {
-                messageChanges.push(`- Regarding the message on the **${uiMsg.originalMessage.position}** that originally said "${uiMsg.originalMessage.text}", please ${changesInMessage.join(' and ')}.`);
+                messageChanges.push(`- Regarding the message on the **${uiMsg.originalMessage!.position}** that originally said "${uiMsg.originalMessage!.text}", please ${changesInMessage.join(' and ')}.`);
             }
         }
     });

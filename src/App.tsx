@@ -5,7 +5,7 @@ import { showSuccess, showError, showInfo } from './lib/utils/toast';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { CartIcon, UserCircleIcon, LogOutIcon, MapPinIcon, PackageIcon, ErrorIcon } from './components/icons';
 import { reportCustomization, uploadReportImage } from './services/supabaseService';
-import { CartItem, CartItemDetails, CakeType } from './types';
+import { CartItem, CartItemDetails, CakeType, HybridAnalysisResult } from './types';
 import { COLORS, DEFAULT_THICKNESS_MAP } from './constants';
 import { CakeGenieCartItem } from './lib/database.types';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -75,12 +75,15 @@ export default function App(): React.ReactElement {
   const { appState, previousAppState, confirmedOrderId, viewingDesignId, viewingShopifySessionId, setAppState, setConfirmedOrderId } = useAppNavigation();
 
   const {
-    originalImageData, originalImagePreview, editedImage, threeTierReferenceImage,
+    originalImageData, sourceImageData, previousImageData, originalImagePreview, editedImage, threeTierReferenceImage,
     isLoading: isImageManagementLoading, error: imageManagementError,
-    setEditedImage, setError: setImageManagementError, setOriginalImageData,
+    setEditedImage, setError: setImageManagementError, setOriginalImageData, setPreviousImageData,
     handleImageUpload: hookImageUpload, handleSave, uploadCartImages, clearImages,
     loadImageWithoutAnalysis,
   } = useImageManagement();
+
+  // State snapshot for undo functionality
+  const [previousAnalysisSnapshot, setPreviousAnalysisSnapshot] = useState<HybridAnalysisResult | null>(null);
 
   const {
     cakeInfo, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions,
@@ -130,16 +133,31 @@ export default function App(): React.ReactElement {
     onSuccess: (editedImageResult: string) => {
       setEditedImage(editedImageResult);
       setActiveTab('customized');
+
+      // CRITICAL: Save current state snapshots BEFORE syncing/updating for undo functionality
+      if (originalImageData) {
+        setPreviousImageData(originalImageData);
+      }
+      if (analysisResult) {
+        setPreviousAnalysisSnapshot(analysisResult);
+      }
+
+      // Sync analysis result with current state
       syncAnalysisResultWithCurrentState();
 
       // CRITICAL: Update originalImageData to the edited result so next edit builds on this one
-      // Extract mime type from data URI (e.g., "data:image/png;base64,...")
-      const mimeMatch = editedImageResult.match(/^data:([^;]+);/);
-      const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
-      setOriginalImageData({
-        data: editedImageResult,
-        mimeType: mimeType
-      });
+      // Extract mime type and base64 data from data URI (e.g., "data:image/png;base64,...")
+      const mimeMatch = editedImageResult.match(/^data:([^;]+);base64,(.+)$/);
+      if (mimeMatch) {
+        const mimeType = mimeMatch[1];
+        const base64Data = mimeMatch[2];
+        setOriginalImageData({
+          data: base64Data, // Store only base64 string, not full data URI
+          mimeType: mimeType
+        });
+      } else {
+        console.error('Failed to parse edited image data URI');
+      }
     },
   });
 
@@ -339,10 +357,18 @@ export default function App(): React.ReactElement {
   }, [originalImagePreview, cakeInfo, finalPrice, analysisResult, buildCartItemDetails, isCustomizationDirty, uploadCartImages, basePrice, addOnPricing, setAppState, addToCartOptimistic, handleUpdateDesign]);
 
   const handleReport = useCallback(async (userFeedback: string) => {
-    if (!editedImage || !originalImageData?.data || !lastGenerationInfoRef.current) {
+    if (!editedImage || !lastGenerationInfoRef.current) {
       showError("Missing critical data for report.");
       return;
     }
+
+    // Use previousImageData (before last edit) if available, otherwise fall back to sourceImageData
+    const originalToUpload = previousImageData || sourceImageData;
+    if (!originalToUpload?.data) {
+      showError("Missing original image for report.");
+      return;
+    }
+
     setIsReporting(true); setReportStatus(null);
     try {
       const { prompt, systemInstruction } = lastGenerationInfoRef.current;
@@ -356,7 +382,7 @@ ${prompt}
       // Upload images to Supabase storage first
       showInfo("Uploading images...");
       const [originalImageUrl, customizedImageUrl] = await Promise.all([
-        uploadReportImage(originalImageData.data, 'original'),
+        uploadReportImage(originalToUpload.data, 'original'), // ✅ Use previous image (before last edit)
         uploadReportImage(editedImage, 'customized')
       ]);
 
@@ -379,7 +405,28 @@ ${prompt}
       setIsReporting(false);
       setTimeout(() => setReportStatus(null), 5000);
     }
-  }, [editedImage, originalImageData, lastGenerationInfoRef, mainToppers, supportElements, cakeMessages, icingDesign, addOnPricing]);
+  }, [editedImage, previousImageData, sourceImageData, lastGenerationInfoRef, mainToppers, supportElements, cakeMessages, icingDesign, addOnPricing]);
+
+  const handleUndo = useCallback(() => {
+    if (!previousImageData || !previousAnalysisSnapshot) {
+      showError("No previous version available to undo.");
+      return;
+    }
+
+    // Restore the previous image state
+    setOriginalImageData(previousImageData);
+    setEditedImage(`data:${previousImageData.mimeType};base64,${previousImageData.data}`);
+
+    // Restore the previous customization state by loading the previous analysis
+    setPendingAnalysisData(previousAnalysisSnapshot);
+
+    // Clear previous snapshots after undo (can only undo once)
+    setPreviousImageData(null);
+    setPreviousAnalysisSnapshot(null);
+
+    setActiveTab('customized');
+    showSuccess("Reverted to previous version!");
+  }, [previousImageData, previousAnalysisSnapshot, setOriginalImageData, setEditedImage, setPreviousImageData, setPreviousAnalysisSnapshot, setPendingAnalysisData, setActiveTab]);
 
   const handleStartWithSharedDesign = useCallback(async (sharedDesign: any) => {
     clearAllState(false); setIsPreparingSharedDesign(true);
@@ -519,12 +566,20 @@ ${prompt}
         updateCakeMessage={updateCakeMessage} removeCakeMessage={removeCakeMessage}
         onIcingDesignChange={onIcingDesignChange} onAdditionalInstructionsChange={onAdditionalInstructionsChange} onTopperImageReplace={handleTopperImageReplace}
         onSupportElementImageReplace={handleSupportElementImageReplace} onSave={handleSave} isSaving={isImageManagementLoading}
-        onClearAll={() => { clearAllState(true); }} error={designUpdateError} itemPrices={itemPrices}
+        onClearAll={() => { clearAllState(true); }} onUndo={handleUndo} canUndo={!!previousImageData && !!previousAnalysisSnapshot} error={designUpdateError} itemPrices={itemPrices}
         availability={availability}
         availabilitySettings={availabilitySettings}
         isLoadingAvailabilitySettings={isLoadingAvailabilitySettings}
         availabilityWasOverridden={availabilityWasOverridden}
         onCakeMessageChange={onCakeMessageChange}
+        finalPrice={finalPrice}
+        isFetchingBasePrice={isFetchingBasePrice}
+        isAddingToCart={isAddingToCart}
+        basePriceError={basePriceError}
+        onAddToCart={handleAddToCart}
+        onShare={handleShare}
+        isSharing={isSavingDesign}
+        warningMessage={toyWarningMessage}
       />;
       case 'cart': return <CartPage pendingItems={pendingCartItems} isLoading={isCartLoading} onRemoveItem={removeItemOptimistic} onClose={() => setAppState(previousAppState.current || 'customizing')} onContinueShopping={() => setAppState('customizing')} onAuthRequired={() => setAppState('auth')} />;
       case 'order_confirmation': return confirmedOrderId ? <OrderConfirmationPage orderId={confirmedOrderId} onContinueShopping={() => setAppState('landing')} onGoToOrders={() => setAppState('orders')} /> : <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>;
@@ -573,7 +628,7 @@ ${prompt}
         <Suspense fallback={null}>
           <ReportModal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} onSubmit={handleReport} isSubmitting={isReporting} editedImage={editedImage} details={analysisResult ? buildCartItemDetails() : null} cakeInfo={cakeInfo} />
         </Suspense>
-        {appState === 'customizing' && <StickyAddToCartBar price={finalPrice} isLoading={isFetchingBasePrice} isAdding={isAddingToCart} error={basePriceError} onAddToCartClick={handleAddToCart} onShareClick={handleShare} isSharing={isSavingDesign} canShare={!!analysisResult} isAnalyzing={isAnalyzing} cakeInfo={cakeInfo} warningMessage={toyWarningMessage} />}
+        {appState === 'customizing' && <StickyAddToCartBar price={finalPrice} isLoading={isFetchingBasePrice} isAdding={isAddingToCart} error={basePriceError} onAddToCartClick={handleAddToCart} onShareClick={handleShare} isSharing={isSavingDesign} canShare={!!analysisResult} isAnalyzing={isAnalyzing} cakeInfo={cakeInfo} warningMessage={toyWarningMessage} availability={availability} />}
         <Suspense fallback={null}>
           <ShareModal
             isOpen={isShareModalOpen}

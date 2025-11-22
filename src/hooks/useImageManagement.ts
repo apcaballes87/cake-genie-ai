@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { toast as toastHot } from 'react-hot-toast';
-import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithCoordinates } from '../services/geminiService.lazy';
+import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithCoordinates } from '../services/geminiService';
 import { getSupabaseClient } from '../lib/supabase/client';
 import { compressImage, dataURItoBlob } from '../lib/utils/imageOptimization';
 import { showSuccess, showError, showLoading, showInfo } from '../lib/utils/toast';
@@ -64,6 +64,8 @@ export const useImageManagement = () => {
 
     // State
     const [originalImageData, setOriginalImageData] = useState<{ data: string; mimeType: string } | null>(null);
+    const [sourceImageData, setSourceImageData] = useState<{ data: string; mimeType: string } | null>(null); // True original, never overwritten
+    const [previousImageData, setPreviousImageData] = useState<{ data: string; mimeType: string } | null>(null); // For undo functionality
     const [originalImagePreview, setOriginalImagePreview] = useState<string | null>(null);
     const [editedImage, setEditedImage] = useState<string | null>(null);
     const [threeTierReferenceImage, setThreeTierReferenceImage] = useState<{ data: string; mimeType: string } | null>(null);
@@ -92,6 +94,8 @@ export const useImageManagement = () => {
 
     const clearImages = useCallback(() => {
         setOriginalImageData(null);
+        setSourceImageData(null);
+        setPreviousImageData(null);
         setOriginalImagePreview(null);
         setEditedImage(null);
         setError(null);
@@ -110,6 +114,7 @@ export const useImageManagement = () => {
             const imageData = await fileToBase64(file);
             const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
             setOriginalImageData(imageData);
+            setSourceImageData(imageData); // Store the true original that will never be overwritten
             setOriginalImagePreview(imageSrc);
             setIsLoading(false); // File processing done
 
@@ -119,10 +124,10 @@ export const useImageManagement = () => {
             const cachedAnalysis = await findSimilarAnalysisByHash(pHash);
 
             if (cachedAnalysis) {
-
                 onSuccess(cachedAnalysis);
                 return; // Skip compression and AI call entirely!
             }
+
 
 
 
@@ -172,24 +177,20 @@ export const useImageManagement = () => {
 
 
             try {
-                // PHASE 1: Fast feature-only analysis (coordinates all 0,0)
+                // PHASE 1: Fast feature-only analysis with v3.2 prompt (coordinates all 0,0)
                 const fastResult = await analyzeCakeFeaturesOnly(
                     compressedImageData.data,
                     compressedImageData.mimeType
                 );
 
-
                 onSuccess(fastResult); // User can now see features and price immediately!
 
                 // PHASE 2: Background coordinate enrichment (silent, non-blocking)
-
                 enrichAnalysisWithCoordinates(
                     compressedImageData.data,
                     compressedImageData.mimeType,
                     fastResult
                 ).then(enrichedResult => {
-
-
                     // Notify the UI to update with enriched coordinates
                     if (options?.onCoordinatesEnriched) {
                         options.onCoordinatesEnriched(enrichedResult);
@@ -239,6 +240,7 @@ export const useImageManagement = () => {
 
             const imageData = await fileToBase64(file);
             setOriginalImageData(imageData);
+            setSourceImageData(imageData); // Store the true original that will never be overwritten
             setOriginalImagePreview(`data:${imageData.mimeType};base64,${imageData.data}`);
             return imageData;
         } catch (err) {
@@ -366,6 +368,8 @@ export const useImageManagement = () => {
     return {
         // State
         originalImageData,
+        sourceImageData,
+        previousImageData,
         originalImagePreview,
         editedImage,
         threeTierReferenceImage,
@@ -375,6 +379,7 @@ export const useImageManagement = () => {
         setError,
         setIsLoading,
         setOriginalImageData,
+        setPreviousImageData,
 
         // Functions
         handleImageUpload,

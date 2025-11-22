@@ -9,6 +9,9 @@ import { AvailabilityType } from '../../lib/utils/availability';
 import { FloatingResultPanel } from '../../components/FloatingResultPanel';
 import { COLORS } from '../../constants';
 import { ColorPalette } from '../../components/ColorPalette';
+import { CakeBaseOptions } from '../../components/CakeBaseOptions';
+import { CakeMessagesOptions } from '../../components/CakeMessagesOptions';
+import StickyAddToCartBar from '../../components/StickyAddToCartBar';
 import { showSuccess } from '../../lib/utils/toast';
 import { clearPromptCache } from '../../services/geminiService';
 
@@ -127,6 +130,8 @@ interface CustomizingPageProps {
     onSave: () => void;
     isSaving: boolean;
     onClearAll: () => void;
+    onUndo: () => void;
+    canUndo: boolean;
     error: string | null;
     isCustomizationDirty: boolean;
     itemPrices: Map<string, number>;
@@ -135,6 +140,14 @@ interface CustomizingPageProps {
     isLoadingAvailabilitySettings: boolean;
     availabilityWasOverridden: boolean;
     onCakeMessageChange: (messages: CakeMessageUI[]) => void;
+    finalPrice: number | null;
+    isFetchingBasePrice: boolean;
+    isAddingToCart: boolean;
+    basePriceError: string | null;
+    onAddToCart: () => void;
+    onShare: () => void;
+    isSharing: boolean;
+    warningMessage: string | null;
 }
 
 // Simple toggle switch component for icing features
@@ -280,11 +293,11 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
     };
 
     // Helper function to get color-aware baseboard image
-    const getBaseboardImage = (): string => {
+    const getBaseboardImage = (isEnabled: boolean = true): string => {
         const baseboardColor = effectiveIcingDesign.colors?.gumpasteBaseBoardColor;
         const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
 
-        if (!baseboardColor) {
+        if (!isEnabled || !baseboardColor) {
             return baseUrl + 'baseboardwhite.webp';
         }
 
@@ -344,9 +357,13 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
     };
 
     // Helper function to get color-aware drip image
-    const getDripImage = (): string => {
+    const getDripImage = (isEnabled: boolean = true): string => {
         const dripColor = effectiveIcingDesign.colors?.drip;
         const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
+
+        if (!isEnabled) {
+            return baseUrl + 'drip_white.webp';
+        }
 
         if (!dripColor) {
             return baseUrl + 'drip_black.webp';
@@ -370,9 +387,13 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
     };
 
     // Helper function to get color-aware top border image
-    const getTopBorderImage = (): string => {
+    const getTopBorderImage = (isEnabled: boolean = true): string => {
         const borderColor = effectiveIcingDesign.colors?.borderTop;
         const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
+
+        if (!isEnabled) {
+            return baseUrl + 'top_white.webp';
+        }
 
         if (!borderColor) {
             return baseUrl + 'top_black.webp';
@@ -396,9 +417,13 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
     };
 
     // Helper function to get color-aware base border image
-    const getBaseBorderImage = (): string => {
+    const getBaseBorderImage = (isEnabled: boolean = true): string => {
         const borderColor = effectiveIcingDesign.colors?.borderBase;
         const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
+
+        if (!isEnabled) {
+            return baseUrl + 'baseborder_white.webp';
+        }
 
         if (!borderColor) {
             return baseUrl + 'baseborder_black.webp';
@@ -427,18 +452,18 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
     const icingColorsSame = topColor && sideColor && topColor.toUpperCase() === sideColor.toUpperCase();
 
     const tools = (icingColorsSame ? [
-        { id: 'drip', description: 'Drip', label: 'Drip', icon: <img src={getDripImage()} alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
-        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <img src={getTopBorderImage()} alt="Top border" />, featureFlag: effectiveIcingDesign.border_top },
-        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <img src={getBaseBorderImage()} alt="Base border" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
+        { id: 'drip', description: 'Drip', label: 'Drip', icon: <img src={getDripImage(effectiveIcingDesign.drip)} alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
+        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <img src={getTopBorderImage(effectiveIcingDesign.border_top)} alt="Top border" />, featureFlag: effectiveIcingDesign.border_top },
+        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <img src={getBaseBorderImage(effectiveIcingDesign.border_base)} alt="Base border" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
         { id: 'icing', description: 'Body Icing', label: 'Body Icing', icon: <img src={getIcingImage('top', false)} alt="Icing color" />, featureFlag: !!(effectiveIcingDesign.colors?.top || effectiveIcingDesign.colors?.side) },
-        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <img src={getBaseboardImage()} alt="Gumpaste baseboard" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
+        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <img src={getBaseboardImage(effectiveIcingDesign.gumpasteBaseBoard)} alt="Gumpaste baseboard" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
     ] : [
-        { id: 'drip', description: 'Drip', label: 'Drip', icon: <img src={getDripImage()} alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
-        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <img src={getTopBorderImage()} alt="Top border" />, featureFlag: effectiveIcingDesign.border_top },
-        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <img src={getBaseBorderImage()} alt="Base border" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
+        { id: 'drip', description: 'Drip', label: 'Drip', icon: <img src={getDripImage(effectiveIcingDesign.drip)} alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
+        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <img src={getTopBorderImage(effectiveIcingDesign.border_top)} alt="Top border" />, featureFlag: effectiveIcingDesign.border_top },
+        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <img src={getBaseBorderImage(effectiveIcingDesign.border_base)} alt="Base border" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
         { id: 'top', description: 'Top Icing', label: 'Top Icing', icon: <img src={getIcingImage('top', true)} alt="Top icing" />, featureFlag: !!effectiveIcingDesign.colors?.top },
         { id: 'side', description: 'Side Icing', label: 'Body Icing', icon: <img src={getIcingImage('side', false)} alt="Side icing" />, featureFlag: !!effectiveIcingDesign.colors?.side },
-        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <img src={getBaseboardImage()} alt="Gumpaste baseboard" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
+        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <img src={getBaseboardImage(effectiveIcingDesign.gumpasteBaseBoard)} alt="Gumpaste baseboard" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
     ]).filter(tool => {
         // Hide Top Icing tool when there's an edible photo on top (top will be covered)
         if (tool.id === 'top' && hasEdiblePhotoOnTop) {
@@ -496,7 +521,7 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
                                     onSelectItem({ id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: effectiveCakeType });
                                 }
                             }}
-                            className={`relative ${buttonSizeClasses} p-2 rounded-full hover:bg-purple-100 transition-all ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500' : 'bg-white/80'} backdrop-blur-md border border-slate-200 shadow-md ${tool.featureFlag ? '' : 'opacity-60'} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
+                            className={`relative ${buttonSizeClasses} p-2 rounded-full hover:bg-purple-100 transition-all ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500' : 'bg-white/80'} backdrop-blur-md ${tool.featureFlag ? 'border-2 border-purple-600' : 'border border-slate-200'} shadow-md ${tool.featureFlag ? '' : 'opacity-60'} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
                             disabled={tool.disabled}
                         >
                             {React.cloneElement(tool.icon as React.ReactElement<any>, { className: 'w-full h-full object-contain' })}
@@ -562,15 +587,18 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     updateSupportElement, removeSupportElement,
     updateCakeMessage, removeCakeMessage,
     onIcingDesignChange, onCakeMessageChange,
-    onAdditionalInstructionsChange, onTopperImageReplace, onSupportElementImageReplace, onSave, isSaving, onClearAll, error,
+    onAdditionalInstructionsChange, onTopperImageReplace, onSupportElementImageReplace, onSave, isSaving, onClearAll, onUndo, canUndo, error,
     itemPrices,
     availability: availabilityType,
     availabilitySettings,
     isLoadingAvailabilitySettings,
     availabilityWasOverridden,
+    finalPrice, isFetchingBasePrice, isAddingToCart, basePriceError, onAddToCart, onShare, isSharing, warningMessage,
 }) => {
 
     const availability = AVAILABILITY_MAP[availabilityType];
+    const [isCakeOptionsOpen, setIsCakeOptionsOpen] = useState(false);
+    const [isCakeMessagesOpen, setIsCakeMessagesOpen] = useState(false);
     const [areHelpersVisible, setAreHelpersVisible] = useState(true);
     const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
     const [hoveredItem, setHoveredItem] = useState<ClusteredMarker | null>(null);
@@ -600,6 +628,27 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
             icingDesign.gumpasteBaseBoard !== analysisResult.icing_design.gumpasteBaseBoard
         );
     }, [icingDesign, analysisResult]);
+
+    // Check if cake messages have changed
+    const hasMessageChanges = useMemo(() => {
+        if (!analysisResult?.cake_messages) return false;
+
+        // Check if number of messages changed
+        if (cakeMessages.length !== analysisResult.cake_messages.length) return true;
+
+        // Check if any message properties changed
+        return cakeMessages.some(currentMsg => {
+            const originalMsg = analysisResult.cake_messages?.find((m: any) => m.id === currentMsg.id);
+            if (!originalMsg) return true; // New message
+
+            return (
+                currentMsg.text !== originalMsg.text ||
+                currentMsg.color !== originalMsg.color ||
+                currentMsg.isEnabled !== (originalMsg as any).isEnabled ||
+                currentMsg.position !== originalMsg.position
+            );
+        });
+    }, [cakeMessages, analysisResult]);
 
     // Show icing guide when image preview is available (before analysis completes)
     useEffect(() => {
@@ -1154,15 +1203,30 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                         />
                                         {/* Action buttons in top right corner */}
                                         <div className="absolute top-3 right-3 z-10 flex gap-2">
+                                            {/* Undo button */}
+                                            {canUndo && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onUndo();
+                                                    }}
+                                                    disabled={!canUndo || isLoading}
+                                                    className="bg-orange-500/90 backdrop-blur-sm text-white rounded-full text-[10px] max-[360px]:text-[8px] font-semibold hover:bg-orange-600 transition-all shadow-md px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                                    aria-label="Undo last change"
+                                                >
+                                                    <ResetIcon className="w-2.5 h-2.5 max-[360px]:w-2 max-[360px]:h-2" />
+                                                    Undo
+                                                </button>
+                                            )}
                                             {/* Add/Edit Messages button */}
                                             {cakeMessages.length > 0 ? (
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setSelectedItem(null);
-                                                        handleScrollToCakeMessages();
+                                                        setIsCakeMessagesOpen(true);
                                                     }}
-                                                    className="bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-semibold hover:bg-black/60 transition-all shadow-md px-3 py-1.5"
+                                                    className="bg-black/40 backdrop-blur-sm text-white rounded-full text-[10px] max-[360px]:text-[8px] font-semibold hover:bg-black/60 transition-all shadow-md px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5"
                                                     aria-label="Edit messages"
                                                 >
                                                     Edit Messages
@@ -1172,23 +1236,23 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setSelectedItem(null);
-                                                        handleScrollToCakeMessages();
+                                                        setIsCakeMessagesOpen(true);
                                                     }}
-                                                    className="bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-semibold hover:bg-black/60 transition-all shadow-md px-3 py-1.5"
+                                                    className="bg-black/40 backdrop-blur-sm text-white rounded-full text-[10px] max-[360px]:text-[8px] font-semibold hover:bg-black/60 transition-all shadow-md px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5"
                                                     aria-label="Add message"
                                                 >
                                                     Add Message
                                                 </button>
                                             )}
                                             {/* Edible Photo button - only for edible photo cakes */}
-                                            {(mainToppers.some(t => t.isEnabled && t.type === 'edible_photo_top') ||
-                                                supportElements.some(s => s.isEnabled && s.type === 'edible_photo_side')) && (
+                                            {(mainToppers.some(t => t.isEnabled && t.original_type === 'edible_photo_top') ||
+                                                supportElements.some(s => s.isEnabled && s.original_type === 'edible_photo_side')) && (
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            // Find the edible photo item and select it
-                                                            const ediblePhotoTopper = mainToppers.find(t => t.isEnabled && t.type === 'edible_photo_top');
-                                                            const ediblePhotoSupport = supportElements.find(s => s.isEnabled && s.type === 'edible_photo_side');
+                                                            // Find the edible photo item and select it (check original_type)
+                                                            const ediblePhotoTopper = mainToppers.find(t => t.isEnabled && t.original_type === 'edible_photo_top');
+                                                            const ediblePhotoSupport = supportElements.find(s => s.isEnabled && s.original_type === 'edible_photo_side');
 
                                                             if (ediblePhotoTopper) {
                                                                 setSelectedItem({ ...ediblePhotoTopper, itemCategory: 'topper' as const });
@@ -1196,7 +1260,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                                                 setSelectedItem({ ...ediblePhotoSupport, itemCategory: 'element' as const });
                                                             }
                                                         }}
-                                                        className="bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-semibold hover:bg-black/60 transition-all shadow-md px-3 py-1.5"
+                                                        className="bg-black/40 backdrop-blur-sm text-white rounded-full text-[10px] max-[360px]:text-[8px] font-semibold hover:bg-black/60 transition-all shadow-md px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5"
                                                         aria-label="Edit edible photo"
                                                     >
                                                         Edible Photo
@@ -1206,10 +1270,10 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    handleScrollToCakeBase();
+                                                    setIsCakeOptionsOpen(true);
                                                 }}
-                                                className="bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-semibold hover:bg-black/60 transition-all shadow-md px-3 py-1.5"
-                                                aria-label="Scroll to cake options"
+                                                className="bg-black/40 backdrop-blur-sm text-white rounded-full text-[10px] max-[360px]:text-[8px] font-semibold hover:bg-black/60 transition-all shadow-md px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5"
+                                                aria-label="Open cake options"
                                             >
                                                 Cake Options
                                             </button>
@@ -1539,64 +1603,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                 {/* RIGHT COLUMN: Availability at top, then Feature List */}
                 <div className="w-full lg:w-1/2 flex flex-col gap-3">
                     {/* Availability Section - at top of right column */}
-                    {analysisResult && cakeInfo && icingDesign && (
-                        <>
-                            <div className={`w-full p-4 rounded-xl border-2 flex items-start gap-4 transition-all duration-300 animate-fade-in ${availability.bgColor} ${availability.borderColor}`}>
-                                <div className="text-3xl flex-shrink-0 mt-1">
-                                    {availability.icon}
-                                </div>
-                                <div className="flex-grow">
-                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                        <h4 className={`text-lg font-bold ${availability.textColor}`}>
-                                            {availability.label}
-                                        </h4>
-                                        <span className={`
-                            px-2 py-0.5 text-xs font-semibold rounded-full
-                            ${availability.type === 'rush' ? 'bg-green-200 text-green-800' : ''}
-                            ${availability.type === 'same-day' ? 'bg-blue-200 text-blue-800' : ''}
-                            ${availability.type === 'normal' ? 'bg-slate-200 text-slate-700' : ''}
-                        `}>
-                                            {availability.time}
-                                        </span>
-                                    </div>
 
-                                    <p className={`text-sm mt-1 ${availability.textColor.replace('800', '700')}`}>
-                                        {availability.description}
-                                    </p>
-
-                                    {availability.type === 'rush' && (
-                                        <p className="text-xs mt-2 text-green-600">
-                                            💨 Perfect for last-minute celebrations!
-                                        </p>
-                                    )}
-
-                                    {availability.type === 'same-day' && (
-                                        <p className="text-xs mt-2 text-blue-600">
-                                            ⏰ Order before 12 PM for same-day pickup!
-                                        </p>
-                                    )}
-
-                                    {availability.type === 'normal' && (
-                                        <p className="text-xs mt-2 text-slate-600">
-                                            🎨 Complex designs take time - but they're worth the wait!
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            {!isLoadingAvailabilitySettings && (
-                                (availabilitySettings && availabilitySettings.minimum_lead_time_days > 0 && availabilityType === 'normal') ? (
-                                    <div className="w-full p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800 animate-fade-in text-center">
-                                        <strong>Note:</strong> We are observing a minimum lead time of <strong>{availabilitySettings.minimum_lead_time_days} day(s)</strong>. Available delivery dates will be adjusted in your cart.
-                                    </div>
-                                ) : availabilityWasOverridden ? (
-                                    <div className="w-full p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 animate-fade-in text-center">
-                                        <strong>Note:</strong> Due to high demand, availability has been adjusted. Your order will now be processed as a <strong>'{availability.type.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}'</strong> order.
-                                    </div>
-                                ) : null
-                            )}
-                        </>
-                    )}
 
                     <div className="w-full bg-white/70 backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-slate-200">
                         {(cakeInfo || analysisError) ? (
@@ -1801,6 +1808,101 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                     />
                 )
             }
+            {/* Cake Options Modal */}
+            {/* Cake Options Modal */}
+            {isCakeOptionsOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col relative animate-scale-in overflow-hidden">
+                        <button
+                            onClick={() => setIsCakeOptionsOpen(false)}
+                            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors z-20"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <h2 className="text-xl font-bold text-slate-800 mb-6">Cake Options</h2>
+                            <CakeBaseOptions
+                                cakeInfo={cakeInfo}
+                                basePriceOptions={basePriceOptions}
+                                onCakeInfoChange={onCakeInfoChange}
+                                isAnalyzing={isAnalyzing}
+                            />
+                        </div>
+                        <div className="relative z-10">
+                            <StickyAddToCartBar
+                                price={finalPrice}
+                                isLoading={isFetchingBasePrice}
+                                isAdding={isAddingToCart}
+                                error={basePriceError}
+                                onAddToCartClick={onAddToCart}
+                                onShareClick={onShare}
+                                isSharing={isSharing}
+                                canShare={!!analysisResult}
+                                isAnalyzing={isAnalyzing}
+                                cakeInfo={cakeInfo}
+                                warningMessage={warningMessage}
+                                availability={availabilityType}
+                                className="!static !transform-none !translate-y-0 w-full"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Cake Messages Modal */}
+            {isCakeMessagesOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col relative animate-scale-in overflow-hidden">
+                        <button
+                            onClick={() => setIsCakeMessagesOpen(false)}
+                            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors z-20"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <h2 className="text-xl font-bold text-slate-800 mb-6">Cake Messages</h2>
+                            <CakeMessagesOptions
+                                cakeMessages={cakeMessages}
+                                markerMap={markerMap}
+                                onItemClick={handleListItemClick}
+                                addCakeMessage={addCakeMessage}
+                                updateCakeMessage={updateCakeMessage}
+                                removeCakeMessage={removeCakeMessage}
+                            />
+                        </div>
+                        <div className="p-4 border-t border-slate-200 bg-white z-10">
+                            {hasMessageChanges ? (
+                                <button
+                                    onClick={() => {
+                                        setIsCakeMessagesOpen(false);
+                                        onUpdateDesign();
+                                    }}
+                                    disabled={isUpdatingDesign}
+                                    className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {isUpdatingDesign ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            Updating Design...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <MagicSparkleIcon className="w-5 h-5" />
+                                            Apply Changes
+                                        </>
+                                    )}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => setIsCakeMessagesOpen(false)}
+                                    className="w-full bg-slate-600 text-white font-bold py-3 rounded-xl hover:bg-slate-700 transition-colors shadow-lg"
+                                >
+                                    Close
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 };

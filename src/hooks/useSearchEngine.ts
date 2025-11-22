@@ -274,7 +274,7 @@ export const useSearchEngine = ({
     if (appState !== 'searching') return;
     const container = document.getElementById(GOOGLE_SEARCH_CONTAINER_ID);
     if (!container) return;
-    const observer = new MutationObserver(() => {
+    const processResults = () => {
       container.querySelectorAll('.gcse-result-tabs, .gsc-tabsArea, .gsc-above-wrapper-area, .gsc-adBlock, .gs-image-box-popup, .gs-image-popup-box, .gs-title, .gs-bidi-start-align').forEach(el => (el as HTMLElement).style.display = 'none');
       container.querySelectorAll('.gs-image-box:not(.customize-btn-added)').forEach(resultContainer => {
         const containerEl = resultContainer as HTMLElement;
@@ -302,7 +302,12 @@ export const useSearchEngine = ({
           }, 500);
         }
       });
-    });
+    };
+
+    // Run immediately in case results are already there
+    processResults();
+
+    const observer = new MutationObserver(processResults);
     observer.observe(container, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, [appState, handleImageFromUrl]);

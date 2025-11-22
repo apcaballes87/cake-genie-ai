@@ -272,12 +272,12 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
         const checkItemChanges = (item: AnalysisItem): boolean => {
             if (item.itemCategory === 'topper') {
                 const topper = item as MainTopperUI;
-                const original = analysisResult.main_toppers?.find(t => t.id === topper.id);
+                const original = analysisResult.main_toppers?.find((t: any) => t.id === topper.id);
                 if (!original) return false;
                 return (
                     topper.type !== original.type ||
                     topper.color !== original.color ||
-                    topper.isEnabled !== original.isEnabled ||
+                    topper.isEnabled !== (original as any).isEnabled ||
                     JSON.stringify(topper.colors) !== JSON.stringify(original.colors) ||
                     !!topper.replacementImage
                 );
@@ -285,12 +285,12 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
 
             if (item.itemCategory === 'element') {
                 const element = item as SupportElementUI;
-                const original = analysisResult.support_elements?.find(e => e.id === element.id);
+                const original = analysisResult.support_elements?.find((e: any) => e.id === element.id);
                 if (!original) return false;
                 return (
                     element.type !== original.type ||
                     element.color !== original.color ||
-                    element.isEnabled !== original.isEnabled ||
+                    element.isEnabled !== (original as any).isEnabled ||
                     JSON.stringify(element.colors) !== JSON.stringify(original.colors) ||
                     !!element.replacementImage
                 );
@@ -298,12 +298,12 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
 
             if (item.itemCategory === 'message') {
                 const message = item as CakeMessageUI;
-                const original = analysisResult.cake_messages?.find(m => m.id === message.id);
+                const original = analysisResult.cake_messages?.find((m: any) => m.id === message.id);
                 if (!original) return true; // New message
                 return (
                     message.text !== original.text ||
                     message.color !== original.color ||
-                    message.isEnabled !== original.isEnabled
+                    message.isEnabled !== (original as any).isEnabled
                 );
             }
 
@@ -334,8 +334,8 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
             // Material Options Flags
             const isNumberTopper = isTopper && descriptionString.toLowerCase().includes('number') && ['edible_3d_complex', 'edible_3d_ordinary', 'candle', 'printout'].includes(item.original_type);
             const is3DFlower = isTopper && ['edible_3d_complex', 'edible_3d_ordinary'].includes(item.original_type) && descriptionString.toLowerCase().includes('flower');
-            const isOriginalPrintoutTopper = isTopper && item.original_type === 'printout';
-            const canBeSwitchedToPrintoutTopper = isTopper && ['edible_3d_complex', 'edible_3d_ordinary', 'edible_photo_top'].includes(item.original_type) && !is3DFlower;
+            const isOriginalPrintoutTopper = isTopper && item.original_type === 'printout' && !isNumberTopper;
+            const canBeSwitchedToPrintoutTopper = isTopper && ['edible_3d_complex', 'edible_3d_ordinary', 'edible_photo_top'].includes(item.original_type) && !is3DFlower && !isNumberTopper;
             const isCardstock = isTopper && item.original_type === 'cardstock';
             const isToyOrFigurine = isTopper && ['toy', 'figurine', 'plastic_ball'].includes(item.original_type);
             const isWrapSwitchable = !isTopper && item.original_type === 'edible_photo_side';
@@ -491,26 +491,21 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
         }
         if (itemToRender.itemCategory === 'message') {
             const message = itemToRender as CakeMessageUI;
+            const positionLabel = message.position === 'top' ? '(Top)' : message.position === 'side' ? '(Front)' : '(Board)';
+
             return (
                 <PanelToggle
-                    label={`Message: "${message.text}"`}
+                    label={
+                        <div className="flex flex-col items-start">
+                            <span className="leading-tight text-xs">{`"${message.text}"`}</span>
+                            <span className="text-[10px] text-purple-600 font-semibold bg-purple-100 px-1.5 py-0.5 rounded-md mt-1">Message {positionLabel}</span>
+                        </div>
+                    }
                     isEnabled={message.isEnabled}
                     price={isAdmin ? itemPrices.get(message.id) : undefined}
                     onChange={(isEnabled) => updateCakeMessage(message.id, { isEnabled })}
-                >
-                    <div className="space-y-3">
-                        <div>
-                            <label htmlFor={`msg-text-${message.id}`} className="block text-[10px] font-medium text-slate-600 mb-1">Text</label>
-                            <input id={`msg-text-${message.id}`} type="text" value={message.text} onChange={(e) => updateCakeMessage(message.id, { text: e.target.value })} className="w-full px-2 py-1 text-xs border-slate-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500" />
-                        </div>
-                        <div>
-                            <label className="block text-[10px] font-medium text-slate-600 mb-1">Color</label>
-                            <div className="animate-fade-in-fast">
-                                <ColorPalette selectedColor={message.color} onColorChange={(hex) => { updateCakeMessage(message.id, { color: hex }); }} />
-                            </div>
-                        </div>
-                    </div>
-                </PanelToggle>
+                    onDelete={() => removeCakeMessage(message.id)}
+                />
             );
         }
 

@@ -2,23 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, AlertTriangleIcon } from './icons';
 import { ShareButton } from './ShareButton';
 import { CakeInfoUI } from '../types';
+import { AvailabilityType } from '../lib/utils/availability';
 
 // --- Sticky Add to Cart Bar ---
 interface StickyAddToCartBarProps {
-  price: number | null;
-  isLoading: boolean;
-  isAdding: boolean;
-  error: string | null;
-  onAddToCartClick: () => void;
-  onShareClick: () => void;
-  isSharing: boolean;
-  canShare: boolean;
-  isAnalyzing?: boolean;
-  cakeInfo?: CakeInfoUI | null;
-  warningMessage?: string | null;
+    price: number | null;
+    isLoading: boolean;
+    isAdding: boolean;
+    error: string | null;
+    onAddToCartClick: () => void;
+    onShareClick: () => void;
+    isSharing: boolean;
+    canShare: boolean;
+    isAnalyzing?: boolean;
+    cakeInfo?: CakeInfoUI | null;
+    warningMessage?: string | null;
+    availability?: AvailabilityType;
+    className?: string;
 }
 
-const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({ price, isLoading, isAdding, error, onAddToCartClick, onShareClick, isSharing, canShare, isAnalyzing, cakeInfo, warningMessage }) => {
+const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({ price, isLoading, isAdding, error, onAddToCartClick, onShareClick, isSharing, canShare, isAnalyzing, cakeInfo, warningMessage, availability, className }) => {
     const [show, setShow] = useState(false);
 
     useEffect(() => {
@@ -58,9 +61,46 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({ pric
         }
         return null;
     };
-    
+
+    const renderAvailabilityNotification = () => {
+        if (!availability) return null;
+
+        if (availability === 'rush') {
+            return (
+                <div className="bg-green-100 border-b border-green-200">
+                    <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-green-800 text-xs sm:text-sm font-bold p-2">
+                        <span>⚡</span>
+                        <span>Rush Order Available! Ready in 30 mins</span>
+                    </div>
+                </div>
+            );
+        }
+        if (availability === 'same-day') {
+            return (
+                <div className="bg-blue-100 border-b border-blue-200">
+                    <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-blue-800 text-xs sm:text-sm font-bold p-2">
+                        <span>🕐</span>
+                        <span>Same-Day Order! Ready in 3 hours</span>
+                    </div>
+                </div>
+            );
+        }
+        if (availability === 'normal') {
+            return (
+                <div className="bg-slate-100 border-b border-slate-200">
+                    <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-slate-700 text-xs sm:text-sm font-bold p-2">
+                        <span>📅</span>
+                        <span>Standard order. Requires 1-day lead time</span>
+                    </div>
+                </div>
+            );
+        }
+        return null;
+    };
+
     return (
-        <div className={`fixed bottom-0 left-0 right-0 z-40 transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'}`}>
+        <div className={`fixed bottom-0 left-0 right-0 z-40 transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}>
+            {renderAvailabilityNotification()}
             {warningMessage && (
                 <div className="bg-yellow-100 border-b border-yellow-200">
                     <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-yellow-800 text-xs sm:text-sm font-semibold p-2">
@@ -73,13 +113,13 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({ pric
                 <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
                     <div className="min-w-[100px]">{renderPrice()}</div>
                     <div className="flex flex-1 gap-3">
-                        <ShareButton 
+                        <ShareButton
                             onClick={onShareClick}
                             isLoading={isSharing}
                             disabled={!canShare}
                             className="flex-1"
                         />
-                        <button 
+                        <button
                             onClick={onAddToCartClick}
                             disabled={isLoading || !!error || price === null || isAdding || isAnalyzing}
                             className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md flex justify-center items-center"

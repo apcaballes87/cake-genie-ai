@@ -2,7 +2,7 @@
 import { useState, useCallback } from 'react';
 // FIX: Import `updateSharedDesignTextsWithRetry` from `shareService` to resolve the "Cannot find name" error.
 import { saveDesignToShare, ShareResult, updateSharedDesignTextsWithRetry } from '../services/shareService';
-import { generateShareableTexts } from '../services/geminiService.lazy';
+import { generateShareableTexts } from '../services/geminiService';
 import { showError } from '../lib/utils/toast';
 import {
     CakeInfoUI,

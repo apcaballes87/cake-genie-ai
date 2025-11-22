@@ -294,18 +294,19 @@ export const useCakeCustomization = () => {
         setDirtyFields(new Set());
     }, []);
 
-    const handleApplyAnalysis = useCallback((rawData: HybridAnalysisResult) => {
+    const handleApplyAnalysis = useCallback((rawData: HybridAnalysisResult, options?: { skipToast?: boolean }) => {
         // Create a shallow copy to apply business logic adjustments without mutating original
         const analysisData = {
             ...rawData,
             icing_design: { ...rawData.icing_design }
         };
 
-        // Apply business logic: Disable gumpaste base board if it's white.
+        // Apply business logic: Disable gumpaste base board if it's white, gold, or silver.
         // This prevents the "dirty state" (Apply/Revert buttons) from appearing immediately
-        // because the app logic automatically disables white baseboards.
-        const isBaseBoardWhite = analysisData.icing_design.colors.gumpasteBaseBoardColor?.toLowerCase() === '#ffffff';
-        if (analysisData.icing_design.gumpasteBaseBoard && isBaseBoardWhite) {
+        // because the app logic automatically disables white/gold/silver baseboards.
+        const baseBoardColor = analysisData.icing_design.colors.gumpasteBaseBoardColor?.toLowerCase();
+        const isExcludedColor = baseBoardColor === '#ffffff' || baseBoardColor === '#ffd700' || baseBoardColor === '#c0c0c0';
+        if (analysisData.icing_design.gumpasteBaseBoard && isExcludedColor) {
             analysisData.icing_design.gumpasteBaseBoard = false;
         }
 
@@ -438,30 +439,39 @@ export const useCakeCustomization = () => {
         setIsCustomizationDirty(false);
         setDirtyFields(new Set());
 
-        const toppersFound = analysisData.main_toppers.length;
-        const elementsFound = analysisData.support_elements.length;
-        let analysisSummaryParts: string[] = [];
-        if (toppersFound > 0) analysisSummaryParts.push(`${toppersFound} topper${toppersFound > 1 ? 's' : ''}`);
-        if (elementsFound > 0) analysisSummaryParts.push(`${elementsFound} design element${elementsFound > 1 ? 's' : ''}`);
-        const analysisSummary = analysisSummaryParts.length > 0 ? `We found ${analysisSummaryParts.join(' and ')}.` : "We've analyzed your cake's base design.";
-        showSuccess(`Price and Design Elements updated! ${analysisSummary}`, { duration: 6000 });
+        // Only show toast if not skipped (Phase 1 only, not Phase 2 coordinate updates)
+        if (!options?.skipToast) {
+            const toppersFound = analysisData.main_toppers.length;
+            const elementsFound = analysisData.support_elements.length;
+            let analysisSummaryParts: string[] = [];
+            if (toppersFound > 0) analysisSummaryParts.push(`${toppersFound} topper${toppersFound > 1 ? 's' : ''}`);
+            if (elementsFound > 0) analysisSummaryParts.push(`${elementsFound} design element${elementsFound > 1 ? 's' : ''}`);
+            const analysisSummary = analysisSummaryParts.length > 0 ? `We found ${analysisSummaryParts.join(' and ')}.` : "We've analyzed your cake's base design.";
+            showSuccess(`Price and Design Elements updated! ${analysisSummary}`, { duration: 6000 });
+        }
 
     }, [dirtyFields]);
 
     useEffect(() => {
         if (pendingAnalysisData) {
-            handleApplyAnalysis(pendingAnalysisData);
+            // Check if this is a coordinate-only update by comparing with current analysisResult
+            const isCoordinateUpdate = analysisResult &&
+                analysisResult.main_toppers.length === pendingAnalysisData.main_toppers.length &&
+                analysisResult.support_elements.length === pendingAnalysisData.support_elements.length &&
+                analysisResult.cake_messages.length === pendingAnalysisData.cake_messages.length;
+
+            handleApplyAnalysis(pendingAnalysisData, { skipToast: isCoordinateUpdate });
             setPendingAnalysisData(null); // Clear after applying to prevent re-runs
             // Ensure dirty state is cleared after analysis is applied
             // This handles any state updates that might have occurred during handleApplyAnalysis
             setIsCustomizationDirty(false);
             setDirtyFields(new Set());
         }
-    }, [pendingAnalysisData, handleApplyAnalysis]);
+    }, [pendingAnalysisData, handleApplyAnalysis, analysisResult]);
 
     const handleTopperImageReplace = useCallback(async (topperId: string, file: File) => {
         try {
-            const { fileToBase64 } = await import('../services/geminiService.lazy');
+            const { fileToBase64 } = await import('../services/geminiService');
             const replacementData = await fileToBase64(file);
             updateMainTopper(topperId, { replacementImage: replacementData });
         } catch (err) {
@@ -471,7 +481,7 @@ export const useCakeCustomization = () => {
 
     const handleSupportElementImageReplace = useCallback(async (elementId: string, file: File) => {
         try {
-            const { fileToBase64 } = await import('../services/geminiService.lazy');
+            const { fileToBase64 } = await import('../services/geminiService');
             const replacementData = await fileToBase64(file);
             updateSupportElement(elementId, { replacementImage: replacementData });
         } catch (err) {
@@ -503,12 +513,35 @@ export const useCakeCustomization = () => {
                 original_colors: s.colors,
             }));
 
+            // Sync cake messages: extract only the base CakeMessage properties
+            // This ensures we don't pollute the analysis result with UI-only properties
+            const syncedCakeMessages = cakeMessages.map(m => ({
+                type: m.type,
+                text: m.text,
+                position: m.position,
+                color: m.color,
+                x: m.x,
+                y: m.y,
+            }));
+
+            // Sync icing design: extract only the base IcingDesign properties
+            // This ensures we don't pollute the analysis result with UI-only properties (dripPrice, gumpasteBaseBoardPrice)
+            const syncedIcingDesign = icingDesign ? {
+                base: icingDesign.base,
+                color_type: icingDesign.color_type,
+                colors: icingDesign.colors,
+                border_top: icingDesign.border_top,
+                border_base: icingDesign.border_base,
+                drip: icingDesign.drip,
+                gumpasteBaseBoard: icingDesign.gumpasteBaseBoard,
+            } : prev.icing_design;
+
             return {
                 ...prev,
                 main_toppers: syncedMainToppers,
                 support_elements: syncedSupportElements,
-                cake_messages: cakeMessages,
-                icing_design: icingDesign || prev.icing_design,
+                cake_messages: syncedCakeMessages,
+                icing_design: syncedIcingDesign,
                 cakeType: cakeInfo?.type || prev.cakeType,
                 cakeThickness: cakeInfo?.thickness || prev.cakeThickness,
             };
@@ -527,6 +560,19 @@ export const useCakeCustomization = () => {
             original_type: s.type,
             original_color: s.color,
             original_colors: s.colors,
+        })));
+
+        // Update cake messages to reset their originalMessage to current state
+        setCakeMessages(prev => prev.map(m => ({
+            ...m,
+            originalMessage: {
+                type: m.type,
+                text: m.text,
+                position: m.position,
+                color: m.color,
+                x: m.x,
+                y: m.y,
+            },
         })));
 
         setIsCustomizationDirty(false);
