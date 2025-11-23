@@ -510,9 +510,6 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
 
     return (
         <>
-        <div className="w-full max-w-4xl mx-auto bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200 animate-fade-in">
-             <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-fade-in-fast { animation: fadeInFast 0.2s ease-out; } @keyframes fadeInFast { from { opacity: 0; } to { opacity: 1; } }`}</style>
-            
             {zoomedImage && (
                 <div
                     className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[9999] flex items-center justify-center animate-fade-in-fast"
@@ -536,7 +533,10 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                 </div>
             )}
 
-            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-200">
+        <div className="w-full max-w-4xl mx-auto bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 animate-fade-in">
+             <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-fade-in-fast { animation: fadeInFast 0.2s ease-out; } @keyframes fadeInFast { from { opacity: 0; } to { opacity: 1; } }`}</style>
+
+            <div className="flex justify-between items-center px-4 pt-4 pb-3 border-b border-slate-200">
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">Your Cart</h1>
                 <button onClick={onClose} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Close cart">
                     <CloseIcon />
@@ -544,16 +544,16 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
             </div>
 
             {isCartLoading ? (
-                <div className="py-4"><CartSkeleton count={2} /></div>
+                <div className="p-4"><CartSkeleton count={2} /></div>
             ) : allItems.length === 0 ? (
-                <div className="text-center py-16">
+                <div className="text-center py-16 px-4">
                     <p className="text-slate-500">Your cart is empty.</p>
                     <button onClick={onContinueShopping} className="mt-4 text-purple-600 font-semibold hover:underline">
                         Continue Shopping
                     </button>
                 </div>
             ) : (
-                <div className="space-y-4">
+                <div className="space-y-4 px-4">
                     <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
                         {allItems.map(item => (
                             <CartItemCard
@@ -735,7 +735,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                             </div>
                         </div>
 
-                        <div className="pt-6 border-t border-slate-200 space-y-4">
+                        <div className="pt-4 pb-4 border-t border-slate-200 space-y-4">
                             {/* Discount Code Section */}
                             <div className="border-t border-gray-200 pt-4 mt-4">
                                 <h3 className="text-sm font-semibold text-gray-700 mb-3">

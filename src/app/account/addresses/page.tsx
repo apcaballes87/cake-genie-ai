@@ -130,8 +130,8 @@ export default function AddressesPage({ onClose }: AddressesPageProps) {
 
   if (pageIsLoading) {
     return (
-        <div className="w-full max-w-3xl mx-auto py-8 px-4">
-            <div className="flex justify-between items-center mb-6">
+        <div className="w-full max-w-3xl mx-auto pb-8 px-4">
+            <div className="flex justify-between items-center mb-6 pt-4">
                 <div className="flex items-center gap-4">
                     <Skeleton className="h-10 w-10 rounded-full" />
                     <Skeleton className="h-8 w-48" />
@@ -145,7 +145,7 @@ export default function AddressesPage({ onClose }: AddressesPageProps) {
 
   if (!user) {
     return (
-      <div className="w-full max-w-3xl mx-auto py-8 px-4 text-center">
+      <div className="w-full max-w-3xl mx-auto pb-8 px-4 text-center pt-4">
         <p className="text-slate-600">You must be logged in to manage your addresses.</p>
         <button onClick={onClose} className="mt-4 text-pink-600 font-semibold hover:underline">Go Back</button>
       </div>
@@ -153,8 +153,8 @@ export default function AddressesPage({ onClose }: AddressesPageProps) {
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto py-8 px-4">
-      <div className="flex justify-between items-center mb-6">
+    <div className="w-full max-w-3xl mx-auto pb-8 px-4">
+      <div className="flex justify-between items-center mb-6 pt-4">
         <div className="flex items-center gap-4">
             <button onClick={onClose} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Go back">
                 <ArrowLeft />

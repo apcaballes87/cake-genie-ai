@@ -1931,7 +1931,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
             }
             {/* Cake Messages Modal */}
             {isCakeMessagesOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col relative animate-scale-in overflow-hidden">
                         <button
                             onClick={handleCloseCakeMessagesModal}
@@ -1985,7 +1985,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
             {/* Cake Toppers Modal */}
             {/* Cake Toppers Modal */}
             {isCakeToppersOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col relative animate-scale-in overflow-hidden">
                         <button
                             onClick={handleCloseCakeToppersModal}
@@ -2041,7 +2041,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
 
             {/* Edible Photo Modal */}
             {isEdiblePhotoOpen && ediblePhotoItem && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col relative animate-scale-in overflow-hidden">
                         <button
                             onClick={handleCloseEdiblePhotoModal}
