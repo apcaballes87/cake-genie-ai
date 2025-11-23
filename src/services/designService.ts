@@ -295,7 +295,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
 
     // Handle Gumpaste Base Board
     if (newIcing.gumpasteBaseBoard && !originalIcing.gumpasteBaseBoard) {
-        let instruction = `- Preserve any existing decorations on the base area.`;
+        let instruction = `- Preserve any existing decorations on the base area.(white base not included)`;
         if (newIcing.colors.gumpasteBaseBoardColor) {
             instruction += ` Make the color of the surface of the round gumpaste-covered BASE BOARD to be **${colorName(newIcing.colors.gumpasteBaseBoardColor)}**.`;
         }
@@ -307,9 +307,15 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
         const originalColor = originalIcing.colors.gumpasteBaseBoardColor?.toUpperCase();
         const newColor = newIcing.colors.gumpasteBaseBoardColor?.toUpperCase();
 
-        // Handle color change - if new color is specified and different from original
-        if (newColor && newColor !== originalColor) {
-            icingChanges.push(`- **Recolor the surface of the gumpaste base board shade** to **${colorName(newIcing.colors.gumpasteBaseBoardColor!)}**. Preserve all other details.`);
+        // CRITICAL FIX: Handle both cases - adding color to colorless board AND changing existing color
+        // If there's a new color specified, we need to generate a prompt instruction
+        if (newColor) {
+            // Check if this is genuinely different from the original
+            // (undefined original means we're adding color for first time)
+            if (!originalColor || newColor !== originalColor) {
+                const instruction = `- **Recolor the surface of the gumpaste base board shade** to **${colorName(newIcing.colors.gumpasteBaseBoardColor!)}**. Preserve all other details.`;
+                icingChanges.push(instruction);
+            }
         }
     }
 
@@ -507,7 +513,9 @@ export async function updateDesign({
             'remove', 'add', 'change the cake type', 'change the cake thickness',
             'reconstruct', 'erase', 'move', 'change the style', 'redraw',
             're-sculpt', 'replace its image', 'bento box presentation',
-            'change the text', 'erase the text', 'add new text', 'regarding the message'
+            'change the text', 'erase the text', 'add new text', 'regarding the message',
+            // CRITICAL: 'preserve' is used when adding gumpaste base board - this is NOT a color-only change
+            'preserve any existing decorations'
         ];
         return !changes.some(change =>
             designChangeKeywords.some(keyword => change.toLowerCase().includes(keyword))
