@@ -531,6 +531,7 @@ heavy: (>60%)
    - Set "gumpasteBaseBoard": **true** ONLY if:
      - There IS a clearly visible gumpaste-covered board, AND
      - The board color is NOT white, gold, or silver (must be pink, blue, black, etc.)
+   - **CRITICAL:** If "gumpasteBaseBoard" is true, you MUST also set "colors.gumpasteBaseBoardColor" to the exact HEX code of the board's color from the palette
 
 ### ICING JSON
 \`\`\`json
@@ -610,7 +611,7 @@ Identify the 3 to 5 most prominent colors in the cake and its decorations.
    - ANY character images (My Melody, Disney, Sanrio, etc.), graphics, logos, multi-color designs → MUST be "printout"
    - Cardstock is VERY RARE - only solid-color glitter items with NO printed graphics
    - When in doubt → DEFAULT TO PRINTOUT
-2. **GUMPASTE BOARD:** Only true if board exists AND is NOT white/gold/silver
+2. **GUMPASTE BOARD:** Only true if board exists AND is NOT white/gold/silver. If true, MUST set colors.gumpasteBaseBoardColor
 3. **Colors:** Use EXACT HEX CODES from palette, NOT color names
 `;
 
@@ -1483,7 +1484,24 @@ export const editCakeImage = async (
             },
         });
 
-        for (const part of response.candidates[0].content.parts) {
+        // Check if response has valid structure
+        if (!response.candidates || response.candidates.length === 0) {
+            console.error("No candidates in response:", JSON.stringify(response, null, 2));
+            throw new Error("The AI did not return any candidates. Please try again.");
+        }
+
+        const candidate = response.candidates[0];
+        if (!candidate.content || !candidate.content.parts) {
+            // Log the full candidate to help debug
+            console.error("Candidate missing content:", JSON.stringify(candidate, null, 2));
+            // Check if there's a finish reason that explains why
+            if (candidate.finishReason) {
+                throw new Error(`Image generation failed. Reason: ${candidate.finishReason}`);
+            }
+            throw new Error("The AI response is missing content. Please try again.");
+        }
+
+        for (const part of candidate.content.parts) {
             if (part.inlineData) {
                 return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
             }

@@ -9,8 +9,9 @@ import { AvailabilityType } from '../../lib/utils/availability';
 import { FloatingResultPanel } from '../../components/FloatingResultPanel';
 import { COLORS } from '../../constants';
 import { ColorPalette } from '../../components/ColorPalette';
-import { CakeBaseOptions } from '../../components/CakeBaseOptions';
 import { CakeMessagesOptions } from '../../components/CakeMessagesOptions';
+import { CakeToppersOptions } from '../../components/CakeToppersOptions';
+import { TopperCard } from '../../components/TopperCard';
 import StickyAddToCartBar from '../../components/StickyAddToCartBar';
 import { showSuccess } from '../../lib/utils/toast';
 import { clearPromptCache } from '../../services/geminiService';
@@ -119,8 +120,10 @@ interface CustomizingPageProps {
     onCakeInfoChange: (updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => void;
     updateMainTopper: (id: string, updates: Partial<MainTopperUI>) => void;
     removeMainTopper: (id: string) => void;
+    onMainTopperChange: (toppers: MainTopperUI[]) => void;
     updateSupportElement: (id: string, updates: Partial<SupportElementUI>) => void;
     removeSupportElement: (id: string) => void;
+    onSupportElementChange: (elements: SupportElementUI[]) => void;
     updateCakeMessage: (id: string, updates: Partial<CakeMessageUI>) => void;
     removeCakeMessage: (id: string) => void;
     onIcingDesignChange: (design: IcingDesignUI) => void;
@@ -495,7 +498,7 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
     }, [showGuide, tools.length]);
 
     return (
-        <div className={`flex flex-row gap-3 justify-center transition-opacity ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className={`flex flex-row flex-wrap gap-3 justify-center transition-opacity ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             {tools.map((tool, index) => {
                 const isGuideActive = activeGuideIndex === index;
                 const isSelected = selectedItem && 'id' in selectedItem && selectedItem.id === `icing-edit-${tool.id}`;
@@ -583,8 +586,8 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     onUpdateDesign, analysisResult, analysisError, analysisId, cakeInfo, basePriceOptions,
     mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions,
     onCakeInfoChange,
-    updateMainTopper, removeMainTopper,
-    updateSupportElement, removeSupportElement,
+    updateMainTopper, removeMainTopper, onMainTopperChange,
+    updateSupportElement, removeSupportElement, onSupportElementChange,
     updateCakeMessage, removeCakeMessage,
     onIcingDesignChange, onCakeMessageChange,
     onAdditionalInstructionsChange, onTopperImageReplace, onSupportElementImageReplace, onSave, isSaving, onClearAll, onUndo, canUndo, error,
@@ -597,8 +600,15 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
 }) => {
 
     const availability = AVAILABILITY_MAP[availabilityType];
-    const [isCakeOptionsOpen, setIsCakeOptionsOpen] = useState(false);
     const [isCakeMessagesOpen, setIsCakeMessagesOpen] = useState(false);
+    const [isCakeToppersOpen, setIsCakeToppersOpen] = useState(false);
+    const [isEdiblePhotoOpen, setIsEdiblePhotoOpen] = useState(false);
+    const [ediblePhotoItem, setEdiblePhotoItem] = useState<(MainTopperUI | SupportElementUI) & { itemCategory: 'topper' | 'element' } | null>(null);
+
+    // Temporary state backups for modals (to discard changes on cancel)
+    const [tempCakeMessagesBackup, setTempCakeMessagesBackup] = useState<CakeMessageUI[] | null>(null);
+    const [tempToppersBackup, setTempToppersBackup] = useState<{ mainToppers: MainTopperUI[], supportElements: SupportElementUI[] } | null>(null);
+    const [tempEdiblePhotoBackup, setTempEdiblePhotoBackup] = useState<{ item: MainTopperUI | SupportElementUI, category: 'topper' | 'element' } | null>(null);
     const [areHelpersVisible, setAreHelpersVisible] = useState(true);
     const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
     const [hoveredItem, setHoveredItem] = useState<ClusteredMarker | null>(null);
@@ -906,6 +916,111 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
         });
     };
 
+    // Handle undo with modal state cleanup
+    const handleUndoWithModalCleanup = useCallback(() => {
+        // Clear any pending modal changes
+        setTempCakeMessagesBackup(null);
+        setTempToppersBackup(null);
+        setTempEdiblePhotoBackup(null);
+
+        // Close any open modals
+        setIsCakeMessagesOpen(false);
+        setIsCakeToppersOpen(false);
+        setIsEdiblePhotoOpen(false);
+        setEdiblePhotoItem(null);
+
+        // Call the original undo handler
+        onUndo();
+    }, [onUndo]);
+
+    // Modal handlers with state backup/restore
+    const handleOpenCakeMessagesModal = useCallback(() => {
+        // Create a deep copy of current state before opening modal
+        setTempCakeMessagesBackup(JSON.parse(JSON.stringify(cakeMessages)));
+        setIsCakeMessagesOpen(true);
+    }, [cakeMessages]);
+
+    const handleCloseCakeMessagesModal = useCallback(() => {
+        // Restore original state if user exits without applying
+        if (tempCakeMessagesBackup !== null) {
+            onCakeMessageChange(tempCakeMessagesBackup);
+            setTempCakeMessagesBackup(null);
+        }
+        setIsCakeMessagesOpen(false);
+    }, [tempCakeMessagesBackup, onCakeMessageChange]);
+
+    const handleApplyCakeMessagesModal = useCallback(() => {
+        // Clear backup and close modal (changes are already applied)
+        setTempCakeMessagesBackup(null);
+        setIsCakeMessagesOpen(false);
+        onUpdateDesign();
+    }, [onUpdateDesign]);
+
+    const handleOpenCakeToppersModal = useCallback(() => {
+        // Create a deep copy of current state before opening modal
+        setTempToppersBackup({
+            mainToppers: JSON.parse(JSON.stringify(mainToppers)),
+            supportElements: JSON.parse(JSON.stringify(supportElements))
+        });
+        setIsCakeToppersOpen(true);
+    }, [mainToppers, supportElements]);
+
+    const handleCloseCakeToppersModal = useCallback(() => {
+        // Restore original state if user exits without applying
+        if (tempToppersBackup !== null) {
+            onMainTopperChange(tempToppersBackup.mainToppers);
+            onSupportElementChange(tempToppersBackup.supportElements);
+            setTempToppersBackup(null);
+        }
+        setIsCakeToppersOpen(false);
+    }, [tempToppersBackup, onMainTopperChange, onSupportElementChange]);
+
+    const handleApplyCakeToppersModal = useCallback(() => {
+        // Clear backup and close modal (changes are already applied)
+        setTempToppersBackup(null);
+        setIsCakeToppersOpen(false);
+        onUpdateDesign();
+    }, [onUpdateDesign]);
+
+    const handleOpenEdiblePhotoModal = useCallback((item: (MainTopperUI | SupportElementUI) & { itemCategory: 'topper' | 'element' }) => {
+        // Find and backup the current item from state
+        const category = item.itemCategory;
+        const currentItem = category === 'topper'
+            ? mainToppers.find(t => t.id === item.id)
+            : supportElements.find(e => e.id === item.id);
+
+        if (currentItem) {
+            setTempEdiblePhotoBackup({
+                item: JSON.parse(JSON.stringify(currentItem)),
+                category
+            });
+        }
+        setEdiblePhotoItem(item);
+        setIsEdiblePhotoOpen(true);
+    }, [mainToppers, supportElements]);
+
+    const handleCloseEdiblePhotoModal = useCallback(() => {
+        // Restore original state if user exits without applying
+        if (tempEdiblePhotoBackup !== null && ediblePhotoItem !== null) {
+            if (tempEdiblePhotoBackup.category === 'topper') {
+                updateMainTopper(ediblePhotoItem.id, tempEdiblePhotoBackup.item as Partial<MainTopperUI>);
+            } else {
+                updateSupportElement(ediblePhotoItem.id, tempEdiblePhotoBackup.item as Partial<SupportElementUI>);
+            }
+            setTempEdiblePhotoBackup(null);
+        }
+        setEdiblePhotoItem(null);
+        setIsEdiblePhotoOpen(false);
+    }, [tempEdiblePhotoBackup, ediblePhotoItem, updateMainTopper, updateSupportElement]);
+
+    const handleApplyEdiblePhotoModal = useCallback(() => {
+        // Clear backup and close modal (changes are already applied)
+        setTempEdiblePhotoBackup(null);
+        setEdiblePhotoItem(null);
+        setIsEdiblePhotoOpen(false);
+        onUpdateDesign();
+    }, [onUpdateDesign]);
+
     const analysisItems = useMemo((): AnalysisItem[] => {
         const items: AnalysisItem[] = [];
         if (!analysisResult) return items;
@@ -1069,7 +1184,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
     };
 
     return (
-        <div className="flex flex-col items-center gap-3 w-full max-w-7xl mx-auto pb-28"> {/* Added padding-bottom */}
+        <div className="flex flex-col items-center gap-2 w-full max-w-7xl mx-auto pb-28"> {/* Added padding-bottom */}
             <div className="w-full flex items-center gap-2 md:gap-4">
                 <button onClick={onClose} className="p-2 text-slate-600 hover:text-purple-700 transition-colors flex-shrink-0" aria-label="Go back">
                     <BackIcon />
@@ -1129,7 +1244,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                 disabled={!editedImage || isLoading || isReporting}
                 className="w-full text-center bg-yellow-100 border border-yellow-200 text-yellow-800 text-sm font-semibold px-4 py-2 rounded-xl shadow-sm mt-[18px] transition-colors hover:bg-yellow-200 disabled:bg-yellow-100/50 disabled:text-yellow-600 disabled:cursor-not-allowed disabled:hover:bg-yellow-100"
             >
-                ALPHA TEST: Features are experimental. Click here to report any issues.
+                BETA TEST: Features are experimental. Click here to report any issues.
             </button>
             {isReporting && reportStatus === null && (
                 <div className="w-full flex items-center justify-center text-sm font-semibold p-2 rounded-xl animate-fade-in bg-blue-100 text-blue-700">
@@ -1144,9 +1259,9 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
             )}
 
             {/* Two-column layout for desktop/tablet landscape */}
-            <div className="w-full flex flex-col lg:flex-row gap-6 items-start">
-                {/* LEFT COLUMN: Image and Update Design - Sticky on desktop */}
-                <div className="w-full lg:w-1/2 flex flex-col gap-3 lg:sticky lg:top-4 lg:self-start">
+            <div className="w-full flex flex-col min-[1000px]:flex-row gap-3">
+                {/* LEFT COLUMN: Image and Update Design */}
+                <div className="w-full min-[1000px]:w-[calc(50%-6px)] flex flex-col gap-2">
                     <div ref={mainImageContainerRef} className="w-full bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 flex flex-col">
                         <div className="p-2 flex-shrink-0">
                             <div className="bg-slate-100 p-1 rounded-lg flex space-x-1">
@@ -1208,7 +1323,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        onUndo();
+                                                        handleUndoWithModalCleanup();
                                                     }}
                                                     disabled={!canUndo || isLoading}
                                                     className="bg-orange-500/90 backdrop-blur-sm text-white rounded-full text-[10px] max-[360px]:text-[8px] font-semibold hover:bg-orange-600 transition-all shadow-md px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
@@ -1224,7 +1339,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setSelectedItem(null);
-                                                        setIsCakeMessagesOpen(true);
+                                                        handleOpenCakeMessagesModal();
                                                     }}
                                                     className="bg-black/40 backdrop-blur-sm text-white rounded-full text-[10px] max-[360px]:text-[8px] font-semibold hover:bg-black/60 transition-all shadow-md px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5"
                                                     aria-label="Edit messages"
@@ -1236,7 +1351,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setSelectedItem(null);
-                                                        setIsCakeMessagesOpen(true);
+                                                        handleOpenCakeMessagesModal();
                                                     }}
                                                     className="bg-black/40 backdrop-blur-sm text-white rounded-full text-[10px] max-[360px]:text-[8px] font-semibold hover:bg-black/60 transition-all shadow-md px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5"
                                                     aria-label="Add message"
@@ -1255,9 +1370,9 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                                             const ediblePhotoSupport = supportElements.find(s => s.isEnabled && s.original_type === 'edible_photo_side');
 
                                                             if (ediblePhotoTopper) {
-                                                                setSelectedItem({ ...ediblePhotoTopper, itemCategory: 'topper' as const });
+                                                                handleOpenEdiblePhotoModal({ ...ediblePhotoTopper, itemCategory: 'topper' });
                                                             } else if (ediblePhotoSupport) {
-                                                                setSelectedItem({ ...ediblePhotoSupport, itemCategory: 'element' as const });
+                                                                handleOpenEdiblePhotoModal({ ...ediblePhotoSupport, itemCategory: 'element' });
                                                             }
                                                         }}
                                                         className="bg-black/40 backdrop-blur-sm text-white rounded-full text-[10px] max-[360px]:text-[8px] font-semibold hover:bg-black/60 transition-all shadow-md px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5"
@@ -1266,16 +1381,16 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                                         Edible Photo
                                                     </button>
                                                 )}
-                                            {/* Cake Options button */}
+                                            {/* Cake Toppers button */}
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setIsCakeOptionsOpen(true);
+                                                    handleOpenCakeToppersModal();
                                                 }}
                                                 className="bg-black/40 backdrop-blur-sm text-white rounded-full text-[10px] max-[360px]:text-[8px] font-semibold hover:bg-black/60 transition-all shadow-md px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5"
-                                                aria-label="Open cake options"
+                                                aria-label="Open cake toppers"
                                             >
-                                                Cake Options
+                                                Cake Toppers
                                             </button>
                                         </div>
                                         {originalImageDimensions && containerDimensions && containerDimensions.height > 0 && areHelpersVisible && clusteredMarkers.map((item) => {
@@ -1291,13 +1406,39 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                             const isAction = 'itemCategory' in item && item.itemCategory === 'action';
 
                                             // Handle click to detect overlapping markers
-                                            const handleMarkerClick = (e: React.MouseEvent, clickedItem: ClusteredMarker) => {
+                                            const handleMarkerClick = (e: React.MouseEvent, item: ClusteredMarker) => {
                                                 e.stopPropagation();
                                                 setIsMotifPanelOpen(false);
 
-                                                // Find all overlapping markers at this position
+                                                // Check if it's a cluster or single item
+                                                if ('isCluster' in item && item.isCluster) {
+                                                    // For now, if it's a cluster, we might want to just expand the first item or show a mini-menu
+                                                    // But simpler: just treat it as clicking the first item if they are all same type
+                                                    // Or just open the main modal if it contains toppers/elements
+                                                    const hasToppers = item.items.some(i => i.itemCategory === 'topper' || i.itemCategory === 'element');
+                                                    if (hasToppers) {
+                                                        handleOpenCakeToppersModal();
+                                                        return;
+                                                    }
+                                                } else {
+                                                    const singleItem = item as AnalysisItem;
+                                                    if (singleItem.itemCategory === 'topper' || singleItem.itemCategory === 'element') {
+                                                        // Check for Edible Photo specific types
+                                                        if (singleItem.type === 'edible_photo_top' || singleItem.type === 'edible_photo_side') {
+                                                            handleOpenEdiblePhotoModal(singleItem as any);
+                                                        } else {
+                                                            handleOpenCakeToppersModal();
+                                                        }
+                                                        return;
+                                                    } else if (singleItem.itemCategory === 'message') {
+                                                        handleOpenCakeMessagesModal();
+                                                        return;
+                                                    }
+                                                }
+
+                                                // Find all overlapping markers at this position (legacy logic for icing/other)
                                                 const OVERLAP_THRESHOLD = 12; // 24px marker / 2 = 12px radius
-                                                const clickedPos = getMarkerPosition(clickedItem.x!, clickedItem.y!);
+                                                const clickedPos = getMarkerPosition(item.x!, item.y!);
 
                                                 const overlappingItems = clusteredMarkers.filter(marker => {
                                                     if (marker.x === undefined || marker.y === undefined) return false;
@@ -1312,9 +1453,9 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                                 // If multiple items overlap, create a cluster
                                                 if (overlappingItems.length > 1) {
                                                     const clusterItem: ClusteredMarker = {
-                                                        id: `overlap-cluster-${clickedItem.id}`,
-                                                        x: clickedItem.x!,
-                                                        y: clickedItem.y!,
+                                                        id: `overlap-cluster-${item.id}`,
+                                                        x: item.x!,
+                                                        y: item.y!,
                                                         isCluster: true,
                                                         items: overlappingItems.map(m => {
                                                             if ('isCluster' in m && m.isCluster) {
@@ -1326,7 +1467,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                                     setSelectedItem(clusterItem);
                                                 } else {
                                                     // Single item - toggle selection
-                                                    setSelectedItem(prev => prev?.id === clickedItem.id ? null : clickedItem);
+                                                    setSelectedItem(prev => prev?.id === item.id ? null : item);
                                                 }
                                             };
 
@@ -1545,7 +1686,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                 <button
                                     onClick={onUpdateDesign}
                                     disabled={isUpdatingDesign || !originalImageData}
-                                    className="absolute bottom-4 right-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold py-1.5 px-3.5 rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center gap-1.5 text-sm"
+                                    className="absolute bottom-4 right-4 bg-purple-600 text-purple-50 font-semibold py-1.5 px-3.5 rounded-lg shadow-md hover:shadow-lg hover:bg-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center gap-1.5 text-sm"
                                     title="Apply icing color changes"
                                 >
                                     {isUpdatingDesign ? (
@@ -1601,11 +1742,11 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                 </div>
 
                 {/* RIGHT COLUMN: Availability at top, then Feature List */}
-                <div className="w-full lg:w-1/2 flex flex-col gap-3">
+                <div className="w-full min-[1000px]:w-[calc(50%-6px)] flex flex-col gap-2">
                     {/* Availability Section - at top of right column */}
 
 
-                    <div className="w-full bg-white/70 backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-slate-200">
+                    <div className="w-full bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200">
                         {(cakeInfo || analysisError) ? (
                             <FeatureList
                                 analysisError={analysisError}
@@ -1687,26 +1828,6 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                     <FloatingResultPanel
                         selectedItem={selectedItem}
                         onClose={() => setSelectedItem(null)}
-                        mainToppers={mainToppers}
-                        updateMainTopper={updateMainTopper}
-                        removeMainTopper={removeMainTopper}
-                        onTopperImageReplace={onTopperImageReplace}
-                        supportElements={supportElements}
-                        updateSupportElement={updateSupportElement}
-                        removeSupportElement={removeSupportElement}
-                        onSupportElementImageReplace={onSupportElementImageReplace}
-                        cakeMessages={cakeMessages}
-                        updateCakeMessage={updateCakeMessage}
-                        removeCakeMessage={removeCakeMessage}
-                        addCakeMessage={addCakeMessage}
-                        onCakeMessageChange={onCakeMessageChange}
-                        icingDesign={icingDesign}
-                        onIcingDesignChange={onIcingDesignChange}
-                        analysisResult={analysisResult}
-                        itemPrices={itemPrices}
-                        isAdmin={isAdmin}
-                        onUpdateDesign={onUpdateDesign}
-                        isUpdatingDesign={isUpdatingDesign}
                     />
                 )
             }
@@ -1715,7 +1836,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                 showMessagesPanel && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowMessagesPanel(false)}>
                         <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                            <div className="sticky top-0 bg-white border-b border-slate-200 p-4 flex justify-between items-center rounded-t-xl">
+                            <div className="sticky top-0 bg-white border-b border-slate-200 p-3 flex justify-between items-center rounded-t-xl">
                                 <h2 className="text-lg font-bold text-slate-800">Cake Messages</h2>
                                 <button
                                     onClick={() => setShowMessagesPanel(false)}
@@ -1727,10 +1848,10 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                     </svg>
                                 </button>
                             </div>
-                            <div className="p-4 space-y-4">
+                            <div className="p-3 space-y-3">
                                 {/* List all messages */}
                                 {cakeMessages.map((message) => (
-                                    <div key={message.id} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                                    <div key={message.id} className="bg-slate-50 rounded-lg p-2.5 border border-slate-200">
                                         <div className="flex justify-between items-start mb-2">
                                             <div className="flex-1">
                                                 <div className="text-xs font-semibold text-purple-600 uppercase mb-1">
@@ -1808,58 +1929,18 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                     />
                 )
             }
-            {/* Cake Options Modal */}
-            {/* Cake Options Modal */}
-            {isCakeOptionsOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col relative animate-scale-in overflow-hidden">
-                        <button
-                            onClick={() => setIsCakeOptionsOpen(false)}
-                            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors z-20"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                        <div className="flex-1 overflow-y-auto p-6">
-                            <h2 className="text-xl font-bold text-slate-800 mb-6">Cake Options</h2>
-                            <CakeBaseOptions
-                                cakeInfo={cakeInfo}
-                                basePriceOptions={basePriceOptions}
-                                onCakeInfoChange={onCakeInfoChange}
-                                isAnalyzing={isAnalyzing}
-                            />
-                        </div>
-                        <div className="relative z-10">
-                            <StickyAddToCartBar
-                                price={finalPrice}
-                                isLoading={isFetchingBasePrice}
-                                isAdding={isAddingToCart}
-                                error={basePriceError}
-                                onAddToCartClick={onAddToCart}
-                                onShareClick={onShare}
-                                isSharing={isSharing}
-                                canShare={!!analysisResult}
-                                isAnalyzing={isAnalyzing}
-                                cakeInfo={cakeInfo}
-                                warningMessage={warningMessage}
-                                availability={availabilityType}
-                                className="!static !transform-none !translate-y-0 w-full"
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
             {/* Cake Messages Modal */}
             {isCakeMessagesOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col relative animate-scale-in overflow-hidden">
                         <button
-                            onClick={() => setIsCakeMessagesOpen(false)}
+                            onClick={handleCloseCakeMessagesModal}
                             className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors z-20"
                         >
                             <X className="w-5 h-5" />
                         </button>
-                        <div className="flex-1 overflow-y-auto p-6">
-                            <h2 className="text-xl font-bold text-slate-800 mb-6">Cake Messages</h2>
+                        <div className="flex-1 overflow-y-auto p-4">
+                            <h2 className="text-xl font-bold text-slate-800 mb-4">Cake Messages</h2>
                             <CakeMessagesOptions
                                 cakeMessages={cakeMessages}
                                 markerMap={markerMap}
@@ -1872,12 +1953,9 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                         <div className="p-4 border-t border-slate-200 bg-white z-10">
                             {hasMessageChanges ? (
                                 <button
-                                    onClick={() => {
-                                        setIsCakeMessagesOpen(false);
-                                        onUpdateDesign();
-                                    }}
+                                    onClick={handleApplyCakeMessagesModal}
                                     disabled={isUpdatingDesign}
-                                    className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     {isUpdatingDesign ? (
                                         <>
@@ -1893,7 +1971,132 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                 </button>
                             ) : (
                                 <button
-                                    onClick={() => setIsCakeMessagesOpen(false)}
+                                    onClick={handleCloseCakeMessagesModal}
+                                    className="w-full bg-slate-600 text-white font-bold py-3 rounded-xl hover:bg-slate-700 transition-colors shadow-lg"
+                                >
+                                    Close
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Cake Toppers Modal */}
+            {/* Cake Toppers Modal */}
+            {isCakeToppersOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col relative animate-scale-in overflow-hidden">
+                        <button
+                            onClick={handleCloseCakeToppersModal}
+                            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors z-20"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                        <div className="flex-1 overflow-y-auto p-4">
+                            <h2 className="text-xl font-bold text-slate-800 mb-4">Cake Toppers & Elements</h2>
+                            <CakeToppersOptions
+                                mainToppers={mainToppers}
+                                supportElements={supportElements}
+                                markerMap={markerMap}
+                                updateMainTopper={updateMainTopper}
+                                updateSupportElement={updateSupportElement}
+                                onTopperImageReplace={onTopperImageReplace}
+                                onSupportElementImageReplace={onSupportElementImageReplace}
+                                itemPrices={itemPrices}
+                                isAdmin={isAdmin}
+                            />
+                        </div>
+                        <div className="p-4 border-t border-slate-200 bg-white z-10">
+                            {(isCustomizationDirty || isUpdatingDesign) ? (
+                                <button
+                                    onClick={handleApplyCakeToppersModal}
+                                    disabled={isUpdatingDesign}
+                                    className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {isUpdatingDesign ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            Updating Design...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <MagicSparkleIcon className="w-5 h-5" />
+                                            Apply Changes
+                                        </>
+                                    )}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleCloseCakeToppersModal}
+                                    className="w-full bg-slate-600 text-white font-bold py-3 rounded-xl hover:bg-slate-700 transition-colors shadow-lg"
+                                >
+                                    Close
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edible Photo Modal */}
+            {isEdiblePhotoOpen && ediblePhotoItem && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col relative animate-scale-in overflow-hidden">
+                        <button
+                            onClick={handleCloseEdiblePhotoModal}
+                            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors z-20"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <h2 className="text-xl font-bold text-slate-800 mb-6">Edible Photo Options</h2>
+                            <TopperCard
+                                item={ediblePhotoItem}
+                                type={ediblePhotoItem.itemCategory}
+                                marker={markerMap.get(ediblePhotoItem.id)}
+                                expanded={true}
+                                onToggle={() => { }} // Always expanded
+                                updateItem={(updates) => {
+                                    if (ediblePhotoItem.itemCategory === 'topper') {
+                                        updateMainTopper(ediblePhotoItem.id, updates);
+                                    } else {
+                                        updateSupportElement(ediblePhotoItem.id, updates);
+                                    }
+                                }}
+                                onImageReplace={(file) => {
+                                    if (ediblePhotoItem.itemCategory === 'topper') {
+                                        onTopperImageReplace(ediblePhotoItem.id, file);
+                                    } else {
+                                        onSupportElementImageReplace(ediblePhotoItem.id, file);
+                                    }
+                                }}
+                                itemPrice={itemPrices?.get(ediblePhotoItem.id)}
+                                isAdmin={isAdmin}
+                            />
+                        </div>
+                        <div className="p-4 border-t border-slate-200 bg-white z-10">
+                            {(isCustomizationDirty || isUpdatingDesign) ? (
+                                <button
+                                    onClick={handleApplyEdiblePhotoModal}
+                                    disabled={isUpdatingDesign}
+                                    className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {isUpdatingDesign ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            Updating Design...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <MagicSparkleIcon className="w-5 h-5" />
+                                            Apply Changes
+                                        </>
+                                    )}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleCloseEdiblePhotoModal}
                                     className="w-full bg-slate-600 text-white font-bold py-3 rounded-xl hover:bg-slate-700 transition-colors shadow-lg"
                                 >
                                     Close

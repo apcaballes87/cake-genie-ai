@@ -510,12 +510,12 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
 
     return (
         <>
-        <div className="w-full max-w-4xl mx-auto bg-white/70 backdrop-blur-lg p-6 rounded-2xl shadow-lg border border-slate-200 animate-fade-in">
+        <div className="w-full max-w-4xl mx-auto bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200 animate-fade-in">
              <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-fade-in-fast { animation: fadeInFast 0.2s ease-out; } @keyframes fadeInFast { from { opacity: 0; } to { opacity: 1; } }`}</style>
             
             {zoomedImage && (
                 <div
-                    className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in-fast"
+                    className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[9999] flex items-center justify-center animate-fade-in-fast"
                     onClick={() => setZoomedImage(null)}
                     aria-modal="true"
                     role="dialog"
@@ -530,13 +530,13 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                     <img
                         src={zoomedImage}
                         alt="Zoomed cake design"
-                        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                        className="w-full h-full object-contain"
                         onClick={(e) => e.stopPropagation()}
                     />
                 </div>
             )}
 
-            <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200">
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-200">
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">Your Cart</h1>
                 <button onClick={onClose} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Close cart">
                     <CloseIcon />
@@ -553,10 +553,10 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                     </button>
                 </div>
             ) : (
-                <div className="space-y-6">
-                    <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+                <div className="space-y-4">
+                    <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
                         {allItems.map(item => (
-                            <CartItemCard 
+                            <CartItemCard
                                 key={item.id}
                                 item={item}
                                 onRemove={onRemoveItem}
@@ -565,7 +565,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                         ))}
                     </div>
 
-                    <div className="pt-6 border-t border-slate-200 space-y-6">
+                    <div className="pt-4 border-t border-slate-200 space-y-4">
                         <h2 className="text-lg font-semibold text-slate-700">Delivery Details</h2>
 
                         {!isLoadingSettings && (

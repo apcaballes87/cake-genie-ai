@@ -44,10 +44,10 @@ const MessageCard: React.FC<{
 
             {/* Expanded Content - Message Customization */}
             {isExpanded && (
-                <div className="px-4 pb-4 space-y-4 border-t border-slate-100">
+                <div className="px-3 pb-3 space-y-3 border-t border-slate-100">
                     {/* Text Input */}
                     <div>
-                        <label htmlFor={`msg-text-${message.id}`} className="block text-xs font-medium text-slate-600 mb-1.5">Message Text</label>
+                        <label htmlFor={`msg-text-${message.id}`} className="block text-xs font-medium text-slate-600 mb-1">Message Text</label>
                         <input
                             id={`msg-text-${message.id}`}
                             type="text"
@@ -60,7 +60,7 @@ const MessageCard: React.FC<{
 
                     {/* Color Picker */}
                     <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1.5">Text Color</label>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Text Color</label>
                         <ColorPalette
                             selectedColor={message.color}
                             onColorChange={(hex) => updateCakeMessage(message.id, { color: hex })}
@@ -118,7 +118,7 @@ export const CakeMessagesOptions: React.FC<CakeMessagesOptionsProps> = ({
     const missingBaseBoardMessage = !existingPositions.has('base_board');
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
             {cakeMessages.length > 0 && cakeMessages.map((message) => (
                 <MessageCard
                     key={message.id}

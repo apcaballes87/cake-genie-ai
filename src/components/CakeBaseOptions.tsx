@@ -39,10 +39,10 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
     if (isAnalyzing) return <CakeBaseSkeleton />;
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-3">
             {shopifyFixedSize && shopifyBasePrice !== undefined && (
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Size & Base Price</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Size & Base Price</label>
                     <div className="p-3 bg-purple-50 border-2 border-purple-200 rounded-lg flex items-center justify-between">
                         <span className="text-sm font-semibold text-purple-800">{shopifyFixedSize}</span>
                         <span className="text-sm font-bold text-purple-800">₱{shopifyBasePrice.toLocaleString()}</span>
@@ -52,7 +52,7 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
             {!shopifyFixedSize && (
                 <>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Cake Type</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Cake Type</label>
                         <div className="relative">
                             <div ref={cakeTypeScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
                                 {CAKE_TYPES.map(type => (
@@ -73,7 +73,7 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Cake Height (All tiers)</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Cake Height (All tiers)</label>
                         <div className="relative">
                             <div ref={cakeThicknessScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
                                 {currentThicknessOptions.map(thickness => (
@@ -97,7 +97,7 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
             )}
             {basePriceOptions && basePriceOptions.length > 0 && (
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Size (Diameter)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Size (Diameter)</label>
                     {basePriceOptions.length === 1 ? (
                         <div className="p-3 bg-purple-50 border-2 border-purple-200 rounded-lg flex items-center justify-between">
                             <span className="text-sm font-semibold text-purple-800">{basePriceOptions[0].size}</span>
@@ -140,14 +140,14 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                     )}
                 </div>
             )}
-            <div className="space-y-2 pt-2">
+            <div className="space-y-2 pt-1">
                 {tierLabels.map((label, index) => {
                     return (
                         <div key={index}>
                             <div className="flex items-center gap-3">
                                 <span className="text-sm font-medium text-slate-800">{label}</span>
                             </div>
-                            <div className="mt-2">
+                            <div className="mt-1.5">
                                 <div className="relative">
                                     <div className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide">
                                         {FLAVOR_OPTIONS.map(flavor => {

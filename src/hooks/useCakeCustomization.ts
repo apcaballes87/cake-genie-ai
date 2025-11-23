@@ -221,6 +221,11 @@ export const useCakeCustomization = () => {
         markDirty('supportElements');
     }, []);
 
+    const onSupportElementChange = useCallback((elements: SupportElementUI[]) => {
+        setSupportElements(elements);
+        markDirty('supportElements');
+    }, []);
+
     const updateCakeMessage = useCallback((id: string, updates: Partial<CakeMessageUI>) => {
         setCakeMessages(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
         markDirty('cakeMessages');
@@ -295,23 +300,8 @@ export const useCakeCustomization = () => {
     }, []);
 
     const handleApplyAnalysis = useCallback((rawData: HybridAnalysisResult, options?: { skipToast?: boolean }) => {
-        // Create a shallow copy to apply business logic adjustments without mutating original
-        const analysisData = {
-            ...rawData,
-            icing_design: { ...rawData.icing_design }
-        };
-
-        // Apply business logic: Disable gumpaste base board if it's white, gold, or silver.
-        // This prevents the "dirty state" (Apply/Revert buttons) from appearing immediately
-        // because the app logic automatically disables white/gold/silver baseboards.
-        const baseBoardColor = analysisData.icing_design.colors.gumpasteBaseBoardColor?.toLowerCase();
-        const isExcludedColor = baseBoardColor === '#ffffff' || baseBoardColor === '#ffd700' || baseBoardColor === '#c0c0c0';
-        if (analysisData.icing_design.gumpasteBaseBoard && isExcludedColor) {
-            analysisData.icing_design.gumpasteBaseBoard = false;
-        }
-
         setAnalysisId(uuidv4());
-        setAnalysisResult(analysisData);
+        setAnalysisResult(rawData);
 
         if (!dirtyFields.has('cakeInfo')) {
             const getFlavorCount = (type: CakeType): number => {
@@ -319,18 +309,18 @@ export const useCakeCustomization = () => {
                 if (type.includes('3 Tier')) return 3;
                 return 1;
             };
-            const flavorCount = getFlavorCount(analysisData.cakeType);
+            const flavorCount = getFlavorCount(rawData.cakeType);
             const initialFlavors: CakeFlavor[] = Array(flavorCount).fill('Chocolate Cake');
             setCakeInfo({
-                type: analysisData.cakeType,
-                thickness: analysisData.cakeThickness,
+                type: rawData.cakeType,
+                thickness: rawData.cakeThickness,
                 flavors: initialFlavors,
-                size: DEFAULT_SIZE_MAP[analysisData.cakeType]
+                size: DEFAULT_SIZE_MAP[rawData.cakeType]
             });
         }
 
         if (!dirtyFields.has('mainToppers')) {
-            const newMainToppers = analysisData.main_toppers.map((t): MainTopperUI => {
+            const newMainToppers = rawData.main_toppers.map((t): MainTopperUI => {
                 let initialType = t.type;
                 const canBePrintout = ['edible_3d', 'toy', 'figurine', 'edible_photo_top'].includes(t.type);
                 const isCharacterOrLogo = /character|figure|logo|brand/i.test(t.description);
@@ -358,7 +348,7 @@ export const useCakeCustomization = () => {
         }
 
         if (!dirtyFields.has('supportElements')) {
-            const newSupportElements = analysisData.support_elements.map((s): SupportElementUI => {
+            const newSupportElements = rawData.support_elements.map((s): SupportElementUI => {
                 let initialType = s.type;
                 // Default edible photo wraps to the more common 'support_printout' option first.
                 if (s.type === 'edible_photo_side') {
@@ -383,7 +373,7 @@ export const useCakeCustomization = () => {
         }
 
         if (!dirtyFields.has('cakeMessages')) {
-            const newCakeMessages = analysisData.cake_messages.map((msg): CakeMessageUI => ({
+            const newCakeMessages = rawData.cake_messages.map((msg): CakeMessageUI => ({
                 ...msg,
                 x: msg.x, // Explicitly carry over x
                 y: msg.y, // Explicitly carry over y
@@ -396,7 +386,7 @@ export const useCakeCustomization = () => {
         }
 
         setIcingDesign(prev => {
-            const analysisIcing = analysisData.icing_design;
+            const analysisIcing = rawData.icing_design;
             if (!prev) return { ...analysisIcing, dripPrice: 100, gumpasteBaseBoardPrice: 100 };
 
             const newIcing = { ...prev, colors: { ...prev.colors } };
@@ -441,8 +431,8 @@ export const useCakeCustomization = () => {
 
         // Only show toast if not skipped (Phase 1 only, not Phase 2 coordinate updates)
         if (!options?.skipToast) {
-            const toppersFound = analysisData.main_toppers.length;
-            const elementsFound = analysisData.support_elements.length;
+            const toppersFound = rawData.main_toppers.length;
+            const elementsFound = rawData.support_elements.length;
             let analysisSummaryParts: string[] = [];
             if (toppersFound > 0) analysisSummaryParts.push(`${toppersFound} topper${toppersFound > 1 ? 's' : ''}`);
             if (elementsFound > 0) analysisSummaryParts.push(`${elementsFound} design element${elementsFound > 1 ? 's' : ''}`);
@@ -607,6 +597,7 @@ export const useCakeCustomization = () => {
         onMainTopperChange, // Kept for complex changes if needed
         updateMainTopper,
         removeMainTopper,
+        onSupportElementChange, // Kept for complex changes if needed
         updateSupportElement,
         removeSupportElement,
         onCakeMessageChange, // Kept for complex changes if needed

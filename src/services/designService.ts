@@ -131,10 +131,10 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                 if (t.type === 'icing_doodle') {
                     itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **piped icing doodle style** as the original cake. Capture the likeness from the reference photo but render it as a simple, elegant line art portrait using piped icing.`);
                 } else if (t.type === 'icing_palette_knife') {
-                    const isFigure = t.description.toLowerCase().includes('person') || 
-                                     t.description.toLowerCase().includes('character') || 
-                                     t.description.toLowerCase().includes('human') ||
-                                     t.description.toLowerCase().includes('figure');
+                    const isFigure = t.description.toLowerCase().includes('person') ||
+                        t.description.toLowerCase().includes('character') ||
+                        t.description.toLowerCase().includes('human') ||
+                        t.description.toLowerCase().includes('figure');
                     if (isFigure) {
                         itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **painterly palette knife style** as the original cake. Capture the likeness from the reference photo but render it as a textured, abstract portrait using palette knife strokes.`);
                     } else {
@@ -154,7 +154,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                     itemChanges.push(`replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
                 }
             }
-            
+
             const isPaletteKnife = t.type === 'icing_palette_knife';
             const hasSingleColorChanged = t.color && t.original_color && t.color !== t.original_color;
             const hasMultipleColorsChanged = t.colors && t.original_colors && JSON.stringify(t.colors) !== JSON.stringify(t.original_colors);
@@ -173,7 +173,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             }
 
             if (itemChanges.length > 0) {
-                 changes.push(`- For the main topper "${t.description}": ${itemChanges.join(' and ')}.`);
+                changes.push(`- For the main topper "${t.description}": ${itemChanges.join(' and ')}.`);
             }
         }
     });
@@ -191,10 +191,10 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                 if (s.type === 'icing_doodle') {
                     itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **piped icing doodle style** as the original cake. Capture the likeness from the reference photo but render it as a simple, elegant line art portrait using piped icing.`);
                 } else if (s.type === 'icing_palette_knife') {
-                    const isFigure = s.description.toLowerCase().includes('person') || 
-                                     s.description.toLowerCase().includes('character') || 
-                                     s.description.toLowerCase().includes('human') ||
-                                     s.description.toLowerCase().includes('figure');
+                    const isFigure = s.description.toLowerCase().includes('person') ||
+                        s.description.toLowerCase().includes('character') ||
+                        s.description.toLowerCase().includes('human') ||
+                        s.description.toLowerCase().includes('figure');
                     if (isFigure) {
                         itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **painterly palette knife style** as the original cake. Capture the likeness from the reference photo but render it as a textured, abstract portrait using palette knife strokes.`);
                     } else {
@@ -202,11 +202,11 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                         itemChanges.push(`replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
                     }
                 } else if (s.type === 'edible_3d_support') {
-                    const isFigure = s.description.toLowerCase().includes('person') || 
-                                     s.description.toLowerCase().includes('character') || 
-                                     s.description.toLowerCase().includes('human') || 
-                                     s.description.toLowerCase().includes('figure') ||
-                                     s.description.toLowerCase().includes('silhouette');
+                    const isFigure = s.description.toLowerCase().includes('person') ||
+                        s.description.toLowerCase().includes('character') ||
+                        s.description.toLowerCase().includes('human') ||
+                        s.description.toLowerCase().includes('figure') ||
+                        s.description.toLowerCase().includes('silhouette');
                     if (isFigure) {
                         itemChanges.push(`**re-sculpt this small 3D gumpaste item based on the new reference image provided**. The new item must be in the same **3D gumpaste style** as the original cake. Capture the likeness, pose, and details from the reference photo but render it as a small, hand-sculpted, edible gumpaste figure.`);
                     } else {
@@ -217,7 +217,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                     itemChanges.push(`replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
                 }
             }
-            
+
             const isPaletteKnife = s.type === 'icing_palette_knife';
             const hasSingleColorChanged = s.color && s.original_color && s.color !== s.original_color;
             const hasMultipleColorsChanged = s.colors && s.original_colors && JSON.stringify(s.colors) !== JSON.stringify(s.original_colors);
@@ -234,9 +234,9 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                     itemChanges.push(`recolor it to **${colorName(s.color)}**`);
                 }
             }
-            
+
             if (itemChanges.length > 0) {
-                 changes.push(`- For the support element "${s.description}": ${itemChanges.join(' and ')}.`);
+                changes.push(`- For the support element "${s.description}": ${itemChanges.join(' and ')}.`);
             }
         }
     });
@@ -261,7 +261,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     } else if (!newIcing.drip && originalIcing.drip) {
         icingChanges.push(`- **Remove the drip effect**.`);
     } else if (newIcing.drip && originalIcing.drip &&
-               newIcing.colors.drip?.toUpperCase() !== originalIcing.colors.drip?.toUpperCase()) {
+        newIcing.colors.drip?.toUpperCase() !== originalIcing.colors.drip?.toUpperCase()) {
         icingChanges.push(`- **Recolor the drip**. The new DRIP color should be **${colorName(newIcing.colors.drip!)}**. Preserve all other details.`);
     }
 
@@ -275,7 +275,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     } else if (!newIcing.border_top && originalIcing.border_top) {
         icingChanges.push(`- **Remove the top border**.`);
     } else if (newIcing.border_top && originalIcing.border_top &&
-               newIcing.colors.borderTop?.toUpperCase() !== originalIcing.colors.borderTop?.toUpperCase()) {
+        newIcing.colors.borderTop?.toUpperCase() !== originalIcing.colors.borderTop?.toUpperCase()) {
         icingChanges.push(`- **Re-hue the shade of the top icing border** to **${colorName(newIcing.colors.borderTop!)}**.`);
     }
 
@@ -289,7 +289,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     } else if (!newIcing.border_base && originalIcing.border_base) {
         icingChanges.push(`- **Remove the base border**.`);
     } else if (newIcing.border_base && originalIcing.border_base &&
-               newIcing.colors.borderBase?.toUpperCase() !== originalIcing.colors.borderBase?.toUpperCase()) {
+        newIcing.colors.borderBase?.toUpperCase() !== originalIcing.colors.borderBase?.toUpperCase()) {
         icingChanges.push(`- **Re-hue the shade of the base icing border** to **${colorName(newIcing.colors.borderBase!)}**.`);
     }
 
@@ -297,7 +297,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     if (newIcing.gumpasteBaseBoard && !originalIcing.gumpasteBaseBoard) {
         let instruction = `- Preserve any existing decorations on the base area.`;
         if (newIcing.colors.gumpasteBaseBoardColor) {
-            instruction += ` Make the color of the round gumpaste-covered BASE BOARD to be **${colorName(newIcing.colors.gumpasteBaseBoardColor)}**.`;
+            instruction += ` Make the color of the surface of the round gumpaste-covered BASE BOARD to be **${colorName(newIcing.colors.gumpasteBaseBoardColor)}**.`;
         }
         icingChanges.push(instruction);
     } else if (!newIcing.gumpasteBaseBoard && originalIcing.gumpasteBaseBoard) {
@@ -307,12 +307,9 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
         const originalColor = originalIcing.colors.gumpasteBaseBoardColor?.toUpperCase();
         const newColor = newIcing.colors.gumpasteBaseBoardColor?.toUpperCase();
 
-        // Handle color change - need both colors to exist and be different
-        // Or if original doesn't exist but new does (first time setting color)
-        const hasColorChange = (originalColor !== newColor) && newColor;
-
-        if (hasColorChange) {
-            icingChanges.push(`- **Recolor the gumpaste base board shade** to **${colorName(newIcing.colors.gumpasteBaseBoardColor!)}**. Preserve all other details.`);
+        // Handle color change - if new color is specified and different from original
+        if (newColor && newColor !== originalColor) {
+            icingChanges.push(`- **Recolor the surface of the gumpaste base board shade** to **${colorName(newIcing.colors.gumpasteBaseBoardColor!)}**. Preserve all other details.`);
         }
     }
 
@@ -386,7 +383,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             }
 
             if (changesInMessage.length > 0) {
-                messageChanges.push(`- Regarding the message on the **${uiMsg.originalMessage!.position}** that originally said "${uiMsg.originalMessage!.text}", please ${changesInMessage.join(' and ')}.`);
+                messageChanges.push(`- Regarding the message on the **${uiMsg.originalMessage!.position}**, please ${changesInMessage.join(' and ')}.`);
             }
         }
     });
@@ -419,7 +416,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     } else {
         prompt += "- No changes were requested. The image should remain exactly the same.";
     }
-    
+
     return prompt;
 };
 
@@ -491,39 +488,39 @@ export async function updateDesign({
         cakeType: '1 Tier',
         cakeThickness: DEFAULT_THICKNESS_MAP['1 Tier']
     };
-    
+
     // Use the provided prompt generator, or fall back to the default one
     let prompt = promptGenerator
         ? promptGenerator(
             analysisForPrompt, cakeInfo, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions
-          )
+        )
         : EDIT_CAKE_PROMPT_TEMPLATE(
             analysisForPrompt, cakeInfo, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions
-          );
+        );
 
     // 4. Determine change type and select system instruction
     const changesList = prompt.split('### **List of Changes to Apply**')[1]?.trim().split('\n').filter(line => line.startsWith('- ')) || [];
-    
+
     const isColorOnlyChange = (changes: string[]): boolean => {
         if (changes.length === 0) return true;
         const designChangeKeywords = [
-            'remove', 'add', 'change the cake type', 'change the cake thickness', 
-            'reconstruct', 'erase', 'move', 'change the style', 'redraw', 
+            'remove', 'add', 'change the cake type', 'change the cake thickness',
+            'reconstruct', 'erase', 'move', 'change the style', 'redraw',
             're-sculpt', 'replace its image', 'bento box presentation',
             'change the text', 'erase the text', 'add new text', 'regarding the message'
         ];
-        return !changes.some(change => 
+        return !changes.some(change =>
             designChangeKeywords.some(keyword => change.toLowerCase().includes(keyword))
         );
     };
 
     const isThreeTierReconstruction = cakeInfo.type !== (analysisResult?.cakeType || cakeInfo.type) && cakeInfo.type.includes('3 Tier');
     const useInpaintingStyle = isColorOnlyChange(changesList);
-    
-    let systemInstruction = 
+
+    let systemInstruction =
         isThreeTierReconstruction ? THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION :
-        useInpaintingStyle ? INPAINTING_STYLE_SYSTEM_INSTRUCTION :
-        GENERATIVE_DESIGN_SYSTEM_INSTRUCTION;
+            useInpaintingStyle ? INPAINTING_STYLE_SYSTEM_INSTRUCTION :
+                GENERATIVE_DESIGN_SYSTEM_INSTRUCTION;
 
     // 5. Smart Prompt Filtering for Inpainting
     if (useInpaintingStyle && !isThreeTierReconstruction) {
@@ -538,7 +535,7 @@ export async function updateDesign({
 ---
 ${colorChanges.join('\n')}`;
         } else {
-             prompt = `---
+            prompt = `---
 ### **List of Changes to Apply**
 ---
 - No changes were requested. The image should remain exactly the same.`;
@@ -547,7 +544,7 @@ ${colorChanges.join('\n')}`;
 
 
     // 6. Handle timeout
-    const timeoutPromise = new Promise < never > ((_, reject) =>
+    const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("Request timed out after 60 seconds.")), 60000)
     );
 
@@ -564,12 +561,12 @@ ${colorChanges.join('\n')}`;
             ),
             timeoutPromise
         ]);
-        
+
         // 8. Return the edited image or throw an error
         if (typeof editedImageResult !== 'string') {
             throw new Error("Image generation did not return a valid string response.");
         }
-        
+
         return { image: editedImageResult, prompt, systemInstruction };
 
     } catch (err) {

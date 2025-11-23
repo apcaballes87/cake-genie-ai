@@ -90,8 +90,8 @@ export default function App(): React.ReactElement {
     analysisResult, analysisId, isAnalyzing, analysisError, isCustomizationDirty,
     setIsAnalyzing, setAnalysisError, setPendingAnalysisData, setIsCustomizationDirty,
     handleCakeInfoChange,
-    updateMainTopper, removeMainTopper,
-    updateSupportElement, removeSupportElement,
+    updateMainTopper, removeMainTopper, onMainTopperChange,
+    updateSupportElement, removeSupportElement, onSupportElementChange,
     updateCakeMessage, removeCakeMessage,
     onIcingDesignChange, onAdditionalInstructionsChange, handleTopperImageReplace,
     handleSupportElementImageReplace, clearCustomization, initializeDefaultState,
@@ -413,6 +413,9 @@ ${prompt}
       return;
     }
 
+    // Clear dirty state BEFORE restoring to ensure all fields get restored
+    setIsCustomizationDirty(false);
+
     // Restore the previous image state
     setOriginalImageData(previousImageData);
     setEditedImage(`data:${previousImageData.mimeType};base64,${previousImageData.data}`);
@@ -426,7 +429,7 @@ ${prompt}
 
     setActiveTab('customized');
     showSuccess("Reverted to previous version!");
-  }, [previousImageData, previousAnalysisSnapshot, setOriginalImageData, setEditedImage, setPreviousImageData, setPreviousAnalysisSnapshot, setPendingAnalysisData, setActiveTab]);
+  }, [previousImageData, previousAnalysisSnapshot, setOriginalImageData, setEditedImage, setPreviousImageData, setPreviousAnalysisSnapshot, setPendingAnalysisData, setActiveTab, setIsCustomizationDirty]);
 
   const handleStartWithSharedDesign = useCallback(async (sharedDesign: any) => {
     clearAllState(false); setIsPreparingSharedDesign(true);
@@ -561,8 +564,8 @@ ${prompt}
         analysisResult={analysisResult} analysisError={analysisError} analysisId={analysisId} cakeInfo={cakeInfo}
         basePriceOptions={basePriceOptions} mainToppers={mainToppers} supportElements={supportElements} cakeMessages={cakeMessages}
         icingDesign={icingDesign} additionalInstructions={additionalInstructions} onCakeInfoChange={handleCakeInfoChange}
-        updateMainTopper={updateMainTopper} removeMainTopper={removeMainTopper}
-        updateSupportElement={updateSupportElement} removeSupportElement={removeSupportElement}
+        updateMainTopper={updateMainTopper} removeMainTopper={removeMainTopper} onMainTopperChange={onMainTopperChange}
+        updateSupportElement={updateSupportElement} removeSupportElement={removeSupportElement} onSupportElementChange={onSupportElementChange}
         updateCakeMessage={updateCakeMessage} removeCakeMessage={removeCakeMessage}
         onIcingDesignChange={onIcingDesignChange} onAdditionalInstructionsChange={onAdditionalInstructionsChange} onTopperImageReplace={handleTopperImageReplace}
         onSupportElementImageReplace={handleSupportElementImageReplace} onSave={handleSave} isSaving={isImageManagementLoading}

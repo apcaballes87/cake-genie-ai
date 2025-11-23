@@ -5,6 +5,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { ChevronDownIcon } from './icons';
 import { CAKE_TYPES, THICKNESS_OPTIONS_MAP, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_OPTIONS, FLAVOR_THUMBNAILS, TIER_THUMBNAILS } from '../constants';
 import { CakeBaseSkeleton } from './LoadingSkeletons';
+import { CakeBaseOptions } from './CakeBaseOptions';
 import { AnalysisItem } from '../app/customizing/page';
 
 
@@ -65,7 +66,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode; defaultOpen?
 
     return (
         <div className="bg-slate-50 rounded-lg border border-slate-200">
-            <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center p-4 text-left">
+            <button onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center p-3 text-left">
                 <div className="flex items-center gap-3">
                     <h3 className="font-semibold text-slate-700">{title}</h3>
                     {analysisText && <span className="text-xs text-slate-500 animate-pulse">{analysisText}</span>}
@@ -75,7 +76,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode; defaultOpen?
                 </div>
                 <ChevronDownIcon className={`w-4 h-4 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
-            {isOpen && <div className="p-4 pt-0 space-y-3">{children}</div>}
+            {isOpen && <div className="px-3 pb-3 space-y-2.5">{children}</div>}
         </div>
     );
 };
@@ -140,46 +141,18 @@ export const FeatureList = React.memo<FeatureListProps>(({
     const tierLabels = tierCount === 2 ? ['Top Tier Flavor', 'Bottom Tier Flavor'] : tierCount === 3 ? ['Top Tier Flavor', 'Middle Tier Flavor', 'Bottom Tier Flavor'] : ['Cake Flavor'];
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-2.5">
             <style>{`.scrollbar-hide::-webkit-scrollbar { display: none; } .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; } .animate-fade-in-fast { animation: fadeIn 0.2s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-            <h2 className="text-xl font-bold text-slate-800 text-center">Customize Your Cake</h2>
 
-
-
-            <Section title="Main Toppers" count={isAnalyzing && mainToppers.length === 0 ? undefined : mainToppersCount} defaultOpen={!isAnalyzing} analysisText={isAnalyzing && mainToppers.length === 0 ? 'analyzing toppers...' : undefined}>
-                {mainToppers.length > 0 ? (
-                    <div className="space-y-2">
-                        {mainToppers.map((topper) => (
-                            <ListItem
-                                key={topper.id}
-                                item={{ ...topper, itemCategory: 'topper' }}
-                                marker={markerMap.get(topper.id)}
-                                onClick={onItemClick}
-                            />
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-sm text-slate-500 text-center py-4">No main toppers detected.</p>
-                )}
+            {/* Cake Options Section */}
+            <Section title="Cake Options" defaultOpen={true}>
+                <CakeBaseOptions
+                    cakeInfo={cakeInfo}
+                    basePriceOptions={basePriceOptions}
+                    onCakeInfoChange={onCakeInfoChange}
+                    isAnalyzing={isAnalyzing}
+                />
             </Section>
-
-            <Section title="Support Elements" count={isAnalyzing && supportElements.length === 0 ? undefined : supportElementsCount} defaultOpen={!isAnalyzing} analysisText={isAnalyzing && supportElements.length === 0 ? 'analyzing elements...' : undefined}>
-                {supportElements.length > 0 ? (
-                    <div className="space-y-2">
-                        {supportElements.map((element) => (
-                            <ListItem
-                                key={element.id}
-                                item={{ ...element, itemCategory: 'element' }}
-                                marker={markerMap.get(element.id)}
-                                onClick={onItemClick}
-                            />
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-sm text-slate-500 text-center py-4">No support elements detected.</p>
-                )}
-            </Section>
-
 
 
             <Section title="Additional Instructions" defaultOpen={true}>
