@@ -2,9 +2,10 @@ import React, { useState, FormEvent } from 'react';
 import { ArrowLeft, Globe, Mail, Phone, MapPin, Clock, Send, Loader2 } from 'lucide-react';
 import { showSuccess, showError } from '../../lib/utils/toast';
 import { useCanonicalUrl } from '../../hooks';
+import { useSEO } from '../../hooks/useSEO';
 
 interface ContactPageProps {
-  onClose: () => void;
+    onClose: () => void;
 }
 
 const ContactInfoItem: React.FC<{ icon: React.ReactNode; label: string; value: string; href?: string }> = ({ icon, label, value, href }) => (
@@ -24,7 +25,21 @@ const ContactInfoItem: React.FC<{ icon: React.ReactNode; label: string; value: s
 const ContactPage: React.FC<ContactPageProps> = ({ onClose }) => {
     // Add canonical URL for SEO
     useCanonicalUrl('/contact');
-    
+
+    useSEO({
+        title: 'Contact Us | Genie.ph',
+        description: 'Get in touch with Genie.ph. We are located at Skyview Park, Nivel Hills, Cebu City.',
+        url: 'https://genie.ph/#/contact',
+        type: 'website',
+        structuredData: {
+            "@context": "https://schema.org",
+            "@type": "ContactPage",
+            "name": "Contact Genie.ph",
+            "description": "Contact information for Genie.ph",
+            "url": "https://genie.ph/#/contact"
+        }
+    });
+
     const [name, setName] = useState('');
     const [contact, setContact] = useState('');
     const [email, setEmail] = useState('');
@@ -57,7 +72,7 @@ const ContactPage: React.FC<ContactPageProps> = ({ onClose }) => {
     return (
         <div className="w-full max-w-4xl mx-auto bg-white/70 backdrop-blur-lg p-6 sm:p-8 rounded-2xl shadow-lg border border-slate-200 animate-fade-in">
             <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-            
+
             <div className="flex items-center gap-4 mb-8">
                 <button onClick={onClose} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Go back">
                     <ArrowLeft />

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Search, Upload, Edit, Wand2, ShoppingCart, CheckCircle } from 'lucide-react';
 import { useCanonicalUrl } from '../../hooks';
+import { useSEO } from '../../hooks/useSEO';
 
 interface HowToOrderPageProps {
   onClose: () => void;
@@ -21,11 +22,33 @@ const Step: React.FC<{ icon: React.ReactNode; title: string; children: React.Rea
 const HowToOrderPage: React.FC<HowToOrderPageProps> = ({ onClose }) => {
   // Add canonical URL for SEO
   useCanonicalUrl('/how-to-order');
-  
+
+  useSEO({
+    title: 'How to Order | Genie.ph',
+    description: 'Learn how to order custom cakes with Genie.ph. 3 simple steps: Search/Upload, Customize with AI, and Order.',
+    url: 'https://genie.ph/#/how-to-order',
+    type: 'article',
+    structuredData: {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [{
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://genie.ph"
+      }, {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "How to Order",
+        "item": "https://genie.ph/#/how-to-order"
+      }]
+    }
+  });
+
   return (
     <div className="w-full max-w-3xl mx-auto bg-white/70 backdrop-blur-lg p-6 sm:p-8 rounded-2xl shadow-lg border border-slate-200 animate-fade-in">
       <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-      
+
       <div className="flex items-center gap-4 mb-6">
         <button onClick={onClose} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Go back">
           <ArrowLeft />
@@ -72,14 +95,14 @@ const HowToOrderPage: React.FC<HowToOrderPageProps> = ({ onClose }) => {
             <li>Proceed to checkout to finalize your order. You'll receive payment instructions upon completion.</li>
           </ul>
         </Step>
-        
+
         <div className="pt-4 border-t border-slate-200">
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Tips for the Best Results</h2>
-            <ul className="list-disc list-inside space-y-2 pl-2 text-slate-600">
-                <li><strong>Use Clear Images:</strong> For best results, start with a high-quality, well-lit photo where the cake is the main focus.</li>
-                <li><strong>One Change at a Time:</strong> For complex edits, try making one or two changes and clicking "Update Design" to see the result before making more.</li>
-                <li><strong>Use "Additional Instructions" for Clarifications:</strong> This box is perfect for telling the AI specific details, like "make the drip gold" or "put the message on the front." (Note: You cannot use this to add completely new items).</li>
-            </ul>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">Tips for the Best Results</h2>
+          <ul className="list-disc list-inside space-y-2 pl-2 text-slate-600">
+            <li><strong>Use Clear Images:</strong> For best results, start with a high-quality, well-lit photo where the cake is the main focus.</li>
+            <li><strong>One Change at a Time:</strong> For complex edits, try making one or two changes and clicking "Update Design" to see the result before making more.</li>
+            <li><strong>Use "Additional Instructions" for Clarifications:</strong> This box is perfect for telling the AI specific details, like "make the drip gold" or "put the message on the front." (Note: You cannot use this to add completely new items).</li>
+          </ul>
         </div>
       </div>
     </div>

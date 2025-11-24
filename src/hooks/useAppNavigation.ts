@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 // Define and export the AppState type for use in other components
-export type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'shopify_customizing' | 'pricing_sandbox';
+export type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'shopify_customizing' | 'pricing_sandbox' | 'not_found';
 
 export const useAppNavigation = () => {
     // State
@@ -11,6 +11,7 @@ export const useAppNavigation = () => {
     const [confirmedOrderId, setConfirmedOrderId] = useState<string | null>(null);
     const [viewingDesignId, setViewingDesignId] = useState<string | null>(null);
     const [viewingShopifySessionId, setViewingShopifySessionId] = useState<string | null>(null);
+    const [urlDiscountCode, setUrlDiscountCode] = useState<string | null>(null);
 
     // Custom setter for appState to also manage refs, ensuring consistency
     const setAppState = useCallback((newState: AppState) => {
@@ -23,6 +24,31 @@ export const useAppNavigation = () => {
 
     // Effect for SPA routing via URL hash
     useEffect(() => {
+        // Handle pathname redirects for static pages (e.g. /about -> /#/about)
+        // This ensures that if a user (or bot) visits the non-hash URL directly, they get redirected to the correct SPA route.
+        if (window.location.pathname !== '/' && !window.location.hash) {
+            const path = window.location.pathname;
+            const staticRoutes = ['/about', '/contact', '/how-to-order', '/reviews', '/pricing-sandbox'];
+
+            // Check if the current path matches a static route (exact match or sub-path)
+            const isStaticRoute = staticRoutes.some(route => path === route || path.startsWith(`${route}/`));
+
+            if (isStaticRoute) {
+                console.log(`[Routing] Redirecting static path ${path} to hash route /#${path}`);
+                window.location.replace(`/#${path}${window.location.search}`);
+                return;
+            }
+
+            // Check if this is a discount code (alphanumeric only, case insensitive)
+            const discountCodeMatch = path.match(/^\/([A-Za-z0-9]+)\/?$/i);
+            if (discountCodeMatch && discountCodeMatch[1]) {
+                const code = discountCodeMatch[1].toUpperCase();
+                console.log(`[Routing] Detected discount code from pathname: ${code}, redirecting to hash route`);
+                window.location.replace(`/#/${code}`);
+                return;
+            }
+        }
+
         const handleRouting = () => {
             console.log('[Routing] Handling route for hash:', window.location.hash);
             const pathWithQuery = window.location.hash.substring(1) || ''; // e.g., /order-confirmation?order_id=...
@@ -47,6 +73,14 @@ export const useAppNavigation = () => {
             const shopifyMatch = path.match(/^\/cakesandmemories\/([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})\/?$/);
             const orderConfirmationMatch = path.match(/^\/order-confirmation\/?$/);
             const oldDesignMatch = path.match(/^\/design\/([a-zA-Z0-9-]+)\/?$/);
+            const discountMatch = path.match(/^\/([A-Za-z0-9]+)\/?$/i);
+
+            // Static route matching
+            const aboutMatch = path.match(/^\/about\/?$/);
+            const contactMatch = path.match(/^\/contact\/?$/);
+            const howToOrderMatch = path.match(/^\/how-to-order\/?$/);
+            const reviewsMatch = path.match(/^\/reviews\/?$/);
+            const pricingSandboxMatch = path.match(/^\/pricing-sandbox\/?$/);
 
             if (orderConfirmationMatch && params.get('order_id')) {
                 const orderId = params.get('order_id');
@@ -67,9 +101,29 @@ export const useAppNavigation = () => {
                 const sessionId = shopifyMatch[1];
                 setViewingShopifySessionId(sessionId);
                 setAppState('shopify_customizing');
+            } else if (aboutMatch) {
+                setAppState('about');
+            } else if (contactMatch) {
+                setAppState('contact');
+            } else if (howToOrderMatch) {
+                setAppState('how_to_order');
+            } else if (reviewsMatch) {
+                setAppState('reviews');
+            } else if (pricingSandboxMatch) {
+                setAppState('pricing_sandbox');
+            } else if (discountMatch && discountMatch[1]) {
+                // Discount code route - store code and go to landing
+                const code = discountMatch[1].toUpperCase();
+                console.log('[Routing] Matched discount code:', code);
+                setUrlDiscountCode(code);
+                // User stays on landing page, code will be applied when they visit cart
+                if (appStateRef.current !== 'landing') {
+                    setAppState('landing');
+                }
             } else {
                 // If the hash is cleared or doesn't match a special route, reset to landing.
-                if (appStateRef.current === 'shared_design' || appStateRef.current === 'shopify_customizing') {
+                if (appStateRef.current === 'shared_design' || appStateRef.current === 'shopify_customizing' ||
+                    ['about', 'contact', 'how_to_order', 'reviews', 'pricing_sandbox'].includes(appStateRef.current)) {
                     setViewingDesignId(null);
                     setViewingShopifySessionId(null);
                     setAppState('landing');
@@ -99,7 +153,9 @@ export const useAppNavigation = () => {
         confirmedOrderId,
         viewingDesignId,
         viewingShopifySessionId,
+        urlDiscountCode,
         setAppState,
         setConfirmedOrderId,
+        setUrlDiscountCode,
     };
 };

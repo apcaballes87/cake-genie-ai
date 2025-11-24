@@ -10,8 +10,13 @@ import { useEffect } from 'react';
  */
 export const useCanonicalUrl = (path: string) => {
   useEffect(() => {
-    const canonicalUrl = `https://genie.ph${path}`;
-    
+    // For designs and shared links, we use the Edge Function URL (no hash)
+    // For static pages in the SPA, we use the Hash URL
+    const isEdgeFunctionRoute = path.startsWith('/designs/') || path.startsWith('/share/');
+    const canonicalUrl = isEdgeFunctionRoute
+      ? `https://genie.ph${path}`
+      : `https://genie.ph/#${path}`;
+
     // Remove existing canonical tag if any
     const existingCanonical = document.querySelector('link[rel="canonical"]');
     if (existingCanonical) {

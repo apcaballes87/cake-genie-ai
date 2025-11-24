@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { SearchAutocomplete } from '../../components/SearchAutocomplete';
 import LazyImage from '../../components/LazyImage';
 import { useCanonicalUrl } from '../../hooks';
+import { useSEO } from '../../hooks/useSEO';
 
 type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'pricing_sandbox';
 
@@ -62,6 +63,32 @@ const LandingPage: React.FC<LandingPageProps> = ({
 }) => {
   // Add canonical URL for SEO
   useCanonicalUrl('/');
+
+  useSEO({
+    title: 'Genie.ph | Rush order custom cakes in Cebu!',
+    description: 'Find any cake design, customize it with AI, and get instant pricing. Create your dream cake with Genie.ph\'s AI-powered platform.',
+    image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg',
+    url: 'https://genie.ph/',
+    type: 'website',
+    keywords: 'cake design, AI cake customization, custom cakes, cake pricing, birthday cakes, wedding cakes, Cebu cakes, rush order cakes',
+    structuredData: {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Genie.ph",
+      "url": "https://genie.ph",
+      "logo": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20face%20logo.webp",
+      "description": "Rush Order Custom Cakes in Cebu!",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+63-908-940-8747",
+        "contactType": "Customer Service"
+      },
+      "sameAs": [
+        "https://www.facebook.com/genieph",
+        "https://www.instagram.com/genieph"
+      ]
+    }
+  });
 
   const [localSearchInput, setLocalSearchInput] = React.useState('');
   const [imageIndex, setImageIndex] = useState(0);

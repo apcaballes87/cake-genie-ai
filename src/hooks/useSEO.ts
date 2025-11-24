@@ -8,6 +8,7 @@ interface SEOConfig {
   type?: 'website' | 'article' | 'product';
   keywords?: string;
   author?: string;
+  robots?: string;
   structuredData?: object;
 }
 
@@ -38,6 +39,9 @@ export const useSEO = (config: SEOConfig) => {
     }
     if (config.author) {
       updateMetaTag('[name="author"]', config.author);
+    }
+    if (config.robots) {
+      updateMetaTag('[name="robots"]', config.robots);
     }
 
     // Update Open Graph tags

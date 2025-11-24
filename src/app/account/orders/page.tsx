@@ -13,8 +13,8 @@ import LazyImage from '../../../components/LazyImage';
 import BillShareCard from '../../../components/BillShareCard';
 
 interface EnrichedOrder extends CakeGenieOrder {
-  cakegenie_order_items?: any[]; // Can be items or count object
-  cakegenie_addresses?: any;
+    cakegenie_order_items?: any[]; // Can be items or count object
+    cakegenie_addresses?: any;
 }
 
 // Combined type for the unified list
@@ -22,13 +22,13 @@ type CreationItem = (EnrichedOrder & { type: 'order' }) | (any & { type: 'bill_s
 
 // --- Status Badge Component ---
 const statusStyles: Record<OrderStatus, string> = {
-  pending: "bg-yellow-100 text-yellow-800",
-  confirmed: "bg-blue-100 text-blue-800",
-  in_progress: "bg-indigo-100 text-indigo-800",
-  ready_for_delivery: "bg-purple-100 text-purple-800",
-  out_for_delivery: "bg-cyan-100 text-cyan-800",
-  delivered: "bg-green-100 text-green-800",
-  cancelled: "bg-red-100 text-red-800",
+    pending: "bg-yellow-100 text-yellow-800",
+    confirmed: "bg-blue-100 text-blue-800",
+    in_progress: "bg-indigo-100 text-indigo-800",
+    ready_for_delivery: "bg-purple-100 text-purple-800",
+    out_for_delivery: "bg-cyan-100 text-cyan-800",
+    delivered: "bg-green-100 text-green-800",
+    cancelled: "bg-red-100 text-red-800",
 };
 
 const paymentStatusStyles: Record<PaymentStatus, string> = {
@@ -41,22 +41,22 @@ const paymentStatusStyles: Record<PaymentStatus, string> = {
 };
 
 const orderStatusTextMap: Partial<Record<OrderStatus, string>> = {
-  pending: "Order Pending",
-  confirmed: "Order Confirmed",
-  in_progress: "In Progress",
-  ready_for_delivery: "Ready for Delivery",
-  out_for_delivery: "Out for Delivery",
-  delivered: "Delivered",
-  cancelled: "Cancelled",
+    pending: "Order Pending",
+    confirmed: "Order Confirmed",
+    in_progress: "In Progress",
+    ready_for_delivery: "Ready for Delivery",
+    out_for_delivery: "Out for Delivery",
+    delivered: "Delivered",
+    cancelled: "Cancelled",
 };
 
 const paymentStatusTextMap: Partial<Record<PaymentStatus, string>> = {
-  pending: "Payment Pending",
-  verifying: "Payment Verifying",
-  paid: "Paid",
-  partial: "Partial Payment",
-  refunded: "Refunded",
-  failed: "Payment Failed",
+    pending: "Payment Pending",
+    verifying: "Payment Verifying",
+    paid: "Paid",
+    partial: "Partial Payment",
+    refunded: "Refunded",
+    failed: "Payment Failed",
 };
 
 const StatusBadge: React.FC<{ status: OrderStatus | PaymentStatus; type: 'order' | 'payment' }> = ({ status, type }) => {
@@ -70,7 +70,7 @@ const StatusBadge: React.FC<{ status: OrderStatus | PaymentStatus; type: 'order'
     } else {
         text = status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
-    
+
     return (
         <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[status as keyof typeof styles]}`}>
             {text}
@@ -153,7 +153,7 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
     if (!details) {
         return <div className="p-4 text-center text-sm text-red-600">Could not load order details.</div>;
     }
-    
+
     const deliveryDate = new Date(details.delivery_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
     const colorLabelMap: Record<string, string> = {
         side: 'Side', top: 'Top', borderTop: 'Top Border', borderBase: 'Base Border', drip: 'Drip', gumpasteBaseBoardColor: 'Base Board'
@@ -167,16 +167,16 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                     <div className="space-y-4">
                         {details.cakegenie_order_items?.map(item => {
                             const details = item.customization_details;
-                            const tierLabels = details.flavors.length === 2 
-                                ? ['Top Tier', 'Bottom Tier'] 
+                            const tierLabels = details.flavors.length === 2
+                                ? ['Top Tier', 'Bottom Tier']
                                 : details.flavors.length === 3
-                                ? ['Top Tier', 'Middle Tier', 'Bottom Tier']
-                                : ['Flavor'];
-                            
+                                    ? ['Top Tier', 'Middle Tier', 'Bottom Tier']
+                                    : ['Flavor'];
+
                             return (
                                 <div key={item.item_id} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
                                     <div className="flex gap-4">
-                                        <button 
+                                        <button
                                             onClick={() => setZoomedItem(item)}
                                             className="w-24 h-24 flex-shrink-0 rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 transition-transform hover:scale-105"
                                             aria-label="Enlarge cake image"
@@ -204,7 +204,7 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                                                 {details.mainToppers.length > 0 && <DetailItem label="Main Toppers" value={details.mainToppers.map(t => t.description).join(', ')} />}
                                                 {details.supportElements.length > 0 && <DetailItem label="Support" value={details.supportElements.map(s => s.description).join(', ')} />}
                                                 {details.cakeMessages.map((msg, idx) => (
-                                                    <DetailItem key={idx} label={`Message #${idx+1}`} value={`'${msg.text}' (${msg.color})`} />
+                                                    <DetailItem key={idx} label={`Message #${idx + 1}`} value={`'${msg.text}' (${msg.color})`} />
                                                 ))}
                                                 {details.icingDesign.drip && <DetailItem label="Icing" value="Has Drip Effect" />}
                                                 {details.icingDesign.gumpasteBaseBoard && <DetailItem label="Icing" value="Gumpaste Base Board" />}
@@ -221,8 +221,8 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                     </div>
                 </div>
                 <div>
-                     <h4 className="text-sm font-semibold text-slate-800 mb-2">Delivery Details</h4>
-                     <div className="p-3 bg-slate-50 rounded-lg text-xs space-y-1">
+                    <h4 className="text-sm font-semibold text-slate-800 mb-2">Delivery Details</h4>
+                    <div className="p-3 bg-slate-50 rounded-lg text-xs space-y-1">
                         <p><span className="font-semibold text-slate-600">Date:</span> {deliveryDate} ({details.delivery_time_slot})</p>
                         {details.cakegenie_addresses && (
                             <>
@@ -230,25 +230,25 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                                 <p className="text-slate-500">{`${details.cakegenie_addresses.street_address}, ${details.cakegenie_addresses.barangay}, ${details.cakegenie_addresses.city}`}</p>
                             </>
                         )}
-                     </div>
+                    </div>
                 </div>
-                
+
                 {details.payment_status === 'pending' && (
                     <PaymentUploadForm order={details} onUploadSuccess={onOrderUpdate} />
                 )}
 
                 {details.payment_status === 'verifying' && (
                     <div className="p-3 text-center bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
-                        <CheckCircle className="w-5 h-5 mx-auto mb-1 text-blue-600"/>
+                        <CheckCircle className="w-5 h-5 mx-auto mb-1 text-blue-600" />
                         <p className="font-semibold">Payment proof submitted.</p>
                         <p>We are currently reviewing your payment. Please wait for confirmation.</p>
                     </div>
                 )}
                 {details.payment_proof_url && details.payment_status !== 'pending' && (
-                   <a href={details.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-pink-600 hover:underline text-center block mt-2">View Submitted Proof</a>
+                    <a href={details.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-pink-600 hover:underline text-center block mt-2">View Submitted Proof</a>
                 )}
             </div>
-             <ImageZoomModal
+            <ImageZoomModal
                 isOpen={!!zoomedItem}
                 onClose={() => setZoomedItem(null)}
                 originalImage={zoomedItem?.original_image_url || null}
@@ -269,9 +269,9 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const { user } = useAuth();
     const cancelMutation = useCancelOrder();
-    
+
     const orderDate = new Date(order.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    
+
     // The query now returns the full items array, so we use .length for the count.
     const itemCount = order.cakegenie_order_items?.length ?? 0;
 
@@ -281,7 +281,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
             showError("You must be logged in to cancel orders.");
             return;
         }
-        
+
         cancelMutation.mutate({ orderId: order.order_id, userId: user.id }, {
             onSuccess: (updatedOrder) => {
                 if (updatedOrder) {
@@ -351,7 +351,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
 
 // --- Main Page Component ---
 interface OrdersPageProps {
-  onClose: () => void;
+    onClose: () => void;
 }
 
 export default function OrdersPage({ onClose }: OrdersPageProps) {
@@ -376,7 +376,7 @@ export default function OrdersPage({ onClose }: OrdersPageProps) {
 
     const totalOrderCount = pageData?.totalOrderCount || 0;
     const totalItemCount = (pageData?.totalOrderCount || 0) + (pageData?.designs?.length || 0);
-    
+
     useEffect(() => {
         if (pageData) {
             if (currentPage === 1) {
@@ -391,13 +391,13 @@ export default function OrdersPage({ onClose }: OrdersPageProps) {
             }
         }
     }, [pageData, currentPage]);
-    
+
     const combinedItems = useMemo<CreationItem[]>(() => {
-      const ordersWithType: CreationItem[] = allOrders.map(o => ({ ...o, type: 'order' }));
-      const designsWithType: CreationItem[] = billShareDesigns.map(d => ({ ...d, type: 'bill_sharing' }));
-      return [...ordersWithType, ...designsWithType].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        const ordersWithType: CreationItem[] = allOrders.map(o => ({ ...o, type: 'order' }));
+        const designsWithType: CreationItem[] = billShareDesigns.map(d => ({ ...d, type: 'bill_sharing' }));
+        return [...ordersWithType, ...designsWithType].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }, [allOrders, billShareDesigns]);
-    
+
     useEffect(() => {
         setCurrentPage(1);
         setAllOrders([]);
@@ -411,21 +411,21 @@ export default function OrdersPage({ onClose }: OrdersPageProps) {
     };
 
     const handleOrderUpdate = useCallback((updatedOrder: EnrichedOrder) => {
-        setAllOrders(currentOrders => 
-            currentOrders.map(order => 
+        setAllOrders(currentOrders =>
+            currentOrders.map(order =>
                 order.order_id === updatedOrder.order_id ? { ...order, ...updatedOrder } : order
             )
         );
     }, []);
 
     const handleDesignUpdate = useCallback((updatedDesign: any) => {
-      setBillShareDesigns(currentDesigns =>
-        currentDesigns.map(design =>
-          design.design_id === updatedDesign.design_id ? { ...design, ...updatedDesign } : design
-        )
-      );
+        setBillShareDesigns(currentDesigns =>
+            currentDesigns.map(design =>
+                design.design_id === updatedDesign.design_id ? { ...design, ...updatedDesign } : design
+            )
+        );
     }, []);
-    
+
     const initialLoading = authLoading || (pageLoading && combinedItems.length === 0);
 
     if (initialLoading) {
@@ -439,7 +439,7 @@ export default function OrdersPage({ onClose }: OrdersPageProps) {
             </div>
         );
     }
-    
+
     if (!user) {
         return (
             <div className="w-full max-w-3xl mx-auto py-8 px-4 text-center">
@@ -477,10 +477,10 @@ export default function OrdersPage({ onClose }: OrdersPageProps) {
                     </div>
                 )}
             </div>
-            
+
             <div className="mt-6 text-center">
-                 <p className="text-sm text-slate-500 mb-4">Showing {combinedItems.length} of {totalItemCount} items.</p>
-                 {allOrders.length < totalOrderCount && (
+                <p className="text-sm text-slate-500 mb-4">Showing {combinedItems.length} of {totalItemCount} items.</p>
+                {allOrders.length < totalOrderCount && (
                     <button
                         onClick={handleLoadMore}
                         disabled={isFetching}
@@ -495,7 +495,7 @@ export default function OrdersPage({ onClose }: OrdersPageProps) {
                             'Load More Orders'
                         )}
                     </button>
-                 )}
+                )}
             </div>
 
         </div>

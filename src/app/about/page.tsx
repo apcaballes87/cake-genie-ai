@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Award, Target, Rocket, Users, Handshake, Search, Upload, Edit, Wand2, ShoppingCart, CheckCircle, X } from 'lucide-react';
 import LazyImage from '../../components/LazyImage';
-import { useCanonicalUrl } from '../../hooks';
+import { useCanonicalUrl, useSEO } from '../../hooks';
 
 interface AboutPageProps {
   onClose: () => void;
@@ -17,40 +17,61 @@ const Section: React.FC<{ title: string; children: React.ReactNode; className?: 
 );
 
 const InfoCard: React.FC<{ icon: React.ReactNode; title: string; children: React.ReactNode }> = ({ icon, title, children }) => (
-    <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
-        <div className="flex items-center gap-3 mb-2">
-            <div className="text-pink-500">{icon}</div>
-            <h3 className="text-lg font-bold text-slate-800">{title}</h3>
-        </div>
-        <p className="text-slate-600">{children}</p>
+  <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+    <div className="flex items-center gap-3 mb-2">
+      <div className="text-pink-500">{icon}</div>
+      <h3 className="text-lg font-bold text-slate-800">{title}</h3>
     </div>
+    <p className="text-slate-600">{children}</p>
+  </div>
 );
 
 const ListItem: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <li className="flex items-start gap-3">
-        <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-1" />
-        <span>{children}</span>
-    </li>
+  <li className="flex items-start gap-3">
+    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-1" />
+    <span>{children}</span>
+  </li>
 );
 
 const PermitThumbnail: React.FC<{ src: string; alt: string; onClick: () => void }> = ({ src, alt, onClick }) => (
-    <button onClick={onClick} className="group text-center focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 rounded-lg">
-        <div className="aspect-w-3 aspect-h-4 bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
-            <LazyImage 
-                src={src} 
-                alt={alt} 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-            />
-        </div>
-        <p className="mt-2 text-sm font-medium text-slate-700 group-hover:text-pink-600 transition-colors">{alt}</p>
-    </button>
+  <button onClick={onClick} className="group text-center focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 rounded-lg">
+    <div className="aspect-w-3 aspect-h-4 bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+      <LazyImage
+        src={src}
+        alt={alt}
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+      />
+    </div>
+    <p className="mt-2 text-sm font-medium text-slate-700 group-hover:text-pink-600 transition-colors">{alt}</p>
+  </button>
 );
 
 
 const AboutPage: React.FC<AboutPageProps> = ({ onClose }) => {
   // Add canonical URL for SEO
-  useCanonicalUrl('/about');
-  
+  // Add SEO configuration
+  useSEO({
+    title: 'About Us | Genie.ph',
+    description: 'Genie.ph is an AI-powered custom cake ordering platform in Cebu. We connect customers with artisans for instant pricing and design visualization.',
+    url: 'https://genie.ph/#/about',
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'AboutPage',
+      name: 'About Genie.ph',
+      description: 'Genie.ph is an AI-powered custom cake ordering platform in Cebu.',
+      mainEntity: {
+        '@type': 'Organization',
+        name: 'Genie.ph',
+        url: 'https://genie.ph',
+        logo: 'https://genie.ph/icons/icon-512x512.png',
+        sameAs: [
+          'https://www.facebook.com/genie.ph',
+          'https://www.instagram.com/genie.ph'
+        ]
+      }
+    }
+  });
+
   const [zoomedPermit, setZoomedPermit] = useState<string | null>(null);
 
   const permits = [
@@ -63,7 +84,7 @@ const AboutPage: React.FC<AboutPageProps> = ({ onClose }) => {
     <>
       <div className="w-full max-w-4xl mx-auto bg-white/80 backdrop-blur-lg p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200 animate-fade-in">
         <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-        
+
         <div className="flex items-center gap-4 mb-8">
           <button onClick={onClose} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Go back">
             <ArrowLeft />
@@ -80,10 +101,10 @@ const AboutPage: React.FC<AboutPageProps> = ({ onClose }) => {
           </Section>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-200">
-            <InfoCard icon={<Rocket className="w-6 h-6"/>} title="Our Vision">
+            <InfoCard icon={<Rocket className="w-6 h-6" />} title="Our Vision">
               To become the leading platform for customizing made-to-order products, transforming the way people create and purchase personalized items by bringing the made-to-order economy into the modern digital age.
             </InfoCard>
-            <InfoCard icon={<Target className="w-6 h-6"/>} title="Our Mission">
+            <InfoCard icon={<Target className="w-6 h-6" />} title="Our Mission">
               To empower both customers and artisans with intuitive AI-driven customization tools that provide instant visualization, transparent pricing, and seamless transactions—making the process of ordering custom products as delightful as receiving them.
             </InfoCard>
           </div>
@@ -91,15 +112,15 @@ const AboutPage: React.FC<AboutPageProps> = ({ onClose }) => {
           <Section title="What We Do">
             <p>Genie is an online cakeshop with true customization features powered by AI. Our platform transforms the custom cake ordering experience.</p>
             <div className="mt-6">
-                <div>
-                    <h3 className="text-lg font-semibold text-slate-700 mb-3 flex items-center gap-2"><Users className="w-5 h-5 text-pink-500" /> For Customers</h3>
-                    <ul className="space-y-3">
-                        <ListItem><strong>Infinite Design Possibilities</strong> - Access unlimited cake designs with just one click, all fully customizable.</ListItem>
-                        <ListItem><strong>Real-Time Visualization</strong> - See your custom creation come to life instantly as you personalize every detail.</ListItem>
-                        <ListItem><strong>Instant Price Feedback</strong> - Know exactly what your design will cost with transparent, immediate pricing.</ListItem>
-                        <ListItem><strong>Seamless Purchasing</strong> - Complete your order directly through our web and mobile platform.</ListItem>
-                    </ul>
-                </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-700 mb-3 flex items-center gap-2"><Users className="w-5 h-5 text-pink-500" /> For Customers</h3>
+                <ul className="space-y-3">
+                  <ListItem><strong>Infinite Design Possibilities</strong> - Access unlimited cake designs with just one click, all fully customizable.</ListItem>
+                  <ListItem><strong>Real-Time Visualization</strong> - See your custom creation come to life instantly as you personalize every detail.</ListItem>
+                  <ListItem><strong>Instant Price Feedback</strong> - Know exactly what your design will cost with transparent, immediate pricing.</ListItem>
+                  <ListItem><strong>Seamless Purchasing</strong> - Complete your order directly through our web and mobile platform.</ListItem>
+                </ul>
+              </div>
             </div>
           </Section>
 
@@ -110,22 +131,22 @@ const AboutPage: React.FC<AboutPageProps> = ({ onClose }) => {
 
           <Section title="Recognition & Achievement">
             <div className="bg-gradient-to-br from-yellow-50 to-amber-100 p-6 rounded-xl border-2 border-yellow-200">
-                <h3 className="text-lg font-bold text-amber-800 mb-2 flex items-center gap-2"><Award className="w-5 h-5" /> 1st Place Winner - Startup Innovation Summit, Mandaue City</h3>
-                <p className="text-amber-700">We are proud to have won first place at the Startup Innovation Summit – Innovative Business Start-Up Prototype Competition held during the Mandaue City Charter Anniversary Celebration. This prestigious recognition validates our commitment to innovation and our mission to provide technology solutions that make life better for communities.</p>
-                <p className="text-amber-700 mt-2">Organized by the Mandaue Investment Promotions and Tourism Action Center (MIPTAC) in partnership with the Mandaue Chamber of Commerce and Industry (MCCI), the competition brought together the region's most promising innovators and entrepreneurs. Our victory demonstrates the value and potential of Genie in transforming not just the custom cake industry, but the entire made-to-order economy.</p>
+              <h3 className="text-lg font-bold text-amber-800 mb-2 flex items-center gap-2"><Award className="w-5 h-5" /> 1st Place Winner - Startup Innovation Summit, Mandaue City</h3>
+              <p className="text-amber-700">We are proud to have won first place at the Startup Innovation Summit – Innovative Business Start-Up Prototype Competition held during the Mandaue City Charter Anniversary Celebration. This prestigious recognition validates our commitment to innovation and our mission to provide technology solutions that make life better for communities.</p>
+              <p className="text-amber-700 mt-2">Organized by the Mandaue Investment Promotions and Tourism Action Center (MIPTAC) in partnership with the Mandaue Chamber of Commerce and Industry (MCCI), the competition brought together the region's most promising innovators and entrepreneurs. Our victory demonstrates the value and potential of Genie in transforming not just the custom cake industry, but the entire made-to-order economy.</p>
             </div>
           </Section>
 
           <Section title="Business Permits">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-                {permits.map((permit) => (
-                    <PermitThumbnail 
-                        key={permit.name}
-                        src={permit.url} 
-                        alt={permit.name}
-                        onClick={() => setZoomedPermit(permit.url)}
-                    />
-                ))}
+              {permits.map((permit) => (
+                <PermitThumbnail
+                  key={permit.name}
+                  src={permit.url}
+                  alt={permit.name}
+                  onClick={() => setZoomedPermit(permit.url)}
+                />
+              ))}
             </div>
           </Section>
 
@@ -134,19 +155,19 @@ const AboutPage: React.FC<AboutPageProps> = ({ onClose }) => {
 
       {/* Permit Zoom Modal */}
       {zoomedPermit && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in"
           onClick={() => setZoomedPermit(null)}
         >
-          <button 
+          <button
             className="absolute top-4 right-4 text-white p-2 bg-black/30 rounded-full hover:bg-black/50 transition-colors z-10"
             onClick={() => setZoomedPermit(null)}
           >
             <X size={24} />
           </button>
           <div className="relative" onClick={e => e.stopPropagation()}>
-            <LazyImage 
-              src={zoomedPermit} 
+            <LazyImage
+              src={zoomedPermit}
               alt="Permit document"
               className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
             />

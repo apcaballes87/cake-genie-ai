@@ -23,7 +23,6 @@ import {
   updateCartItemQuantity as updateQuantityService,
   removeCartItem as removeItemService,
 } from '../services/supabaseService';
-import { withTimeout } from '../lib/utils/timeout';
 
 // --- NEW BATCHED LOCALSTORAGE WRITER ---
 const queuedWrites: { [key: string]: string | null } = {};
@@ -61,8 +60,8 @@ const debouncedFlush = debounce(flushWrites, 100);
 export const batchSaveToLocalStorage = (key: string, value: string) => {
   if (typeof window === 'undefined') return;
   const dataToStore = {
-      value,
-      timestamp: Date.now()
+    value,
+    timestamp: Date.now()
   };
   queuedWrites[key] = JSON.stringify(dataToStore);
   if (!isFlushScheduled) {
@@ -102,42 +101,42 @@ export const readFromLocalStorage = (key: string): string | null => {
 };
 
 export const cleanupExpiredLocalStorage = () => {
-    if (typeof window === 'undefined') return;
-    
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('cart_')) {
-            try {
-                const item = localStorage.getItem(key);
-                if (item) {
-                    const data = JSON.parse(item);
-                    if (data.timestamp) {
-                        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-                        if (data.timestamp < sevenDaysAgo) {
-                            keysToRemove.push(key);
-                        }
-                    }
-                }
-            } catch (e) {
-                // Ignore items not in the new format or unparseable
+  if (typeof window === 'undefined') return;
+
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('cart_')) {
+      try {
+        const item = localStorage.getItem(key);
+        if (item) {
+          const data = JSON.parse(item);
+          if (data.timestamp) {
+            const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+            if (data.timestamp < sevenDaysAgo) {
+              keysToRemove.push(key);
             }
+          }
         }
+      } catch (e) {
+        // Ignore items not in the new format or unparseable
+      }
     }
-    
-    keysToRemove.forEach(key => localStorage.removeItem(key));
-    if (keysToRemove.length > 0) {
-        // Removed console.log for production
-    }
+  }
+
+  keysToRemove.forEach(key => localStorage.removeItem(key));
+  if (keysToRemove.length > 0) {
+    // Removed console.log for production
+  }
 };
 
 
 interface DeliveryDetails {
-    eventDate: string;
-    eventTime: string;
-    addressId: string | null; // Null for guests
-    addressData: Partial<CakeGenieAddress>;
-    deliveryInstructions: string;
+  eventDate: string;
+  eventTime: string;
+  addressId: string | null; // Null for guests
+  addressData: Partial<CakeGenieAddress>;
+  deliveryInstructions: string;
 }
 
 // --- NEW SPLIT CONTEXT TYPES ---
@@ -173,7 +172,7 @@ interface CartActionsType {
   clearCart: () => void;
 }
 
-interface CartContextType extends CartDataType, CartActionsType {}
+interface CartContextType extends CartDataType, CartActionsType { }
 
 // --- NEW SPLIT CONTEXTS ---
 
@@ -183,16 +182,40 @@ const CartActionsContext = createContext<CartActionsType | undefined>(undefined)
 const supabase: SupabaseClient = getSupabaseClient();
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  
-  const [cartItems, setCartItems] = useState<CakeGenieCartItem[]>([]);
-  const [addresses, setAddresses] = useState<CakeGenieAddress[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // INSTANT LOAD: Initialize cart from localStorage immediately (0ms)
+  const [cartItems, setCartItems] = useState<CakeGenieCartItem[]>(() => {
+    const cached = readFromLocalStorage('cart_items_cache');
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {
+        // Silently ignore cache parsing errors
+      }
+    }
+    return [];
+  });
+
+  const [addresses, setAddresses] = useState<CakeGenieAddress[]>(() => {
+    const cached = readFromLocalStorage('addresses_cache');
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {
+        console.warn('[CartContext] Failed to parse cached addresses');
+      }
+    }
+    return [];
+  });
+
+  const [isLoading, setIsLoading] = useState<boolean>(false); // Start as false since we have cached data
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetails | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
 
   const prevUserIdRef = useRef<string | null>(null);
+  const isInitializingRef = useRef<boolean>(true); // Track if we're in initial load
 
   const [eventDate, setEventDateState] = useState<string>(() => {
     return readFromLocalStorage('cart_event_date') || '';
@@ -201,13 +224,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [eventTime, setEventTimeState] = useState<string>(() => {
     return readFromLocalStorage('cart_event_time') || '';
   });
-  
+
   const [deliveryInstructions, setDeliveryInstructionsState] = useState<string>(() => {
     return readFromLocalStorage('cart_delivery_instructions') || '';
   });
 
   const [selectedAddressId, setSelectedAddressIdState] = useState<string>(() => {
-      return readFromLocalStorage('cart_selected_address_id') || '';
+    return readFromLocalStorage('cart_selected_address_id') || '';
   });
 
   const setEventDate = useCallback((date: string) => {
@@ -236,118 +259,169 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const isAnonymous = user?.is_anonymous ?? false;
       const userIdForQuery = isAnonymous ? null : user?.id;
       const sessionIdForQuery = isAnonymous ? user?.id : null;
-      
-      // Fix TypeScript error by ensuring proper types
-      const pageDataPromise = getCartPageData(
-        userIdForQuery !== undefined ? userIdForQuery : null, 
-        sessionIdForQuery !== undefined ? sessionIdForQuery : null
-      );
-      const { cartData, addressesData } = await withTimeout(
-        pageDataPromise,
-        2000, // 2 second timeout
-        "Cart loading timed out."
-      );
+
+      // Add timeout to database query - if it hangs, just load empty cart
+      let cartData: { data: CakeGenieCartItem[] | null; error: Error | PostgrestError | null };
+      let addressesData: { data: CakeGenieAddress[] | null; error: Error | PostgrestError | null };
+
+      try {
+        const cartPromise = getCartPageData(
+          userIdForQuery !== undefined ? userIdForQuery : null,
+          sessionIdForQuery !== undefined ? sessionIdForQuery : null
+        );
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Database query timed out after 500ms')), 500)
+        );
+
+        const result = await Promise.race([cartPromise, timeoutPromise]);
+        cartData = result.cartData;
+        addressesData = result.addressesData;
+      } catch (timeoutError) {
+        console.warn('Cart query timed out, keeping cached data');
+        // Don't clear the cart - just keep the cached data we already have
+        // The user already sees their cart from cache, no need to replace it
+        return; // Exit early, don't update state
+      }
 
       const { data: cartItemsData, error: cartError } = cartData;
       if (cartError) throw cartError;
       setCartItems(cartItemsData || []);
 
+      // Cache cart items for instant load next time
+      if (cartItemsData && cartItemsData.length > 0) {
+        batchSaveToLocalStorage('cart_items_cache', JSON.stringify(cartItemsData));
+      } else {
+        batchRemoveFromLocalStorage('cart_items_cache');
+      }
+
       const { data: userAddressesData, error: addressesError } = addressesData;
       if (addressesError) {
-          console.error('Failed to load addresses:', addressesError);
-          // Don't throw, allow cart to load without addresses
+        console.error('Failed to load addresses:', addressesError);
+        // Don't throw, allow cart to load without addresses
       }
       setAddresses(userAddressesData || []);
-      
+
+      // Cache addresses for instant load next time
+      if (userAddressesData && userAddressesData.length > 0) {
+        batchSaveToLocalStorage('addresses_cache', JSON.stringify(userAddressesData));
+      }
+
     } catch (error) {
-      console.error('Failed to load cart data:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+      console.error('Failed to load cart data:', error);
       setCartItems([]);
       setAddresses([]);
+      // Clear cache on error
+      batchRemoveFromLocalStorage('cart_items_cache');
     } finally {
       setIsLoading(false);
     }
   }, []);
-  
+
   useEffect(() => {
     const initialize = async () => {
-        cleanupExpiredLocalStorage();
-        setIsLoading(true); // Set loading at the very start.
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-    
-            let userToLoad: User | null = session?.user || null;
-    
-            if (!session) {
-                const { data, error } = await supabase.auth.signInAnonymously();
-    
-                if (error) {
-                    throw error; // Let the catch block handle it
-                }
-                userToLoad = data.user;
-            } else {
-                // Fix TypeScript error by checking if userToLoad is not null
-                if (userToLoad) {
-                } else {
-                }
-            }
-    
-            setCurrentUser(userToLoad);
-            if (userToLoad?.is_anonymous) {
-                setSessionId(userToLoad.id);
-            } else {
-                setSessionId(null);
-            }
-            prevUserIdRef.current = userToLoad?.id ?? null;
-            
-            await loadCartData(userToLoad); // This has its own try/catch/finally
-            setAuthError(null); // Clear any previous errors on success
+      cleanupExpiredLocalStorage();
+      setIsLoading(true);
+      try {
+        // Try to get existing session (to reuse anonymous user)
+        let userToLoad: User | null = null;
 
-        } catch (error: any) {
-            console.error('❌ Failed to initialize user session:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-            if (error.message.includes("disabled")) {
-                setAuthError("Guest sessions are currently disabled. Please ask the site administrator to enable Anonymous Sign-ins in the Supabase project's authentication settings.");
-            } else {
-                // A more user-friendly message
-                setAuthError(`Could not connect to the service. Please check your internet connection and try again.`);
-            }
-            setIsLoading(false); // CRITICAL: Turn off loading on initialization failure.
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            userToLoad = session.user;
+          }
+        } catch (sessionError) {
+          // Silently ignore session retrieval errors
         }
+
+        // Only create new session if we don't have one
+        if (!userToLoad) {
+          const { data, error } = await supabase.auth.signInAnonymously();
+          if (error) {
+            throw error;
+          }
+          userToLoad = data.user;
+        }
+
+        setCurrentUser(userToLoad);
+        if (userToLoad?.is_anonymous) {
+          setSessionId(userToLoad.id);
+        } else {
+          setSessionId(null);
+        }
+        prevUserIdRef.current = userToLoad?.id ?? null;
+
+        await loadCartData(userToLoad);
+
+        // Mark initialization as complete
+        isInitializingRef.current = false;
+        setAuthError(null);
+
+      } catch (error: any) {
+        console.error('Failed to initialize user session:', error);
+        if (error.message.includes("disabled")) {
+          setAuthError("Guest sessions are currently disabled. Please ask the site administrator to enable Anonymous Sign-ins in the Supabase project's authentication settings.");
+        } else if (error.code === 'over_request_rate_limit') {
+          setAuthError("Too many requests. Please wait a moment and refresh the page.");
+        } else {
+          // A more user-friendly message
+          setAuthError(`Could not connect to the service. Please check your internet connection and try again.`);
+        }
+        setIsLoading(false); // CRITICAL: Turn off loading on initialization failure.
+      }
     };
 
     initialize();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        const user = session?.user ?? null;
-        const currentUserId = user?.id ?? null;
-        
-        const isAnonymous = user?.is_anonymous;
-        
-        // Only reload the cart if the user has actually changed.
-        if (currentUserId !== prevUserIdRef.current) {
-            prevUserIdRef.current = currentUserId;
-            setCurrentUser(user);
-            
-            if (user?.is_anonymous) {
-                setSessionId(user.id);
-            } else {
-                setSessionId(null);
-            }
-            
-            // If there's no auth error, load the cart for the new user.
-            // This handles login/logout scenarios.
-            if (!authError) {
-                await loadCartData(user);
-            }
+      const user = session?.user ?? null;
+      const currentUserId = user?.id ?? null;
+
+      const isAnonymous = user?.is_anonymous;
+
+      // Only reload the cart if the user has actually changed.
+      if (currentUserId !== prevUserIdRef.current) {
+        prevUserIdRef.current = currentUserId;
+        setCurrentUser(user);
+
+        if (user?.is_anonymous) {
+          setSessionId(user.id);
         } else {
-             // If user hasn't changed (e.g., token refresh), just update the user object.
-            setCurrentUser(user);
+          setSessionId(null);
         }
+
+        // If there's no auth error, load the cart for the new user.
+        // This handles login/logout scenarios.
+        // Skip loading during initialization to prevent duplicate calls
+        if (!authError && !isInitializingRef.current) {
+          await loadCartData(user);
+        }
+      } else {
+        // If user hasn't changed (e.g., token refresh), just update the user object.
+        setCurrentUser(user);
+      }
     });
-        
+
     return () => {
-        subscription?.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, [loadCartData, authError]);
+
+  // Auto-cache cart items whenever they change (for instant load on next visit)
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      batchSaveToLocalStorage('cart_items_cache', JSON.stringify(cartItems));
+    } else {
+      batchRemoveFromLocalStorage('cart_items_cache');
+    }
+  }, [cartItems]);
+
+  // Auto-cache addresses whenever they change
+  useEffect(() => {
+    if (addresses.length > 0) {
+      batchSaveToLocalStorage('addresses_cache', JSON.stringify(addresses));
+    }
+  }, [addresses]);
 
   const addToCartOptimistic = useCallback(async (
     itemParams: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
@@ -355,7 +429,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   ) => {
     const tempId = `temp-${Date.now()}`;
     const now = new Date().toISOString();
-    
+
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
@@ -396,7 +470,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         throw error || new Error('Failed to add item to cart. No data returned from service.');
       }
-      
+
       if (options?.skipOptimistic) {
         setCartItems(prev => [realItem, ...prev]);
       } else {
@@ -418,12 +492,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setCartItems(prev => prev.filter(item => item.cart_item_id !== cartItemId));
 
     try {
-        const { error } = await removeItemService(cartItemId);
-        if (error) throw error;
+      const { error } = await removeItemService(cartItemId);
+      if (error) throw error;
     } catch (error) {
-        console.error('Error removing item, rolling back:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-        setCartItems(originalCart);
-        throw error;
+      console.error('Error removing item, rolling back:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+      setCartItems(originalCart);
+      throw error;
     }
   }, [cartItems]);
 
@@ -448,15 +522,15 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await removeItemOptimistic(cartItemId);
       return;
     }
-    
+
     const originalCart = [...cartItems];
     const itemToUpdate = cartItems.find(item => item.cart_item_id === cartItemId);
     if (!itemToUpdate) return;
-        
+
     setCartItems(prev =>
-        prev.map(item => item.cart_item_id === cartItemId ? { ...item, quantity } : item)
+      prev.map(item => item.cart_item_id === cartItemId ? { ...item, quantity } : item)
     );
-    
+
     try {
       await debouncedUpdateQuantity(cartItemId, quantity, originalCart);
     } catch (error) {
@@ -484,7 +558,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setDeliveryInstructionsState('');
     setSelectedAddressIdState('');
   }, []);
-  
+
   const itemCount = useMemo(() => {
     return cartItems.reduce((total, item) => total + item.quantity, 0);
   }, [cartItems]);

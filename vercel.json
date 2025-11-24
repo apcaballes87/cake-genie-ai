@@ -11,6 +11,10 @@
     {
       "source": "/share/:id*",
       "destination": "https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/share-design/:id*"
+    },
+    {
+      "source": "/:code",
+      "destination": "/index.html"
     }
   ],
   "headers": [

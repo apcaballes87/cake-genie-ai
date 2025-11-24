@@ -111,7 +111,7 @@ export function calculateCartAvailability(items: CartItem[]): AvailabilityType {
     // The most restrictive availability determines the cart's overall availability.
     if (availabilities.includes('normal')) return 'normal';
     if (availabilities.includes('same-day')) return 'same-day';
-    
+
     // If no 'normal' or 'same-day' items, it must be 'rush' (or empty, which also qualifies as 'rush').
     return 'rush';
 }

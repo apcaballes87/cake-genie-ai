@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useCanonicalUrl } from '../../hooks';
+import { useSEO } from '../../hooks/useSEO';
 
 interface ReviewsPageProps {
   onClose: () => void;
@@ -9,7 +10,14 @@ interface ReviewsPageProps {
 const ReviewsPage: React.FC<ReviewsPageProps> = ({ onClose }) => {
   // Add canonical URL for SEO
   useCanonicalUrl('/reviews');
-  
+
+  useSEO({
+    title: 'Reviews | Genie.ph',
+    description: 'Read reviews and testimonials from our happy customers.',
+    url: 'https://genie.ph/#/reviews',
+    type: 'website'
+  });
+
   return (
     <div className="w-full max-w-3xl mx-auto bg-white/70 backdrop-blur-lg p-8 rounded-2xl shadow-lg border border-slate-200 animate-fade-in">
       <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>

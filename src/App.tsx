@@ -45,6 +45,7 @@ const ContactPage = lazy(() => import('./app/contact/page'));
 const ReviewsPage = lazy(() => import('./app/reviews/page'));
 const ShopifyCustomizingPage = lazy(() => import('./app/shopify-customizing/page'));
 const PricingSandboxPage = lazy(() => import('./app/pricing-sandbox/page'));
+const NotFoundPage = lazy(() => import('./app/not-found/page'));
 
 // Lazy load heavy modal components
 const ImageUploader = lazy(() => import('./components/ImageUploader').then(module => ({ default: module.ImageUploader })));
@@ -72,7 +73,7 @@ export default function App(): React.ReactElement {
   const { settings: availabilitySettings, loading: isLoadingAvailabilitySettings } = useAvailabilitySettings();
 
   // --- CUSTOM BUSINESS LOGIC HOOKS ---
-  const { appState, previousAppState, confirmedOrderId, viewingDesignId, viewingShopifySessionId, setAppState, setConfirmedOrderId } = useAppNavigation();
+  const { appState, previousAppState, confirmedOrderId, viewingDesignId, viewingShopifySessionId, urlDiscountCode, setAppState, setConfirmedOrderId, setUrlDiscountCode } = useAppNavigation();
 
   const {
     originalImageData, sourceImageData, previousImageData, originalImagePreview, editedImage, threeTierReferenceImage,
@@ -603,7 +604,7 @@ ${prompt}
         isSharing={isSavingDesign}
         warningMessage={toyWarningMessage}
       />;
-      case 'cart': return <CartPage pendingItems={pendingCartItems} isLoading={isCartLoading} onRemoveItem={removeItemOptimistic} onClose={() => setAppState(previousAppState.current || 'customizing')} onContinueShopping={() => setAppState('customizing')} onAuthRequired={() => setAppState('auth')} />;
+      case 'cart': return <CartPage pendingItems={pendingCartItems} isLoading={isCartLoading} onRemoveItem={removeItemOptimistic} onClose={() => setAppState(previousAppState.current || 'customizing')} onContinueShopping={() => setAppState('customizing')} onAuthRequired={() => setAppState('auth')} urlDiscountCode={urlDiscountCode} onDiscountCodeProcessed={() => setUrlDiscountCode(null)} />;
       case 'order_confirmation': return confirmedOrderId ? <OrderConfirmationPage orderId={confirmedOrderId} onContinueShopping={() => setAppState('landing')} onGoToOrders={() => setAppState('orders')} /> : <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>;
       case 'auth': return <AuthPage onClose={() => setAppState(previousAppState.current || 'landing')} onSuccess={() => setAppState(previousAppState.current && previousAppState.current !== 'auth' ? previousAppState.current : 'landing')} />;
       case 'addresses': return <AddressesPage onClose={() => setAppState(previousAppState.current || 'landing')} />;
@@ -615,6 +616,7 @@ ${prompt}
       case 'contact': return <ContactPage onClose={() => setAppState('landing')} />;
       case 'reviews': return <ReviewsPage onClose={() => setAppState('landing')} />;
       case 'pricing_sandbox': return <PricingSandboxPage onClose={() => setAppState('landing')} />;
+      case 'not_found': return <NotFoundPage onGoHome={() => setAppState('landing')} />;
       default: return <LandingPage user={user} onSearch={(q) => { setSearchInput(q); handleSearch(q); }} onUploadClick={() => setIsUploaderOpen(true)} setAppState={setAppState as React.Dispatch<React.SetStateAction<AppState>>} />;
     }
   }

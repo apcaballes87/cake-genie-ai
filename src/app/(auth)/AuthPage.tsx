@@ -14,37 +14,37 @@ interface AuthPageProps {
 const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
   const [authTab, setAuthTab] = useState<'login' | 'signup'>('login');
   const { signIn, signUp } = useAuth();
-  
+
   // --- Login Form State ---
   const [emailLogin, setEmailLogin] = useState('');
   const [passwordLogin, setPasswordLogin] = useState('');
   const [loadingLogin, setLoadingLogin] = useState(false);
-  
+
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoadingLogin(true);
-    
+
     try {
       // Get current anonymous user ID BEFORE logging in
       const { data: { user: anonymousUser } } = await supabase.auth.getUser();
       const anonymousUserId = anonymousUser?.id;
       const wasAnonymous = anonymousUser?.is_anonymous || false;
-      
+
       // Perform login
-      const { data, error } = await signIn({ 
-        email: emailLogin, 
-        password: passwordLogin 
+      const { data, error } = await signIn({
+        email: emailLogin,
+        password: passwordLogin
       });
-      
+
       if (error) throw error;
-      
+
       // If user was anonymous and had a session, merge their cart
       if (wasAnonymous && anonymousUserId && data.user) {
         // Import the merge function
         const { mergeAnonymousCartToUser } = await import('../../services/supabaseService');
-        
+
         const mergeResult = await mergeAnonymousCartToUser(anonymousUserId, data.user.id);
-        
+
         if (mergeResult.success) {
           showSuccess('Welcome back! Your cart has been restored.');
         } else {
@@ -53,7 +53,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
       } else {
         showSuccess('Welcome back!');
       }
-      
+
       onSuccess();
     } catch (error: any) {
       showError(error.message || 'An unknown error occurred.');
@@ -72,12 +72,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (passwordSignUp !== confirmPassword) {
       showError('Passwords do not match.');
       return;
     }
-    
+
     setLoadingSignUp(true);
     try {
       const { data, error } = await signUp({
@@ -116,21 +116,19 @@ const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
         <div className="flex gap-2 mb-6 bg-gray-100 rounded-lg p-1">
           <button
             onClick={() => setAuthTab('login')}
-            className={`flex-1 py-2 rounded-md font-medium transition-all ${
-              authTab === 'login'
+            className={`flex-1 py-2 rounded-md font-medium transition-all ${authTab === 'login'
                 ? 'bg-white shadow text-purple-600'
                 : 'text-gray-600 hover:text-purple-600'
-            }`}
+              }`}
           >
             Login
           </button>
           <button
             onClick={() => setAuthTab('signup')}
-            className={`flex-1 py-2 rounded-md font-medium transition-all ${
-              authTab === 'signup'
+            className={`flex-1 py-2 rounded-md font-medium transition-all ${authTab === 'signup'
                 ? 'bg-white shadow text-purple-600'
                 : 'text-gray-600 hover:text-purple-600'
-            }`}
+              }`}
           >
             Sign Up
           </button>

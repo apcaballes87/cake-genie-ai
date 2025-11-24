@@ -16,11 +16,10 @@ export const ColorPalette: React.FC<ColorPaletteProps> = React.memo(({ selectedC
           key={color.name}
           type="button"
           onClick={() => onColorChange(color.hex)}
-          className={`rounded-full transition-transform transform hover:scale-110 focus:outline-none w-8 h-8 ${
-            selectedColor.toLowerCase() === color.hex.toLowerCase()
-              ? `ring-purple-500 ${ringClass}`
-              : 'ring-2 ring-transparent'
-          }`}
+          className={`rounded-full transition-transform transform hover:scale-110 focus:outline-none w-7 h-7 ${selectedColor.toLowerCase() === color.hex.toLowerCase()
+            ? `ring-purple-500 ${ringClass}`
+            : 'ring-2 ring-transparent'
+            }`}
           style={{ backgroundColor: color.hex }}
           aria-label={`Select ${color.name} color`}
           title={color.name}

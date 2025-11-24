@@ -56,9 +56,9 @@ interface SharedDesignPageProps {
 }
 
 const AVAILABILITY_INFO: Record<AvailabilityType, { label: string; time: string; icon: string; bgColor: string; textColor: string }> = {
-    rush: { label: 'Rush Order', time: 'Ready in 30 minutes', icon: '⚡', bgColor: 'bg-green-100', textColor: 'text-green-800' },
-    'same-day': { label: 'Same-Day', time: 'Ready in 3 hours', icon: '🕐', bgColor: 'bg-blue-100', textColor: 'text-blue-800' },
-    normal: { label: 'Standard Order', time: '1-day lead time', icon: '📅', bgColor: 'bg-slate-100', textColor: 'text-slate-800' },
+  rush: { label: 'Rush Order', time: 'Ready in 30 minutes', icon: '⚡', bgColor: 'bg-green-100', textColor: 'text-green-800' },
+  'same-day': { label: 'Same-Day', time: 'Ready in 3 hours', icon: '🕐', bgColor: 'bg-blue-100', textColor: 'text-blue-800' },
+  normal: { label: 'Standard Order', time: '1-day lead time', icon: '📅', bgColor: 'bg-slate-100', textColor: 'text-slate-800' },
 };
 
 const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
@@ -98,32 +98,32 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
   }, [contributions, design?.amount_collected]);
 
   const remainingAmount = (design?.final_price || 0) - amountCollected;
-  
+
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value === '') {
-        setContributionAmount('');
-        return;
+      setContributionAmount('');
+      return;
     }
 
     // Allow only numbers and up to two decimal places
     if (!/^\d*\.?\d{0,2}$/.test(value)) {
-        return;
+      return;
     }
 
     const amount = parseFloat(value);
-    
+
     if (isNaN(amount)) {
-        return;
+      return;
     }
-    
+
     const clampedRemaining = parseFloat(remainingAmount.toFixed(2));
     // Check against a very small number to avoid floating point issues if remaining is e.g., 0.001
     if (clampedRemaining > 0.001 && amount > clampedRemaining) {
-        setContributionAmount(clampedRemaining.toString());
-        showInfo(`Amount capped at the remaining ₱${clampedRemaining.toFixed(2)}`);
+      setContributionAmount(clampedRemaining.toString());
+      showInfo(`Amount capped at the remaining ₱${clampedRemaining.toFixed(2)}`);
     } else {
-        setContributionAmount(value);
+      setContributionAmount(value);
     }
   };
 
@@ -188,31 +188,31 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
   const handlePaymentVerification = async (contributionId: string) => {
     setIsVerifyingPayment(true);
     setVerificationMessage('Verifying your payment...');
-    
+
     try {
       const params = new URLSearchParams(window.location.hash.split('?')[1]);
       const amount = parseFloat(params.get('amount') || '0');
       const code = params.get('code') || 'FRIEND100';
 
       const { pollPaymentStatus } = await import('../../services/paymentVerificationService');
-      
+
       const result = await pollPaymentStatus(contributionId);
-      
+
       if (result.success && result.status === 'paid') {
         setVerificationMessage('✅ Payment confirmed! Thank you!');
         setSuccessAmount(amount);
         setSuccessDiscountCode(code);
-        
+
         if (design?.bill_sharing_enabled) {
           const contribs = await getDesignContributions(design.design_id);
           setContributions(contribs);
         }
-        
+
         setTimeout(() => {
           setIsVerifyingPayment(false);
           setShowSuccessModal(true);
-          
-          if(design?.url_slug || design?.design_id) {
+
+          if (design?.url_slug || design?.design_id) {
             window.history.replaceState(null, '', `#/designs/${design.url_slug || design.design_id}`);
           }
         }, 2000);
@@ -220,7 +220,7 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
         setVerificationMessage('⏰ Payment verification is taking longer than expected. Please refresh the page in a moment.');
         setSuccessAmount(amount);
         setSuccessDiscountCode(code);
-        
+
         setTimeout(() => {
           setIsVerifyingPayment(false);
           setShowSuccessModal(true);
@@ -235,7 +235,7 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.split('?')[1]);
-    
+
     if (params.get('contribution') === 'success') {
       const contributionId = params.get('contribution_id');
       if (contributionId) {
@@ -243,19 +243,19 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
       }
     } else if (params.get('contribution') === 'failed') {
       showError('Your contribution failed. Please try again.');
-      if(design?.url_slug || design?.design_id) {
+      if (design?.url_slug || design?.design_id) {
         window.history.replaceState(null, '', `#/designs/${design.url_slug || design.design_id}`);
       }
     }
   }, [design]);
-  
+
   useEffect(() => {
     if (user && !user.is_anonymous) {
       // Auto-fill name and email from user profile
-      const name = user.user_metadata?.full_name || 
-                   `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || 
-                   user.email?.split('@')[0] ||
-                   '';
+      const name = user.user_metadata?.full_name ||
+        `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() ||
+        user.email?.split('@')[0] ||
+        '';
       setContributorName(name);
       setContributorEmail(user.email || '');
     }
@@ -274,14 +274,14 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
 
   const handleContribute = async () => {
     if (!design) return;
-    
+
     // Require authentication
     if (!user || user.is_anonymous) {
       showError('Please sign in to contribute');
       onAuthRequired();
       return;
     }
-    
+
     // Validation
     if (!contributorName.trim()) {
       showError('Please enter your name');
@@ -301,9 +301,9 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
       showError(`Amount cannot exceed remaining ₱${remaining.toFixed(2)}`);
       return;
     }
-  
+
     setIsSubmittingContribution(true);
-    
+
     const result = await createContribution(
       design.design_id,
       contributorName,
@@ -311,9 +311,9 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
       amount,
       user.id // pass user ID
     );
-    
+
     setIsSubmittingContribution(false);
-    
+
     if (result.success && result.paymentUrl) {
       window.location.href = result.paymentUrl;
     } else {
@@ -322,23 +322,23 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
   };
 
   const handlePurchaseClick = () => {
-      if (!user || user.is_anonymous) {
-          showInfo("Please sign in to purchase a design.");
-          onAuthRequired();
-      } else if (design) {
-          onPurchaseDesign(design);
-      }
+    if (!user || user.is_anonymous) {
+      showInfo("Please sign in to purchase a design.");
+      onAuthRequired();
+    } else if (design) {
+      onPurchaseDesign(design);
+    }
   };
 
   const progress = design ? Math.min(100, (amountCollected / design.final_price) * 100) : 0;
-  
+
   const suggestedSplits = useMemo(() => {
     if (!design || !design.suggested_split_count || remainingAmount <= 0) return [];
     const splits = [];
     for (let i = 2; i <= design.suggested_split_count; i++) {
-        if (remainingAmount / i > 1) {
-            splits.push({ count: i, amount: Math.ceil(remainingAmount / i) });
-        }
+      if (remainingAmount / i > 1) {
+        splits.push({ count: i, amount: Math.ceil(remainingAmount / i) });
+      }
     }
     return splits;
   }, [design, remainingAmount]);
@@ -364,10 +364,10 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
   return (
     <>
       <div className="flex items-center gap-4 text-center mb-6 justify-center">
-        <img 
-            src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20face%20logo.webp" 
-            alt="Genie Logo"
-            className="w-16 h-16 object-contain"
+        <img
+          src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20face%20logo.webp"
+          alt="Genie Logo"
+          className="w-16 h-16 object-contain"
         />
         <div>
           <h1 className="text-5xl font-extrabold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">
@@ -400,18 +400,18 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
           {/* Right: Details */}
           <div className="flex flex-col">
             <p className="text-slate-600 leading-relaxed">{design.description}</p>
-            
+
             {design.bill_sharing_enabled && design.event_date ? (
               <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200 space-y-3">
-                  <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-purple-600" />
-                      Delivery Details
-                  </h3>
-                  <div className="space-y-1 text-sm text-slate-700 pl-6">
-                      <p className="flex items-center"><UserIcon className="w-3.5 h-3.5 mr-2 text-slate-500" /><strong>For:</strong>&nbsp;{design.recipient_name}</p>
-                      <p className="flex items-center"><Calendar className="w-3.5 h-3.5 mr-2 text-slate-500" /><strong>On:</strong>&nbsp;{new Date(design.event_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} at {design.event_time}</p>
-                      <p className="flex items-start"><MapPin className="w-3.5 h-3.5 mr-2 text-slate-500 mt-0.5" /><strong>To:</strong>&nbsp;{design.delivery_address}, {design.delivery_city}</p>
-                  </div>
+                <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-purple-600" />
+                  Delivery Details
+                </h3>
+                <div className="space-y-1 text-sm text-slate-700 pl-6">
+                  <p className="flex items-center"><UserIcon className="w-3.5 h-3.5 mr-2 text-slate-500" /><strong>For:</strong>&nbsp;{design.recipient_name}</p>
+                  <p className="flex items-center"><Calendar className="w-3.5 h-3.5 mr-2 text-slate-500" /><strong>On:</strong>&nbsp;{new Date(design.event_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} at {design.event_time}</p>
+                  <p className="flex items-start"><MapPin className="w-3.5 h-3.5 mr-2 text-slate-500 mt-0.5" /><strong>To:</strong>&nbsp;{design.delivery_address}, {design.delivery_city}</p>
+                </div>
               </div>
             ) : (
               <div className={`mt-4 p-3 rounded-lg flex items-center gap-3 ${availability.bgColor} border border-transparent`}>
@@ -422,7 +422,7 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
                 </div>
               </div>
             )}
-            
+
             <div className="mt-4 pt-4 border-t border-slate-200 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-500 font-medium">Type:</span>
@@ -452,18 +452,18 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
                   </div>
 
                   {design.organizer && (design.organizer.email || design.organizer.phone) && (
-                      <div className="mb-4 p-3 bg-white rounded-lg border border-slate-200 text-sm">
-                          <p className="font-semibold text-slate-700">Organized by: {design.organizer.full_name || design.creator_name}</p>
-                          <div className="mt-2 space-y-1 text-xs text-slate-600">
-                              {design.organizer.phone && <p><strong>Contact No:</strong> {design.organizer.phone}</p>}
-                              {design.organizer.email && <p><strong>Email:</strong> {design.organizer.email}</p>}
-                          </div>
-                          <p className="text-xs text-slate-500 mt-2 italic">
-                              Message them if you have any questions about this bill sharing request.
-                          </p>
+                    <div className="mb-4 p-3 bg-white rounded-lg border border-slate-200 text-sm">
+                      <p className="font-semibold text-slate-700">Organized by: {design.organizer.full_name || design.creator_name}</p>
+                      <div className="mt-2 space-y-1 text-xs text-slate-600">
+                        {design.organizer.phone && <p><strong>Contact No:</strong> {design.organizer.phone}</p>}
+                        {design.organizer.email && <p><strong>Email:</strong> {design.organizer.email}</p>}
                       </div>
+                      <p className="text-xs text-slate-500 mt-2 italic">
+                        Message them if you have any questions about this bill sharing request.
+                      </p>
+                    </div>
                   )}
-                  
+
                   {/* Creator's Message */}
                   {design.bill_sharing_message && (
                     <div className="mb-3 p-3 bg-white rounded-lg border border-pink-100">
@@ -473,7 +473,7 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Progress Bar */}
                   <div className="mb-3">
                     <div className="flex justify-between text-sm mb-1">
@@ -483,7 +483,7 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
                       </span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2">
-                      <div 
+                      <div
                         className="bg-gradient-to-r from-pink-500 to-purple-500 h-2 rounded-full transition-all"
                         style={{ width: `${progress}%` }}
                       />
@@ -522,10 +522,10 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
                       <p className="font-bold text-green-800 mb-1">Fully Paid & Order Placed!</p>
                       <p className="text-sm text-green-700">
                         This cake has been automatically ordered and will be delivered on{' '}
-                        {design.event_date && new Date(design.event_date + 'T00:00:00').toLocaleDateString('en-US', { 
-                          month: 'long', 
-                          day: 'numeric', 
-                          year: 'numeric' 
+                        {design.event_date && new Date(design.event_date + 'T00:00:00').toLocaleDateString('en-US', {
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric'
                         })}
                         {design.event_time && ` at ${design.event_time}`}
                       </p>
@@ -547,7 +547,7 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
                       </p>
                     </div>
                   )}
-                  
+
                   {/* Hide contribution form if order is placed */}
                   {!design.order_placed && !isFullyFunded ? (
                     <>
@@ -588,7 +588,7 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
                                   const remaining = remainingAmount;
                                   const suggestedAmount = Math.ceil(design.final_price / design.suggested_split_count!);
                                   const halfAmount = Math.ceil(suggestedAmount / 2);
-                                  
+
                                   return (
                                     <>
                                       {halfAmount > 0 && halfAmount <= remaining && (
@@ -621,7 +621,7 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
                               </div>
                             </div>
                           )}
-                          
+
                           <input
                             type="text"
                             placeholder="Your name"
@@ -707,13 +707,13 @@ const SharedDesignPage: React.FC<SharedDesignPageProps> = ({
           onNavigateHome(); // Takes them to design tool
         }}
       />
-       {/* Payment Verification Overlay */}
+      {/* Payment Verification Overlay */}
       {isVerifyingPayment && (
         <>
           <div className="fixed inset-0 bg-black/50 z-40 animate-fade-in" />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center animate-scale-in">
-              <div style={{animation: 'spin 1s linear infinite', borderBottomColor: '#ec4899'}} className="rounded-full h-16 w-16 border-4 border-t-pink-500 border-r-pink-500 border-l-pink-500 mx-auto mb-4"></div>
+              <div style={{ animation: 'spin 1s linear infinite', borderBottomColor: '#ec4899' }} className="rounded-full h-16 w-16 border-4 border-t-pink-500 border-r-pink-500 border-l-pink-500 mx-auto mb-4"></div>
               <h3 className="text-xl font-bold text-slate-800 mb-2">
                 Verifying Payment
               </h3>

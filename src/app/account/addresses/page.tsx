@@ -40,9 +40,9 @@ const AddressCard: React.FC<AddressCardProps> = ({ address, onSetDefault, onDele
       )}
       <div className="flex items-start gap-4">
         <div className="flex-shrink-0">
-            {address.address_label?.toLowerCase() === 'home' ? <Home className="w-6 h-6 text-slate-400" /> :
-             address.address_label?.toLowerCase() === 'work' ? <Building2 className="w-6 h-6 text-slate-400" /> :
-             <MapPin className="w-6 h-6 text-slate-400" />}
+          {address.address_label?.toLowerCase() === 'home' ? <Home className="w-6 h-6 text-slate-400" /> :
+            address.address_label?.toLowerCase() === 'work' ? <Building2 className="w-6 h-6 text-slate-400" /> :
+              <MapPin className="w-6 h-6 text-slate-400" />}
         </div>
         <div className="flex-grow">
           {address.address_label && <p className="text-sm font-bold text-slate-800">{address.address_label}</p>}
@@ -56,11 +56,11 @@ const AddressCard: React.FC<AddressCardProps> = ({ address, onSetDefault, onDele
       )}
       <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-slate-100">
         <button
-            onClick={onEdit}
-            className="flex items-center justify-center text-xs font-semibold text-slate-600 hover:text-pink-600 disabled:opacity-50 transition-colors px-3 py-1.5"
-          >
-            <Pencil className="w-4 h-4 mr-2" />
-            Edit
+          onClick={onEdit}
+          className="flex items-center justify-center text-xs font-semibold text-slate-600 hover:text-pink-600 disabled:opacity-50 transition-colors px-3 py-1.5"
+        >
+          <Pencil className="w-4 h-4 mr-2" />
+          Edit
         </button>
         {!isDefault && (
           <button
@@ -68,7 +68,7 @@ const AddressCard: React.FC<AddressCardProps> = ({ address, onSetDefault, onDele
             disabled={isSettingDefault}
             className="flex items-center justify-center text-xs font-semibold text-slate-600 hover:text-pink-600 disabled:opacity-50 transition-colors px-3 py-1.5"
           >
-             {isSettingDefault ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Star className="w-4 h-4 mr-2" />}
+            {isSettingDefault ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Star className="w-4 h-4 mr-2" />}
             Set as Default
           </button>
         )}
@@ -94,52 +94,52 @@ interface AddressesPageProps {
 export default function AddressesPage({ onClose }: AddressesPageProps) {
   const { user, loading: authLoading } = useAuth();
   const { data: addresses = [], isLoading: dataLoading, error } = useAddresses(user?.id);
-  
+
   const deleteAddressMutation = useDeleteAddress();
   const setDefaultAddressMutation = useSetDefaultAddress();
-  
+
   const [formState, setFormState] = useState<{ mode: 'add' | 'edit'; address?: CakeGenieAddress } | null>(null);
-  
+
   useEffect(() => {
     if (error) {
-        showError(error instanceof Error ? error.message : "Could not fetch addresses.");
+      showError(error instanceof Error ? error.message : "Could not fetch addresses.");
     }
   }, [error]);
 
   const handleSetDefault = (addressId: string) => {
     if (!user) return;
     setDefaultAddressMutation.mutate({ userId: user.id, addressId }, {
-        onSuccess: () => showSuccess("Default address updated."),
-        onError: () => showError("Failed to set default address."),
+      onSuccess: () => showSuccess("Default address updated."),
+      onError: () => showError("Failed to set default address."),
     });
   };
 
   const handleDelete = (addressId: string) => {
     if (!user) return;
     deleteAddressMutation.mutate({ userId: user.id, addressId }, {
-        onSuccess: () => showSuccess("Address deleted."),
-        onError: () => showError("Failed to delete address."),
+      onSuccess: () => showSuccess("Address deleted."),
+      onError: () => showError("Failed to delete address."),
     });
   };
-  
+
   const handleFormSuccess = () => {
-      setFormState(null);
+    setFormState(null);
   };
-  
+
   const pageIsLoading = authLoading || (dataLoading && !addresses.length);
 
   if (pageIsLoading) {
     return (
-        <div className="w-full max-w-3xl mx-auto pb-8 px-4">
-            <div className="flex justify-between items-center mb-6 pt-4">
-                <div className="flex items-center gap-4">
-                    <Skeleton className="h-10 w-10 rounded-full" />
-                    <Skeleton className="h-8 w-48" />
-                </div>
-                <Skeleton className="h-10 w-36 rounded-lg" />
-            </div>
-            <AddressesSkeleton count={2} />
+      <div className="w-full max-w-3xl mx-auto pb-8 px-4">
+        <div className="flex justify-between items-center mb-6 pt-4">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <Skeleton className="h-8 w-48" />
+          </div>
+          <Skeleton className="h-10 w-36 rounded-lg" />
         </div>
+        <AddressesSkeleton count={2} />
+      </div>
     );
   }
 
@@ -156,28 +156,28 @@ export default function AddressesPage({ onClose }: AddressesPageProps) {
     <div className="w-full max-w-3xl mx-auto pb-8 px-4">
       <div className="flex justify-between items-center mb-6 pt-4">
         <div className="flex items-center gap-4">
-            <button onClick={onClose} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Go back">
-                <ArrowLeft />
-            </button>
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text whitespace-nowrap">My Addresses</h1>
+          <button onClick={onClose} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Go back">
+            <ArrowLeft />
+          </button>
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text whitespace-nowrap">My Addresses</h1>
         </div>
         {formState === null && (
-            <button
-                onClick={() => setFormState({ mode: 'add' })}
-                className="flex items-center justify-center bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-3 sm:px-4 rounded-lg shadow-lg hover:shadow-xl transition-all text-sm flex-shrink-0"
-            >
-                <Plus className="w-5 h-5 sm:mr-2" />
-                <span className="hidden sm:inline">Add Address</span>
-            </button>
+          <button
+            onClick={() => setFormState({ mode: 'add' })}
+            className="flex items-center justify-center bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-3 sm:px-4 rounded-lg shadow-lg hover:shadow-xl transition-all text-sm flex-shrink-0"
+          >
+            <Plus className="w-5 h-5 sm:mr-2" />
+            <span className="hidden sm:inline">Add Address</span>
+          </button>
         )}
       </div>
 
       {formState !== null ? (
-        <AddressForm 
-            userId={user.id} 
-            initialData={formState.mode === 'edit' ? formState.address : undefined}
-            onSuccess={handleFormSuccess} 
-            onCancel={() => setFormState(null)} 
+        <AddressForm
+          userId={user.id}
+          initialData={formState.mode === 'edit' ? formState.address : undefined}
+          onSuccess={handleFormSuccess}
+          onCancel={() => setFormState(null)}
         />
       ) : (
         <div className="space-y-4">
@@ -195,8 +195,8 @@ export default function AddressesPage({ onClose }: AddressesPageProps) {
             ))
           ) : (
             <div className="text-center py-16 bg-white/50 rounded-2xl">
-                <MapPin className="w-12 h-12 mx-auto text-slate-400" />
-                <p className="text-slate-500 mt-4">You haven't added any addresses yet.</p>
+              <MapPin className="w-12 h-12 mx-auto text-slate-400" />
+              <p className="text-slate-500 mt-4">You haven't added any addresses yet.</p>
             </div>
           )}
         </div>

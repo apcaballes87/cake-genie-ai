@@ -306,7 +306,8 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
 
         const availableColors = [
             { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
-            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey'], hex: '#FFFFFF' },
+            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey', 'cream'], hex: '#FFFFFF' },
+            { name: 'white', keywords: [], hex: '#F5E6D3' }, // Cream anchor
             { name: 'red', keywords: ['light red', 'dark red', 'red'], hex: '#FF0000' },
             { name: 'blue', keywords: ['light blue', 'dark blue', 'blue'], hex: '#0000FF' },
             { name: 'purple', keywords: ['light purple', 'purple', 'violet'], hex: '#800080' },
@@ -336,7 +337,8 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
 
         const availableColors = [
             { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
-            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey', 'silver'], hex: '#FFFFFF' },
+            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey', 'silver', 'cream'], hex: '#FFFFFF' },
+            { name: 'white', keywords: [], hex: '#F5E6D3' }, // Cream anchor
             { name: 'white', keywords: [], hex: '#808080' }, // Gray anchor
             { name: 'white', keywords: [], hex: '#C0C0C0' }, // Silver anchor
             { name: 'blue', keywords: ['light blue', 'dark blue', 'blue', 'cyan', 'sky', 'azure', 'baby blue'], hex: '#0000FF' },
@@ -374,7 +376,8 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
 
         const availableColors = [
             { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
-            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey'], hex: '#FFFFFF' },
+            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey', 'cream'], hex: '#FFFFFF' },
+            { name: 'white', keywords: [], hex: '#F5E6D3' }, // Cream anchor
             { name: 'red', keywords: ['light red', 'dark red', 'red'], hex: '#FF0000' },
             { name: 'blue', keywords: ['light blue', 'dark blue', 'blue'], hex: '#0000FF' },
             { name: 'purple', keywords: ['light purple', 'purple', 'violet'], hex: '#800080' },
@@ -404,7 +407,8 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
 
         const availableColors = [
             { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
-            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey'], hex: '#FFFFFF' },
+            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey', 'cream'], hex: '#FFFFFF' },
+            { name: 'white', keywords: [], hex: '#F5E6D3' }, // Cream anchor
             { name: 'red', keywords: ['light red', 'dark red', 'red'], hex: '#FF0000' },
             { name: 'blue', keywords: ['light blue', 'dark blue', 'blue'], hex: '#0000FF' },
             { name: 'purple', keywords: ['light purple', 'purple', 'violet'], hex: '#800080' },
@@ -434,7 +438,8 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
 
         const availableColors = [
             { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
-            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey'], hex: '#FFFFFF' },
+            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey', 'cream'], hex: '#FFFFFF' },
+            { name: 'white', keywords: [], hex: '#F5E6D3' }, // Cream anchor
             { name: 'red', keywords: ['light red', 'dark red', 'red'], hex: '#FF0000' },
             { name: 'blue', keywords: ['light blue', 'dark blue', 'blue'], hex: '#0000FF' },
             { name: 'purple', keywords: ['light purple', 'purple', 'violet'], hex: '#800080' },
@@ -1264,10 +1269,12 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                 <div className="w-full min-[1000px]:w-[calc(50%-6px)] flex flex-col gap-2">
                     <div ref={mainImageContainerRef} className="w-full bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 flex flex-col">
                         <div className="p-2 flex-shrink-0">
-                            <div className="bg-slate-100 p-1 rounded-lg flex space-x-1">
-                                <button onClick={() => setActiveTab('original')} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'original' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50'}`}>Original</button>
-                                <button onClick={handleCustomizedTabClick} disabled={!editedImage} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'customized' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50 disabled:text-slate-400 disabled:hover:bg-transparent disabled:cursor-not-allowed'}`}>Customized</button>
-                            </div>
+                            {editedImage && (
+                                <div className="bg-slate-100 p-1 rounded-lg flex space-x-1">
+                                    <button onClick={() => setActiveTab('original')} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'original' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50'}`}>Original</button>
+                                    <button onClick={handleCustomizedTabClick} disabled={!editedImage} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'customized' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50 disabled:text-slate-400 disabled:hover:bg-transparent disabled:cursor-not-allowed'}`}>Customized</button>
+                                </div>
+                            )}
                             {isAnalyzing && (
                                 <div className="mt-3 w-full text-center animate-fade-in">
                                     <div className="w-full bg-slate-200 rounded-full h-2.5 relative overflow-hidden">

@@ -18,6 +18,7 @@ export const COLORS: Color[] = [
   { name: 'Brown', hex: '#78350F' },
   { name: 'Light Brown', hex: '#B45309' },
   { name: 'Gray', hex: '#64748B' },
+  { name: 'Cream', hex: '#F5E6D3' },
   { name: 'White', hex: '#FFFFFF' },
   { name: 'Black', hex: '#000000' },
 ];
