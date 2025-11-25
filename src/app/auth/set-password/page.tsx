@@ -16,6 +16,9 @@ export default function SetPasswordPage() {
         const verifyEmail = async () => {
             const supabase = getSupabaseClient();
 
+            // Wait a bit for Supabase to process the auth tokens from the URL hash
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
             // Check if user just confirmed their email
             const { data: { user } } = await supabase.auth.getUser();
 
@@ -23,8 +26,17 @@ export default function SetPasswordPage() {
                 setEmail(user.email);
                 setIsVerifying(false);
             } else {
-                showError('Invalid or expired link. Please try again.');
-                window.location.href = '/';
+                // Retry once more after another delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                const { data: { user: retryUser } } = await supabase.auth.getUser();
+
+                if (retryUser && retryUser.email) {
+                    setEmail(retryUser.email);
+                    setIsVerifying(false);
+                } else {
+                    showError('Invalid or expired link. Please try again.');
+                    window.location.href = '/';
+                }
             }
         };
 
