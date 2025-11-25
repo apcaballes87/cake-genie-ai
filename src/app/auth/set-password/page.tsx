@@ -16,24 +16,42 @@ export default function SetPasswordPage() {
         const verifyEmail = async () => {
             const supabase = getSupabaseClient();
 
+            console.log('[SetPassword] Starting verification...');
+            console.log('[SetPassword] Current URL:', window.location.href);
+            console.log('[SetPassword] Hash:', window.location.hash);
+
+            // Check session immediately
+            const { data: { session: initialSession } } = await supabase.auth.getSession();
+            console.log('[SetPassword] Initial session:', initialSession);
+
             // Wait a bit for Supabase to process the auth tokens from the URL hash
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             // Check if user just confirmed their email
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            console.log('[SetPassword] First getUser attempt:', { user, userError });
 
             if (user && user.email) {
+                console.log('[SetPassword] User verified successfully:', user.email);
                 setEmail(user.email);
                 setIsVerifying(false);
             } else {
+                console.log('[SetPassword] First attempt failed, retrying...');
                 // Retry once more after another delay
                 await new Promise(resolve => setTimeout(resolve, 1500));
-                const { data: { user: retryUser } } = await supabase.auth.getUser();
+
+                const { data: { session: retrySession } } = await supabase.auth.getSession();
+                console.log('[SetPassword] Retry session:', retrySession);
+
+                const { data: { user: retryUser }, error: retryError } = await supabase.auth.getUser();
+                console.log('[SetPassword] Retry getUser attempt:', { retryUser, retryError });
 
                 if (retryUser && retryUser.email) {
+                    console.log('[SetPassword] User verified on retry:', retryUser.email);
                     setEmail(retryUser.email);
                     setIsVerifying(false);
                 } else {
+                    console.error('[SetPassword] Verification failed after retry');
                     showError('Invalid or expired link. Please try again.');
                     window.location.href = '/';
                 }
