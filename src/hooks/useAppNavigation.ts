@@ -81,7 +81,7 @@ export const useAppNavigation = () => {
             const howToOrderMatch = path.match(/^\/how-to-order\/?$/);
             const reviewsMatch = path.match(/^\/reviews\/?$/);
             const pricingSandboxMatch = path.match(/^\/pricing-sandbox\/?$/);
-            const setPasswordMatch = path.match(/^\/auth\/set-password\/?$/);
+            const setPasswordMatch = path.match(/^\/auth\/set-password/);
 
             if (orderConfirmationMatch && params.get('order_id')) {
                 const orderId = params.get('order_id');
