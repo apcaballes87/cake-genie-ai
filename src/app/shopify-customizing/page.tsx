@@ -24,6 +24,7 @@ import { COLORS } from '../../constants';
 import ReportModal from '../../components/ReportModal';
 import { FloatingResultPanel } from '../../components/FloatingResultPanel';
 import { AnalysisItem } from '../customizing/page';
+import { roundDownToNearest99 } from '../../lib/utils/pricing';
 
 interface ShopifyCustomizingPageProps {
   sessionId: string;
@@ -185,7 +186,9 @@ const ShopifyCustomizingPage: React.FC<ShopifyCustomizingPageProps> = ({ session
   const totalAddOnPrice = addOnPricing?.addOnPrice ?? 0;
   const finalShopifyPrice = useMemo(() => {
     if (!requestData) return 0;
-    return requestData.shopify_base_price + totalAddOnPrice;
+    const rawPrice = requestData.shopify_base_price + totalAddOnPrice;
+    // Round down to nearest 99, but never go below the Shopify base price
+    return roundDownToNearest99(rawPrice, requestData.shopify_base_price);
   }, [requestData, totalAddOnPrice]);
 
   const primaryMessage = useMemo(() => cakeMessages.find(m => m.position !== 'base_board' && !m.originalMessage), [cakeMessages]);

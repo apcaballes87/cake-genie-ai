@@ -15,6 +15,7 @@ import {
     CakeThickness,
 } from '../types';
 import { DEFAULT_THICKNESS_MAP } from '../constants';
+import { roundDownToNearest99 } from '../lib/utils/pricing';
 
 const cakeTypeDisplayMap: Record<CakeType, string> = {
     '1 Tier': '1 Tier (Soft icing)',
@@ -30,7 +31,7 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
 
 const pricingKeys = {
     basePrice: (type?: CakeType, thickness?: CakeThickness) =>
-      ['pricing', 'base', type, thickness] as const,
+        ['pricing', 'base', type, thickness] as const,
     addOnPrice: (uiState: any) => ['pricing', 'addon', uiState] as const,
 };
 
@@ -79,7 +80,7 @@ export const usePricing = ({
             if (!cakeInfo?.type || !cakeInfo?.thickness) {
                 return { options: [], effectiveThickness: cakeInfo?.thickness };
             }
-            
+
             let results = await getCakeBasePriceOptions(cakeInfo.type, cakeInfo.thickness);
             let effectiveThickness = cakeInfo.thickness;
 
@@ -93,7 +94,7 @@ export const usePricing = ({
                     }
                 }
             }
-            
+
             if (results.length === 0) {
                 throw new Error(`We don't have price options for a "${cakeTypeDisplayMap[cakeInfo.type]}" cake. Please try another design.`);
             }
@@ -103,7 +104,7 @@ export const usePricing = ({
         enabled: !!cakeInfo?.type && !!cakeInfo?.thickness && !initialPriceInfo,
         staleTime: 5 * 60 * 1000,
     });
-    
+
     const basePriceOptions = useMemo(() => {
         if (initialPriceInfo) return [initialPriceInfo];
         return queryResult?.options || null;
@@ -112,7 +113,7 @@ export const usePricing = ({
     const basePriceError = useMemo(() => {
         return queryError ? (queryError as Error).message : null;
     }, [queryError]);
-    
+
     useEffect(() => {
         if (initialPriceInfo) {
             onCakeInfoCorrection({ size: initialPriceInfo.size }, { isSystemCorrection: true });
@@ -121,10 +122,10 @@ export const usePricing = ({
 
         if (queryResult && cakeInfo) {
             const { options, effectiveThickness } = queryResult;
-            
+
             if (options.length > 0) {
                 const updates: Partial<CakeInfoUI> = {};
-                
+
                 if (effectiveThickness && effectiveThickness !== cakeInfo.thickness) {
                     updates.thickness = effectiveThickness;
                 }
@@ -148,13 +149,13 @@ export const usePricing = ({
     }, [queryResult, cakeInfo, onCakeInfoCorrection, analysisId, initialPriceInfo]);
 
     const uiStateForQuery = { mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo };
-    const { 
+    const {
         data: addonPricingResult,
         isLoading: isCalculatingAddons
     } = useQuery({
         queryKey: pricingKeys.addOnPrice(uiStateForQuery),
         queryFn: () => {
-             if (!analysisResult || !icingDesign || !cakeInfo) {
+            if (!analysisResult || !icingDesign || !cakeInfo) {
                 return { addOnPricing: null, itemPrices: new Map<string, number>() };
             }
             return calculateAddOnPrice({ mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo });
@@ -167,14 +168,19 @@ export const usePricing = ({
     const itemPrices = addonPricingResult?.itemPrices ?? new Map<string, number>();
 
     const selectedPriceOption = useMemo(
-        () => basePriceOptions?.find(opt => opt.size === cakeInfo?.size), 
+        () => basePriceOptions?.find(opt => opt.size === cakeInfo?.size),
         [basePriceOptions, cakeInfo?.size]
     );
 
     const basePrice = selectedPriceOption?.price;
 
     const finalPrice = useMemo(
-        () => (basePrice !== undefined && addOnPricing ? basePrice + addOnPricing.addOnPrice : null), 
+        () => {
+            if (basePrice === undefined || !addOnPricing) return null;
+            const rawPrice = basePrice + addOnPricing.addOnPrice;
+            // Round down to nearest 99, but never go below the base price
+            return roundDownToNearest99(rawPrice, basePrice);
+        },
         [basePrice, addOnPricing]
     );
 

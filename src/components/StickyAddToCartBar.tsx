@@ -63,7 +63,8 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({ pric
     };
 
     const renderAvailabilityNotification = () => {
-        if (!availability) return null;
+        // Hide availability bar during AI analysis
+        if (isAnalyzing || !availability) return null;
 
         if (availability === 'rush') {
             return (
