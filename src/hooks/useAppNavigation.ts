@@ -51,9 +51,12 @@ export const useAppNavigation = () => {
 
         const handleRouting = () => {
             console.log('[Routing] Handling route for hash:', window.location.hash);
-            const pathWithQuery = window.location.hash.substring(1) || ''; // e.g., /order-confirmation?order_id=...
+            let pathWithQuery = window.location.hash.substring(1) || ''; // e.g., /order-confirmation?order_id=... or /auth/set-password#access_token=...
 
-            const [path = '', queryString] = pathWithQuery.split('?');
+            // Supabase appends auth tokens with # (e.g., #access_token=...), so we need to handle both ? and #
+            // Split by # first to remove Supabase auth tokens, then split by ? for regular query params
+            const [pathWithPossibleQuery] = pathWithQuery.split('#');
+            const [path = '', queryString] = pathWithPossibleQuery.split('?');
             const params = new URLSearchParams(queryString || '');
 
             console.log('[Routing] Parsed Path:', path, 'Query:', queryString);
