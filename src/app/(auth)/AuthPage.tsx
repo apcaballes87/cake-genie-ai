@@ -107,7 +107,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(emailForgot, {
-        redirectTo: `${window.location.origin}/#/auth/set-password`,
+        redirectTo: 'https://www.genie.ph/#/auth/set-password',
       });
 
       if (error) throw error;
