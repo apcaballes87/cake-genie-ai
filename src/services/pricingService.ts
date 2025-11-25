@@ -42,9 +42,9 @@ function getEdible2DSupportPrice(coverage: Coverage): number {
 
 
 function extractTierCount(cakeType: CakeType): number {
-  if (cakeType.includes('3 Tier')) return 3;
-  if (cakeType.includes('2 Tier')) return 2;
-  return 1;
+    if (cakeType.includes('3 Tier')) return 3;
+    if (cakeType.includes('2 Tier')) return 2;
+    return 1;
 }
 
 // --- Main Calculation Logic ---
@@ -61,7 +61,7 @@ export const calculatePrice = (
 
     const { mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo } = uiState;
     const breakdown: { item: string; price: number; }[] = [];
-    
+
     const itemPrices = new Map<string, number>();
     let heroGumpasteTotal = 0;
     let supportGumpasteRawTotal = 0;
@@ -77,7 +77,7 @@ export const calculatePrice = (
         }
 
         let price = 0;
-        
+
         switch (topper.type) {
             case 'edible_3d_complex':
                 price = getEdible3DComplexPrice(topper.size) * topper.quantity;
@@ -163,7 +163,7 @@ export const calculatePrice = (
             default:
                 price = 0;
         }
-        
+
         itemPrices.set(topper.id, price);
         if (price > 0) {
             breakdown.push({ item: topper.description, price });
@@ -176,7 +176,7 @@ export const calculatePrice = (
             itemPrices.set(element.id, 0);
             return;
         }
-        
+
         let price = 0;
         switch (element.type) {
             case 'edible_3d_support':
@@ -187,9 +187,9 @@ export const calculatePrice = (
                 price = getEdible2DSupportPrice(element.coverage); // Use new function
                 supportGumpasteRawTotal += price;
                 break;
-            
+
             // --- Legacy gumpaste types are removed, logic for other types remains ---
-            
+
             case 'icing_doodle':
                 if (element.description?.toLowerCase().includes('intricate') || element.description?.toLowerCase().includes('complex')) {
                     price = cakeInfo.type === 'Bento' ? 50 : 100;
@@ -198,7 +198,7 @@ export const calculatePrice = (
                     nonGumpasteTotal += price;
                 }
                 break;
-            
+
             case 'icing_palette_knife':
                 const isIntricateSupport = element.description?.toLowerCase().includes('intricate');
                 if (element.coverage === 'large' && isIntricateSupport) { // Changed from 'heavy'
@@ -216,7 +216,7 @@ export const calculatePrice = (
                 else if (element.coverage === 'small') price = 50; // Changed from 'light'
                 nonGumpasteTotal += price;
                 break;
-            
+
             case 'sprinkles':
             case 'dragees':
                 if (element.coverage === 'large') price = 100; // Changed from 'heavy'
@@ -228,7 +228,7 @@ export const calculatePrice = (
                 price = isComplex ? 500 : 200;
                 nonGumpasteTotal += price;
                 break;
-            
+
             case 'edible_photo_side':
                 if (element.coverage === 'large') price = 300;
                 else if (element.coverage === 'medium') price = 200;
@@ -243,7 +243,7 @@ export const calculatePrice = (
                 else if (element.coverage === 'small') price = 100;
                 nonGumpasteTotal += price; // Assuming these might not be gumpaste, e.g., real flowers
                 break;
-            
+
             default:
                 price = 0;
         }
@@ -274,7 +274,7 @@ export const calculatePrice = (
     } else {
         itemPrices.set('icing_drip', 0);
     }
-    
+
     if (icingDesign.gumpasteBaseBoard) {
         const baseBoardPrice = 100;
         nonGumpasteTotal += baseBoardPrice; // No longer eligible for allowance
@@ -291,7 +291,7 @@ export const calculatePrice = (
     if (allowanceApplied > 0) {
         breakdown.push({ item: "Gumpaste Allowance", price: -allowanceApplied });
     }
-    
+
     const addOnPrice = heroGumpasteTotal + supportGumpasteCharge + nonGumpasteTotal;
 
     return {

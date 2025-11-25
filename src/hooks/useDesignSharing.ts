@@ -40,20 +40,20 @@ function calculateAvailabilityForSharing(mainToppers: MainTopperUI[], supportEle
     if (complexTypes.includes(cakeInfo.type) || icingDesign.base === 'fondant') {
         return 'normal';
     }
-    
+
     // FIX: The 'edible_3d' type no longer exists. Updated to check for related types
     // 'edible_3d_complex' and 'edible_3d_ordinary'.
     const has3dTopper = mainToppers.some(t => t.isEnabled && (t.type === 'edible_3d_complex' || t.type === 'edible_3d_ordinary'));
     const hasDrip = icingDesign.drip;
     const hasGumpasteBase = icingDesign.gumpasteBaseBoard;
-    
+
     if (has3dTopper || hasDrip || hasGumpasteBase) {
         return 'normal';
     }
 
     // --- Step 2: Check for Fast-Track Eligibility ---
-    const isFastTrackEligible = 
-        (cakeInfo.type === '1 Tier' && (cakeInfo.size === '6" Round' || cakeInfo.size === '8" Round')) || 
+    const isFastTrackEligible =
+        (cakeInfo.type === '1 Tier' && (cakeInfo.size === '6" Round' || cakeInfo.size === '8" Round')) ||
         (cakeInfo.type === 'Bento');
 
     if (!isFastTrackEligible) {
@@ -71,7 +71,7 @@ function calculateAvailabilityForSharing(mainToppers: MainTopperUI[], supportEle
     if (hasGumpasteSupport || hasEdiblePhoto) {
         return 'same-day';
     }
-    
+
     // If it passes all checks, it's a Rush order.
     return 'rush';
 }
@@ -105,16 +105,16 @@ export const useDesignSharing = ({
     };
 
     const createShareLink = useCallback(async (config: {
-      billSharingEnabled: boolean;
-      billSharingMessage?: string;
-      suggestedSplitCount?: number;
-      // ADD THESE:
-      deliveryAddress?: string;
-      deliveryCity?: string;
-      deliveryPhone?: string;
-      eventDate?: string;
-      eventTime?: string;
-      recipientName?: string;
+        billSharingEnabled: boolean;
+        billSharingMessage?: string;
+        suggestedSplitCount?: number;
+        // ADD THESE:
+        deliveryAddress?: string;
+        deliveryCity?: string;
+        deliveryPhone?: string;
+        eventDate?: string;
+        eventTime?: string;
+        recipientName?: string;
     }) => {
         const imageUrlToShare = editedImage || originalImagePreview;
         if (!imageUrlToShare || !analysisResult || !cakeInfo || basePrice === undefined || finalPrice === null || !icingDesign) {
@@ -159,32 +159,32 @@ export const useDesignSharing = ({
                 },
                 additionalInstructions: additionalInstructions.trim(),
             };
-            
+
             const designData = {
-              customizedImageUrl: imageUrlToShare,
-              originalImageUrl: originalImagePreview || undefined,
-              cakeType: cakeInfo.type,
-              cakeSize: cakeInfo.size,
-              cakeFlavor: cakeInfo.flavors.join(', '),
-              cakeThickness: cakeInfo.thickness,
-              icingColors: colorsList,
-              accessories: accessoriesList,
-              basePrice,
-              finalPrice,
-              availabilityType,
-              title: `${cakeInfo.size} ${cakeInfo.type} Cake`,
-              description: 'A custom cake design from Genie.',
-              altText: `A custom ${cakeInfo.type} cake.`,
-              billSharingEnabled: config.billSharingEnabled,
-              billSharingMessage: config.billSharingMessage,
-              suggestedSplitCount: config.suggestedSplitCount,
-              deliveryAddress: config.deliveryAddress,
-              deliveryCity: config.deliveryCity,
-              deliveryPhone: config.deliveryPhone,
-              eventDate: config.eventDate,
-              eventTime: config.eventTime,
-              recipientName: config.recipientName,
-              customization_details: customizationDetails,
+                customizedImageUrl: imageUrlToShare,
+                originalImageUrl: originalImagePreview || undefined,
+                cakeType: cakeInfo.type,
+                cakeSize: cakeInfo.size,
+                cakeFlavor: cakeInfo.flavors.join(', '),
+                cakeThickness: cakeInfo.thickness,
+                icingColors: colorsList,
+                accessories: accessoriesList,
+                basePrice,
+                finalPrice,
+                availabilityType,
+                title: `${cakeInfo.size} ${cakeInfo.type} Cake`,
+                description: 'A custom cake design from Genie.',
+                altText: `A custom ${cakeInfo.type} cake.`,
+                billSharingEnabled: config.billSharingEnabled,
+                billSharingMessage: config.billSharingMessage,
+                suggestedSplitCount: config.suggestedSplitCount,
+                deliveryAddress: config.deliveryAddress,
+                deliveryCity: config.deliveryCity,
+                deliveryPhone: config.deliveryPhone,
+                eventDate: config.eventDate,
+                eventTime: config.eventTime,
+                recipientName: config.recipientName,
+                customization_details: customizationDetails,
             };
 
             const result = await saveDesignToShare(designData);

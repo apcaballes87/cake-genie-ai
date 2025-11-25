@@ -545,11 +545,18 @@ export async function createOrderFromCart(
     eventTime: string;
     deliveryAddressId: string | null;
     deliveryInstructions?: string;
+    deliveryFee?: number;
     discountAmount?: number;
     discountCodeId?: string;
+    guestAddress?: {
+      recipientName: string;
+      recipientPhone: string;
+      streetAddress: string;
+      city?: string;
+    };
   }
 ): Promise<{ success: boolean, order?: any, error?: Error }> {
-  const { cartItems, eventDate, eventTime, deliveryAddressId, deliveryInstructions, discountAmount, discountCodeId } = params;
+  const { cartItems, eventDate, eventTime, deliveryAddressId, deliveryInstructions, deliveryFee = 0, discountAmount, discountCodeId, guestAddress } = params;
 
   try {
     if (!cartItems || cartItems.length === 0) {
@@ -558,17 +565,25 @@ export async function createOrderFromCart(
 
     // FIX: Fetch the user directly before the operation to ensure the most
     // up-to-date session is used, preventing RLS violations.
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    let activeUser = user;
+
+    if (userError || !activeUser) {
+      console.warn("getUser failed, falling back to getSession:", userError);
+      const { data: { session } } = await supabase.auth.getSession();
+      activeUser = session?.user || null;
+    }
+
+    if (!activeUser) {
       throw new Error("Authentication error: User session not found.");
     }
 
     const subtotal = cartItems.reduce((sum, item) => sum + (item.final_price * item.quantity), 0);
-    const deliveryFee = 150; // Fixed delivery fee for now
 
     // Call the atomic RPC function
     const { data, error } = await supabase.rpc('create_order_from_cart', {
-      p_user_id: user.id,
+      p_user_id: activeUser.id,
       p_delivery_address_id: deliveryAddressId,
       p_delivery_date: eventDate,
       p_delivery_time_slot: eventTime,
@@ -577,6 +592,11 @@ export async function createOrderFromCart(
       p_delivery_instructions: deliveryInstructions || null,
       p_discount_amount: discountAmount || 0,
       p_discount_code_id: discountCodeId || null,
+      // Guest address params
+      p_recipient_name: guestAddress?.recipientName || null,
+      p_recipient_phone: guestAddress?.recipientPhone || null,
+      p_delivery_address: guestAddress?.streetAddress || null,
+      p_delivery_city: guestAddress?.city || 'Cebu City', // Default to Cebu City if not provided
     });
 
     if (error) throw error;
@@ -603,6 +623,67 @@ export async function createOrderFromCart(
     console.error('Error creating order:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     const message = (error && error.message) || 'An unknown error occurred during order creation.';
     return { success: false, error: new Error(message) };
+  }
+}
+
+/**
+ * Create a user record in cakegenie_users for an anonymous user
+ * This is called when a guest places their first order
+ */
+export async function createGuestUser(params: {
+  userId: string;
+  email: string;
+  firstName?: string;
+  phoneNumber?: string;
+}): Promise<{ success: boolean; error?: Error; emailAlreadyExists?: boolean }> {
+  try {
+    const { userId, email, firstName, phoneNumber } = params;
+
+    // Check if user already exists by user_id
+    const { data: existing } = await supabase
+      .from('cakegenie_users')
+      .select('user_id')
+      .eq('user_id', userId)
+      .single();
+
+    if (existing) {
+      // User already exists, no need to create
+      return { success: true };
+    }
+
+    // Check if email is already registered
+    const { data: emailExists } = await supabase
+      .from('cakegenie_users')
+      .select('user_id, email')
+      .eq('email', email)
+      .single();
+
+    if (emailExists) {
+      // Email is already registered with another account
+      return {
+        success: false,
+        error: new Error('This email is already registered. Please sign in to continue.'),
+        emailAlreadyExists: true
+      };
+    }
+
+    // Create user record
+    const { error } = await supabase
+      .from('cakegenie_users')
+      .insert({
+        user_id: userId,
+        email: email,
+        first_name: firstName || 'Guest',
+        phone_number: phoneNumber || null,
+        created_at: new Date().toISOString(),
+      });
+
+    if (error) throw error;
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error creating guest user:', error);
+    return { success: false, error };
   }
 }
 

@@ -26,7 +26,10 @@ export async function createXenditPayment(params: CreatePaymentParams): Promise<
   try {
     // Get the current session to include auth token
     const { data: { session } } = await supabase.auth.getSession();
-    
+
+    // Get payment mode from localStorage (test or live)
+    const paymentMode = (typeof window !== 'undefined' && localStorage.getItem('xendit_payment_mode')) || 'test';
+
     // Dynamically construct redirect URLs based on the current domain.
     // This fixes the issue where deployed apps would fail on payment redirects.
     const domain = window.location.origin;
@@ -37,8 +40,9 @@ export async function createXenditPayment(params: CreatePaymentParams): Promise<
       ...params,
       success_redirect_url: successUrl,
       failure_redirect_url: failureUrl,
+      payment_mode: paymentMode, // Send payment mode to edge function
     };
-    
+
     // Call the Edge Function
     const { data, error } = await supabase.functions.invoke('create-xendit-payment', {
       body: bodyWithUrls,
@@ -96,9 +100,12 @@ export async function getPaymentStatus(orderId: string) {
 export async function verifyXenditPayment(orderId: string): Promise<{ success: boolean; status?: string; error?: string }> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    
+
+    // Get payment mode from localStorage (test or live)
+    const paymentMode = (typeof window !== 'undefined' && localStorage.getItem('xendit_payment_mode')) || 'test';
+
     const { data, error } = await supabase.functions.invoke('verify-xendit-payment', {
-      body: { orderId },
+      body: { orderId, payment_mode: paymentMode },
       headers: session ? {
         Authorization: `Bearer ${session.access_token}`
       } : {}

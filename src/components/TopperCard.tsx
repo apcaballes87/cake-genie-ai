@@ -117,7 +117,7 @@ export const TopperCard: React.FC<{
                         {((item as MainTopperUI).quantity || 0) > 1 && ` × ${(item as MainTopperUI).quantity}`}
                     </div>
                     <div className="text-xs text-slate-500 mt-0.5">
-                        {materialLabel} • {'size' in item ? item.size : 'coverage' in item ? item.coverage : ''}
+                        {materialLabel} • {item.size}
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -157,7 +157,7 @@ export const TopperCard: React.FC<{
                                 {isOriginalPrintoutTopper && (
                                     <>
                                         <button onClick={() => updateItem({ type: 'printout' })} className={`px-2 py-1 text-xs font-semibold rounded ${item.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Paper Printout</button>
-                                        <button onClick={() => updateItem({ type: 'edible_photo_top' })} className={`px-2 py-1 text-xs font-semibold rounded ${item.type === 'edible_photo_top' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Edible Image</button>
+                                        <button onClick={() => updateItem({ type: 'edible_photo_print', coverage: 'tiny' })} className={`px-2 py-1 text-xs font-semibold rounded ${item.type === 'edible_photo_print' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Edible Image</button>
                                     </>
                                 )}
                                 {canBeSwitchedToPrintoutTopper && (

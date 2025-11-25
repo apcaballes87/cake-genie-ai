@@ -216,6 +216,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const prevUserIdRef = useRef<string | null>(null);
   const isInitializingRef = useRef<boolean>(true); // Track if we're in initial load
+  const cartItemsRef = useRef(cartItems);
+
+  useEffect(() => {
+    cartItemsRef.current = cartItems;
+  }, [cartItems]);
 
   const [eventDate, setEventDateState] = useState<string>(() => {
     return readFromLocalStorage('cart_event_date') || '';
@@ -381,6 +386,42 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Only reload the cart if the user has actually changed.
       if (currentUserId !== prevUserIdRef.current) {
+        // Check for guest -> user transition with local items
+        const isUpgrade = !prevUserIdRef.current && currentUserId;
+        const localItems = cartItemsRef.current;
+
+        // Only sync if upgrading AND not just initializing (refreshing page)
+        if (isUpgrade && localItems.length > 0 && !isInitializingRef.current) {
+          console.log("Syncing guest items to new user...", localItems.length);
+          try {
+            const syncPromise = Promise.all(localItems.map(async (item) => {
+              const { cart_item_id, created_at, updated_at, expires_at, ...itemParams } = item;
+              const result = await addToCartService({
+                ...itemParams,
+                user_id: user?.is_anonymous ? null : user?.id, // For real users
+                session_id: user?.is_anonymous ? user?.id : null // For anonymous users
+              });
+              if (result.error) {
+                console.error("Failed to sync item:", itemParams.cake_type, result.error);
+              }
+              return result;
+            }));
+
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error("Cart sync timed out")), 3000)
+            );
+
+            await Promise.race([syncPromise, timeoutPromise]);
+            console.log("Guest items synced successfully.");
+
+            // Clear local cart items to prevent duplication
+            setCartItems([]);
+            batchRemoveFromLocalStorage('cart_items_cache');
+          } catch (err) {
+            console.error("Failed to sync guest items (or timed out):", err);
+          }
+        }
+
         prevUserIdRef.current = currentUserId;
         setCurrentUser(user);
 

@@ -37,11 +37,11 @@ export const useAuth = () => {
     metadata?: { first_name?: string, last_name?: string }
   ) => {
     const { data, error } = await supabase.auth.signUp({
-        email: credentials.email,
-        password: credentials.password,
-        options: {
-            data: metadata
-        }
+      email: credentials.email,
+      password: credentials.password,
+      options: {
+        data: metadata
+      }
     });
     return { data, error };
   }, []);
@@ -70,6 +70,11 @@ export const useAuth = () => {
     }
   }, []);
 
+  const signInAnonymously = useCallback(async () => {
+    const { data, error } = await supabase.auth.signInAnonymously();
+    return { data, error };
+  }, []);
+
   return {
     user,
     loading,
@@ -77,5 +82,6 @@ export const useAuth = () => {
     signUp,
     signIn,
     signOut,
+    signInAnonymously,
   };
 };

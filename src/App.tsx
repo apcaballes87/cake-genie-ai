@@ -45,6 +45,7 @@ const ContactPage = lazy(() => import('./app/contact/page'));
 const ReviewsPage = lazy(() => import('./app/reviews/page'));
 const ShopifyCustomizingPage = lazy(() => import('./app/shopify-customizing/page'));
 const PricingSandboxPage = lazy(() => import('./app/pricing-sandbox/page'));
+const SetPasswordPage = lazy(() => import('./app/auth/set-password/page'));
 const NotFoundPage = lazy(() => import('./app/not-found/page'));
 
 // Lazy load heavy modal components
@@ -616,6 +617,7 @@ ${prompt}
       case 'contact': return <ContactPage onClose={() => setAppState('landing')} />;
       case 'reviews': return <ReviewsPage onClose={() => setAppState('landing')} />;
       case 'pricing_sandbox': return <PricingSandboxPage onClose={() => setAppState('landing')} />;
+      case 'set_password': return <SetPasswordPage />;
       case 'not_found': return <NotFoundPage onGoHome={() => setAppState('landing')} />;
       default: return <LandingPage user={user} onSearch={(q) => { setSearchInput(q); handleSearch(q); }} onUploadClick={() => setIsUploaderOpen(true)} setAppState={setAppState as React.Dispatch<React.SetStateAction<AppState>>} />;
     }

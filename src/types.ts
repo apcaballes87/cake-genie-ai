@@ -11,7 +11,6 @@ export type SupportElementType = 'edible_3d_support' | 'edible_2d_support' | 'ch
 export type CakeMessageType = 'gumpaste_letters' | 'icing_script' | 'printout' | 'cardstock';
 
 export type Size = 'small' | 'medium' | 'large' | 'tiny' | 'mixed';
-export type Coverage = 'large' | 'medium' | 'small' | 'tiny';
 
 export interface Color {
   name: string;
@@ -34,7 +33,7 @@ export interface MainTopper {
 export interface SupportElement {
   type: SupportElementType;
   description: string;
-  coverage: Coverage;
+  size: Size;
   group_id: string;
   color?: string;
   colors?: (string | null)[];
@@ -170,7 +169,7 @@ export interface CartItemDetails {
   supportElements: {
     description: string;
     type: string;
-    coverage?: string;
+    size?: string;
   }[];
   cakeMessages: {
     text: string;
@@ -219,7 +218,6 @@ export interface PricingRule {
   item_type: string;
   classification: string | null;  // 'hero', 'support', 'special', 'message', 'icing'
   size: 'large' | 'medium' | 'small' | 'tiny' | null;
-  coverage: 'large' | 'medium' | 'small' | 'tiny' | null;
   description: string;
   price: number;
   category: 'main_topper' | 'support_element' | 'special' | 'message' | 'icing_feature' | null;

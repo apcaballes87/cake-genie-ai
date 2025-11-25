@@ -5,13 +5,15 @@ import { useAddresses } from '../../hooks/useAddresses';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
 import { Loader2, CloseIcon, TrashIcon } from '../../components/icons';
 import { MapPin, Search, X } from 'lucide-react';
+import { PaymentModeToggle } from '../../components/PaymentModeToggle';
 import { CartItem, CartItemDetails, CakeType } from '../../types';
 import { CakeGenieAddress } from '../../lib/database.types';
 import { CartSkeleton } from '../../components/LoadingSkeletons';
 import { CITIES_AND_BARANGAYS } from '../../constants';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import DetailItem from '../../components/UI/DetailItem';
-import { createOrderFromCart, getAvailableDeliveryDates, getBlockedDatesInRange, AvailableDate, BlockedDateInfo } from '../../services/supabaseService';
+import { createOrderFromCart, getAvailableDeliveryDates, getBlockedDatesInRange, AvailableDate, BlockedDateInfo, createGuestUser } from '../../services/supabaseService';
+import { upgradeAnonymousToEmailAccount } from '../../services/accountActivation';
 import { createXenditPayment } from '../../services/xenditService';
 import AddressForm, { StaticMap } from '../../components/AddressForm';
 import { useGoogleMapsLoader } from '../../contexts/GoogleMapsLoaderContext';
@@ -63,8 +65,27 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
     // Add canonical URL for SEO
     useCanonicalUrl('/cart');
 
-    const { user } = useAuth();
+    const { user, signInAnonymously } = useAuth();
     const isRegisteredUser = !!(user && !user.is_anonymous);
+    const isAuthenticated = !!user;
+    const isAnonymous = !!user?.is_anonymous;
+
+    const [guestEmail, setGuestEmail] = useState(() => readFromLocalStorage('cart_guest_email') || '');
+    const [isGuestLoading, setIsGuestLoading] = useState(false);
+
+    const handleGuestCheckout = async () => {
+        setIsGuestLoading(true);
+        try {
+            const { error } = await signInAnonymously();
+            if (error) throw error;
+            // User state will update automatically via useAuth
+        } catch (error: any) {
+            showError(error.message || 'Failed to start guest checkout');
+        } finally {
+            setIsGuestLoading(false);
+        }
+    };
+
     const {
         cartItems,
         eventDate,
@@ -104,6 +125,42 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
     const [isCreatingPayment, setIsCreatingPayment] = useState(false);
     const [partiallyBlockedSlots, setPartiallyBlockedSlots] = useState<BlockedDateInfo[]>([]);
     const [tooltip, setTooltip] = useState<{ date: string; reason: string; } | null>(null);
+    // Guest Address State
+    const [guestAddress, setGuestAddress] = useState<CakeGenieAddress | null>(() => {
+        const saved = readFromLocalStorage('cart_guest_address');
+        try {
+            return saved ? JSON.parse(saved) : null;
+        } catch (e) {
+            console.error('Failed to parse saved guest address', e);
+            return null;
+        }
+    });
+
+    // Auto-open address form for guest users
+    // Auto-open address form for guest users
+    useEffect(() => {
+        if (user?.is_anonymous && !isAddingAddress && savedAddresses.length === 0 && !guestAddress) {
+            setIsAddingAddress(true);
+        }
+    }, [user, isAddingAddress, savedAddresses, guestAddress]);
+
+    // Persist guest email to localStorage
+    useEffect(() => {
+        if (guestEmail) {
+            batchSaveToLocalStorage('cart_guest_email', guestEmail);
+        } else {
+            batchRemoveFromLocalStorage('cart_guest_email');
+        }
+    }, [guestEmail]);
+
+    // Persist guest address to localStorage
+    useEffect(() => {
+        if (guestAddress) {
+            batchSaveToLocalStorage('cart_guest_address', JSON.stringify(guestAddress));
+        } else {
+            batchRemoveFromLocalStorage('cart_guest_address');
+        }
+    }, [guestAddress]);
 
     // State for discount
     const [discountCode, setDiscountCode] = useState<string>(() => readFromLocalStorage('cart_discount_code') || '');
@@ -195,7 +252,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
         }
     }, [urlDiscountCode, onDiscountCodeProcessed, subtotal]);
 
-    const deliveryFee = 150;
+    const deliveryFee = 0;
     const discountAmount = appliedDiscount?.discountAmount || 0;
     const total = subtotal + deliveryFee - discountAmount;
 
@@ -430,77 +487,150 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
 
     const handleNewAddressSuccess = (newAddress?: CakeGenieAddress) => {
         if (newAddress) {
-            setSelectedAddressId(newAddress.address_id);
+            // Defensive check: If address ID starts with 'guest-', treat it as guest address
+            if (newAddress.address_id.startsWith('guest-')) {
+                setGuestAddress(newAddress);
+            } else {
+                setSelectedAddressId(newAddress.address_id);
+            }
         }
         setIsAddingAddress(false);
     };
 
+    const handleGuestAddressSuccess = (newAddress?: CakeGenieAddress) => {
+        if (newAddress) {
+            setGuestAddress(newAddress);
+            setIsAddingAddress(false);
+        }
+    };
+
     const handleSubmitOrder = async () => {
-        if (!isRegisteredUser) {
-            showError('Please sign in or create an account to place an order.');
-            onAuthRequired();
+        if (!isAuthenticated) {
+
+            showError('Please sign in or continue as guest to place an order.');
             return;
         }
+
+        if (isAnonymous && !guestEmail) {
+            showError('Please enter your email address.');
+            return;
+        }
+
+        // For registered users, they must have a selected address.
+        // For guests, they must have a guestAddress.
+        if (!isAnonymous && !selectedAddress) {
+            showError('Please select or add a delivery address.');
+            return;
+        }
+        if (isAnonymous && !guestAddress) {
+            showError('Please enter your delivery address.');
+            return;
+        }
+
+        if (!eventDate || !eventTime) {
+            showError('Please select delivery date and time');
+            return;
+        }
+
+        setIsPlacingOrder(true);
         try {
-            if (!selectedAddress) {
-                showError('Please select a delivery address');
-                return;
-            }
-            if (!eventDate || !eventTime) {
-                showError('Please select delivery date and time');
-                return;
+            // For anonymous users, create a user record first
+            if (isAnonymous && user) {
+                const { success: userCreated, error: userError, emailAlreadyExists } = await createGuestUser({
+                    userId: user.id,
+                    email: guestEmail,
+                    firstName: guestAddress?.recipient_name,
+                    phoneNumber: guestAddress?.recipient_phone,
+                });
+
+                if (!userCreated) {
+                    if (emailAlreadyExists) {
+                        // Email is already registered - prompt to sign in
+                        showError('This email is already registered. Please sign in to continue.');
+                        setIsPlacingOrder(false);
+                        // Optionally trigger the sign-in modal
+                        onAuthRequired?.();
+                        return;
+                    }
+                    throw new Error(userError?.message || 'Failed to create user account');
+                }
             }
 
-            setIsPlacingOrder(true);
-
-            const orderResult = await createOrderFromCart({
+            // 1. Create Order
+            const { success, order, error } = await createOrderFromCart({
                 cartItems,
                 eventDate,
                 eventTime,
+                deliveryAddressId: isAnonymous ? null : selectedAddress?.address_id || null,
                 deliveryInstructions,
-                deliveryAddressId: selectedAddressId,
+                deliveryFee,
                 discountAmount: appliedDiscount?.discountAmount,
                 discountCodeId: appliedDiscount?.codeId,
+                guestAddress: isAnonymous && guestAddress ? {
+                    recipientName: guestAddress.recipient_name,
+                    recipientPhone: guestAddress.recipient_phone,
+                    streetAddress: guestAddress.street_address,
+                    city: guestAddress.city
+                } : undefined
             });
 
-            if (!orderResult.success || !orderResult.order) {
-                throw new Error(orderResult.error?.message || 'Failed to create order');
+            if (!success || !order) {
+                throw error || new Error('Failed to create order.');
             }
 
-            const orderId = orderResult.order.order_id;
+            // 2. Create Payment
+            const emailToUse = isAnonymous ? guestEmail : user?.email || 'customer@example.com';
+            const nameToUse = isAnonymous ? guestAddress?.recipient_name : user?.user_metadata?.first_name || selectedAddress?.recipient_name || 'Customer';
 
-            showSuccess('Order created! Redirecting to payment...');
-
-            const paymentItems = cartItems.map(item => ({
-                name: `${item.cake_type} - ${item.cake_size}`,
-                quantity: item.quantity,
-                price: item.final_price,
-            }));
-
-            setIsCreatingPayment(true);
-
-            const paymentResult = await createXenditPayment({
-                orderId: orderId,
-                amount: total,
-                customerEmail: user?.email,
-                customerName: user?.user_metadata?.first_name || user?.email?.split('@')[0],
-                items: paymentItems,
+            const { paymentUrl, error: paymentError } = await createXenditPayment({
+                orderId: order.order_id,
+                amount: order.total_amount,
+                customerEmail: emailToUse,
+                customerName: nameToUse || 'Customer'
             });
 
-            if (paymentResult.success && paymentResult.paymentUrl) {
+            if (paymentError) throw new Error(paymentError);
+
+            if (paymentUrl) {
+                // For anonymous users, upgrade to email account and send activation email
+                if (isAnonymous && user && guestEmail) {
+                    try {
+                        const { success, error: upgradeError } = await upgradeAnonymousToEmailAccount({
+                            email: guestEmail,
+                            firstName: guestAddress?.recipient_name,
+                        });
+
+                        if (!success) {
+                            console.error('Failed to upgrade account:', upgradeError);
+                            // Don't block the redirect - order is already created
+                            // User can still access their order via email
+                        } else {
+                            console.log('Account upgraded successfully, activation email sent to:', guestEmail);
+                        }
+                    } catch (upgradeErr) {
+                        console.error('Error during account upgrade:', upgradeErr);
+                        // Don't block the redirect
+                    }
+                }
+
+                // Clear cart and guest data, then redirect
                 clearCart();
                 setAppliedDiscount(null);
                 setDiscountCode('');
-                window.location.href = paymentResult.paymentUrl;
+                setGuestEmail('');
+                setGuestAddress(null);
+                batchRemoveFromLocalStorage('cart_guest_email');
+                batchRemoveFromLocalStorage('cart_guest_address');
+                window.location.href = paymentUrl;
             } else {
-                throw new Error(paymentResult.error || 'Failed to create payment link');
+                throw new Error('Payment URL not generated.');
             }
 
         } catch (error: any) {
-            console.error('Order/Payment error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-            showError(error.message || 'Failed to process order. Please try again.');
+            console.error('Checkout error:', error);
+            showError(error.message || 'An error occurred during checkout.');
+        } finally {
             setIsPlacingOrder(false);
-            setIsCreatingPayment(false);
         }
     };
 
@@ -530,7 +660,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                     ref={inputRef}
                     type="text"
                     defaultValue={initialValue}
-                    className={`${inputStyle} pl-10`}
+                    className={`${inputStyle} pl - 10`}
                     placeholder="Search for your address..."
                 />
             </div>
@@ -563,7 +693,8 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
             )}
 
             <div className="w-full max-w-4xl mx-auto bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 animate-fade-in">
-                <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-fade-in-fast { animation: fadeInFast 0.2s ease-out; } @keyframes fadeInFast { from { opacity: 0; } to { opacity: 1; } }`}</style>
+                <style>{`.animate - fade -in { animation: fadeIn 0.3s ease- out;
+    } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate - fade -in -fast { animation: fadeInFast 0.2s ease - out; } @keyframes fadeInFast { from { opacity: 0; } to { opacity: 1; } } `}</style>
 
                 <div className="flex justify-between items-center px-4 pt-4 pb-3 border-b border-slate-200">
                     <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">Your Cart</h1>
@@ -650,7 +781,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                                                                     className={`w-16 text-center rounded-lg p-2 border-2 transition-all duration-200
                                                                     ${isSelected ? 'border-pink-500 bg-pink-50 ring-2 ring-pink-200' : 'border-slate-200 bg-white'}
                                                                     ${isDisabled ? 'opacity-50 bg-slate-50 cursor-not-allowed' : 'hover:border-pink-400'}
-                                                                `}
+    `}
                                                                 >
                                                                     <span className="block text-xs font-semibold text-slate-500">{month}</span>
                                                                     <span className="block text-xl font-bold text-slate-800">{day}</span>
@@ -685,7 +816,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                                                             className={`flex-shrink-0 text-center rounded-lg p-2 border-2 transition-all duration-200
                                                             ${isSelected ? 'border-pink-500 bg-pink-50 ring-2 ring-pink-200' : 'border-slate-200 bg-white'}
                                                             ${isDisabled ? 'opacity-50 bg-slate-50 cursor-not-allowed' : 'hover:border-pink-400'}
-                                                        `}
+    `}
                                                         >
                                                             <span className="block text-xs font-semibold text-slate-800 px-2">{slot}</span>
                                                         </button>
@@ -703,9 +834,30 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
 
                                 {isAddressesLoading ? (
                                     <div className="flex justify-center items-center h-24"><Loader2 className="w-6 h-6 animate-spin text-purple-500" /></div>
-                                ) : isRegisteredUser ? (
+                                ) : isAuthenticated ? (
                                     <>
-                                        {savedAddresses.length > 0 && !isAddingAddress && (
+                                        {/* Guest Email Input */}
+                                        {user?.is_anonymous && (
+                                            <div className="mb-6 p-4 bg-pink-50 border border-pink-100 rounded-lg animate-fade-in">
+                                                <h3 className="text-sm font-bold text-pink-800 mb-3">Guest Contact Info</h3>
+                                                <div>
+                                                    <label htmlFor="guestEmail" className="block text-sm font-medium text-slate-600 mb-1">Email Address <span className="text-red-500">*</span></label>
+                                                    <input
+                                                        id="guestEmail"
+                                                        type="email"
+                                                        value={guestEmail}
+                                                        onChange={(e) => setGuestEmail(e.target.value)}
+                                                        className={inputStyle}
+                                                        placeholder="For order updates and receipt"
+                                                        required
+                                                    />
+                                                    <p className="text-xs text-slate-500 mt-1">We'll send your receipt and order status here.</p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Saved Addresses (Only for registered users) */}
+                                        {!user?.is_anonymous && savedAddresses.length > 0 && !isAddingAddress && (
                                             <div className="space-y-2">
                                                 <div>
                                                     <label htmlFor="addressSelect" className="block text-sm font-medium text-slate-600 mb-1">Delivery Address</label>
@@ -731,9 +883,41 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                                             </div>
                                         )}
 
-                                        {isAddingAddress && user ? (
+                                        {/* Guest Address Display */}
+                                        {isAnonymous && guestAddress && !isAddingAddress && (
+                                            <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm relative group">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="font-semibold text-slate-700">{guestAddress.recipient_name}</p>
+                                                            <span className="px-2 py-0.5 bg-slate-200 text-slate-600 text-[10px] font-bold uppercase rounded-full tracking-wider">Guest</span>
+                                                        </div>
+                                                        <p className="text-slate-500">{guestAddress.recipient_phone}</p>
+                                                        <p className="text-slate-500 mt-1">{guestAddress.street_address}</p>
+                                                        {guestAddress.city && <p className="text-slate-500">{guestAddress.city}</p>}
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setIsAddingAddress(true)}
+                                                        className="text-pink-600 text-xs font-bold hover:underline uppercase tracking-wide"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                </div>
+                                                {guestAddress.latitude && guestAddress.longitude && (
+                                                    <StaticMap latitude={guestAddress.latitude} longitude={guestAddress.longitude} />
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Address Form or Add Button */}
+                                        {(isAddingAddress || (user?.is_anonymous && !guestAddress)) && user ? (
                                             <div className="mt-4">
-                                                <AddressForm userId={user.id} onSuccess={handleNewAddressSuccess} onCancel={() => setIsAddingAddress(false)} />
+                                                <AddressForm
+                                                    userId={user.id}
+                                                    onSuccess={isAnonymous ? handleGuestAddressSuccess : handleNewAddressSuccess}
+                                                    onCancel={() => !user.is_anonymous && setIsAddingAddress(false)}
+                                                    isGuest={isAnonymous}
+                                                />
                                             </div>
                                         ) : (
                                             <div className="mt-2">
@@ -744,17 +928,35 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                                         )}
                                     </>
                                 ) : (
-                                    <div className="p-4 bg-slate-100 rounded-lg text-center space-y-3">
-                                        <div>
-                                            <p className="text-sm text-slate-600 font-medium">Please sign in to select or add a delivery address.</p>
-                                            <p className="text-xs text-slate-500 mt-1">Your cart will be saved upon login.</p>
+                                    <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 space-y-6">
+                                        <div className="text-center space-y-3">
+                                            <h3 className="font-semibold text-slate-800">Have an account?</h3>
+                                            <p className="text-sm text-slate-600">Sign in to access your saved addresses and loyalty points.</p>
+                                            <button
+                                                onClick={onAuthRequired}
+                                                className="w-full bg-white border border-slate-300 text-slate-700 font-semibold py-2.5 px-6 rounded-lg shadow-sm hover:bg-slate-50 hover:shadow transition-all text-sm"
+                                            >
+                                                Sign In / Create Account
+                                            </button>
                                         </div>
-                                        <button
-                                            onClick={onAuthRequired}
-                                            className="bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full shadow-md hover:shadow-lg transition-all text-sm"
-                                        >
-                                            Sign In / Create Account
-                                        </button>
+
+                                        <div className="relative flex items-center py-2">
+                                            <div className="flex-grow border-t border-slate-300"></div>
+                                            <span className="flex-shrink-0 mx-4 text-slate-400 text-xs font-medium uppercase tracking-wider">Or continue as guest</span>
+                                            <div className="flex-grow border-t border-slate-300"></div>
+                                        </div>
+
+                                        <div className="text-center space-y-3">
+                                            <h3 className="font-semibold text-slate-800">New to Cake Genie?</h3>
+                                            <p className="text-sm text-slate-600">You can checkout without creating an account.</p>
+                                            <button
+                                                onClick={handleGuestCheckout}
+                                                disabled={isGuestLoading}
+                                                className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all text-sm disabled:opacity-70 disabled:hover:scale-100 flex justify-center items-center"
+                                            >
+                                                {isGuestLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Setting up guest session...</> : 'Continue as Guest'}
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
 
@@ -783,7 +985,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                                                     >
                                                         {code.code}
                                                         {code.discount_amount && ` (₱${code.discount_amount} off)`}
-                                                        {code.discount_percentage && ` (${code.discount_percentage}% off)`}
+                                                        {code.discount_percentage && ` (${code.discount_percentage} % off)`}
                                                     </button>
                                                 ))}
                                             </div>
@@ -874,7 +1076,14 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                                     </button>
                                     <button
                                         onClick={handleSubmitOrder}
-                                        disabled={isPlacingOrder || isCreatingPayment || !selectedAddress || !eventDate || !eventTime}
+                                        disabled={
+                                            isPlacingOrder ||
+                                            isCreatingPayment ||
+                                            (!isAnonymous && !selectedAddress) ||
+                                            (isAnonymous && (!guestAddress || !guestEmail)) ||
+                                            !eventDate ||
+                                            !eventTime
+                                        }
                                         className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-4 rounded-full font-semibold hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                                     >
                                         {isCreatingPayment ? (
@@ -888,7 +1097,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                                                 Creating Order...
                                             </span>
                                         ) : (
-                                            `Place Order - ₱${total.toFixed(2)}`
+                                            `Place Order - ₱${total.toFixed(2)} `
                                         )}
                                     </button>
                                 </div>
@@ -897,6 +1106,8 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                     </div>
                 )}
             </div>
+            {/* Payment Mode Toggle for Testing - Only for specific user */}
+            {user?.email === 'apcaballes@gmail.com' && <PaymentModeToggle />}
         </>
     );
 };

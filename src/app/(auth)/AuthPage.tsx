@@ -12,7 +12,7 @@ interface AuthPageProps {
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
-  const [authTab, setAuthTab] = useState<'login' | 'signup'>('login');
+  const [authTab, setAuthTab] = useState<'login' | 'signup' | 'forgot_password'>('login');
   const { signIn, signUp } = useAuth();
 
   // --- Login Form State ---
@@ -97,6 +97,30 @@ const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
     }
   };
 
+  // --- Forgot Password Form State ---
+  const [emailForgot, setEmailForgot] = useState('');
+  const [loadingForgot, setLoadingForgot] = useState(false);
+
+  const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoadingForgot(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(emailForgot, {
+        redirectTo: `${window.location.origin}/#/auth/set-password`,
+      });
+
+      if (error) throw error;
+
+      showSuccess('Password reset link sent! Please check your email.');
+      setAuthTab('login');
+    } catch (error: any) {
+      showError(error.message || 'An unknown error occurred.');
+    } finally {
+      setLoadingForgot(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <button
@@ -117,8 +141,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
           <button
             onClick={() => setAuthTab('login')}
             className={`flex-1 py-2 rounded-md font-medium transition-all ${authTab === 'login'
-                ? 'bg-white shadow text-purple-600'
-                : 'text-gray-600 hover:text-purple-600'
+              ? 'bg-white shadow text-purple-600'
+              : 'text-gray-600 hover:text-purple-600'
               }`}
           >
             Login
@@ -126,8 +150,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
           <button
             onClick={() => setAuthTab('signup')}
             className={`flex-1 py-2 rounded-md font-medium transition-all ${authTab === 'signup'
-                ? 'bg-white shadow text-purple-600'
-                : 'text-gray-600 hover:text-purple-600'
+              ? 'bg-white shadow text-purple-600'
+              : 'text-gray-600 hover:text-purple-600'
               }`}
           >
             Sign Up
@@ -162,6 +186,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
                 placeholder="••••••••"
                 required
               />
+              <div className="flex justify-end mt-1">
+                <button
+                  type="button"
+                  onClick={() => setAuthTab('forgot_password')}
+                  className="text-xs text-purple-600 hover:text-purple-800 hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
             </div>
             <button
               type="submit"
@@ -266,6 +299,53 @@ const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
                 'Create Account'
               )}
             </button>
+          </form>
+        )}
+
+        {/* Forgot Password Form */}
+        {authTab === 'forgot_password' && (
+          <form onSubmit={handleForgotPassword} className="space-y-4">
+            <div className="text-center mb-4">
+              <p className="text-sm text-gray-600">
+                Enter your email address and we'll send you a link to reset your password.
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={emailForgot}
+                onChange={(e) => setEmailForgot(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="your@email.com"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loadingForgot}
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loadingForgot ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Sending link...
+                </>
+              ) : (
+                'Send Reset Link'
+              )}
+            </button>
+            <div className="text-center mt-4">
+              <button
+                type="button"
+                onClick={() => setAuthTab('login')}
+                className="text-sm text-purple-600 hover:text-purple-800 hover:underline"
+              >
+                Back to Login
+              </button>
+            </div>
           </form>
         )}
       </div>

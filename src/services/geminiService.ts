@@ -705,7 +705,7 @@ You MUST provide precise central coordinates for every single decorative element
                         properties: {
                             type: { type: Type.STRING, enum: supportElementTypes }, // <-- CHANGE HERE
                             description: { type: Type.STRING },
-                            coverage: { type: Type.STRING, enum: ['large', 'medium', 'small', 'tiny'] },
+                            size: { type: Type.STRING, enum: ['large', 'medium', 'small', 'tiny'] },
                             material: { type: Type.STRING },
                             group_id: { type: Type.STRING },
                             color: { type: Type.STRING },
@@ -713,7 +713,7 @@ You MUST provide precise central coordinates for every single decorative element
                             x: { type: Type.NUMBER },
                             y: { type: Type.NUMBER }
                         },
-                        required: ['type', 'description', 'coverage', 'material', 'group_id', 'x', 'y']
+                        required: ['type', 'description', 'size', 'material', 'group_id', 'x', 'y']
                     }
                 },
                 cake_messages: {
@@ -995,7 +995,7 @@ This is SPEED MODE - only identify what items exist, not where they are.
                         properties: {
                             type: { type: Type.STRING, enum: supportElementTypes },
                             description: { type: Type.STRING },
-                            coverage: { type: Type.STRING, enum: ['large', 'medium', 'small', 'tiny'] },
+                            size: { type: Type.STRING, enum: ['large', 'medium', 'small', 'tiny'] },
                             material: { type: Type.STRING },
                             group_id: { type: Type.STRING },
                             color: { type: Type.STRING },
@@ -1003,7 +1003,7 @@ This is SPEED MODE - only identify what items exist, not where they are.
                             x: { type: Type.NUMBER },
                             y: { type: Type.NUMBER }
                         },
-                        required: ['type', 'description', 'coverage', 'material', 'group_id', 'x', 'y']
+                        required: ['type', 'description', 'size', 'material', 'group_id', 'x', 'y']
                     }
                 },
                 cake_messages: {
@@ -1220,14 +1220,14 @@ ${JSON.stringify(featureAnalysis, null, 2)}
                         properties: {
                             type: { type: Type.STRING, enum: supportElementTypes },
                             description: { type: Type.STRING },
-                            coverage: { type: Type.STRING, enum: ['large', 'medium', 'small', 'tiny'] },
+                            size: { type: Type.STRING, enum: ['large', 'medium', 'small', 'tiny'] },
                             group_id: { type: Type.STRING },
                             color: { type: Type.STRING },
                             colors: { type: Type.ARRAY, items: { type: Type.STRING } },
                             x: { type: Type.NUMBER },
                             y: { type: Type.NUMBER }
                         },
-                        required: ['type', 'description', 'coverage', 'group_id', 'x', 'y']
+                        required: ['type', 'description', 'size', 'group_id', 'x', 'y']
                     }
                 },
                 cake_messages: {

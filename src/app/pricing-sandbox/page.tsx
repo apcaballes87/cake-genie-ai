@@ -6,7 +6,7 @@ import { CAKE_TYPES, DEFAULT_SIZE_MAP, DEFAULT_THICKNESS_MAP } from '../../const
 import { showError } from '../../lib/utils/toast';
 
 interface PricingSandboxPageProps {
-  onClose: () => void;
+    onClose: () => void;
 }
 
 const testItemsToAdd = [
@@ -29,7 +29,7 @@ const PricingSandboxPage: React.FC<PricingSandboxPageProps> = ({ onClose }) => {
 
     const [pricingResult, setPricingResult] = useState<{ addOnPricing: AddOnPricing; itemPrices: Map<string, number> } | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    
+
     const cakeInfo: CakeInfoUI = useMemo(() => ({
         type: cakeType,
         size: DEFAULT_SIZE_MAP[cakeType],
@@ -94,15 +94,15 @@ const PricingSandboxPage: React.FC<PricingSandboxPageProps> = ({ onClose }) => {
             setSupportElements(prev => prev.filter(item => item.id !== id));
         }
     };
-    
+
     const toggleIcingFeature = (feature: 'drip' | 'gumpasteBaseBoard') => {
-        setIcingDesign(prev => ({...prev, [feature]: !prev[feature]}));
+        setIcingDesign(prev => ({ ...prev, [feature]: !prev[feature] }));
     };
 
     const reset = () => {
         setMainToppers([]);
         setSupportElements([]);
-        setIcingDesign(prev => ({...prev, drip: false, gumpasteBaseBoard: false}));
+        setIcingDesign(prev => ({ ...prev, drip: false, gumpasteBaseBoard: false }));
         setCakeType('1 Tier');
         setPricingResult(null);
     };
@@ -137,8 +137,8 @@ const PricingSandboxPage: React.FC<PricingSandboxPageProps> = ({ onClose }) => {
                             ))}
                         </div>
                         <div className="grid grid-cols-2 gap-2 mb-4">
-                             <button onClick={() => toggleIcingFeature('drip')} className={`text-xs p-2 rounded-md transition-colors ${icingDesign.drip ? 'bg-pink-100 text-pink-800' : 'bg-slate-100 hover:bg-slate-200'}`}>Toggle Drip</button>
-                             <button onClick={() => toggleIcingFeature('gumpasteBaseBoard')} className={`text-xs p-2 rounded-md transition-colors ${icingDesign.gumpasteBaseBoard ? 'bg-pink-100 text-pink-800' : 'bg-slate-100 hover:bg-slate-200'}`}>Toggle Base Board</button>
+                            <button onClick={() => toggleIcingFeature('drip')} className={`text-xs p-2 rounded-md transition-colors ${icingDesign.drip ? 'bg-pink-100 text-pink-800' : 'bg-slate-100 hover:bg-slate-200'}`}>Toggle Drip</button>
+                            <button onClick={() => toggleIcingFeature('gumpasteBaseBoard')} className={`text-xs p-2 rounded-md transition-colors ${icingDesign.gumpasteBaseBoard ? 'bg-pink-100 text-pink-800' : 'bg-slate-100 hover:bg-slate-200'}`}>Toggle Base Board</button>
                         </div>
                         <div className="flex items-center gap-4">
                             <label htmlFor="cakeType" className="text-sm font-medium text-slate-600">Cake Type:</label>
@@ -166,7 +166,7 @@ const PricingSandboxPage: React.FC<PricingSandboxPageProps> = ({ onClose }) => {
 
                 {/* Right Column: Results */}
                 <div className="bg-white p-4 rounded-xl border border-slate-200">
-                     <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
                         Pricing Calculation Results
                         {isLoading && <Loader2 size={16} className="animate-spin text-slate-400" />}
                     </h2>
@@ -197,7 +197,7 @@ const PricingSandboxPage: React.FC<PricingSandboxPageProps> = ({ onClose }) => {
                                     </tfoot>
                                 </table>
                             </div>
-                             <div>
+                            <div>
                                 <h3 className="text-sm font-semibold text-slate-600 mb-2">Item Prices Map (Raw)</h3>
                                 <pre className="text-xs bg-slate-800 text-white p-3 rounded-md overflow-x-auto">
                                     {JSON.stringify(Object.fromEntries(pricingResult.itemPrices), null, 2)}

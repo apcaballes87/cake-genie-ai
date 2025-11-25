@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, FormEvent, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useAddAddress, useUpdateAddress } from '../hooks/useAddresses';
 import { showSuccess, showError } from '../lib/utils/toast';
 import { CakeGenieAddress } from '../lib/database.types';
@@ -14,13 +15,13 @@ declare const google: any;
 
 // --- Static Map Component ---
 export const StaticMap: React.FC<{ latitude: number; longitude: number }> = ({ latitude, longitude }) => {
-  if (!GOOGLE_MAPS_API_KEY || !latitude || !longitude) return null;
-  const imageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=15&size=300x150&markers=color:0xf472b6%7C${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`;
-  return (
-    <div className="mt-4 rounded-lg overflow-hidden border border-slate-200">
-      <LazyImage src={imageUrl} alt="Map location" className="w-full h-auto object-cover" />
-    </div>
-  );
+    if (!GOOGLE_MAPS_API_KEY || !latitude || !longitude) return null;
+    const imageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=15&size=300x150&markers=color:0xf472b6%7C${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`;
+    return (
+        <div className="mt-4 rounded-lg overflow-hidden border border-slate-200">
+            <LazyImage src={imageUrl} alt="Map location" className="w-full h-auto object-cover" />
+        </div>
+    );
 };
 
 // --- Address Form's Map Picker Modal Component ---
@@ -32,23 +33,41 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
     const [completeAddress, setCompleteAddress] = useState(''); // User-controlled input
     const [suggestedAddress, setSuggestedAddress] = useState(''); // Geocoding output
     const [isGeocoding, setIsGeocoding] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
     const autocompleteRef = useRef<any | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null);
-    
+
     useEffect(() => {
-        if(isOpen && initialStreetAddress) {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
+
+    useEffect(() => {
+        if (isOpen && initialStreetAddress) {
             setCompleteAddress(initialStreetAddress);
         }
     }, [isOpen, initialStreetAddress]);
 
+    const lastGeocodedLocation = useRef<{ lat: number; lng: number } | null>(null);
+    const mapIdleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     const handleReverseGeocode = useCallback((lat: number, lng: number) => {
         if (!isLoaded || !window.google) return;
+
+        // Prevent re-geocoding the same location (approximate check)
+        if (lastGeocodedLocation.current &&
+            Math.abs(lastGeocodedLocation.current.lat - lat) < 0.0001 &&
+            Math.abs(lastGeocodedLocation.current.lng - lng) < 0.0001) {
+            return;
+        }
+
         setIsGeocoding(true);
         const geocoder = new window.google.maps.Geocoder();
         geocoder.geocode({ location: { lat, lng } }, (results, status) => {
             if (status === 'OK' && results && results[0]) {
                 setSuggestedAddress(results[0].formatted_address);
+                lastGeocodedLocation.current = { lat, lng };
             } else {
                 console.error("Reverse geocoding failed:", status);
                 setSuggestedAddress('Could not determine address from map.');
@@ -58,20 +77,26 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
     }, [isLoaded]);
 
     const onMapIdle = useCallback(() => {
-        if (map) {
-            const newCenter = map.getCenter();
-            if (newCenter) {
-                handleReverseGeocode(newCenter.lat(), newCenter.lng());
-                // Update autocomplete bounds when user pans the map
-                if (autocompleteRef.current) {
-                    const circle = new google.maps.Circle({
-                        center: newCenter,
-                        radius: 7000, // 7km
-                    });
-                    autocompleteRef.current.setBounds(circle.getBounds());
+        if (mapIdleTimeoutRef.current) {
+            clearTimeout(mapIdleTimeoutRef.current);
+        }
+
+        mapIdleTimeoutRef.current = setTimeout(() => {
+            if (map) {
+                const newCenter = map.getCenter();
+                if (newCenter) {
+                    handleReverseGeocode(newCenter.lat(), newCenter.lng());
+                    // Update autocomplete bounds when user pans the map
+                    if (autocompleteRef.current) {
+                        const circle = new google.maps.Circle({
+                            center: newCenter,
+                            radius: 7000, // 7km
+                        });
+                        autocompleteRef.current.setBounds(circle.getBounds());
+                    }
                 }
             }
-        }
+        }, 1000); // 1 second debounce
     }, [map, handleReverseGeocode]);
 
     useEffect(() => {
@@ -81,7 +106,7 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                 center: map.getCenter(),
                 radius: 7000, // 7km in meters
             });
-    
+
             const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
                 // Remove 'types: ['geocode']' to allow searching for establishments (shops, places)
                 componentRestrictions: { country: "ph" },
@@ -113,11 +138,12 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
             showError("Please enter your complete address.");
         }
     };
-    
-    if (!isOpen) return null;
 
-    return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+    if (!isOpen || !mounted) return null;
+
+    return createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
                 <div className="p-4 border-b border-slate-200 flex justify-between items-center">
                     <h3 className="text-lg font-bold text-slate-800">Set Delivery Location</h3>
@@ -125,7 +151,7 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                 </div>
                 <div className="flex-grow relative">
                     {!isLoaded ? (
-                        <div className="absolute inset-0 flex items-center justify-center bg-slate-100"><Loader2 className="animate-spin text-pink-500 w-8 h-8"/></div>
+                        <div className="absolute inset-0 flex items-center justify-center bg-slate-100"><Loader2 className="animate-spin text-pink-500 w-8 h-8" /></div>
                     ) : (
                         <>
                             <GoogleMap
@@ -141,11 +167,11 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                                     streetViewControl: false
                                 }}
                             />
-                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full pointer-events-none">
-                                 <MapPin className="text-pink-500 w-10 h-10" fill="currentColor" />
-                             </div>
-                             <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[90%] max-w-lg">
-                                 <div className="relative">
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full pointer-events-none">
+                                <MapPin className="text-pink-500 w-10 h-10" fill="currentColor" />
+                            </div>
+                            <div className="absolute top-4 left-0 right-0 flex justify-center px-4 pointer-events-none">
+                                <div className="relative w-full max-w-lg pointer-events-auto">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                                     <input
                                         ref={inputRef}
@@ -153,14 +179,14 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                                         placeholder="Search for a building or street..."
                                         className="w-full pl-10 pr-4 py-3 bg-white rounded-full shadow-lg border border-slate-300 focus:ring-2 focus:ring-pink-500 focus:outline-none"
                                     />
-                                 </div>
-                             </div>
+                                </div>
+                            </div>
                         </>
                     )}
                 </div>
                 <div className="p-4 bg-slate-50 border-t border-slate-200">
                     <label htmlFor="completeAddress" className="block text-sm font-medium text-slate-600 mb-1">Complete Address (Unit No., Building, Street) <span className="text-red-500">*</span></label>
-                    <textarea 
+                    <textarea
                         id="completeAddress"
                         value={completeAddress}
                         onChange={e => setCompleteAddress(e.target.value)}
@@ -174,32 +200,34 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                             <strong>Suggested Location:</strong> {suggestedAddress}
                         </div>
                     )}
-                    <button 
-                        onClick={handleSubmit} 
+                    <button
+                        onClick={handleSubmit}
                         disabled={!completeAddress.trim() || isGeocoding}
                         className="w-full mt-3 bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition-all disabled:opacity-50 flex items-center justify-center"
                     >
-                         {isGeocoding ? <><Loader2 className="w-5 h-5 mr-2 animate-spin"/> Locating...</> : 'Confirm Location'}
+                        {isGeocoding ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Locating...</> : 'Confirm Location'}
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
 // --- Address Form Component ---
 interface AddressFormProps {
-  userId: string;
-  initialData?: CakeGenieAddress | null;
-  onSuccess: (newAddress?: CakeGenieAddress) => void;
-  onCancel: () => void;
+    userId: string;
+    initialData?: CakeGenieAddress | null;
+    onSuccess: (newAddress?: CakeGenieAddress) => void;
+    onCancel: () => void;
+    isGuest?: boolean; // New prop
 }
 
-const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSuccess, onCancel }) => {
+const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSuccess, onCancel, isGuest = false }) => {
     const addAddressMutation = useAddAddress();
     const updateAddressMutation = useUpdateAddress();
     const [isPickerModalOpen, setIsPickerModalOpen] = useState(false);
-    
+
     // Form state
     const [recipientName, setRecipientName] = useState('');
     const [recipientPhone, setRecipientPhone] = useState('');
@@ -208,7 +236,7 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
     const [isDefault, setIsDefault] = useState(false);
     const [latitude, setLatitude] = useState<number | null>(null);
     const [longitude, setLongitude] = useState<number | null>(null);
-    
+
     const isEditing = !!initialData;
     const isSubmitting = addAddressMutation.isPending || updateAddressMutation.isPending;
 
@@ -249,20 +277,33 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
             country: 'Philippines', latitude, longitude
         };
 
+        // GUEST MODE: Skip database save, just return the data
+        if (isGuest) {
+            const guestAddress: CakeGenieAddress = {
+                ...newAddressData,
+                address_id: `guest-${Date.now()}`, // Temporary ID
+                user_id: userId,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+            onSuccess(guestAddress);
+            return;
+        }
+
         if (isEditing && initialData) {
             updateAddressMutation.mutate({ userId, addressId: initialData.address_id, addressData: newAddressData }, {
-                onSuccess: (updatedAddress) => { 
-                    showSuccess("Address updated successfully!"); 
-                    onSuccess(updatedAddress ?? undefined); 
+                onSuccess: (updatedAddress) => {
+                    showSuccess("Address updated successfully!");
+                    onSuccess(updatedAddress ?? undefined);
                 },
                 onError: (error: any) => { showError(error.message || "Failed to update address."); }
             });
         } else {
             addAddressMutation.mutate({ userId, addressData: newAddressData }, {
-                onSuccess: (newAddress) => { 
-                    if(newAddress) {
-                        showSuccess("Address added successfully!"); 
-                        onSuccess(newAddress); 
+                onSuccess: (newAddress) => {
+                    if (newAddress) {
+                        showSuccess("Address added successfully!");
+                        onSuccess(newAddress);
                     }
                 },
                 onError: (error: any) => { showError(error.message || "Failed to add address."); }
@@ -318,15 +359,15 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
                 <div className="flex items-center justify-end gap-3 pt-4">
                     <button type="button" onClick={onCancel} className="bg-white border border-slate-300 text-slate-700 font-bold py-2 px-4 rounded-lg shadow-sm hover:bg-slate-50 transition-all text-sm">Cancel</button>
                     <button type="submit" disabled={isSubmitting} className="flex justify-center items-center bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-75">
-                         {isSubmitting && <Loader2 className="animate-spin mr-2 w-4 h-4" />}
+                        {isSubmitting && <Loader2 className="animate-spin mr-2 w-4 h-4" />}
                         {isEditing ? 'Save Changes' : 'Save Address'}
                     </button>
                 </div>
             </form>
-            <AddressPickerModal 
-                isOpen={isPickerModalOpen} 
-                onClose={() => setIsPickerModalOpen(false)} 
-                onLocationSelect={handleLocationSelect} 
+            <AddressPickerModal
+                isOpen={isPickerModalOpen}
+                onClose={() => setIsPickerModalOpen(false)}
+                onLocationSelect={handleLocationSelect}
                 initialCoords={latitude && longitude ? { lat: latitude, lng: longitude } : null}
                 initialStreetAddress={streetAddress}
             />

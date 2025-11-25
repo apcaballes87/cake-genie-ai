@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 // Define and export the AppState type for use in other components
-export type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'shopify_customizing' | 'pricing_sandbox' | 'not_found';
+export type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'shopify_customizing' | 'pricing_sandbox' | 'not_found' | 'set_password';
 
 export const useAppNavigation = () => {
     // State
@@ -81,6 +81,7 @@ export const useAppNavigation = () => {
             const howToOrderMatch = path.match(/^\/how-to-order\/?$/);
             const reviewsMatch = path.match(/^\/reviews\/?$/);
             const pricingSandboxMatch = path.match(/^\/pricing-sandbox\/?$/);
+            const setPasswordMatch = path.match(/^\/auth\/set-password\/?$/);
 
             if (orderConfirmationMatch && params.get('order_id')) {
                 const orderId = params.get('order_id');
@@ -111,6 +112,8 @@ export const useAppNavigation = () => {
                 setAppState('reviews');
             } else if (pricingSandboxMatch) {
                 setAppState('pricing_sandbox');
+            } else if (setPasswordMatch) {
+                setAppState('set_password');
             } else if (discountMatch && discountMatch[1]) {
                 // Discount code route - store code and go to landing
                 const code = discountMatch[1].toUpperCase();

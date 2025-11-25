@@ -68,28 +68,51 @@ export async function calculatePriceFromDatabase(
 
   const getRule = (
     type: string,
-    sizeOrCoverage?: string,
+    size?: string,
     category?: 'main_topper' | 'support_element' | 'message' | 'icing_feature' | 'special'
   ): PricingRule | undefined => {
-    // For support_element and main_topper, ignore category matching - just match type and size/coverage
-    const shouldMatchCategory = category && category !== 'support_element' && category !== 'main_topper';
 
-    const findRuleByCategory = (rulesList: PricingRule[] | undefined) => {
-      if (!rulesList) return undefined;
-      // If we should match category, find by category. Otherwise, just return the first rule.
-      return rulesList.find(r => !shouldMatchCategory || r.category === category);
-    };
-
-    if (sizeOrCoverage) {
-      const specificKey = `${type}_${sizeOrCoverage}`;
-      const rule = findRuleByCategory(rules.get(specificKey));
-      if (rule) return rule;
+    // Handle legacy type mapping for edible_2d_gumpaste
+    let effectiveType = type;
+    if (type === 'edible_2d_gumpaste') {
+      if (category === 'main_topper') {
+        effectiveType = 'edible_2d_shapes';
+      } else {
+        effectiveType = 'edible_2d_support';
+      }
     }
 
-    const rule = findRuleByCategory(rules.get(type));
+    // Helper to find match in a list of rules
+    const findMatch = (rulesList: PricingRule[]) => {
+      if (!rulesList || rulesList.length === 0) return undefined;
+
+      // If size is provided, try to find exact match
+      if (size) {
+        const match = rulesList.find(r =>
+          (r.size && r.size.toLowerCase() === size.toLowerCase())
+        );
+        if (match) return match;
+      }
+
+      // Default to first rule if no size specified or no size match found
+      return rulesList[0];
+    };
+
+    // 1. Try specific key: type_size
+    if (size) {
+      const specificKey = `${effectiveType}_${size}`;
+      const specificRules = rules.get(specificKey);
+      if (specificRules && specificRules.length > 0) {
+        return specificRules[0];
+      }
+    }
+
+    // 2. Try generic key: type
+    const genericRules = rules.get(effectiveType);
+    const rule = findMatch(genericRules || []);
 
     if (!rule) {
-      console.warn(`No pricing rule found for: type="${type}", size/coverage="${sizeOrCoverage}", category="${category}"`);
+      console.warn(`No pricing rule found for: type="${type}" (mapped to "${effectiveType}"), size="${size}", category="${category}"`);
     }
 
     return rule;
@@ -156,7 +179,9 @@ export async function calculatePriceFromDatabase(
     }
 
     let price = 0;
-    const rule = getRule(element.type, element.coverage, 'support_element');
+    // Fallback to coverage if size is missing (backward compatibility)
+    const effectiveSize = element.size || (element as any).coverage;
+    const rule = getRule(element.type, effectiveSize, 'support_element');
 
     if (rule) {
       price = rule.price;

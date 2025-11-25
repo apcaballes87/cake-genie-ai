@@ -405,8 +405,7 @@ For scattered/distributed items:
   "type": "edible_3d | edible_2d_gumpaste | gumpaste_panel | small_gumpaste | gumpaste_bundle | gumpaste_structure | toy | cardstock | edible_photo_side | edible_flowers | isomalt | chocolates | dragees | sprinkles | gumpaste_balls | gumpaste_board | gumpaste_accent",
   "material": "edible | plastic | cardstock",
   "classification": "support",
-  "size": "small | medium | large | partial (only for certain types)",
-  "coverage": "light | medium | heavy (only for panels, small items, chocolates, dragees)",
+  "size": "small | medium | large | partial | tiny",
   "location": "side | top | base | scattered",
   "quantity": X,
   "subtype": "swirl_lollipop | ice_cream_cone | bow | rainbow | ferrero | m&ms | standard (optional)"
@@ -526,18 +525,19 @@ For each distinct message, create separate object. If no message, return empty a
     }
   ],
   "support_elements": [
-    {
-      "description": "...",
-      "type": "...",
-      "material": "...",
-      "classification": "support",
-      "size": "...",
-      "coverage": "...",
-      "location": "...",
-      "quantity": X,
-      "subtype": "..."  // optional
-    }
-  ],
+  ### SUPPORT JSON
+```json
+{
+  "description": "...",
+  "type": "...",
+  "material": "edible_fondant|plastic|cardstock|toy|...",
+  "group_id": "group_id",
+  "classification": "support",
+  "size": "small|medium|large|tiny",
+  "quantity": X,
+  "subtype": "..."  // optional (leave blank if no subtype)
+}
+```  ],
   "cake_messages": [
     {
       "type": "gumpaste_letters | icing_script | printout | cardstock",
@@ -644,7 +644,7 @@ Single-tier soft-iced cake with tuxedo jacket design on front.
       "type": "gumpaste_panel",
       "material": "edible",
       "classification": "support",
-      "coverage": "medium",
+      "size": "medium",
       "location": "front",
       "quantity": 1
     },
