@@ -10,6 +10,9 @@ serve(async (req) => {
     }
 
     try {
+        const requestBody = await req.json();
+        console.log('Received request body:', JSON.stringify(requestBody, null, 2));
+
         const {
             orderId,
             amount,
@@ -19,13 +22,24 @@ serve(async (req) => {
             success_redirect_url,
             failure_redirect_url,
             payment_mode
-        } = await req.json();
+        } = requestBody;
+
+        console.log('Extracted values:', {
+            orderId,
+            amount,
+            customerEmail,
+            customerName,
+            itemsCount: items?.length,
+            payment_mode
+        });
 
         const mode = payment_mode || 'test';
         // Check for mode-specific key first, then fall back to XENDIT_SECRET_KEY for backward compatibility
         const XENDIT_SECRET_KEY = mode === 'live'
             ? (Deno.env.get('XENDIT_LIVE_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'))
             : (Deno.env.get('XENDIT_TEST_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'));
+
+        console.log('Using API key for mode:', mode, 'Key exists:', !!XENDIT_SECRET_KEY);
 
         if (!XENDIT_SECRET_KEY) {
             throw new Error(`Xendit API Key for ${mode} mode is not set.`);
@@ -103,6 +117,9 @@ serve(async (req) => {
         })
 
     } catch (error) {
+        console.error('Error in create-xendit-payment:', error);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
         return new Response(JSON.stringify({ success: false, error: error.message }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 400,
