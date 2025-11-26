@@ -38,6 +38,8 @@ export default function SetPasswordPage() {
             // Check if user just confirmed their email
             const { data: { user }, error: userError } = await supabase.auth.getUser();
             debugLog('[SetPassword] First getUser attempt:', { user, userError });
+            debugLog('[SetPassword] User email value:', user?.email);
+            debugLog('[SetPassword] User email check:', { hasUser: !!user, hasEmail: !!user?.email });
 
             if (user && user.email) {
                 debugLog('[SetPassword] User verified successfully:', user.email);
@@ -45,6 +47,7 @@ export default function SetPasswordPage() {
                 setIsVerifying(false);
             } else {
                 debugLog('[SetPassword] First attempt failed, retrying...');
+                debugLog('[SetPassword] Failure reason:', { user: !!user, email: user?.email });
                 // Retry once more after another delay
                 await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -53,6 +56,8 @@ export default function SetPasswordPage() {
 
                 const { data: { user: retryUser }, error: retryError } = await supabase.auth.getUser();
                 debugLog('[SetPassword] Retry getUser attempt:', { retryUser, retryError });
+                debugLog('[SetPassword] Retry user email value:', retryUser?.email);
+                debugLog('[SetPassword] Retry user email check:', { hasUser: !!retryUser, hasEmail: !!retryUser?.email });
 
                 if (retryUser && retryUser.email) {
                     debugLog('[SetPassword] User verified on retry:', retryUser.email);
@@ -60,6 +65,7 @@ export default function SetPasswordPage() {
                     setIsVerifying(false);
                 } else {
                     debugLog('[SetPassword] Verification failed after retry - NOT redirecting to allow debugging');
+                    debugLog('[SetPassword] Final failure reason:', { retryUser: !!retryUser, email: retryUser?.email });
                     showError('Invalid or expired link. Please check the console and localStorage for debug info.');
                     // DON'T redirect so we can see the logs
                     // window.location.href = '/';
