@@ -28,19 +28,44 @@ export default function SetPasswordPage() {
             debugLog('[SetPassword] Current URL:', window.location.href);
             debugLog('[SetPassword] Hash:', window.location.hash);
 
+            // Extract the access_token from the URL hash to verify the email
+            const hashParams = new URLSearchParams(window.location.hash.split('#')[2] || '');
+            const accessToken = hashParams.get('access_token');
+            debugLog('[SetPassword] Access token from URL:', accessToken ? 'present' : 'missing');
+
+            // Decode the JWT to get the email (JWT format: header.payload.signature)
+            let tokenEmail: string | null = null;
+            if (accessToken) {
+                try {
+                    const payload = JSON.parse(atob(accessToken.split('.')[1]));
+                    tokenEmail = payload.email;
+                    debugLog('[SetPassword] Email from token:', tokenEmail);
+                } catch (e) {
+                    debugLog('[SetPassword] Failed to decode token:', e);
+                }
+            }
+
             // Wait for Supabase to automatically process the recovery token from the URL hash
-            // The recovery token will automatically create a new session, replacing any existing one
             await new Promise(resolve => setTimeout(resolve, 2000));
 
             // Check session after recovery token processing
-            const { data: { session: initialSession } } = await supabase.auth.getSession();
-            debugLog('[SetPassword] Session after recovery:', initialSession);
+            const { data: { session } } = await supabase.auth.getSession();
+            debugLog('[SetPassword] Session after recovery:', session);
 
             // Check if user just confirmed their email
             const { data: { user }, error: userError } = await supabase.auth.getUser();
             debugLog('[SetPassword] First getUser attempt:', { user, userError });
             debugLog('[SetPassword] User email value:', user?.email);
             debugLog('[SetPassword] User email check:', { hasUser: !!user, hasEmail: !!user?.email, isAnonymous: user?.is_anonymous });
+
+            // SECURITY: Verify the session email matches the token email
+            if (user && user.email && tokenEmail && user.email !== tokenEmail) {
+                debugLog('[SetPassword] SECURITY: Email mismatch!', { userEmail: user.email, tokenEmail });
+                showError('Security error: Session mismatch. Please try again.');
+                await supabase.auth.signOut();
+                setIsVerifying(false);
+                return;
+            }
 
             // Check if we have a valid user with an email (not anonymous)
             if (user && user.email && !user.is_anonymous) {
@@ -58,6 +83,13 @@ export default function SetPasswordPage() {
                 debugLog('[SetPassword] Retry user email value:', retryUser?.email);
 
                 if (retryUser && retryUser.email && !retryUser.is_anonymous) {
+                    // SECURITY: Verify retry email matches token
+                    if (tokenEmail && retryUser.email !== tokenEmail) {
+                        debugLog('[SetPassword] SECURITY: Retry email mismatch!', { userEmail: retryUser.email, tokenEmail });
+                        showError('Security error: Session mismatch. Please try again.');
+                        setIsVerifying(false);
+                        return;
+                    }
                     debugLog('[SetPassword] User verified on retry:', retryUser.email);
                     setEmail(retryUser.email);
                     setIsVerifying(false);
@@ -82,6 +114,13 @@ export default function SetPasswordPage() {
                 debugLog('[SetPassword] Retry user email check:', { hasUser: !!retryUser, hasEmail: !!retryUser?.email });
 
                 if (retryUser && retryUser.email && !retryUser.is_anonymous) {
+                    // SECURITY: Verify retry email matches token
+                    if (tokenEmail && retryUser.email !== tokenEmail) {
+                        debugLog('[SetPassword] SECURITY: Retry email mismatch!', { userEmail: retryUser.email, tokenEmail });
+                        showError('Security error: Session mismatch. Please try again.');
+                        setIsVerifying(false);
+                        return;
+                    }
                     debugLog('[SetPassword] User verified on retry:', retryUser.email);
                     setEmail(retryUser.email);
                     setIsVerifying(false);
