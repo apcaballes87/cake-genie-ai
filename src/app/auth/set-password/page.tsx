@@ -31,7 +31,9 @@ export default function SetPasswordPage() {
             // Extract the access_token from the URL hash to verify the email
             const hashParams = new URLSearchParams(window.location.hash.split('#')[2] || '');
             const accessToken = hashParams.get('access_token');
+            const refreshToken = hashParams.get('refresh_token');
             debugLog('[SetPassword] Access token from URL:', accessToken ? 'present' : 'missing');
+            debugLog('[SetPassword] Refresh token from URL:', refreshToken ? 'present' : 'missing');
 
             // Decode the JWT to get the email (JWT format: header.payload.signature)
             let tokenEmail: string | null = null;
@@ -45,8 +47,19 @@ export default function SetPasswordPage() {
                 }
             }
 
-            // Wait for Supabase to automatically process the recovery token from the URL hash
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Manually set the session from the recovery token
+            // This ensures Supabase uses the correct session instead of an existing one
+            if (accessToken && refreshToken) {
+                debugLog('[SetPassword] Manually setting session from recovery token...');
+                const { data, error } = await supabase.auth.setSession({
+                    access_token: accessToken,
+                    refresh_token: refreshToken,
+                });
+                debugLog('[SetPassword] Set session result:', { data, error });
+            }
+
+            // Wait a bit for the session to be fully established
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
             // Check session after recovery token processing
             const { data: { session } } = await supabase.auth.getSession();
