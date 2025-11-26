@@ -28,12 +28,18 @@ export default function SetPasswordPage() {
             debugLog('[SetPassword] Current URL:', window.location.href);
             debugLog('[SetPassword] Hash:', window.location.hash);
 
-            // Check session immediately
-            const { data: { session: initialSession } } = await supabase.auth.getSession();
-            debugLog('[SetPassword] Initial session:', initialSession);
+            // CRITICAL: Sign out any existing session (especially anonymous users)
+            // before processing the recovery token
+            debugLog('[SetPassword] Signing out existing session...');
+            await supabase.auth.signOut();
+            debugLog('[SetPassword] Signed out successfully');
 
-            // Wait a bit for Supabase to process the auth tokens from the URL hash
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Wait for Supabase to process the recovery token from the URL hash
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Check session after recovery token processing
+            const { data: { session: initialSession } } = await supabase.auth.getSession();
+            debugLog('[SetPassword] Session after recovery:', initialSession);
 
             // Check if user just confirmed their email
             const { data: { user }, error: userError } = await supabase.auth.getUser();
