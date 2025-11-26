@@ -22,9 +22,10 @@ serve(async (req) => {
         } = await req.json();
 
         const mode = payment_mode || 'test';
+        // Check for mode-specific key first, then fall back to XENDIT_SECRET_KEY for backward compatibility
         const XENDIT_SECRET_KEY = mode === 'live'
-            ? Deno.env.get('XENDIT_LIVE_API_KEY')
-            : Deno.env.get('XENDIT_TEST_API_KEY');
+            ? (Deno.env.get('XENDIT_LIVE_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'))
+            : (Deno.env.get('XENDIT_TEST_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'));
 
         if (!XENDIT_SECRET_KEY) {
             throw new Error(`Xendit API Key for ${mode} mode is not set.`);
