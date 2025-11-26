@@ -28,13 +28,8 @@ export default function SetPasswordPage() {
             debugLog('[SetPassword] Current URL:', window.location.href);
             debugLog('[SetPassword] Hash:', window.location.hash);
 
-            // CRITICAL: Sign out any existing session FIRST to prevent showing wrong email
-            // This ensures the recovery token is processed for the correct user
-            debugLog('[SetPassword] Signing out any existing session...');
-            await supabase.auth.signOut({ scope: 'local' }); // Only clear local session, not global
-            debugLog('[SetPassword] Signed out successfully');
-
             // Wait for Supabase to automatically process the recovery token from the URL hash
+            // The recovery token will automatically create a new session, replacing any existing one
             await new Promise(resolve => setTimeout(resolve, 2000));
 
             // Check session after recovery token processing
