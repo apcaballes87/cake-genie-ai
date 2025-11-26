@@ -28,14 +28,8 @@ export default function SetPasswordPage() {
             debugLog('[SetPassword] Current URL:', window.location.href);
             debugLog('[SetPassword] Hash:', window.location.hash);
 
-            // CRITICAL: Sign out any existing session (especially anonymous users)
-            // before processing the recovery token
-            debugLog('[SetPassword] Signing out existing session...');
-            await supabase.auth.signOut();
-            debugLog('[SetPassword] Signed out successfully');
-
-            // Wait for Supabase to process the recovery token from the URL hash
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // Wait for Supabase to automatically process the recovery token from the URL hash
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
             // Check session after recovery token processing
             const { data: { session: initialSession } } = await supabase.auth.getSession();
@@ -45,17 +39,38 @@ export default function SetPasswordPage() {
             const { data: { user }, error: userError } = await supabase.auth.getUser();
             debugLog('[SetPassword] First getUser attempt:', { user, userError });
             debugLog('[SetPassword] User email value:', user?.email);
-            debugLog('[SetPassword] User email check:', { hasUser: !!user, hasEmail: !!user?.email });
+            debugLog('[SetPassword] User email check:', { hasUser: !!user, hasEmail: !!user?.email, isAnonymous: user?.is_anonymous });
 
-            if (user && user.email) {
+            // Check if we have a valid user with an email (not anonymous)
+            if (user && user.email && !user.is_anonymous) {
                 debugLog('[SetPassword] User verified successfully:', user.email);
                 setEmail(user.email);
                 setIsVerifying(false);
+            } else if (user?.is_anonymous) {
+                // If we got an anonymous user, sign out and retry
+                debugLog('[SetPassword] Got anonymous user, signing out and retrying...');
+                await supabase.auth.signOut();
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                const { data: { user: retryUser }, error: retryError } = await supabase.auth.getUser();
+                debugLog('[SetPassword] Retry getUser attempt:', { retryUser, retryError });
+                debugLog('[SetPassword] Retry user email value:', retryUser?.email);
+
+                if (retryUser && retryUser.email && !retryUser.is_anonymous) {
+                    debugLog('[SetPassword] User verified on retry:', retryUser.email);
+                    setEmail(retryUser.email);
+                    setIsVerifying(false);
+                } else {
+                    debugLog('[SetPassword] Verification failed after retry');
+                    debugLog('[SetPassword] Final failure reason:', { retryUser: !!retryUser, email: retryUser?.email, isAnonymous: retryUser?.is_anonymous });
+                    showError('Invalid or expired link. Please try again.');
+                    setIsVerifying(false);
+                }
             } else {
                 debugLog('[SetPassword] First attempt failed, retrying...');
                 debugLog('[SetPassword] Failure reason:', { user: !!user, email: user?.email });
                 // Retry once more after another delay
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                await new Promise(resolve => setTimeout(resolve, 2000));
 
                 const { data: { session: retrySession } } = await supabase.auth.getSession();
                 debugLog('[SetPassword] Retry session:', retrySession);
@@ -65,16 +80,14 @@ export default function SetPasswordPage() {
                 debugLog('[SetPassword] Retry user email value:', retryUser?.email);
                 debugLog('[SetPassword] Retry user email check:', { hasUser: !!retryUser, hasEmail: !!retryUser?.email });
 
-                if (retryUser && retryUser.email) {
+                if (retryUser && retryUser.email && !retryUser.is_anonymous) {
                     debugLog('[SetPassword] User verified on retry:', retryUser.email);
                     setEmail(retryUser.email);
                     setIsVerifying(false);
                 } else {
-                    debugLog('[SetPassword] Verification failed after retry - NOT redirecting to allow debugging');
+                    debugLog('[SetPassword] Verification failed after retry');
                     debugLog('[SetPassword] Final failure reason:', { retryUser: !!retryUser, email: retryUser?.email });
-                    showError('Invalid or expired link. Please check the console and localStorage for debug info.');
-                    // DON'T redirect so we can see the logs
-                    // window.location.href = '/';
+                    showError('Invalid or expired link. Please try again.');
                     setIsVerifying(false);
                 }
             }
