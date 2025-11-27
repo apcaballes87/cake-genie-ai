@@ -4,7 +4,7 @@ import { useCart, useCartActions, readFromLocalStorage, batchSaveToLocalStorage,
 import { useAddresses } from '../../hooks/useAddresses';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
 import { Loader2, CloseIcon, TrashIcon } from '../../components/icons';
-import { MapPin, Search, X } from 'lucide-react';
+import { MapPin, Search, X, Users } from 'lucide-react';
 import { PaymentModeToggle } from '../../components/PaymentModeToggle';
 import { CartItem, CartItemDetails, CakeType } from '../../types';
 import { CakeGenieAddress } from '../../lib/database.types';
@@ -12,10 +12,12 @@ import { CartSkeleton } from '../../components/LoadingSkeletons';
 import { CITIES_AND_BARANGAYS } from '../../constants';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import DetailItem from '../../components/UI/DetailItem';
-import { createOrderFromCart, getAvailableDeliveryDates, getBlockedDatesInRange, AvailableDate, BlockedDateInfo, createGuestUser } from '../../services/supabaseService';
+import { createOrderFromCart, createSplitOrderFromCart, getAvailableDeliveryDates, getBlockedDatesInRange, AvailableDate, BlockedDateInfo, createGuestUser } from '../../services/supabaseService';
 import { upgradeAnonymousToEmailAccount } from '../../services/accountActivation';
 import { createXenditPayment } from '../../services/xenditService';
 import AddressForm, { StaticMap } from '../../components/AddressForm';
+import { SplitWithFriendsModal } from '../../components/SplitWithFriendsModal';
+import { SplitOrderShareModal } from '../../components/SplitOrderShareModal';
 import { useGoogleMapsLoader } from '../../contexts/GoogleMapsLoaderContext';
 import { calculateCartAvailability, AvailabilityType } from '../../lib/utils/availability';
 import CartItemCard from '../../components/CartItemCard';
@@ -136,6 +138,16 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
         }
     });
 
+    // Split with Friends State
+    const [isSplitModalOpen, setIsSplitModalOpen] = useState(false);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [splitOrderDetails, setSplitOrderDetails] = useState<{
+        shareLink: string;
+        orderNumber: string;
+        splitCount: number;
+        totalAmount: number;
+    } | null>(null);
+
     // Auto-open address form for guest users
     // Auto-open address form for guest users
     useEffect(() => {
@@ -147,6 +159,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
     // Persist guest email to localStorage
     useEffect(() => {
         if (guestEmail) {
+            console.log('[Cart] guestEmail updated:', guestEmail);
             batchSaveToLocalStorage('cart_guest_email', guestEmail);
         } else {
             batchRemoveFromLocalStorage('cart_guest_email');
@@ -536,9 +549,24 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
         try {
             // For anonymous users, create a user record first
             if (isAnonymous && user) {
+                let emailToRegister = guestEmail.trim();
+
+                // Fix for potential double email issue (e.g. test@example.comtest@example.com)
+                if (emailToRegister.length > 10 && emailToRegister.includes('@')) {
+                    const parts = emailToRegister.split('@');
+                    if (parts.length > 2) {
+                        const half = emailToRegister.substring(0, emailToRegister.length / 2);
+                        if (half + half === emailToRegister) {
+                            console.warn('Detected duplicated email, fixing:', emailToRegister);
+                            emailToRegister = half;
+                            setGuestEmail(half);
+                        }
+                    }
+                }
+
                 const { success: userCreated, error: userError, emailAlreadyExists } = await createGuestUser({
                     userId: user.id,
-                    email: guestEmail,
+                    email: emailToRegister,
                     firstName: guestAddress?.recipient_name,
                     phoneNumber: guestAddress?.recipient_phone,
                 });
@@ -596,7 +624,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                 if (isAnonymous && user && guestEmail) {
                     try {
                         const { success, error: upgradeError } = await upgradeAnonymousToEmailAccount({
-                            email: guestEmail,
+                            email: guestEmail.trim(),
                             firstName: guestAddress?.recipient_name,
                         });
 
@@ -629,6 +657,141 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
         } catch (error: any) {
             console.error('Checkout error:', error);
             showError(error.message || 'An error occurred during checkout.');
+        } finally {
+            setIsPlacingOrder(false);
+        }
+    };
+
+    const handleSplitWithFriends = async (splitCount: number, splitMessage: string) => {
+        if (!isAuthenticated) {
+            showError('Please sign in or continue as guest to place an order.');
+            return;
+        }
+
+        if (isAnonymous && !guestEmail) {
+            showError('Please enter your email address.');
+            return;
+        }
+
+        if (!isAnonymous && !selectedAddress) {
+            showError('Please select or add a delivery address.');
+            return;
+        }
+        if (isAnonymous && !guestAddress) {
+            showError('Please enter your delivery address.');
+            return;
+        }
+
+        if (!eventDate || !eventTime) {
+            showError('Please select delivery date and time');
+            return;
+        }
+
+        setIsPlacingOrder(true);
+        try {
+            // For anonymous users, create a user record first
+            if (isAnonymous && user) {
+                let emailToRegister = guestEmail.trim();
+
+                // Fix for potential double email issue (e.g. test@example.comtest@example.com)
+                if (emailToRegister.length > 10 && emailToRegister.includes('@')) {
+                    const parts = emailToRegister.split('@');
+                    if (parts.length > 2) {
+                        const half = emailToRegister.substring(0, emailToRegister.length / 2);
+                        if (half + half === emailToRegister) {
+                            console.warn('Detected duplicated email, fixing:', emailToRegister);
+                            emailToRegister = half;
+                            setGuestEmail(half);
+                        }
+                    }
+                }
+
+                const { success: userCreated, error: userError, emailAlreadyExists } = await createGuestUser({
+                    userId: user.id,
+                    email: emailToRegister,
+                    firstName: guestAddress?.recipient_name,
+                    phoneNumber: guestAddress?.recipient_phone,
+                });
+
+                if (!userCreated) {
+                    if (emailAlreadyExists) {
+                        showError('This email is already registered. Please sign in to continue.');
+                        setIsPlacingOrder(false);
+                        onAuthRequired?.();
+                        return;
+                    }
+                    throw new Error(userError?.message || 'Failed to create user account');
+                }
+            }
+
+            const { success, order, error } = await createSplitOrderFromCart({
+                cartItems,
+                eventDate,
+                eventTime,
+                deliveryAddressId: isAnonymous ? null : selectedAddress?.address_id || null,
+                deliveryInstructions,
+                deliveryFee,
+                discountAmount: appliedDiscount?.discountAmount,
+                discountCodeId: appliedDiscount?.codeId,
+                isSplitOrder: true,
+                splitMessage,
+                splitCount,
+                guestAddress: isAnonymous && guestAddress ? {
+                    recipientName: guestAddress.recipient_name,
+                    recipientPhone: guestAddress.recipient_phone,
+                    streetAddress: guestAddress.street_address,
+                    city: guestAddress.city
+                } : undefined
+            });
+
+            if (!success || !order) {
+                throw error || new Error('Failed to create split order.');
+            }
+
+            // For anonymous users, upgrade to email account and send activation email
+            if (isAnonymous && user && guestEmail) {
+                try {
+                    const { success, error: upgradeError } = await upgradeAnonymousToEmailAccount({
+                        email: guestEmail.trim(),
+                        firstName: guestAddress?.recipient_name,
+                    });
+
+                    if (!success) {
+                        console.error('Failed to upgrade account:', upgradeError);
+                    } else {
+                        console.log('Account upgraded successfully, activation email sent to:', guestEmail);
+                    }
+                } catch (upgradeErr) {
+                    console.error('Error during account upgrade:', upgradeErr);
+                }
+            }
+
+            // Generate share link
+            const shareLink = `${window.location.origin}/#/contribute/${order.order_id}`;
+
+            setSplitOrderDetails({
+                shareLink,
+                orderNumber: order.order_number,
+                splitCount,
+                totalAmount: order.total_amount
+            });
+
+            setIsSplitModalOpen(false);
+            setIsShareModalOpen(true);
+            clearCart();
+            setAppliedDiscount(null);
+            setDiscountCode('');
+            // Clear guest data
+            if (isAnonymous) {
+                setGuestEmail('');
+                setGuestAddress(null);
+                batchRemoveFromLocalStorage('cart_guest_email');
+                batchRemoveFromLocalStorage('cart_guest_address');
+            }
+
+        } catch (error: any) {
+            console.error('Split order error:', error);
+            showError(error.message || 'Failed to create split order.');
         } finally {
             setIsPlacingOrder(false);
         }
@@ -1071,9 +1234,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                                 </p>
 
                                 <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                                    <button onClick={onContinueShopping} className="w-full text-center bg-white border border-slate-300 text-slate-700 font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-slate-50 transition-all text-base">
-                                        Continue Shopping
-                                    </button>
+
                                     <button
                                         onClick={handleSubmitOrder}
                                         disabled={
@@ -1100,14 +1261,51 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                                             `Place Order - ₱${total.toFixed(2)} `
                                         )}
                                     </button>
+
+                                    <button
+                                        onClick={() => setIsSplitModalOpen(true)}
+                                        disabled={
+                                            isPlacingOrder ||
+                                            isCreatingPayment ||
+                                            (!isAnonymous && !selectedAddress) ||
+                                            (isAnonymous && (!guestAddress || !guestEmail)) ||
+                                            !eventDate ||
+                                            !eventTime
+                                        }
+                                        className="w-full py-4 px-4 bg-white border-2 border-pink-500 text-pink-500 font-bold rounded-full hover:bg-pink-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <Users className="w-5 h-5" />
+                                        <span>Split with Friends</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 )}
             </div>
-            {/* Payment Mode Toggle for Testing - Only for specific user */}
-            {user?.email === 'apcaballes@gmail.com' && <PaymentModeToggle />}
+
+            <SplitWithFriendsModal
+                isOpen={isSplitModalOpen}
+                onClose={() => setIsSplitModalOpen(false)}
+                onConfirm={handleSplitWithFriends}
+                totalAmount={total}
+                isLoading={isPlacingOrder}
+            />
+
+            {splitOrderDetails && (
+                <SplitOrderShareModal
+                    isOpen={isShareModalOpen}
+                    onClose={() => {
+                        setIsShareModalOpen(false);
+                        onClose(); // Close cart
+                        // Optionally redirect to order details
+                    }}
+                    shareLink={splitOrderDetails.shareLink}
+                    orderNumber={splitOrderDetails.orderNumber}
+                    splitCount={splitOrderDetails.splitCount}
+                    totalAmount={splitOrderDetails.totalAmount}
+                />
+            )}
         </>
     );
 };

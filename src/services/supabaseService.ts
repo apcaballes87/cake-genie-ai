@@ -1,9 +1,9 @@
 // services/supabaseService.ts
 import { getSupabaseClient } from '../lib/supabase/client';
-import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback, AvailabilitySettings } from '../types';
+import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback, AvailabilitySettings, CartItem } from '../types';
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
-import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem } from '../lib/database.types';
+import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem, OrderContribution } from '../lib/database.types';
 import { compressImage, validateImageFile } from '../lib/utils/imageOptimization';
 
 const supabase: SupabaseClient = getSupabaseClient();
@@ -626,6 +626,92 @@ export async function createOrderFromCart(
   }
 }
 
+export async function createSplitOrderFromCart(params: {
+  cartItems: CakeGenieCartItem[];
+  eventDate: string;
+  eventTime: string;
+  deliveryAddressId: string | null;
+  deliveryInstructions: string;
+  deliveryFee: number;
+  discountAmount?: number;
+  discountCodeId?: string;
+  guestAddress?: {
+    recipientName: string;
+    recipientPhone: string;
+    streetAddress: string;
+    city: string;
+  };
+  isSplitOrder: boolean;
+  splitMessage: string;
+  splitCount: number;
+}): Promise<{ success: boolean; order?: CakeGenieOrder; error?: Error }> {
+  try {
+    const {
+      cartItems,
+      eventDate,
+      eventTime,
+      deliveryAddressId,
+      deliveryInstructions,
+      deliveryFee,
+      discountAmount = 0,
+      discountCodeId = null,
+      guestAddress,
+      isSplitOrder,
+      splitMessage,
+      splitCount
+    } = params;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
+
+    // Calculate subtotal
+    const subtotal = cartItems.reduce((sum, item) => sum + (item.final_price * item.quantity), 0);
+
+    // Call the RPC function
+    const { data, error } = await supabase.rpc('create_split_order_from_cart', {
+      p_user_id: userId,
+      p_delivery_address_id: deliveryAddressId,
+      p_delivery_date: eventDate,
+      p_delivery_time_slot: eventTime,
+      p_subtotal: subtotal,
+      p_delivery_fee: deliveryFee,
+      p_delivery_instructions: deliveryInstructions,
+      p_discount_amount: discountAmount,
+      p_discount_code_id: discountCodeId,
+      p_recipient_name: guestAddress?.recipientName || null,
+      p_recipient_phone: guestAddress?.recipientPhone || null,
+      p_delivery_address: guestAddress?.streetAddress || null,
+      p_delivery_city: guestAddress?.city || null,
+      p_is_split_order: isSplitOrder,
+      p_split_message: splitMessage,
+      p_split_count: splitCount
+    });
+
+    if (error) throw error;
+
+    // The RPC returns an array with one row
+    const orderResult = data[0];
+
+    // Fetch the complete order with items for return
+    const { data: fullOrder, error: fetchError } = await supabase
+      .from('cakegenie_orders')
+      .select(`
+        *,
+        cakegenie_order_items(*),
+        cakegenie_addresses(*)
+      `)
+      .eq('order_id', orderResult.order_id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    return { success: true, order: fullOrder };
+  } catch (error: any) {
+    console.error('Error creating split order:', error);
+    return { success: false, error };
+  }
+}
+
 /**
  * Create a user record in cakegenie_users for an anonymous user
  * This is called when a guest places their first order
@@ -639,24 +725,13 @@ export async function createGuestUser(params: {
   try {
     const { userId, email, firstName, phoneNumber } = params;
 
-    // Check if user already exists by user_id
-    const { data: existing } = await supabase
-      .from('cakegenie_users')
-      .select('user_id')
-      .eq('user_id', userId)
-      .single();
-
-    if (existing) {
-      // User already exists, no need to create
-      return { success: true };
-    }
-
-    // Check if email is already registered
+    // Check if email is already registered to A DIFFERENT user
     const { data: emailExists } = await supabase
       .from('cakegenie_users')
-      .select('user_id, email')
+      .select('user_id')
       .eq('email', email)
-      .single();
+      .neq('user_id', userId) // Exclude current user from check
+      .maybeSingle();
 
     if (emailExists) {
       // Email is already registered with another account
@@ -667,22 +742,46 @@ export async function createGuestUser(params: {
       };
     }
 
-    // Create user record
-    const { error } = await supabase
+    // Check if user already exists to decide between insert and update
+    const { data: existing } = await supabase
       .from('cakegenie_users')
-      .insert({
-        user_id: userId,
-        email: email,
-        first_name: firstName || 'Guest',
-        phone_number: phoneNumber || null,
-        created_at: new Date().toISOString(),
-      });
+      .select('user_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    let error;
+
+    if (existing) {
+      // Update existing user
+      const { error: updateError } = await supabase
+        .from('cakegenie_users')
+        .update({
+          email: email,
+          first_name: firstName || 'Guest',
+          phone_number: phoneNumber || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId);
+      error = updateError;
+    } else {
+      // Create new user
+      const { error: insertError } = await supabase
+        .from('cakegenie_users')
+        .insert({
+          user_id: userId,
+          email: email,
+          first_name: firstName || 'Guest',
+          phone_number: phoneNumber || null,
+          created_at: new Date().toISOString(),
+        });
+      error = insertError;
+    }
 
     if (error) throw error;
 
     return { success: true };
   } catch (error: any) {
-    console.error('Error creating guest user:', error);
+    console.error('Error creating/updating guest user:', error);
     return { success: false, error };
   }
 }
@@ -1098,5 +1197,64 @@ export async function getBillSharingCreations(userId: string): Promise<SupabaseS
     return { data, error: null };
   } catch (err) {
     return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches a single order by ID for public access (e.g., for split contributions).
+ * Includes order items and contributions to calculate progress.
+ */
+export async function getSingleOrderPublic(orderId: string): Promise<SupabaseServiceResponse<CakeGenieOrder & { cakegenie_order_items: CakeGenieOrderItem[], order_contributions: OrderContribution[], organizer?: { first_name: string | null, email: string } }>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_orders')
+      .select(`
+        *,
+        cakegenie_order_items(*),
+        order_contributions(*),
+        organizer:cakegenie_users!organizer_user_id(first_name, email)
+      `)
+      .eq('order_id', orderId)
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Creates a contribution for a split order via the Edge Function.
+ */
+export async function createOrderContribution(params: {
+  orderId: string;
+  amount: number;
+  contributorName: string;
+  contributorEmail?: string;
+}): Promise<{ success: boolean; paymentUrl?: string; error?: string }> {
+  try {
+    const domain = window.location.origin;
+    const paymentMode = (typeof window !== 'undefined' && localStorage.getItem('xendit_payment_mode')) || 'live';
+
+    const { data, error } = await supabase.functions.invoke('create-order-contribution', {
+      body: {
+        ...params,
+        payment_mode: paymentMode,
+        success_redirect_url: `${domain}/#/contribute/${params.orderId}?payment=success`,
+        failure_redirect_url: `${domain}/#/contribute/${params.orderId}?payment=failed`
+      }
+    });
+
+    if (error) throw error;
+    if (!data.success) throw new Error(data.error || 'Failed to create contribution');
+
+    return { success: true, paymentUrl: data.paymentUrl };
+  } catch (err: any) {
+    console.error('Error creating contribution:', err);
+    return { success: false, error: err.message || 'An unexpected error occurred' };
   }
 }

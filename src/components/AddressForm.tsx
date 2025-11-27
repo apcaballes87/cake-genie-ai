@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useAddAddress, useUpdateAddress } from '../hooks/useAddresses';
 import { showSuccess, showError } from '../lib/utils/toast';
 import { CakeGenieAddress } from '../lib/database.types';
-import { Loader2, MapPin, Search, X, Pencil } from 'lucide-react';
+import { Loader2, MapPin, X } from 'lucide-react';
 import { GOOGLE_MAPS_API_KEY } from '../config';
 import { GoogleMap } from '@react-google-maps/api';
 import { useGoogleMapsLoader } from '../contexts/GoogleMapsLoaderContext';
@@ -86,41 +86,36 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                 const newCenter = map.getCenter();
                 if (newCenter) {
                     handleReverseGeocode(newCenter.lat(), newCenter.lng());
-                    // Update autocomplete bounds when user pans the map
-                    if (autocompleteRef.current) {
-                        const circle = new google.maps.Circle({
-                            center: newCenter,
-                            radius: 7000, // 7km
-                        });
-                        autocompleteRef.current.setBounds(circle.getBounds());
-                    }
                 }
             }
         }, 1000); // 1 second debounce
     }, [map, handleReverseGeocode]);
 
     useEffect(() => {
-        // We need the map to be loaded to set the initial bounds for autocomplete
         if (isLoaded && inputRef.current && map && !autocompleteRef.current) {
-            const circle = new google.maps.Circle({
-                center: map.getCenter(),
+            // Calculate bounds based on current map center with 7km radius
+            const mapCenter = map.getCenter();
+            const circle = new window.google.maps.Circle({
+                center: mapCenter,
                 radius: 7000, // 7km in meters
             });
 
             const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-                // Remove 'types: ['geocode']' to allow searching for establishments (shops, places)
                 componentRestrictions: { country: "ph" },
+                fields: ["address_components", "geometry", "name"],
                 bounds: circle.getBounds(),
-                strictBounds: true, // Restrict results to within the 7km radius
+                strictBounds: false,
             });
-            autocompleteRef.current = autocomplete;
-            autocomplete.addListener('place_changed', () => {
+
+            autocomplete.addListener("place_changed", () => {
                 const place = autocomplete.getPlace();
                 if (place.geometry?.location) {
                     map?.panTo(place.geometry.location);
                     map?.setZoom(17);
                 }
             });
+
+            autocompleteRef.current = autocomplete;
         }
     }, [isLoaded, map]);
 
@@ -167,17 +162,17 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                                     streetViewControl: false
                                 }}
                             />
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full pointer-events-none">
-                                <MapPin className="text-pink-500 w-10 h-10" fill="currentColor" />
+                            {/* Pin marker - positioned so the pin's point is at map center */}
+                            <div className="absolute top-1/2 left-1/2 pointer-events-none z-20" style={{ transform: 'translate(-50%, -100%)' }}>
+                                <MapPin className="text-pink-500 w-12 h-12 drop-shadow-lg" fill="currentColor" strokeWidth={1.5} />
                             </div>
-                            <div className="absolute top-4 left-0 right-0 flex justify-center px-4 pointer-events-none">
+                            <div className="absolute top-4 left-0 right-0 flex justify-center px-4 pointer-events-none z-10">
                                 <div className="relative w-full max-w-lg pointer-events-auto">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                                     <input
                                         ref={inputRef}
                                         type="text"
                                         placeholder="Search for a building or street..."
-                                        className="w-full pl-10 pr-4 py-3 bg-white rounded-full shadow-lg border border-slate-300 focus:ring-2 focus:ring-pink-500 focus:outline-none"
+                                        className="w-full px-4 py-3 bg-white rounded-full shadow-lg border border-slate-300 focus:ring-2 focus:ring-pink-500 focus:outline-none text-sm"
                                     />
                                 </div>
                             </div>
@@ -195,11 +190,13 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                         placeholder="e.g., Unit 5B, The Padgett Place, Molave St..."
                         required
                     />
-                    {suggestedAddress && !isGeocoding && (
-                        <div className="text-xs text-slate-500 mt-1 p-2 bg-slate-100 rounded-md">
-                            <strong>Suggested Location:</strong> {suggestedAddress}
-                        </div>
-                    )}
+                    <div className="mt-1 min-h-[2rem]">
+                        {suggestedAddress && !isGeocoding && (
+                            <div className="text-xs text-slate-500 p-2 bg-slate-100 rounded-md">
+                                <strong>Suggested Location:</strong> {suggestedAddress}
+                            </div>
+                        )}
+                    </div>
                     <button
                         onClick={handleSubmit}
                         disabled={!completeAddress.trim() || isGeocoding}

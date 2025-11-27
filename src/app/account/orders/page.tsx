@@ -5,7 +5,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { showSuccess, showError } from '../../../lib/utils/toast';
 import { CakeGenieOrder, CakeGenieOrderItem, PaymentStatus, OrderStatus } from '../../../lib/database.types';
 import { useOrders, useUploadPaymentProof, useOrderDetails, useCancelOrder } from '../../../hooks/useOrders';
-import { Loader2, ArrowLeft, ChevronDown, Package, Clock, CreditCard, CheckCircle, UploadCloud, Trash2, X } from 'lucide-react';
+import { Loader2, ArrowLeft, ChevronDown, Package, Clock, CreditCard, CheckCircle, UploadCloud, Trash2, X, Users } from 'lucide-react';
 import { OrdersSkeleton, Skeleton } from '../../../components/LoadingSkeletons';
 import { ImageZoomModal } from '../../../components/ImageZoomModal';
 import DetailItem from '../../../components/UI/DetailItem';
@@ -269,6 +269,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const { user } = useAuth();
     const cancelMutation = useCancelOrder();
+    const [copied, setCopied] = useState(false);
 
     const orderDate = new Date(order.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -291,12 +292,37 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
         });
     };
 
+    const handleCopyLink = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const link = `${window.location.origin}/#/contribute/${order.order_id}`;
+        navigator.clipboard.writeText(link).then(() => {
+            setCopied(true);
+            showSuccess('Link copied to clipboard!');
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
+
+    // Split Order Calculations
+    const isSplitOrder = order.is_split_order;
+    const collected = order.amount_collected || 0;
+    const total = order.total_amount;
+    const progress = Math.min((collected / total) * 100, 100);
+    const remaining = Math.max(total - collected, 0);
+    const isFullyFunded = remaining <= 0;
+
     return (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="p-4 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
                 <div className="flex justify-between items-start">
                     <div>
-                        <p className="font-mono text-sm font-bold text-slate-800">#{order.order_number}</p>
+                        <div className="flex items-center gap-2">
+                            <p className="font-mono text-sm font-bold text-slate-800">#{order.order_number}</p>
+                            {isSplitOrder && (
+                                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-purple-700 rounded-full border border-purple-200">
+                                    Split Order
+                                </span>
+                            )}
+                        </div>
                         <p className="text-xs text-slate-500 mt-1">Placed on {orderDate}</p>
                     </div>
                     <div className="text-right">
@@ -304,6 +330,26 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
                         <p className="text-xs text-slate-500">{itemCount} item(s)</p>
                     </div>
                 </div>
+
+                {/* Split Order Progress Bar (Visible in collapsed view too) */}
+                {isSplitOrder && (
+                    <div className="mt-3 mb-1">
+                        <div className="flex justify-between text-xs mb-1">
+                            <span className="text-slate-600 font-medium">Collected: ₱{collected.toLocaleString()}</span>
+                            <span className="text-slate-500">{Math.round(progress)}%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                            <div
+                                className={`h-full transition-all duration-500 ${isFullyFunded ? 'bg-green-500' : 'bg-gradient-to-r from-purple-500 to-pink-500'}`}
+                                style={{ width: `${progress}%` }}
+                            />
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-1 text-right">
+                            {isFullyFunded ? 'Fully Funded' : `₱${remaining.toLocaleString()} remaining`}
+                        </p>
+                    </div>
+                )}
+
                 <div className="mt-4 pt-3 border-t border-slate-100">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 sm:gap-4">
@@ -311,6 +357,18 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
                             <StatusBadge status={order.payment_status} type="payment" />
                         </div>
                         <div className="flex items-center gap-3">
+                            {/* Share Button for Split Orders */}
+                            {isSplitOrder && !isFullyFunded && (
+                                <button
+                                    onClick={handleCopyLink}
+                                    className="p-2 sm:px-3 sm:py-1.5 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors flex items-center gap-2"
+                                    title="Copy Contribution Link"
+                                >
+                                    {copied ? <CheckCircle className="w-4 h-4" /> : <Users className="w-4 h-4" />}
+                                    <span className="hidden sm:inline">{copied ? 'Copied' : 'Share'}</span>
+                                </button>
+                            )}
+
                             {order.order_status === 'pending' && (
                                 <button
                                     onClick={handleCancelOrder}
@@ -341,6 +399,32 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
             {isExpanded && (
                 <div className="px-4 pb-4 border-t border-slate-200 animate-fade-in">
                     <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+
+                    {/* Expanded Split Order Details */}
+                    {isSplitOrder && (
+                        <div className="mb-6 mt-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100">
+                            <div className="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 className="text-sm font-bold text-purple-900">Split Order Details</h4>
+                                    <p className="text-xs text-purple-700 mt-0.5">Share the link below with friends to collect contributions.</p>
+                                </div>
+                                <button
+                                    onClick={handleCopyLink}
+                                    className="text-xs font-semibold text-purple-600 hover:text-purple-800 flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-purple-200 shadow-sm"
+                                >
+                                    {copied ? <CheckCircle className="w-3 h-3" /> : <Users className="w-3 h-3" />}
+                                    {copied ? 'Copied!' : 'Copy Link'}
+                                </button>
+                            </div>
+
+                            <div className="bg-white p-2 rounded-lg border border-purple-100 flex items-center justify-between gap-2">
+                                <code className="text-xs text-slate-600 truncate flex-1">
+                                    {`${window.location.origin}/#/contribute/${order.order_id}`}
+                                </code>
+                            </div>
+                        </div>
+                    )}
+
                     <OrderDetails order={order} onOrderUpdate={onOrderUpdate} />
                 </div>
             )}

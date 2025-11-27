@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 // Define and export the AppState type for use in other components
-export type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'shopify_customizing' | 'pricing_sandbox' | 'not_found' | 'set_password';
+export type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'shopify_customizing' | 'pricing_sandbox' | 'not_found' | 'set_password' | 'contribute';
 
 export const useAppNavigation = () => {
     // State
@@ -12,6 +12,7 @@ export const useAppNavigation = () => {
     const [viewingDesignId, setViewingDesignId] = useState<string | null>(null);
     const [viewingShopifySessionId, setViewingShopifySessionId] = useState<string | null>(null);
     const [urlDiscountCode, setUrlDiscountCode] = useState<string | null>(null);
+    const [contributeOrderId, setContributeOrderId] = useState<string | null>(null);
 
     // Custom setter for appState to also manage refs, ensuring consistency
     const setAppState = useCallback((newState: AppState) => {
@@ -77,6 +78,7 @@ export const useAppNavigation = () => {
             const orderConfirmationMatch = path.match(/^\/order-confirmation\/?$/);
             const oldDesignMatch = path.match(/^\/design\/([a-zA-Z0-9-]+)\/?$/);
             const discountMatch = path.match(/^\/([A-Za-z0-9]+)\/?$/i);
+            const contributeMatch = path.match(/^\/contribute\/([a-zA-Z0-9-]+)\/?$/);
 
             // Static route matching
             const aboutMatch = path.match(/^\/about\/?$/);
@@ -105,6 +107,9 @@ export const useAppNavigation = () => {
                 const sessionId = shopifyMatch[1];
                 setViewingShopifySessionId(sessionId);
                 setAppState('shopify_customizing');
+            } else if (contributeMatch && contributeMatch[1]) {
+                setContributeOrderId(contributeMatch[1]);
+                setAppState('contribute');
             } else if (aboutMatch) {
                 setAppState('about');
             } else if (contactMatch) {
@@ -129,9 +134,10 @@ export const useAppNavigation = () => {
             } else {
                 // If the hash is cleared or doesn't match a special route, reset to landing.
                 if (appStateRef.current === 'shared_design' || appStateRef.current === 'shopify_customizing' ||
-                    ['about', 'contact', 'how_to_order', 'reviews', 'pricing_sandbox'].includes(appStateRef.current)) {
+                    ['about', 'contact', 'how_to_order', 'reviews', 'pricing_sandbox', 'contribute'].includes(appStateRef.current)) {
                     setViewingDesignId(null);
                     setViewingShopifySessionId(null);
+                    setContributeOrderId(null);
                     setAppState('landing');
                 }
             }
@@ -160,6 +166,7 @@ export const useAppNavigation = () => {
         viewingDesignId,
         viewingShopifySessionId,
         urlDiscountCode,
+        contributeOrderId,
         setAppState,
         setConfirmedOrderId,
         setUrlDiscountCode,

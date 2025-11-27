@@ -95,27 +95,11 @@ export const useDesignSharing = ({
     const [shareData, setShareData] = useState<ShareResult | null>(null);
     const [isSavingDesign, setIsSavingDesign] = useState(false);
 
-    const handleShare = useCallback(() => {
-        setShareData(null); // Reset any previous share data when opening
-        setIsShareModalOpen(true);
-    }, []);
-
     const closeShareModal = () => {
         setIsShareModalOpen(false);
     };
 
-    const createShareLink = useCallback(async (config: {
-        billSharingEnabled: boolean;
-        billSharingMessage?: string;
-        suggestedSplitCount?: number;
-        // ADD THESE:
-        deliveryAddress?: string;
-        deliveryCity?: string;
-        deliveryPhone?: string;
-        eventDate?: string;
-        eventTime?: string;
-        recipientName?: string;
-    }) => {
+    const createShareLink = useCallback(async () => {
         const imageUrlToShare = editedImage || originalImagePreview;
         if (!imageUrlToShare || !analysisResult || !cakeInfo || basePrice === undefined || finalPrice === null || !icingDesign) {
             showError('Cannot create link: missing design or price information.');
@@ -145,9 +129,9 @@ export const useDesignSharing = ({
                     size: t.size,
                 })),
                 supportElements: supportElements.filter(s => s.isEnabled).map(s => ({
-                    description: `${s.description} (${s.coverage})`,
+                    description: `${s.description} (${s.size})`,
                     type: s.type,
-                    coverage: s.coverage
+                    size: s.size
                 })),
                 cakeMessages: cakeMessages.filter(m => m.isEnabled).map(m => ({ text: m.text, color: hexToName(m.color) })),
                 icingDesign: {
@@ -175,15 +159,6 @@ export const useDesignSharing = ({
                 title: `${cakeInfo.size} ${cakeInfo.type} Cake`,
                 description: 'A custom cake design from Genie.',
                 altText: `A custom ${cakeInfo.type} cake.`,
-                billSharingEnabled: config.billSharingEnabled,
-                billSharingMessage: config.billSharingMessage,
-                suggestedSplitCount: config.suggestedSplitCount,
-                deliveryAddress: config.deliveryAddress,
-                deliveryCity: config.deliveryCity,
-                deliveryPhone: config.deliveryPhone,
-                eventDate: config.eventDate,
-                eventTime: config.eventTime,
-                recipientName: config.recipientName,
                 customization_details: customizationDetails,
             };
 
@@ -215,6 +190,12 @@ export const useDesignSharing = ({
         }
     }, [editedImage, originalImagePreview, cakeInfo, basePrice, finalPrice, mainToppers, supportElements, icingDesign, analysisResult, HEX_TO_COLOR_NAME_MAP, cakeMessages, additionalInstructions]);
 
+    const handleShare = useCallback(async () => {
+        setShareData(null); // Reset any previous share data
+        setIsShareModalOpen(true);
+        // Automatically create the share link
+        await createShareLink();
+    }, [createShareLink]);
 
     return {
         isShareModalOpen,

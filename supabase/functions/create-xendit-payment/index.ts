@@ -54,6 +54,64 @@ serve(async (req) => {
 
         const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
+        // Fetch Order Details for Description
+        const { data: orderData, error: orderError } = await supabaseAdmin
+            .from('cakegenie_orders')
+            .select(`
+                *,
+                cakegenie_order_items (
+                    *
+                )
+            `)
+            .eq('order_id', orderId)
+            .single();
+
+        if (orderError || !orderData) {
+            console.error('Error fetching order details:', orderError);
+            throw new Error('Failed to fetch order details for description');
+        }
+
+        // Construct Detailed Description
+        let description = `Order #${orderData.order_number}\n\n`;
+        description += `View Customization Details: ${requestBody.success_redirect_url.split('#')[0]}#/account/orders\n\n`;
+
+        if (orderData.cakegenie_order_items && orderData.cakegenie_order_items.length > 0) {
+            orderData.cakegenie_order_items.forEach((item: any, index: number) => {
+                const details = item.customization_details;
+                if (index > 0) description += '\n-------------------\n\n';
+
+                description += `Type:\n${item.cake_size} ${item.cake_type}\n`;
+
+                if (details.flavors && details.flavors.length > 0) {
+                    description += `Flavor:\n${details.flavors.join(', ')}\n`;
+                }
+
+                if (details.mainToppers && details.mainToppers.length > 0) {
+                    const toppers = details.mainToppers.map((t: any) => `${t.description} (${t.size || 'medium'})`).join(', ');
+                    description += `Main Toppers:\n${toppers}\n`;
+                }
+
+                if (details.supportElements && details.supportElements.length > 0) {
+                    const support = details.supportElements.map((s: any) => `${s.description} (${s.coverage || 'medium'})`).join(', ');
+                    description += `Support:\n${support}\n`;
+                }
+
+                if (details.cakeMessages && details.cakeMessages.length > 0) {
+                    details.cakeMessages.forEach((msg: any, i: number) => {
+                        description += `Message #${i + 1}:\n'${msg.text}' (${msg.color})\n`;
+                    });
+                }
+
+                if (details.icingDesign && details.icingDesign.colors) {
+                    const colors = details.icingDesign.colors;
+                    if (colors.top) description += `Top Color:\n${colors.top}\n`;
+                    if (colors.side) description += `Side Color:\n${colors.side}\n`;
+                    if (colors.topBorder) description += `Top Border Color:\n${colors.topBorder}\n`;
+                    if (colors.baseBorder) description += `Base Border Color:\n${colors.baseBorder}\n`;
+                }
+            });
+        }
+
         // Create Invoice
         const xenditAuthHeader = 'Basic ' + btoa(XENDIT_SECRET_KEY + ':');
         const response = await fetch('https://api.xendit.co/v2/invoices', {
@@ -66,7 +124,7 @@ serve(async (req) => {
                 external_id: orderId,
                 amount: amount,
                 payer_email: customerEmail,
-                description: `Order #${orderId}`,
+                description: description, // Use the detailed description
                 invoice_duration: 86400, // 24 hours
                 success_redirect_url,
                 failure_redirect_url,

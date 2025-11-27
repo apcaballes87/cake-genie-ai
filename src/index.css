@@ -241,3 +241,8 @@
   opacity: 1;
   transform: translate(0, -50%);
 }
+
+/* --- Google Maps Autocomplete Fix --- */
+.pac-container {
+  z-index: 10005 !important; /* Higher than modal's z-[9999] */
+}

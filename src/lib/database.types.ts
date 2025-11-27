@@ -129,6 +129,31 @@ export interface CakeGenieOrder {
   confirmed_at: string | null; // ISO 8601 timestamp
   delivered_at: string | null; // ISO 8601 timestamp
   cakegenie_order_items?: CakeGenieOrderItem[]; // Optional for joined queries
+  // Split with Friends fields
+  is_split_order?: boolean;
+  split_message?: string | null;
+  split_count?: number | null;
+  amount_collected?: number | null;
+  organizer_user_id?: string | null;
+  split_share_url?: string | null;
+}
+
+/**
+ * Represents a contribution to a split order in the `order_contributions` table.
+ */
+export interface OrderContribution {
+  contribution_id: string; // UUID
+  order_id: string; // UUID
+  user_id: string | null; // UUID, nullable
+  contributor_name: string | null;
+  contributor_email: string | null;
+  amount: number;
+  xendit_invoice_id: string | null;
+  payment_url: string | null;
+  status: string; // 'pending', 'paid', etc.
+  paid_at: string | null; // ISO 8601 timestamp
+  created_at: string; // ISO 8601 timestamp
+  updated_at: string; // ISO 8601 timestamp
 }
 
 /**

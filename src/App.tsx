@@ -47,6 +47,7 @@ const ShopifyCustomizingPage = lazy(() => import('./app/shopify-customizing/page
 const PricingSandboxPage = lazy(() => import('./app/pricing-sandbox/page'));
 const SetPasswordPage = lazy(() => import('./app/auth/set-password/page'));
 const NotFoundPage = lazy(() => import('./app/not-found/page'));
+const ContributePage = lazy(() => import('./app/contribute/page'));
 
 // Lazy load heavy modal components
 const ImageUploader = lazy(() => import('./components/ImageUploader').then(module => ({ default: module.ImageUploader })));
@@ -74,7 +75,7 @@ export default function App(): React.ReactElement {
   const { settings: availabilitySettings, loading: isLoadingAvailabilitySettings } = useAvailabilitySettings();
 
   // --- CUSTOM BUSINESS LOGIC HOOKS ---
-  const { appState, previousAppState, confirmedOrderId, viewingDesignId, viewingShopifySessionId, urlDiscountCode, setAppState, setConfirmedOrderId, setUrlDiscountCode } = useAppNavigation();
+  const { appState, previousAppState, confirmedOrderId, viewingDesignId, viewingShopifySessionId, urlDiscountCode, contributeOrderId, setAppState, setConfirmedOrderId, setUrlDiscountCode } = useAppNavigation();
 
   const {
     originalImageData, sourceImageData, previousImageData, originalImagePreview, editedImage, threeTierReferenceImage,
@@ -618,6 +619,7 @@ ${prompt}
       case 'reviews': return <ReviewsPage onClose={() => setAppState('landing')} />;
       case 'pricing_sandbox': return <PricingSandboxPage onClose={() => setAppState('landing')} />;
       case 'set_password': return <SetPasswordPage />;
+      case 'contribute': return contributeOrderId ? <ContributePage orderId={contributeOrderId} onNavigateHome={() => setAppState('landing')} /> : <LoadingSpinner />;
       case 'not_found': return <NotFoundPage onGoHome={() => setAppState('landing')} />;
       default: return <LandingPage user={user} onSearch={(q) => { setSearchInput(q); handleSearch(q); }} onUploadClick={() => setIsUploaderOpen(true)} setAppState={setAppState as React.Dispatch<React.SetStateAction<AppState>>} />;
     }
@@ -628,7 +630,8 @@ ${prompt}
       case 'landing': return 'p-4';
       case 'customizing': case 'shopify_customizing': return 'py-8 px-4';
       case 'searching': return 'py-8 px-4';
-      case 'cart': case 'order_confirmation': case 'shared_design': case 'about': case 'how_to_order': case 'contact': case 'reviews': case 'pricing_sandbox': return 'py-20 px-4';
+
+      case 'cart': case 'order_confirmation': case 'shared_design': case 'about': case 'how_to_order': case 'contact': case 'reviews': case 'pricing_sandbox': case 'contribute': return 'py-20 px-4';
       // Let the AuthPage control its own centering without extra padding from the main container
       case 'auth': return 'p-4';
       case 'addresses': case 'orders': return 'py-12 px-4';
@@ -664,9 +667,6 @@ ${prompt}
             isSaving={isSavingDesign}
             finalPrice={finalPrice}
             imageUrl={editedImage || originalImagePreview || ''}
-            user={user}
-            onAuthRequired={() => setAppState('auth')}
-            availability={availability}
           />
         </Suspense>
       </>}

@@ -12,15 +12,16 @@ serve(async (req) => {
   }
 
   try {
-    const { orderId, payment_mode } = await req.json();
-    if (!orderId) {
-      throw new Error('orderId is required in the request body.');
+    const { orderId, contributionId, payment_mode } = await req.json();
+
+    if (!orderId && !contributionId) {
+      throw new Error('orderId or contributionId is required in the request body.');
     }
 
     const mode = payment_mode || 'test';
     const XENDIT_SECRET_KEY = mode === 'live'
-      ? Deno.env.get('XENDIT_LIVE_API_KEY')
-      : Deno.env.get('XENDIT_TEST_API_KEY');
+      ? (Deno.env.get('XENDIT_LIVE_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'))
+      : (Deno.env.get('XENDIT_TEST_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'));
 
     if (!XENDIT_SECRET_KEY) {
       throw new Error(`Xendit API Key for ${mode} mode is not set.`);
@@ -36,6 +37,99 @@ serve(async (req) => {
     // Use the Service Role Key to bypass RLS for server-to-server operations
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
+    // --- HANDLE CONTRIBUTION PAYMENT ---
+    if (contributionId) {
+      const { data: contribution, error: dbError } = await supabaseAdmin
+        .from('order_contributions')
+        .select('xendit_invoice_id, status')
+        .eq('contribution_id', contributionId)
+        .single();
+
+      if (dbError) throw dbError;
+      if (!contribution || !contribution.xendit_invoice_id) {
+        throw new Error(`No contribution record found for ID: ${contributionId}`);
+      }
+
+      if (contribution.status === 'paid') {
+        return new Response(JSON.stringify({ success: true, status: 'paid', message: 'Status is already paid.' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      }
+
+      const invoiceId = contribution.xendit_invoice_id;
+      const xenditAuthHeader = 'Basic ' + btoa(XENDIT_SECRET_KEY + ':');
+      const xenditResponse = await fetch(`${XENDIT_API_URL}/v2/invoices/${invoiceId}`, {
+        method: 'GET',
+        headers: { 'Authorization': xenditAuthHeader },
+      });
+
+      if (!xenditResponse.ok) {
+        const errorBody = await xenditResponse.text();
+        throw new Error(`Xendit API error: ${xenditResponse.status} ${errorBody}`);
+      }
+
+      const invoice = await xenditResponse.json();
+      const latestStatus = invoice.status; // Xendit returns 'PAID', 'PENDING', 'EXPIRED'
+
+      if (latestStatus === 'PAID') {
+        if (contribution.status !== 'paid') {
+          console.log(`Status for contribution invoice ${invoiceId} is PAID. Updating database.`);
+
+          const { error: updateError } = await supabaseAdmin
+            .from('order_contributions')
+            .update({
+              status: 'paid', // Lowercase to match trigger expectation
+              paid_at: invoice.paid_at || new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('contribution_id', contributionId);
+
+          if (updateError) throw updateError;
+        }
+
+        // Force update order totals to ensure consistency (self-healing)
+        // This handles cases where the trigger might have failed or not fired
+        const { data: contributions, error: sumError } = await supabaseAdmin
+          .from('order_contributions')
+          .select('amount')
+          .eq('order_id', contribution.order_id)
+          .eq('status', 'paid');
+
+        if (!sumError && contributions) {
+          const totalCollected = contributions.reduce((sum, c) => sum + (c.amount || 0), 0);
+
+          // Get order total to check if fully funded
+          const { data: order } = await supabaseAdmin
+            .from('cakegenie_orders')
+            .select('total_amount')
+            .eq('order_id', contribution.order_id)
+            .single();
+
+          if (order) {
+            const isFullyFunded = totalCollected >= order.total_amount;
+            const updates: any = { amount_collected: totalCollected };
+
+            if (isFullyFunded) {
+              updates.payment_status = 'paid';
+              updates.order_status = 'confirmed';
+            }
+
+            await supabaseAdmin
+              .from('cakegenie_orders')
+              .update(updates)
+              .eq('order_id', contribution.order_id);
+          }
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, status: latestStatus }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
+    // --- HANDLE STANDARD ORDER PAYMENT ---
     // 1. Get the invoice_id from your database using the orderId
     const { data: paymentRecord, error: dbError } = await supabaseAdmin
       .from('xendit_payments')
