@@ -1,22 +1,5 @@
 {
-  "rewrites": [
-    {
-      "source": "/sitemap.xml",
-      "destination": "https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/generate-sitemap"
-    },
-    {
-      "source": "/designs/:slug",
-      "destination": "https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/share-design/:slug"
-    },
-    {
-      "source": "/share/:id*",
-      "destination": "https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/share-design/:id*"
-    },
-    {
-      "source": "/:code",
-      "destination": "/index.html"
-    }
-  ],
+  "rewrites": [],
   "headers": [
     {
       "source": "/designs/(.*)",

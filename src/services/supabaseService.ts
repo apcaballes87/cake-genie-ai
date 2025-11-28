@@ -14,20 +14,6 @@ type SupabaseServiceResponse<T> = {
   error: Error | PostgrestError | null;
 };
 
-// Type for the new shopify_customization_requests table
-export interface ShopifyCustomizationRequest {
-  session_id: string;
-  shopify_product_image_url: string;
-  shopify_product_tags: string[];
-  shopify_product_title: string;
-  shopify_variant_id: string;
-  shopify_variant_title: string;
-  shopify_base_price: number;
-  status: 'pending' | 'completed';
-  customized_image_url?: string;
-  customization_details?: CartItemDetails;
-  created_at: string;
-}
 
 // --- New Types for Delivery Date RPCs ---
 export interface AvailableDate {
@@ -976,59 +962,7 @@ export async function cancelOrder(
   }
 }
 
-// --- Shopify Integration Functions ---
 
-/**
- * Fetches a customization request from the shopify_customization_requests table.
- */
-export async function getShopifyCustomizationRequest(
-  sessionId: string
-): Promise<SupabaseServiceResponse<ShopifyCustomizationRequest>> {
-  try {
-    const { data, error } = await supabase
-      .from('shopify_customization_requests')
-      .select('*')
-      .eq('session_id', sessionId)
-      .single();
-
-    if (error) {
-      return { data: null, error };
-    }
-    return { data, error: null };
-  } catch (err) {
-    return { data: null, error: err as Error };
-  }
-}
-
-/**
- * Updates a Shopify customization request with the final image and details.
- */
-export async function updateShopifyCustomizationRequest(
-  sessionId: string,
-  updates: {
-    customized_image_url: string;
-    customization_details: CartItemDetails;
-  }
-): Promise<SupabaseServiceResponse<ShopifyCustomizationRequest>> {
-  try {
-    const { data, error } = await supabase
-      .from('shopify_customization_requests')
-      .update({
-        ...updates,
-        status: 'completed',
-      })
-      .eq('session_id', sessionId)
-      .select()
-      .single();
-
-    if (error) {
-      return { data: null, error };
-    }
-    return { data, error: null };
-  } catch (err) {
-    return { data: null, error: err as Error };
-  }
-}
 
 /**
  * Fetches a list of suggested search keywords from the database.

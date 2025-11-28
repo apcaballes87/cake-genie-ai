@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 // Define and export the AppState type for use in other components
-export type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'shopify_customizing' | 'pricing_sandbox' | 'not_found' | 'set_password' | 'contribute';
+export type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'not_found' | 'set_password' | 'contribute';
 
 export const useAppNavigation = () => {
     // State
@@ -10,7 +10,7 @@ export const useAppNavigation = () => {
     const previousAppState = useRef<AppState | null>(null);
     const [confirmedOrderId, setConfirmedOrderId] = useState<string | null>(null);
     const [viewingDesignId, setViewingDesignId] = useState<string | null>(null);
-    const [viewingShopifySessionId, setViewingShopifySessionId] = useState<string | null>(null);
+
     const [urlDiscountCode, setUrlDiscountCode] = useState<string | null>(null);
     const [contributeOrderId, setContributeOrderId] = useState<string | null>(null);
 
@@ -29,7 +29,7 @@ export const useAppNavigation = () => {
         // This ensures that if a user (or bot) visits the non-hash URL directly, they get redirected to the correct SPA route.
         if (window.location.pathname !== '/' && !window.location.hash) {
             const path = window.location.pathname;
-            const staticRoutes = ['/about', '/contact', '/how-to-order', '/reviews', '/pricing-sandbox'];
+            const staticRoutes = ['/about', '/contact', '/how-to-order', '/reviews'];
 
             // Check if the current path matches a static route (exact match or sub-path)
             const isStaticRoute = staticRoutes.some(route => path === route || path.startsWith(`${route}/`));
@@ -65,16 +65,14 @@ export const useAppNavigation = () => {
             // Ensure path is a string before calling .match()
             if (!path || typeof path !== 'string') {
                 // If path is invalid, reset to landing if needed
-                if (appStateRef.current === 'shared_design' || appStateRef.current === 'shopify_customizing') {
+                if (appStateRef.current === 'shared_design') {
                     setViewingDesignId(null);
-                    setViewingShopifySessionId(null);
                     setAppState('landing');
                 }
                 return;
             }
 
             const designMatch = path.match(/^\/designs\/([a-z0-9-]+)\/?$/);
-            const shopifyMatch = path.match(/^\/cakesandmemories\/([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})\/?$/);
             const orderConfirmationMatch = path.match(/^\/order-confirmation\/?$/);
             const oldDesignMatch = path.match(/^\/design\/([a-zA-Z0-9-]+)\/?$/);
             const discountMatch = path.match(/^\/([A-Za-z0-9]+)\/?$/i);
@@ -85,7 +83,6 @@ export const useAppNavigation = () => {
             const contactMatch = path.match(/^\/contact\/?$/);
             const howToOrderMatch = path.match(/^\/how-to-order\/?$/);
             const reviewsMatch = path.match(/^\/reviews\/?$/);
-            const pricingSandboxMatch = path.match(/^\/pricing-sandbox\/?$/);
             const setPasswordMatch = path.match(/^\/auth\/set-password/);
 
             if (orderConfirmationMatch && params.get('order_id')) {
@@ -103,10 +100,9 @@ export const useAppNavigation = () => {
             } else if (oldDesignMatch && oldDesignMatch[1]) { // Keep for backward compatibility
                 setViewingDesignId(oldDesignMatch[1]);
                 setAppState('shared_design');
-            } else if (shopifyMatch && shopifyMatch[1]) {
-                const sessionId = shopifyMatch[1];
-                setViewingShopifySessionId(sessionId);
-                setAppState('shopify_customizing');
+            } else if (oldDesignMatch && oldDesignMatch[1]) { // Keep for backward compatibility
+                setViewingDesignId(oldDesignMatch[1]);
+                setAppState('shared_design');
             } else if (contributeMatch && contributeMatch[1]) {
                 setContributeOrderId(contributeMatch[1]);
                 setAppState('contribute');
@@ -118,8 +114,6 @@ export const useAppNavigation = () => {
                 setAppState('how_to_order');
             } else if (reviewsMatch) {
                 setAppState('reviews');
-            } else if (pricingSandboxMatch) {
-                setAppState('pricing_sandbox');
             } else if (setPasswordMatch) {
                 setAppState('set_password');
             } else if (discountMatch && discountMatch[1]) {
@@ -133,10 +127,9 @@ export const useAppNavigation = () => {
                 }
             } else {
                 // If the hash is cleared or doesn't match a special route, reset to landing.
-                if (appStateRef.current === 'shared_design' || appStateRef.current === 'shopify_customizing' ||
-                    ['about', 'contact', 'how_to_order', 'reviews', 'pricing_sandbox', 'contribute'].includes(appStateRef.current)) {
+                if (appStateRef.current === 'shared_design' ||
+                    ['about', 'contact', 'how_to_order', 'reviews', 'contribute'].includes(appStateRef.current)) {
                     setViewingDesignId(null);
-                    setViewingShopifySessionId(null);
                     setContributeOrderId(null);
                     setAppState('landing');
                 }
@@ -157,15 +150,15 @@ export const useAppNavigation = () => {
             window.removeEventListener('hashchange', handleRouting);
             window.removeEventListener('popstate', handleRouting);
         };
-    }, [setAppState, setConfirmedOrderId, setViewingDesignId, setViewingShopifySessionId]);
+    }, [setAppState, setConfirmedOrderId, setViewingDesignId]);
 
     return {
         appState,
         previousAppState, // The ref for immediate access without re-renders
         confirmedOrderId,
         viewingDesignId,
-        viewingShopifySessionId,
         urlDiscountCode,
+
         contributeOrderId,
         setAppState,
         setConfirmedOrderId,

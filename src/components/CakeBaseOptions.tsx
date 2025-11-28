@@ -6,8 +6,6 @@ import { CakeBaseSkeleton } from './LoadingSkeletons';
 interface CakeBaseOptionsProps {
     cakeInfo: CakeInfoUI | null;
     basePriceOptions: BasePriceInfo[] | null;
-    shopifyFixedSize?: string;
-    shopifyBasePrice?: number;
     onCakeInfoChange: (updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => void;
     isAnalyzing: boolean;
 }
@@ -21,8 +19,6 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
 export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
     cakeInfo,
     basePriceOptions,
-    shopifyFixedSize,
-    shopifyBasePrice,
     onCakeInfoChange,
     isAnalyzing
 }) => {
@@ -40,61 +36,49 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
 
     return (
         <div className="space-y-3">
-            {shopifyFixedSize && shopifyBasePrice !== undefined && (
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Size & Base Price</label>
-                    <div className="p-3 bg-purple-50 border-2 border-purple-200 rounded-lg flex items-center justify-between">
-                        <span className="text-sm font-semibold text-purple-800">{shopifyFixedSize}</span>
-                        <span className="text-sm font-bold text-purple-800">₱{shopifyBasePrice.toLocaleString()}</span>
+            <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Cake Type</label>
+                <div className="relative">
+                    <div ref={cakeTypeScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
+                        {CAKE_TYPES.map(type => (
+                            <button
+                                key={type}
+                                data-caketype={type}
+                                type="button"
+                                onClick={() => onCakeInfoChange({ type })}
+                                className="group flex-shrink-0 w-20 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
+                            >
+                                <div className={`w-full aspect-[5/4] rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.type === type ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
+                                    <img src={CAKE_TYPE_THUMBNAILS[type]} alt={cakeTypeDisplayMap[type]} className="w-full h-full object-cover" />
+                                </div>
+                                <span className="mt-2 text-[10px] font-medium text-slate-700 leading-tight">{cakeTypeDisplayMap[type]}</span>
+                            </button>
+                        ))}
                     </div>
                 </div>
-            )}
-            {!shopifyFixedSize && (
-                <>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Cake Type</label>
-                        <div className="relative">
-                            <div ref={cakeTypeScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
-                                {CAKE_TYPES.map(type => (
-                                    <button
-                                        key={type}
-                                        data-caketype={type}
-                                        type="button"
-                                        onClick={() => onCakeInfoChange({ type })}
-                                        className="group flex-shrink-0 w-20 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
-                                    >
-                                        <div className={`w-full aspect-[5/4] rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.type === type ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
-                                            <img src={CAKE_TYPE_THUMBNAILS[type]} alt={cakeTypeDisplayMap[type]} className="w-full h-full object-cover" />
-                                        </div>
-                                        <span className="mt-2 text-[10px] font-medium text-slate-700 leading-tight">{cakeTypeDisplayMap[type]}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Cake Height (All tiers)</label>
+                <div className="relative">
+                    <div ref={cakeThicknessScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
+                        {currentThicknessOptions.map(thickness => (
+                            <button
+                                key={thickness}
+                                data-cakethickness={thickness}
+                                type="button"
+                                onClick={() => onCakeInfoChange({ thickness })}
+                                className="group flex-shrink-0 w-20 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
+                            >
+                                <div className={`relative w-full aspect-[5/4] rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.thickness === thickness ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
+                                    <img src={CAKE_THICKNESS_THUMBNAILS[thickness]} alt={`${thickness} height`} className="w-full h-full object-cover" />
+                                </div>
+                                <span className="mt-2 text-[10px] font-semibold text-slate-800 leading-tight">{thickness}</span>
+                            </button>
+                        ))}
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Cake Height (All tiers)</label>
-                        <div className="relative">
-                            <div ref={cakeThicknessScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
-                                {currentThicknessOptions.map(thickness => (
-                                    <button
-                                        key={thickness}
-                                        data-cakethickness={thickness}
-                                        type="button"
-                                        onClick={() => onCakeInfoChange({ thickness })}
-                                        className="group flex-shrink-0 w-20 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
-                                    >
-                                        <div className={`relative w-full aspect-[5/4] rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.thickness === thickness ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
-                                            <img src={CAKE_THICKNESS_THUMBNAILS[thickness]} alt={`${thickness} height`} className="w-full h-full object-cover" />
-                                        </div>
-                                        <span className="mt-2 text-[10px] font-semibold text-slate-800 leading-tight">{thickness}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </>
-            )}
+                </div>
+            </div>
+
             {basePriceOptions && basePriceOptions.length > 0 && (
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Size (Diameter)</label>
@@ -140,6 +124,7 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                     )}
                 </div>
             )}
+
             <div className="space-y-2 pt-1">
                 {tierLabels.map((label, index) => {
                     return (

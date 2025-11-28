@@ -161,11 +161,7 @@ export const CITIES_AND_BARANGAYS: Record<string, string[]> = {
   "Talisay City": ["Biasong", "Bulacao", "Cadulawan", "Camp IV", "Cansojong", "Dapdap", "Jaclupan", "Lagtang", "Lawaan I", "Lawaan II", "Lawaan III", "Linao", "Maghaway", "Manipis", "Mohon", "Pooc", "Poblacion", "San Isidro", "San Roque", "Tabunok", "Tangke", "Tapul"],
 };
 
-export const SHOPIFY_TAGS = {
-  TIER: 'tier',
-  TYPE: 'type',
-  FLAVOR: 'flavor',
-};
+
 
 export const DEFAULT_ICING_DESIGN = {
   base: 'soft_icing' as const,

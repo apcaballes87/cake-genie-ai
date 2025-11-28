@@ -6,7 +6,7 @@ import LazyImage from '../../components/LazyImage';
 import { useCanonicalUrl } from '../../hooks';
 import { useSEO } from '../../hooks/useSEO';
 
-type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'pricing_sandbox';
+type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews';
 
 interface LandingPageProps {
   onSearch: (query: string) => void;
@@ -161,9 +161,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
           <button onClick={() => setAppState('how_to_order')} className="hover:text-pink-600 transition-colors">How to Order</button>
           <button onClick={() => setAppState('contact')} className="hover:text-pink-600 transition-colors">Contact Us</button>
           <button onClick={() => setAppState('reviews')} className="hover:text-pink-600 transition-colors">Reviews</button>
-          {user && user.email === 'apcaballes@gmail.com' && (
-            <button onClick={() => setAppState('pricing_sandbox')} className="hover:text-pink-600 transition-colors">Pricing Sandbox</button>
-          )}
+
         </div>
       </footer>
     </div>

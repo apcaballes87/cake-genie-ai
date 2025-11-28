@@ -11,9 +11,8 @@ import {
     CakeFlavor,
     IcingColorDetails,
 } from '../types';
-import { DEFAULT_THICKNESS_MAP, DEFAULT_SIZE_MAP, COLORS, CAKE_TYPES, SHOPIFY_TAGS, DEFAULT_ICING_DESIGN, FLAVOR_OPTIONS } from '../constants';
+import { DEFAULT_THICKNESS_MAP, DEFAULT_SIZE_MAP, COLORS, CAKE_TYPES, DEFAULT_ICING_DESIGN, FLAVOR_OPTIONS } from '../constants';
 import { showSuccess } from '../lib/utils/toast';
-import { ShopifyCustomizationRequest } from '../services/supabaseService';
 import { calculateCustomizingAvailability, AvailabilityType } from '../lib/utils/availability';
 
 // 'icingDesign' is now handled with granular dot-notation strings
@@ -71,71 +70,7 @@ export const useCakeCustomization = () => {
         setDirtyFields(new Set());
     }, []);
 
-    const initializeFromShopify = useCallback((requestData: ShopifyCustomizationRequest) => {
-        let cakeType: CakeType = '1 Tier';
-        let flavor: CakeFlavor = 'Chocolate Cake';
 
-        requestData.shopify_product_tags.forEach(tag => {
-            const [key, value] = tag.split(':').map(s => s.trim());
-            if (key === SHOPIFY_TAGS.TIER) {
-                const tierNum = parseInt(value, 10);
-                if (tierNum === 2) cakeType = '2 Tier';
-                if (tierNum === 3) cakeType = '3 Tier';
-            }
-            if (key === SHOPIFY_TAGS.TYPE) {
-                if ((CAKE_TYPES as readonly string[]).includes(value)) {
-                    cakeType = value as CakeType;
-                }
-            }
-            if (key === SHOPIFY_TAGS.FLAVOR && FLAVOR_OPTIONS.includes(value as CakeFlavor)) {
-                flavor = value as CakeFlavor;
-            }
-        });
-
-        const getFlavorCount = (type: CakeType): number => {
-            if (type.includes('2 Tier')) return 2;
-            if (type.includes('3 Tier')) return 3;
-            return 1;
-        };
-        const flavorCount = getFlavorCount(cakeType);
-        const initialFlavors: CakeFlavor[] = Array(flavorCount).fill(flavor);
-
-        setCakeInfo({
-            type: cakeType,
-            thickness: DEFAULT_THICKNESS_MAP[cakeType],
-            flavors: initialFlavors,
-            size: requestData.shopify_variant_title
-        });
-
-        // For Shopify flow, we assume a simple base without detected elements
-        setMainToppers([]);
-        setSupportElements([]);
-        setCakeMessages([]);
-        setIcingDesign({
-            ...DEFAULT_ICING_DESIGN,
-            base: cakeType.includes('Fondant') ? 'fondant' : 'soft_icing',
-        });
-        setAdditionalInstructions('');
-        setIsCustomizationDirty(false);
-        setDirtyFields(new Set());
-
-        // Mock a minimal analysis result so pricing logic can function
-        setAnalysisResult({
-            cakeType: cakeType,
-            cakeThickness: DEFAULT_THICKNESS_MAP[cakeType],
-            main_toppers: [],
-            support_elements: [],
-            cake_messages: [],
-            icing_design: {
-                base: cakeType.includes('Fondant') ? 'fondant' : 'soft_icing',
-                color_type: 'single',
-                colors: { side: '#FFFFFF' },
-                border_top: false, border_base: false, drip: false, gumpasteBaseBoard: false
-            }
-        });
-        setAnalysisId(`shopify-${Date.now()}`);
-
-    }, []);
 
     const handleCakeInfoChange = useCallback((
         updates: Partial<CakeInfoUI>,
@@ -609,7 +544,6 @@ export const useCakeCustomization = () => {
         handleSupportElementImageReplace,
         clearCustomization,
         initializeDefaultState,
-        initializeFromShopify,
         syncAnalysisResultWithCurrentState,
     };
 };

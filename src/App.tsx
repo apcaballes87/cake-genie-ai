@@ -43,8 +43,6 @@ const AboutPage = lazy(() => import('./app/about/page'));
 const HowToOrderPage = lazy(() => import('./app/how-to-order/page'));
 const ContactPage = lazy(() => import('./app/contact/page'));
 const ReviewsPage = lazy(() => import('./app/reviews/page'));
-const ShopifyCustomizingPage = lazy(() => import('./app/shopify-customizing/page'));
-const PricingSandboxPage = lazy(() => import('./app/pricing-sandbox/page'));
 const SetPasswordPage = lazy(() => import('./app/auth/set-password/page'));
 const NotFoundPage = lazy(() => import('./app/not-found/page'));
 const ContributePage = lazy(() => import('./app/contribute/page'));
@@ -75,7 +73,7 @@ export default function App(): React.ReactElement {
   const { settings: availabilitySettings, loading: isLoadingAvailabilitySettings } = useAvailabilitySettings();
 
   // --- CUSTOM BUSINESS LOGIC HOOKS ---
-  const { appState, previousAppState, confirmedOrderId, viewingDesignId, viewingShopifySessionId, urlDiscountCode, contributeOrderId, setAppState, setConfirmedOrderId, setUrlDiscountCode } = useAppNavigation();
+  const { appState, previousAppState, confirmedOrderId, viewingDesignId, urlDiscountCode, contributeOrderId, setAppState, setConfirmedOrderId, setUrlDiscountCode } = useAppNavigation();
 
   const {
     originalImageData, sourceImageData, previousImageData, originalImagePreview, editedImage, threeTierReferenceImage,
@@ -98,9 +96,7 @@ export default function App(): React.ReactElement {
     updateCakeMessage, removeCakeMessage,
     onIcingDesignChange, onAdditionalInstructionsChange, handleTopperImageReplace,
     handleSupportElementImageReplace, clearCustomization, initializeDefaultState,
-    initializeFromShopify,
     availability: baseAvailability,
-    // FIX: Destructure onCakeMessageChange from useCakeCustomization hook.
     onCakeMessageChange,
     syncAnalysisResultWithCurrentState,
   } = useCakeCustomization();
@@ -282,9 +278,9 @@ export default function App(): React.ReactElement {
         size: t.size,
       })),
       supportElements: supportElements.filter(s => s.isEnabled).map(s => ({
-        description: `${s.description} (${s.coverage})`,
+        description: `${s.description} (${s.size})`,
         type: s.type,
-        coverage: s.coverage
+        size: s.size
       })),
       cakeMessages: cakeMessages.filter(m => m.isEnabled).map(m => ({ text: m.text, color: hexToName(m.color) })),
       icingDesign: {
@@ -554,7 +550,7 @@ ${prompt}
 
   const renderAppState = () => {
     switch (appState) {
-      case 'landing': return <LandingPage user={user} onSearch={(q) => { setSearchInput(q); handleSearch(q); }} onUploadClick={() => setIsUploaderOpen(true)} setAppState={setAppState as React.Dispatch<React.SetStateAction<AppState>>} />;
+      case 'landing': return <LandingPage user={user} onSearch={(q) => { setSearchInput(q); handleSearch(q); }} onUploadClick={() => setIsUploaderOpen(true)} setAppState={setAppState as unknown as React.Dispatch<React.SetStateAction<AppState>>} />;
       case 'searching': return <SearchingPage
         searchInput={searchInput}
         setSearchInput={setSearchInput}
@@ -612,26 +608,24 @@ ${prompt}
       case 'addresses': return <AddressesPage onClose={() => setAppState(previousAppState.current || 'landing')} />;
       case 'orders': return <OrdersPage onClose={() => setAppState(previousAppState.current || 'landing')} />;
       case 'shared_design': return viewingDesignId ? <SharedDesignPage designId={viewingDesignId} onStartWithDesign={handleStartWithSharedDesign} onNavigateHome={() => { setAppState('landing'); }} onPurchaseDesign={handlePurchaseSharedDesign} user={user} onAuthRequired={() => setAppState('auth')} /> : <LoadingSpinner />;
-      case 'shopify_customizing': return viewingShopifySessionId ? <ShopifyCustomizingPage sessionId={viewingShopifySessionId} onNavigateHome={() => setAppState('landing')} user={user} /> : <LoadingSpinner />;
       case 'about': return <AboutPage onClose={() => setAppState('landing')} />;
       case 'how_to_order': return <HowToOrderPage onClose={() => setAppState('landing')} />;
       case 'contact': return <ContactPage onClose={() => setAppState('landing')} />;
       case 'reviews': return <ReviewsPage onClose={() => setAppState('landing')} />;
-      case 'pricing_sandbox': return <PricingSandboxPage onClose={() => setAppState('landing')} />;
       case 'set_password': return <SetPasswordPage />;
       case 'contribute': return contributeOrderId ? <ContributePage orderId={contributeOrderId} onNavigateHome={() => setAppState('landing')} /> : <LoadingSpinner />;
       case 'not_found': return <NotFoundPage onGoHome={() => setAppState('landing')} />;
-      default: return <LandingPage user={user} onSearch={(q) => { setSearchInput(q); handleSearch(q); }} onUploadClick={() => setIsUploaderOpen(true)} setAppState={setAppState as React.Dispatch<React.SetStateAction<AppState>>} />;
+      default: return <LandingPage user={user} onSearch={(q) => { setSearchInput(q); handleSearch(q); }} onUploadClick={() => setIsUploaderOpen(true)} setAppState={setAppState as unknown as React.Dispatch<React.SetStateAction<AppState>>} />;
     }
   }
 
   const mainContentPadding = useMemo(() => {
     switch (appState) {
       case 'landing': return 'p-4';
-      case 'customizing': case 'shopify_customizing': return 'py-8 px-4';
+      case 'customizing': return 'py-8 px-4';
       case 'searching': return 'py-8 px-4';
 
-      case 'cart': case 'order_confirmation': case 'shared_design': case 'about': case 'how_to_order': case 'contact': case 'reviews': case 'pricing_sandbox': case 'contribute': return 'py-20 px-4';
+      case 'cart': case 'order_confirmation': case 'shared_design': case 'about': case 'how_to_order': case 'contact': case 'reviews': case 'contribute': return 'py-20 px-4';
       // Let the AuthPage control its own centering without extra padding from the main container
       case 'auth': return 'p-4';
       case 'addresses': case 'orders': return 'py-12 px-4';
@@ -640,10 +634,10 @@ ${prompt}
   }, [appState]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100">
+    <div className="min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100">
       <Toaster toastOptions={toastOptions} />
       <AnimatedBlobs />
-      {authError && <div className="fixed inset-0 bg-white z-[100] flex items-center justify-center p-4 text-center"><div className="max-w-md"><ErrorIcon className="w-16 h-16 text-red-500 mx-auto mb-4" /><h2 className="text-2xl font-bold text-slate-800 mb-2">Initialization Failed</h2><p className="text-slate-600 mb-6">{authError}</p><button onClick={() => window.location.reload()} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:shadow-lg transition-all">Refresh Page</button></div></div>}
+      {authError && <div className="fixed inset-0 bg-white z-100 flex items-center justify-center p-4 text-center"><div className="max-w-md"><ErrorIcon className="w-16 h-16 text-red-500 mx-auto mb-4" /><h2 className="text-2xl font-bold text-slate-800 mb-2">Initialization Failed</h2><p className="text-slate-600 mb-6">{authError}</p><button onClick={() => window.location.reload()} className="bg-linear-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:shadow-lg transition-all">Refresh Page</button></div></div>}
       {!authError && <>
         {appState === 'landing' && <div className="fixed top-4 right-4 z-20 flex items-center gap-2"><button onMouseEnter={() => import('./app/cart/page')} onClick={() => setAppState('cart')} className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors" aria-label={`View cart with ${itemCount} items`}><CartIcon />{itemCount > 0 && <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">{itemCount}</span>}</button>{isAuthenticated && !user?.is_anonymous ? <div className="relative" ref={accountMenuRef}><button onClick={() => setIsAccountMenuOpen(prev => !prev)} className="p-2 text-slate-600 hover:text-purple-700 transition-colors" aria-label="Open account menu"><UserCircleIcon /></button>{isAccountMenuOpen && <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-1 animate-fade-in"><div className="px-4 py-2 border-b border-slate-100"><p className="text-sm font-medium text-slate-800 truncate">{user?.email}</p></div><button onClick={() => { setAppState('addresses'); setIsAccountMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"><MapPinIcon className="w-4 h-4" />My Addresses</button><button onClick={() => { setAppState('orders'); setIsAccountMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"><PackageIcon className="w-4 h-4" />My Orders</button><button onClick={handleSignOut} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"><LogOutIcon className="w-4 h-4" />Sign Out</button></div>}</div> : <button onClick={() => setAppState('auth')} className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full text-sm font-semibold text-slate-700 hover:bg-white hover:border-slate-300 transition-all shadow-sm">Login / Sign Up</button>}</div>}
         <main className={`relative w-full mx-auto transition-all duration-300 ease-in-out ${mainContentPadding} ${appState === 'landing' ? 'h-screen overflow-y-hidden' : ''}`}>
