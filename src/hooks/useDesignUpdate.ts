@@ -52,6 +52,7 @@ export const useDesignUpdate = ({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const lastGenerationInfoRef = useRef<{ prompt: string; systemInstruction: string; } | null>(null);
+    const [isSafetyFallback, setIsSafetyFallback] = useState(false);
 
     const handleUpdateDesign = useCallback(async () => {
         // Analytics: Track when a user completes a customization by updating the design
@@ -60,7 +61,7 @@ export const useDesignUpdate = ({
                 'event_category': 'ecommerce_funnel'
             });
         }
-        
+
         // Guard against missing critical data which is checked in the service, but good to have here too.
         if (!originalImageData || !icingDesign || !cakeInfo) {
             const missingDataError = "Cannot update design: missing original image, icing design, or cake info.";
@@ -68,9 +69,10 @@ export const useDesignUpdate = ({
             setError(missingDataError);
             throw new Error(missingDataError);
         }
-        
+
         setIsLoading(true);
         setError(null);
+        setIsSafetyFallback(false);
 
         try {
             const { image: editedImageResult, prompt, systemInstruction } = await updateDesign({
@@ -92,20 +94,42 @@ export const useDesignUpdate = ({
 
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while updating the design.';
+
+            // Check for safety/policy blocking errors
+            // Gemini often returns "safety settings" or "blocked" in the error message
+            const isSafetyError = errorMessage.toLowerCase().includes('safety') ||
+                errorMessage.toLowerCase().includes('blocked') ||
+                errorMessage.toLowerCase().includes('policy');
+
+            if (isSafetyError) {
+                console.warn("AI generation blocked due to safety settings. Falling back to original image.");
+                setIsSafetyFallback(true);
+
+                // Fallback: Use the original image data
+                // We need to reconstruct the data URI for the original image
+                const originalImageSrc = `data:${originalImageData.mimeType};base64,${originalImageData.data}`;
+
+                // Call onSuccess with the original image so the flow continues
+                onSuccess(originalImageSrc);
+
+                // Return the original image so the caller (handleAddToCart) can proceed
+                return originalImageSrc;
+            }
+
             setError(errorMessage);
-            throw err; // Re-throw the error to be caught by the caller
+            throw err; // Re-throw other errors to be caught by the caller
         } finally {
             setIsLoading(false);
         }
     }, [
-        originalImageData, 
-        analysisResult, 
+        originalImageData,
+        analysisResult,
         cakeInfo,
-        mainToppers, 
-        supportElements, 
-        cakeMessages, 
-        icingDesign, 
-        additionalInstructions, 
+        mainToppers,
+        supportElements,
+        cakeMessages,
+        icingDesign,
+        additionalInstructions,
         threeTierReferenceImage,
         onSuccess,
         promptGenerator, // ADDED
@@ -114,6 +138,7 @@ export const useDesignUpdate = ({
     return {
         isLoading,
         error,
+        isSafetyFallback,
         lastGenerationInfoRef,
         handleUpdateDesign,
         setError,

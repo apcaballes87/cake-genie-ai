@@ -125,7 +125,7 @@ export default function App(): React.ReactElement {
   });
 
   const {
-    isLoading: isUpdatingDesign, error: designUpdateError, lastGenerationInfoRef, handleUpdateDesign, setError: setDesignUpdateError,
+    isLoading: isUpdatingDesign, error: designUpdateError, lastGenerationInfoRef, handleUpdateDesign, setError: setDesignUpdateError, isSafetyFallback
   } = useDesignUpdate({
     originalImageData, analysisResult, cakeInfo, mainToppers, supportElements, cakeMessages,
     icingDesign, additionalInstructions, threeTierReferenceImage,
@@ -695,7 +695,7 @@ ${prompt}
         <Suspense fallback={null}>
           <ReportModal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} onSubmit={handleReport} isSubmitting={isReporting} editedImage={editedImage} details={analysisResult ? buildCartItemDetails() : null} cakeInfo={cakeInfo} />
         </Suspense>
-        {appState === 'customizing' && <StickyAddToCartBar price={finalPrice} isLoading={isFetchingBasePrice} isAdding={isAddingToCart} error={basePriceError} onAddToCartClick={handleAddToCart} onShareClick={handleShare} isSharing={isSavingDesign} canShare={!!analysisResult} isAnalyzing={isAnalyzing} cakeInfo={cakeInfo} warningMessage={toyWarningMessage} availability={availability} />}
+        {appState === 'customizing' && <StickyAddToCartBar price={finalPrice} isLoading={isFetchingBasePrice} isAdding={isAddingToCart} error={basePriceError} onAddToCartClick={handleAddToCart} onShareClick={handleShare} isSharing={isSavingDesign} canShare={!!analysisResult} isAnalyzing={isAnalyzing} cakeInfo={cakeInfo} warningMessage={isSafetyFallback ? "AI editing disabled for adult-themed content. Your design changes will still be saved." : toyWarningMessage} availability={availability} />}
         <Suspense fallback={null}>
           <ShareModal
             isOpen={isShareModalOpen}
