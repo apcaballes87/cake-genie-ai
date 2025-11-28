@@ -86,7 +86,7 @@ export const useAppNavigation = () => {
             const reviewsMatch = path.match(/^\/reviews\/?$/);
             const setPasswordMatch = path.match(/^\/auth\/set-password/);
 
-            if (customizingMatch && params.get('image') && params.get('source') === 'shopify') {
+            if (customizingMatch && params.get('image') && (params.get('source') === 'shopify' || params.get('source') === 'shopify_search')) {
                 const imageUrl = params.get('image');
                 const shopifyRowId = params.get('shopify_rowid');
                 console.log('[Routing] Matched customizing with Shopify image:', imageUrl);
