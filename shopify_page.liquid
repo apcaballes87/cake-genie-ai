@@ -1,0 +1,291 @@
+<link rel="canonical" href="https://www.cakesandmemories.com/pages/cake-price-calculator">
+
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"BreadcrumbList",
+  "itemListElement":[
+    { "@type":"ListItem","position":1,"name":"Home","item":"https://www.cakesandmemories.com/" },
+    { "@type":"ListItem","position":2,"name":"Cake Price Calculator","item":"https://www.cakesandmemories.com/pages/cake-price-calculator" }
+  ]
+}
+</script>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<style>
+  /* Lean Upload Styles */
+  #loading-spinner{border:4px solid rgba(0,0,0,.1);width:40px;height:40px;border-radius:50%;border-left-color:#d66c84;animation:spin 1s linear infinite;margin:1rem auto}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  
+  #supabase-uploader { max-width: 520px; margin: 2rem auto; text-align: center; font-family: sans-serif; padding: 20px; }
+  
+  #drop-area {
+    padding: 3rem 2rem;
+    border: 2px dashed #f3a9b8;
+    border-radius: 12px;
+    background: #fff0f3;
+    cursor: pointer;
+    margin: 1rem 0;
+    transition: background 0.2s;
+    color: #d66c84;
+    font-weight: 600;
+  }
+  #drop-area:hover { background: #ffe8ed; }
+  
+  .status-msg { margin-top: 1rem; color: #d66c84; font-weight: 500; }
+  .redirect-msg { color: #666; font-size: 0.9rem; margin-top: 0.5rem; }
+
+  /* SEO & Content Styles */
+  .seo-wrap{max-width:840px;margin:0 auto 1.25rem auto;padding:0 16px;font-family:sans-serif}
+  .seo-wrap h1{color:#d66c84;margin:1.2rem 0 .5rem;font-size:2rem;line-height:1.2}
+  .seo-wrap h2{color:#333;margin:1.5rem 0 .5rem;font-size:1.25rem;font-weight:700}
+  .seo-wrap p, .seo-wrap li{color:#333;line-height:1.6;margin-bottom:0.5rem}
+  .seo-bullets{margin:0.5rem 0 1.5rem 1.5rem}
+  
+  /* FAQ / Details Styles */
+  .seo-wrap details { margin-bottom: 0.5rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+  .seo-wrap summary { cursor: pointer; font-weight: 600; color: #d66c84; outline: none; }
+  .seo-wrap details p { margin-top: 0.5rem; color: #555; font-size: 0.95rem; padding-left: 1rem; }
+</style>
+
+<div style="text-align:center; margin: 2rem 0 1rem; font-family:sans-serif;">
+  <h1 style="color:#d66c84; font-size:2rem; margin:0;">
+    Cake Price Calculator for Customized Cakes
+  </h1>
+  <p style="color:#666; margin-top:0.5rem;">Upload your design to get an instant quote via our AI Customizer</p>
+</div>
+
+<div id="supabase-uploader">
+  <div id="drop-area" role="button" tabindex="0" aria-label="Upload a cake image">
+    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📸</div>
+    Drag &amp; drop or click to upload photo
+  </div>
+  <input type="file" id="file-input" accept="image/*" style="display:none;">
+  
+  <div id="status-container" style="display:none;">
+    <div id="loading-spinner"></div>
+    <div id="status-text" class="status-msg">Optimizing image...</div>
+    <div id="redirect-text" class="redirect-msg"></div>
+  </div>
+</div>
+
+<div class="seo-wrap" style="max-width:840px;margin:3rem auto 1.25rem auto;padding:0 16px;font-family:sans-serif">
+  <p>
+    Skip the back-and-forth on Messenger. Upload a cake photo, see the
+    <strong>price instantly</strong>, and order online! Available for delivery or pickup in
+    <strong>Cebu City</strong> and <strong>Cavite</strong>.
+  </p>
+  <ul class="seo-bullets">
+    <li>Instant quotes for custom and decorated cakes</li>
+    <li>Detailed explanation of designs (toppers, drip, macarons, etc.)</li>
+    <li>Fast checkout with delivery or pickup options</li>
+  </ul>
+
+  <h2>Custom Cakes in Cebu and Molino Cavite – Fast and Easy Custom Cake Ordering</h2>
+  <p>
+    We serve Cebu City with made-to-order cakes for birthdays, weddings, and events. Typical lead time is
+    <strong>2–5 days</strong> depending on complexity. Pickup at our Cebu Branches or book a lalamove delivery across Mega Cebu.
+    Explore different cake designs and get instant pricing without waiting for replies.
+    <a href="/search?type=product&q=cake">View all our cake designs</a>.
+  </p>
+
+  <h2>How It Works</h2>
+  <ol>
+    <li>Upload a image of any cake design above.</li>
+    <li>We will redirect you to our AI tool to pick size, icing and height.</li>
+    <li>See the price instantly and add to cart for delivery or pickup.</li>
+  </ol>
+
+  <h2>Frequently Asked Questions</h2>
+  <details><summary>How accurate is the instant price?</summary><p>It reflects base size + detected add-ons. If your design changes, price updates automatically.</p></details>
+  <details><summary>Lead time?</summary><p>Usually 2–5 days. Rush options depend on design complexity and schedule.</p></details>
+  <details><summary>Do you deliver to my area?</summary><p>Yes, within Cebu City and Cavite (via Lalamove only + fees vary by distance - NO Motorcycle Deliveries). Pickup is available.</p></details>
+  <details><summary>Can I tweak the design after uploading?</summary><p>Yes. You can change size, icing, and add-ons before checkout; the price updates instantly.</p></details>
+  <details><summary>What if my photo has elements we can’t produce?</summary><p>We’ll flag it and suggest the closest feasible alternative—before you pay.</p></details>
+</div>
+
+<script>
+;(function(){
+  // ===== CONFIG =====
+  const SUPABASE_URL      = 'https://congofivupobtfudnhni.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvbmdvZml2dXBvYnRmdWRuaG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODc1NjkyMTQsImV4cCI6MjAwMzE0NTIxNH0.y2jsrPWt7Q_016e1o8PkM-Ayyti9yzxj3jH9hvH4DiM';
+  const BUCKET_NAME       = 'uploadopenai';
+
+  if (!window.supabase) return console.error('Supabase SDK missing');
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+  const dropArea  = document.getElementById('drop-area');
+  const fileInput = document.getElementById('file-input');
+  const statusContainer = document.getElementById('status-container');
+  const statusText = document.getElementById('status-text');
+  const redirectText = document.getElementById('redirect-text');
+
+  // --- AUTH ---
+  async function ensureAuth(){
+    try {
+      const { data } = await sb.auth.getSession();
+      if (!data.session) await sb.auth.signInAnonymously();
+    } catch(e){ console.warn('Auth warning:', e?.message||e); }
+  }
+
+  // ===== Image resize/compress Logic =====
+  const IMG_MAX_LONG_EDGE    = 1800;
+  const IMG_TARGET_MAX_BYTES = 1_200_000; 
+  const IMG_QUALITY_START    = 0.85;
+  const IMG_QUALITY_MIN      = 0.60;
+
+  function canvasToBlobAsync(canvas, type, quality){
+    if ('convertToBlob' in canvas) return canvas.convertToBlob({ type, quality });
+    return new Promise((res) => canvas.toBlob(res, type, quality));
+  }
+  async function decodeToBitmap(file){
+    if ('createImageBitmap' in window) {
+      try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch(_) {}
+    }
+    const img = document.createElement('img');
+    img.decoding = 'async';
+    img.src = URL.createObjectURL(file);
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+    return img;
+  }
+  async function encodeWithFallback(canvas, quality){
+    let blob = await canvasToBlobAsync(canvas, 'image/webp', quality);
+    if (blob) return { blob, ext: 'webp' };
+    const ctx = canvas.getContext('2d');
+    ctx.globalCompositeOperation = 'destination-over';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    blob = await canvasToBlobAsync(canvas, 'image/jpeg', quality);
+    return { blob, ext: 'jpg' };
+  }
+  async function downscaleAndCompress(file){
+    try {
+      if (!file.type.startsWith('image/')) return { blob: file, ext: (file.name.split('.').pop() || 'bin').toLowerCase() };
+      if (file.type === 'image/gif') return { blob: file, ext: 'gif' };
+
+      const bmp = await decodeToBitmap(file);
+      const srcW = bmp.width, srcH = bmp.height, longEdge = Math.max(srcW, srcH);
+
+      if (longEdge <= IMG_MAX_LONG_EDGE && file.size <= IMG_TARGET_MAX_BYTES) {
+        return { blob: file, ext: (file.name.split('.').pop() || 'jpg').toLowerCase() };
+      }
+
+      const scale = Math.min(1, IMG_MAX_LONG_EDGE / longEdge);
+      const dstW = Math.max(1, Math.round(srcW * scale));
+      const dstH = Math.max(1, Math.round(srcH * scale));
+      const canvas = ('OffscreenCanvas' in window) ? new OffscreenCanvas(dstW, dstH) : Object.assign(document.createElement('canvas'), { width: dstW, height: dstH });
+      const ctx = canvas.getContext('2d', { alpha: true });
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(bmp, 0, 0, dstW, dstH);
+
+      let q = IMG_QUALITY_START, out, tries = 0;
+      do {
+        out = await encodeWithFallback(canvas, q);
+        if (out.blob.size <= IMG_TARGET_MAX_BYTES || q <= IMG_QUALITY_MIN) break;
+        q = Math.max(IMG_QUALITY_MIN, q - 0.1);
+        tries++;
+      } while (tries < 5);
+      return out;
+    } catch (e) {
+      console.warn('Downscale failed, uploading original:', e);
+      return { blob: file, ext: (file.name.split('.').pop() || 'jpg').toLowerCase() };
+    }
+  }
+
+  // --- Main Handlers ---
+  dropArea.addEventListener('click', () => fileInput.click());
+  dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.background='#ffe8ed'; });
+  dropArea.addEventListener('dragleave', () => dropArea.style.background='#fff0f3');
+  dropArea.addEventListener('drop', async e => {
+    e.preventDefault(); 
+    if (e.dataTransfer.files.length) await handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', async e => { 
+    if (e.target.files.length) await handleFile(e.target.files[0]); 
+  });
+
+  async function handleFile(file){
+    dropArea.style.display = 'none';
+    statusContainer.style.display = 'block';
+    statusText.textContent = 'Optimizing image...';
+    
+    try {
+      await ensureAuth();
+      
+      const prepared = await downscaleAndCompress(file);
+      statusText.textContent = 'Uploading...';
+      
+      const path = `${Date.now()}.${prepared.ext || 'jpg'}`;
+      const { data: upData, error: upErr } = await sb.storage.from(BUCKET_NAME).upload(path, prepared.blob);
+      if (upErr) throw upErr;
+
+      const { data: urlData } = sb.storage.from(BUCKET_NAME).getPublicUrl(upData.path);
+      const publicUrl = urlData.publicUrl;
+
+      // ========================================
+      // SHOPIFY → GENIE.PH AUTO-REDIRECT INTEGRATION
+      // ========================================
+      statusText.innerHTML = `
+        ✅ Image uploaded successfully!<br>
+        <img src="${publicUrl}" style="max-width:60%;margin-top:1rem;border-radius:8px;" alt="Uploaded cake design" />
+        <div style="margin-top:1.5rem;text-align:center;">
+          <div id="loading-spinner" style="margin:0 auto 1rem;"></div>
+          <p style="font-size:1rem;color:#d66c84;font-weight:600;margin:0;">
+            Preparing your design for AI customization...
+          </p>
+          <p style="font-size:0.85rem;color:#666;margin:0.5rem 0 0;">
+            Redirecting to genie.ph in <span id="countdown">2</span> seconds
+          </p>
+        </div>
+      `;
+      
+      // Clear the old redirect text since we are using the new UI
+      if(redirectText) redirectText.innerHTML = '';
+
+      // Auto-redirect to genie.ph after 2 seconds with countdown
+      const encodedUrl = encodeURIComponent(publicUrl);
+      const encodedRowId = ''; // No row ID available in this version
+      const geniephUrl = `https://genie.ph/#/customizing?image=${encodedUrl}&source=shopify&shopify_rowid=${encodedRowId}`;
+      
+      let countdown = 2;
+      const countdownEl = document.getElementById('countdown');
+      
+      const countdownInterval = setInterval(() => {
+        countdown--;
+        if (countdownEl) {
+          countdownEl.textContent = countdown;
+        }
+        if (countdown <= 0) {
+          clearInterval(countdownInterval);
+        }
+      }, 1000);
+
+      setTimeout(() => {
+        window.location.href = geniephUrl;
+      }, 2000);
+      // ========================================
+      // END INTEGRATION
+      // ========================================
+
+    } catch(err){ 
+      console.error(err); 
+      statusText.textContent = `❌ Upload failed. Please try again.`;
+      statusText.style.color = 'red';
+      setTimeout(() => {
+        dropArea.style.display = 'block';
+        statusContainer.style.display = 'none';
+      }, 3000);
+    }
+  }
+
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Cake Price Calculator",
+  "settings": [],
+  "presets": [{ "name": "Cake Price Calculator / Instant Pricing" }]
+}
+{% endschema %}

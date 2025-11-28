@@ -74,6 +74,7 @@ export const useAppNavigation = () => {
 
             const designMatch = path.match(/^\/designs\/([a-z0-9-]+)\/?$/);
             const orderConfirmationMatch = path.match(/^\/order-confirmation\/?$/);
+            const customizingMatch = path.match(/^\/customizing\/?$/);
             const oldDesignMatch = path.match(/^\/design\/([a-zA-Z0-9-]+)\/?$/);
             const discountMatch = path.match(/^\/([A-Za-z0-9]+)\/?$/i);
             const contributeMatch = path.match(/^\/contribute\/([a-zA-Z0-9-]+)\/?$/);
@@ -85,7 +86,23 @@ export const useAppNavigation = () => {
             const reviewsMatch = path.match(/^\/reviews\/?$/);
             const setPasswordMatch = path.match(/^\/auth\/set-password/);
 
-            if (orderConfirmationMatch && params.get('order_id')) {
+            if (customizingMatch && params.get('image') && params.get('source') === 'shopify') {
+                const imageUrl = params.get('image');
+                const shopifyRowId = params.get('shopify_rowid');
+                console.log('[Routing] Matched customizing with Shopify image:', imageUrl);
+
+                // Store in sessionStorage for App.tsx to pick up
+                if (imageUrl) {
+                    sessionStorage.setItem('shopify_image_url', decodeURIComponent(imageUrl));
+                }
+                if (shopifyRowId) {
+                    sessionStorage.setItem('shopify_rowid', decodeURIComponent(shopifyRowId));
+                    sessionStorage.setItem('came_from_shopify', 'true');
+                }
+
+                // Set state to customizing
+                setAppState('customizing');
+            } else if (orderConfirmationMatch && params.get('order_id')) {
                 const orderId = params.get('order_id');
                 console.log('[Routing] Matched order confirmation with orderId:', orderId);
                 if (orderId) {

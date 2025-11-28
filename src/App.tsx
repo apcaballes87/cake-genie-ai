@@ -267,6 +267,50 @@ export default function App(): React.ReactElement {
     });
   }, [clearAllState, hookImageUpload, setIsAnalyzing, setAnalysisError, setPendingAnalysisData, setAppState, initializeDefaultState]);
 
+  // ========================================
+  // SHOPIFY INTEGRATION: Auto-load image when arriving from Shopify
+  // ========================================
+  useEffect(() => {
+    // Check if we're in customizing state with a Shopify image pending
+    const shopifyImageUrl = sessionStorage.getItem('shopify_image_url');
+
+    if (appState === 'customizing' && shopifyImageUrl && !isAnalyzing && !analysisResult) {
+      console.log('🛍️ Shopify image detected - Auto-loading:', shopifyImageUrl);
+
+      // Show loading toast
+      showInfo('Loading your design from Shopify...');
+
+      // Fetch and upload the image
+      fetch(shopifyImageUrl)
+        .then(response => {
+          if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+          return response.blob();
+        })
+        .then(blob => {
+          const file = new File([blob], 'shopify-cake.jpg', { type: blob.type });
+
+          // Clear sessionStorage immediately to prevent re-triggering
+          sessionStorage.removeItem('shopify_image_url');
+
+          // Trigger the image upload and analysis
+          handleAppImageUpload(file, shopifyImageUrl).catch(error => {
+            console.error('❌ Failed to analyze Shopify image:', error);
+            showError('Failed to analyze your design. Please try uploading again.');
+            setAppState('landing');
+          });
+        })
+        .catch(error => {
+          console.error('❌ Failed to fetch Shopify image:', error);
+          showError('Failed to load image from Shopify.');
+          sessionStorage.removeItem('shopify_image_url');
+          setAppState('landing');
+        });
+    }
+  }, [appState, isAnalyzing, analysisResult, handleAppImageUpload, setAppState]);
+  // ========================================
+  // END SHOPIFY INTEGRATION
+  // ========================================
+
   const buildCartItemDetails = useCallback((): CartItemDetails => {
     if (!cakeInfo || !icingDesign) throw new Error("Missing data for cart item.");
     const hexToName = (hex: string) => HEX_TO_COLOR_NAME_MAP[hex.toLowerCase()] || hex;
