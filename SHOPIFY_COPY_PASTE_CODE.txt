@@ -1,0 +1,50 @@
+// ========================================
+// SHOPIFY → GENIE.PH INTEGRATION (AUTO-REDIRECT)
+// Copy this entire section and paste it in your Shopify page
+// ========================================
+
+// FIND THIS LINE in your Shopify page (around line 750):
+// status.innerHTML = `✅ Uploaded!<br><img src="${lastPublicUrl}" style="max-width:60%;margin-top:1rem;" alt="Uploaded cake design" />`;
+
+// REPLACE IT WITH THIS ENTIRE BLOCK:
+
+status.innerHTML = `
+  ✅ Image uploaded successfully!<br>
+  <img src="${lastPublicUrl}" style="max-width:60%;margin-top:1rem;border-radius:8px;" alt="Uploaded cake design" />
+  <div style="margin-top:1.5rem;text-align:center;">
+    <div id="loading-spinner" style="margin:0 auto 1rem;"></div>
+    <p style="font-size:1rem;color:#d66c84;font-weight:600;margin:0;">
+      Preparing your design for AI customization...
+    </p>
+    <p style="font-size:0.85rem;color:#666;margin:0.5rem 0 0;">
+      Redirecting to genie.ph in <span id="countdown">2</span> seconds
+    </p>
+  </div>
+`;
+
+// Auto-redirect to genie.ph after 2 seconds with countdown
+const encodedUrl = encodeURIComponent(lastPublicUrl);
+const encodedRowId = encodeURIComponent(currentRowId || '');
+const geniephUrl = `https://genie.ph/#/customizing?image=${encodedUrl}&source=shopify&shopify_rowid=${encodedRowId}`;
+
+let countdown = 2;
+const countdownEl = document.getElementById('countdown');
+
+const countdownInterval = setInterval(() => {
+  countdown--;
+  if (countdownEl) {
+    countdownEl.textContent = countdown;
+  }
+  if (countdown <= 0) {
+    clearInterval(countdownInterval);
+  }
+}, 1000);
+
+// Redirect after 2 seconds
+setTimeout(() => {
+  window.location.href = geniephUrl;
+}, 2000);
+
+// ========================================
+// END INTEGRATION
+// ========================================

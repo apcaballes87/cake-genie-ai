@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart, useCartActions, readFromLocalStorage, batchSaveToLocalStorage, batchRemoveFromLocalStorage } from '../../contexts/CartContext';
-import { useAddresses } from '../../hooks/useAddresses';
+import { useAddresses, useAddAddress } from '../../hooks/useAddresses';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
 import { Loader2, CloseIcon, TrashIcon } from '../../components/icons';
 import { MapPin, Search, X, Users } from 'lucide-react';
@@ -231,6 +231,10 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
         isLoaded: isMapsLoaded,
         loadError: mapsLoadError
     } = useGoogleMapsLoader();
+
+    // New state for address form refactor
+    const [pendingAddressData, setPendingAddressData] = useState<Partial<CakeGenieAddress> | null>(null);
+    const [isPendingAddressValid, setIsPendingAddressValid] = useState(false);
 
     useEffect(() => {
         if (mapsLoadError) {
@@ -498,6 +502,13 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
         return isRegisteredUser && selectedAddressId ? savedAddresses.find(a => a.address_id === selectedAddressId) : null;
     }, [isRegisteredUser, selectedAddressId, savedAddresses]);
 
+    const handleFormChange = useCallback((data: Partial<CakeGenieAddress>, isValid: boolean) => {
+        setPendingAddressData(data);
+        setIsPendingAddressValid(isValid);
+    }, []);
+
+    const addAddressMutation = useAddAddress();
+
     const handleNewAddressSuccess = (newAddress?: CakeGenieAddress) => {
         if (newAddress) {
             // Defensive check: If address ID starts with 'guest-', treat it as guest address
@@ -508,45 +519,86 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
             }
         }
         setIsAddingAddress(false);
+        setPendingAddressData(null);
+        setIsPendingAddressValid(false);
     };
 
     const handleGuestAddressSuccess = (newAddress?: CakeGenieAddress) => {
         if (newAddress) {
             setGuestAddress(newAddress);
             setIsAddingAddress(false);
+            setPendingAddressData(null);
+            setIsPendingAddressValid(false);
         }
     };
 
+    const getMissingRequirements = () => {
+        const missing: string[] = [];
+        if (!eventDate) missing.push('Date of Event');
+        if (!eventTime) missing.push('Time of Event');
+
+        if (isAnonymous && !guestEmail) missing.push('Email Address');
+
+        if (isAddingAddress || (isAnonymous && !guestAddress)) {
+            if (!isPendingAddressValid) missing.push('Delivery Address');
+        } else {
+            if (!isAnonymous && !selectedAddress) missing.push('Delivery Address');
+            if (isAnonymous && !guestAddress) missing.push('Delivery Address');
+        }
+
+        return missing;
+    };
+
+
+
     const handleSubmitOrder = async () => {
         if (!isAuthenticated) {
-
             showError('Please sign in or continue as guest to place an order.');
             return;
         }
 
-        if (isAnonymous && !guestEmail) {
-            showError('Please enter your email address.');
-            return;
-        }
-
-        // For registered users, they must have a selected address.
-        // For guests, they must have a guestAddress.
-        if (!isAnonymous && !selectedAddress) {
-            showError('Please select or add a delivery address.');
-            return;
-        }
-        if (isAnonymous && !guestAddress) {
-            showError('Please enter your delivery address.');
-            return;
-        }
-
-        if (!eventDate || !eventTime) {
-            showError('Please select delivery date and time');
+        const missing = getMissingRequirements();
+        if (missing.length > 0) {
+            showError(`Please fill in: ${missing.join(', ')}`);
             return;
         }
 
         setIsPlacingOrder(true);
         try {
+            // Handle Address Saving/Creation if needed
+            let effectiveDeliveryAddressId = isAnonymous ? null : selectedAddress?.address_id || null;
+            let effectiveGuestAddress = isAnonymous ? guestAddress : undefined;
+
+            if (isAddingAddress || (isAnonymous && !guestAddress)) {
+                if (!isPendingAddressValid || !pendingAddressData) {
+                    throw new Error("Invalid address data.");
+                }
+
+                if (isAnonymous) {
+                    // Create temporary guest address object
+                    effectiveGuestAddress = {
+                        ...pendingAddressData,
+                        address_id: `guest-${Date.now()}`,
+                        user_id: user?.id || '',
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    } as CakeGenieAddress;
+                    setGuestAddress(effectiveGuestAddress); // Update state for UI
+                } else {
+                    // Save new address for registered user
+                    if (!user?.id) throw new Error("User ID missing.");
+                    const newAddr = await addAddressMutation.mutateAsync({
+                        userId: user.id,
+                        addressData: pendingAddressData as any // Type assertion as pendingData is Partial
+                    });
+                    if (!newAddr) throw new Error("Failed to save address.");
+                    effectiveDeliveryAddressId = newAddr.address_id;
+                    setSelectedAddressId(newAddr.address_id); // Update state
+                }
+                setIsAddingAddress(false); // Close form
+            }
+
+
             // For anonymous users, create a user record first
             if (isAnonymous && user) {
                 let emailToRegister = guestEmail.trim();
@@ -567,8 +619,8 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                 const { success: userCreated, error: userError, emailAlreadyExists } = await createGuestUser({
                     userId: user.id,
                     email: emailToRegister,
-                    firstName: guestAddress?.recipient_name,
-                    phoneNumber: guestAddress?.recipient_phone,
+                    firstName: effectiveGuestAddress?.recipient_name || guestAddress?.recipient_name,
+                    phoneNumber: effectiveGuestAddress?.recipient_phone || guestAddress?.recipient_phone,
                 });
 
                 if (!userCreated) {
@@ -589,16 +641,16 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                 cartItems,
                 eventDate,
                 eventTime,
-                deliveryAddressId: isAnonymous ? null : selectedAddress?.address_id || null,
+                deliveryAddressId: effectiveDeliveryAddressId,
                 deliveryInstructions,
                 deliveryFee,
                 discountAmount: appliedDiscount?.discountAmount,
                 discountCodeId: appliedDiscount?.codeId,
-                guestAddress: isAnonymous && guestAddress ? {
-                    recipientName: guestAddress.recipient_name,
-                    recipientPhone: guestAddress.recipient_phone,
-                    streetAddress: guestAddress.street_address,
-                    city: guestAddress.city
+                guestAddress: isAnonymous && effectiveGuestAddress ? {
+                    recipientName: effectiveGuestAddress.recipient_name,
+                    recipientPhone: effectiveGuestAddress.recipient_phone,
+                    streetAddress: effectiveGuestAddress.street_address,
+                    city: effectiveGuestAddress.city
                 } : undefined
             });
 
@@ -608,7 +660,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
 
             // 2. Create Payment
             const emailToUse = isAnonymous ? guestEmail : user?.email || 'customer@example.com';
-            const nameToUse = isAnonymous ? guestAddress?.recipient_name : user?.user_metadata?.first_name || selectedAddress?.recipient_name || 'Customer';
+            const nameToUse = isAnonymous ? effectiveGuestAddress?.recipient_name : user?.user_metadata?.first_name || selectedAddress?.recipient_name || 'Customer';
 
             const { paymentUrl, error: paymentError } = await createXenditPayment({
                 orderId: order.order_id,
@@ -625,7 +677,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                     try {
                         const { success, error: upgradeError } = await upgradeAnonymousToEmailAccount({
                             email: guestEmail.trim(),
-                            firstName: guestAddress?.recipient_name,
+                            firstName: effectiveGuestAddress?.recipient_name,
                         });
 
                         if (!success) {
@@ -668,27 +720,47 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
             return;
         }
 
-        if (isAnonymous && !guestEmail) {
-            showError('Please enter your email address.');
-            return;
-        }
-
-        if (!isAnonymous && !selectedAddress) {
-            showError('Please select or add a delivery address.');
-            return;
-        }
-        if (isAnonymous && !guestAddress) {
-            showError('Please enter your delivery address.');
-            return;
-        }
-
-        if (!eventDate || !eventTime) {
-            showError('Please select delivery date and time');
+        const missing = getMissingRequirements();
+        if (missing.length > 0) {
+            showError(`Please fill in: ${missing.join(', ')}`);
             return;
         }
 
         setIsPlacingOrder(true);
         try {
+            // Handle Address Saving/Creation if needed
+            let effectiveDeliveryAddressId = isAnonymous ? null : selectedAddress?.address_id || null;
+            let effectiveGuestAddress = isAnonymous ? guestAddress : undefined;
+
+            if (isAddingAddress || (isAnonymous && !guestAddress)) {
+                if (!isPendingAddressValid || !pendingAddressData) {
+                    throw new Error("Invalid address data.");
+                }
+
+                if (isAnonymous) {
+                    // Create temporary guest address object
+                    effectiveGuestAddress = {
+                        ...pendingAddressData,
+                        address_id: `guest-${Date.now()}`,
+                        user_id: user?.id || '',
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    } as CakeGenieAddress;
+                    setGuestAddress(effectiveGuestAddress);
+                } else {
+                    // Save new address for registered user
+                    if (!user?.id) throw new Error("User ID missing.");
+                    const newAddr = await addAddressMutation.mutateAsync({
+                        userId: user.id,
+                        addressData: pendingAddressData as any
+                    });
+                    if (!newAddr) throw new Error("Failed to save address.");
+                    effectiveDeliveryAddressId = newAddr.address_id;
+                    setSelectedAddressId(newAddr.address_id);
+                }
+                setIsAddingAddress(false);
+            }
+
             // For anonymous users, create a user record first
             if (isAnonymous && user) {
                 let emailToRegister = guestEmail.trim();
@@ -709,8 +781,8 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                 const { success: userCreated, error: userError, emailAlreadyExists } = await createGuestUser({
                     userId: user.id,
                     email: emailToRegister,
-                    firstName: guestAddress?.recipient_name,
-                    phoneNumber: guestAddress?.recipient_phone,
+                    firstName: effectiveGuestAddress?.recipient_name || guestAddress?.recipient_name,
+                    phoneNumber: effectiveGuestAddress?.recipient_phone || guestAddress?.recipient_phone,
                 });
 
                 if (!userCreated) {
@@ -728,7 +800,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                 cartItems,
                 eventDate,
                 eventTime,
-                deliveryAddressId: isAnonymous ? null : selectedAddress?.address_id || null,
+                deliveryAddressId: effectiveDeliveryAddressId,
                 deliveryInstructions,
                 deliveryFee,
                 discountAmount: appliedDiscount?.discountAmount,
@@ -736,11 +808,11 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                 isSplitOrder: true,
                 splitMessage,
                 splitCount,
-                guestAddress: isAnonymous && guestAddress ? {
-                    recipientName: guestAddress.recipient_name,
-                    recipientPhone: guestAddress.recipient_phone,
-                    streetAddress: guestAddress.street_address,
-                    city: guestAddress.city
+                guestAddress: isAnonymous && effectiveGuestAddress ? {
+                    recipientName: effectiveGuestAddress.recipient_name,
+                    recipientPhone: effectiveGuestAddress.recipient_phone,
+                    streetAddress: effectiveGuestAddress.street_address,
+                    city: effectiveGuestAddress.city
                 } : undefined
             });
 
@@ -753,7 +825,7 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                 try {
                     const { success, error: upgradeError } = await upgradeAnonymousToEmailAccount({
                         email: guestEmail.trim(),
-                        firstName: guestAddress?.recipient_name,
+                        firstName: effectiveGuestAddress?.recipient_name,
                     });
 
                     if (!success) {
@@ -1080,6 +1152,8 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                                                     onSuccess={isAnonymous ? handleGuestAddressSuccess : handleNewAddressSuccess}
                                                     onCancel={() => !user.is_anonymous && setIsAddingAddress(false)}
                                                     isGuest={isAnonymous}
+                                                    hideActions={true}
+                                                    onFormChange={handleFormChange}
                                                 />
                                             </div>
                                         ) : (
@@ -1235,42 +1309,43 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
 
                                 <div className="flex flex-col sm:flex-row gap-3 pt-2">
 
-                                    <button
-                                        onClick={handleSubmitOrder}
-                                        disabled={
-                                            isPlacingOrder ||
-                                            isCreatingPayment ||
-                                            (!isAnonymous && !selectedAddress) ||
-                                            (isAnonymous && (!guestAddress || !guestEmail)) ||
-                                            !eventDate ||
-                                            !eventTime
-                                        }
-                                        className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-4 rounded-full font-semibold hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                                    >
-                                        {isCreatingPayment ? (
-                                            <span className="flex items-center justify-center gap-2">
-                                                <Loader2 className="w-5 h-5 animate-spin" />
-                                                Redirecting to Payment...
-                                            </span>
-                                        ) : isPlacingOrder ? (
-                                            <span className="flex items-center justify-center gap-2">
-                                                <Loader2 className="w-5 h-5 animate-spin" />
-                                                Creating Order...
-                                            </span>
-                                        ) : (
-                                            `Place Order - ₱${total.toFixed(2)} `
+                                    <div className="flex flex-col gap-2">
+                                        {getMissingRequirements().length > 0 && (
+                                            <div className="text-center p-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium animate-fade-in">
+                                                Please complete: {getMissingRequirements().join(', ')}
+                                            </div>
                                         )}
-                                    </button>
+                                        <button
+                                            onClick={handleSubmitOrder}
+                                            disabled={
+                                                isPlacingOrder ||
+                                                isCreatingPayment ||
+                                                getMissingRequirements().length > 0
+                                            }
+                                            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-4 rounded-full font-semibold hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                                        >
+                                            {isCreatingPayment ? (
+                                                <span className="flex items-center justify-center gap-2">
+                                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                                    Redirecting to Payment...
+                                                </span>
+                                            ) : isPlacingOrder ? (
+                                                <span className="flex items-center justify-center gap-2">
+                                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                                    Creating Order...
+                                                </span>
+                                            ) : (
+                                                `Place Order - ₱${total.toFixed(2)} `
+                                            )}
+                                        </button>
+                                    </div>
 
                                     <button
                                         onClick={() => setIsSplitModalOpen(true)}
                                         disabled={
                                             isPlacingOrder ||
                                             isCreatingPayment ||
-                                            (!isAnonymous && !selectedAddress) ||
-                                            (isAnonymous && (!guestAddress || !guestEmail)) ||
-                                            !eventDate ||
-                                            !eventTime
+                                            getMissingRequirements().length > 0
                                         }
                                         className="w-full py-4 px-4 bg-white border-2 border-pink-500 text-pink-500 font-bold rounded-full hover:bg-pink-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >

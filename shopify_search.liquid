@@ -1,0 +1,386 @@
+{%- paginate search.results by 60 -%}
+
+<div data-section-type="search">
+                                          <div><p></p></div>
+    <div class="wrapper">
+
+      <div class="grid">
+        <div class="grid__item large--eight-twelfths push--large--two-twelfths">
+          
+            <div class="page-title-wrapper">
+              
+              {%- if search.performed -%}
+              
+               			{% capture page_title %}  {{search.results_count}} cake designs found for {{search.terms}} {% endcapture  %}
+                
+                    {%- if search.results_count == 0 -%}
+
+                                <div class="section-header" style="margin-bottom:-40px">
+                                <div><p> </p></div>
+                                <h1> Screenshot and message us </h1>
+                                <div><h1> </h1></div>
+
+                                <div><p> We don't have this design yet but check out...</p>  
+                           
+                        
+                                  
+                                </div>    
+                              </div>
+              
+
+                        {%- endif -%}
+              
+              {%- else -%}
+                	<div class="section-header">
+                      <div><p></p></div>
+                      <div><p></p></div>
+              		<h1 class="page-title">
+                      {{ 'general.search.title' | t }}
+              		</h1>
+                      <div><p></p></div>
+                       {%- render 'search-bar' -%}
+              		</div>
+              {%- endif -%}
+              
+            </div>
+          
+        </div>
+      </div>
+
+
+    
+    {%- if search.performed -%}
+        {%- assign grid_item_width = 'large--two-twelfths medium--three-twelfths small--four-twelfths' -%}
+      	{% assign sorted = search.results %}
+
+    
+             {%- if search.results_count == 0 -%}
+
+
+
+             {%- else -%}
+
+<div class="collection-tags spacer-bottom">
+<div><h1></h1></div>
+<ul class="inline-list">
+
+<li class="collection-tag-label small--full text-left">
+ <span class="{{ settings.icon }}" aria-hidden="true">hourglass_top</span>
+ {{"Show only cakes available for rush orders"}}
+</li>
+
+  {% assign rush = search.terms | prepend: "https://cakesandmemories.com/search?type=product&q=" | append: "*+rushorders&options%5Bprefix%5D=last" %}
+  {% assign showall = search.terms | prepend: "https://cakesandmemories.com/search?type=product&q=" %}             
+  
+  <li >
+   <a style="background-color:#F6DEE8" href="{{rush}}">
+   {{ "Rush Order" }}
+   </a>
+   </li>
+
+  <li >
+   <a style="background-color:#F6DEE8" href="{{showall| remove:"rushorders" }}">
+   {{ "Show all results" }}
+   </a>
+   </li>
+
+</ul>
+</div>
+
+               
+            <div class="collection-tags spacer-bottom">
+               <div><h1></h1></div>
+             <ul class="inline-list">
+
+
+               <li class="collection-tag-label small--full text-left">  
+                              <span class="{{ settings.icon }}" aria-hidden="true">filter_alt</span>
+                              {{"Filter by"}}
+                            </li>
+
+
+               {% assign onelayer = search.terms | prepend: "https://cakesandmemories.com/search?type=product&q=" | append: "*+1tier&options%5Bprefix%5D=last" %}
+               {% assign twolayer = search.terms | prepend: "https://cakesandmemories.com/search?type=product&q=" | append: "*+2tiers&options%5Bprefix%5D=last" %}
+               {% assign threelayer = search.terms | prepend: "https://cakesandmemories.com/search?type=product&q=" | append: "*+3tiers&options%5Bprefix%5D=last" %}
+               {% assign rectangle = search.terms | prepend: "https://cakesandmemories.com/search?type=product&q=" | append: "*+rectangle&options%5Bprefix%5D=last" %}
+               {% assign cupcake = search.terms | prepend: "https://cakesandmemories.com/search?type=product&q=" | append: "*+cupcakes&options%5Bprefix%5D=last" %}
+               {% assign all = search.terms | prepend: "https://cakesandmemories.com/search?type=product&q=" %}
+
+
+
+                            <li >
+                              <a style="background-color:#F6DEE8" href="{{onelayer| remove:"2tiers"| remove: "3tiers"| remove: "edible photo"| remove: "rectangle"| remove: "cupcakes" }}">
+                                {{ "1-tier" }}
+                              </a>
+                            </li>
+
+                               <li >
+                              <a style="background-color:#F6DEE8" href="{{twolayer| remove:"1tier"| remove: "3tiers"| remove: "edible photo"| remove: "rectangle"| remove: "cupcakes" }}">
+                                {{ "2-tiers"}}
+                              </a>
+                            </li>
+
+                              <li >
+                              <a style="background-color:#F6DEE8" href="{{threelayer| remove:"2tiers"| remove: "1tier"| remove: "edible photo"| remove: "rectangle"| remove: "cupcakes"}}">
+                                {{ "3-tiers & above" }}
+                              </a>
+                            </li>
+
+
+                              <li >
+                              <a style="background-color:#F6DEE8" href="{{rectangle| remove:"2tiers"| remove: "3tiers"| remove: "edible photo"| remove: "1tier"| remove: "cupcakes"}}">
+                                {{ "Rectangular cakes" }}
+                              </a>
+                            </li>
+
+                              <li >
+                              <a style="background-color:#F6DEE8" href="{{cupcake| remove:"2tiers"| remove: "3tiers"| remove: "edible photo"| remove: "rectangle"| remove: "1tier"}}">
+                                {{ "Cupcakes" }}
+                              </a>
+                            </li>
+
+                              <li >
+                              <a style="background-color:#F6DEE8" href="{{ all | remove:"cupcakes"| remove:"2tiers"| remove: "3tiers"| remove: "edible photo"| remove: "rectangle"| remove: "1tier"}}">
+                                {{ "All" }}
+                              </a>
+                            </li>
+                       </ul>
+
+            {% assign sort = search.terms | prepend: "https://cakesandmemories.com/search?type=product&q=" | append: "&options%5Bprefix%5D=last&sort_by=price-ascending" %}
+            {% assign sort2 = search.terms | prepend: "https://cakesandmemories.com/search?type=product&q=" | append: "&options%5Bprefix%5D=last&sort_by=price-descending" %}
+
+            <div class="collection-tags spacer-bottom">
+               <div><h1></h1></div>
+             <ul class="inline-list">
+                            <li class="collection-tag-label small--full text-left">
+                              <span class="{{ settings.icon }}" aria-hidden="true">sort</span>
+                              {{ "Sort by" }}
+                            </li>
+
+                            <li> <a style="background-color:#F6DEE8" href="{{sort}}">
+                                {{ "Lowest Price First" }}</a>
+                            </li>
+
+                            <li><a style="background-color:#F6DEE8" href="{{sort2}}">
+                                {{ "Highest Price First" }}</a>
+                            </li>
+
+
+              </ul>
+            </div>
+            </div>
+
+    
+
+       		 {%- endif -%}
+
+ 
+                        {%- if search.results_count > 0 -%}
+
+                                            <div {% if settings.dbtfy_infinite_scroll %}id="infiniteScrollContainer" {% endif %}class="grid grid-spacer spacer-top-lg">
+                                              {%- for item in sorted -%}
+                                                {%- capture current -%}{% cycle 1, 2, 3, 4, 5, 6 %}{%- endcapture -%}
+
+                                                {%- if item.object_type == 'product' -%}
+                                                  {%- assign product = item -%}	
+                                                  {%- render 'product-grid-item' with product as product, grid_item_width: grid_item_width, current: current -%}
+                                                {%- elsif item.object_type == 'article' -%}
+                                                  {%- assign article = item -%}
+                                                  {%- render 'article-grid-item' with article as article, grid_item_width: grid_item_width, emptyState: emptyState -%}
+                                                {%- else -%}
+
+                                                {%- endif -%}
+
+                                              {%- endfor -%}
+                                            </div>
+                         {%- endif -%}
+                                
+
+                                    
+                                            {%- render "pagination" with paginate as paginate -%}
+                                       
+    {%- endif -%}
+	 
+ </div>
+  
+  
+</div>
+
+    
+{%- endpaginate -%}
+
+
+            {%- if search.performed -%}
+              {%- if search.results_count < 5000 -%}
+
+  <div style="margin-top:25px; margin-left:10px; margin-right:10px">
+        <center>
+            <b><i style="font-size:20px;">More cake designs from the web</i></b>
+            <p><i style="font-size:13px;">Click "Get Price" on any cake design you like.</i></p>
+        </center>
+
+        <div id="google-search-container">
+            <div class="gcse-searchresults-only" data-disableWebSearch="true"></div>
+        </div>
+
+        <center>
+            <p style="margin-top:10px">Take a screenshot of cake design you like :)</p>
+            <div style="width: 350px; margin-top:-10px; margin-bottom:20px">
+                <a id="logo" href="https://m.me/cakesandmemoriescebu?loadIn=defaultBrowser" role="banner">
+                    <!-- Replace with your actual image -->
+                    <img src="path/to/your/FB-Send-to-Messenger-Button2.jpg" alt="Facebook Messenger">
+                </a>
+            </div>
+        </center>
+    </div>
+
+
+            	 {%- endif -%}
+ 			 {%- endif -%}
+ 
+    <style>
+        /* Get Price Button Styles */
+        .get-price-btn {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background-color: #d66c84;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            font-weight: bold;
+            text-decoration: none;
+            cursor: pointer;
+            font-family: sans-serif;
+            font-size: 14px;
+            border: none;
+            transition: background-color 0.2s;
+            z-index: 1000; /* Ensure it's above Google's overlays */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            opacity: 0.95;
+        }
+        .get-price-btn:hover {
+            background-color: #c55b73;
+            text-decoration: none;
+            color: white;
+            opacity: 1;
+        }
+        /* Ensure the button container is visible */
+        .gs-image-box {
+            position: relative !important;
+        }
+        /* Hide Google's default overlay if it interferes too much, or just let button sit on top */
+        .gs-image-box .gs-image-box-background {
+            z-index: 1;
+        }
+    </style>
+
+    <script>
+        // ========================================
+        // GOOGLE SEARCH "GET PRICE" BUTTON INJECTION
+        // ========================================
+        
+        function injectGetPriceButtons() {
+            // Find all Google Search Image Result containers
+            // Note: Google's classes can change, but usually contain 'gs-image-box' or 'gsc-imageResult'
+            const imageBoxes = document.querySelectorAll('.gs-image-box, .gsc-imageResult');
+            
+            imageBoxes.forEach(box => {
+                // Check if we already injected a button here to avoid duplicates
+                if (box.querySelector('.get-price-btn')) return;
+
+                // Find the image element to get the URL
+                const img = box.querySelector('img.gs-image');
+                if (!img) return;
+
+                // Create the button
+                const btn = document.createElement('a');
+                btn.className = 'get-price-btn';
+                btn.href = '#'; // Prevent default navigation
+                
+                // Add Icon and Text
+                btn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M6 4.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm-1 0a.5.5 0 1 0-1 0 .5.5 0 0 0 1 0z"/>
+                        <path d="M2 1h4.586a1 1 0 0 1 .707.293l7 7a1 1 0 0 1 0 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-7-7A1 1 0 0 1 1 6.586V2a1 1 0 0 1 1-1zm0 5.586 7 7L13.586 9l-7-7H2v4.586z"/>
+                    </svg>
+                    Get Price
+                `;
+                
+                // Handle click
+                btn.onclick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const imageUrl = img.src;
+                    if (imageUrl) {
+                        console.log('Get Price clicked for:', imageUrl);
+                        
+                        // Show loading state
+                        btn.style.backgroundColor = '#666';
+                        btn.innerHTML = 'Loading...';
+                        
+                        // Direct redirect to GeniePH
+                        const encodedUrl = encodeURIComponent(imageUrl);
+                        const geniephUrl = `https://genie.ph/#/customizing?image=${encodedUrl}&source=shopify_search`;
+                        
+                        window.location.href = geniephUrl;
+                    }
+                };
+
+                // Append button to the container
+                // We append it directly to the box and use absolute positioning
+                box.appendChild(btn);
+            });
+        }
+
+        // Enhanced mutation observer to detect when Google results load
+        function setupMutationObserver() {
+            const targetNode = document.getElementById('google-search-container');
+            if (!targetNode) {
+                console.log('Google search container not found, retrying...');
+                setTimeout(setupMutationObserver, 1000);
+                return;
+            }
+
+            const observer = new MutationObserver((mutations) => {
+                let shouldInject = false;
+                mutations.forEach((mutation) => {
+                    if (mutation.addedNodes.length > 0) {
+                        shouldInject = true;
+                    }
+                });
+                
+                if (shouldInject) {
+                    // Debounce the injection slightly to let rendering finish
+                    setTimeout(injectGetPriceButtons, 100);
+                }
+            });
+
+            observer.observe(targetNode, { 
+                childList: true, 
+                subtree: true
+            });
+            
+            console.log('MutationObserver active for Get Price buttons');
+        }
+
+        // Initialize
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupMutationObserver);
+        } else {
+            setupMutationObserver();
+        }
+        
+        // Backup interval to ensure buttons appear if observer misses something
+        setInterval(injectGetPriceButtons, 2000);
+
+    </script>
+
+    <!-- Load Google CSE script last -->
+    <script async src="https://cse.google.com/cse.js?cx=670b0637b2c724fe9"></script>

@@ -217,10 +217,12 @@ interface AddressFormProps {
     initialData?: CakeGenieAddress | null;
     onSuccess: (newAddress?: CakeGenieAddress) => void;
     onCancel: () => void;
-    isGuest?: boolean; // New prop
+    isGuest?: boolean;
+    onFormChange?: (data: Partial<CakeGenieAddress>, isValid: boolean) => void;
+    hideActions?: boolean;
 }
 
-const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSuccess, onCancel, isGuest = false }) => {
+const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSuccess, onCancel, isGuest = false, onFormChange, hideActions = false }) => {
     const addAddressMutation = useAddAddress();
     const updateAddressMutation = useUpdateAddress();
     const [isPickerModalOpen, setIsPickerModalOpen] = useState(false);
@@ -236,6 +238,30 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
 
     const isEditing = !!initialData;
     const isSubmitting = addAddressMutation.isPending || updateAddressMutation.isPending;
+
+    // Report changes to parent
+    useEffect(() => {
+        if (onFormChange) {
+            const isValid = !!(recipientName && recipientPhone && streetAddress && latitude && longitude);
+            const data: Partial<CakeGenieAddress> = {
+                recipient_name: recipientName,
+                recipient_phone: recipientPhone,
+                street_address: streetAddress,
+                address_label: addressLabel,
+                is_default: isDefault,
+                latitude: latitude,
+                longitude: longitude,
+                // Default values for required fields
+                country: 'Philippines',
+                province: 'Cebu',
+                city: '',
+                barangay: '',
+                postal_code: '',
+                landmark: null
+            };
+            onFormChange(data, isValid);
+        }
+    }, [recipientName, recipientPhone, streetAddress, addressLabel, isDefault, latitude, longitude, onFormChange]);
 
     useEffect(() => {
         if (initialData) {
@@ -353,13 +379,15 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
                     <label htmlFor="isDefault" className="ml-2 block text-sm text-slate-800">Set as default address</label>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-4">
-                    <button type="button" onClick={onCancel} className="bg-white border border-slate-300 text-slate-700 font-bold py-2 px-4 rounded-lg shadow-sm hover:bg-slate-50 transition-all text-sm">Cancel</button>
-                    <button type="submit" disabled={isSubmitting} className="flex justify-center items-center bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-75">
-                        {isSubmitting && <Loader2 className="animate-spin mr-2 w-4 h-4" />}
-                        {isEditing ? 'Save Changes' : 'Save Address'}
-                    </button>
-                </div>
+                {!hideActions && (
+                    <div className="flex items-center justify-end gap-3 pt-4">
+                        <button type="button" onClick={onCancel} className="bg-white border border-slate-300 text-slate-700 font-bold py-2 px-4 rounded-lg shadow-sm hover:bg-slate-50 transition-all text-sm">Cancel</button>
+                        <button type="submit" disabled={isSubmitting} className="flex justify-center items-center bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-75">
+                            {isSubmitting && <Loader2 className="animate-spin mr-2 w-4 h-4" />}
+                            {isEditing ? 'Save Changes' : 'Save Address'}
+                        </button>
+                    </div>
+                )}
             </form>
             <AddressPickerModal
                 isOpen={isPickerModalOpen}
