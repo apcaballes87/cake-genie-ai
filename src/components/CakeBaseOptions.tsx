@@ -26,6 +26,45 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
     const cakeThicknessScrollContainerRef = useRef<HTMLDivElement>(null);
     const cakeSizeScrollContainerRef = useRef<HTMLDivElement>(null);
 
+    // Helper to scroll selected item to center
+    const scrollToCenter = (container: HTMLDivElement, selector: string) => {
+        const selectedElement = container.querySelector(selector) as HTMLElement;
+        if (selectedElement) {
+            const containerWidth = container.offsetWidth;
+            const elementWidth = selectedElement.offsetWidth;
+            const elementLeft = selectedElement.offsetLeft;
+
+            // Calculate center position
+            const scrollLeft = elementLeft - (containerWidth / 2) + (elementWidth / 2);
+
+            container.scrollTo({
+                left: scrollLeft,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    // Auto-scroll effects
+    React.useEffect(() => {
+        if (cakeTypeScrollContainerRef.current && cakeInfo?.type) {
+            scrollToCenter(cakeTypeScrollContainerRef.current, `[data-caketype="${cakeInfo.type}"]`);
+        }
+    }, [cakeInfo?.type]);
+
+    React.useEffect(() => {
+        if (cakeThicknessScrollContainerRef.current && cakeInfo?.thickness) {
+            scrollToCenter(cakeThicknessScrollContainerRef.current, `[data-cakethickness="${cakeInfo.thickness}"]`);
+        }
+    }, [cakeInfo?.thickness]);
+
+    React.useEffect(() => {
+        if (cakeSizeScrollContainerRef.current && cakeInfo?.size) {
+            // Escape double quotes for the attribute selector
+            const escapedSize = cakeInfo.size.replace(/"/g, '\\"');
+            scrollToCenter(cakeSizeScrollContainerRef.current, `[data-cakesize="${escapedSize}"]`);
+        }
+    }, [cakeInfo?.size]);
+
     if (!cakeInfo) return null;
 
     const currentThicknessOptions = THICKNESS_OPTIONS_MAP[cakeInfo.type] || [];
