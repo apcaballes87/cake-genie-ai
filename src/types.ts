@@ -17,6 +17,18 @@ export interface Color {
   hex: string;
 }
 
+/**
+ * Bounding box from object detection (Roboflow + Florence-2)
+ * Coordinates are in app coordinate system (center origin)
+ */
+export interface BoundingBox {
+  x: number;         // Top-left X (app coordinates: center origin)
+  y: number;         // Top-left Y (app coordinates: center origin)
+  width: number;     // Width in pixels
+  height: number;    // Height in pixels
+  confidence: number; // Detection confidence (0.0-1.0)
+}
+
 export interface MainTopper {
   type: MainTopperType;
   description: string;
@@ -28,6 +40,7 @@ export interface MainTopper {
   colors?: (string | null)[];
   x?: number;
   y?: number;
+  bbox?: BoundingBox;  // Object detection bounding box
 }
 
 export interface SupportElement {
@@ -39,6 +52,7 @@ export interface SupportElement {
   colors?: (string | null)[];
   x?: number;
   y?: number;
+  bbox?: BoundingBox;  // Object detection bounding box
 }
 
 export interface CakeMessage {
@@ -48,6 +62,7 @@ export interface CakeMessage {
   color: string;
   x?: number;
   y?: number;
+  bbox?: BoundingBox;  // Object detection bounding box
 }
 
 export interface IcingColorDetails {

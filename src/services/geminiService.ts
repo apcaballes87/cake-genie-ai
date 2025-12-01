@@ -4,6 +4,12 @@ import { GoogleGenAI, Modality, Type } from "@google/genai";
 import type { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, IcingColorDetails, CakeInfoUI, CakeType, CakeThickness, IcingDesign, MainTopperType, CakeMessage, SupportElementType } from '../types';
 import { CAKE_TYPES, CAKE_THICKNESSES, COLORS } from "../constants";
 import { getSupabaseClient } from '../lib/supabase/client';
+import {
+    detectObjectsWithRoboflow,
+    roboflowBboxToAppCoordinates,
+    findMatchingDetection
+} from './roboflowService';
+import { FEATURE_FLAGS, isRoboflowConfigured } from '../config/features';
 
 let ai: InstanceType<typeof GoogleGenAI> | null = null;
 
@@ -244,6 +250,11 @@ export const validateCakeImage = async (base64ImageData: string, mimeType: strin
                 responseMimeType: 'application/json',
                 responseSchema: validationResponseSchema,
                 temperature: 0,
+                // SECRET SAUCE: Thinking budget forces the model to analyze
+                // spatial relationships before committing to coordinates
+                thinkingConfig: {
+                    thinkingBudget: 1024
+                }
             },
         });
 
@@ -1161,12 +1172,12 @@ export const enrichAnalysisWithCoordinates = async (
         const dimensions = await imageLoadPromise;
 
         const COORDINATE_ENRICHMENT_PROMPT = `
-**COORDINATE ENRICHMENT MODE**
+ACT AS A HIGH-PRECISION COMPUTER VISION SYSTEM FOR CAKE OBJECT DETECTION.
 
-You are provided with a complete list of all cake features that have already been identified.
-Your ONLY task is to calculate precise x,y coordinates for each item.
+Your task is to perform precise bounding box detection on cake elements that have already been identified.
 
 **Image Dimensions:** ${dimensions.width}px wide × ${dimensions.height}px high
+
 **Coordinate System:**
 - Origin (0,0) is at the image center
 - X-axis: -${dimensions.width / 2} (left) to +${dimensions.width / 2} (right)
@@ -1174,17 +1185,25 @@ Your ONLY task is to calculate precise x,y coordinates for each item.
 - Positive Y goes UPWARD
 
 **Your Task:**
-1. Review the provided feature list below
-2. Locate each item visually in the image
-3. Calculate its precise center coordinates
-4. Return the SAME feature list with updated x,y values
+1. Carefully analyze each element in the provided feature list
+2. Calculate precise center coordinates (x, y) for each element's visual center
+3. Estimate TIGHT-FITTING bounding boxes:
+   - bbox_x, bbox_y: Top-left corner coordinates in the coordinate system above
+   - bbox_width: Actual width of the visible element in pixels
+   - bbox_height: Actual height of the visible element in pixels
 
-**CRITICAL RULES:**
-- Keep ALL feature descriptions, types, sizes exactly as provided
-- ONLY update the x and y coordinate values
-- Use precise coordinates reflecting true positions
-- Do not add or remove any features
+**CRITICAL ACCURACY RULES:**
+- Bounding boxes must be TIGHT to the visible pixels of each object
+- Do NOT include background space in the box
+- Do NOT create overlapping boxes unless elements actually overlap
 - Apply left/right bias (x ≠ 0 unless perfectly centered)
+- Keep ALL feature descriptions, types, sizes exactly as provided
+- ONLY update coordinates and bbox values
+
+**Confidence Assessment:**
+- Mentally trace the edges of each object before committing to coordinates
+- Ensure bbox dimensions match the visual extent of the element
+- Double-check that center coordinates align with the geometric center
 
 **Identified Features:**
 ${JSON.stringify(featureAnalysis, null, 2)}
@@ -1193,13 +1212,16 @@ ${JSON.stringify(featureAnalysis, null, 2)}
         const { mainTopperTypes, supportElementTypes } = await getDynamicTypeEnums();
 
         const coordinateEnrichmentSchema = {
+            description: "Enriched coordinates for detected elements",
             type: Type.OBJECT,
             properties: {
                 main_toppers: {
+                    description: "List of main toppers with updated coordinates and bounding boxes",
                     type: Type.ARRAY,
                     items: {
                         type: Type.OBJECT,
                         properties: {
+                            id: { type: Type.STRING, description: "UUID of the topper" },
                             type: { type: Type.STRING, enum: mainTopperTypes },
                             description: { type: Type.STRING },
                             size: { type: Type.STRING, enum: ['small', 'medium', 'large', 'tiny'] },
@@ -1207,42 +1229,58 @@ ${JSON.stringify(featureAnalysis, null, 2)}
                             group_id: { type: Type.STRING },
                             color: { type: Type.STRING },
                             colors: { type: Type.ARRAY, items: { type: Type.STRING } },
-                            x: { type: Type.NUMBER },
-                            y: { type: Type.NUMBER }
+                            x: { type: Type.NUMBER, description: "Center X coordinate (0,0 is image center)" },
+                            y: { type: Type.NUMBER, description: "Center Y coordinate (0,0 is image center, Y+ is up)" },
+                            bbox_x: { type: Type.NUMBER, description: "Bounding box top-left X coordinate" },
+                            bbox_y: { type: Type.NUMBER, description: "Bounding box top-left Y coordinate" },
+                            bbox_width: { type: Type.NUMBER, description: "Bounding box width in pixels" },
+                            bbox_height: { type: Type.NUMBER, description: "Bounding box height in pixels" }
                         },
-                        required: ['type', 'description', 'size', 'quantity', 'group_id', 'x', 'y']
+                        required: ["id", "type", "description", "size", "quantity", "group_id", "x", "y", "bbox_x", "bbox_y", "bbox_width", "bbox_height"]
                     }
                 },
                 support_elements: {
+                    description: "List of support elements with updated coordinates and bounding boxes",
                     type: Type.ARRAY,
                     items: {
                         type: Type.OBJECT,
                         properties: {
+                            id: { type: Type.STRING, description: "UUID of the element" },
                             type: { type: Type.STRING, enum: supportElementTypes },
                             description: { type: Type.STRING },
                             size: { type: Type.STRING, enum: ['large', 'medium', 'small', 'tiny'] },
                             group_id: { type: Type.STRING },
                             color: { type: Type.STRING },
                             colors: { type: Type.ARRAY, items: { type: Type.STRING } },
-                            x: { type: Type.NUMBER },
-                            y: { type: Type.NUMBER }
+                            x: { type: Type.NUMBER, description: "Center X coordinate" },
+                            y: { type: Type.NUMBER, description: "Center Y coordinate" },
+                            bbox_x: { type: Type.NUMBER, description: "Bounding box top-left X coordinate" },
+                            bbox_y: { type: Type.NUMBER, description: "Bounding box top-left Y coordinate" },
+                            bbox_width: { type: Type.NUMBER, description: "Bounding box width in pixels" },
+                            bbox_height: { type: Type.NUMBER, description: "Bounding box height in pixels" }
                         },
-                        required: ['type', 'description', 'size', 'group_id', 'x', 'y']
+                        required: ["id", "type", "description", "size", "group_id", "x", "y", "bbox_x", "bbox_y", "bbox_width", "bbox_height"]
                     }
                 },
                 cake_messages: {
+                    description: "List of cake messages with updated coordinates and bounding boxes",
                     type: Type.ARRAY,
                     items: {
                         type: Type.OBJECT,
                         properties: {
+                            id: { type: Type.STRING, description: "UUID of the message" },
                             type: { type: Type.STRING, enum: ['gumpaste_letters', 'icing_script', 'printout', 'cardstock'] },
                             text: { type: Type.STRING },
                             position: { type: Type.STRING, enum: ['top', 'side', 'base_board'] },
                             color: { type: Type.STRING },
-                            x: { type: Type.NUMBER },
-                            y: { type: Type.NUMBER }
+                            x: { type: Type.NUMBER, description: "Center X coordinate" },
+                            y: { type: Type.NUMBER, description: "Center Y coordinate" },
+                            bbox_x: { type: Type.NUMBER, description: "Bounding box top-left X coordinate" },
+                            bbox_y: { type: Type.NUMBER, description: "Bounding box top-left Y coordinate" },
+                            bbox_width: { type: Type.NUMBER, description: "Bounding box width in pixels" },
+                            bbox_height: { type: Type.NUMBER, description: "Bounding box height in pixels" }
                         },
-                        required: ['type', 'text', 'position', 'color', 'x', 'y']
+                        required: ["id", "type", "text", "position", "color", "x", "y", "bbox_x", "bbox_y", "bbox_width", "bbox_height"]
                     }
                 },
                 icing_design: {
@@ -1345,11 +1383,269 @@ ${JSON.stringify(featureAnalysis, null, 2)}
         const jsonText = response.text.trim();
         const enrichedResult = JSON.parse(jsonText);
 
+        // Convert Gemini bbox data to Roboflow-compatible format
+        const convertBboxData = (item: any, imageWidth: number, imageHeight: number) => {
+            if (item.bbox_x !== undefined && item.bbox_y !== undefined &&
+                item.bbox_width !== undefined && item.bbox_height !== undefined) {
+
+                // Gemini returns bbox in app coordinates (center origin, Y-inverted)
+                // Convert to Roboflow format (for storage)
+                return {
+                    x: item.bbox_x, // Top-Left X in app coords
+                    y: item.bbox_y, // Top-Left Y in app coords
+                    width: item.bbox_width,
+                    height: item.bbox_height,
+                    // High confidence: Gemini with thinking budget does spatial analysis
+                    confidence: 0.95,
+                    class: item.description || item.text || 'unknown'
+                };
+            }
+            return null;
+        };
+
+        // Process main toppers
+        if (enrichedResult.main_toppers) {
+            enrichedResult.main_toppers = enrichedResult.main_toppers.map((topper: any) => ({
+                ...topper,
+                bbox: convertBboxData(topper, dimensions.width, dimensions.height)
+            }));
+        }
+
+        // Process support elements
+        if (enrichedResult.support_elements) {
+            enrichedResult.support_elements = enrichedResult.support_elements.map((element: any) => ({
+                ...element,
+                bbox: convertBboxData(element, dimensions.width, dimensions.height)
+            }));
+        }
+
+        // Process cake messages
+        if (enrichedResult.cake_messages) {
+            enrichedResult.cake_messages = enrichedResult.cake_messages.map((message: any) => ({
+                ...message,
+                bbox: convertBboxData(message, dimensions.width, dimensions.height)
+            }));
+        }
+
         return enrichedResult as HybridAnalysisResult;
 
     } catch (error) {
         console.error("Error enriching coordinates:", error);
         // Return original analysis if enrichment fails
+        return featureAnalysis;
+    }
+};
+
+// ============================================================================
+// Roboflow + Florence-2 Coordinate Enrichment
+// ============================================================================
+
+/**
+ * Enrich analysis with coordinates using Roboflow + Florence-2
+ * Falls back to Gemini if Roboflow fails or is disabled
+ */
+export const enrichAnalysisWithRoboflow = async (
+    base64ImageData: string,
+    mimeType: string,
+    featureAnalysis: HybridAnalysisResult
+): Promise<HybridAnalysisResult> => {
+    try {
+        // Feature flag check
+        if (!FEATURE_FLAGS.USE_ROBOFLOW_COORDINATES) {
+            console.log('🔄 Roboflow disabled via feature flag, using Gemini coordinates');
+            return await enrichAnalysisWithCoordinates(
+                base64ImageData,
+                mimeType,
+                featureAnalysis
+            );
+        }
+
+        // Configuration check
+        if (!isRoboflowConfigured()) {
+            console.warn('⚠️ Roboflow not configured, falling back to Gemini');
+            return await enrichAnalysisWithCoordinates(
+                base64ImageData,
+                mimeType,
+                featureAnalysis
+            );
+        }
+
+        console.log('🤖 Using Roboflow + Florence-2 for coordinate detection');
+
+        // Get image dimensions
+        const image = new Image();
+        const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+            image.onload = () => resolve({
+                width: image.naturalWidth,
+                height: image.naturalHeight
+            });
+            image.onerror = () => reject(new Error('Failed to load image for dimensions'));
+            image.src = `data:${mimeType};base64,${base64ImageData}`;
+        });
+
+        console.log(`📐 Image dimensions: ${dimensions.width}x${dimensions.height}`);
+
+        // Extract specific descriptions from Gemini analysis to use as classes
+        const classes: string[] = [];
+
+        // Add main topper descriptions
+        featureAnalysis.main_toppers?.forEach(topper => {
+            if (topper.description) {
+                classes.push(topper.description);
+            }
+        });
+
+        // Add support element descriptions
+        featureAnalysis.support_elements?.forEach(element => {
+            if (element.description) {
+                classes.push(element.description);
+            }
+        });
+
+        // Add cake message text
+        featureAnalysis.cake_messages?.forEach(message => {
+            if (message.text) {
+                classes.push(message.text);
+            }
+        });
+
+        if (FEATURE_FLAGS.DEBUG_ROBOFLOW) {
+            console.log(`🎯 Using ${classes.length} specific descriptions as detection classes:`);
+            classes.forEach((cls, i) => console.log(`   ${i + 1}. "${cls}"`));
+        }
+
+        // Call Roboflow API
+        const detections = await detectObjectsWithRoboflow(base64ImageData, mimeType, classes);
+
+        if (detections.length === 0) {
+            console.warn('⚠️ Roboflow found no detections, falling back to Gemini');
+            if (FEATURE_FLAGS.FALLBACK_TO_GEMINI) {
+                return await enrichAnalysisWithCoordinates(
+                    base64ImageData,
+                    mimeType,
+                    featureAnalysis
+                );
+            }
+            return featureAnalysis;  // Return unenriched if fallback disabled
+        }
+
+        console.log(`✅ Roboflow detected ${detections.length} objects`);
+
+        // Create enriched copy
+        const enrichedAnalysis: HybridAnalysisResult = { ...featureAnalysis };
+
+        // Enrich main toppers with coordinates + bbox
+        let matchedToppers = 0;
+        enrichedAnalysis.main_toppers = featureAnalysis.main_toppers.map((topper) => {
+            const match = findMatchingDetection(
+                topper.type,
+                topper.description,
+                detections
+            );
+
+            if (match) {
+                const coords = roboflowBboxToAppCoordinates(
+                    match,
+                    dimensions.width,
+                    dimensions.height
+                );
+                matchedToppers++;
+                console.log(`✓ Matched topper "${topper.description}" to "${match.class}" (${(match.confidence * 100).toFixed(1)}%)`);
+                return { ...topper, ...coords };
+            }
+
+            console.log(`○ No match for topper "${topper.description}"`);
+            return topper;
+        });
+
+        // Enrich support elements
+        let matchedSupport = 0;
+        enrichedAnalysis.support_elements = featureAnalysis.support_elements.map((element) => {
+            const match = findMatchingDetection(
+                element.type,
+                element.description,
+                detections
+            );
+
+            if (match) {
+                const coords = roboflowBboxToAppCoordinates(
+                    match,
+                    dimensions.width,
+                    dimensions.height
+                );
+                matchedSupport++;
+                console.log(`✓ Matched support "${element.description}"  to "${match.class}"`);
+                return { ...element, ...coords };
+            }
+
+            console.log(`○ No match for support "${element.description}"`);
+            return element;
+        });
+
+        // Enrich cake messages (look for text detections)
+        let matchedMessages = 0;
+        enrichedAnalysis.cake_messages = featureAnalysis.cake_messages.map((message) => {
+            // Try to find text-class detections
+            const textDetections = detections.filter(d =>
+                d.class.toLowerCase().includes('text') ||
+                d.class.toLowerCase().includes('letter')
+            );
+
+            if (textDetections.length > 0) {
+                // Use highest confidence text detection
+                const match = textDetections.reduce((best, current) =>
+                    current.confidence > best.confidence ? current : best
+                );
+
+                const coords = roboflowBboxToAppCoordinates(
+                    match,
+                    dimensions.width,
+                    dimensions.height
+                );
+                matchedMessages++;
+                console.log(`✓ Matched message "${message.text}" to text detection`);
+                return { ...message, ...coords };
+            }
+
+            console.log(`○ No text detection for message "${message.text}"`);
+            return message;
+        });
+
+        const totalMatched = matchedToppers + matchedSupport + matchedMessages;
+        const totalElements = featureAnalysis.main_toppers.length +
+            featureAnalysis.support_elements.length +
+            featureAnalysis.cake_messages.length;
+
+        console.log(`📊 Matched ${totalMatched}/${totalElements} elements to Roboflow detections`);
+
+        // If match rate is too low, consider falling back to Gemini
+        const matchRate = totalElements > 0 ? totalMatched / totalElements : 0;
+        if (matchRate < 0.3 && FEATURE_FLAGS.FALLBACK_TO_GEMINI) {
+            console.warn(`⚠️ Low match rate (${(matchRate * 100).toFixed(0)}%), falling back to Gemini`);
+            return await enrichAnalysisWithCoordinates(
+                base64ImageData,
+                mimeType,
+                featureAnalysis
+            );
+        }
+
+        return enrichedAnalysis;
+
+    } catch (error) {
+        console.error('❌ Roboflow enrichment failed:', error);
+
+        // Fallback to Gemini
+        if (FEATURE_FLAGS.FALLBACK_TO_GEMINI) {
+            console.log('🔄 Falling back to Gemini coordinates');
+            return await enrichAnalysisWithCoordinates(
+                base64ImageData,
+                mimeType,
+                featureAnalysis
+            );
+        }
+
+        // If fallback disabled, return unenriched analysis
+        console.warn('⚠️ Returning unenriched analysis (fallback disabled)');
         return featureAnalysis;
     }
 };

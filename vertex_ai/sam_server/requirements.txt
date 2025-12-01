@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-multipart
+torch
+torchvision
+opencv-python
+pycocotools
+matplotlib
+# SAM 3 (Official)
+git+https://github.com/facebookresearch/sam3.git

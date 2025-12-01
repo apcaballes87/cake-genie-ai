@@ -2,6 +2,10 @@ import React, { Dispatch, SetStateAction, useEffect, useState, useMemo, useCallb
 import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide } from 'lucide-react';
 import { CustomizationPills } from '../../components/CustomizationPills';
 import { CustomizationBottomSheet } from '../../components/CustomizationBottomSheet';
+import ColorPicker from '../../components/ColorPicker';
+import SegmentationOverlay from '../../components/SegmentationOverlay';
+import SegmentationBottomSheet from '../../components/SegmentationBottomSheet';
+import { BoundingBoxOverlay } from '../../components/BoundingBoxOverlay';
 import { FeatureList } from '../../components/FeatureList';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, CartIcon, BackIcon, ReportIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon, SideIcingGuideIcon, TopIcingGuideIcon, TopBorderGuideIcon, BaseBorderGuideIcon, BaseBoardGuideIcon, TrashIcon } from '../../components/icons';
@@ -1198,9 +1202,9 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
             )}
 
             {/* Two-column layout for desktop/tablet landscape */}
-            <div className="w-full flex flex-col min-[1000px]:flex-row gap-3">
+            <div className="w-full flex gap-3" style={{ flexDirection: window.innerWidth >= 768 ? 'row' : 'column' }}>
                 {/* LEFT COLUMN: Image and Update Design */}
-                <div className="w-full min-[1000px]:w-[calc(50%-6px)] flex flex-col gap-2">
+                <div className="flex flex-col gap-2" style={{ width: window.innerWidth >= 768 ? 'calc(50% - 6px)' : '100%' }}>
                     <div ref={mainImageContainerRef} className="w-full bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 flex flex-col">
                         <div className="p-2 flex-shrink-0">
                             {editedImage && (
@@ -1233,7 +1237,7 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                             </div>
                             <div
                                 ref={markerContainerRef}
-                                className="relative w-full min-h-[400px]"
+                                className="relative w-full"
                                 onContextMenu={(e) => e.preventDefault()}
                                 style={{
                                     aspectRatio: originalImageDimensions
@@ -1269,9 +1273,9 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                             alt={activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake"}
                                             className="w-full h-full object-contain rounded-lg"
                                         />
-                                        {/* Action buttons in top right corner - REMOVED as per request */}
+
+                                        {/* Undo button */}
                                         <div className="absolute top-3 right-3 z-10 flex gap-2">
-                                            {/* Undo button - Kept as it's useful */}
                                             {canUndo && (
                                                 <button
                                                     onClick={(e) => {
@@ -1287,7 +1291,21 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                                                 </button>
                                             )}
                                         </div>
-                                        {originalImageDimensions && containerDimensions && containerDimensions.height > 0 && areHelpersVisible && clusteredMarkers.map((item) => {
+
+                                        {/* Bounding Box Overlay - Replaces Markers */}
+                                        {/* TEMPORARY: Set to false to hide bounding boxes */}
+                                        {false && analysisResult && originalImageDimensions && containerDimensions && (
+                                            <BoundingBoxOverlay
+                                                analysisResult={analysisResult}
+                                                containerWidth={containerDimensions.width}
+                                                containerHeight={containerDimensions.height}
+                                                imageWidth={originalImageDimensions.width}
+                                                imageHeight={originalImageDimensions.height}
+                                            />
+                                        )}
+
+                                        {/* OLD MARKER SYSTEM - Currently disabled in favor of bounding boxes */}
+                                        {false && originalImageDimensions && containerDimensions && containerDimensions.height > 0 && areHelpersVisible && clusteredMarkers.map((item) => {
                                             if (item.x === undefined || item.y === undefined) return null;
 
                                             // Hide markers during Phase 1 (coordinates are 0,0)
@@ -1417,543 +1435,538 @@ const CustomizingPage: React.FC<CustomizingPageProps> = ({
                             )}
                         </button>
                     )}
+
+
                 </div>
+                {/* RIGHT COLUMN: Availability at top, then Feature List */}
+                <div className="flex flex-col gap-2" style={{ width: window.innerWidth >= 768 ? 'calc(50% - 6px)' : '100%' }}>
+                    {/* Availability Section - at top of right column */}
 
 
+                    <div className="w-full bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200">
+                        {(cakeInfo || analysisError) ? (
+                            <div className="space-y-6">
+                                <FeatureList
+                                    analysisError={analysisError}
+                                    analysisId={analysisId}
+                                    cakeInfo={cakeInfo}
+                                    basePriceOptions={basePriceOptions}
+                                    mainToppers={mainToppers}
+                                    supportElements={supportElements}
+                                    cakeMessages={cakeMessages}
+                                    icingDesign={icingDesign}
+                                    additionalInstructions={additionalInstructions}
+                                    onCakeInfoChange={onCakeInfoChange}
+                                    updateMainTopper={updateMainTopper}
+                                    removeMainTopper={removeMainTopper}
+                                    updateSupportElement={updateSupportElement}
+                                    removeSupportElement={removeSupportElement}
+                                    updateCakeMessage={updateCakeMessage}
+                                    removeCakeMessage={removeCakeMessage}
+                                    addCakeMessage={addCakeMessage}
+                                    onIcingDesignChange={onIcingDesignChange}
+                                    onAdditionalInstructionsChange={onAdditionalInstructionsChange}
+                                    onTopperImageReplace={onTopperImageReplace}
+                                    onSupportElementImageReplace={onSupportElementImageReplace}
+                                    isAnalyzing={isAnalyzing}
+                                    itemPrices={itemPrices}
+                                    user={user}
+                                    cakeBaseSectionRef={cakeBaseSectionRef}
+                                    cakeMessagesSectionRef={cakeMessagesSectionRef}
+                                    onItemClick={handleListItemClick}
+                                    markerMap={markerMap}
+                                />
 
-
-
-
-            </div>
-
-            {/* RIGHT COLUMN: Availability at top, then Feature List */}
-            <div className="w-full min-[1000px]:w-[calc(50%-6px)] flex flex-col gap-2">
-                {/* Availability Section - at top of right column */}
-
-
-                <div className="w-full bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200">
-                    {(cakeInfo || analysisError) ? (
-                        <div className="space-y-6">
-                            <FeatureList
-                                analysisError={analysisError}
-                                analysisId={analysisId}
-                                cakeInfo={cakeInfo}
-                                basePriceOptions={basePriceOptions}
-                                mainToppers={mainToppers}
-                                supportElements={supportElements}
-                                cakeMessages={cakeMessages}
-                                icingDesign={icingDesign}
-                                additionalInstructions={additionalInstructions}
-                                onCakeInfoChange={onCakeInfoChange}
-                                updateMainTopper={updateMainTopper}
-                                removeMainTopper={removeMainTopper}
-                                updateSupportElement={updateSupportElement}
-                                removeSupportElement={removeSupportElement}
-                                updateCakeMessage={updateCakeMessage}
-                                removeCakeMessage={removeCakeMessage}
-                                addCakeMessage={addCakeMessage}
-                                onIcingDesignChange={onIcingDesignChange}
-                                onAdditionalInstructionsChange={onAdditionalInstructionsChange}
-                                onTopperImageReplace={onTopperImageReplace}
-                                onSupportElementImageReplace={onSupportElementImageReplace}
-                                isAnalyzing={isAnalyzing}
-                                itemPrices={itemPrices}
-                                user={user}
-                                cakeBaseSectionRef={cakeBaseSectionRef}
-                                cakeMessagesSectionRef={cakeMessagesSectionRef}
-                                onItemClick={handleListItemClick}
-                                markerMap={markerMap}
-                            />
-
-                            {/* Action Buttons */}
-                            <div className="w-full flex items-center justify-end gap-4 pt-2 border-t border-slate-200/50">
-                                {isAdmin && (
-                                    <button
-                                        onClick={() => {
-                                            clearPromptCache();
-                                            showSuccess("AI prompt cache cleared!");
-                                        }}
-                                        className="flex items-center justify-center text-sm text-yellow-600 hover:text-yellow-800 hover:bg-yellow-200 py-2 px-4 rounded-lg transition-colors"
-                                        aria-label="Clear AI prompt cache"
-                                    >
-                                        Clear Prompt Cache
-                                    </button>
-                                )}
-                                <button onClick={onOpenReportModal} disabled={!editedImage || isLoading || isReporting} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Report an issue with this image">
-                                    <ReportIcon />
-                                    <span className="ml-2">{isReporting ? 'Submitting...' : 'Report Issue'}</span>
-                                </button>
-                                <button onClick={onSave} disabled={!editedImage || isLoading || isSaving} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label={isSaving ? "Saving image" : "Save customized image"}>
-                                    {isSaving ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                            <span className="ml-2">Saving...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <SaveIcon />
-                                            <span className="ml-2">Save</span>
-                                        </>
-                                    )}
-                                </button>
-                                <button onClick={onClearAll} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors" aria-label="Reset everything"><ResetIcon /><span className="ml-2">Reset Everything</span></button>
-                            </div>
-                        </div>
-                    ) : <div className="text-center p-8 text-slate-500"><p>Upload an image to get started.</p></div>}
-                </div>
-            </div>
-        </div>
-
-
-        {/* FloatingResultPanel - Only show for non-icing items */}
-        {
-            selectedItem && !('itemCategory' in selectedItem && selectedItem.itemCategory === 'icing') && (
-                <FloatingResultPanel
-                    selectedItem={selectedItem}
-                    onClose={() => setSelectedItem(null)}
-                />
-            )
-        }
-        {/* Messages Panel */}
-        {
-            showMessagesPanel && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowMessagesPanel(false)}>
-                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                        <div className="sticky top-0 bg-white border-b border-slate-200 p-3 flex justify-between items-center rounded-t-xl">
-                            <h2 className="text-lg font-bold text-slate-800">Cake Messages</h2>
-                            <button
-                                onClick={() => setShowMessagesPanel(false)}
-                                className="text-slate-400 hover:text-slate-600 transition-colors"
-                                aria-label="Close messages panel"
-                            >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div className="p-3 space-y-3">
-                            {/* List all messages */}
-                            {cakeMessages.map((message) => (
-                                <div key={message.id} className="bg-slate-50 rounded-lg p-2.5 border border-slate-200">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex-1">
-                                            <div className="text-xs font-semibold text-purple-600 uppercase mb-1">
-                                                {message.position === 'top' ? 'Cake Top' : message.position === 'side' ? 'Cake Front' : 'Base Board'}
-                                            </div>
-                                            <div className="text-sm font-medium text-slate-800">{message.text}</div>
-                                        </div>
+                                {/* Action Buttons */}
+                                <div className="w-full flex items-center justify-end gap-4 pt-2 border-t border-slate-200/50">
+                                    {isAdmin && (
                                         <button
                                             onClick={() => {
-                                                removeCakeMessage(message.id);
-                                                if (cakeMessages.length === 1) {
-                                                    setShowMessagesPanel(false);
-                                                }
+                                                clearPromptCache();
+                                                showSuccess("AI prompt cache cleared!");
                                             }}
-                                            className="text-red-500 hover:text-red-700 transition-colors ml-2"
-                                            aria-label="Delete message"
+                                            className="flex items-center justify-center text-sm text-yellow-600 hover:text-yellow-800 hover:bg-yellow-200 py-2 px-4 rounded-lg transition-colors"
+                                            aria-label="Clear AI prompt cache"
                                         >
-                                            <TrashIcon className="w-4 h-4" />
+                                            Clear Prompt Cache
                                         </button>
-                                    </div>
-                                    <div className="flex gap-2 text-xs text-slate-600">
-                                        <span>Type: {message.type.replace('_', ' ')}</span>
-                                        <span>•</span>
-                                        <span>Color: {message.color}</span>
-                                    </div>
+                                    )}
+                                    <button onClick={onOpenReportModal} disabled={!editedImage || isLoading || isReporting} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Report an issue with this image">
+                                        <ReportIcon />
+                                        <span className="ml-2">{isReporting ? 'Submitting...' : 'Report Issue'}</span>
+                                    </button>
+                                    <button onClick={onSave} disabled={!editedImage || isLoading || isSaving} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label={isSaving ? "Saving image" : "Save customized image"}>
+                                        {isSaving ? (
+                                            <>
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                                <span className="ml-2">Saving...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <SaveIcon />
+                                                <span className="ml-2">Save</span>
+                                            </>
+                                        )}
+                                    </button>
+                                    <button onClick={onClearAll} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors" aria-label="Reset everything"><ResetIcon /><span className="ml-2">Reset Everything</span></button>
                                 </div>
-                            ))}
+                            </div>
+                        ) : <div className="text-center p-8 text-slate-500"><p>Upload an image to get started.</p></div>}
+                    </div>
+                </div>
+            </div>
 
-                            {/* Add message buttons */}
-                            <div className="space-y-2 pt-2 border-t border-slate-200">
-                                <div className="text-xs font-semibold text-slate-600 mb-2">Add New Message</div>
-                                {!cakeMessages.some(m => m.position === 'top') && (
-                                    <button
-                                        onClick={() => {
-                                            addCakeMessage('top');
-                                        }}
-                                        className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
-                                    >
-                                        <span className="text-base">+</span> Add Message (Cake Top)
-                                    </button>
-                                )}
-                                {!cakeMessages.some(m => m.position === 'side') && (
-                                    <button
-                                        onClick={() => {
-                                            addCakeMessage('side');
-                                        }}
-                                        className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
-                                    >
-                                        <span className="text-base">+</span> Add Message (Cake Front)
-                                    </button>
-                                )}
-                                {!cakeMessages.some(m => m.position === 'base_board') && cakeInfo?.type !== 'Bento' && (
-                                    <button
-                                        onClick={() => {
-                                            addCakeMessage('base_board');
-                                        }}
-                                        className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
-                                    >
-                                        <span className="text-base">+</span> Add Message (Base Board)
-                                    </button>
-                                )}
+
+            {/* FloatingResultPanel - Only show for non-icing items */}
+            {
+                selectedItem && !('itemCategory' in selectedItem && selectedItem.itemCategory === 'icing') && (
+                    <FloatingResultPanel
+                        selectedItem={selectedItem}
+                        onClose={() => setSelectedItem(null)}
+                    />
+                )
+            }
+            {/* Messages Panel */}
+            {
+                showMessagesPanel && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowMessagesPanel(false)}>
+                        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                            <div className="sticky top-0 bg-white border-b border-slate-200 p-3 flex justify-between items-center rounded-t-xl">
+                                <h2 className="text-lg font-bold text-slate-800">Cake Messages</h2>
+                                <button
+                                    onClick={() => setShowMessagesPanel(false)}
+                                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                                    aria-label="Close messages panel"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div className="p-3 space-y-3">
+                                {/* List all messages */}
+                                {cakeMessages.map((message) => (
+                                    <div key={message.id} className="bg-slate-50 rounded-lg p-2.5 border border-slate-200">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="flex-1">
+                                                <div className="text-xs font-semibold text-purple-600 uppercase mb-1">
+                                                    {message.position === 'top' ? 'Cake Top' : message.position === 'side' ? 'Cake Front' : 'Base Board'}
+                                                </div>
+                                                <div className="text-sm font-medium text-slate-800">{message.text}</div>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    removeCakeMessage(message.id);
+                                                    if (cakeMessages.length === 1) {
+                                                        setShowMessagesPanel(false);
+                                                    }
+                                                }}
+                                                className="text-red-500 hover:text-red-700 transition-colors ml-2"
+                                                aria-label="Delete message"
+                                            >
+                                                <TrashIcon className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                        <div className="flex gap-2 text-xs text-slate-600">
+                                            <span>Type: {message.type.replace('_', ' ')}</span>
+                                            <span>•</span>
+                                            <span>Color: {message.color}</span>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* Add message buttons */}
+                                <div className="space-y-2 pt-2 border-t border-slate-200">
+                                    <div className="text-xs font-semibold text-slate-600 mb-2">Add New Message</div>
+                                    {!cakeMessages.some(m => m.position === 'top') && (
+                                        <button
+                                            onClick={() => {
+                                                addCakeMessage('top');
+                                            }}
+                                            className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
+                                        >
+                                            <span className="text-base">+</span> Add Message (Cake Top)
+                                        </button>
+                                    )}
+                                    {!cakeMessages.some(m => m.position === 'side') && (
+                                        <button
+                                            onClick={() => {
+                                                addCakeMessage('side');
+                                            }}
+                                            className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
+                                        >
+                                            <span className="text-base">+</span> Add Message (Cake Front)
+                                        </button>
+                                    )}
+                                    {!cakeMessages.some(m => m.position === 'base_board') && cakeInfo?.type !== 'Bento' && (
+                                        <button
+                                            onClick={() => {
+                                                addCakeMessage('base_board');
+                                            }}
+                                            className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
+                                        >
+                                            <span className="text-base">+</span> Add Message (Base Board)
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )
-        }
-        {
-            dominantMotif && (
-                <MotifPanel
-                    isOpen={isMotifPanelOpen}
-                    onClose={() => setIsMotifPanelOpen(false)}
-                    dominantMotif={dominantMotif}
-                    onColorChange={handleMotifColorChange}
-                />
-            )
-        }
-
-        {/* Unified Customization Bottom Sheet */}
-        <CustomizationBottomSheet
-            isOpen={activeCustomization !== null}
-            onClose={() => setActiveCustomization(null)}
-            title={customizationTabs.find(t => t.id === activeCustomization)?.label || 'Customize'}
-            style={{ bottom: (67 + (availabilityType && !isAnalyzing ? 38 : 0) + (warningMessage ? 38 : 0)) + 'px' }}
-            actionButton={
-                activeCustomization === 'icing' ? (
-                    (hasIcingChanges || isUpdatingDesign) ? (
-                        <button
-                            onClick={onUpdateDesign}
-                            disabled={isUpdatingDesign || !originalImageData}
-                            className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            {isUpdatingDesign ? (
-                                <>
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    Updating...
-                                </>
-                            ) : (
-                                <>
-                                    <MagicSparkleIcon className="w-5 h-5" />
-                                    Apply Changes
-                                </>
-                            )}
-                        </button>
-                    ) : null
-                ) : activeCustomization === 'messages' ? (
-                    hasMessageChanges ? (
-                        <button
-                            onClick={() => {
-                                onUpdateDesign();
-                                setActiveCustomization(null);
-                            }}
-                            disabled={isUpdatingDesign}
-                            className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            {isUpdatingDesign ? (
-                                <>
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    Updating Design...
-                                </>
-                            ) : (
-                                <>
-                                    <MagicSparkleIcon className="w-5 h-5" />
-                                    Apply Changes
-                                </>
-                            )}
-                        </button>
-                    ) : null
-                ) : activeCustomization === 'toppers' ? (
-                    (isCustomizationDirty || isUpdatingDesign) ? (
-                        <button
-                            onClick={() => {
-                                onUpdateDesign();
-                                setActiveCustomization(null);
-                            }}
-                            disabled={isUpdatingDesign}
-                            className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            {isUpdatingDesign ? (
-                                <>
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    Updating Design...
-                                </>
-                            ) : (
-                                <>
-                                    <MagicSparkleIcon className="w-5 h-5" />
-                                    Apply Changes
-                                </>
-                            )}
-                        </button>
-                    ) : null
-                ) : activeCustomization === 'photos' ? (
-                    (isCustomizationDirty || isUpdatingDesign) ? (
-                        <button
-                            onClick={() => {
-                                onUpdateDesign();
-                                setActiveCustomization(null);
-                            }}
-                            disabled={isUpdatingDesign}
-                            className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            {isUpdatingDesign ? (
-                                <>
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    Updating Design...
-                                </>
-                            ) : (
-                                <>
-                                    <MagicSparkleIcon className="w-5 h-5" />
-                                    Apply Changes
-                                </>
-                            )}
-                        </button>
-                    ) : null
-                ) : null
+                )
             }
-        >
-            {activeCustomization === 'icing' && (
-                <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                        <p className="text-sm text-slate-500">Customize your cake's colors and icing details.</p>
-                        {hasIcingChanges && (
+            {
+                dominantMotif && (
+                    <MotifPanel
+                        isOpen={isMotifPanelOpen}
+                        onClose={() => setIsMotifPanelOpen(false)}
+                        dominantMotif={dominantMotif}
+                        onColorChange={handleMotifColorChange}
+                    />
+                )
+            }
+
+            {/* Unified Customization Bottom Sheet */}
+            <CustomizationBottomSheet
+                isOpen={activeCustomization !== null}
+                onClose={() => setActiveCustomization(null)}
+                title={customizationTabs.find(t => t.id === activeCustomization)?.label || 'Customize'}
+                style={{ bottom: (67 + (availabilityType && !isAnalyzing ? 38 : 0) + (warningMessage ? 38 : 0)) + 'px' }}
+                actionButton={
+                    activeCustomization === 'icing' ? (
+                        (hasIcingChanges || isUpdatingDesign) ? (
+                            <button
+                                onClick={onUpdateDesign}
+                                disabled={isUpdatingDesign || !originalImageData}
+                                className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {isUpdatingDesign ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        Updating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <MagicSparkleIcon className="w-5 h-5" />
+                                        Apply Changes
+                                    </>
+                                )}
+                            </button>
+                        ) : null
+                    ) : activeCustomization === 'messages' ? (
+                        hasMessageChanges ? (
                             <button
                                 onClick={() => {
-                                    if (analysisResult?.icing_design && icingDesign) {
-                                        onIcingDesignChange({
-                                            ...analysisResult.icing_design,
-                                            dripPrice: icingDesign.dripPrice,
-                                            gumpasteBaseBoardPrice: icingDesign.gumpasteBaseBoardPrice
-                                        });
-                                        onUpdateDesign();
-                                        setSelectedItem(null);
-                                        setActiveCustomization(null);
-                                    }
+                                    onUpdateDesign();
+                                    setActiveCustomization(null);
                                 }}
-                                className="text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors flex items-center gap-1"
+                                disabled={isUpdatingDesign}
+                                className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
-                                <ResetIcon className="w-3 h-3" />
-                                Revert
+                                {isUpdatingDesign ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        Updating Design...
+                                    </>
+                                ) : (
+                                    <>
+                                        <MagicSparkleIcon className="w-5 h-5" />
+                                        Apply Changes
+                                    </>
+                                )}
                             </button>
+                        ) : null
+                    ) : activeCustomization === 'toppers' ? (
+                        (isCustomizationDirty || isUpdatingDesign) ? (
+                            <button
+                                onClick={() => {
+                                    onUpdateDesign();
+                                    setActiveCustomization(null);
+                                }}
+                                disabled={isUpdatingDesign}
+                                className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {isUpdatingDesign ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        Updating Design...
+                                    </>
+                                ) : (
+                                    <>
+                                        <MagicSparkleIcon className="w-5 h-5" />
+                                        Apply Changes
+                                    </>
+                                )}
+                            </button>
+                        ) : null
+                    ) : activeCustomization === 'photos' ? (
+                        (isCustomizationDirty || isUpdatingDesign) ? (
+                            <button
+                                onClick={() => {
+                                    onUpdateDesign();
+                                    setActiveCustomization(null);
+                                }}
+                                disabled={isUpdatingDesign}
+                                className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {isUpdatingDesign ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        Updating Design...
+                                    </>
+                                ) : (
+                                    <>
+                                        <MagicSparkleIcon className="w-5 h-5" />
+                                        Apply Changes
+                                    </>
+                                )}
+                            </button>
+                        ) : null
+                    ) : null
+                }
+            >
+                {activeCustomization === 'icing' && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <p className="text-sm text-slate-500">Customize your cake's colors and icing details.</p>
+                            {hasIcingChanges && (
+                                <button
+                                    onClick={() => {
+                                        if (analysisResult?.icing_design && icingDesign) {
+                                            onIcingDesignChange({
+                                                ...analysisResult.icing_design,
+                                                dripPrice: icingDesign.dripPrice,
+                                                gumpasteBaseBoardPrice: icingDesign.gumpasteBaseBoardPrice
+                                            });
+                                            onUpdateDesign();
+                                            setSelectedItem(null);
+                                            setActiveCustomization(null);
+                                        }
+                                    }}
+                                    className="text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors flex items-center gap-1"
+                                >
+                                    <ResetIcon className="w-3 h-3" />
+                                    Revert
+                                </button>
+                            )}
+                        </div>
+                        <IcingToolbar
+                            onSelectItem={setSelectedItem}
+                            icingDesign={icingDesign}
+                            cakeType={cakeInfo?.type || null}
+                            isVisible={true}
+                            showGuide={false}
+                            selectedItem={selectedItem}
+                            mainToppers={mainToppers}
+                        />
+                        {/* Inline Icing Editor Panel - Reused from original but inside sheet */}
+                        {selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'icing' && (
+                            <div className="mt-2 pt-2 border-t border-slate-100 animate-fade-in">
+                                {(() => {
+                                    const description = selectedItem.description;
+                                    const isBento = cakeInfo?.type === 'Bento';
+
+                                    // Helper function for toggle + color picker (drip, borders, baseboard)
+                                    const renderToggleAndColor = (
+                                        featureKey: 'drip' | 'border_top' | 'border_base' | 'gumpasteBaseBoard',
+                                        colorKey: keyof IcingColorDetails,
+                                        label: string
+                                    ) => {
+                                        const isEnabled = icingDesign?.[featureKey] || false;
+                                        const isDisabled = (featureKey === 'border_base' || featureKey === 'gumpasteBaseBoard') && isBento;
+
+                                        return (
+                                            <>
+                                                <SimpleToggle
+                                                    label={label}
+                                                    isEnabled={isEnabled}
+                                                    disabled={isDisabled}
+                                                    onChange={(enabled) => {
+                                                        if (!icingDesign) return;
+                                                        const newIcingDesign = { ...icingDesign, [featureKey]: enabled };
+                                                        if (enabled && !newIcingDesign.colors[colorKey]) {
+                                                            newIcingDesign.colors = { ...newIcingDesign.colors, [colorKey]: '#FFFFFF' };
+                                                        }
+                                                        onIcingDesignChange(newIcingDesign);
+                                                    }}
+                                                />
+                                                <div className={`mt-2 ${!isEnabled && !isDisabled ? 'opacity-40 pointer-events-none' : ''}`}>
+                                                    <div className={`pb-2 ${!isEnabled && !isDisabled ? 'pointer-events-auto' : ''}`}>
+                                                        <ColorPalette
+                                                            selectedColor={icingDesign?.colors[colorKey] || ''}
+                                                            onColorChange={(newHex) => {
+                                                                if (!icingDesign) return;
+                                                                const newIcingDesign = {
+                                                                    ...icingDesign,
+                                                                    [featureKey]: true,
+                                                                    colors: { ...icingDesign.colors, [colorKey]: newHex }
+                                                                };
+                                                                onIcingDesignChange(newIcingDesign);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </>
+                                        );
+                                    };
+
+                                    // Helper function for color picker only (top/side icing)
+                                    const renderColorOnly = (colorKey: keyof IcingColorDetails, label: string) => {
+                                        return (
+                                            <div className="pb-2">
+                                                <ColorPalette
+                                                    selectedColor={icingDesign?.colors[colorKey] || ''}
+                                                    onColorChange={(newHex) => {
+                                                        if (!icingDesign) return;
+                                                        onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: newHex } });
+                                                    }}
+                                                />
+                                            </div>
+                                        );
+                                    };
+
+                                    // Helper function for combined icing color picker
+                                    const renderCombinedIcingColor = () => {
+                                        const currentColor = icingDesign?.colors.top || icingDesign?.colors.side || '#FFFFFF';
+                                        return (
+                                            <div className="pb-2">
+                                                <ColorPalette
+                                                    selectedColor={currentColor}
+                                                    onColorChange={(newHex) => {
+                                                        if (!icingDesign) return;
+                                                        onIcingDesignChange({
+                                                            ...icingDesign,
+                                                            colors: {
+                                                                ...icingDesign.colors,
+                                                                top: newHex,
+                                                                side: newHex
+                                                            }
+                                                        });
+                                                    }}
+                                                />
+                                            </div>
+                                        );
+                                    };
+
+                                    // Switch based on description to render appropriate editor
+                                    switch (description) {
+                                        case 'Drip':
+                                            return renderToggleAndColor('drip', 'drip', 'Drip Effect');
+                                        case 'Top':
+                                            return renderToggleAndColor('border_top', 'borderTop', 'Top Border');
+                                        case 'Bottom':
+                                            return renderToggleAndColor('border_base', 'borderBase', 'Base Border');
+                                        case 'Board':
+                                            return renderToggleAndColor('gumpasteBaseBoard', 'gumpasteBaseBoardColor', 'Covered Board');
+                                        case 'Body Icing':
+                                            return renderCombinedIcingColor();
+                                        case 'Top Icing':
+                                            return renderColorOnly('top', 'Top Icing Color');
+                                        case 'Side Icing':
+                                            return renderColorOnly('side', 'Side Icing Color');
+                                        default:
+                                            return <p className="p-2 text-xs text-slate-500">Select an icing feature to edit.</p>;
+                                    }
+                                })()}
+                            </div>
                         )}
                     </div>
-                    <IcingToolbar
-                        onSelectItem={setSelectedItem}
-                        icingDesign={icingDesign}
-                        cakeType={cakeInfo?.type || null}
-                        isVisible={true}
-                        showGuide={false}
-                        selectedItem={selectedItem}
-                        mainToppers={mainToppers}
+                )}
+
+                {activeCustomization === 'messages' && (
+                    <CakeMessagesOptions
+                        cakeMessages={cakeMessages}
+                        markerMap={markerMap}
+                        onItemClick={handleListItemClick}
+                        addCakeMessage={addCakeMessage}
+                        updateCakeMessage={updateCakeMessage}
+                        removeCakeMessage={removeCakeMessage}
                     />
-                    {/* Inline Icing Editor Panel - Reused from original but inside sheet */}
-                    {selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'icing' && (
-                        <div className="mt-2 pt-2 border-t border-slate-100 animate-fade-in">
-                            {(() => {
-                                const description = selectedItem.description;
-                                const isBento = cakeInfo?.type === 'Bento';
+                )}
 
-                                // Helper function for toggle + color picker (drip, borders, baseboard)
-                                const renderToggleAndColor = (
-                                    featureKey: 'drip' | 'border_top' | 'border_base' | 'gumpasteBaseBoard',
-                                    colorKey: keyof IcingColorDetails,
-                                    label: string
-                                ) => {
-                                    const isEnabled = icingDesign?.[featureKey] || false;
-                                    const isDisabled = (featureKey === 'border_base' || featureKey === 'gumpasteBaseBoard') && isBento;
+                {activeCustomization === 'toppers' && (
+                    <CakeToppersOptions
+                        mainToppers={mainToppers}
+                        supportElements={supportElements}
+                        markerMap={markerMap}
+                        updateMainTopper={updateMainTopper}
+                        updateSupportElement={updateSupportElement}
+                        onTopperImageReplace={onTopperImageReplace}
+                        onSupportElementImageReplace={onSupportElementImageReplace}
+                        itemPrices={itemPrices}
+                        isAdmin={isAdmin}
+                    />
+                )}
 
-                                    return (
-                                        <>
-                                            <SimpleToggle
-                                                label={label}
-                                                isEnabled={isEnabled}
-                                                disabled={isDisabled}
-                                                onChange={(enabled) => {
-                                                    if (!icingDesign) return;
-                                                    const newIcingDesign = { ...icingDesign, [featureKey]: enabled };
-                                                    if (enabled && !newIcingDesign.colors[colorKey]) {
-                                                        newIcingDesign.colors = { ...newIcingDesign.colors, [colorKey]: '#FFFFFF' };
-                                                    }
-                                                    onIcingDesignChange(newIcingDesign);
-                                                }}
-                                            />
-                                            <div className={`mt-2 ${!isEnabled && !isDisabled ? 'opacity-40 pointer-events-none' : ''}`}>
-                                                <div className={`pb-2 ${!isEnabled && !isDisabled ? 'pointer-events-auto' : ''}`}>
-                                                    <ColorPalette
-                                                        selectedColor={icingDesign?.colors[colorKey] || ''}
-                                                        onColorChange={(newHex) => {
-                                                            if (!icingDesign) return;
-                                                            const newIcingDesign = {
-                                                                ...icingDesign,
-                                                                [featureKey]: true,
-                                                                colors: { ...icingDesign.colors, [colorKey]: newHex }
-                                                            };
-                                                            onIcingDesignChange(newIcingDesign);
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </>
-                                    );
-                                };
+                {activeCustomization === 'photos' && (
+                    <div className="space-y-4">
+                        {/* Logic to show Edible Photo options */}
+                        {(() => {
+                            const ediblePhotoTopper = mainToppers.find(t => t.original_type === 'edible_photo_top');
+                            const ediblePhotoSupport = supportElements.find(s => s.original_type === 'edible_photo_side');
 
-                                // Helper function for color picker only (top/side icing)
-                                const renderColorOnly = (colorKey: keyof IcingColorDetails, label: string) => {
-                                    return (
-                                        <div className="pb-2">
-                                            <ColorPalette
-                                                selectedColor={icingDesign?.colors[colorKey] || ''}
-                                                onColorChange={(newHex) => {
-                                                    if (!icingDesign) return;
-                                                    onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: newHex } });
-                                                }}
-                                            />
-                                        </div>
-                                    );
-                                };
+                            const photos = [];
+                            if (ediblePhotoTopper) photos.push({ ...ediblePhotoTopper, category: 'topper' as const });
+                            if (ediblePhotoSupport) photos.push({ ...ediblePhotoSupport, category: 'element' as const });
 
-                                // Helper function for combined icing color picker
-                                const renderCombinedIcingColor = () => {
-                                    const currentColor = icingDesign?.colors.top || icingDesign?.colors.side || '#FFFFFF';
-                                    return (
-                                        <div className="pb-2">
-                                            <ColorPalette
-                                                selectedColor={currentColor}
-                                                onColorChange={(newHex) => {
-                                                    if (!icingDesign) return;
-                                                    onIcingDesignChange({
-                                                        ...icingDesign,
-                                                        colors: {
-                                                            ...icingDesign.colors,
-                                                            top: newHex,
-                                                            side: newHex
-                                                        }
-                                                    });
-                                                }}
-                                            />
-                                        </div>
-                                    );
-                                };
+                            if (photos.length === 0) {
+                                return (
+                                    <div className="text-center p-8 text-slate-500">
+                                        <p>No edible photos detected on this cake.</p>
+                                        <p className="text-xs mt-2">Edible photos are only available if the AI detected them in the original design.</p>
+                                    </div>
+                                );
+                            }
 
-                                // Switch based on description to render appropriate editor
-                                switch (description) {
-                                    case 'Drip':
-                                        return renderToggleAndColor('drip', 'drip', 'Drip Effect');
-                                    case 'Top':
-                                        return renderToggleAndColor('border_top', 'borderTop', 'Top Border');
-                                    case 'Bottom':
-                                        return renderToggleAndColor('border_base', 'borderBase', 'Base Border');
-                                    case 'Board':
-                                        return renderToggleAndColor('gumpasteBaseBoard', 'gumpasteBaseBoardColor', 'Covered Board');
-                                    case 'Body Icing':
-                                        return renderCombinedIcingColor();
-                                    case 'Top Icing':
-                                        return renderColorOnly('top', 'Top Icing Color');
-                                    case 'Side Icing':
-                                        return renderColorOnly('side', 'Side Icing Color');
-                                    default:
-                                        return <p className="p-2 text-xs text-slate-500">Select an icing feature to edit.</p>;
-                                }
-                            })()}
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {activeCustomization === 'messages' && (
-                <CakeMessagesOptions
-                    cakeMessages={cakeMessages}
-                    markerMap={markerMap}
-                    onItemClick={handleListItemClick}
-                    addCakeMessage={addCakeMessage}
-                    updateCakeMessage={updateCakeMessage}
-                    removeCakeMessage={removeCakeMessage}
-                />
-            )}
-
-            {activeCustomization === 'toppers' && (
-                <CakeToppersOptions
-                    mainToppers={mainToppers}
-                    supportElements={supportElements}
-                    markerMap={markerMap}
-                    updateMainTopper={updateMainTopper}
-                    updateSupportElement={updateSupportElement}
-                    onTopperImageReplace={onTopperImageReplace}
-                    onSupportElementImageReplace={onSupportElementImageReplace}
-                    itemPrices={itemPrices}
-                    isAdmin={isAdmin}
-                />
-            )}
-
-            {activeCustomization === 'photos' && (
-                <div className="space-y-4">
-                    {/* Logic to show Edible Photo options */}
-                    {(() => {
-                        const ediblePhotoTopper = mainToppers.find(t => t.original_type === 'edible_photo_top');
-                        const ediblePhotoSupport = supportElements.find(s => s.original_type === 'edible_photo_side');
-
-                        const photos = [];
-                        if (ediblePhotoTopper) photos.push({ ...ediblePhotoTopper, category: 'topper' as const });
-                        if (ediblePhotoSupport) photos.push({ ...ediblePhotoSupport, category: 'element' as const });
-
-                        if (photos.length === 0) {
-                            return (
-                                <div className="text-center p-8 text-slate-500">
-                                    <p>No edible photos detected on this cake.</p>
-                                    <p className="text-xs mt-2">Edible photos are only available if the AI detected them in the original design.</p>
+                            return photos.map((photo, index) => (
+                                <div key={photo.id} className="border border-slate-200 rounded-xl p-4">
+                                    <h3 className="font-bold text-slate-700 mb-2">
+                                        {photo.category === 'topper' ? 'Top Photo' : 'Side Photo'}
+                                    </h3>
+                                    <TopperCard
+                                        item={photo}
+                                        type={photo.category}
+                                        marker={markerMap.get(photo.id)}
+                                        expanded={true}
+                                        onToggle={() => { }}
+                                        updateItem={(updates) => {
+                                            if (photo.category === 'topper') {
+                                                updateMainTopper(photo.id, updates);
+                                            } else {
+                                                updateSupportElement(photo.id, updates);
+                                            }
+                                        }}
+                                        onImageReplace={(file) => {
+                                            if (photo.category === 'topper') {
+                                                onTopperImageReplace(photo.id, file);
+                                            } else {
+                                                onSupportElementImageReplace(photo.id, file);
+                                            }
+                                        }}
+                                        itemPrice={itemPrices?.get(photo.id)}
+                                        isAdmin={isAdmin}
+                                    />
                                 </div>
-                            );
-                        }
+                            ));
+                        })()}
+                    </div>
+                )}
+            </CustomizationBottomSheet>
 
-                        return photos.map((photo, index) => (
-                            <div key={photo.id} className="border border-slate-200 rounded-xl p-4">
-                                <h3 className="font-bold text-slate-700 mb-2">
-                                    {photo.category === 'topper' ? 'Top Photo' : 'Side Photo'}
-                                </h3>
-                                <TopperCard
-                                    item={photo}
-                                    type={photo.category}
-                                    marker={markerMap.get(photo.id)}
-                                    expanded={true}
-                                    onToggle={() => { }}
-                                    updateItem={(updates) => {
-                                        if (photo.category === 'topper') {
-                                            updateMainTopper(photo.id, updates);
-                                        } else {
-                                            updateSupportElement(photo.id, updates);
-                                        }
-                                    }}
-                                    onImageReplace={(file) => {
-                                        if (photo.category === 'topper') {
-                                            onTopperImageReplace(photo.id, file);
-                                        } else {
-                                            onSupportElementImageReplace(photo.id, file);
-                                        }
-                                    }}
-                                    itemPrice={itemPrices?.get(photo.id)}
-                                    isAdmin={isAdmin}
-                                />
-                            </div>
-                        ));
-                    })()}
-                </div>
-            )}
-        </CustomizationBottomSheet>
-
-        <StickyAddToCartBar
-            price={finalPrice}
-            isLoading={isFetchingBasePrice}
-            isAdding={isAddingToCart}
-            error={basePriceError}
-            onAddToCartClick={onAddToCart}
-            onShareClick={onShare}
-            isSharing={isSharing}
-            canShare={!!originalImageData}
-            isAnalyzing={isAnalyzing}
-            cakeInfo={cakeInfo}
-            warningMessage={warningMessage}
-            availability={availabilityType}
-        />
+            <StickyAddToCartBar
+                price={finalPrice}
+                isLoading={isFetchingBasePrice}
+                isAdding={isAddingToCart}
+                error={basePriceError}
+                onAddToCartClick={onAddToCart}
+                onShareClick={onShare}
+                isSharing={isSharing}
+                canShare={!!originalImageData}
+                isAnalyzing={isAnalyzing}
+                cakeInfo={cakeInfo}
+                warningMessage={warningMessage}
+                availability={availabilityType}
+            />
+        </div>
     </>);
 };
 

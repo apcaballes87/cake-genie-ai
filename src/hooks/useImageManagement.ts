@@ -3,12 +3,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { toast as toastHot } from 'react-hot-toast';
-import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithCoordinates } from '../services/geminiService';
+import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithCoordinates, enrichAnalysisWithRoboflow } from '../services/geminiService';
 import { getSupabaseClient } from '../lib/supabase/client';
 import { compressImage, dataURItoBlob } from '../lib/utils/imageOptimization';
 import { showSuccess, showError, showLoading, showInfo } from '../lib/utils/toast';
 import { HybridAnalysisResult } from '../types';
 import { findSimilarAnalysisByHash, cacheAnalysisResult } from '../services/supabaseService';
+import { hasBoundingBoxData } from '../lib/utils/analysisUtils';
 
 /**
  * Generates a perceptual hash (pHash) for an image.
@@ -124,7 +125,52 @@ export const useImageManagement = () => {
             const cachedAnalysis = await findSimilarAnalysisByHash(pHash);
 
             if (cachedAnalysis) {
+                console.log('✅ Using cached analysis result');
                 onSuccess(cachedAnalysis);
+
+                // Check if cached result has bbox data
+                const hasBbox = hasBoundingBoxData(cachedAnalysis);
+
+                if (!hasBbox) {
+                    console.log('🔄 Cached result missing bbox data, enriching in background...');
+
+                    // Run enrichment in background without blocking
+                    (async () => {
+                        try {
+                            // Need to get compressed image data for enrichment
+                            const imageBlob = dataURItoBlob(imageSrc);
+                            const fileToUpload = new File([imageBlob], file.name, { type: file.type });
+                            const compressedFile = await compressImage(fileToUpload, {
+                                maxSizeMB: 0.5,
+                                maxWidthOrHeight: 1024,
+                                fileType: 'image/webp',
+                            });
+                            const compressedImageData = await fileToBase64(compressedFile);
+
+                            // Enrich with Roboflow
+                            const enrichedResult = await enrichAnalysisWithRoboflow(
+                                compressedImageData.data,
+                                compressedImageData.mimeType,
+                                cachedAnalysis
+                            );
+
+                            // Update cache with bbox data
+                            cacheAnalysisResult(pHash, enrichedResult);
+
+                            // Notify UI of enriched coordinates
+                            if (options?.onCoordinatesEnriched) {
+                                options.onCoordinatesEnriched(enrichedResult);
+                            }
+
+                            console.log('✅ Background enrichment complete, cache updated with bbox data');
+                        } catch (error) {
+                            console.warn('⚠️ Background enrichment failed:', error);
+                        }
+                    })();
+                } else {
+                    console.log('✨ Cached result already has bbox data, skipping enrichment');
+                }
+
                 return; // Skip compression and AI call entirely!
             }
 
@@ -185,8 +231,9 @@ export const useImageManagement = () => {
 
                 onSuccess(fastResult); // User can now see features and price immediately!
 
-                // PHASE 2: Background coordinate enrichment (silent, non-blocking)
-                enrichAnalysisWithCoordinates(
+                // PHASE 2: Background coordinate enrichment with Roboflow + Florence-2
+                // (Falls back to Gemini if Roboflow fails or is disabled)
+                enrichAnalysisWithRoboflow(
                     compressedImageData.data,
                     compressedImageData.mimeType,
                     fastResult
@@ -198,6 +245,8 @@ export const useImageManagement = () => {
 
                     // Cache the fully enriched result
                     cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl);
+
+                    console.log('✨ Coordinate enrichment complete');
                 }).catch(enrichmentError => {
                     console.warn('⚠️ Coordinate enrichment failed, but features are still available:', enrichmentError);
                     // Still cache the fast result even if enrichment fails
