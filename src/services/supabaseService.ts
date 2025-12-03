@@ -539,6 +539,8 @@ export async function createOrderFromCart(
       recipientPhone: string;
       streetAddress: string;
       city?: string;
+      latitude?: number | null;
+      longitude?: number | null;
     };
   }
 ): Promise<{ success: boolean, order?: any, error?: Error }> {
@@ -583,6 +585,8 @@ export async function createOrderFromCart(
       p_recipient_phone: guestAddress?.recipientPhone || null,
       p_delivery_address: guestAddress?.streetAddress || null,
       p_delivery_city: guestAddress?.city || 'Cebu City', // Default to Cebu City if not provided
+      p_delivery_latitude: guestAddress?.latitude || null,
+      p_delivery_longitude: guestAddress?.longitude || null,
     });
 
     if (error) throw error;
@@ -626,6 +630,8 @@ export async function createSplitOrderFromCart(params: {
     recipientPhone: string;
     streetAddress: string;
     city: string;
+    latitude?: number | null;
+    longitude?: number | null;
   };
   isSplitOrder: boolean;
   splitMessage: string;
@@ -668,6 +674,8 @@ export async function createSplitOrderFromCart(params: {
       p_recipient_phone: guestAddress?.recipientPhone || null,
       p_delivery_address: guestAddress?.streetAddress || null,
       p_delivery_city: guestAddress?.city || null,
+      p_delivery_latitude: guestAddress?.latitude || null,
+      p_delivery_longitude: guestAddress?.longitude || null,
       p_is_split_order: isSplitOrder,
       p_split_message: splitMessage,
       p_split_count: splitCount

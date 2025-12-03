@@ -24,6 +24,22 @@ export const StaticMap: React.FC<{ latitude: number; longitude: number }> = ({ l
     );
 };
 
+const SERVICEABLE_AREAS = [
+    'Cebu City', 'Mandaue City', 'Talisay City', 'Lapu-Lapu City', 'Cordova', 'Liloan',
+    'Mandaue', 'Talisay', 'Lapu-lapu'
+];
+
+const checkServiceability = (components: google.maps.GeocoderAddressComponent[]) => {
+    if (!components) return false;
+    return components.some(c => {
+        if (c.types.includes('locality') || c.types.includes('administrative_area_level_2')) {
+            const name = c.long_name;
+            return SERVICEABLE_AREAS.some(area => name.toLowerCase().includes(area.toLowerCase()));
+        }
+        return false;
+    });
+};
+
 // --- Address Form's Map Picker Modal Component ---
 const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, initialStreetAddress }: { isOpen: boolean, onClose: () => void, onLocationSelect: (details: any) => void, initialCoords?: { lat: number, lng: number } | null, initialStreetAddress?: string | null }) => {
     const { isLoaded } = useGoogleMapsLoader();
@@ -33,6 +49,7 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
     const [completeAddress, setCompleteAddress] = useState(''); // User-controlled input
     const [suggestedAddress, setSuggestedAddress] = useState(''); // Geocoding output
     const [isGeocoding, setIsGeocoding] = useState(false);
+    const [isServiceable, setIsServiceable] = useState(true);
     const [mounted, setMounted] = useState(false);
 
     const autocompleteRef = useRef<any | null>(null);
@@ -67,10 +84,16 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
         geocoder.geocode({ location: { lat, lng } }, (results, status) => {
             if (status === 'OK' && results && results[0]) {
                 setSuggestedAddress(results[0].formatted_address);
+
+                // Check serviceability
+                const isAllowed = checkServiceability(results[0].address_components);
+                setIsServiceable(isAllowed);
+
                 lastGeocodedLocation.current = { lat, lng };
             } else {
                 console.error("Reverse geocoding failed:", status);
                 setSuggestedAddress('Could not determine address from map.');
+                setIsServiceable(false);
             }
             setIsGeocoding(false);
         });
@@ -192,14 +215,18 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                     />
                     <div className="mt-1 min-h-[2rem]">
                         {suggestedAddress && !isGeocoding && (
-                            <div className="text-xs text-slate-500 p-2 bg-slate-100 rounded-md">
-                                <strong>Suggested Location:</strong> {suggestedAddress}
+                            <div className={`text-xs p-2 rounded-md ${isServiceable ? 'text-slate-500 bg-slate-100' : 'text-red-600 bg-red-50 border border-red-200'}`}>
+                                {isServiceable ? (
+                                    <><strong>Suggested Location:</strong> {suggestedAddress}</>
+                                ) : (
+                                    <><strong>Not Serviceable Yet:</strong> We currently only deliver to Cebu City, Mandaue, Talisay, Lapu-Lapu, Cordova, and Liloan.</>
+                                )}
                             </div>
                         )}
                     </div>
                     <button
                         onClick={handleSubmit}
-                        disabled={!completeAddress.trim() || isGeocoding}
+                        disabled={!completeAddress.trim() || isGeocoding || !isServiceable}
                         className="w-full mt-3 bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition-all disabled:opacity-50 flex items-center justify-center"
                     >
                         {isGeocoding ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Locating...</> : 'Confirm Location'}

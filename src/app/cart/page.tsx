@@ -650,7 +650,9 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                     recipientName: effectiveGuestAddress.recipient_name,
                     recipientPhone: effectiveGuestAddress.recipient_phone,
                     streetAddress: effectiveGuestAddress.street_address,
-                    city: effectiveGuestAddress.city
+                    city: effectiveGuestAddress.city,
+                    latitude: effectiveGuestAddress.latitude,
+                    longitude: effectiveGuestAddress.longitude
                 } : undefined
             });
 
@@ -812,7 +814,9 @@ const CartPage: React.FC<CartPageProps> = ({ pendingItems, isLoading: isCartLoad
                     recipientName: effectiveGuestAddress.recipient_name,
                     recipientPhone: effectiveGuestAddress.recipient_phone,
                     streetAddress: effectiveGuestAddress.street_address,
-                    city: effectiveGuestAddress.city
+                    city: effectiveGuestAddress.city,
+                    latitude: effectiveGuestAddress.latitude,
+                    longitude: effectiveGuestAddress.longitude
                 } : undefined
             });
 

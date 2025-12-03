@@ -136,6 +136,9 @@ export interface CakeGenieOrder {
   amount_collected?: number | null;
   organizer_user_id?: string | null;
   split_share_url?: string | null;
+  // Delivery coordinates (for guest orders)
+  delivery_latitude?: number | null;
+  delivery_longitude?: number | null;
 }
 
 /**
