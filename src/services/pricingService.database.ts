@@ -119,7 +119,7 @@ export async function calculatePriceFromDatabase(
   };
 
   const allowanceRule = getRule('gumpaste_allowance', undefined, 'special');
-  const GUMPASTE_ALLOWANCE = allowanceRule?.price || 200;
+  const GUMPASTE_ALLOWANCE = allowanceRule?.price || 100;
 
   const extractTierCount = (cakeType: CakeType): number => {
     if (cakeType.includes('3 Tier')) return 3;

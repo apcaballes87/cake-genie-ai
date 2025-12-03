@@ -67,7 +67,7 @@ export const calculatePrice = (
     let supportGumpasteRawTotal = 0;
     let nonGumpasteTotal = 0;
 
-    const GUMPASTE_ALLOWANCE = 200;
+    const GUMPASTE_ALLOWANCE = 100;
 
     // --- Process All Main Toppers in a Single Loop ---
     mainToppers.forEach(topper => {
