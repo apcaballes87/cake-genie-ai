@@ -26,7 +26,7 @@ async function extractPrompt() {
   // Show first few lines
   const lines = data.prompt_text.split('\n').slice(0, 10);
   console.log('\nFirst 10 lines:');
-  lines.forEach((line, idx) => console.log(`${idx + 1}: ${line}`));
+  lines.forEach((line: string, idx: number) => console.log(`${idx + 1}: ${line}`));
 }
 
 extractPrompt();
