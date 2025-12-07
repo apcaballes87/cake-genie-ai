@@ -108,6 +108,10 @@ export async function fileToBase64Robust(
     throw new Error('Invalid file object');
   }
 
+  if (!file.type) {
+    throw new Error('File type is missing. Expected an image file.');
+  }
+
   if (!file.type.startsWith('image/')) {
     throw new Error(`Invalid file type: ${file.type}. Expected an image.`);
   }

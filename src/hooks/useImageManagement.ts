@@ -145,7 +145,11 @@ export const useImageManagement = () => {
                                 maxWidthOrHeight: 1024,
                                 fileType: 'image/webp',
                             });
-                            const compressedImageData = await fileToBase64(compressedFile);
+                            // Ensure compressed file has a valid type
+                            const safeCompressedFile = compressedFile.type
+                                ? compressedFile
+                                : new File([compressedFile], compressedFile.name, { type: 'image/webp' });
+                            const compressedImageData = await fileToBase64(safeCompressedFile);
 
                             // Enrich with Roboflow
                             const enrichedResult = await enrichAnalysisWithRoboflow(
@@ -192,8 +196,13 @@ export const useImageManagement = () => {
                     fileType: 'image/webp',
                 });
 
+                // Ensure compressed file has a valid type
+                const safeCompressedFile = compressedFile.type
+                    ? compressedFile
+                    : new File([compressedFile], compressedFile.name, { type: 'image/webp' });
+
                 // Convert compressed file to base64 for AI
-                compressedImageData = await fileToBase64(compressedFile);
+                compressedImageData = await fileToBase64(safeCompressedFile);
 
 
                 // Upload compressed file to storage
