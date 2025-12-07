@@ -112,8 +112,9 @@ export async function fileToBase64Robust(
     throw new Error('File type is missing. Expected an image file.');
   }
 
-  if (!file.type.startsWith('image/')) {
-    throw new Error(`Invalid file type: ${file.type}. Expected an image.`);
+  // Additional safety check before calling .startsWith()
+  if (!file.type || !file.type.startsWith('image/')) {
+    throw new Error(`Invalid file type: ${file.type || 'unknown'}. Expected an image.`);
   }
 
   const fileSizeMB = file.size / (1024 * 1024);
