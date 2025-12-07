@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAvailabilitySettings } from '../services/supabaseService';
-import { AvailabilitySettings } from '../types';
+import { getAvailabilitySettings } from '@/services/supabaseService';
+import { AvailabilitySettings } from '@/types';
 
 export function useAvailabilitySettings() {
   const { data, isLoading, error, refetch } = useQuery<AvailabilitySettings, Error>({

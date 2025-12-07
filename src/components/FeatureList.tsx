@@ -1,12 +1,13 @@
+'use client';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 // Force rebuild for style update
-import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, CakeType, CakeThickness, CakeFlavor, BasePriceInfo } from '../types';
+import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, CakeType, CakeThickness, CakeFlavor, BasePriceInfo, AnalysisItem } from '@/types';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ChevronDownIcon } from './icons';
-import { CAKE_TYPES, THICKNESS_OPTIONS_MAP, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_OPTIONS, FLAVOR_THUMBNAILS, TIER_THUMBNAILS } from '../constants';
+import { CAKE_TYPES, THICKNESS_OPTIONS_MAP, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_OPTIONS, FLAVOR_THUMBNAILS, TIER_THUMBNAILS } from '@/constants';
 import { CakeBaseSkeleton } from './LoadingSkeletons';
 import { CakeBaseOptions } from './CakeBaseOptions';
-import { AnalysisItem } from '../app/customizing/page';
+
 
 
 interface FeatureListProps {

@@ -1,3 +1,4 @@
+'use client';
 // Simple payment mode toggle component for testing
 
 import React, { useState, useEffect } from 'react';
@@ -30,8 +31,8 @@ export function PaymentModeToggle() {
                 <button
                     onClick={() => toggleMode('test')}
                     className={`px-3 py-1.5 text-sm rounded font-medium transition-all ${mode === 'test'
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                         }`}
                 >
                     🧪 Test
@@ -39,8 +40,8 @@ export function PaymentModeToggle() {
                 <button
                     onClick={() => toggleMode('live')}
                     className={`px-3 py-1.5 text-sm rounded font-medium transition-all ${mode === 'live'
-                            ? 'bg-green-500 text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        ? 'bg-green-500 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                         }`}
                 >
                     💳 Live

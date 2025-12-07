@@ -1,5 +1,5 @@
-import { getSupabaseClient } from '../lib/supabase/client';
-import type { DiscountValidationResult } from '../types';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import type { DiscountValidationResult } from '@/types';
 
 const supabase = getSupabaseClient();
 

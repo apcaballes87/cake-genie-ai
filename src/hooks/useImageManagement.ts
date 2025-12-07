@@ -3,13 +3,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { toast as toastHot } from 'react-hot-toast';
-import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithCoordinates, enrichAnalysisWithRoboflow } from '../services/geminiService';
-import { getSupabaseClient } from '../lib/supabase/client';
-import { compressImage, dataURItoBlob } from '../lib/utils/imageOptimization';
-import { showSuccess, showError, showLoading, showInfo } from '../lib/utils/toast';
-import { HybridAnalysisResult } from '../types';
-import { findSimilarAnalysisByHash, cacheAnalysisResult } from '../services/supabaseService';
-import { hasBoundingBoxData } from '../lib/utils/analysisUtils';
+import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithCoordinates, enrichAnalysisWithRoboflow } from '@/services/geminiService';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
+import { showSuccess, showError, showLoading, showInfo } from '@/lib/utils/toast';
+import { HybridAnalysisResult } from '@/types';
+import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService';
+import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
 
 /**
  * Generates a perceptual hash (pHash) for an image.
@@ -122,14 +122,54 @@ export const useImageManagement = () => {
             // --- STEP 1: CHECK CACHE FIRST (FAST PATH) ---
 
             const pHash = await generatePerceptualHash(imageSrc);
-            const cachedAnalysis = await findSimilarAnalysisByHash(pHash);
+            const cachedAnalysis = await findSimilarAnalysisByHash(pHash, options?.imageUrl);
 
             if (cachedAnalysis) {
                 console.log('✅ Using cached analysis result');
                 onSuccess(cachedAnalysis);
 
-                // Skip background enrichment for cached results
-                console.log('✨ Using cached result without bbox enrichment');
+                // Check if cached result has bbox data
+                const hasBbox = hasBoundingBoxData(cachedAnalysis);
+
+                if (!hasBbox) {
+                    console.log('🔄 Cached result missing bbox data, enriching in background...');
+
+                    // Run enrichment in background without blocking
+                    (async () => {
+                        try {
+                            // Need to get compressed image data for enrichment
+                            const imageBlob = dataURItoBlob(imageSrc);
+                            const fileToUpload = new File([imageBlob], file.name, { type: file.type });
+                            const compressedFile = await compressImage(fileToUpload, {
+                                maxSizeMB: 0.5,
+                                maxWidthOrHeight: 1024,
+                                fileType: 'image/webp',
+                            });
+                            const compressedImageData = await fileToBase64(compressedFile);
+
+                            // Enrich with Roboflow
+                            const enrichedResult = await enrichAnalysisWithRoboflow(
+                                compressedImageData.data,
+                                compressedImageData.mimeType,
+                                cachedAnalysis
+                            );
+
+                            // Update cache with bbox data
+                            cacheAnalysisResult(pHash, enrichedResult);
+
+                            // Notify UI of enriched coordinates
+                            if (options?.onCoordinatesEnriched) {
+                                options.onCoordinatesEnriched(enrichedResult);
+                            }
+
+                            console.log('✅ Background enrichment complete, cache updated with bbox data');
+                        } catch (error) {
+                            console.warn('⚠️ Background enrichment failed:', error);
+                        }
+                    })();
+                } else {
+                    console.log('✨ Cached result already has bbox data, skipping enrichment');
+                }
 
                 return; // Skip compression and AI call entirely!
             }
@@ -144,7 +184,7 @@ export const useImageManagement = () => {
             try {
                 // Compress image for both AI analysis and storage. 1024x1024 is optimal for Gemini.
                 const imageBlob = dataURItoBlob(imageSrc);
-                const fileToUpload = new File([imageBlob], file.name, { type: file.type || 'image/jpeg' });
+                const fileToUpload = new File([imageBlob], file.name, { type: file.type });
 
                 const compressedFile = await compressImage(fileToUpload, {
                     maxSizeMB: 0.5,
@@ -152,13 +192,8 @@ export const useImageManagement = () => {
                     fileType: 'image/webp',
                 });
 
-                // Ensure compressed file has a valid type
-                const safeCompressedFile = compressedFile.type
-                    ? compressedFile
-                    : new File([compressedFile], compressedFile.name, { type: 'image/webp' });
-
                 // Convert compressed file to base64 for AI
-                compressedImageData = await fileToBase64(safeCompressedFile);
+                compressedImageData = await fileToBase64(compressedFile);
 
 
                 // Upload compressed file to storage

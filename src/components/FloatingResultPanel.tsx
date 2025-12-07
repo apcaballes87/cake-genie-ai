@@ -1,6 +1,7 @@
+'use client';
 // components/FloatingResultPanel.tsx
 import React from 'react';
-import { ClusteredMarker, AnalysisItem } from '../app/customizing/page';
+import { ClusteredMarker, AnalysisItem } from '@/types';
 
 interface FloatingResultPanelProps {
     selectedItem: ClusteredMarker | null;
@@ -22,7 +23,7 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
 
     if ('isCluster' in selectedItem && selectedItem.isCluster) {
         // Filter out toppers/elements from cluster view here if needed, or just show basic info
-        const relevantItems = selectedItem.items.filter(i => !isTopperOrElement(i));
+        const relevantItems = selectedItem.items.filter((i: any) => !isTopperOrElement(i));
         if (relevantItems.length === 0) return null;
     } else if (isTopperOrElement(selectedItem as AnalysisItem)) {
         return null;

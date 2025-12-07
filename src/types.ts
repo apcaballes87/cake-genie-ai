@@ -127,6 +127,7 @@ export interface HybridAnalysisResult {
   icing_surfaces?: IcingSurface[];
   icing_borders?: IcingBorder[];
   base_board?: BaseBoard[];
+  keyword?: string;
 }
 
 // --- UI-specific types (extended from base types) ---
@@ -310,3 +311,30 @@ export interface GoogleCSE {
     };
   };
 }
+
+export interface SegmentationResult {
+  items: {
+    mask: {
+      size: [number, number];
+      counts: string;
+    } | null;
+    group_id?: string;
+    [key: string]: any;
+  }[];
+  [key: string]: any;
+}
+// Types moved from CustomizingPage
+export type AnalysisItem =
+  (MainTopperUI & { itemCategory: 'topper' }) |
+  (SupportElementUI & { itemCategory: 'element' }) |
+  (CakeMessageUI & { itemCategory: 'message' }) |
+  ({ id: string; description: string; x?: number; y?: number; cakeType?: CakeType } & { itemCategory: 'icing' }) |
+  ({ id: string; description: string; x?: number; y?: number; } & { itemCategory: 'action' });
+
+export type ClusteredMarker = {
+  id: string;
+  x: number;
+  y: number;
+  isCluster: true;
+  items: AnalysisItem[];
+} | (AnalysisItem & { isCluster?: false });

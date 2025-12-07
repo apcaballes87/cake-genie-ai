@@ -1,12 +1,14 @@
 // components/BillShareCard.tsx
 
+'use client';
+
 import React, { useState, useMemo } from 'react';
 import { Share2, Link as LinkIcon, CheckCircle, Users, ChevronDown, Calendar, MapPin, User as UserIcon } from 'lucide-react';
 import LazyImage from './LazyImage';
-import { showSuccess } from '../lib/utils/toast';
+import { showSuccess } from '@/lib/utils/toast';
 import DetailItem from './UI/DetailItem';
 import { ImageZoomModal } from './ImageZoomModal';
-import { CartItemDetails } from '../types';
+import { CartItemDetails } from '@/types';
 
 interface BillShareCardProps {
     design: any;
@@ -31,12 +33,12 @@ const BillShareCard: React.FC<BillShareCardProps> = ({ design, onDesignUpdate })
             contributorCount: paidContributions.length
         };
     }, [design]);
-    
+
     const progress = design.final_price > 0 ? Math.min(100, (amountCollected / design.final_price) * 100) : 0;
     const remainingAmount = design.final_price - amountCollected;
     const isFullyFunded = remainingAmount <= 0;
 
-    const shareUrl = `${window.location.origin}/#/designs/${design.url_slug}`;
+    const shareUrl = `${window.location.origin}/designs/${design.url_slug}`;
 
     const handleCopyLink = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -46,7 +48,7 @@ const BillShareCard: React.FC<BillShareCardProps> = ({ design, onDesignUpdate })
             setTimeout(() => setIsCopied(false), 2000);
         });
     };
-    
+
     const getStatusInfo = () => {
         if (design.order_placed) {
             return { text: "Order Placed", style: "bg-green-100 text-green-800" };
@@ -90,7 +92,7 @@ const BillShareCard: React.FC<BillShareCardProps> = ({ design, onDesignUpdate })
                             </span>
                         </div>
                         <div className="w-full bg-slate-200 rounded-full h-2.5">
-                            <div 
+                            <div
                                 className="bg-gradient-to-r from-pink-500 to-purple-500 h-2.5 rounded-full transition-all"
                                 style={{ width: `${progress}%` }}
                             />
@@ -143,19 +145,19 @@ const BillShareCard: React.FC<BillShareCardProps> = ({ design, onDesignUpdate })
                                             <>
                                                 <DetailItem label="Type" value={`${design.cake_type}, ${design.cake_thickness}, ${design.cake_size}`} />
                                                 {details.flavors && details.flavors.length > 0 && (
-                                                    details.flavors.length <= 1 
-                                                        ? <DetailItem label="Flavor" value={details.flavors[0] || 'N/A'} /> 
+                                                    details.flavors.length <= 1
+                                                        ? <DetailItem label="Flavor" value={details.flavors[0] || 'N/A'} />
                                                         : details.flavors.map((flavor, idx) => (<DetailItem key={idx} label={`${tierLabels[idx]} Flavor`} value={flavor} />))
                                                 )}
                                                 {details.mainToppers?.length > 0 && <DetailItem label="Main Toppers" value={details.mainToppers.map(t => t.description).join(', ')} />}
                                                 {details.supportElements?.length > 0 && <DetailItem label="Support" value={details.supportElements.map(s => s.description).join(', ')} />}
-                                                {details.cakeMessages?.map((msg, idx) => (<DetailItem key={idx} label={`Message #${idx+1}`} value={`'${msg.text}' (${msg.color})`} />))}
+                                                {details.cakeMessages?.map((msg, idx) => (<DetailItem key={idx} label={`Message #${idx + 1}`} value={`'${msg.text}' (${msg.color})`} />))}
                                                 {details.icingDesign?.drip && <DetailItem label="Icing" value="Has Drip Effect" />}
                                                 {details.icingDesign?.gumpasteBaseBoard && <DetailItem label="Icing" value="Gumpaste Base Board" />}
                                                 {details.icingDesign?.colors && Object.entries(details.icingDesign.colors).map(([loc, color]) => (<DetailItem key={loc} label={`${colorLabelMap[loc] || loc.charAt(0).toUpperCase() + loc.slice(1)} Color`} value={color} />))}
                                                 {details.additionalInstructions && <DetailItem label="Instructions" value={details.additionalInstructions} />}
                                             </>
-                                        ) : ( <p className="text-slate-500 text-xs italic">Detailed customization data not available for this older shared design.</p> )}
+                                        ) : (<p className="text-slate-500 text-xs italic">Detailed customization data not available for this older shared design.</p>)}
                                     </div>
                                 </details>
                             </div>
@@ -181,7 +183,7 @@ const BillShareCard: React.FC<BillShareCardProps> = ({ design, onDesignUpdate })
                 customizedImage={design.customized_image_url || null}
                 initialTab={zoomState.initialTab}
             />
-             <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+            <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
         </>
     );
 };

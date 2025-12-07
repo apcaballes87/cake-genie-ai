@@ -1,6 +1,6 @@
 // hooks/useDesignUpdate.ts
 import { useState, useRef, useCallback } from 'react';
-import { updateDesign } from '../services/designService';
+import { updateDesign } from '@/services/designService';
 import type {
     HybridAnalysisResult,
     MainTopperUI,
@@ -8,7 +8,7 @@ import type {
     CakeMessageUI,
     IcingDesignUI,
     CakeInfoUI
-} from '../types';
+} from '@/types';
 
 // Declare gtag for Google Analytics event tracking
 declare const gtag: (...args: any[]) => void;

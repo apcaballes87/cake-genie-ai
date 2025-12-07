@@ -1,7 +1,8 @@
+'use client';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { CloseIcon, Loader2 } from './icons';
-import { compressImage, validateImageFile } from '../lib/utils/imageOptimization';
-import { showError } from '../lib/utils/toast';
+import { compressImage, validateImageFile } from '@/lib/utils/imageOptimization';
+import { showError } from '@/lib/utils/toast';
 
 export interface ImageUploaderProps {
   isOpen: boolean;
@@ -48,7 +49,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ isOpen, onClose, o
     const handlePaste = (e: ClipboardEvent) => {
       if (!isOpen || isProcessing) return;
 
-      if (e.clipboardData?.files?.length > 0) {
+      if (e.clipboardData?.files?.length && e.clipboardData.files.length > 0) {
         const file = e.clipboardData.files[0];
         if (file.type.startsWith('image/')) {
           e.preventDefault();

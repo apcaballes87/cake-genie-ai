@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '../lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 
 const supabase = getSupabaseClient();
 
@@ -33,8 +33,8 @@ export async function createXenditPayment(params: CreatePaymentParams): Promise<
     // Dynamically construct redirect URLs based on the current domain.
     // This fixes the issue where deployed apps would fail on payment redirects.
     const domain = window.location.origin;
-    const successUrl = `${domain}/#/order-confirmation?order_id=${params.orderId}`;
-    const failureUrl = `${domain}/#/cart?payment_failed=true&order_id=${params.orderId}`;
+    const successUrl = `${domain}/order-confirmation?order_id=${params.orderId}`;
+    const failureUrl = `${domain}/cart?payment_failed=true&order_id=${params.orderId}`;
 
     const bodyWithUrls = {
       ...params,

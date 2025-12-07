@@ -1,5 +1,6 @@
+'use client';
 import React, { useState, useRef } from 'react';
-import { MainTopperUI, SupportElementUI, MainTopperType, SupportElementType } from '../types';
+import { MainTopperUI, SupportElementUI, MainTopperType, SupportElementType } from '@/types';
 import { PencilIcon, PhotoIcon, Loader2, ResetIcon } from './icons';
 import { ColorPalette } from './ColorPalette';
 import { MultiColorEditor } from './MultiColorEditor';
@@ -52,20 +53,20 @@ export const TopperCard: React.FC<{
         descriptionString.toLowerCase().includes('figure') ||
         descriptionString.toLowerCase().includes('silhouette');
 
-    const isNumberTopper = isTopper && descriptionString.toLowerCase().includes('number') && item.original_type && ['edible_3d_complex', 'edible_3d_ordinary', 'candle', 'printout'].includes(item.original_type);
-    const is3DFlower = isTopper && item.original_type && ['edible_3d_complex', 'edible_3d_ordinary'].includes(item.original_type) && descriptionString.toLowerCase().includes('flower');
+    const isNumberTopper = isTopper && descriptionString.toLowerCase().includes('number') && ['edible_3d_complex', 'edible_3d_ordinary', 'candle', 'printout'].includes(item.original_type);
+    const is3DFlower = isTopper && ['edible_3d_complex', 'edible_3d_ordinary'].includes(item.original_type) && descriptionString.toLowerCase().includes('flower');
     const isOriginalPrintoutTopper = isTopper && item.original_type === 'printout' && !isNumberTopper;
-    const canBeSwitchedToPrintoutTopper = isTopper && item.original_type && ['edible_3d_complex', 'edible_3d_ordinary', 'edible_photo_top'].includes(item.original_type) && !is3DFlower && !isNumberTopper;
+    const canBeSwitchedToPrintoutTopper = isTopper && ['edible_3d_complex', 'edible_3d_ordinary', 'edible_photo_top'].includes(item.original_type) && !is3DFlower && !isNumberTopper;
     const isCardstock = isTopper && item.original_type === 'cardstock';
-    const isToyOrFigurine = isTopper && item.original_type && ['toy', 'figurine', 'plastic_ball'].includes(item.original_type);
+    const isToyOrFigurine = isTopper && ['toy', 'figurine', 'plastic_ball'].includes(item.original_type);
     const isWrapSwitchable = !isTopper && item.original_type === 'edible_photo_side';
-    const isGumpasteSwitchable = !isTopper && item.original_type && ['edible_3d_support', 'edible_2d_support'].includes(item.original_type);
+    const isGumpasteSwitchable = !isTopper && ['edible_3d_support', 'edible_2d_support'].includes(item.original_type);
     const isOriginalPrintoutElement = !isTopper && item.original_type === 'support_printout';
     const hasMaterialOptions = isNumberTopper || isOriginalPrintoutTopper || canBeSwitchedToPrintoutTopper || isCardstock || isToyOrFigurine || isWrapSwitchable || isGumpasteSwitchable || isOriginalPrintoutElement;
 
     const isPrintoutOrPhoto = item.type === 'printout' || item.type === 'edible_photo_top' || item.type === 'support_printout' || item.type === 'edible_photo_side';
     const isDoodle = item.original_type === 'icing_doodle';
-    const canChangeColor = isDoodle || (item.original_type && COLORABLE_ITEM_TYPES.includes(item.original_type) && 'original_color' in item && item.original_color);
+    const canChangeColor = isDoodle || (COLORABLE_ITEM_TYPES.includes(item.original_type) && 'original_color' in item && item.original_color);
     const isReplaceableIcingFigure = (item.type === 'icing_doodle' || item.type === 'icing_palette_knife') && isHumanFigure;
     const isReplaceableGumpasteFigure = (item.type === 'edible_3d_complex' || item.type === 'edible_3d_ordinary' || item.type === 'edible_3d_support') && isHumanFigure;
     const isPaletteKnife = item.type === 'icing_palette_knife';
@@ -93,10 +94,9 @@ export const TopperCard: React.FC<{
     return (
         <div className="w-full bg-white rounded-lg border border-slate-200 overflow-hidden">
             {/* Header - Collapsible */}
-            {/* Header - Collapsible */}
             <div
                 onClick={onToggle}
-                className="w-full flex items-center gap-3 p-3 text-left hover:bg-slate-50 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-3 p-2 text-left hover:bg-slate-50 transition-colors cursor-pointer"
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -107,22 +107,22 @@ export const TopperCard: React.FC<{
                 }}
             >
                 {marker && (
-                    <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-slate-200 text-slate-600 text-xs font-bold rounded-full">
+                    <div className="shrink-0 w-5 h-5 flex items-center justify-center bg-slate-200 text-slate-600 text-[10px] font-bold rounded-full">
                         {marker}
                     </div>
                 )}
-                <div className="flex-grow">
-                    <div className="text-sm font-medium text-slate-800">
+                <div className="grow">
+                    <div className="text-xs font-medium text-slate-800">
                         {descriptionString}
                         {((item as MainTopperUI).quantity || 0) > 1 && ` × ${(item as MainTopperUI).quantity}`}
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">
+                    <div className="text-[10px] text-slate-500 mt-0.5">
                         {materialLabel} • {item.size}
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
                     {isAdmin && itemPrice !== undefined && itemPrice > 0 && (
-                        <span className="text-xs font-semibold text-green-600">₱{itemPrice}</span>
+                        <span className="text-[10px] font-semibold text-green-600">₱{itemPrice}</span>
                     )}
                     <button
                         type="button"
@@ -141,53 +141,53 @@ export const TopperCard: React.FC<{
 
             {/* Expanded Content - Customization Options */}
             {expanded && (
-                <div className="px-4 pb-4 space-y-3 border-t border-slate-100">
+                <div className="px-2 pb-2 space-y-3 border-t border-slate-100">
                     {/* Material Type Options */}
                     {hasMaterialOptions && (
                         <div>
-                            <label className="block text-xs font-medium text-slate-600 mb-1.5">Material Type</label>
+                            <label className="block text-[10px] font-medium text-slate-600 mb-1.5">Material Type</label>
                             <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-md">
                                 {isNumberTopper && (
                                     <>
-                                        <button onClick={() => updateItem({ type: (item as MainTopperUI).original_type })} className={`flex-1 px-2 py-1 text-xs font-semibold rounded ${['edible_3d_complex', 'edible_3d_ordinary'].includes(item.type) ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Edible</button>
-                                        <button onClick={() => updateItem({ type: 'candle' })} className={`flex-1 px-2 py-1 text-xs font-semibold rounded ${item.type === 'candle' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Candle</button>
-                                        <button onClick={() => updateItem({ type: 'printout' })} className={`flex-1 px-2 py-1 text-xs font-semibold rounded ${item.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Printout</button>
+                                        <button onClick={() => updateItem({ type: (item as MainTopperUI).original_type })} className={`flex-1 px-1.5 py-0.5 text-[10px] font-semibold rounded ${['edible_3d_complex', 'edible_3d_ordinary'].includes(item.type) ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Edible</button>
+                                        <button onClick={() => updateItem({ type: 'candle' })} className={`flex-1 px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === 'candle' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Candle</button>
+                                        <button onClick={() => updateItem({ type: 'printout' })} className={`flex-1 px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Printout</button>
                                     </>
                                 )}
                                 {isOriginalPrintoutTopper && (
                                     <>
-                                        <button onClick={() => updateItem({ type: 'printout' })} className={`px-2 py-1 text-xs font-semibold rounded ${item.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Paper Printout</button>
-                                        <button onClick={() => updateItem({ type: 'edible_photo_print', coverage: 'tiny' })} className={`px-2 py-1 text-xs font-semibold rounded ${item.type === 'edible_photo_print' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Edible Image</button>
+                                        <button onClick={() => updateItem({ type: 'printout' })} className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Paper Printout</button>
+                                        <button onClick={() => updateItem({ type: 'edible_photo_top', size: 'tiny' })} className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === 'edible_photo_top' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Edible Image</button>
                                     </>
                                 )}
                                 {canBeSwitchedToPrintoutTopper && (
                                     <>
-                                        <button onClick={() => updateItem({ type: (item as MainTopperUI).original_type })} className={`px-2 py-1 text-xs font-semibold rounded ${item.type === (item as MainTopperUI).original_type ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>{originalTypeLabelMap[(item as MainTopperUI).original_type]}</button>
-                                        <button onClick={() => updateItem({ type: 'printout' })} className={`px-2 py-1 text-xs font-semibold rounded ${item.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Printout</button>
+                                        <button onClick={() => updateItem({ type: (item as MainTopperUI).original_type })} className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === (item as MainTopperUI).original_type ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>{originalTypeLabelMap[(item as MainTopperUI).original_type]}</button>
+                                        <button onClick={() => updateItem({ type: 'printout' })} className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Printout</button>
                                     </>
                                 )}
                                 {isCardstock && (
                                     <>
-                                        <button onClick={() => updateItem({ type: 'cardstock' })} className={`flex-1 px-2 py-1 text-xs font-semibold rounded ${item.type === 'cardstock' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Cardstock</button>
-                                        <button onClick={() => updateItem({ type: 'printout' })} className={`flex-1 px-2 py-1 text-xs font-semibold rounded ${item.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Printout</button>
+                                        <button onClick={() => updateItem({ type: 'cardstock' })} className={`flex-1 px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === 'cardstock' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Cardstock</button>
+                                        <button onClick={() => updateItem({ type: 'printout' })} className={`flex-1 px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Printout</button>
                                     </>
                                 )}
                                 {isToyOrFigurine && (
                                     <>
-                                        <button onClick={() => updateItem({ type: (item as MainTopperUI).original_type })} className={`flex-1 px-2 py-1 text-xs font-semibold rounded ${item.type === (item as MainTopperUI).original_type ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>{topperTypeDisplayMap[(item as MainTopperUI).original_type]}</button>
-                                        <button onClick={() => updateItem({ type: 'printout' })} className={`flex-1 px-2 py-1 text-xs font-semibold rounded ${item.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Printout</button>
+                                        <button onClick={() => updateItem({ type: (item as MainTopperUI).original_type })} className={`flex-1 px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === (item as MainTopperUI).original_type ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>{topperTypeDisplayMap[(item as MainTopperUI).original_type]}</button>
+                                        <button onClick={() => updateItem({ type: 'printout' })} className={`flex-1 px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Printout</button>
                                     </>
                                 )}
                                 {isWrapSwitchable && (
                                     <>
-                                        <button onClick={() => updateItem({ type: 'edible_photo_side' })} className={`px-2 py-1 text-xs font-semibold rounded ${item.type === 'edible_photo_side' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Edible Photo Wrap</button>
-                                        <button onClick={() => updateItem({ type: 'support_printout' })} className={`px-2 py-1 text-xs font-semibold rounded ${item.type === 'support_printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Printout Wrap</button>
+                                        <button onClick={() => updateItem({ type: 'edible_photo_side' })} className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === 'edible_photo_side' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Edible Photo Wrap</button>
+                                        <button onClick={() => updateItem({ type: 'support_printout' })} className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === 'support_printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Printout Wrap</button>
                                     </>
                                 )}
                                 {(isGumpasteSwitchable || isOriginalPrintoutElement) && !isWrapSwitchable && (
                                     <>
-                                        <button onClick={() => { const newType = isOriginalPrintoutElement ? 'edible_2d_support' : (item as SupportElementUI).original_type; updateItem({ type: newType }); }} className={`flex-1 px-2 py-1 text-xs font-semibold rounded ${item.type !== 'support_printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Gumpaste</button>
-                                        <button onClick={() => updateItem({ type: 'support_printout' })} className={`flex-1 px-2 py-1 text-xs font-semibold rounded ${item.type === 'support_printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Printout</button>
+                                        <button onClick={() => { const newType = isOriginalPrintoutElement ? 'edible_2d_support' : (item as SupportElementUI).original_type; updateItem({ type: newType }); }} className={`flex-1 px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type !== 'support_printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Gumpaste</button>
+                                        <button onClick={() => updateItem({ type: 'support_printout' })} className={`flex-1 px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === 'support_printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Printout</button>
                                     </>
                                 )}
                             </div>
@@ -197,11 +197,11 @@ export const TopperCard: React.FC<{
                     {/* Image Replacement */}
                     {(isPrintoutOrPhoto || isReplaceableIcingFigure || isReplaceableGumpasteFigure) && (
                         <div>
-                            <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                            <label className="block text-[10px] font-medium text-slate-600 mb-1.5">
                                 {isReplaceableIcingFigure ? 'Replace Icing Figure' : isReplaceableGumpasteFigure ? 'Replace Gumpaste Figure' : 'Replacement Image'}
                             </label>
                             <div className="flex items-center">
-                                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploadingImage} className="text-xs bg-slate-200 text-slate-700 font-semibold px-3 py-1.5 rounded-md hover:bg-slate-300 transition-colors flex items-center disabled:opacity-50 disabled:cursor-wait">
+                                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploadingImage} className="text-[10px] bg-slate-200 text-slate-700 font-semibold px-2 py-1 rounded-md hover:bg-slate-300 transition-colors flex items-center disabled:opacity-50 disabled:cursor-wait">
                                     {isUploadingImage ? (
                                         <>
                                             <Loader2 className="w-3 h-3 mr-1 animate-spin" />
@@ -214,13 +214,13 @@ export const TopperCard: React.FC<{
                                         </>
                                     )}
                                 </button>
-                                {item.replacementImage && !isUploadingImage && <span className="text-xs ml-2 text-green-600 font-medium">Image selected</span>}
+                                {item.replacementImage && !isUploadingImage && <span className="text-[10px] ml-2 text-green-600 font-medium">Image selected</span>}
                                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
                                     if (e.target.files?.[0]) { handleImageReplace(e.target.files[0]); }
                                 }} />
                             </div>
-                            {isReplaceableIcingFigure && <p className="text-xs text-slate-500 mt-1">Upload a photo to convert into an icing-style portrait.</p>}
-                            {isReplaceableGumpasteFigure && <p className="text-xs text-slate-500 mt-1">Upload a photo to convert into a gumpaste-style figure.</p>}
+                            {isReplaceableIcingFigure && <p className="text-[10px] text-slate-500 mt-1">Upload a photo to convert into an icing-style portrait.</p>}
+                            {isReplaceableGumpasteFigure && <p className="text-[10px] text-slate-500 mt-1">Upload a photo to convert into a gumpaste-style figure.</p>}
                         </div>
                     )}
 
@@ -233,9 +233,9 @@ export const TopperCard: React.FC<{
                         return (
                             <div>
                                 <div className="flex justify-between items-center mb-1.5">
-                                    <label className="block text-xs font-medium text-slate-600">Color</label>
+                                    <label className="block text-[10px] font-medium text-slate-600">Color</label>
                                     {canRevert && (
-                                        <button onClick={() => updateItem({ color: originalColor })} className="flex items-center gap-1 text-xs font-semibold text-purple-600 hover:text-purple-800 p-1 rounded-md hover:bg-purple-50">
+                                        <button onClick={() => updateItem({ color: originalColor })} className="flex items-center gap-1 text-[10px] font-semibold text-purple-600 hover:text-purple-800 p-1 rounded-md hover:bg-purple-50">
                                             <ResetIcon className="w-3 h-3" />
                                             Revert
                                         </button>
@@ -249,7 +249,7 @@ export const TopperCard: React.FC<{
                     {/* Multiple Colors */}
                     {canChangeMultipleColors && (
                         <div>
-                            <label className="block text-xs font-medium text-slate-600 mb-1.5">Colors</label>
+                            <label className="block text-[10px] font-medium text-slate-600 mb-1.5">Colors</label>
                             <MultiColorEditor colors={(item as any).colors!} onColorChange={(index, newHex) => handleColorArrayChange(index, newHex)} />
                         </div>
                     )}
@@ -258,4 +258,5 @@ export const TopperCard: React.FC<{
         </div>
     );
 });
+
 TopperCard.displayName = 'TopperCard';

@@ -1,3 +1,4 @@
+'use client';
 import React from 'react';
 
 const DetailItem: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (

@@ -1,6 +1,7 @@
+'use client';
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { decodeRLE } from '../lib/utils/segmentation';
-import { SegmentationResult } from '../types';
+import { decodeRLE } from '@/lib/utils/segmentation';
+import { SegmentationResult } from '@/types';
 
 interface SegmentationOverlayProps {
     segmentationData: SegmentationResult;
@@ -40,9 +41,9 @@ export const SegmentationOverlay: React.FC<SegmentationOverlayProps> = ({
         return segmentationData.items
             .filter(item => item.mask !== null)
             .map((item, index) => {
-                const h = item.mask.size[0];
-                const w = item.mask.size[1];
-                const decoded = decodeRLE(item.mask.counts, h, w);
+                const h = item.mask!.size[0];
+                const w = item.mask!.size[1];
+                const decoded = decodeRLE(item.mask!.counts, h, w);
 
                 // Create offscreen canvas for this mask
                 const offscreen = document.createElement('canvas');

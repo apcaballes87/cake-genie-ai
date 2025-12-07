@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getSupabaseClient } from '../../../lib/supabase/client';
-import { showSuccess, showError } from '../../../lib/utils/toast';
-import { Loader2 } from '../../../components/icons';
+import { useRouter } from 'next/navigation';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { showSuccess, showError } from '@/lib/utils/toast';
+import { Loader2 } from '@/components/icons';
 
 export default function SetPasswordPage() {
+    const router = useRouter();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -178,7 +180,7 @@ export default function SetPasswordPage() {
 
             // Redirect to homepage after 2 seconds
             setTimeout(() => {
-                window.location.href = '/';
+                router.push('/');
             }, 2000);
 
         } catch (error: any) {
@@ -191,7 +193,7 @@ export default function SetPasswordPage() {
 
     if (isVerifying) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50">
+            <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-pink-50 to-purple-50">
                 <div className="text-center">
                     <Loader2 className="animate-spin h-8 w-8 text-pink-500 mx-auto mb-4" />
                     <p className="text-slate-600">Verifying your email...</p>
@@ -201,7 +203,7 @@ export default function SetPasswordPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50 p-4">
+        <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-pink-50 to-purple-50 p-4">
             <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-slate-800 mb-2">Set Your Password</h1>
@@ -249,7 +251,7 @@ export default function SetPasswordPage() {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold py-3 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                        className="w-full bg-linear-to-r from-pink-500 to-purple-500 text-white font-semibold py-3 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                     >
                         {isLoading ? (
                             <>

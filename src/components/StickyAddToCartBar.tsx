@@ -1,8 +1,9 @@
+'use client';
 import React, { useState, useEffect } from 'react';
 import { Loader2, AlertTriangleIcon } from './icons';
 import { ShareButton } from './ShareButton';
-import { CakeInfoUI } from '../types';
-import { AvailabilityType } from '../lib/utils/availability';
+import { CakeInfoUI } from '@/types';
+import { AvailabilityType } from '@/lib/utils/availability';
 
 // --- Sticky Add to Cart Bar ---
 interface StickyAddToCartBarProps {

@@ -1,15 +1,18 @@
 // services/supabaseService.ts
-import { getSupabaseClient } from '../lib/supabase/client';
-import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback, AvailabilitySettings, CartItem } from '../types';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback, AvailabilitySettings, CartItem } from '@/types';
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
-import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem, OrderContribution } from '../lib/database.types';
-import { compressImage, validateImageFile } from '../lib/utils/imageOptimization';
+import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem, OrderContribution } from '@/lib/database.types';
+import { compressImage, validateImageFile } from '@/lib/utils/imageOptimization';
+import { calculatePriceFromDatabase } from './pricingService.database';
+import { roundDownToNearest99 } from '@/lib/utils/pricing';
+import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI } from '@/types';
 
 const supabase: SupabaseClient = getSupabaseClient();
 
 // Type for service responses
-type SupabaseServiceResponse<T> = {
+export type SupabaseServiceResponse<T> = {
   data: T | null;
   error: Error | PostgrestError | null;
 };
@@ -176,13 +179,128 @@ export async function trackSearchTerm(term: string): Promise<void> {
 // --- Analysis Cache Functions ---
 
 /**
+ * Helper to map HybridAnalysisResult to the UI state structure expected by calculatePriceFromDatabase.
+ */
+function mapAnalysisToPricingState(analysis: HybridAnalysisResult) {
+  const mainToppers: MainTopperUI[] = analysis.main_toppers.map(t => ({
+    ...t,
+    id: uuidv4(),
+    isEnabled: true,
+    price: 0,
+    original_type: t.type,
+  }));
+
+  const supportElements: SupportElementUI[] = analysis.support_elements.map(t => ({
+    ...t,
+    id: uuidv4(),
+    isEnabled: true,
+    price: 0,
+    original_type: t.type,
+  }));
+
+  const cakeMessages: CakeMessageUI[] = analysis.cake_messages.map(t => ({
+    ...t,
+    id: uuidv4(),
+    isEnabled: true,
+    price: 0,
+  }));
+
+  const icingDesign: IcingDesignUI = {
+    ...analysis.icing_design,
+    dripPrice: 0,
+    gumpasteBaseBoardPrice: 0,
+  };
+
+  const cakeInfo: CakeInfoUI = {
+    type: analysis.cakeType,
+    thickness: analysis.cakeThickness,
+    size: '6" Round', // Default size for pricing calculation (will be overridden by lowest price logic if needed, but pricing service needs a size)
+    flavors: [],
+  };
+
+  return { mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo };
+}
+
+/**
+ * Fetches the lowest base price for a given cake type.
+ */
+async function getLowestBasePrice(type: CakeType): Promise<number> {
+  const { data, error } = await supabase
+    .from('productsizes_cakegenie')
+    .select('price')
+    .eq('type', type)
+    .order('price', { ascending: true })
+    .limit(1)
+    .single();
+
+  if (error || !data) {
+    console.warn(`Could not find base price for type ${type}, defaulting to 0`);
+    return 0;
+  }
+
+  return data.price;
+}
+
+/**
+ * Backfills missing price, keywords, and optionally original_image_url for a cached analysis entry.
+ */
+export async function backfillCacheFields(pHash: string, analysisResult: HybridAnalysisResult, imageUrl?: string) {
+  try {
+    console.log('🔄 Backfilling cache fields for pHash:', pHash);
+
+    // 1. Calculate Price
+    const pricingState = mapAnalysisToPricingState(analysisResult);
+    const { addOnPricing } = await calculatePriceFromDatabase(pricingState);
+    const lowestBasePrice = await getLowestBasePrice(analysisResult.cakeType);
+    let totalPrice = lowestBasePrice + addOnPricing.addOnPrice;
+
+    // Apply "round down to nearest 99" logic
+    totalPrice = roundDownToNearest99(totalPrice, lowestBasePrice);
+
+    // 2. Extract Keywords
+    const keywords = analysisResult.keyword || '';
+
+    // 3. Prepare Update Object
+    const updatePayload: any = {
+      price: totalPrice,
+      keywords: keywords
+    };
+
+    if (imageUrl) {
+      updatePayload.original_image_url = imageUrl;
+    }
+
+    // 4. Update Database
+    const { error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .update(updatePayload)
+      .eq('p_hash', pHash);
+
+    if (error) {
+      console.error('❌ Failed to backfill cache fields:', error);
+    } else {
+      console.log('✅ Cache backfilled successfully. Price:', totalPrice, 'Keywords:', keywords, imageUrl ? 'Image URL updated' : '');
+    }
+
+  } catch (err) {
+    console.error('❌ Exception during cache backfill:', err);
+  }
+}
+
+/**
  * Searches for a similar analysis result in the cache using a perceptual hash.
  * @param pHash The perceptual hash of the new image.
+ * @param imageUrl Optional URL of the image being searched (used for backfilling if cache hit has no URL).
  * @returns The cached analysis JSON if a similar one is found, otherwise null.
  */
-export async function findSimilarAnalysisByHash(pHash: string): Promise<HybridAnalysisResult | null> {
+export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string): Promise<HybridAnalysisResult | null> {
   try {
     console.log('🔍 Calling find_similar_analysis RPC with pHash:', pHash);
+    // We need to select the new columns too, but the RPC might return the whole row or just the json.
+    // Let's check what the RPC returns. It returns "RETURNS SETOF cakegenie_analysis_cache".
+    // So we can select specific columns if we call it via rpc(), but usually rpc returns the function result.
+    // If the function returns SETOF table, it returns rows.
+
     const { data, error } = await supabase.rpc('find_similar_analysis', {
       new_hash: pHash,
     });
@@ -193,12 +311,24 @@ export async function findSimilarAnalysisByHash(pHash: string): Promise<HybridAn
       return null;
     }
 
-    if (data) {
+    if (data && data.length > 0) {
+      const result = data[0];
       console.log('✅ Cache HIT! Found matching analysis for pHash:', pHash);
+
+      // Check if we need to backfill
+      // Backfill if price/keywords are missing OR if original_image_url is missing and we have a new one
+      const needsBackfill = result.price === null || result.keywords === null || (result.original_image_url === null && imageUrl);
+
+      if (needsBackfill) {
+        // Fire and forget backfill
+        backfillCacheFields(result.p_hash, result.analysis_json, imageUrl);
+      }
+
+      return result.analysis_json;
     } else {
       console.log('⚫️ Cache MISS. No matching pHash found in database.');
+      return null;
     }
-    return data; // Returns the JSONB object or null
   } catch (err) {
     console.error('❌ Exception during analysis cache lookup:', err);
     return null;
@@ -217,12 +347,26 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
   (async () => {
     try {
       console.log('💾 Attempting to cache analysis result with pHash:', pHash);
+
+      // Calculate Price and Keywords before inserting
+      const pricingState = mapAnalysisToPricingState(analysisResult);
+      const { addOnPricing } = await calculatePriceFromDatabase(pricingState);
+      const lowestBasePrice = await getLowestBasePrice(analysisResult.cakeType);
+      let totalPrice = lowestBasePrice + addOnPricing.addOnPrice;
+
+      // Apply "round down to nearest 99" logic
+      totalPrice = roundDownToNearest99(totalPrice, lowestBasePrice);
+
+      const keywords = analysisResult.keyword || '';
+
       const { error } = await supabase
         .from('cakegenie_analysis_cache')
         .insert({
           p_hash: pHash,
           analysis_json: analysisResult,
           original_image_url: imageUrl,
+          price: totalPrice,
+          keywords: keywords
         });
 
       if (error) {
@@ -241,6 +385,46 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
     }
   })();
 }
+
+/**
+ * Fetches recommended products from the analysis cache.
+ * Returns items that have an original_image_url and a price.
+ */
+export async function getRecommendedProducts(limit: number = 8, offset: number = 0): Promise<SupabaseServiceResponse<any[]>> {
+  try {
+    // If offset is 0, we can fetch extra and shuffle to give a "random" start daily
+    // But for pagination consistency, we should probably stick to a stable sort order (e.g., created_at)
+    // To mix both worlds: First page (offset 0) could be the latest items shuffled,
+    // subsequent pages are just the next items in standard order.
+    // However, simplest robust approach for "Load More" is just strict time-based pagination.
+
+    const { data, error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .select('p_hash, original_image_url, price, keywords, analysis_json')
+      .not('original_image_url', 'is', null)
+      .not('price', 'is', null)
+      // Filter out duplicate/placeholder images if needed, or strict 'not null' is enough
+      .neq('original_image_url', '')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      console.error('Error fetching recommended products:', error);
+      return { data: null, error };
+    }
+
+    if (data) {
+      // Return the requested slice
+      return { data: data, error: null };
+    }
+
+    return { data: [], error: null };
+  } catch (err) {
+    console.error('Exception fetching recommended products:', err);
+    return { data: null, error: err as Error };
+  }
+}
+
 
 
 // --- Cart Functions ---
@@ -569,9 +753,6 @@ export async function createOrderFromCart(
 
     const subtotal = cartItems.reduce((sum, item) => sum + (item.final_price * item.quantity), 0);
 
-    // FIX: Extract cart item IDs to ensure only current cart items are included in the order
-    const cartItemIds = cartItems.map(item => item.cart_item_id);
-
     // Call the atomic RPC function
     const { data, error } = await supabase.rpc('create_order_from_cart', {
       p_user_id: activeUser.id,
@@ -590,8 +771,6 @@ export async function createOrderFromCart(
       p_delivery_city: guestAddress?.city || 'Cebu City', // Default to Cebu City if not provided
       p_delivery_latitude: guestAddress?.latitude || null,
       p_delivery_longitude: guestAddress?.longitude || null,
-      // FIX: Pass the specific cart item IDs to prevent removed items from being included
-      p_cart_item_ids: cartItemIds,
     });
 
     if (error) throw error;
@@ -664,9 +843,6 @@ export async function createSplitOrderFromCart(params: {
     // Calculate subtotal
     const subtotal = cartItems.reduce((sum, item) => sum + (item.final_price * item.quantity), 0);
 
-    // FIX: Extract cart item IDs to ensure only current cart items are included in the order
-    const cartItemIds = cartItems.map(item => item.cart_item_id);
-
     // Call the RPC function
     const { data, error } = await supabase.rpc('create_split_order_from_cart', {
       p_user_id: userId,
@@ -686,9 +862,7 @@ export async function createSplitOrderFromCart(params: {
       p_delivery_longitude: guestAddress?.longitude || null,
       p_is_split_order: isSplitOrder,
       p_split_message: splitMessage,
-      p_split_count: splitCount,
-      // FIX: Pass the specific cart item IDs to prevent removed items from being included
-      p_cart_item_ids: cartItemIds,
+      p_split_count: splitCount
     });
 
     if (error) throw error;

@@ -7,7 +7,8 @@ import {
   generateSocialShareUrl,
   incrementShareCount,
   SOCIAL_MESSAGES,
-} from '../services/shareService';
+} from '@/services/shareService';
+import { showSuccess } from '@/lib/utils/toast';
 import LazyImage from './LazyImage';
 
 interface ShareModalProps {
@@ -152,7 +153,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   );
 };
 
-// Re-add toast import at top
-import { showSuccess } from '../lib/utils/toast';
+
 
 export default ShareModal;

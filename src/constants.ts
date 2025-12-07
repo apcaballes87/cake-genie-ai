@@ -1,5 +1,4 @@
-import { Color, CakeType, CakeThickness, CakeSize, CakeFlavor } from './types';
-import { SUPABASE_URL } from './config';
+import { Color, CakeType, CakeThickness, CakeSize, CakeFlavor } from '@/types';
 
 export const COLORS: Color[] = [
   { name: 'Red', hex: '#EF4444' },
@@ -80,10 +79,10 @@ export const ANALYSIS_PHRASES = [
   'Almost there, just adding the finishing touches',
 ];
 
-const supabaseUrl = SUPABASE_URL;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 if (!supabaseUrl || supabaseUrl.includes('YOUR_SUPABASE_URL')) {
-  throw new Error("Supabase URL is required for asset paths. Please update it in the `config.ts` file.");
+  throw new Error("Supabase URL is required for asset paths. Please update it in the `.env.local` file.");
 }
 
 const storageBaseUrl = `${supabaseUrl}/storage/v1/object/public/cakegenie`;
@@ -173,4 +172,50 @@ export const DEFAULT_ICING_DESIGN = {
   gumpasteBaseBoard: false,
   dripPrice: 100,
   gumpasteBaseBoardPrice: 100,
+};
+
+// Delivery fees by city
+export const DELIVERY_FEES_BY_CITY: Record<string, number> = {
+  'Cebu City': 100,
+  'Cebu': 100, // Alias for Cebu City
+  'Mandaue': 150,
+  'Mandaue City': 150,
+  'Lapu-Lapu': 200,
+  'Lapu-Lapu City': 200,
+  'Lapu-lapu': 200,
+  'Lapu-lapu City': 200,
+  'Cordova': 300,
+  'Consolacion': 300,
+  'Liloan': 400,
+  'Talisay': 250,
+  'Talisay City': 250,
+};
+
+// Helper to get delivery fee by city name (flexible matching)
+export const getDeliveryFeeByCity = (city: string | null | undefined): number => {
+  if (!city) return 0;
+
+  // Try exact match first
+  if (DELIVERY_FEES_BY_CITY[city] !== undefined) {
+    return DELIVERY_FEES_BY_CITY[city];
+  }
+
+  // Try case-insensitive match
+  const normalizedCity = city.toLowerCase().trim();
+  for (const [key, fee] of Object.entries(DELIVERY_FEES_BY_CITY)) {
+    if (key.toLowerCase() === normalizedCity) {
+      return fee;
+    }
+  }
+
+  // Try partial match (e.g., "Cebu" matches "Cebu City", "Mandaue" matches "Mandaue City")
+  for (const [key, fee] of Object.entries(DELIVERY_FEES_BY_CITY)) {
+    const keyLower = key.toLowerCase();
+    if (normalizedCity.includes(keyLower) || keyLower.includes(normalizedCity)) {
+      return fee;
+    }
+  }
+
+  // Default to 0 if city not found
+  return 0;
 };

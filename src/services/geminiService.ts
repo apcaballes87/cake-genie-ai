@@ -1,30 +1,30 @@
 // services/geminiService.ts
 
 import { GoogleGenAI, Modality, Type } from "@google/genai";
-import type { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, IcingColorDetails, CakeInfoUI, CakeType, CakeThickness, IcingDesign, MainTopperType, CakeMessage, SupportElementType } from '../types';
-import { CAKE_TYPES, CAKE_THICKNESSES, COLORS } from "../constants";
-import { getSupabaseClient } from '../lib/supabase/client';
+import type { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, IcingColorDetails, CakeInfoUI, CakeType, CakeThickness, IcingDesign, MainTopperType, CakeMessage, SupportElementType } from '@/types';
+import { CAKE_TYPES, CAKE_THICKNESSES, COLORS } from "@/constants";
+import { createClient } from '@/lib/supabase/client';
 import {
     detectObjectsWithRoboflow,
     roboflowBboxToAppCoordinates,
     findMatchingDetection
 } from './roboflowService';
-import { FEATURE_FLAGS, isRoboflowConfigured } from '../config/features';
+import { FEATURE_FLAGS, isRoboflowConfigured } from '@/config/features';
 
 let ai: InstanceType<typeof GoogleGenAI> | null = null;
 
 function getAI() {
     if (!ai) {
-        const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        const geminiApiKey = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY;
         if (!geminiApiKey) {
-            throw new Error("VITE_GEMINI_API_KEY environment variable not set");
+            throw new Error("NEXT_PUBLIC_GOOGLE_AI_API_KEY environment variable not set");
         }
         ai = new GoogleGenAI({ apiKey: geminiApiKey });
     }
     return ai;
 }
 
-const supabase = getSupabaseClient();
+const supabase = createClient();
 
 // Cache the prompt for 10 minutes
 let promptCache: {
@@ -174,21 +174,23 @@ export function clearPromptCache() {
     typeEnumsCache = null; // Also clear the enum cache
 }
 
-/**
- * Convert a File object to base64 string with mobile optimizations
- * Uses robust file reader with retry logic to handle intermittent mobile failures
- * @param file - The image file to convert
- * @returns Promise with base64 data and mime type
- */
+const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+}
+
 export const fileToBase64 = async (file: File): Promise<{ mimeType: string; data: string }> => {
     try {
-        // Use robust file reader with mobile optimizations and retry logic
-        const { fileToBase64Robust } = await import('../lib/utils/fileReader');
-        return await fileToBase64Robust(file, { maxRetries: 3 });
+        const arrayBuffer = await file.arrayBuffer();
+        const base64Data = arrayBufferToBase64(arrayBuffer);
+        return { mimeType: file.type, data: base64Data };
     } catch (error) {
         console.error("Error reading file:", error);
-        const errorMessage = error instanceof Error ? error.message : "Failed to read the image file.";
-        throw new Error(errorMessage);
+        throw new Error("Failed to read the image file.");
     }
 };
 
@@ -256,7 +258,7 @@ export const validateCakeImage = async (base64ImageData: string, mimeType: strin
             },
         });
 
-        const jsonText = response.text.trim();
+        const jsonText = (response.text || '').trim();
         const result = JSON.parse(jsonText);
         return result.classification;
 
@@ -816,9 +818,10 @@ You MUST provide precise central coordinates for every single decorative element
                         },
                         required: ['description', 'x', 'y']
                     }
-                }
+                },
+                keyword: { type: Type.STRING }
             },
-            required: ['cakeType', 'cakeThickness', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design'],
+            required: ['cakeType', 'cakeThickness', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design', 'keyword'],
         };
 
         // ========================================
@@ -844,7 +847,7 @@ You MUST provide precise central coordinates for every single decorative element
 
         const elapsedTime = Date.now() - startTime;
 
-        const jsonText = response.text.trim();
+        const jsonText = (response.text || '').trim();
         const result = JSON.parse(jsonText);
 
 
@@ -1106,9 +1109,10 @@ This is SPEED MODE - only identify what items exist, not where they are.
                         },
                         required: ['description', 'x', 'y']
                     }
-                }
+                },
+                keyword: { type: Type.STRING }
             },
-            required: ['cakeType', 'cakeThickness', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design'],
+            required: ['cakeType', 'cakeThickness', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design', 'keyword'],
         };
 
         const response = await getAI().models.generateContent({
@@ -1127,7 +1131,7 @@ This is SPEED MODE - only identify what items exist, not where they are.
             },
         });
 
-        const jsonText = response.text.trim();
+        const jsonText = (response.text || '').trim();
         const result = JSON.parse(jsonText);
 
         if (result.rejection?.isRejected) {
@@ -1378,7 +1382,7 @@ ${JSON.stringify(featureAnalysis, null, 2)}
             },
         });
 
-        const jsonText = response.text.trim();
+        const jsonText = (response.text || '').trim();
         const enrichedResult = JSON.parse(jsonText);
 
         // Convert Gemini bbox data to Roboflow-compatible format
@@ -1450,12 +1454,8 @@ export const enrichAnalysisWithRoboflow = async (
     try {
         // Feature flag check
         if (!FEATURE_FLAGS.USE_ROBOFLOW_COORDINATES) {
-            console.log('🔄 Roboflow disabled via feature flag, using Gemini coordinates');
-            return await enrichAnalysisWithCoordinates(
-                base64ImageData,
-                mimeType,
-                featureAnalysis
-            );
+            console.log('🔄 Roboflow disabled via feature flag. Gemini coordinates also disabled.');
+            return featureAnalysis;
         }
 
         // Configuration check
@@ -1698,7 +1698,7 @@ export const generateShareableTexts = async (
             },
         });
 
-        const jsonText = response.text.trim();
+        const jsonText = (response.text || '').trim();
         return JSON.parse(jsonText) as ShareableTexts;
     } catch (error) {
         console.error("Error generating shareable texts:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));

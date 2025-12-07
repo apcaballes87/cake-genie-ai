@@ -1,6 +1,6 @@
 // services/pricingService.database.ts
-import { getSupabaseClient } from '../lib/supabase/client';
-import type { PricingRule, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, AddOnPricing, CakeType } from '../types';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import type { PricingRule, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, AddOnPricing, CakeType } from '@/types';
 
 const supabase = getSupabaseClient();
 

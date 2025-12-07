@@ -1,6 +1,7 @@
+'use client';
 import React, { useState, useEffect } from 'react';
 import { X, Users, MessageSquare, Calculator } from 'lucide-react';
-import { formatCurrency } from '../lib/utils/currency';
+import { formatCurrency } from '@/lib/utils/currency';
 
 interface SplitWithFriendsModalProps {
     isOpen: boolean;

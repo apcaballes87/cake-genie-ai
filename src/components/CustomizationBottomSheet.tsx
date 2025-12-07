@@ -1,3 +1,4 @@
+'use client';
 import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 
@@ -8,6 +9,7 @@ interface CustomizationBottomSheetProps {
     children: React.ReactNode;
     actionButton?: React.ReactNode;
     className?: string;
+    wrapperClassName?: string;
     style?: React.CSSProperties;
 }
 
@@ -18,6 +20,7 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
     children,
     actionButton,
     className = '',
+    wrapperClassName = '',
     style
 }) => {
     const [isVisible, setIsVisible] = useState(false);
@@ -78,7 +81,7 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
 
     return (
         <div
-            className={`fixed inset-x-0 z-40 flex justify-center pointer-events-none transition-all duration-500 ease-in-out ${!style?.bottom ? 'bottom-[80px]' : ''}`}
+            className={`fixed inset-x-0 z-40 flex justify-center pointer-events-none transition-all duration-500 ease-in-out ${!style?.bottom ? 'bottom-[80px]' : ''} ${wrapperClassName}`}
             style={style}
         >
             {/* Sheet */}
@@ -100,30 +103,30 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
                     onTouchEnd={handleTouchEnd}
                 >
                     {/* Drag Handle Area */}
-                    <div className="w-full flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing">
+                    <div className="w-full flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing">
                         <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
                     </div>
 
                     {/* Header */}
-                    <div className="flex items-center justify-between px-4 pb-3 border-b border-slate-100 bg-white sticky top-0 z-10">
-                        <h2 className="text-base font-bold text-slate-800">{title}</h2>
+                    <div className="flex items-center justify-between px-3 pb-2 border-b border-slate-100 bg-white sticky top-0 z-10">
+                        <h2 className="text-sm font-bold text-slate-800">{title}</h2>
                         <button
                             onClick={onClose}
-                            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-4 overscroll-contain bg-white">
+                <div className="flex-1 overflow-y-auto p-3 overscroll-contain bg-white">
                     {children}
                 </div>
 
                 {/* Footer (Action Button) */}
                 {actionButton && (
-                    <div className="p-3 border-t border-slate-100 bg-white sticky bottom-0 z-10">
+                    <div className="p-2 border-t border-slate-100 bg-white sticky bottom-0 z-10">
                         {actionButton}
                     </div>
                 )}
@@ -131,3 +134,4 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
         </div>
     );
 };
+

@@ -1,5 +1,6 @@
+'use client';
 import React from 'react';
-import type { HybridAnalysisResult, BoundingBox } from '../types';
+import type { HybridAnalysisResult, BoundingBox } from '@/types';
 
 interface BoundingBoxOverlayProps {
     analysisResult: HybridAnalysisResult;

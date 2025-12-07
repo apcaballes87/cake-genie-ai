@@ -10,10 +10,10 @@ import {
     CakeType,
     CakeFlavor,
     IcingColorDetails,
-} from '../types';
-import { DEFAULT_THICKNESS_MAP, DEFAULT_SIZE_MAP, COLORS, CAKE_TYPES, DEFAULT_ICING_DESIGN, FLAVOR_OPTIONS } from '../constants';
-import { showSuccess } from '../lib/utils/toast';
-import { calculateCustomizingAvailability, AvailabilityType } from '../lib/utils/availability';
+} from '@/types';
+import { DEFAULT_THICKNESS_MAP, DEFAULT_SIZE_MAP, COLORS, CAKE_TYPES, DEFAULT_ICING_DESIGN, FLAVOR_OPTIONS } from '@/constants';
+import { showSuccess } from '@/lib/utils/toast';
+import { calculateCustomizingAvailability, AvailabilityType } from '@/lib/utils/availability';
 
 // 'icingDesign' is now handled with granular dot-notation strings
 type DirtyField = 'cakeInfo' | 'mainToppers' | 'supportElements' | 'cakeMessages' | 'additionalInstructions';
@@ -257,7 +257,7 @@ export const useCakeCustomization = () => {
         if (!dirtyFields.has('mainToppers')) {
             const newMainToppers = rawData.main_toppers.map((t): MainTopperUI => {
                 let initialType = t.type;
-                const canBePrintout = t.type && ['edible_3d', 'toy', 'figurine', 'edible_photo_top'].includes(t.type);
+                const canBePrintout = ['edible_3d', 'toy', 'figurine', 'edible_photo_top'].includes(t.type);
                 const isCharacterOrLogo = /character|figure|logo|brand/i.test(t.description);
 
                 // Default to 'printout' for characters, logos, etc., if it's a valid alternative
@@ -385,7 +385,7 @@ export const useCakeCustomization = () => {
                 analysisResult.support_elements.length === pendingAnalysisData.support_elements.length &&
                 analysisResult.cake_messages.length === pendingAnalysisData.cake_messages.length;
 
-            handleApplyAnalysis(pendingAnalysisData, { skipToast: isCoordinateUpdate });
+            handleApplyAnalysis(pendingAnalysisData, { skipToast: !!isCoordinateUpdate });
             setPendingAnalysisData(null); // Clear after applying to prevent re-runs
             // Ensure dirty state is cleared after analysis is applied
             // This handles any state updates that might have occurred during handleApplyAnalysis
@@ -396,7 +396,7 @@ export const useCakeCustomization = () => {
 
     const handleTopperImageReplace = useCallback(async (topperId: string, file: File) => {
         try {
-            const { fileToBase64 } = await import('../services/geminiService');
+            const { fileToBase64 } = await import('@/services/geminiService');
             const replacementData = await fileToBase64(file);
             updateMainTopper(topperId, { replacementImage: replacementData });
         } catch (err) {
@@ -406,7 +406,7 @@ export const useCakeCustomization = () => {
 
     const handleSupportElementImageReplace = useCallback(async (elementId: string, file: File) => {
         try {
-            const { fileToBase64 } = await import('../services/geminiService');
+            const { fileToBase64 } = await import('@/services/geminiService');
             const replacementData = await fileToBase64(file);
             updateSupportElement(elementId, { replacementImage: replacementData });
         } catch (err) {

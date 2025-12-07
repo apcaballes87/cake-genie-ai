@@ -7,21 +7,21 @@ export const FEATURE_FLAGS = {
      * Use Roboflow for coordinate detection instead of Gemini
      * Default: false (use Gemini)
      */
-    USE_ROBOFLOW_COORDINATES: import.meta.env.VITE_USE_ROBOFLOW === 'true',
+    USE_ROBOFLOW_COORDINATES: process.env.NEXT_PUBLIC_USE_ROBOFLOW === 'true',
 
     /**
      * Minimum confidence threshold for Roboflow detections
      * Range: 0.0 to 1.0
      */
     ROBOFLOW_CONFIDENCE_THRESHOLD: parseFloat(
-        import.meta.env.VITE_ROBOFLOW_CONFIDENCE || '0.3'
+        process.env.NEXT_PUBLIC_ROBOFLOW_CONFIDENCE || '0.3'
     ),
 
     /**
      * Fallback to Gemini if Roboflow fails
      * Default: true (safe fallback)
      */
-    FALLBACK_TO_GEMINI: import.meta.env.VITE_ROBOFLOW_FALLBACK !== 'false',
+    FALLBACK_TO_GEMINI: process.env.NEXT_PUBLIC_ROBOFLOW_FALLBACK !== 'false',
 
     /**
      * Enable debug logging for Roboflow
@@ -33,10 +33,10 @@ export const FEATURE_FLAGS = {
  * Roboflow configuration
  */
 export const ROBOFLOW_CONFIG = {
-    apiKey: import.meta.env.VITE_ROBOFLOW_API_KEY || '',
-    workspace: import.meta.env.VITE_ROBOFLOW_WORKSPACE || '',
-    workflowId: import.meta.env.VITE_ROBOFLOW_WORKFLOW_ID || import.meta.env.VITE_ROBOFLOW_MODEL || '',
-    version: import.meta.env.VITE_ROBOFLOW_VERSION || '1',
+    apiKey: process.env.NEXT_PUBLIC_ROBOFLOW_API_KEY || '',
+    workspace: process.env.NEXT_PUBLIC_ROBOFLOW_WORKSPACE || '',
+    workflowId: process.env.NEXT_PUBLIC_ROBOFLOW_WORKFLOW_ID || process.env.NEXT_PUBLIC_ROBOFLOW_MODEL || '',
+    version: process.env.NEXT_PUBLIC_ROBOFLOW_VERSION || '1',
 } as const;
 
 /**

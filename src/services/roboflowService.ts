@@ -5,8 +5,8 @@
  * with the Florence-2 vision model from Microsoft.
  */
 
-import { BoundingBox } from '../types';
-import { ROBOFLOW_CONFIG, FEATURE_FLAGS } from '../config/features';
+import { BoundingBox } from '@/types';
+import { ROBOFLOW_CONFIG, FEATURE_FLAGS } from '@/config/features';
 
 // ============================================================================
 // Type Definitions

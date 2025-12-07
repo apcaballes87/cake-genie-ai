@@ -2,13 +2,13 @@
 
 import React, { useState, FormEvent, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useAddAddress, useUpdateAddress } from '../hooks/useAddresses';
-import { showSuccess, showError } from '../lib/utils/toast';
-import { CakeGenieAddress } from '../lib/database.types';
+import { useAddAddress, useUpdateAddress } from '@/hooks/useAddresses';
+import { showSuccess, showError } from '@/lib/utils/toast';
+import { CakeGenieAddress } from '@/lib/database.types';
 import { Loader2, MapPin, X } from 'lucide-react';
-import { GOOGLE_MAPS_API_KEY } from '../config';
+import { GOOGLE_MAPS_API_KEY } from '@/config';
 import { GoogleMap } from '@react-google-maps/api';
-import { useGoogleMapsLoader } from '../contexts/GoogleMapsLoaderContext';
+import { useGoogleMapsLoader } from '@/contexts/GoogleMapsLoaderContext';
 import LazyImage from './LazyImage';
 
 declare const google: any;
@@ -26,18 +26,28 @@ export const StaticMap: React.FC<{ latitude: number; longitude: number }> = ({ l
 
 const SERVICEABLE_AREAS = [
     'Cebu City', 'Mandaue City', 'Talisay City', 'Lapu-Lapu City', 'Cordova', 'Liloan',
-    'Mandaue', 'Talisay', 'Lapu-lapu'
+    'Mandaue', 'Talisay', 'Lapu-lapu', 'Consolacion'
 ];
 
-const checkServiceability = (components: google.maps.GeocoderAddressComponent[]) => {
-    if (!components) return false;
-    return components.some(c => {
+const checkServiceability = (components: google.maps.GeocoderAddressComponent[]): { isServiceable: boolean; city: string | null } => {
+    if (!components) return { isServiceable: false, city: null };
+
+    let detectedCity: string | null = null;
+
+    for (const c of components) {
         if (c.types.includes('locality') || c.types.includes('administrative_area_level_2')) {
             const name = c.long_name;
-            return SERVICEABLE_AREAS.some(area => name.toLowerCase().includes(area.toLowerCase()));
+            const matchedArea = SERVICEABLE_AREAS.find(area =>
+                name.toLowerCase().includes(area.toLowerCase())
+            );
+            if (matchedArea) {
+                detectedCity = name;
+                return { isServiceable: true, city: detectedCity };
+            }
         }
-        return false;
-    });
+    }
+
+    return { isServiceable: false, city: null };
 };
 
 // --- Address Form's Map Picker Modal Component ---
@@ -50,6 +60,7 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
     const [suggestedAddress, setSuggestedAddress] = useState(''); // Geocoding output
     const [isGeocoding, setIsGeocoding] = useState(false);
     const [isServiceable, setIsServiceable] = useState(true);
+    const [detectedCity, setDetectedCity] = useState<string | null>(null);
     const [mounted, setMounted] = useState(false);
 
     const autocompleteRef = useRef<any | null>(null);
@@ -66,6 +77,13 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
         }
     }, [isOpen, initialStreetAddress]);
 
+    // Sync center with initialCoords when modal opens or coordinates change
+    useEffect(() => {
+        if (isOpen && initialCoords) {
+            setCenter(initialCoords);
+        }
+    }, [isOpen, initialCoords]);
+
     const lastGeocodedLocation = useRef<{ lat: number; lng: number } | null>(null);
     const mapIdleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -81,19 +99,21 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
 
         setIsGeocoding(true);
         const geocoder = new window.google.maps.Geocoder();
-        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+        geocoder.geocode({ location: { lat, lng } }, (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
             if (status === 'OK' && results && results[0]) {
                 setSuggestedAddress(results[0].formatted_address);
 
-                // Check serviceability
-                const isAllowed = checkServiceability(results[0].address_components);
+                // Check serviceability and extract city
+                const { isServiceable: isAllowed, city } = checkServiceability(results[0].address_components);
                 setIsServiceable(isAllowed);
+                setDetectedCity(city);
 
                 lastGeocodedLocation.current = { lat, lng };
             } else {
                 console.error("Reverse geocoding failed:", status);
                 setSuggestedAddress('Could not determine address from map.');
                 setIsServiceable(false);
+                setDetectedCity(null);
             }
             setIsGeocoding(false);
         });
@@ -150,6 +170,7 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                     latitude: finalCenter.lat(),
                     longitude: finalCenter.lng(),
                     street_address: completeAddress.trim(),
+                    city: detectedCity,
                 });
             }
         } else {
@@ -262,6 +283,7 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
     const [isDefault, setIsDefault] = useState(false);
     const [latitude, setLatitude] = useState<number | null>(null);
     const [longitude, setLongitude] = useState<number | null>(null);
+    const [city, setCity] = useState<string>('');
 
     const isEditing = !!initialData;
     const isSubmitting = addAddressMutation.isPending || updateAddressMutation.isPending;
@@ -281,14 +303,14 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
                 // Default values for required fields
                 country: 'Philippines',
                 province: 'Cebu',
-                city: '',
+                city: city,
                 barangay: '',
                 postal_code: '',
                 landmark: null
             };
             onFormChange(data, isValid);
         }
-    }, [recipientName, recipientPhone, streetAddress, addressLabel, isDefault, latitude, longitude, onFormChange]);
+    }, [recipientName, recipientPhone, streetAddress, addressLabel, isDefault, latitude, longitude, city, onFormChange]);
 
     useEffect(() => {
         if (initialData) {
@@ -310,6 +332,7 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
         setLatitude(details.latitude);
         setLongitude(details.longitude);
         setStreetAddress(details.street_address);
+        if (details.city) setCity(details.city);
         setIsPickerModalOpen(false);
     }, []);
 
@@ -322,8 +345,8 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
 
         const newAddressData: Omit<CakeGenieAddress, 'address_id' | 'created_at' | 'updated_at' | 'user_id'> = {
             recipient_name: recipientName, recipient_phone: recipientPhone, street_address: streetAddress,
-            barangay: '', city: '', province: 'Cebu', postal_code: '',
-            address_label: addressLabel || null, landmark: null, is_default: isDefault,
+            barangay: '', city: city, province: 'Cebu', postal_code: '',
+            address_label: addressLabel || '', landmark: null, is_default: isDefault,
             country: 'Philippines', latitude, longitude
         };
 

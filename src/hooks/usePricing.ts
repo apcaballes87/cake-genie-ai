@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { calculatePriceFromDatabase, clearPricingCache } from '../services/pricingService.database';
-import { getCakeBasePriceOptions } from '../services/supabaseService';
+import { calculatePriceFromDatabase, clearPricingCache } from '@/services/pricingService.database';
+import { getCakeBasePriceOptions } from '@/services/supabaseService';
 import {
     HybridAnalysisResult,
     MainTopperUI,
@@ -13,9 +13,9 @@ import {
     BasePriceInfo,
     CakeType,
     CakeThickness,
-} from '../types';
-import { DEFAULT_THICKNESS_MAP } from '../constants';
-import { roundDownToNearest99 } from '../lib/utils/pricing';
+} from '@/types';
+import { DEFAULT_THICKNESS_MAP } from '@/constants';
+import { roundDownToNearest99 } from '@/lib/utils/pricing';
 
 const cakeTypeDisplayMap: Record<CakeType, string> = {
     '1 Tier': '1 Tier (Soft icing)',
@@ -152,11 +152,11 @@ export const usePricing = ({
     const {
         data: addonPricingResult,
         isLoading: isCalculatingAddons
-    } = useQuery({
+    } = useQuery<{ addOnPricing: AddOnPricing | null; itemPrices: Map<string, number> }>({
         queryKey: pricingKeys.addOnPrice(uiStateForQuery),
         queryFn: () => {
             if (!analysisResult || !icingDesign || !cakeInfo) {
-                return { addOnPricing: null, itemPrices: new Map<string, number>() };
+                return Promise.resolve({ addOnPricing: null, itemPrices: new Map<string, number>() });
             }
             return calculateAddOnPrice({ mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo });
         },

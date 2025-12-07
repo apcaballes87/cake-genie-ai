@@ -1,6 +1,8 @@
+'use client';
 import React, { useMemo, useState } from 'react';
-import { CakeMessageUI } from '../types';
-import { AnalysisItem } from '../app/customizing/page';
+import { CakeMessageUI } from '@/types';
+// import { AnalysisItem } from '@/app/customizing/page';
+type AnalysisItem = any; // Temporary fix until page is migrated
 import { ColorPalette } from './ColorPalette';
 import { TrashIcon, PencilIcon } from './icons';
 
@@ -28,39 +30,39 @@ const MessageCard: React.FC<{
             {/* Header - Collapsible */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full flex items-center gap-3 p-3 text-left hover:bg-slate-50 transition-colors"
+                className="w-full flex items-center gap-3 p-2 text-left hover:bg-slate-50 transition-colors"
             >
                 {marker && (
-                    <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-slate-200 text-slate-600 text-xs font-bold rounded-full">
+                    <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-slate-200 text-slate-600 text-[10px] font-bold rounded-full">
                         {marker}
                     </div>
                 )}
                 <div className="flex-grow">
-                    <div className="text-sm font-medium text-slate-800">"{message.text}"</div>
-                    <div className="text-xs text-slate-500 mt-0.5">{positionLabel}</div>
+                    <div className="text-xs font-medium text-slate-800">"{message.text}"</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">{positionLabel}</div>
                 </div>
                 <PencilIcon className="w-4 h-4 text-slate-400" />
             </button>
 
             {/* Expanded Content - Message Customization */}
             {isExpanded && (
-                <div className="px-3 pb-3 space-y-3 border-t border-slate-100">
+                <div className="px-2 pb-2 space-y-3 border-t border-slate-100">
                     {/* Text Input */}
                     <div>
-                        <label htmlFor={`msg-text-${message.id}`} className="block text-xs font-medium text-slate-600 mb-1">Message Text</label>
+                        <label htmlFor={`msg-text-${message.id}`} className="block text-[10px] font-medium text-slate-600 mb-1">Message Text</label>
                         <input
                             id={`msg-text-${message.id}`}
                             type="text"
                             value={message.text}
                             onChange={(e) => updateCakeMessage(message.id, { text: e.target.value })}
-                            className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                             placeholder="Enter message text..."
                         />
                     </div>
 
                     {/* Color Picker */}
                     <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1">Text Color</label>
+                        <label className="block text-[10px] font-medium text-slate-600 mb-1">Text Color</label>
                         <ColorPalette
                             selectedColor={message.color}
                             onColorChange={(hex) => updateCakeMessage(message.id, { color: hex })}
@@ -69,7 +71,7 @@ const MessageCard: React.FC<{
 
                     {/* Toggle Enable/Disable */}
                     <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                        <label className="text-sm font-medium text-slate-700">Show Message</label>
+                        <label className="text-xs font-medium text-slate-700">Show Message</label>
                         <button
                             type="button"
                             onClick={() => updateCakeMessage(message.id, { isEnabled: !message.isEnabled })}
@@ -88,7 +90,7 @@ const MessageCard: React.FC<{
                                 removeCakeMessage(message.id);
                             }
                         }}
-                        className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                        className="w-full flex items-center justify-center gap-2 px-2 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
                     >
                         <TrashIcon className="w-4 h-4" />
                         Delete Message
@@ -134,9 +136,9 @@ export const CakeMessagesOptions: React.FC<CakeMessagesOptionsProps> = ({
                 <button
                     type="button"
                     onClick={() => addCakeMessage('top')}
-                    className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2.5 px-4 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-sm flex items-center gap-2"
+                    className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
                 >
-                    <span className="text-lg">+</span> Add Message (Cake Top Side)
+                    <span className="text-base">+</span> Add Message (Cake Top Side)
                 </button>
             )}
 
@@ -144,9 +146,9 @@ export const CakeMessagesOptions: React.FC<CakeMessagesOptionsProps> = ({
                 <button
                     type="button"
                     onClick={() => addCakeMessage('side')}
-                    className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2.5 px-4 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-sm flex items-center gap-2"
+                    className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
                 >
-                    <span className="text-lg">+</span> Add Message (Cake Front Side)
+                    <span className="text-base">+</span> Add Message (Cake Front Side)
                 </button>
             )}
 
@@ -154,15 +156,16 @@ export const CakeMessagesOptions: React.FC<CakeMessagesOptionsProps> = ({
                 <button
                     type="button"
                     onClick={() => addCakeMessage('base_board')}
-                    className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2.5 px-4 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-sm flex items-center gap-2"
+                    className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
                 >
-                    <span className="text-lg">+</span> Add Message (Base Board)
+                    <span className="text-base">+</span> Add Message (Base Board)
                 </button>
             )}
 
             {cakeMessages.length === 0 && missingTopMessage && missingSideMessage && missingBaseBoardMessage && (
-                <p className="text-sm text-slate-500 text-center py-2">No messages detected.</p>
+                <p className="text-xs text-slate-500 text-center py-2">No messages detected.</p>
             )}
         </div>
     );
 };
+

@@ -1,3 +1,4 @@
+'use client';
 import React from 'react';
 import { ErrorIcon } from './icons';
 
@@ -8,8 +9,8 @@ interface ErrorFallbackProps {
   message?: string;
 }
 
-export const ErrorFallback: React.FC<ErrorFallbackProps> = ({ 
-  error, 
+export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
+  error,
   resetError,
   title = 'Something went wrong',
   message = 'We encountered an unexpected error. Please try again.'
@@ -20,7 +21,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
         <ErrorIcon className="w-16 h-16 text-red-500 mx-auto mb-4" />
         <h3 className="text-xl font-bold text-gray-800 mb-2">{title}</h3>
         <p className="text-gray-600 mb-4">{message}</p>
-        
+
         {error && (
           <details className="text-left bg-gray-50 rounded p-3 mb-4">
             <summary className="cursor-pointer text-sm font-medium text-gray-700">
@@ -31,7 +32,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
             </pre>
           </details>
         )}
-        
+
         {resetError && (
           <button
             onClick={resetError}

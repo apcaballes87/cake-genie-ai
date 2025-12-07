@@ -1,6 +1,7 @@
+'use client';
 import React, { useState } from 'react';
 import { Copy, Check, Share2, ExternalLink } from 'lucide-react';
-import { formatCurrency } from '../lib/utils/currency';
+import { formatCurrency } from '@/lib/utils/currency';
 
 interface SplitOrderShareModalProps {
     isOpen: boolean;
@@ -88,8 +89,8 @@ export const SplitOrderShareModal: React.FC<SplitOrderShareModalProps> = ({
                             <button
                                 onClick={handleCopy}
                                 className={`p-2 rounded-lg border transition-all ${copied
-                                        ? 'bg-green-50 border-green-200 text-green-600'
-                                        : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'
+                                    ? 'bg-green-50 border-green-200 text-green-600'
+                                    : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'
                                     }`}
                                 title="Copy Link"
                             >

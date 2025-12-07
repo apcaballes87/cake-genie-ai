@@ -1,3 +1,4 @@
+'use client';
 import React from 'react';
 import { X } from 'lucide-react';
 
@@ -88,8 +89,8 @@ export const SegmentationBottomSheet: React.FC<SegmentationBottomSheetProps> = (
                                 key={groupId}
                                 onClick={() => onSelectItem(groupId)}
                                 className={`w-full text-left p-4 rounded-xl border-2 transition-all ${isSelected
-                                        ? 'border-purple-500 bg-purple-50'
-                                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                                    ? 'border-purple-500 bg-purple-50'
+                                    : 'border-gray-200 hover:border-gray-300 bg-white'
                                     }`}
                             >
                                 <div className="flex items-center justify-between">

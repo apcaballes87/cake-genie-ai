@@ -1,6 +1,7 @@
+'use client';
 import React, { useState, useEffect } from 'react';
 import { CloseIcon, Loader2 } from './icons';
-import { CartItemDetails, CakeInfoUI, CakeType } from '../types';
+import { CartItemDetails, CakeInfoUI, CakeType } from '@/types';
 import DetailItem from './UI/DetailItem';
 import LazyImage from './LazyImage';
 
@@ -81,9 +82,9 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, onSubmit, is
                                     {details.mainToppers.length > 0 && <DetailItem label="Main Toppers" value={details.mainToppers.map(t => t.description).join(', ')} />}
                                     {details.supportElements.length > 0 && <DetailItem label="Support" value={details.supportElements.map(s => s.description).join(', ')} />}
                                     {details.cakeMessages.map((msg, idx) => (
-                                      <DetailItem key={idx} label={`Message #${idx+1}`} value={`'${msg.text}' (${msg.color})`} />
-                                   ))}
-                                   {details.icingDesign.drip && <DetailItem label="Design" value="Has Drip Effect" />}
+                                        <DetailItem key={idx} label={`Message #${idx + 1}`} value={`'${msg.text}' (${msg.color})`} />
+                                    ))}
+                                    {details.icingDesign.drip && <DetailItem label="Design" value="Has Drip Effect" />}
                                     {details.icingDesign.gumpasteBaseBoard && <DetailItem label="Design" value="Gumpaste Base Board" />}
                                     {Object.entries(details.icingDesign.colors).map(([loc, color]) => {
                                         const colorLabelMap: Record<string, string> = {
@@ -96,15 +97,15 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, onSubmit, is
                             )}
                         </div>
                         <div>
-                             <label htmlFor="report-feedback" className="text-sm font-semibold text-slate-700 mb-2 block">Your Feedback</label>
-                             <textarea
-                                 id="report-feedback"
-                                 value={feedback}
-                                 onChange={(e) => setFeedback(e.target.value)}
-                                 className="w-full p-3 text-sm border-slate-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
-                                 placeholder="Please describe the issue. For example: 'The topper was removed instead of changed', 'The drip color is wrong', etc."
-                                 rows={4}
-                             />
+                            <label htmlFor="report-feedback" className="text-sm font-semibold text-slate-700 mb-2 block">Your Feedback</label>
+                            <textarea
+                                id="report-feedback"
+                                value={feedback}
+                                onChange={(e) => setFeedback(e.target.value)}
+                                className="w-full p-3 text-sm border-slate-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                                placeholder="Please describe the issue. For example: 'The topper was removed instead of changed', 'The drip color is wrong', etc."
+                                rows={4}
+                            />
                         </div>
                     </div>
                 </div>

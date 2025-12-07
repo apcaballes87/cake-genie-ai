@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '../lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 
 /**
  * Upgrades an anonymous Supabase account to an email-based account
@@ -37,7 +37,7 @@ export async function upgradeAnonymousToEmailAccount(params: {
                 last_name: lastName,
             }
         }, {
-            emailRedirectTo: `${window.location.origin}/#/auth/set-password`
+            emailRedirectTo: `${window.location.origin}/auth/set-password`
         });
 
         if (updateError) throw updateError;

@@ -1,4 +1,4 @@
-import type { HybridAnalysisResult } from '../../types';
+import type { HybridAnalysisResult } from '@/types';
 
 /**
  * Check if analysis result has bounding box data from Roboflow/Florence-2

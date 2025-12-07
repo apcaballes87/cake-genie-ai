@@ -1,5 +1,5 @@
 // services/pricingService.ts
-import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, AddOnPricing, Size, CakeInfoUI, CakeType, Coverage } from '../types';
+import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, AddOnPricing, Size, CakeInfoUI, CakeType } from '@/types';
 
 // ============================================================================
 // DYNAMIC PRICING ENGINE (V5 - Gumpaste Overhaul)
@@ -23,20 +23,20 @@ function getEdible3DOrdinaryPrice(size: Size): number {
     return 0;
 }
 
-function getSupportGumpastePrice(coverage: Coverage): number { // This is now for edible_3d_support
-    if (coverage === 'large') return 300;
-    if (coverage === 'medium') return 200;
-    if (coverage === 'small') return 100;
-    if (coverage === 'tiny') return 50;
+function getSupportGumpastePrice(size: Size): number { // This is now for edible_3d_support
+    if (size === 'large') return 300;
+    if (size === 'medium') return 200;
+    if (size === 'small') return 100;
+    if (size === 'tiny') return 50;
     return 0;
 }
 
 // NEW function for edible_2d_support
-function getEdible2DSupportPrice(coverage: Coverage): number {
-    if (coverage === 'large') return 150;
-    if (coverage === 'medium') return 100;
-    if (coverage === 'small') return 50;
-    if (coverage === 'tiny') return 20;
+function getEdible2DSupportPrice(size: Size): number {
+    if (size === 'large') return 150;
+    if (size === 'medium') return 100;
+    if (size === 'small') return 50;
+    if (size === 'tiny') return 20;
     return 0;
 }
 
@@ -180,11 +180,11 @@ export const calculatePrice = (
         let price = 0;
         switch (element.type) {
             case 'edible_3d_support':
-                price = getSupportGumpastePrice(element.coverage);
+                price = getSupportGumpastePrice(element.size);
                 supportGumpasteRawTotal += price;
                 break;
             case 'edible_2d_support':
-                price = getEdible2DSupportPrice(element.coverage); // Use new function
+                price = getEdible2DSupportPrice(element.size); // Use new function
                 supportGumpasteRawTotal += price;
                 break;
 
@@ -201,7 +201,7 @@ export const calculatePrice = (
 
             case 'icing_palette_knife':
                 const isIntricateSupport = element.description?.toLowerCase().includes('intricate');
-                if (element.coverage === 'large' && isIntricateSupport) { // Changed from 'heavy'
+                if (element.size === 'large' && isIntricateSupport) { // Changed from 'heavy'
                     const tierCount = extractTierCount(cakeInfo.type);
                     price = 100 * tierCount;
                 } else {
@@ -211,15 +211,15 @@ export const calculatePrice = (
                 break;
 
             case 'chocolates':
-                if (element.coverage === 'large') price = 200; // Changed from 'heavy'
-                else if (element.coverage === 'medium') price = 100;
-                else if (element.coverage === 'small') price = 50; // Changed from 'light'
+                if (element.size === 'large') price = 200; // Changed from 'heavy'
+                else if (element.size === 'medium') price = 100;
+                else if (element.size === 'small') price = 50; // Changed from 'light'
                 nonGumpasteTotal += price;
                 break;
 
             case 'sprinkles':
             case 'dragees':
-                if (element.coverage === 'large') price = 100; // Changed from 'heavy'
+                if (element.size === 'large') price = 100; // Changed from 'heavy'
                 supportGumpasteRawTotal += price; // MOVED TO ALLOWANCE BUCKET
                 break;
 
@@ -230,17 +230,17 @@ export const calculatePrice = (
                 break;
 
             case 'edible_photo_side':
-                if (element.coverage === 'large') price = 300;
-                else if (element.coverage === 'medium') price = 200;
-                else if (element.coverage === 'small') price = 100;
-                else if (element.coverage === 'tiny') price = 50;
+                if (element.size === 'large') price = 300;
+                else if (element.size === 'medium') price = 200;
+                else if (element.size === 'small') price = 100;
+                else if (element.size === 'tiny') price = 50;
                 nonGumpasteTotal += price;
                 break;
 
             case 'edible_flowers': // Kept for non-gumpaste flowers if any
-                if (element.coverage === 'large') price = 300;
-                else if (element.coverage === 'medium') price = 200;
-                else if (element.coverage === 'small') price = 100;
+                if (element.size === 'large') price = 300;
+                else if (element.size === 'medium') price = 200;
+                else if (element.size === 'small') price = 100;
                 nonGumpasteTotal += price; // Assuming these might not be gumpaste, e.g., real flowers
                 break;
 

@@ -1,7 +1,8 @@
+'use client';
 import React, { useState, useEffect } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { MagicSparkleIcon, Loader2 } from './icons';
-import { HybridAnalysisResult } from '../types';
+import { HybridAnalysisResult } from '@/types';
 import { ImageZoomModal } from './ImageZoomModal';
 import LazyImage from './LazyImage';
 
@@ -48,9 +49,8 @@ export const FloatingImagePreview: React.FC<FloatingImagePreviewProps> = React.m
   return (
     <>
       <div
-        className={`fixed top-4 left-4 w-[43vw] max-w-xl md:w-[24vw] md:max-w-xs z-30 transition-all duration-300 ease-in-out ${
-          show ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'
-        }`}
+        className={`fixed top-4 left-4 w-[43vw] max-w-xl md:w-[24vw] md:max-w-xs z-30 transition-all duration-300 ease-in-out ${show ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'
+          }`}
         aria-hidden={!show}
         role="region"
         aria-label="Floating Image Preview"
@@ -60,22 +60,20 @@ export const FloatingImagePreview: React.FC<FloatingImagePreviewProps> = React.m
             <div className="bg-slate-100 p-1 rounded-lg flex space-x-1">
               <button
                 onClick={() => onTabChange('original')}
-                className={`w-1/2 py-1 text-xs font-semibold rounded-md transition-all duration-200 ease-in-out ${
-                  activeTab === 'original'
+                className={`w-1/2 py-1 text-xs font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'original'
                     ? 'bg-white shadow text-purple-700'
                     : 'text-slate-600 hover:bg-white/50'
-                }`}
+                  }`}
               >
                 Original
               </button>
               <button
                 onClick={handleCustomizedTabClick}
                 disabled={(!customizedImage && !isCustomizationDirty) || isUpdatingDesign}
-                className={`w-1/2 py-1 text-xs font-semibold rounded-md transition-all duration-200 ease-in-out ${
-                  activeTab === 'customized'
+                className={`w-1/2 py-1 text-xs font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'customized'
                     ? 'bg-white shadow text-purple-700'
                     : 'text-slate-600 hover:bg-white/50 disabled:text-slate-400 disabled:hover:bg-transparent disabled:cursor-not-allowed'
-                }`}
+                  }`}
               >
                 Customized
               </button>
@@ -124,9 +122,9 @@ export const FloatingImagePreview: React.FC<FloatingImagePreviewProps> = React.m
               )}
             </button>
             {isAnalyzing && (
-                <div className="w-full bg-slate-200 rounded-full h-1.5 relative overflow-hidden mt-2">
-                    <div className="absolute h-full w-1/2 bg-gradient-to-r from-pink-500 to-purple-600 animate-progress-slide"></div>
-                </div>
+              <div className="w-full bg-slate-200 rounded-full h-1.5 relative overflow-hidden mt-2">
+                <div className="absolute h-full w-1/2 bg-gradient-to-r from-pink-500 to-purple-600 animate-progress-slide"></div>
+              </div>
             )}
           </div>
         </div>

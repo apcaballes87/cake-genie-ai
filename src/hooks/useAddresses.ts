@@ -2,14 +2,14 @@
 
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  getUserAddresses, 
-  addAddress, 
-  deleteAddress, 
+import {
+  getUserAddresses,
+  addAddress,
+  deleteAddress,
   setDefaultAddress,
   updateAddress,
-} from '../services/supabaseService';
-import { CakeGenieAddress } from '../lib/database.types';
+} from '@/services/supabaseService';
+import { CakeGenieAddress } from '@/lib/database.types';
 
 export function useAddresses(userId: string | undefined) {
   return useQuery({
@@ -27,9 +27,9 @@ export function useAddresses(userId: string | undefined) {
 
 export function useAddAddress() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ userId, addressData }: { userId: string; addressData: Omit<CakeGenieAddress, 'address_id' | 'created_at' | 'updated_at' | 'user_id'>}) => {
+    mutationFn: async ({ userId, addressData }: { userId: string; addressData: Omit<CakeGenieAddress, 'address_id' | 'created_at' | 'updated_at' | 'user_id'> }) => {
       const result = await addAddress(userId, addressData);
       if (result.error) throw result.error;
       return result.data;
@@ -44,9 +44,9 @@ export function useAddAddress() {
 
 export function useUpdateAddress() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ userId, addressId, addressData }: { userId: string; addressId: string; addressData: Partial<Omit<CakeGenieAddress, 'address_id' | 'created_at' | 'updated_at' | 'user_id'>>}) => {
+    mutationFn: async ({ userId, addressId, addressData }: { userId: string; addressId: string; addressData: Partial<Omit<CakeGenieAddress, 'address_id' | 'created_at' | 'updated_at' | 'user_id'>> }) => {
       const result = await updateAddress(userId, addressId, addressData);
       if (result.error) throw result.error;
       return result.data;
@@ -61,7 +61,7 @@ export function useUpdateAddress() {
 
 export function useDeleteAddress() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ userId, addressId }: { userId: string; addressId: string }) => {
       const result = await deleteAddress(addressId);
@@ -78,7 +78,7 @@ export function useDeleteAddress() {
 
 export function useSetDefaultAddress() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ userId, addressId }: { userId: string; addressId: string }) => {
       const result = await setDefaultAddress(addressId, userId);

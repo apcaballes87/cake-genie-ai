@@ -1,3 +1,4 @@
+'use client';
 import React from 'react';
 
 // Generic skeleton component
@@ -78,81 +79,81 @@ OrdersSkeleton.displayName = 'OrdersSkeleton';
 // Address card skeleton
 export const AddressCardSkeleton: React.FC = React.memo(() => (
   <div className="relative p-5 bg-white rounded-xl border-2 border-slate-200">
-      <div className="flex items-start gap-4">
-        <Skeleton className="w-6 h-6 rounded-full" />
-        <div className="flex-grow space-y-2">
-          <Skeleton className="h-5 w-1/3" />
-          <Skeleton className="h-4 w-1/2" />
-          <Skeleton className="h-3 w-full" />
-        </div>
-      </div>
-      <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-slate-100">
-        <Skeleton className="h-7 w-28" />
-        <Skeleton className="h-7 w-20" />
+    <div className="flex items-start gap-4">
+      <Skeleton className="w-6 h-6 rounded-full" />
+      <div className="flex-grow space-y-2">
+        <Skeleton className="h-5 w-1/3" />
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-3 w-full" />
       </div>
     </div>
+    <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-slate-100">
+      <Skeleton className="h-7 w-28" />
+      <Skeleton className="h-7 w-20" />
+    </div>
+  </div>
 ));
 AddressCardSkeleton.displayName = 'AddressCardSkeleton';
 
 export const AddressesSkeleton: React.FC<{ count?: number }> = React.memo(({ count = 2 }) => (
-    <div className="space-y-4">
-        {Array.from({ length: count }).map((_, i) => (
-            <AddressCardSkeleton key={i} />
-        ))}
-    </div>
+  <div className="space-y-4">
+    {Array.from({ length: count }).map((_, i) => (
+      <AddressCardSkeleton key={i} />
+    ))}
+  </div>
 ));
 AddressesSkeleton.displayName = 'AddressesSkeleton';
 
 
 // New skeleton for FeatureList Toggle items
 export const ToggleSkeleton: React.FC = React.memo(() => (
-    <div className="bg-white p-3 rounded-md border border-slate-200">
-        <div className="flex justify-between items-center animate-pulse">
-            <div className="flex items-center gap-3 w-3/4">
-                <div className="h-4 bg-slate-200 rounded w-full"></div>
-            </div>
-            <div className="w-11 h-6 bg-slate-200 rounded-full"></div>
-        </div>
+  <div className="bg-white p-3 rounded-md border border-slate-200">
+    <div className="flex justify-between items-center animate-pulse">
+      <div className="flex items-center gap-3 w-3/4">
+        <div className="h-4 bg-slate-200 rounded w-full"></div>
+      </div>
+      <div className="w-11 h-6 bg-slate-200 rounded-full"></div>
     </div>
+  </div>
 ));
 ToggleSkeleton.displayName = 'ToggleSkeleton';
 
 // New skeleton for thumbnail lists
 const ThumbnailSkeleton: React.FC = () => (
-    <div className="flex-shrink-0 w-24 flex flex-col items-center text-center gap-2">
-        <Skeleton className="w-full aspect-[5/4] rounded-lg" />
-        <Skeleton className="h-3 w-16" />
-    </div>
+  <div className="flex-shrink-0 w-24 flex flex-col items-center text-center gap-2">
+    <Skeleton className="w-full aspect-[5/4] rounded-lg" />
+    <Skeleton className="h-3 w-16" />
+  </div>
 );
 
 export const ThumbnailListSkeleton: React.FC<{ count?: number }> = React.memo(({ count = 3 }) => (
-    <div className="flex gap-4 overflow-x-hidden px-1">
-        {Array.from({ length: count }).map((_, i) => (
-            <ThumbnailSkeleton key={i} />
-        ))}
-    </div>
+  <div className="flex gap-4 overflow-x-hidden px-1">
+    {Array.from({ length: count }).map((_, i) => (
+      <ThumbnailSkeleton key={i} />
+    ))}
+  </div>
 ));
 ThumbnailListSkeleton.displayName = 'ThumbnailListSkeleton';
 
 const FlavorTierSkeleton: React.FC = () => (
-    <div className="bg-white p-3 rounded-md border border-slate-200 space-y-3">
-        <div className="flex items-center gap-3">
-            <Skeleton className="w-12 h-12 rounded-md" />
-            <Skeleton className="h-5 w-2/4" />
-        </div>
-        <div className="mt-3 pt-3 border-t border-slate-200">
-            <ThumbnailListSkeleton />
-        </div>
+  <div className="bg-white p-3 rounded-md border border-slate-200 space-y-3">
+    <div className="flex items-center gap-3">
+      <Skeleton className="w-12 h-12 rounded-md" />
+      <Skeleton className="h-5 w-2/4" />
     </div>
+    <div className="mt-3 pt-3 border-t border-slate-200">
+      <ThumbnailListSkeleton />
+    </div>
+  </div>
 );
 
 
 export const CakeBaseSkeleton: React.FC = React.memo(() => (
-    <div className="bg-white p-3 rounded-md border border-slate-200 space-y-4 animate-pulse">
-        <div>
-            <Skeleton className="h-4 w-1/4 mb-2" />
-            <ThumbnailListSkeleton />
-        </div>
+  <div className="bg-white p-3 rounded-md border border-slate-200 space-y-4 animate-pulse">
+    <div>
+      <Skeleton className="h-4 w-1/4 mb-2" />
+      <ThumbnailListSkeleton />
     </div>
+  </div>
 ));
 CakeBaseSkeleton.displayName = 'CakeBaseSkeleton';

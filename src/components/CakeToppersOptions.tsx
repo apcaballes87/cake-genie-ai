@@ -1,6 +1,7 @@
+'use client';
 import React, { useState, useRef } from 'react';
-import { MainTopperUI, SupportElementUI, MainTopperType, SupportElementType } from '../types';
-import { AnalysisItem } from '../app/customizing/page';
+import { MainTopperUI, SupportElementUI, MainTopperType, SupportElementType } from '@/types';
+
 import { PencilIcon, PhotoIcon, TrashIcon, Loader2, ResetIcon } from './icons';
 import { ColorPalette } from './ColorPalette';
 import { MultiColorEditor } from './MultiColorEditor';
@@ -37,7 +38,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
             {/* Main Toppers Section */}
             {mainToppers.length > 0 && (
                 <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-1.5">Main Toppers ({mainToppers.reduce((sum, t) => sum + t.quantity, 0)})</h3>
+                    <h3 className="text-xs font-semibold text-slate-700 mb-1.5">Main Toppers ({mainToppers.reduce((sum, t) => sum + t.quantity, 0)})</h3>
                     <div className="space-y-2">
                         {mainToppers.map((topper) => (
                             <TopperCard
@@ -60,7 +61,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
             {/* Support Elements Section */}
             {supportElements.length > 0 && (
                 <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-1.5">Support Elements ({supportElements.length})</h3>
+                    <h3 className="text-xs font-semibold text-slate-700 mb-1.5">Support Elements ({supportElements.length})</h3>
                     <div className="space-y-2">
                         {supportElements.map((element) => (
                             <TopperCard
@@ -82,8 +83,9 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
 
             {/* Empty State */}
             {mainToppers.length === 0 && supportElements.length === 0 && (
-                <p className="text-sm text-slate-500 text-center py-8">No toppers or elements detected.</p>
+                <p className="text-xs text-slate-500 text-center py-8">No toppers or elements detected.</p>
             )}
         </div>
     );
 };
+

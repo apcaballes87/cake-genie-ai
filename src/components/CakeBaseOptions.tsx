@@ -1,6 +1,7 @@
+'use client';
 import React, { useRef } from 'react';
-import { CakeInfoUI, BasePriceInfo, CakeType } from '../types';
-import { CAKE_TYPES, THICKNESS_OPTIONS_MAP, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_OPTIONS, FLAVOR_THUMBNAILS } from '../constants';
+import { CakeInfoUI, BasePriceInfo, CakeType } from '@/types';
+import { CAKE_TYPES, THICKNESS_OPTIONS_MAP, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_OPTIONS, FLAVOR_THUMBNAILS } from '@/constants';
 import { CakeBaseSkeleton } from './LoadingSkeletons';
 
 interface CakeBaseOptionsProps {

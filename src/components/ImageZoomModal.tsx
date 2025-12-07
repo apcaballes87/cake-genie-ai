@@ -1,3 +1,4 @@
+'use client';
 import React, { useState, useEffect } from 'react';
 import { CloseIcon } from './icons';
 import LazyImage from './LazyImage';
@@ -45,7 +46,7 @@ export const ImageZoomModal = React.memo<ImageZoomModalProps>(({
   if (!isOpen || !originalImage) {
     return null;
   }
-  
+
   const currentImage = activeTab === 'customized' ? (customizedImage || originalImage) : originalImage;
 
   return (
@@ -63,45 +64,43 @@ export const ImageZoomModal = React.memo<ImageZoomModalProps>(({
       >
         <CloseIcon />
       </button>
-      
-      <div 
-        className="relative w-full h-full flex items-center justify-center secure-image-container" 
+
+      <div
+        className="relative w-full h-full flex items-center justify-center secure-image-container"
         onClick={(e) => e.stopPropagation()}
         onContextMenu={(e) => e.preventDefault()}
       >
-          <LazyImage
-            key={activeTab} // To force re-render with animation on tab change
-            src={currentImage}
-            alt={`${activeTab} cake preview`}
-            className="max-w-[90vw] max-h-[80vh] object-contain rounded-lg shadow-2xl animate-fadeIn"
-            placeholderClassName="max-w-[90vw] max-h-[80vh] object-contain rounded-lg"
-          />
+        <LazyImage
+          key={activeTab} // To force re-render with animation on tab change
+          src={currentImage}
+          alt={`${activeTab} cake preview`}
+          className="max-w-[90vw] max-h-[80vh] object-contain rounded-lg shadow-2xl animate-fadeIn"
+          placeholderClassName="max-w-[90vw] max-h-[80vh] object-contain rounded-lg"
+        />
       </div>
 
       <div className="absolute bottom-6 z-20" onClick={(e) => e.stopPropagation()}>
-          <div className="bg-black/40 p-1.5 rounded-full flex space-x-2 backdrop-blur-sm">
-            <button
-              onClick={() => setActiveTab('original')}
-              className={`px-6 py-2 text-sm font-semibold rounded-full transition-colors ${
-                activeTab === 'original'
-                  ? 'bg-white text-black'
-                  : 'text-white hover:bg-white/20'
+        <div className="bg-black/40 p-1.5 rounded-full flex space-x-2 backdrop-blur-sm">
+          <button
+            onClick={() => setActiveTab('original')}
+            className={`px-6 py-2 text-sm font-semibold rounded-full transition-colors ${activeTab === 'original'
+                ? 'bg-white text-black'
+                : 'text-white hover:bg-white/20'
               }`}
-            >
-              Original
-            </button>
-            <button
-              onClick={() => setActiveTab('customized')}
-              disabled={!customizedImage}
-              className={`px-6 py-2 text-sm font-semibold rounded-full transition-colors ${
-                activeTab === 'customized'
-                  ? 'bg-white text-black'
-                  : 'text-white hover:bg-white/20 disabled:text-gray-400 disabled:hover:bg-transparent'
+          >
+            Original
+          </button>
+          <button
+            onClick={() => setActiveTab('customized')}
+            disabled={!customizedImage}
+            className={`px-6 py-2 text-sm font-semibold rounded-full transition-colors ${activeTab === 'customized'
+                ? 'bg-white text-black'
+                : 'text-white hover:bg-white/20 disabled:text-gray-400 disabled:hover:bg-transparent'
               }`}
-            >
-              Customized
-            </button>
-          </div>
+          >
+            Customized
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
-import { trackSearchTerm } from '../services/supabaseService';
+import { trackSearchTerm } from '@/services/supabaseService';
 import { AppState } from './useAppNavigation';
-import { GoogleCSE, GoogleCSEElement } from '../types';
+import { GoogleCSE, GoogleCSEElement } from '@/types';
 
 // Global window type extension from App.tsx
 declare global {
@@ -175,15 +175,55 @@ export const useSearchEngine = ({
   }, [searchInput, handleSearch, appState, originalImageData, setAppState]);
 
   useEffect(() => {
-    if (window.__gcse) return;
-    window.__gcse = { parsetags: 'explicit', callback: () => { if (window.google?.search?.cse) setIsCSELoaded(true); } };
+    // Check if the search engine is already loaded from a previous visit
+    if (window.google?.search?.cse) {
+      setIsCSELoaded(true);
+      return;
+    }
+
+    // If the script is already injected but not fully loaded (or we missed the callback),
+    // we poll for the object to become available.
+    if (window.__gcse || document.getElementById('google-cse-script')) {
+      const checkInterval = setInterval(() => {
+        if (window.google?.search?.cse) {
+          setIsCSELoaded(true);
+          clearInterval(checkInterval);
+        }
+      }, 100);
+
+      // Stop polling after 10 seconds to avoid infinite loops
+      const timeout = setTimeout(() => clearInterval(checkInterval), 10000);
+
+      return () => {
+        clearInterval(checkInterval);
+        clearTimeout(timeout);
+      };
+    }
+
+    // Standard injection if not present
+    window.__gcse = {
+      parsetags: 'explicit',
+      callback: () => {
+        if (window.google?.search?.cse) {
+          setIsCSELoaded(true);
+        }
+      }
+    };
+
     const script = document.createElement('script');
     script.src = 'https://cse.google.com/cse.js?cx=825ca1503c1bd4d00';
     script.async = true;
     script.id = 'google-cse-script';
-    script.onerror = () => { setImageError('Failed to load the search engine. Please refresh the page.'); setIsSearching(false); };
+    script.onerror = () => {
+      setImageError('Failed to load the search engine. Please refresh the page.');
+      setIsSearching(false);
+    };
     document.head.appendChild(script);
-    return () => { document.getElementById('google-cse-script')?.remove(); };
+
+    return () => {
+      // We don't remove the script on unmount to preserve the cache/state for re-navigation
+      // document.getElementById('google-cse-script')?.remove(); 
+    };
   }, [setImageError]);
 
   useEffect(() => {
@@ -208,7 +248,7 @@ export const useSearchEngine = ({
           });
           cseElementRef.current = element;
         }
-        element.execute(searchQuery);
+        element?.execute(searchQuery);
       } catch (e) {
         setImageError('Failed to initialize or run the search service. Please refresh.');
       } finally {

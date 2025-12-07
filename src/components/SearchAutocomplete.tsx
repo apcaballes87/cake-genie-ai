@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { SearchIcon, CameraIcon, Loader2 } from './icons'; 
-import { CAKE_SEARCH_KEYWORDS } from '../constants/searchKeywords';
-import { getSuggestedKeywords, getPopularKeywords } from '../services/supabaseService';
+import { SearchIcon, CameraIcon, Loader2 } from './icons';
+import { CAKE_SEARCH_KEYWORDS } from '@/constants/searchKeywords';
+import { getSuggestedKeywords, getPopularKeywords } from '@/services/supabaseService';
 
 interface SearchAutocompleteProps {
   onSearch: (query: string) => void;
@@ -13,6 +13,7 @@ interface SearchAutocompleteProps {
   onChange: (value: string) => void;
   inputClassName?: string;
   showUploadButton?: boolean;
+  className?: string;
 }
 
 // Helper to highlight matching text
@@ -38,7 +39,8 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   value: query,
   onChange: setQuery,
   inputClassName = "w-full pl-5 pr-32 py-4 text-sm border-slate-200 border rounded-full shadow-lg focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow",
-  showUploadButton = true
+  showUploadButton = true,
+  className
 }) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -84,7 +86,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
       }
       return; // Stop further execution for Enter key
     }
-    
+
     // Guard for other navigation keys (Arrows, Escape)
     if (!showSuggestions || suggestions.length === 0) return;
 
@@ -93,12 +95,12 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
         e.preventDefault();
         setSelectedIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : prev));
         break;
-      
+
       case 'ArrowUp':
         e.preventDefault();
         setSelectedIndex(prev => (prev > 0 ? prev - 1 : -1));
         break;
-      
+
       case 'Escape':
         setShowSuggestions(false);
         break;
@@ -137,26 +139,26 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
 
     setIsLoadingSuggestions(true);
     hasFetchedSuggestions.current = true; // Prevent re-fetching on subsequent focus events
-    
+
     Promise.all([
       getSuggestedKeywords(),
       Promise.resolve([]) // Popular keywords disabled - RPC function doesn't exist
     ]).then(([suggested, popular]) => {
-        if (suggested && suggested.length > 0) {
-          setSuggestedKeywords(suggested);
-        }
-        if (popular && popular.length > 0) {
-          setPopularKeywords(popular);
-        }
+      if (suggested && suggested.length > 0) {
+        setSuggestedKeywords(suggested);
+      }
+      if (popular && popular.length > 0) {
+        setPopularKeywords(popular);
+      }
     }).catch(err => {
-        console.error("Failed to fetch keywords:", err);
+      console.error("Failed to fetch keywords:", err);
     }).finally(() => {
-        setIsLoadingSuggestions(false);
+      setIsLoadingSuggestions(false);
     });
   };
 
   return (
-    <div className="relative w-full" ref={containerRef}>
+    <div className={`relative w-full ${className || ''}`} ref={containerRef}>
       <div className="relative">
         <input
           type="text"
@@ -172,31 +174,31 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
           className={inputClassName}
         />
         <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-            {showUploadButton && onUploadClick && (
-                <button
-                    type="button"
-                    onClick={onUploadClick}
-                    className="p-3 text-slate-500 hover:text-purple-600 rounded-full hover:bg-purple-100 transition-colors"
-                    aria-label="Upload an image"
-                >
-                    <CameraIcon className="w-5 h-5" />
-                </button>
-            )}
+          {showUploadButton && onUploadClick && (
             <button
+              type="button"
+              onClick={onUploadClick}
+              className="p-3 text-slate-500 hover:text-purple-600 rounded-full hover:bg-purple-100 transition-colors"
+              aria-label="Upload an image"
+            >
+              <CameraIcon className="w-5 h-5" />
+            </button>
+          )}
+          <button
             type="button"
             onClick={handleSearch}
             className="p-3 text-slate-500 hover:text-purple-600 rounded-full hover:bg-purple-100 transition-colors"
             aria-label="Search"
-            >
-                <SearchIcon />
-            </button>
+          >
+            <SearchIcon />
+          </button>
         </div>
       </div>
 
       {showSuggestions && (
         <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden animate-fade-in">
-           <style>{`.animate-fade-in { animation: fadeIn 0.2s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-          
+          <style>{`.animate-fade-in { animation: fadeIn 0.2s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+
           {query.trim().length === 0 ? (
             // Show suggested and popular keywords when input is empty
             <div>
@@ -224,21 +226,21 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                   )}
                   {popularKeywords.length > 0 && (
                     <div className={`p-3 ${suggestedKeywords.length > 0 ? 'border-t border-slate-100' : ''}`}>
-                       <h3 className="px-1 pb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Popular Searches</h3>
-                       <div className="flex flex-wrap gap-2">
-                         {popularKeywords.map(keyword => (
-                           <button
-                             key={`pop-${keyword}`}
-                             onClick={() => handleSelectSuggestion(keyword)}
-                             className="px-3 py-1.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-full hover:bg-pink-100 hover:text-pink-700 transition-colors"
-                           >
-                             {keyword}
-                           </button>
-                         ))}
-                       </div>
+                      <h3 className="px-1 pb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Popular Searches</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {popularKeywords.map(keyword => (
+                          <button
+                            key={`pop-${keyword}`}
+                            onClick={() => handleSelectSuggestion(keyword)}
+                            className="px-3 py-1.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-full hover:bg-pink-100 hover:text-pink-700 transition-colors"
+                          >
+                            {keyword}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
-                   <div className={`p-3 ${(suggestedKeywords.length > 0 || popularKeywords.length > 0) ? 'border-t border-slate-100' : ''}`}>
+                  <div className={`p-3 ${(suggestedKeywords.length > 0 || popularKeywords.length > 0) ? 'border-t border-slate-100' : ''}`}>
                     <h3 className="px-1 pb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Available for same-day deliveries</h3>
                     <div className="flex flex-wrap gap-2">
                       {sameDayKeywords.map(keyword => (
@@ -252,10 +254,10 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                       ))}
                     </div>
                   </div>
-                   {suggestedKeywords.length === 0 && popularKeywords.length === 0 && !isLoadingSuggestions && (
-                      <div className="p-4 text-center text-sm text-slate-500">
-                          Start typing to search for a cake design.
-                      </div>
+                  {suggestedKeywords.length === 0 && popularKeywords.length === 0 && !isLoadingSuggestions && (
+                    <div className="p-4 text-center text-sm text-slate-500">
+                      Start typing to search for a cake design.
+                    </div>
                   )}
                 </>
               )}
@@ -270,7 +272,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                       onClick={() => handleSelectSuggestion(suggestion)}
                       className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-purple-50 transition-colors ${index === selectedIndex ? 'bg-purple-50' : ''}`}
                     >
-                      <SearchIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <SearchIcon className="w-4 h-4 text-slate-400 shrink-0" />
                       <span className="text-slate-700 text-sm">
                         <HighlightMatch text={suggestion} query={query} />
                       </span>
