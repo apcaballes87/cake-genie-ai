@@ -128,39 +128,8 @@ export const useImageManagement = () => {
                 console.log('✅ Using cached analysis result');
                 onSuccess(cachedAnalysis);
 
-                // Check if cached result has bbox data
-                const hasBbox = hasBoundingBoxData(cachedAnalysis);
-
-                if (!hasBbox) {
-                    console.log('🔄 Cached result missing bbox data, enriching in background...');
-
-                    // Run enrichment in background without blocking
-                    (async () => {
-                        try {
-                            // For cached results, just use the imageData we already have - no need to re-compress
-                            // Enrich with Roboflow
-                            const enrichedResult = await enrichAnalysisWithRoboflow(
-                                imageData.data,
-                                imageData.mimeType,
-                                cachedAnalysis
-                            );
-
-                            // Update cache with bbox data
-                            cacheAnalysisResult(pHash, enrichedResult);
-
-                            // Notify UI of enriched coordinates
-                            if (options?.onCoordinatesEnriched) {
-                                options.onCoordinatesEnriched(enrichedResult);
-                            }
-
-                            console.log('✅ Background enrichment complete, cache updated with bbox data');
-                        } catch (error) {
-                            console.warn('⚠️ Background enrichment failed:', error);
-                        }
-                    })();
-                } else {
-                    console.log('✨ Cached result already has bbox data, skipping enrichment');
-                }
+                // Skip background enrichment for cached results
+                console.log('✨ Using cached result without bbox enrichment');
 
                 return; // Skip compression and AI call entirely!
             }
