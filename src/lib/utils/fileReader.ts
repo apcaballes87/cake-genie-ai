@@ -174,6 +174,14 @@ export function validateImageFile(
     return { valid: false, error: 'Invalid file object' };
   }
 
+  // Check if file has a type property
+  if (!file.type) {
+    return {
+      valid: false,
+      error: 'File type is missing. Please select a valid image file.'
+    };
+  }
+
   if (!allowedTypes.includes(file.type.toLowerCase())) {
     return {
       valid: false,

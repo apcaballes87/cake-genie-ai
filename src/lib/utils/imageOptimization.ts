@@ -82,6 +82,22 @@ export function validateImageFile(
 ): { valid: boolean; error?: string } {
   const { maxSizeMB = 10, allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'] } = options;
 
+  // Check if file object is valid
+  if (!file || !(file instanceof File)) {
+    return {
+      valid: false,
+      error: 'Invalid file object',
+    };
+  }
+
+  // Check if file has a type property
+  if (!file.type) {
+    return {
+      valid: false,
+      error: 'File type is missing. Please select a valid image file.',
+    };
+  }
+
   if (!allowedTypes.includes(file.type)) {
     return {
       valid: false,
