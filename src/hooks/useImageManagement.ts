@@ -137,24 +137,11 @@ export const useImageManagement = () => {
                     // Run enrichment in background without blocking
                     (async () => {
                         try {
-                            // Need to get compressed image data for enrichment
-                            const imageBlob = dataURItoBlob(imageSrc);
-                            const fileToUpload = new File([imageBlob], file.name, { type: file.type || 'image/jpeg' });
-                            const compressedFile = await compressImage(fileToUpload, {
-                                maxSizeMB: 0.5,
-                                maxWidthOrHeight: 1024,
-                                fileType: 'image/webp',
-                            });
-                            // Ensure compressed file has a valid type
-                            const safeCompressedFile = compressedFile.type
-                                ? compressedFile
-                                : new File([compressedFile], compressedFile.name, { type: 'image/webp' });
-                            const compressedImageData = await fileToBase64(safeCompressedFile);
-
+                            // For cached results, just use the imageData we already have - no need to re-compress
                             // Enrich with Roboflow
                             const enrichedResult = await enrichAnalysisWithRoboflow(
-                                compressedImageData.data,
-                                compressedImageData.mimeType,
+                                imageData.data,
+                                imageData.mimeType,
                                 cachedAnalysis
                             );
 
