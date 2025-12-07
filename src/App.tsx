@@ -201,7 +201,7 @@ export default function App(): React.ReactElement {
 
   const toyWarningMessage = useMemo(() => {
     const hasToy = mainToppers.some(
-      topper => topper.isEnabled && ['toy', 'figurine', 'plastic_ball'].includes(topper.type)
+      topper => topper.isEnabled && topper.type && ['toy', 'figurine', 'plastic_ball'].includes(topper.type)
     );
     return hasToy ? "Toys are subject for availability" : null;
   }, [mainToppers]);
