@@ -287,7 +287,7 @@ export default function App(): React.ReactElement {
           return response.blob();
         })
         .then(blob => {
-          const file = new File([blob], 'shopify-cake.jpg', { type: blob.type });
+          const file = new File([blob], 'shopify-cake.jpg', { type: blob.type || 'image/jpeg' });
 
           // Clear sessionStorage immediately to prevent re-triggering
           sessionStorage.removeItem('shopify_image_url');

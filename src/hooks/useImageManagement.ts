@@ -139,7 +139,7 @@ export const useImageManagement = () => {
                         try {
                             // Need to get compressed image data for enrichment
                             const imageBlob = dataURItoBlob(imageSrc);
-                            const fileToUpload = new File([imageBlob], file.name, { type: file.type });
+                            const fileToUpload = new File([imageBlob], file.name, { type: file.type || 'image/jpeg' });
                             const compressedFile = await compressImage(fileToUpload, {
                                 maxSizeMB: 0.5,
                                 maxWidthOrHeight: 1024,
@@ -184,7 +184,7 @@ export const useImageManagement = () => {
             try {
                 // Compress image for both AI analysis and storage. 1024x1024 is optimal for Gemini.
                 const imageBlob = dataURItoBlob(imageSrc);
-                const fileToUpload = new File([imageBlob], file.name, { type: file.type });
+                const fileToUpload = new File([imageBlob], file.name, { type: file.type || 'image/jpeg' });
 
                 const compressedFile = await compressImage(fileToUpload, {
                     maxSizeMB: 0.5,
