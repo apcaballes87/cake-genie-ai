@@ -12,8 +12,8 @@ interface DesignData {
     icingBase: 'soft_icing' | 'fondant';
     drip: boolean;
     gumpasteBaseBoard: boolean;
-    mainToppers: { type: string; description: string; }[];
-    supportElements: { type: string; description: string; }[];
+    mainToppers: { type: string; description?: string; }[];
+    supportElements: { type: string; description?: string; }[];
 }
 
 /**
@@ -43,7 +43,7 @@ function getDesignAvailability(design: DesignData): AvailabilityType {
     // Checks for decorations that take some prep time but not a full day.
     const hasSameDayDecorations = allItems.some(item =>
         item.type === 'edible_2d_support' || // Flat 2D cutouts (was 'edible_2d_gumpaste')
-        (item.type === 'edible_3d_support' && !item.description.toLowerCase().includes('dots')) || // Small non-dot gumpaste items (was 'small_gumpaste')
+        (item.type === 'edible_3d_support' && item.description && !item.description.toLowerCase().includes('dots')) || // Small non-dot gumpaste items (was 'small_gumpaste')
         item.type === 'edible_photo_top' ||
         item.type === 'edible_photo_side' ||
         item.type === 'icing_doodle' // Piped doodles require more time than rush orders.

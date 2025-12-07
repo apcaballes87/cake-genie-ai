@@ -174,23 +174,21 @@ export function clearPromptCache() {
     typeEnumsCache = null; // Also clear the enum cache
 }
 
-const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
-    let binary = '';
-    const bytes = new Uint8Array(buffer);
-    for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
-    return window.btoa(binary);
-}
-
+/**
+ * Convert a File object to base64 string with mobile optimizations
+ * Uses robust file reader with retry logic to handle intermittent mobile failures
+ * @param file - The image file to convert
+ * @returns Promise with base64 data and mime type
+ */
 export const fileToBase64 = async (file: File): Promise<{ mimeType: string; data: string }> => {
     try {
-        const arrayBuffer = await file.arrayBuffer();
-        const base64Data = arrayBufferToBase64(arrayBuffer);
-        return { mimeType: file.type, data: base64Data };
+        // Use robust file reader with mobile optimizations and retry logic
+        const { fileToBase64Robust } = await import('../lib/utils/fileReader');
+        return await fileToBase64Robust(file, { maxRetries: 3 });
     } catch (error) {
         console.error("Error reading file:", error);
-        throw new Error("Failed to read the image file.");
+        const errorMessage = error instanceof Error ? error.message : "Failed to read the image file.";
+        throw new Error(errorMessage);
     }
 };
 

@@ -569,6 +569,9 @@ export async function createOrderFromCart(
 
     const subtotal = cartItems.reduce((sum, item) => sum + (item.final_price * item.quantity), 0);
 
+    // FIX: Extract cart item IDs to ensure only current cart items are included in the order
+    const cartItemIds = cartItems.map(item => item.cart_item_id);
+
     // Call the atomic RPC function
     const { data, error } = await supabase.rpc('create_order_from_cart', {
       p_user_id: activeUser.id,
@@ -587,6 +590,8 @@ export async function createOrderFromCart(
       p_delivery_city: guestAddress?.city || 'Cebu City', // Default to Cebu City if not provided
       p_delivery_latitude: guestAddress?.latitude || null,
       p_delivery_longitude: guestAddress?.longitude || null,
+      // FIX: Pass the specific cart item IDs to prevent removed items from being included
+      p_cart_item_ids: cartItemIds,
     });
 
     if (error) throw error;
@@ -659,6 +664,9 @@ export async function createSplitOrderFromCart(params: {
     // Calculate subtotal
     const subtotal = cartItems.reduce((sum, item) => sum + (item.final_price * item.quantity), 0);
 
+    // FIX: Extract cart item IDs to ensure only current cart items are included in the order
+    const cartItemIds = cartItems.map(item => item.cart_item_id);
+
     // Call the RPC function
     const { data, error } = await supabase.rpc('create_split_order_from_cart', {
       p_user_id: userId,
@@ -678,7 +686,9 @@ export async function createSplitOrderFromCart(params: {
       p_delivery_longitude: guestAddress?.longitude || null,
       p_is_split_order: isSplitOrder,
       p_split_message: splitMessage,
-      p_split_count: splitCount
+      p_split_count: splitCount,
+      // FIX: Pass the specific cart item IDs to prevent removed items from being included
+      p_cart_item_ids: cartItemIds,
     });
 
     if (error) throw error;

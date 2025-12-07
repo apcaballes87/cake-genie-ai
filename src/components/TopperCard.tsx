@@ -52,20 +52,20 @@ export const TopperCard: React.FC<{
         descriptionString.toLowerCase().includes('figure') ||
         descriptionString.toLowerCase().includes('silhouette');
 
-    const isNumberTopper = isTopper && descriptionString.toLowerCase().includes('number') && ['edible_3d_complex', 'edible_3d_ordinary', 'candle', 'printout'].includes(item.original_type);
-    const is3DFlower = isTopper && ['edible_3d_complex', 'edible_3d_ordinary'].includes(item.original_type) && descriptionString.toLowerCase().includes('flower');
+    const isNumberTopper = isTopper && descriptionString.toLowerCase().includes('number') && item.original_type && ['edible_3d_complex', 'edible_3d_ordinary', 'candle', 'printout'].includes(item.original_type);
+    const is3DFlower = isTopper && item.original_type && ['edible_3d_complex', 'edible_3d_ordinary'].includes(item.original_type) && descriptionString.toLowerCase().includes('flower');
     const isOriginalPrintoutTopper = isTopper && item.original_type === 'printout' && !isNumberTopper;
-    const canBeSwitchedToPrintoutTopper = isTopper && ['edible_3d_complex', 'edible_3d_ordinary', 'edible_photo_top'].includes(item.original_type) && !is3DFlower && !isNumberTopper;
+    const canBeSwitchedToPrintoutTopper = isTopper && item.original_type && ['edible_3d_complex', 'edible_3d_ordinary', 'edible_photo_top'].includes(item.original_type) && !is3DFlower && !isNumberTopper;
     const isCardstock = isTopper && item.original_type === 'cardstock';
-    const isToyOrFigurine = isTopper && ['toy', 'figurine', 'plastic_ball'].includes(item.original_type);
+    const isToyOrFigurine = isTopper && item.original_type && ['toy', 'figurine', 'plastic_ball'].includes(item.original_type);
     const isWrapSwitchable = !isTopper && item.original_type === 'edible_photo_side';
-    const isGumpasteSwitchable = !isTopper && ['edible_3d_support', 'edible_2d_support'].includes(item.original_type);
+    const isGumpasteSwitchable = !isTopper && item.original_type && ['edible_3d_support', 'edible_2d_support'].includes(item.original_type);
     const isOriginalPrintoutElement = !isTopper && item.original_type === 'support_printout';
     const hasMaterialOptions = isNumberTopper || isOriginalPrintoutTopper || canBeSwitchedToPrintoutTopper || isCardstock || isToyOrFigurine || isWrapSwitchable || isGumpasteSwitchable || isOriginalPrintoutElement;
 
     const isPrintoutOrPhoto = item.type === 'printout' || item.type === 'edible_photo_top' || item.type === 'support_printout' || item.type === 'edible_photo_side';
     const isDoodle = item.original_type === 'icing_doodle';
-    const canChangeColor = isDoodle || (COLORABLE_ITEM_TYPES.includes(item.original_type) && 'original_color' in item && item.original_color);
+    const canChangeColor = isDoodle || (item.original_type && COLORABLE_ITEM_TYPES.includes(item.original_type) && 'original_color' in item && item.original_color);
     const isReplaceableIcingFigure = (item.type === 'icing_doodle' || item.type === 'icing_palette_knife') && isHumanFigure;
     const isReplaceableGumpasteFigure = (item.type === 'edible_3d_complex' || item.type === 'edible_3d_ordinary' || item.type === 'edible_3d_support') && isHumanFigure;
     const isPaletteKnife = item.type === 'icing_palette_knife';

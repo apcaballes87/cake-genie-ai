@@ -231,6 +231,11 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
 
     // Helper function to find closest color match
     const findClosestColor = (color: string, availableColors: { name: string; keywords: string[]; hex: string }[]): string => {
+        // Guard against undefined/null color
+        if (!color) {
+            return availableColors[0]?.name || 'white';
+        }
+
         // 1. Direct Map Check for known palette colors
         const DIRECT_COLOR_MAP: Record<string, string> = {
             '#EF4444': 'red',       // Red
@@ -264,9 +269,9 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
         // Check longer keywords first to avoid partial matches (e.g., "light blue" before "blue")
         for (const colorOption of availableColors) {
             // Sort keywords by length (longest first) to match "light blue" before "blue"
-            const sortedKeywords = [...colorOption.keywords].sort((a, b) => b.length - a.length);
+            const sortedKeywords = [...colorOption.keywords].filter(k => k).sort((a, b) => b.length - a.length);
             for (const keyword of sortedKeywords) {
-                if (colorLower.includes(keyword)) {
+                if (keyword && colorLower.includes(keyword)) {
                     return colorOption.name;
                 }
             }
