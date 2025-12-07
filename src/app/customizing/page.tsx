@@ -269,9 +269,9 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
         // Check longer keywords first to avoid partial matches (e.g., "light blue" before "blue")
         for (const colorOption of availableColors) {
             // Sort keywords by length (longest first) to match "light blue" before "blue"
-            const sortedKeywords = [...colorOption.keywords].sort((a, b) => b.length - a.length);
+            const sortedKeywords = [...colorOption.keywords].filter(k => k).sort((a, b) => b.length - a.length);
             for (const keyword of sortedKeywords) {
-                if (colorLower.includes(keyword)) {
+                if (keyword && colorLower.includes(keyword)) {
                     return colorOption.name;
                 }
             }

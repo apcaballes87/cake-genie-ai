@@ -65,7 +65,7 @@ export const TopperCard: React.FC<{
 
     const isPrintoutOrPhoto = item.type === 'printout' || item.type === 'edible_photo_top' || item.type === 'support_printout' || item.type === 'edible_photo_side';
     const isDoodle = item.original_type === 'icing_doodle';
-    const canChangeColor = isDoodle || (COLORABLE_ITEM_TYPES.includes(item.original_type) && 'original_color' in item && item.original_color);
+    const canChangeColor = isDoodle || (item.original_type && COLORABLE_ITEM_TYPES.includes(item.original_type) && 'original_color' in item && item.original_color);
     const isReplaceableIcingFigure = (item.type === 'icing_doodle' || item.type === 'icing_palette_knife') && isHumanFigure;
     const isReplaceableGumpasteFigure = (item.type === 'edible_3d_complex' || item.type === 'edible_3d_ordinary' || item.type === 'edible_3d_support') && isHumanFigure;
     const isPaletteKnife = item.type === 'icing_palette_knife';
