@@ -257,7 +257,7 @@ export const useCakeCustomization = () => {
         if (!dirtyFields.has('mainToppers')) {
             const newMainToppers = rawData.main_toppers.map((t): MainTopperUI => {
                 let initialType = t.type;
-                const canBePrintout = ['edible_3d', 'toy', 'figurine', 'edible_photo_top'].includes(t.type);
+                const canBePrintout = t.type && ['edible_3d', 'toy', 'figurine', 'edible_photo_top'].includes(t.type);
                 const isCharacterOrLogo = /character|figure|logo|brand/i.test(t.description);
 
                 // Default to 'printout' for characters, logos, etc., if it's a valid alternative
