@@ -231,6 +231,11 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
 
     // Helper function to find closest color match
     const findClosestColor = (color: string, availableColors: { name: string; keywords: string[]; hex: string }[]): string => {
+        // Guard against undefined/null color
+        if (!color) {
+            return availableColors[0]?.name || 'white';
+        }
+
         // 1. Direct Map Check for known palette colors
         const DIRECT_COLOR_MAP: Record<string, string> = {
             '#EF4444': 'red',       // Red
