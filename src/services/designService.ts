@@ -131,10 +131,11 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                 if (t.type === 'icing_doodle') {
                     itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **piped icing doodle style** as the original cake. Capture the likeness from the reference photo but render it as a simple, elegant line art portrait using piped icing.`);
                 } else if (t.type === 'icing_palette_knife') {
-                    const isFigure = t.description.toLowerCase().includes('person') ||
-                        t.description.toLowerCase().includes('character') ||
-                        t.description.toLowerCase().includes('human') ||
-                        t.description.toLowerCase().includes('figure');
+                    const desc = (t.description || '').toLowerCase();
+                    const isFigure = desc.includes('person') ||
+                        desc.includes('character') ||
+                        desc.includes('human') ||
+                        desc.includes('figure');
                     if (isFigure) {
                         itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **painterly palette knife style** as the original cake. Capture the likeness from the reference photo but render it as a textured, abstract portrait using palette knife strokes.`);
                     } else {
@@ -146,7 +147,8 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                 } else if (t.type === 'edible_photo_top') {
                     let instruction = `replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it. Crop it if necessary to fit the original edible photo's shape on the cake.`;
                     // Check if original description implies full coverage
-                    if (t.description.toLowerCase().includes('full top') || t.description.toLowerCase().includes('entire top')) {
+                    const desc = (t.description || '').toLowerCase();
+                    if (desc.includes('full top') || desc.includes('entire top')) {
                         instruction += ` The new image MUST cover the **entire top surface of the cake**, just like the original one did. Ensure it is flat, perfectly aligned, and integrated seamlessly with the cake's top icing.`;
                     }
                     itemChanges.push(instruction);
@@ -191,10 +193,11 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                 if (s.type === 'icing_doodle') {
                     itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **piped icing doodle style** as the original cake. Capture the likeness from the reference photo but render it as a simple, elegant line art portrait using piped icing.`);
                 } else if (s.type === 'icing_palette_knife') {
-                    const isFigure = s.description.toLowerCase().includes('person') ||
-                        s.description.toLowerCase().includes('character') ||
-                        s.description.toLowerCase().includes('human') ||
-                        s.description.toLowerCase().includes('figure');
+                    const desc = (s.description || '').toLowerCase();
+                    const isFigure = desc.includes('person') ||
+                        desc.includes('character') ||
+                        desc.includes('human') ||
+                        desc.includes('figure');
                     if (isFigure) {
                         itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **painterly palette knife style** as the original cake. Capture the likeness from the reference photo but render it as a textured, abstract portrait using palette knife strokes.`);
                     } else {
@@ -202,11 +205,12 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                         itemChanges.push(`replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
                     }
                 } else if (s.type === 'edible_3d_support') {
-                    const isFigure = s.description.toLowerCase().includes('person') ||
-                        s.description.toLowerCase().includes('character') ||
-                        s.description.toLowerCase().includes('human') ||
-                        s.description.toLowerCase().includes('figure') ||
-                        s.description.toLowerCase().includes('silhouette');
+                    const desc = (s.description || '').toLowerCase();
+                    const isFigure = desc.includes('person') ||
+                        desc.includes('character') ||
+                        desc.includes('human') ||
+                        desc.includes('figure') ||
+                        desc.includes('silhouette');
                     if (isFigure) {
                         itemChanges.push(`**re-sculpt this small 3D gumpaste item based on the new reference image provided**. The new item must be in the same **3D gumpaste style** as the original cake. Capture the likeness, pose, and details from the reference photo but render it as a small, hand-sculpted, edible gumpaste figure.`);
                     } else {
