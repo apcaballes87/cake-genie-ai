@@ -410,9 +410,9 @@ const LandingClient: React.FC = () => {
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="w-full flex items-center justify-between gap-2 md:gap-4 mb-4 pt-6 relative">
 
-                        {/* Logo - fades out on scroll */}
+                        {/* Logo - fades out on scroll on mobile, always visible on desktop */}
                         <div
-                            className="absolute left-0 transition-all duration-500 ease-out pointer-events-none"
+                            className="absolute left-0 transition-all duration-500 ease-out pointer-events-none md:static md:pointer-events-auto md:!opacity-100 md:!transform-none md:mr-8"
                             style={{
                                 opacity: logoOpacity,
                                 transform: `scale(${0.9 + logoOpacity * 0.1})`,
@@ -422,41 +422,39 @@ const LandingClient: React.FC = () => {
                             <img
                                 src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20logo%20long2.webp"
                                 alt="Genie Logo"
-                                className="h-16 md:h-20 object-contain"
+                                className="h-16 md:h-12 object-contain"
                             />
                         </div>
 
-                        {/* Search Icon/Bar - expands on scroll */}
+                        {/* Search Icon/Bar - expands on scroll on mobile, always visible on desktop */}
                         <div
-                            className="flex-1 transition-all duration-500 ease-out"
+                            className="flex-1 transition-all duration-500 ease-out md:!max-w-2xl md:!opacity-100 md:mx-auto"
                             style={{
                                 maxWidth: isFullyScrolled ? '100%' : '0px',
                                 opacity: searchBarOpacity,
                                 overflow: 'hidden'
                             }}
                         >
-                            {scrollY > 10 && (
-                                <SearchAutocomplete
-                                    onSearch={handleSearch}
-                                    onUploadClick={() => setIsUploaderOpen(true)}
-                                    placeholder="Search for custom cakes..."
-                                    value={searchQuery}
-                                    onChange={setSearchQuery}
-                                    className="w-full"
-                                    inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
-                                />
-                            )}
+                            <SearchAutocomplete
+                                onSearch={handleSearch}
+                                onUploadClick={() => setIsUploaderOpen(true)}
+                                placeholder="Search for custom cakes..."
+                                value={searchQuery}
+                                onChange={setSearchQuery}
+                                className="w-full"
+                                inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                            />
                         </div>
 
                         {/* Right side icons - always visible */}
                         <div className="flex items-center gap-2 shrink-0 ml-auto">
-                            {/* Search Icon - visible when not scrolled */}
+                            {/* Search Icon - visible when not scrolled (Mobile Only) */}
                             {!isFullyScrolled && (
                                 <button
                                     onClick={() => {
                                         window.scrollTo({ top: scrollThreshold + 10, behavior: 'smooth' });
                                     }}
-                                    className="p-2 text-slate-600 hover:text-purple-700 transition-all shrink-0"
+                                    className="p-2 text-slate-600 hover:text-purple-700 transition-all shrink-0 md:hidden"
                                     style={{ opacity: 1 - searchBarOpacity }}
                                     aria-label="Search"
                                 >
@@ -464,7 +462,7 @@ const LandingClient: React.FC = () => {
                                 </button>
                             )}
 
-                            {/* Profile Icon (Desktop) */}
+                            {/* Profile Icon (Desktop Only - hidden on mobile since bottom nav has profile) */}
                             <button
                                 onClick={() => {
                                     if (isAuthenticated && !user?.is_anonymous) {
@@ -473,7 +471,7 @@ const LandingClient: React.FC = () => {
                                         router.push('/login');
                                     }
                                 }}
-                                className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                className="hidden md:block p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                 aria-label="Account"
                             >
                                 <User size={24} />
@@ -510,7 +508,7 @@ const LandingClient: React.FC = () => {
                         <div className="sticky top-24 space-y-8">
                             {/* Categories Sidebar */}
                             <div>
-                                <h3 className="font-bold text-gray-900 mb-4 text-lg">Occasion</h3>
+                                <h3 className="font-bold text-gray-900 mb-4 text-lg">Celebrations</h3>
                                 <div className="space-y-1">
                                     {categories.map((cat) => (
                                         <button
@@ -659,7 +657,7 @@ const LandingClient: React.FC = () => {
 
 
                         {/* Product Grid (Responsive Cols) */}
-                        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 lg:gap-8 mb-12">
+                        <div className="grid grid-cols-2 min-[490px]:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5 lg:gap-6 mb-12">
                             {isLoadingProducts && offset === 0 ? (
                                 // Initial Skeleton Loading State
                                 Array.from({ length: 4 }).map((_, i) => (

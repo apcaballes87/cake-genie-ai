@@ -21,6 +21,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(eager);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     if (eager || !src) return;
@@ -64,6 +65,13 @@ export const LazyImage: React.FC<LazyImageProps> = ({
     }
   }, [src, eager, preventFlickerOnUpdate]);
 
+  // Fix for cached images: Check if image is already complete after render
+  useEffect(() => {
+    if (imgRef.current?.complete && imgRef.current?.naturalWidth > 0) {
+      setIsLoaded(true);
+    }
+  }, [src, isInView]);
+
   return (
     // The container should take up the space defined by className to prevent layout shift
     <div ref={containerRef} className={`relative overflow-hidden ${className} ${placeholderClassName || ''}`}>
@@ -73,6 +81,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
       )}
       {isInView && src && (
         <img
+          ref={imgRef}
           src={src}
           alt={alt}
           // The image also takes the className to fill the container
