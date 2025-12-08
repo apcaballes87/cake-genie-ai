@@ -1005,6 +1005,41 @@ const CustomizingClient: React.FC = () => {
         });
     }, [cakeMessages, analysisResult]);
 
+    const checkItemChanged = useCallback((item: MainTopperUI | SupportElementUI) => {
+        // If it was originally detected but now disabled
+        if (!item.isEnabled) return true;
+
+        // Check type change
+        if (item.type !== item.original_type) return true;
+
+        // Check color change
+        const color1 = item.color?.toLowerCase() || '';
+        const color2 = item.original_color?.toLowerCase() || '';
+        if (color1 !== color2) return true;
+
+        // Check colors array change
+        const colors1 = (item.colors || []).filter(c => c).map(c => c!.toLowerCase()).sort();
+        const colors2 = (item.original_colors || []).filter(c => c).map(c => c!.toLowerCase()).sort();
+        if (JSON.stringify(colors1) !== JSON.stringify(colors2)) return true;
+
+        // Check replacement image
+        if (item.replacementImage) return true;
+
+        return false;
+    }, []);
+
+    const hasToppersChanges = useMemo(() => {
+        if (!mainToppers || !supportElements) return false;
+        return mainToppers.some(checkItemChanged) || supportElements.some(checkItemChanged);
+    }, [mainToppers, supportElements, checkItemChanged]);
+
+    const hasPhotoChanges = useMemo(() => {
+        if (!mainToppers || !supportElements) return false;
+        const photoToppers = mainToppers.filter(t => t.original_type === 'edible_photo_top');
+        const photoSupport = supportElements.filter(s => s.original_type === 'edible_photo_side');
+        return photoToppers.some(checkItemChanged) || photoSupport.some(checkItemChanged);
+    }, [mainToppers, supportElements, checkItemChanged]);
+
     // Show icing guide when image preview is available (before analysis completes)
     useEffect(() => {
         if (originalImagePreview && !hasShownGuide) {
@@ -1959,7 +1994,7 @@ const CustomizingClient: React.FC = () => {
                             </button>
                         ) : null
                     ) : activeCustomization === 'toppers' ? (
-                        (isCustomizationDirty || isUpdatingDesign) ? (
+                        (hasToppersChanges || isUpdatingDesign) ? (
                             <button
                                 onClick={() => {
                                     onUpdateDesign();
@@ -1982,7 +2017,7 @@ const CustomizingClient: React.FC = () => {
                             </button>
                         ) : null
                     ) : activeCustomization === 'photos' ? (
-                        (isCustomizationDirty || isUpdatingDesign) ? (
+                        (hasPhotoChanges || isUpdatingDesign) ? (
                             <button
                                 onClick={() => {
                                     onUpdateDesign();
