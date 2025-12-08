@@ -1115,7 +1115,13 @@ This is SPEED MODE - only identify what items exist, not where they are.
             required: ['cakeType', 'cakeThickness', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design', 'keyword'],
         };
 
-        const response = await getAI().models.generateContent({
+        // Create a timeout promise
+        const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('AI analysis timed out. Please try again.')), 25000)
+        );
+
+        // Race the AI call against the timeout
+        const responseCallback = getAI().models.generateContent({
             model: "gemini-2.5-flash",
             contents: [{
                 parts: [
@@ -1130,6 +1136,9 @@ This is SPEED MODE - only identify what items exist, not where they are.
                 temperature: 0,
             },
         });
+
+        // Use Promise.race to enforce timeout
+        const response = await Promise.race([responseCallback, timeoutPromise]);
 
         const jsonText = (response.text || '').trim();
         const result = JSON.parse(jsonText);

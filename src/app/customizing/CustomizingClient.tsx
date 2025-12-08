@@ -638,30 +638,65 @@ const CustomizingClient: React.FC = () => {
             setIsAnalyzing(true);
             showInfo("Loading your cake design...");
 
+            // Helper for timeout
+            const fetchWithTimeout = async (url: string, timeout = 10000) => {
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), timeout);
+                try {
+                    const response = await fetch(url, { signal: controller.signal });
+                    clearTimeout(id);
+                    return response;
+                } catch (error) {
+                    clearTimeout(id);
+                    throw error;
+                }
+            };
+
             // Fetch and analyze the image
             const fetchAndAnalyze = async () => {
                 try {
                     let blob: Blob | null = null;
 
-                    // Check if this is a Supabase URL (our own storage) - no proxy needed
-                    const isSupabaseUrl = decodedUrl.includes('supabase.co') || decodedUrl.includes('congofivupobtfudnhni');
-
-                    if (isSupabaseUrl) {
-                        // Direct fetch for Supabase URLs
-                        console.log("Fetching directly from Supabase storage");
-                        const response = await fetch(decodedUrl);
-                        if (!response.ok) throw new Error(`Failed to fetch image directly (status: ${response.status}).`);
-                        blob = await response.blob();
-                    } else {
-                        // Use proxy for external URLs (like Google images)
-                        console.log("Using CORS proxy for external URL");
-                        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(decodedUrl)}`;
-                        const response = await fetch(proxyUrl);
-                        if (!response.ok) throw new Error(`Failed to fetch image via proxy (status: ${response.status}).`);
-                        blob = await response.blob();
+                    // 1. Try Direct Fetch (Fastest & Best for CDN/Supabase)
+                    // Many modern CDNs (Shopify, Supabase, Cloudinary) support CORS
+                    try {
+                        console.log("Attempting direct fetch...");
+                        const response = await fetchWithTimeout(decodedUrl, 8000); // 8s timeout for direct
+                        if (response.ok) {
+                            blob = await response.blob();
+                            console.log("Direct fetch succeeded");
+                        } else {
+                            console.warn(`Direct fetch failed with status: ${response.status}`);
+                        }
+                    } catch (err) {
+                        console.warn("Direct fetch failed, will try proxy:", err);
                     }
 
-                    if (!blob) throw new Error("Failed to load image.");
+                    // 2. Fallback to Proxy if Direct failed
+                    if (!blob) {
+                        console.log("Attempting proxy fetch...");
+                        // Using corsproxy.io as fallback
+                        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(decodedUrl)}`;
+                        try {
+                            const response = await fetchWithTimeout(proxyUrl, 15000); // 15s timeout for proxy
+                            if (response.ok) {
+                                blob = await response.blob();
+                                console.log("Proxy fetch succeeded");
+                            } else {
+                                throw new Error(`Proxy fetch failed with status: ${response.status}`);
+                            }
+                        } catch (proxyErr) {
+                            console.error("Proxy fetch failed:", proxyErr);
+                            throw proxyErr; // Throw if both failed
+                        }
+                    }
+
+                    if (!blob) throw new Error("Failed to load image from both sources.");
+
+                    // Verify it is an image
+                    if (!blob.type.startsWith('image/')) {
+                        throw new Error(`Fetched content is not an image (${blob.type})`);
+                    }
 
                     const file = new File([blob], 'shared-design.webp', { type: blob.type || 'image/webp' });
 
@@ -679,12 +714,18 @@ const CustomizingClient: React.FC = () => {
                             showError("Failed to analyze the shared design.");
                             setIsAnalyzing(false);
                         },
-                        { imageUrl: decodedUrl } // Pass the original URL to avoid re-uploading if possible
+                        { imageUrl: decodedUrl } // Pass original URL
                     );
 
                 } catch (err) {
                     console.error("Failed to load referenced design:", err);
-                    showError("Could not load the shared design. Please try uploading directly.");
+                    let msg = "Could not load the shared design.";
+                    if (err instanceof Error && err.name === 'AbortError') {
+                        msg = "Image loading timed out. Please try uploading directly.";
+                    } else if (err instanceof Error) {
+                        msg = `Could not load design: ${err.message}`;
+                    }
+                    showError(msg);
                     setIsAnalyzing(false);
                 }
             };
