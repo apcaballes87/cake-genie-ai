@@ -627,22 +627,42 @@ const CustomizingClient: React.FC = () => {
 
     // --- Handlers ---
     // --- Effects ---
-    // Handle "Customize This Design" flow (loading from URL ref)
+    // Handle "Customize This Design" flow (loading from URL ref) - Shopify/external integrations
     useEffect(() => {
         const refUrl = searchParams.get('ref');
         if (refUrl && !originalImageData && !isImageManagementLoading) {
             const decodedUrl = decodeURIComponent(refUrl);
             console.log("Loading referenced design:", decodedUrl);
 
+            // Show loading state immediately
+            setIsAnalyzing(true);
+            showInfo("Loading your cake design...");
+
             // Fetch and analyze the image
             const fetchAndAnalyze = async () => {
                 try {
-                    // Use the same proxy logic as loadImageWithoutAnalysis to avoid CORS
-                    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(decodedUrl)}`;
-                    const response = await fetch(proxyUrl);
-                    if (!response.ok) throw new Error(`Failed to fetch image via proxy (status: ${response.status}).`);
+                    let blob: Blob | null = null;
 
-                    const blob = await response.blob();
+                    // Check if this is a Supabase URL (our own storage) - no proxy needed
+                    const isSupabaseUrl = decodedUrl.includes('supabase.co') || decodedUrl.includes('congofivupobtfudnhni');
+
+                    if (isSupabaseUrl) {
+                        // Direct fetch for Supabase URLs
+                        console.log("Fetching directly from Supabase storage");
+                        const response = await fetch(decodedUrl);
+                        if (!response.ok) throw new Error(`Failed to fetch image directly (status: ${response.status}).`);
+                        blob = await response.blob();
+                    } else {
+                        // Use proxy for external URLs (like Google images)
+                        console.log("Using CORS proxy for external URL");
+                        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(decodedUrl)}`;
+                        const response = await fetch(proxyUrl);
+                        if (!response.ok) throw new Error(`Failed to fetch image via proxy (status: ${response.status}).`);
+                        blob = await response.blob();
+                    }
+
+                    if (!blob) throw new Error("Failed to load image.");
+
                     const file = new File([blob], 'shared-design.webp', { type: blob.type || 'image/webp' });
 
                     // Use hookImageUpload to trigger the full analysis flow
@@ -652,23 +672,26 @@ const CustomizingClient: React.FC = () => {
                             console.log("Analysis complete for shared design");
                             // Update the customization context with the analysis result
                             setPendingAnalysisData(result);
+                            setIsAnalyzing(false);
                         },
                         (err) => {
                             console.error("Analysis failed:", err);
                             showError("Failed to analyze the shared design.");
+                            setIsAnalyzing(false);
                         },
                         { imageUrl: decodedUrl } // Pass the original URL to avoid re-uploading if possible
                     );
 
                 } catch (err) {
                     console.error("Failed to load referenced design:", err);
-                    showError("Could not load the shared design.");
+                    showError("Could not load the shared design. Please try uploading directly.");
+                    setIsAnalyzing(false);
                 }
             };
 
             fetchAndAnalyze();
         }
-    }, [searchParams, originalImageData, isImageManagementLoading, hookImageUpload]);
+    }, [searchParams, originalImageData, isImageManagementLoading, hookImageUpload, setIsAnalyzing, setPendingAnalysisData]);
 
     const onClose = () => {
         if (searchParams.get('from') === 'search') {
