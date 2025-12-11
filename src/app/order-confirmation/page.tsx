@@ -13,7 +13,7 @@ declare const gtag: (...args: any[]) => void;
 const OrderConfirmationContent: React.FC = () => {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const orderId = searchParams.get('orderId');
+    const orderId = searchParams.get('order_id');
 
     const [order, setOrder] = useState<(CakeGenieOrder & { cakegenie_order_items: CakeGenieOrderItem[] }) | null>(null);
     const [loading, setLoading] = useState(true);
