@@ -9,24 +9,36 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function extractPrompt() {
   const { data, error } = await supabase
     .from('ai_prompts')
-    .select('prompt_text')
-    .eq('is_active', true)
-    .single();
+    .select('*')
+    .eq('is_active', true);
 
   if (error) {
     console.error('Error:', error);
     return;
   }
 
-  // Save to file
-  fs.writeFileSync('/tmp/current_ai_prompt.txt', data.prompt_text);
-  console.log('✓ Saved current ai_prompt to /tmp/current_ai_prompt.txt');
-  console.log(`Prompt length: ${data.prompt_text.length} characters`);
+  if (!data || data.length === 0) {
+    console.log('No active prompts found.');
+    return;
+  }
 
-  // Show first few lines
-  const lines = data.prompt_text.split('\n').slice(0, 10);
-  console.log('\nFirst 10 lines:');
-  lines.forEach((line: string, idx: number) => console.log(`${idx + 1}: ${line}`));
+  console.log(`Found ${data.length} active prompts.`);
+
+  data.forEach((p: any, index: number) => {
+    // Use index as ID if id is missing
+    const id = p.id || index;
+    console.log(`\n--- Prompt #${index + 1} (ID: ${id}) ---`);
+    console.log(`Length: ${p.prompt_text ? p.prompt_text.length : 0} characters`);
+
+    if (p.prompt_text) {
+      const lines = p.prompt_text.split('\n').slice(0, 5);
+      lines.forEach((line: string, idx: number) => console.log(`${idx + 1}: ${line}`));
+
+      // Save each to a separate file
+      fs.writeFileSync(`/tmp/active_prompt_${id}.txt`, p.prompt_text);
+      console.log(`Saved to /tmp/active_prompt_${id}.txt`);
+    }
+  });
 }
 
 extractPrompt();

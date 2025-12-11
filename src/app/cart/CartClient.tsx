@@ -89,6 +89,7 @@ export default function CartClient() {
         setDeliveryInstructions,
         setSelectedAddressId,
         clearCart,
+        removeItemOptimistic,
     } = useCartActions();
 
     const { data: savedAddresses = [], isLoading: isAddressesLoading } = useAddresses(user?.id);
@@ -928,9 +929,14 @@ export default function CartClient() {
 
     const inputStyle = "w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 disabled:bg-slate-50 disabled:cursor-not-allowed";
 
-    const onRemoveItem = (id: string) => {
-        // TODO: Implement cart item removal
-        console.log('Remove item:', id);
+    const onRemoveItem = async (id: string) => {
+        try {
+            await removeItemOptimistic(id);
+            showSuccess('Item removed from cart');
+        } catch (error) {
+            console.error('Failed to remove item:', error);
+            showError('Failed to remove item');
+        }
     };
 
     const handleClose = () => {
