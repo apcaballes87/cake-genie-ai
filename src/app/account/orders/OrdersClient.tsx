@@ -13,6 +13,8 @@ import DetailItem from '@/components/UI/DetailItem';
 import LazyImage from '@/components/LazyImage';
 import BillShareCard from '@/components/BillShareCard';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import { createXenditPayment } from '@/services/xenditService';
+
 
 interface EnrichedOrder extends CakeGenieOrder {
     cakegenie_order_items?: any[]; // Can be items or count object
@@ -141,8 +143,72 @@ const PaymentUploadForm: React.FC<{ order: EnrichedOrder; onUploadSuccess: (upda
     );
 };
 
+// --- Pay Order Button Component ---
+const PayOrderButton: React.FC<{ order: EnrichedOrder }> = ({ order }) => {
+    const { user } = useAuth();
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const handlePayOrder = async () => {
+        if (!user) {
+            showError("Please sign in to pay for your order.");
+            return;
+        }
+
+        setIsProcessing(true);
+        try {
+            const recipientName = order.cakegenie_addresses?.recipient_name || user.user_metadata?.first_name || 'Customer';
+            const customerEmail = user.email || 'customer@example.com';
+
+            const { paymentUrl, error: paymentError } = await createXenditPayment({
+                orderId: order.order_id,
+                amount: order.total_amount,
+                customerEmail: customerEmail,
+                customerName: recipientName
+            });
+
+            if (paymentError) throw new Error(paymentError);
+
+            if (paymentUrl) {
+                window.location.href = paymentUrl;
+            } else {
+                throw new Error('Payment URL not generated.');
+            }
+        } catch (error: any) {
+            console.error('Payment error:', error);
+            showError(error.message || 'Failed to create payment. Please try again.');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    return (
+        <div className="p-4 bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-lg">
+            <h4 className="text-sm font-semibold text-slate-800 mb-2">Pay Order Online</h4>
+            <p className="text-xs text-slate-500 mb-3">Pay securely via GCash, Credit Card, or other methods.</p>
+            <button
+                onClick={handlePayOrder}
+                disabled={isProcessing}
+                className="w-full flex items-center justify-center bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all text-sm disabled:opacity-70 disabled:hover:scale-100"
+            >
+                {isProcessing ? (
+                    <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Redirecting to Payment...
+                    </>
+                ) : (
+                    <>
+                        <CreditCard className="w-5 h-5 mr-2" />
+                        Pay ₱{order.total_amount.toLocaleString()}
+                    </>
+                )}
+            </button>
+        </div>
+    );
+};
+
 
 // --- Order Details Expansion ---
+
 const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrder: EnrichedOrder) => void; }> = ({ order, onOrderUpdate }) => {
     const { user } = useAuth();
     const { data: details, isLoading } = useOrderDetails(order.order_id, user?.id, true);
@@ -236,8 +302,21 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                 </div>
 
                 {details.payment_status === 'pending' && (
-                    <PaymentUploadForm order={details} onUploadSuccess={onOrderUpdate} />
+                    <div className="space-y-4">
+                        {/* Pay Order Button */}
+                        <PayOrderButton order={details} />
+
+                        {/* Divider with OR */}
+                        <div className="relative flex items-center py-2">
+                            <div className="grow border-t border-slate-300"></div>
+                            <span className="shrink-0 mx-4 text-slate-400 text-xs font-medium uppercase tracking-wider">Or pay manually</span>
+                            <div className="grow border-t border-slate-300"></div>
+                        </div>
+
+                        <PaymentUploadForm order={details} onUploadSuccess={onOrderUpdate} />
+                    </div>
                 )}
+
 
                 {details.payment_status === 'verifying' && (
                     <div className="p-3 text-center bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
