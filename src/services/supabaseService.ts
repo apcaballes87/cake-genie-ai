@@ -315,6 +315,15 @@ export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string
       const result = data[0];
       console.log('✅ Cache HIT! Found matching analysis for pHash:', pHash);
 
+      // Increment usage count (fire and forget)
+      supabase
+        .from('cakegenie_analysis_cache')
+        .update({ usage_count: (result.usage_count || 0) + 1 })
+        .eq('p_hash', result.p_hash)
+        .then(({ error }) => {
+          if (error) console.warn('Failed to increment usage_count:', error.message);
+        });
+
       // Check if we need to backfill
       // Backfill if price/keywords are missing OR if original_image_url is missing and we have a new one
       const needsBackfill = result.price === null || result.keywords === null || (result.original_image_url === null && imageUrl);
@@ -325,6 +334,7 @@ export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string
       }
 
       return result.analysis_json;
+
     } else {
       console.log('⚫️ Cache MISS. No matching pHash found in database.');
       return null;
