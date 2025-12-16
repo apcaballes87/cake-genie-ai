@@ -112,9 +112,22 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
     useEffect(() => {
         // Save analysis result whenever it changes
         if (analysisResult && analysisId) {
+            // Preserve the existing imageRef if present (it gets set separately by the page component)
+            const existingData = localStorage.getItem('cakegenie_analysis');
+            let imageRef: string | null = null;
+            if (existingData) {
+                try {
+                    const parsed = JSON.parse(existingData);
+                    imageRef = parsed.imageRef || null;
+                } catch {
+                    // Ignore parse errors
+                }
+            }
             localStorage.setItem('cakegenie_analysis', JSON.stringify({
                 result: analysisResult,
-                id: analysisId
+                id: analysisId,
+                imageRef,
+                timestamp: Date.now()
             }));
         } else {
             localStorage.removeItem('cakegenie_analysis');
@@ -333,6 +346,8 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
         setIsAnalyzing(false);
         setIsCustomizationDirty(false);
         setDirtyFields(new Set());
+        // Clear the stored image ref when clearing customization
+        localStorage.removeItem('cakegenie_analysis');
     }, []);
 
     const handleApplyAnalysis = useCallback((rawData: HybridAnalysisResult, options?: { skipToast?: boolean }) => {

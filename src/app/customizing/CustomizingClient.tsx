@@ -632,11 +632,39 @@ const CustomizingClient: React.FC = () => {
         const refUrl = searchParams.get('ref');
         if (refUrl && !originalImageData && !isImageManagementLoading) {
             const decodedUrl = decodeURIComponent(refUrl);
+
+            // Check if we already have a completed analysis for this exact image
+            const savedAnalysis = localStorage.getItem('cakegenie_analysis');
+            if (savedAnalysis) {
+                try {
+                    const parsed = JSON.parse(savedAnalysis);
+                    // If we have a saved analysis for the same image ref, skip re-analysis
+                    if (parsed.imageRef === decodedUrl && parsed.result && analysisResult) {
+                        console.log("✅ Restoring completed analysis from previous session for:", decodedUrl);
+                        showInfo("Welcome back! Your analysis is ready.");
+                        return; // Skip fetching and re-analyzing - analysis already loaded from context persistence
+                    }
+                } catch (e) {
+                    console.error('Failed to parse saved analysis:', e);
+                }
+            }
+
             console.log("Loading referenced design:", decodedUrl);
 
             // Show loading state immediately
             setIsAnalyzing(true);
             showInfo("Loading your cake design...");
+
+            // Save the image ref we're about to analyze (so we can restore on return)
+            const existingData = localStorage.getItem('cakegenie_analysis');
+            try {
+                const data = existingData ? JSON.parse(existingData) : {};
+                data.imageRef = decodedUrl;
+                localStorage.setItem('cakegenie_analysis', JSON.stringify(data));
+            } catch (e) {
+                // Create new entry if parsing fails
+                localStorage.setItem('cakegenie_analysis', JSON.stringify({ imageRef: decodedUrl }));
+            }
 
             // Helper for timeout
             const fetchWithTimeout = async (url: string, timeout = 10000) => {
@@ -732,7 +760,8 @@ const CustomizingClient: React.FC = () => {
 
             fetchAndAnalyze();
         }
-    }, [searchParams, originalImageData, isImageManagementLoading, hookImageUpload, setIsAnalyzing, setPendingAnalysisData]);
+    }, [searchParams, originalImageData, isImageManagementLoading, hookImageUpload, setIsAnalyzing, setPendingAnalysisData, analysisResult]);
+
 
     const onClose = () => {
         if (searchParams.get('from') === 'search') {

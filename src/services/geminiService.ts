@@ -1110,10 +1110,26 @@ This is SPEED MODE - only identify what items exist, not where they are.
                         required: ['description', 'x', 'y']
                     }
                 },
-                keyword: { type: Type.STRING }
+                keyword: { type: Type.STRING },
+                // Rejection object for invalid images (non-cakes, multiple cakes, etc.)
+                rejection: {
+                    type: Type.OBJECT,
+                    description: 'Present only when image should be rejected',
+                    properties: {
+                        isRejected: { type: Type.BOOLEAN },
+                        reason: {
+                            type: Type.STRING,
+                            enum: ['not_a_cake', 'multiple_cakes', 'cupcakes_only', 'complex_sculpture', 'large_wedding_cake', 'non_food']
+                        },
+                        message: { type: Type.STRING }
+                    },
+                    required: ['isRejected', 'reason', 'message']
+                }
             },
-            required: ['cakeType', 'cakeThickness', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design', 'keyword'],
+            // Note: We don't require the analysis fields since a rejection response won't have them
+            required: [],
         };
+
 
         // Create a timeout promise
         const timeoutPromise = new Promise<never>((_, reject) =>
