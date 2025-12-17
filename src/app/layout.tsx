@@ -6,6 +6,7 @@ import { Providers } from '@/components/Providers'
 
 import ClientHashRedirect from '@/components/ClientHashRedirect'
 import AnimatedBlobs from '@/components/UI/AnimatedBlobs'
+import TawkToChat from '@/components/TawkToChat'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -45,7 +46,9 @@ export default function RootLayout({
           <ClientHashRedirect />
           <AnimatedBlobs />
           {children}
+          <TawkToChat />
         </Providers>
+
       </body>
       <Script id="microsoft-clarity" strategy="afterInteractive">
         {`
