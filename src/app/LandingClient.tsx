@@ -88,6 +88,12 @@ const LandingClient: React.FC = () => {
 
 
     // Context hooks
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     const { itemCount } = useCart();
     const { user, isAuthenticated, signOut } = useAuth();
     const { handleImageUpload: hookImageUpload, clearImages } = useImageManagement();
@@ -273,7 +279,8 @@ const LandingClient: React.FC = () => {
         buttonText: string;
         gradient: string;
         shadow: string;
-        icon: string;
+        icon: string | React.ReactNode;
+        imageUrl?: string;
         action?: () => void;
     };
 
@@ -299,10 +306,10 @@ const LandingClient: React.FC = () => {
         const isRightSwipe = distance < -minSwipeDistance;
 
         if (isLeftSwipe) {
-            setCurrentPromoIndex((prev) => (prev + 1) % promos.length);
+            handleNextPromo();
         }
         if (isRightSwipe) {
-            setCurrentPromoIndex((prev) => (prev - 1 + promos.length) % promos.length);
+            handlePrevPromo();
         }
     };
 
@@ -333,15 +340,34 @@ const LandingClient: React.FC = () => {
             shadow: "shadow-pink-200",
             icon: "📸",
             action: () => setIsUploaderOpen(true)
+        },
+        {
+            id: 5,
+            tag: "PARTNER",
+            title: "Call for Bakeshops",
+            buttonText: "",
+            gradient: "bg-gray-100", // Fallback
+            shadow: "shadow-gray-200",
+            icon: null,
+            imageUrl: "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/call%20for%20bakeshops.webp",
+            action: () => router.push('/merchant')
         }
     ];
 
+    const handleNextPromo = useCallback(() => {
+        setCurrentPromoIndex((prev) => (prev + 1) % promos.length);
+    }, [promos.length]);
+
+    const handlePrevPromo = useCallback(() => {
+        setCurrentPromoIndex((prev) => (prev - 1 + promos.length) % promos.length);
+    }, [promos.length]);
+
     useEffect(() => {
         const timer = setInterval(() => {
-            setCurrentPromoIndex((prevIndex) => (prevIndex + 1) % promos.length);
-        }, 4000);
+            handleNextPromo();
+        }, 4000); // Auto-scroll every 4 seconds
         return () => clearInterval(timer);
-    }, [promos.length]);
+    }, [handleNextPromo]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -481,10 +507,10 @@ const LandingClient: React.FC = () => {
                             <button
                                 onClick={() => router.push('/cart')}
                                 className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
-                                aria-label={`View cart with ${itemCount} items`}
+                                aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
                             >
                                 <ShoppingBag size={24} />
-                                {itemCount > 0 && (
+                                {isMounted && itemCount > 0 && (
                                     <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
                                         {itemCount}
                                     </span>
@@ -563,37 +589,76 @@ const LandingClient: React.FC = () => {
                                     style={{ transform: `translateX(-${currentPromoIndex * 100}%)` }}
                                 >
                                     {promos.map((promo) => (
-                                        <div key={promo.id} className={`w-full shrink-0 p-6 md:p-12 ${promo.gradient} text-white relative flex items-center`}>
-                                            {/* Content */}
-                                            <div className="relative z-10 w-2/3 md:w-1/2 flex flex-col items-start justify-center h-full">
-                                                <span className="bg-white/20 px-3 py-1 rounded-lg text-[10px] md:text-xs font-bold backdrop-blur-md mb-4 inline-block border border-white/10 shadow-sm">
-                                                    {promo.tag}
-                                                </span>
-                                                <h2 className="text-[clamp(1.25rem,5.5vw,1.875rem)] md:text-2xl lg:text-3xl font-black leading-tight mb-4 md:mb-6 drop-shadow-sm line-clamp-3">{promo.title}</h2>
-                                                <button
-                                                    onClick={() => promo.action && promo.action()}
-                                                    className="bg-white text-gray-900 px-6 py-3 md:px-8 md:py-3.5 rounded-full text-xs md:text-sm font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all active:scale-95"
-                                                >
-                                                    {promo.buttonText}
-                                                </button>
-                                            </div>
-                                            {/* Decorative Icon */}
-                                            <div className="absolute -right-4 md:right-8 lg:right-16 top-1/2 transform -translate-y-1/2 text-[9rem] md:text-[16rem] lg:text-[20rem] opacity-25 rotate-12 select-none pointer-events-none filter drop-shadow-lg transition-transform duration-700 group-hover:rotate-6 group-hover:scale-110">
-                                                {promo.icon}
-                                            </div>
-                                            {/* Decorative Blobs */}
-                                            <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+                                        <div
+                                            key={promo.id}
+                                            className={`w-full shrink-0 ${promo.imageUrl ? 'p-0' : 'p-6 md:p-12'} ${promo.gradient} text-white relative flex items-center h-full`}
+                                            onClick={() => promo.action && promo.action()}
+                                        >
+                                            {promo.imageUrl ? (
+                                                <LazyImage
+                                                    src={promo.imageUrl}
+                                                    alt={promo.title}
+                                                    className="w-full h-full object-cover cursor-pointer"
+                                                    eager={true}
+                                                />
+                                            ) : (
+                                                <>
+                                                    {/* Content */}
+                                                    <div className="relative z-10 w-2/3 md:w-1/2 flex flex-col items-start justify-center h-full">
+                                                        <span className="bg-white/20 px-3 py-1 rounded-lg text-[10px] md:text-xs font-bold backdrop-blur-md mb-4 inline-block border border-white/10 shadow-sm">
+                                                            {promo.tag}
+                                                        </span>
+                                                        <h2 className="text-[clamp(1.25rem,5.5vw,1.875rem)] md:text-2xl lg:text-3xl font-black leading-tight mb-4 md:mb-6 drop-shadow-sm line-clamp-3">{promo.title}</h2>
+                                                        <button
+                                                            className="bg-white text-gray-900 px-6 py-3 md:px-8 md:py-3.5 rounded-full text-xs md:text-sm font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all active:scale-95"
+                                                        >
+                                                            {promo.buttonText}
+                                                        </button>
+                                                    </div>
+                                                    {/* Decorative Icon */}
+                                                    <div className="absolute -right-4 md:right-8 lg:right-16 top-1/2 transform -translate-y-1/2 text-[9rem] md:text-[16rem] lg:text-[20rem] opacity-25 rotate-12 select-none pointer-events-none filter drop-shadow-lg transition-transform duration-700 group-hover:rotate-6 group-hover:scale-110">
+                                                        {promo.icon}
+                                                    </div>
+                                                    {/* Decorative Blobs */}
+                                                    <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+                                                </>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* Navigation Arrows */}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handlePrevPromo();
+                                    }}
+                                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/30 hover:bg-white/50 backdrop-blur-md text-white p-2 rounded-full shadow-lg transition-all z-20 opactiy-0 group-hover:opacity-100 hidden md:flex items-center justify-center"
+                                    aria-label="Previous Slide"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleNextPromo();
+                                    }}
+                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/30 hover:bg-white/50 backdrop-blur-md text-white p-2 rounded-full shadow-lg transition-all z-20 opacity-0 group-hover:opacity-100 hidden md:flex items-center justify-center"
+                                    aria-label="Next Slide"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+                                </button>
 
                                 {/* Dots Indicator */}
                                 <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2 z-20">
                                     {promos.map((_, index) => (
                                         <button
                                             key={index}
-                                            onClick={() => setCurrentPromoIndex(index)}
-                                            className={`h-1.5 md:h-2 rounded-full transition-all duration-300 backdrop-blur-sm ${index === currentPromoIndex ? 'w-6 md:w-8 bg-white' : 'w-2 bg-white/40 hover:bg-white/60'
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setCurrentPromoIndex(index);
+                                            }}
+                                            className={`h-1.5 md:h-2 rounded-full transition-all duration-300 backdrop-blur-sm shadow-sm ${index === currentPromoIndex ? 'w-6 md:w-8 bg-white' : 'w-2 bg-white/40 hover:bg-white/60'
                                                 }`}
                                         />
                                     ))}

@@ -13,18 +13,18 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   metadataBase: new URL('https://genie.ph'),
   title: {
-    default: 'Genie.ph - AI-Powered Custom Cake Design & Ordering',
+    default: 'Genie.ph | Online Marketplace for Custom Cakes in Cebu!',
     template: '%s | Genie.ph',
   },
-  description: 'Design and order custom cakes with AI assistance. Upload any design, customize it, and order from local bakeries.',
-  keywords: ['custom cakes', 'cake design', 'AI cake', 'Cebu bakery', 'birthday cake', 'wedding cake'],
+  description: 'Upload any cake design, customize with AI and get instant pricing from the best cakeshops and homebakers here in Cebu.',
+  keywords: ['custom cakes', 'cake design', 'AI cake', 'Cebu bakery', 'birthday cake', 'wedding cake', 'online marketplace'],
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: 'https://genie.ph',
     siteName: 'Genie.ph',
-    title: 'Genie.ph - AI-Powered Custom Cake Design',
-    description: 'Design and order custom cakes with AI assistance.',
+    title: 'Genie.ph | Online Marketplace for Custom Cakes in Cebu!',
+    description: 'Upload any cake design, customize with AI and get instant pricing from the best cakeshops and homebakers here in Cebu.',
   },
   twitter: {
     card: 'summary_large_image',
