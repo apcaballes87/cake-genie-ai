@@ -239,7 +239,7 @@ const validationResponseSchema = {
 export const validateCakeImage = async (base64ImageData: string, mimeType: string): Promise<string> => {
     try {
         const response = await getAI().models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-3-flash-preview",
             contents: [{
                 parts: [
                     { inlineData: { mimeType, data: base64ImageData } },
@@ -830,7 +830,7 @@ You MUST provide precise central coordinates for every single decorative element
         const startTime = Date.now();
 
         const response = await getAI().models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-3-flash-preview",
             contents: [{
                 parts: [
                     { inlineData: { mimeType, data: base64ImageData } },
@@ -1138,7 +1138,7 @@ This is SPEED MODE - only identify what items exist, not where they are.
 
         // Race the AI call against the timeout
         const responseCallback = getAI().models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-3-flash-preview",
             contents: [{
                 parts: [
                     { inlineData: { mimeType, data: base64ImageData } },
@@ -1392,7 +1392,7 @@ ${JSON.stringify(featureAnalysis, null, 2)}
         };
 
         const response = await getAI().models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-3-flash-preview",
             contents: [{
                 parts: [
                     { inlineData: { mimeType, data: base64ImageData } },
@@ -1714,7 +1714,7 @@ export const generateShareableTexts = async (
         parts.push({ text: `\`\`\`json\n${JSON.stringify(simplifiedAnalysis, null, 2)}\n\`\`\`` });
 
         const response = await getAI().models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-3-flash-preview",
             contents: [{ parts }],
             config: {
                 responseMimeType: 'application/json',

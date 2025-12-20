@@ -1568,18 +1568,6 @@ const CustomizingClient: React.FC = () => {
                             )}
                         </div>
                         <div className="p-2 pt-0 grow">
-                            {/* Customization Pills - Top of image */}
-                            <div className="w-full mb-2">
-                                <CustomizationPills
-                                    tabs={customizationTabs}
-                                    activeTab={activeCustomization}
-                                    onTabSelect={(id) => {
-                                        setActiveCustomization(id === activeCustomization ? null : id);
-                                        setSelectedItem(null);
-                                    }}
-                                    className="w-full"
-                                />
-                            </div>
                             <div
                                 ref={markerContainerRef}
                                 className="relative w-full"
@@ -1791,6 +1779,18 @@ const CustomizingClient: React.FC = () => {
                     <div className="w-full bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200">
                         {(cakeInfo || analysisError) ? (
                             <div className="space-y-6">
+                                {/* Customization Pills - Top of cake options */}
+                                <div className="w-full">
+                                    <CustomizationPills
+                                        tabs={customizationTabs}
+                                        activeTab={activeCustomization}
+                                        onTabSelect={(id) => {
+                                            setActiveCustomization(id === activeCustomization ? null : id);
+                                            setSelectedItem(null);
+                                        }}
+                                        className="w-full"
+                                    />
+                                </div>
                                 <FeatureList
                                     analysisError={analysisError}
                                     analysisId={analysisId}
