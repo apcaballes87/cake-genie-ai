@@ -3,7 +3,8 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback, AvailabilitySettings, CartItem } from '@/types';
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
-import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem, OrderContribution } from '@/lib/database.types';
+import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem, OrderContribution, CakeGenieSavedItem, CustomizationDetails, CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.types';
+
 import { compressImage, validateImageFile } from '@/lib/utils/imageOptimization';
 import { calculatePriceFromDatabase } from './pricingService.database';
 import { roundDownToNearest99 } from '@/lib/utils/pricing';
@@ -371,13 +372,17 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
 
       const { error } = await supabase
         .from('cakegenie_analysis_cache')
-        .insert({
+        .upsert({
           p_hash: pHash,
           analysis_json: analysisResult,
           original_image_url: imageUrl,
           price: totalPrice,
           keywords: keywords
+        }, {
+          onConflict: 'p_hash',
+          ignoreDuplicates: true // Don't update if already exists, just skip
         });
+
 
       if (error) {
         // Log error but don't interrupt the user. A unique constraint violation is expected and fine.
@@ -1392,5 +1397,515 @@ export async function createOrderContribution(params: {
   } catch (err: any) {
     console.error('Error creating contribution:', err);
     return { success: false, error: err.message || 'An unexpected error occurred' };
+  }
+}
+
+// --- Saved Items (Wishlist) Functions ---
+
+/**
+ * Fetches all saved items for a user, enriched with analysis cache data for custom designs.
+ * @param userId The UUID of the user.
+ */
+export async function getSavedItems(
+  userId: string
+): Promise<SupabaseServiceResponse<CakeGenieSavedItem[]>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_saved_items')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    if (!data || data.length === 0) {
+      return { data: [], error: null };
+    }
+
+    // Get unique pHashes for custom designs to fetch cache data
+    const pHashes = data
+      .filter(item => item.item_type === 'custom_design' && item.analysis_p_hash)
+      .map(item => item.analysis_p_hash!);
+
+    if (pHashes.length > 0) {
+      // Fetch analysis cache data for all pHashes
+      const { data: cacheData } = await supabase
+        .from('cakegenie_analysis_cache')
+        .select('p_hash, keywords, price, analysis_json')
+        .in('p_hash', pHashes);
+
+      if (cacheData && cacheData.length > 0) {
+        // Create a lookup map for fast access
+        const cacheMap = new Map(cacheData.map(c => [c.p_hash, c]));
+
+        // Enrich saved items with cache data
+        const enrichedData = data.map(item => {
+          if (item.item_type === 'custom_design' && item.analysis_p_hash) {
+            const cached = cacheMap.get(item.analysis_p_hash);
+            if (cached) {
+              return {
+                ...item,
+                // Add cache data as extra properties
+                cache_keywords: cached.keywords,
+                cache_price: cached.price,
+                cache_cake_type: cached.analysis_json?.cakeType || null,
+              };
+            }
+          }
+          return item;
+        });
+
+        return { data: enrichedData as CakeGenieSavedItem[], error: null };
+      }
+    }
+
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+
+/**
+ * Saves a catalog product to the user's saved items.
+ */
+export async function saveProductItem(
+  userId: string,
+  product: {
+    productId: string;
+    productName: string;
+    productPrice: number;
+    productImage: string;
+  }
+): Promise<SupabaseServiceResponse<CakeGenieSavedItem>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_saved_items')
+      .insert({
+        user_id: userId,
+        product_id: product.productId,
+        product_name: product.productName,
+        product_price: product.productPrice,
+        product_image: product.productImage,
+        item_type: 'product'
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Saves a custom design to the user's saved items.
+ */
+export async function saveCustomDesign(
+  userId: string,
+  design: {
+    analysisPHash: string;
+    customizationSnapshot: CustomizationDetails;
+    customizedImageUrl: string;
+  }
+): Promise<SupabaseServiceResponse<CakeGenieSavedItem>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_saved_items')
+      .insert({
+        user_id: userId,
+        analysis_p_hash: design.analysisPHash,
+        customization_snapshot: design.customizationSnapshot,
+        customized_image_url: design.customizedImageUrl,
+        item_type: 'custom_design'
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Removes a saved item by its ID.
+ */
+export async function removeSavedItem(
+  savedItemId: string
+): Promise<SupabaseServiceResponse<null>> {
+  try {
+    const { error } = await supabase
+      .from('cakegenie_saved_items')
+      .delete()
+      .eq('saved_item_id', savedItemId);
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data: null, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Removes a saved product by user ID and product ID.
+ */
+export async function unsaveProduct(
+  userId: string,
+  productId: string
+): Promise<SupabaseServiceResponse<null>> {
+  try {
+    const { error } = await supabase
+      .from('cakegenie_saved_items')
+      .delete()
+      .eq('user_id', userId)
+      .eq('product_id', productId);
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data: null, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Removes a saved custom design by user ID and analysis p_hash.
+ */
+export async function unsaveCustomDesign(
+  userId: string,
+  analysisPHash: string
+): Promise<SupabaseServiceResponse<null>> {
+  try {
+    const { error } = await supabase
+      .from('cakegenie_saved_items')
+      .delete()
+      .eq('user_id', userId)
+      .eq('analysis_p_hash', analysisPHash);
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data: null, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Checks if a product is saved for a user.
+ */
+export async function isProductSaved(
+  userId: string,
+  productId: string
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_saved_items')
+      .select('saved_item_id')
+      .eq('user_id', userId)
+      .eq('product_id', productId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error checking if product is saved:', error);
+      return false;
+    }
+    return data !== null;
+  } catch (err) {
+    console.error('Exception checking if product is saved:', err);
+    return false;
+  }
+}
+
+/**
+ * Checks if a custom design is saved for a user.
+ */
+export async function isCustomDesignSaved(
+  userId: string,
+  analysisPHash: string
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_saved_items')
+      .select('saved_item_id')
+      .eq('user_id', userId)
+      .eq('analysis_p_hash', analysisPHash)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error checking if custom design is saved:', error);
+      return false;
+    }
+    return data !== null;
+  } catch (err) {
+    console.error('Exception checking if custom design is saved:', err);
+    return false;
+  }
+}
+
+
+// --- Merchant/Partner Functions ---
+
+/**
+ * Fetches all active merchants.
+ * @param city Optional city filter
+ */
+export async function getMerchants(
+  city?: string
+): Promise<SupabaseServiceResponse<CakeGenieMerchant[]>> {
+  try {
+    let query = supabase
+      .from('cakegenie_merchants')
+      .select('*')
+      .eq('is_active', true)
+      .order('rating', { ascending: false });
+
+    if (city) {
+      query = query.eq('city', city);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches a single merchant by their URL slug.
+ * @param slug The URL-friendly identifier
+ */
+export async function getMerchantBySlug(
+  slug: string
+): Promise<SupabaseServiceResponse<CakeGenieMerchant>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_merchants')
+      .select('*')
+      .eq('slug', slug)
+      .eq('is_active', true)
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches a single merchant by their UUID.
+ * @param merchantId The merchant's UUID
+ */
+export async function getMerchantById(
+  merchantId: string
+): Promise<SupabaseServiceResponse<CakeGenieMerchant>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_merchants')
+      .select('*')
+      .eq('merchant_id', merchantId)
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+
+// --- Merchant Product Functions ---
+
+/**
+ * Fetches all active products for a merchant.
+ * @param merchantId The merchant's UUID
+ * @param options Optional filters (category, featured, etc.)
+ */
+export async function getMerchantProducts(
+  merchantId: string,
+  options?: { category?: string; featured?: boolean }
+): Promise<SupabaseServiceResponse<CakeGenieMerchantProduct[]>> {
+  try {
+    let query = supabase
+      .from('cakegenie_merchant_products')
+      .select('*')
+      .eq('merchant_id', merchantId)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+
+    if (options?.category) {
+      query = query.eq('category', options.category);
+    }
+    if (options?.featured) {
+      query = query.eq('is_featured', true);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches products for a merchant by their slug.
+ * @param merchantSlug The merchant's URL slug
+ */
+export async function getMerchantProductsBySlug(
+  merchantSlug: string
+): Promise<SupabaseServiceResponse<CakeGenieMerchantProduct[]>> {
+  try {
+    // First get the merchant by slug
+    const { data: merchant, error: merchantError } = await supabase
+      .from('cakegenie_merchants')
+      .select('merchant_id')
+      .eq('slug', merchantSlug)
+      .eq('is_active', true)
+      .single();
+
+    if (merchantError || !merchant) {
+      return { data: null, error: merchantError || new Error('Merchant not found') };
+    }
+
+    // Then get the products
+    const { data, error } = await supabase
+      .from('cakegenie_merchant_products')
+      .select('*')
+      .eq('merchant_id', merchant.merchant_id)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches a single merchant product by its slug.
+ * @param merchantSlug The merchant's URL slug
+ * @param productSlug The product's URL slug
+ */
+export async function getMerchantProductBySlug(
+  merchantSlug: string,
+  productSlug: string
+): Promise<SupabaseServiceResponse<CakeGenieMerchantProduct>> {
+  try {
+    // First get the merchant by slug
+    const { data: merchant, error: merchantError } = await supabase
+      .from('cakegenie_merchants')
+      .select('merchant_id')
+      .eq('slug', merchantSlug)
+      .eq('is_active', true)
+      .single();
+
+    if (merchantError || !merchant) {
+      return { data: null, error: merchantError || new Error('Merchant not found') };
+    }
+
+    // Then get the product
+    const { data, error } = await supabase
+      .from('cakegenie_merchant_products')
+      .select('*')
+      .eq('merchant_id', merchant.merchant_id)
+      .eq('slug', productSlug)
+      .eq('is_active', true)
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches merchant products enriched with analysis cache data.
+ * This combines product info with AI analysis for customization.
+ * @param merchantSlug The merchant's URL slug
+ */
+export async function getMerchantProductsWithCache(
+  merchantSlug: string
+): Promise<SupabaseServiceResponse<(CakeGenieMerchantProduct & { analysis_json?: HybridAnalysisResult; cache_price?: number })[]>> {
+  try {
+    // Get products first
+    const { data: products, error: productsError } = await getMerchantProductsBySlug(merchantSlug);
+
+    if (productsError || !products) {
+      return { data: null, error: productsError };
+    }
+
+    if (products.length === 0) {
+      return { data: [], error: null };
+    }
+
+    // Get unique pHashes to fetch cache data
+    const pHashes = products
+      .filter(p => p.p_hash)
+      .map(p => p.p_hash!);
+
+    if (pHashes.length === 0) {
+      return { data: products, error: null };
+    }
+
+    // Fetch analysis cache data
+    const { data: cacheData } = await supabase
+      .from('cakegenie_analysis_cache')
+      .select('p_hash, analysis_json, price')
+      .in('p_hash', pHashes);
+
+    if (cacheData && cacheData.length > 0) {
+      const cacheMap = new Map(cacheData.map(c => [c.p_hash, c]));
+
+      const enrichedProducts = products.map(product => {
+        if (product.p_hash) {
+          const cached = cacheMap.get(product.p_hash);
+          if (cached) {
+            return {
+              ...product,
+              analysis_json: cached.analysis_json,
+              cache_price: cached.price,
+            };
+          }
+        }
+        return product;
+      });
+
+      return { data: enrichedProducts, error: null };
+    }
+
+    return { data: products, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
   }
 }

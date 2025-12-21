@@ -33,5 +33,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.8,
     }))
 
-    return [...routes, ...designRoutes]
+    // 3. Dynamic routes: Merchants
+    const { data: merchants } = await supabase
+        .from('cakegenie_merchants')
+        .select('slug, updated_at')
+        .eq('is_active', true)
+
+    const merchantRoutes = (merchants || []).map((merchant) => ({
+        url: `${baseUrl}/merchant/${merchant.slug}`,
+        lastModified: merchant.updated_at ? new Date(merchant.updated_at) : new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
+    }))
+
+    // 4. Dynamic routes: Merchant Products
+    const { data: products } = await supabase
+        .from('cakegenie_merchant_products')
+        .select(`
+            slug,
+            updated_at,
+            cakegenie_merchants!inner(slug)
+        `)
+        .eq('is_active', true)
+
+    const productRoutes = (products || []).map((product: any) => ({
+        url: `${baseUrl}/merchant/${product.cakegenie_merchants.slug}/${product.slug}`,
+        lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.6,
+    }))
+
+    return [...routes, ...designRoutes, ...merchantRoutes, ...productRoutes]
+
 }

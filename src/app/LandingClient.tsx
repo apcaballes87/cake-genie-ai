@@ -11,6 +11,7 @@ import { showError, showSuccess, showLoading } from '@/lib/utils/toast';
 import { toast } from 'react-hot-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSavedItemsActions, useSavedItemsData } from '@/contexts/SavedItemsContext';
 import {
     Search,
     ShoppingBag,
@@ -105,6 +106,9 @@ const LandingClient: React.FC = () => {
         clearCustomization
     } = useCakeCustomization();
 
+    const { toggleSaveDesign, isDesignSaved } = useSavedItemsActions();
+    const { savedDesignHashes } = useSavedItemsData();
+
     const [recommendedProducts, setRecommendedProducts] = useState<any[]>([]);
     const [isLoadingProducts, setIsLoadingProducts] = useState(true);
 
@@ -151,7 +155,12 @@ const LandingClient: React.FC = () => {
     };
 
 
-    const handleRecommendedProductClick = async (item: any) => {
+    const handleRecommendedProductClick = async (e: React.MouseEvent | React.TouchEvent, item: any) => {
+        // Prevent if we clicked the heart button or any of its children
+        if ((e.target as HTMLElement).closest('button.save-heart-button')) {
+            return;
+        }
+
         if (!item.original_image_url) return;
 
         const toastId = showLoading('Loading design...');
@@ -741,7 +750,7 @@ const LandingClient: React.FC = () => {
                                     {recommendedProducts.map((item, index) => (
                                         <div
                                             key={`${item.p_hash}-${index}`} // Composite key to ensure uniqueness even if duplicates occur
-                                            onClick={() => handleRecommendedProductClick(item)}
+                                            onClick={(e) => handleRecommendedProductClick(e, item)}
                                             className="bg-white p-3 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-100 transition-all duration-300 group cursor-pointer"
                                         >
                                             <div className="relative aspect-square mb-3 rounded-xl overflow-hidden bg-gray-100">
@@ -755,8 +764,37 @@ const LandingClient: React.FC = () => {
                                                 {/* Overlay Gradient on Hover */}
                                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
 
-                                                <button className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-red-50 hover:text-red-500 transition-colors">
-                                                    <Heart size={16} className="text-gray-600" />
+                                                <button
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        e.preventDefault();
+                                                        if (!isAuthenticated || user?.is_anonymous) {
+                                                            toast('Please log in to save items', { icon: '💜' });
+                                                            router.push('/login');
+                                                            return;
+                                                        }
+
+                                                        // Use the custom design toggle since these are recent searches (custom designs)
+                                                        const pHash = item.p_hash || item.id;
+                                                        await toggleSaveDesign({
+                                                            analysisPHash: pHash,
+                                                            customizationSnapshot: item.analysis_json || {},
+                                                            customizedImageUrl: item.original_image_url
+                                                        });
+
+                                                        const wasSaved = isDesignSaved(pHash);
+                                                        toast.success(wasSaved ? 'Removed from saved' : 'Saved!');
+                                                    }}
+                                                    className={`save-heart-button absolute top-3 right-3 w-8 h-8 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-all z-10 ${isDesignSaved(item.p_hash || item.id)
+                                                        ? 'bg-red-500 text-white'
+                                                        : 'bg-white/90 text-gray-600 hover:bg-red-50 hover:text-red-500'
+                                                        }`}
+                                                >
+                                                    <Heart
+                                                        size={16}
+                                                        fill={isDesignSaved(item.p_hash || item.id) ? 'currentColor' : 'none'}
+                                                        className={isDesignSaved(item.p_hash || item.id) ? 'text-white' : ''}
+                                                    />
                                                 </button>
 
                                                 {/* Tag based on price or random for now since we don't have tags in DB yet */}
@@ -991,7 +1029,7 @@ const LandingClient: React.FC = () => {
                 </button>
 
                 <button
-                    onClick={() => { setActiveTab('wishlist'); }}
+                    onClick={() => { setActiveTab('wishlist'); router.push('/saved'); }}
                     className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'wishlist' ? 'text-purple-600' : 'hover:text-gray-500'}`}
                 >
                     <Heart size={22} strokeWidth={activeTab === 'wishlist' ? 2.5 : 2} />

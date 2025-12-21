@@ -44,8 +44,8 @@ const AccountClient: React.FC = () => {
         },
         {
             icon: Heart,
-            label: 'My Saved Designs',
-            path: '/account/saved-designs',
+            label: 'My Saved',
+            path: '/saved',
         },
         {
             icon: LogOut,

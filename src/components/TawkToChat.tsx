@@ -17,6 +17,22 @@ export default function TawkToChat() {
         window.Tawk_API = window.Tawk_API || {};
         window.Tawk_LoadStart = new Date();
 
+        // Adjust widget position (20px above current/default)
+        window.Tawk_API.customStyle = {
+            visibility: {
+                desktop: {
+                    position: 'br', // bottom right
+                    xOffset: 15,
+                    yOffset: 35   // Default is usually ~15-20, so 35-40
+                },
+                mobile: {
+                    position: 'br',
+                    xOffset: 15,
+                    yOffset: 95   // To clear mobile bottom nav (estimated at 70-80px + padding)
+                }
+            }
+        };
+
         // Create and inject the Tawk.to script
         const script = document.createElement('script');
         script.async = true;

@@ -1131,47 +1131,73 @@ This is SPEED MODE - only identify what items exist, not where they are.
         };
 
 
-        // Create a timeout promise
-        const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('AI analysis timed out. Please try again.')), 25000)
-        );
+        // Retry configuration: up to 2 retries with longer timeout
+        const MAX_RETRIES = 2;
+        const ANALYSIS_TIMEOUT_MS = 45000; // 45 seconds (increased from 25s)
 
-        // Race the AI call against the timeout
-        const responseCallback = getAI().models.generateContent({
-            model: "gemini-3-flash-preview",
-            contents: [{
-                parts: [
-                    { inlineData: { mimeType, data: base64ImageData } },
-                    { text: FAST_FEATURES_PROMPT },
-                ],
-            }],
-            config: {
-                systemInstruction: "You are a fast cake feature identifier. Identify features quickly without calculating coordinates. Set all x,y to 0.",
-                responseMimeType: 'application/json',
-                responseSchema: fastAnalysisSchema,
-                temperature: 0,
-            },
-        });
+        let lastError: Error | null = null;
 
-        // Use Promise.race to enforce timeout
-        const response = await Promise.race([responseCallback, timeoutPromise]);
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                if (attempt > 0) {
+                    console.log(`🔄 Retry attempt ${attempt}/${MAX_RETRIES} for AI analysis...`);
+                }
 
-        const jsonText = (response.text || '').trim();
-        const result = JSON.parse(jsonText);
+                // Create a timeout promise
+                const timeoutPromise = new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error('AI analysis timed out. Please try again.')), ANALYSIS_TIMEOUT_MS)
+                );
 
-        if (result.rejection?.isRejected) {
-            throw new Error(result.rejection.message || "The uploaded image is not suitable for processing.");
-        }
+                // Race the AI call against the timeout
+                const responseCallback = getAI().models.generateContent({
+                    model: "gemini-3-flash-preview",
+                    contents: [{
+                        parts: [
+                            { inlineData: { mimeType, data: base64ImageData } },
+                            { text: FAST_FEATURES_PROMPT },
+                        ],
+                    }],
+                    config: {
+                        systemInstruction: "You are a fast cake feature identifier. Identify features quickly without calculating coordinates. Set all x,y to 0.",
+                        responseMimeType: 'application/json',
+                        responseSchema: fastAnalysisSchema,
+                        temperature: 0,
+                    },
+                });
 
-        const requiredFields = ['main_toppers', 'support_elements', 'cake_messages', 'icing_design', 'cakeType', 'cakeThickness'];
-        for (const field of requiredFields) {
-            if (result[field] === undefined) {
-                console.error("Analysis validation error: Missing field", field);
-                throw new Error("The AI returned an incomplete analysis. Please try a different image.");
+                // Use Promise.race to enforce timeout
+                const response = await Promise.race([responseCallback, timeoutPromise]);
+
+                const jsonText = (response.text || '').trim();
+                const result = JSON.parse(jsonText);
+
+                if (result.rejection?.isRejected) {
+                    throw new Error(result.rejection.message || "The uploaded image is not suitable for processing.");
+                }
+
+                const requiredFields = ['main_toppers', 'support_elements', 'cake_messages', 'icing_design', 'cakeType', 'cakeThickness'];
+                for (const field of requiredFields) {
+                    if (result[field] === undefined) {
+                        console.error("Analysis validation error: Missing field", field);
+                        throw new Error("The AI returned an incomplete analysis. Please try a different image.");
+                    }
+                }
+
+                return result as HybridAnalysisResult;
+
+            } catch (error) {
+                lastError = error as Error;
+                // Only retry on timeout errors, not on validation/rejection errors
+                if (lastError.message.includes('timed out') && attempt < MAX_RETRIES) {
+                    continue;
+                }
+                throw error;
             }
         }
 
-        return result as HybridAnalysisResult;
+        // If we exhausted all retries
+        throw lastError || new Error('AI analysis failed after multiple attempts.');
+
 
     } catch (error) {
         console.error("Error in fast feature analysis:", error);

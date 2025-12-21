@@ -1,36 +1,76 @@
-'use strict';
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useParams, useRouter } from 'next/navigation';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import { ImageUploader } from '@/components/ImageUploader';
-import { ProductCard } from '@/components/ProductCard';
-import { MapPin, Phone, Star, ShoppingBag } from 'lucide-react';
+import { MapPin, Phone, Star, ShoppingBag, BadgeCheck, Loader2, Heart, Cake } from 'lucide-react';
+import { getMerchantBySlug, getMerchantProductsWithCache } from '@/services/supabaseService';
+import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.types';
+import { HybridAnalysisResult } from '@/types';
+import LazyImage from '@/components/LazyImage';
+import { useImageManagement } from '@/contexts/ImageContext';
+import { useCakeCustomization } from '@/contexts/CustomizationContext';
+import { showError, showLoading } from '@/lib/utils/toast';
+import { toast } from 'react-hot-toast';
 
-// Mock Data
-const MOCK_MERCHANT = {
-    name: "Sweet Creations by Anna",
-    coverImage: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?q=80&w=2000&auto=format&fit=crop",
-    profileImage: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=400&auto=format&fit=crop",
-    address: "123 Baker Street, Quezon City, Metro Manila",
-    phone: "+63 912 345 6789",
-    rating: 4.8,
-    reviewCount: 156,
-};
+interface MerchantPageClientProps {
+    slug?: string;
+}
 
-const MOCK_PRODUCTS = [
-    { id: 1, name: "Minimalist Birthday Cake", price: 850, image: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?q=80&w=800&auto=format&fit=crop", rating: 4.9, cakeType: "Minimalist", tag: "Best Seller" },
-    { id: 2, name: "Chocolate Drip Cake", price: 1200, image: "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?q=80&w=800&auto=format&fit=crop", rating: 5.0, cakeType: "Choco Drip", tag: null },
-    { id: 3, name: "Rainbow Layer Cake", price: 1500, image: "https://images.unsplash.com/photo-1535141192574-5d4897c12636?q=80&w=800&auto=format&fit=crop", rating: 4.7, cakeType: "Layered", tag: "New" },
-    { id: 4, name: "Strawberry Shortcake", price: 950, image: "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?q=80&w=800&auto=format&fit=crop", rating: 4.8, cakeType: "Classic", tag: "Trending" },
-    { id: 5, name: "Custom Character Cake", price: 2000, image: "https://images.unsplash.com/photo-1621303837174-89787a7d4729?q=80&w=800&auto=format&fit=crop", rating: 5.0, cakeType: "Custom", tag: null },
-    { id: 6, name: "Wedding Tier Cake", price: 5000, image: "https://images.unsplash.com/photo-1535254973040-607b474cb50d?q=80&w=800&auto=format&fit=crop", rating: 5.0, cakeType: "Wedding", tag: "Premium" },
-];
+export function MerchantPageClient({ slug }: MerchantPageClientProps) {
+    const params = useParams();
+    const router = useRouter();
+    const merchantSlug = slug || (params?.slug as string) || 'sweet-delights';
 
-export function MerchantPageClient() {
     const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [merchant, setMerchant] = useState<CakeGenieMerchant | null>(null);
+    const [products, setProducts] = useState<(CakeGenieMerchantProduct & { analysis_json?: HybridAnalysisResult })[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [isLoadingProduct, setIsLoadingProduct] = useState(false);
+
+    // Image and Customization contexts - same as landing page
+    const { handleImageUpload: hookImageUpload, clearImages } = useImageManagement();
+    const {
+        setIsAnalyzing,
+        setAnalysisError,
+        setPendingAnalysisData,
+        initializeDefaultState,
+        clearCustomization
+    } = useCakeCustomization();
+
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            setError(null);
+
+            // Fetch merchant
+            const { data: merchantData, error: merchantError } = await getMerchantBySlug(merchantSlug);
+
+            if (merchantError || !merchantData) {
+                setError('Merchant not found');
+                setIsLoading(false);
+                return;
+            }
+
+            setMerchant(merchantData);
+
+            // Fetch products with cache data for precomputed analysis
+            const { data: productsData } = await getMerchantProductsWithCache(merchantSlug);
+            if (productsData) {
+                setProducts(productsData);
+            }
+
+            setIsLoading(false);
+        };
+
+        fetchData();
+    }, [merchantSlug]);
+
 
     const handleSearch = (query: string) => {
         console.log('Searching for:', query);
@@ -43,20 +83,101 @@ export function MerchantPageClient() {
         setIsUploadOpen(false);
     };
 
+    const getProductTag = (product: CakeGenieMerchantProduct): string | null => {
+        if (product.is_featured) return 'Featured';
+        if (product.availability === 'made_to_order') return 'Made to Order';
+        return null;
+    };
+
+    // Handle product click - SAME FLOW AS LANDING PAGE
+    // hookImageUpload handles: precomputed → pHash cache check → AI analysis fallback
+    const handleProductClick = async (product: CakeGenieMerchantProduct & { analysis_json?: HybridAnalysisResult }) => {
+
+        if (!product.image_url || isLoadingProduct) return;
+
+        const toastId = showLoading('Loading design...');
+        setIsLoadingProduct(true);
+
+        // Clear previous state
+        clearImages();
+        clearCustomization();
+        setIsAnalyzing(true);
+        setAnalysisError(null);
+        initializeDefaultState();
+
+        try {
+            const response = await fetch(product.image_url);
+            const blob = await response.blob();
+            const file = new File([blob], "merchant-product.jpg", { type: blob.type });
+
+            await hookImageUpload(
+                file,
+                (result) => {
+                    toast.dismiss(toastId);
+                    setPendingAnalysisData(result);
+                    setIsAnalyzing(false);
+                    setIsLoadingProduct(false);
+                    router.push('/customizing');
+                },
+                (err) => {
+                    toast.dismiss(toastId);
+                    console.error("Error processing image:", err);
+                    showError("Failed to load design");
+                    setIsLoadingProduct(false);
+                },
+                {
+                    imageUrl: product.image_url,
+                    precomputedAnalysis: product.analysis_json
+                }
+            );
+        } catch (error) {
+            toast.dismiss(toastId);
+            console.error("Error fetching image:", error);
+            showError("Failed to load design");
+            setIsLoadingProduct(false);
+        }
+    };
+
+
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-10 h-10 text-purple-600 animate-spin" />
+                    <p className="text-slate-600">Loading merchant...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error || !merchant) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <div className="text-center">
+                    <h1 className="text-2xl font-bold text-slate-800 mb-2">Merchant Not Found</h1>
+                    <p className="text-slate-600">The bakeshop you're looking for doesn't exist or is no longer active.</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-slate-50 pb-20">
             {/* Hero / Profile Section */}
             <div className="relative bg-white shadow-sm mb-6">
                 {/* Cover Photo */}
                 <div className="h-48 md:h-64 w-full relative overflow-hidden bg-slate-200">
-                    <Image
-                        src={MOCK_MERCHANT.coverImage}
-                        alt="Cover Photo"
-                        fill
-                        sizes="100vw"
-                        className="object-cover"
-                        priority
-                    />
+                    {merchant.cover_image_url && (
+                        <Image
+                            src={merchant.cover_image_url}
+                            alt="Cover Photo"
+                            fill
+                            sizes="100vw"
+                            className="object-cover"
+                            priority
+                        />
+                    )}
                     <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent" />
                 </div>
 
@@ -65,43 +186,58 @@ export function MerchantPageClient() {
                     {/* Profile Picture */}
                     <div className="relative shrink-0 mx-auto md:mx-0">
                         <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-lg overflow-hidden relative bg-white">
-                            <Image
-                                src={MOCK_MERCHANT.profileImage}
-                                alt={MOCK_MERCHANT.name}
-                                fill
-                                sizes="128px"
-                                className="object-cover"
-                            />
+                            {merchant.profile_image_url && (
+                                <Image
+                                    src={merchant.profile_image_url}
+                                    alt={merchant.business_name}
+                                    fill
+                                    sizes="128px"
+                                    className="object-cover"
+                                />
+                            )}
                         </div>
                     </div>
 
                     {/* Text Info */}
                     <div className="flex-1 text-center md:text-left pt-2 md:pt-0 pb-2">
-                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-1">{MOCK_MERCHANT.name}</h1>
+                        <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
+                            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{merchant.business_name}</h1>
+                            {merchant.is_verified && (
+                                <BadgeCheck className="w-6 h-6 text-blue-500" />
+                            )}
+                        </div>
 
                         <div className="flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-6 text-sm text-slate-600 mb-3">
-                            <a
-                                href={`https://maps.google.com/?q=${encodeURIComponent(MOCK_MERCHANT.address)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1.5 hover:text-purple-600 transition-colors"
-                            >
-                                <MapPin className="w-4 h-4 text-purple-500" />
-                                {MOCK_MERCHANT.address}
-                            </a>
-                            <a
-                                href={`tel:${MOCK_MERCHANT.phone}`}
-                                className="flex items-center gap-1.5 hover:text-purple-600 transition-colors"
-                            >
-                                <Phone className="w-4 h-4 text-purple-500" />
-                                {MOCK_MERCHANT.phone}
-                            </a>
+                            {merchant.address && (
+                                <a
+                                    href={`https://maps.google.com/?q=${encodeURIComponent(merchant.address)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1.5 hover:text-purple-600 transition-colors"
+                                >
+                                    <MapPin className="w-4 h-4 text-purple-500" />
+                                    {merchant.address}
+                                </a>
+                            )}
+                            {merchant.phone && (
+                                <a
+                                    href={`tel:${merchant.phone}`}
+                                    className="flex items-center gap-1.5 hover:text-purple-600 transition-colors"
+                                >
+                                    <Phone className="w-4 h-4 text-purple-500" />
+                                    {merchant.phone}
+                                </a>
+                            )}
                             <div className="flex items-center gap-1">
                                 <Star className="w-4 h-4 text-yellow-400" />
-                                <span className="font-medium text-slate-900">{MOCK_MERCHANT.rating}</span>
-                                <span className="text-slate-400">({MOCK_MERCHANT.reviewCount} reviews)</span>
+                                <span className="font-medium text-slate-900">{merchant.rating}</span>
+                                <span className="text-slate-400">({merchant.review_count} reviews)</span>
                             </div>
                         </div>
+
+                        {merchant.description && (
+                            <p className="text-sm text-slate-600 max-w-2xl">{merchant.description}</p>
+                        )}
                     </div>
                 </div>
             </div>
@@ -116,8 +252,8 @@ export function MerchantPageClient() {
                             value={searchQuery}
                             onChange={setSearchQuery}
                             onSearch={handleSearch}
-                            placeholder={`Search ${MOCK_MERCHANT.name}...`}
-                            showUploadButton={false} // We have a separate big button
+                            placeholder={`Search ${merchant.business_name}...`}
+                            showUploadButton={false}
                             inputClassName="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-400 focus:outline-none transition-all"
                         />
                     </div>
@@ -139,13 +275,71 @@ export function MerchantPageClient() {
                     <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
                         <ShoppingBag className="w-6 h-6 text-purple-600" />
                         Available Cakes
+                        {products.length > 0 && (
+                            <span className="text-sm font-normal text-slate-500">({products.length} items)</span>
+                        )}
                     </h2>
 
-                    <div className="grid grid-cols-2 min-[490px]:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5 lg:gap-6">
-                        {MOCK_PRODUCTS.map((product) => (
-                            <ProductCard key={product.id} {...product} />
-                        ))}
-                    </div>
+                    {products.length === 0 ? (
+                        <div className="text-center py-12 bg-white rounded-2xl border border-slate-100">
+                            <ShoppingBag className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                            <p className="text-slate-600">No products available yet.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 min-[490px]:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5 lg:gap-6">
+                            {products.map((product) => (
+                                <div
+                                    key={product.product_id}
+                                    onClick={() => handleProductClick(product)}
+                                    className="bg-white p-3 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-100 transition-all duration-300 group cursor-pointer h-full flex flex-col"
+                                >
+                                    <div className="relative aspect-square mb-3 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                                        <LazyImage
+                                            src={product.image_url || '/placeholder-cake.png'}
+                                            alt={product.alt_text || product.title}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                            sizes="(max-width: 490px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                                        />
+
+                                        {/* Overlay Gradient on Hover */}
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
+
+                                        {/* Save Button */}
+                                        <button
+                                            aria-label="Save this cake"
+                                            className="absolute top-3 right-3 w-8 h-8 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-all z-10 bg-white/90 text-gray-600 hover:bg-red-50 hover:text-red-500"
+                                        >
+                                            <Heart size={16} />
+                                        </button>
+
+                                        {/* Tag Badge */}
+                                        {getProductTag(product) && (
+                                            <span className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-md text-gray-900 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold shadow-sm z-10">
+                                                {getProductTag(product)}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="px-1 flex flex-col flex-1">
+                                        <h3 className="font-bold text-gray-900 text-sm md:text-base leading-tight mb-1 line-clamp-2 group-hover:text-purple-600 transition-colors">
+                                            {product.title}
+                                        </h3>
+                                        <p className="text-xs text-gray-500 flex items-center gap-1 mb-auto">
+                                            <Cake size={12} /> {product.cake_type || 'Custom Design'}
+                                        </p>
+                                        <div className="flex justify-between items-end border-t border-gray-50 pt-3 mt-3">
+                                            <span className="font-black text-gray-900 text-base md:text-lg">
+                                                ₱{(product.custom_price || 0).toLocaleString()}
+                                            </span>
+                                            <div className="flex items-center gap-1 text-xs font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-lg">
+                                                <Star size={12} fill="currentColor" /> 5.0
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </section>
 
             </main>

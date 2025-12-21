@@ -3,7 +3,7 @@
 import React, { Dispatch, SetStateAction, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
-import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide } from 'lucide-react';
+import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Heart } from 'lucide-react';
 import { CustomizationPills } from '../../components/CustomizationPills';
 import { CustomizationBottomSheet } from '../../components/CustomizationBottomSheet';
 import { SegmentationOverlay } from '../../components/SegmentationOverlay';
@@ -36,6 +36,7 @@ import { useCakeCustomization } from '@/contexts/CustomizationContext';
 import { useImageManagement } from '@/contexts/ImageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
+import { useSavedItemsActions, useSavedItemsData } from '@/contexts/SavedItemsContext';
 import { usePricing } from '@/hooks/usePricing';
 import { useDesignUpdate } from '@/hooks/useDesignUpdate';
 import { useDesignSharing } from '@/hooks/useDesignSharing';
@@ -527,6 +528,8 @@ const CustomizingClient: React.FC = () => {
     const { user, isAuthenticated, signOut } = useAuth();
     const { itemCount: supabaseItemCount, addToCartOptimistic, removeItemOptimistic, authError, isLoading: isCartLoading } = useCart();
     const { settings: availabilitySettings, loading: isLoadingAvailabilitySettings } = useAvailabilitySettings();
+    const { toggleSaveDesign, isDesignSaved } = useSavedItemsActions();
+    const { savedDesignHashes } = useSavedItemsData();
 
     const {
         cakeInfo, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions,
@@ -567,6 +570,8 @@ const CustomizingClient: React.FC = () => {
     // --- Refs ---
     const accountMenuRef = useRef<HTMLDivElement>(null);
     const mainImageContainerRef = useRef<HTMLDivElement>(null);
+    const isLoadingDesignRef = useRef(false); // Guard against duplicate analysis calls
+
 
     // --- Hooks ---
     const { addOnPricing, itemPrices, basePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice } = usePricing({
@@ -630,10 +635,242 @@ const CustomizingClient: React.FC = () => {
     // Handle "Customize This Design" flow (loading from URL ref) - Shopify/external integrations
     useEffect(() => {
         const refUrl = searchParams.get('ref');
-        if (refUrl && !originalImageData && !isImageManagementLoading) {
+        const fromSaved = searchParams.get('fromSaved') === 'true';
+        const fromMerchant = searchParams.get('fromMerchant') === 'true';
+
+        // Guard against duplicate calls (e.g., from React strict mode or URL changes)
+
+        if (isLoadingDesignRef.current) {
+            console.log("⏸️ Design load already in progress, skipping duplicate call");
+            return;
+        }
+
+        // If fromSaved or fromMerchant is true, we proceed even if originalImageData exists (to override stale persistence)
+        if (refUrl && (!originalImageData || fromSaved || fromMerchant) && !isImageManagementLoading) {
+
             const decodedUrl = decodeURIComponent(refUrl);
+            const pathname = window.location.pathname;
+
+
+            // If coming from Saved page, try to restore state from localStorage without re-analysis
+            if (fromSaved) {
+                // Set loading guard FIRST before any side effects
+                isLoadingDesignRef.current = true;
+
+                console.log("🔄 Loading saved design, overriding any existing state...");
+
+
+                // Clear any existing stale image/customization data first
+                clearImages();
+
+                clearCustomization();
+
+                // Remove fromSaved param to prevent infinite loop (since we just cleared images)
+                // We use replace to update URL without adding to history
+                const newParams = new URLSearchParams(searchParams.toString());
+                newParams.delete('fromSaved');
+                router.replace(`${pathname}?${newParams.toString()}`);
+
+                try {
+                    const savedData = localStorage.getItem('cakegenie_restore_saved');
+                    if (savedData) {
+                        const parsed = JSON.parse(savedData);
+                        // Validate. Ideally we check URL match, but if user clicked "saved", 
+                        // they want THAT saved item. The localStorage should have just been set by SavedClient.
+                        // We trust it if it's recent.
+                        if (Date.now() - parsed.timestamp < 5 * 60 * 1000) {
+                            if (parsed.imageUrl !== decodedUrl) {
+                                console.warn("⚠️ Saved data URL mismatch, but proceeding with saved data intent.");
+                            }
+
+                            console.log("✅ Loading saved design with full analysis...");
+
+                            // Show loading state
+                            setIsAnalyzing(true);
+                            showInfo("Loading your saved design...");
+
+                            // Fetch the image and trigger full analysis (same as non-saved path)
+                            const fetchSavedDesign = async () => {
+                                try {
+                                    // Try direct fetch first
+                                    let blob: Blob | null = null;
+                                    try {
+                                        const response = await fetch(parsed.imageUrl);
+                                        if (response.ok) {
+                                            blob = await response.blob();
+                                        }
+                                    } catch {
+                                        // Fall back to proxy
+                                        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(parsed.imageUrl)}`;
+                                        const response = await fetch(proxyUrl);
+                                        if (response.ok) {
+                                            blob = await response.blob();
+                                        }
+                                    }
+
+                                    if (!blob) throw new Error("Failed to load image");
+
+                                    const file = new File([blob], 'saved-design.webp', { type: blob.type || 'image/webp' });
+
+                                    // Check if we have precomputed analysis from cache
+                                    const hasPrecomputedAnalysis = parsed.cachedAnalysis != null;
+                                    if (hasPrecomputedAnalysis) {
+                                        console.log("🚀 Using precomputed analysis from cache - skipping AI call!");
+                                    }
+
+                                    // Use hookImageUpload with precomputedAnalysis if available
+                                    await hookImageUpload(
+                                        file,
+                                        (result) => {
+                                            console.log("✅ Design loaded for saved item");
+                                            setPendingAnalysisData(result);
+                                            setIsAnalyzing(false);
+                                            // Keep guard TRUE - don't reset, to prevent normal path from running
+                                            showSuccess("Design loaded!");
+                                        },
+
+                                        (err) => {
+                                            console.error("Analysis failed:", err);
+                                            showError("Failed to analyze saved design.");
+                                            setIsAnalyzing(false);
+                                            isLoadingDesignRef.current = false; // Reset guard
+                                        },
+                                        {
+                                            imageUrl: parsed.imageUrl,
+                                            precomputedAnalysis: parsed.cachedAnalysis || undefined
+                                        }
+                                    );
+
+                                } catch (err) {
+                                    console.error("Failed to load saved design:", err);
+                                    showError("Failed to load saved design.");
+                                    setIsAnalyzing(false);
+                                    isLoadingDesignRef.current = false; // Reset guard
+                                }
+                            };
+
+
+                            fetchSavedDesign();
+
+                            // Clean up localStorage
+                            localStorage.removeItem('cakegenie_restore_saved');
+
+                            return; // Skip normal flow
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to parse saved design data:', e);
+                    isLoadingDesignRef.current = false; // Reset guard on error
+                }
+                // Whether localStorage succeeded or failed, we should NOT fall through
+                // to the normal loading path when fromSaved is true.
+                // Clean up and return - the user can try again if it failed.
+                localStorage.removeItem('cakegenie_restore_saved');
+                return; // Always return for fromSaved to prevent duplicate loads
+            }
+
+            // Handle merchant product clicks
+            if (fromMerchant) {
+                // Set loading guard FIRST before any side effects
+                isLoadingDesignRef.current = true;
+
+                console.log("🏪 Loading merchant product...");
+
+                // Clear any existing stale image/customization data first
+                clearImages();
+                clearCustomization();
+
+                // Remove fromMerchant param to prevent infinite loop
+                const newParams = new URLSearchParams(searchParams.toString());
+                newParams.delete('fromMerchant');
+                router.replace(`${pathname}?${newParams.toString()}`);
+
+                try {
+                    const merchantData = localStorage.getItem('cakegenie_merchant_product');
+                    if (merchantData) {
+                        const parsed = JSON.parse(merchantData);
+                        // Validate timestamp (5 minutes)
+                        if (Date.now() - parsed.timestamp < 5 * 60 * 1000 && parsed.imageUrl) {
+                            console.log("✅ Loading merchant product:", parsed.productName);
+
+                            // Show loading state
+                            setIsAnalyzing(true);
+                            showInfo(`Loading ${parsed.productName || 'product'}...`);
+
+                            // Fetch the image and trigger analysis
+                            const fetchMerchantProduct = async () => {
+                                try {
+                                    let blob: Blob | null = null;
+                                    try {
+                                        const response = await fetch(parsed.imageUrl);
+                                        if (response.ok) {
+                                            blob = await response.blob();
+                                        }
+                                    } catch {
+                                        console.log("Direct fetch failed, trying proxy...");
+                                    }
+
+                                    if (!blob) {
+                                        // Fallback to storage proxy
+                                        const proxyResponse = await fetch(`/api/proxy?url=${encodeURIComponent(parsed.imageUrl)}`);
+                                        if (proxyResponse.ok) {
+                                            blob = await proxyResponse.blob();
+                                        }
+                                    }
+
+                                    if (!blob) {
+                                        throw new Error('Failed to fetch product image');
+                                    }
+
+                                    const file = new File([blob], 'merchant-product.jpg', { type: blob.type || 'image/jpeg' });
+
+                                    // Use hookImageUpload to trigger full analysis
+                                    // If the product has a p_hash, we could fetch cached analysis, but for now let's do full analysis
+                                    hookImageUpload(
+                                        file,
+                                        () => {
+                                            console.log("✅ Merchant product loaded");
+                                            setIsAnalyzing(false);
+                                            showSuccess("Product loaded!");
+                                            // Guard stays true to prevent normal path from running
+                                        },
+
+                                        (error) => {
+                                            console.error("Error processing merchant product:", error);
+                                            showError("Failed to load product");
+                                            setIsAnalyzing(false);
+                                            isLoadingDesignRef.current = false;
+                                        },
+                                        { imageUrl: parsed.imageUrl }
+                                    );
+
+                                } catch (err) {
+                                    console.error("Failed to load merchant product:", err);
+                                    showError("Failed to load product.");
+                                    setIsAnalyzing(false);
+                                    isLoadingDesignRef.current = false;
+                                }
+                            };
+
+                            fetchMerchantProduct();
+                            localStorage.removeItem('cakegenie_merchant_product');
+                            return; // Skip normal flow
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to parse merchant product data:', e);
+                    isLoadingDesignRef.current = false;
+                }
+
+                localStorage.removeItem('cakegenie_merchant_product');
+                return; // Always return for fromMerchant to prevent duplicate loads
+            }
+
+
+
 
             // Check if we already have a completed analysis for this exact image
+
             const savedAnalysis = localStorage.getItem('cakegenie_analysis');
             if (savedAnalysis) {
                 try {
@@ -766,10 +1003,16 @@ const CustomizingClient: React.FC = () => {
     const onClose = () => {
         if (searchParams.get('from') === 'search') {
             router.back();
+        } else if (sessionStorage.getItem('cakegenie_from_saved') === 'true') {
+            // If came from saved page, go back to saved
+            sessionStorage.removeItem('cakegenie_from_saved');
+            router.push('/saved');
         } else {
             router.push('/');
         }
     };
+
+
     const onSignOut = () => signOut();
     const onOpenReportModal = () => setIsReportModalOpen(true);
     const onUpdateDesign = handleUpdateDesign;
@@ -1606,6 +1849,90 @@ const CustomizingClient: React.FC = () => {
                                             alt={activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake"}
                                             className="w-full h-full object-contain rounded-lg"
                                         />
+
+                                        {/* Save Design button - top left */}
+                                        {originalImagePreview && analysisResult && (
+                                            <div className="absolute top-3 left-3 z-10">
+                                                <button
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        if (!isAuthenticated || user?.is_anonymous) {
+                                                            showInfo('Please log in to save designs');
+                                                            router.push('/login?redirect=/customizing');
+                                                            return;
+                                                        }
+
+                                                        try {
+                                                            // Get the p_hash from the analysis or generate an identifier
+                                                            const pHash = analysisId || `design-${Date.now()}`;
+                                                            let currentImageUrl = editedImage || originalImagePreview || '';
+
+                                                            // If the image is a data URI, upload it to storage first
+                                                            if (currentImageUrl.startsWith('data:')) {
+                                                                showInfo('Saving design...');
+                                                                const { originalImageUrl, finalImageUrl } = await uploadCartImages({
+                                                                    editedImageDataUri: editedImage || null
+                                                                });
+                                                                currentImageUrl = finalImageUrl;
+                                                            }
+
+                                                            // Build customization snapshot
+                                                            const customizationSnapshot = {
+                                                                flavors: cakeInfo?.flavors || [],
+                                                                mainToppers: mainToppers.filter(t => t.isEnabled).map(t => ({
+                                                                    description: t.description,
+                                                                    type: t.type,
+                                                                    size: t.size
+                                                                })),
+                                                                supportElements: supportElements.filter(e => e.isEnabled).map(e => ({
+                                                                    description: e.description,
+                                                                    type: e.type
+                                                                })),
+                                                                cakeMessages: cakeMessages.filter(m => m.isEnabled).map(m => ({
+                                                                    text: m.text,
+                                                                    color: m.color
+                                                                })),
+                                                                icingDesign: {
+                                                                    drip: icingDesign?.drip || false,
+                                                                    gumpasteBaseBoard: icingDesign?.gumpasteBaseBoard || false,
+                                                                    colors: icingDesign?.colors
+                                                                        ? Object.entries(icingDesign.colors).reduce((acc, [k, v]) => {
+                                                                            if (v) acc[k] = v;
+                                                                            return acc;
+                                                                        }, {} as Record<string, string>)
+                                                                        : {}
+                                                                },
+                                                                additionalInstructions: additionalInstructions || ''
+                                                            };
+
+                                                            await toggleSaveDesign({
+                                                                analysisPHash: pHash,
+                                                                customizationSnapshot: customizationSnapshot,
+                                                                customizedImageUrl: currentImageUrl
+                                                            });
+
+                                                            const wasSaved = isDesignSaved(pHash);
+                                                            showSuccess(wasSaved ? 'Removed from saved' : 'Design saved!');
+                                                        } catch (err) {
+                                                            console.error('Failed to save design:', err);
+                                                            showError('Failed to save design. Please try again.');
+                                                        }
+                                                    }}
+
+                                                    className={`backdrop-blur-sm rounded-full text-[10px] max-[360px]:text-[8px] font-semibold transition-all shadow-md px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5 flex items-center gap-1 ${isDesignSaved(analysisId || '')
+                                                        ? 'bg-red-500 text-white hover:bg-red-600'
+                                                        : 'bg-white/90 text-slate-700 hover:bg-red-50 hover:text-red-500'
+                                                        }`}
+                                                    aria-label={isDesignSaved(analysisId || '') ? 'Remove from saved' : 'Save this design'}
+                                                >
+                                                    <Heart
+                                                        className="w-3 h-3 max-[360px]:w-2.5 max-[360px]:h-2.5"
+                                                        fill={isDesignSaved(analysisId || '') ? 'currentColor' : 'none'}
+                                                    />
+                                                    {isDesignSaved(analysisId || '') ? 'Saved' : 'Save'}
+                                                </button>
+                                            </div>
+                                        )}
 
                                         {/* Undo button */}
                                         <div className="absolute top-3 right-3 z-10 flex gap-2">

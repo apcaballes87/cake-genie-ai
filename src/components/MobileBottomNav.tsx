@@ -4,6 +4,7 @@ import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Home, Cake, ImagePlus, Heart, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSavedItemsData } from '@/contexts/SavedItemsContext';
 
 interface MobileBottomNavProps {
     onUploadClick?: () => void;
@@ -13,12 +14,14 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
     const router = useRouter();
     const pathname = usePathname();
     const { isAuthenticated, user } = useAuth();
+    const { savedItems } = useSavedItemsData();
 
     // Determine active tab based on current path
     const getActiveTab = (): string => {
         if (pathname === '/') return 'home';
         if (pathname === '/customizing') return 'customize';
         if (pathname === '/search') return 'search';
+        if (pathname === '/saved') return 'saved';
         if (pathname?.startsWith('/account')) return 'profile';
         return 'home';
     };
@@ -31,6 +34,14 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
         } else {
             // If no upload handler provided, navigate to home and trigger upload there
             router.push('/?upload=true');
+        }
+    };
+
+    const handleSavedClick = () => {
+        if (isAuthenticated && !user?.is_anonymous) {
+            router.push('/saved');
+        } else {
+            router.push('/login?redirect=/saved');
         }
     };
 
@@ -61,10 +72,17 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
             </button>
 
             <button
-                onClick={() => { }}
-                className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'wishlist' ? 'text-purple-600' : 'hover:text-gray-500'}`}
+                onClick={handleSavedClick}
+                className={`flex flex-col items-center gap-1 transition-colors relative ${activeTab === 'saved' ? 'text-purple-600' : 'hover:text-gray-500'}`}
             >
-                <Heart size={22} strokeWidth={activeTab === 'wishlist' ? 2.5 : 2} />
+                <div className="relative">
+                    <Heart size={22} strokeWidth={activeTab === 'saved' ? 2.5 : 2} fill={activeTab === 'saved' ? 'currentColor' : 'none'} />
+                    {savedItems.length > 0 && (
+                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                            {savedItems.length > 9 ? '9+' : savedItems.length}
+                        </span>
+                    )}
+                </div>
                 <span className="text-[9px] font-bold">Saved</span>
             </button>
 
@@ -80,3 +98,4 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
 };
 
 export default MobileBottomNav;
+

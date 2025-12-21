@@ -179,3 +179,106 @@ export interface CakeGenieOrderItem {
   created_at: string; // ISO 8601 timestamp
   updated_at: string; // ISO 8601 timestamp
 }
+
+/**
+ * Represents a saved item (wishlist/favorites) in the `cakegenie_saved_items` table.
+ */
+export interface CakeGenieSavedItem {
+  saved_item_id: string; // UUID
+  user_id: string; // UUID
+  // For catalog products
+  product_id: string | null;
+  product_name: string | null;
+  product_price: number | null;
+  product_image: string | null;
+  // For custom designs
+  analysis_p_hash: string | null;
+  customization_snapshot: CustomizationDetails | null;
+  customized_image_url: string | null;
+  // Common fields
+  item_type: 'product' | 'custom_design';
+  created_at: string; // ISO 8601 timestamp
+}
+
+/**
+ * Represents a merchant/bakeshop partner in the `cakegenie_merchants` table.
+ */
+export interface CakeGenieMerchant {
+  merchant_id: string; // UUID
+  user_id: string | null; // UUID - optional link to auth user
+  business_name: string;
+  slug: string;
+  description: string | null;
+  cover_image_url: string | null;
+  profile_image_url: string | null;
+  address: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  phone: string | null;
+  email: string | null;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  rating: number;
+  review_count: number;
+  is_verified: boolean;
+  is_active: boolean;
+  min_order_lead_days: number;
+  delivery_fee: number;
+  created_at: string; // ISO 8601 timestamp
+  updated_at: string; // ISO 8601 timestamp
+}
+
+/**
+ * Availability status for merchant products.
+ */
+export type ProductAvailability = 'in_stock' | 'out_of_stock' | 'preorder' | 'made_to_order';
+
+/**
+ * Represents a curated cake product in a merchant's catalog.
+ * References cakegenie_analysis_cache via p_hash for AI analysis data.
+ */
+export interface CakeGenieMerchantProduct {
+  product_id: string; // UUID
+  merchant_id: string; // UUID
+  p_hash: string | null; // Link to analysis_cache
+
+  // Core Content
+  title: string;
+  slug: string;
+  short_description: string | null;
+  long_description: string | null;
+
+  // Image SEO
+  image_url: string | null;
+  alt_text: string | null;
+  image_caption: string | null;
+
+  // SEO Meta
+  meta_keywords: string | null;
+  og_title: string | null;
+  og_description: string | null;
+
+  // Structured Data (Schema.org)
+  brand: string | null;
+  sku: string | null;
+  gtin: string | null;
+
+  // Categorization
+  tags: string[] | null;
+  category: string | null;
+  cake_type: string | null;
+
+  // Pricing & Availability
+  custom_price: number | null;
+  availability: ProductAvailability;
+
+  // Display & Management
+  is_featured: boolean;
+  is_active: boolean;
+  sort_order: number;
+
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+}
