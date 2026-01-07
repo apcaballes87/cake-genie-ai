@@ -209,6 +209,8 @@ export interface CartItem {
   totalPrice: number;
   details: CartItemDetails;
   errorMessage?: string;
+  merchant_id?: string | null;
+  merchant_name?: string;
 }
 
 export interface AddOnPricing {

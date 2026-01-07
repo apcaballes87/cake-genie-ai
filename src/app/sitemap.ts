@@ -40,7 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .eq('is_active', true)
 
     const merchantRoutes = (merchants || []).map((merchant) => ({
-        url: `${baseUrl}/merchant/${merchant.slug}`,
+        url: `${baseUrl}/shop/${merchant.slug}`,
         lastModified: merchant.updated_at ? new Date(merchant.updated_at) : new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.7,
@@ -57,12 +57,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .eq('is_active', true)
 
     const productRoutes = (products || []).map((product: any) => ({
-        url: `${baseUrl}/merchant/${product.cakegenie_merchants.slug}/${product.slug}`,
+        url: `${baseUrl}/shop/${product.cakegenie_merchants.slug}/${product.slug}`,
         lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.6,
     }))
 
-    return [...routes, ...designRoutes, ...merchantRoutes, ...productRoutes]
+    // 5. Dynamic routes: Product Customize Pages (SEO-friendly customization URLs)
+    const customizeRoutes = (products || []).map((product: any) => ({
+        url: `${baseUrl}/shop/${product.cakegenie_merchants.slug}/${product.slug}/customize`,
+        lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.7, // Higher priority than product detail pages
+    }))
+
+    return [...routes, ...designRoutes, ...merchantRoutes, ...productRoutes, ...customizeRoutes]
 
 }

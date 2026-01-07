@@ -356,22 +356,27 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
 
         if (!dirtyFields.has('cakeInfo')) {
             const getFlavorCount = (type: CakeType): number => {
+                if (!type) return 1;
                 if (type.includes('2 Tier')) return 2;
                 if (type.includes('3 Tier')) return 3;
                 return 1;
             };
-            const flavorCount = getFlavorCount(rawData.cakeType);
+            // Fallback to '1 Tier' if cakeType is missing from analysis
+            const cakeType: CakeType = rawData.cakeType || '1 Tier';
+            // Fallback to default thickness for the cake type
+            const cakeThickness = rawData.cakeThickness || DEFAULT_THICKNESS_MAP[cakeType] || '3 in';
+            const flavorCount = getFlavorCount(cakeType);
             const initialFlavors: CakeFlavor[] = Array(flavorCount).fill('Chocolate Cake');
             setCakeInfo({
-                type: rawData.cakeType,
-                thickness: rawData.cakeThickness,
+                type: cakeType,
+                thickness: cakeThickness,
                 flavors: initialFlavors,
-                size: DEFAULT_SIZE_MAP[rawData.cakeType]
+                size: DEFAULT_SIZE_MAP[cakeType] || '6" Round'
             });
         }
 
         if (!dirtyFields.has('mainToppers')) {
-            const newMainToppers = rawData.main_toppers.map((t): MainTopperUI => {
+            const newMainToppers = (rawData.main_toppers || []).map((t): MainTopperUI => {
                 let initialType = t.type;
                 const canBePrintout = ['edible_3d', 'toy', 'figurine', 'edible_photo_top'].includes(t.type);
                 const isCharacterOrLogo = /character|figure|logo|brand/i.test(t.description);
@@ -399,7 +404,7 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
         }
 
         if (!dirtyFields.has('supportElements')) {
-            const newSupportElements = rawData.support_elements.map((s): SupportElementUI => {
+            const newSupportElements = (rawData.support_elements || []).map((s): SupportElementUI => {
                 let initialType = s.type;
                 // Default edible photo wraps to the more common 'support_printout' option first.
                 if (s.type === 'edible_photo_side') {
@@ -424,7 +429,7 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
         }
 
         if (!dirtyFields.has('cakeMessages')) {
-            const newCakeMessages = rawData.cake_messages.map((msg): CakeMessageUI => ({
+            const newCakeMessages = (rawData.cake_messages || []).map((msg): CakeMessageUI => ({
                 ...msg,
                 x: msg.x, // Explicitly carry over x
                 y: msg.y, // Explicitly carry over y
@@ -438,6 +443,12 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
 
         setIcingDesign(prev => {
             const analysisIcing = rawData.icing_design;
+
+            // Guard: If analysisIcing is undefined, preserve current state or use defaults
+            if (!analysisIcing) {
+                return prev || { ...DEFAULT_ICING_DESIGN, dripPrice: 100, gumpasteBaseBoardPrice: 100 };
+            }
+
             if (!prev) return { ...analysisIcing, dripPrice: 100, gumpasteBaseBoardPrice: 100 };
 
             const newIcing = { ...prev, colors: { ...prev.colors } };

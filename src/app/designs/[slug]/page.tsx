@@ -62,6 +62,41 @@ export async function generateMetadata(
     }
 }
 
+// JSON-LD Schema for Shared Design
+function DesignSchema({ design }: { design: any }) {
+
+    const schema = {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: design.title || 'Custom Cake Design',
+        description: design.description || `Custom ${design.cake_type} cake design`,
+        image: design.customized_image_url,
+        brand: {
+            '@type': 'Brand',
+            name: 'Genie.ph'
+        },
+        offers: {
+            '@type': 'Offer',
+            price: design.final_price || 0,
+            priceCurrency: 'PHP',
+            availability: 'https://schema.org/InStock',
+            seller: {
+                '@type': 'Organization',
+                name: 'Genie.ph'
+            }
+        },
+        category: design.cake_type,
+        ...(design.alt_text && { 'alternateName': design.alt_text })
+    };
+
+    return (
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+    );
+}
+
 export default async function SharedDesignPage({ params }: Props) {
     const { slug } = await params
     const supabase = await createClient()
@@ -76,5 +111,10 @@ export default async function SharedDesignPage({ params }: Props) {
         notFound()
     }
 
-    return <SharedDesignClient design={design} />
+    return (
+        <>
+            <DesignSchema design={design} />
+            <SharedDesignClient design={design} />
+        </>
+    )
 }

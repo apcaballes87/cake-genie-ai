@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import LazyImage from '@/components/LazyImage';
+import type { CakeGenieMerchant } from '@/lib/database.types';
 import { useImageManagement } from '@/contexts/ImageContext';
 import { useCakeCustomization } from '@/contexts/CustomizationContext';
 import { ImageUploader } from '@/components/ImageUploader';
@@ -116,6 +117,10 @@ const LandingClient: React.FC = () => {
     const [hasMore, setHasMore] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
 
+    // Merchant showcase state
+    const [merchants, setMerchants] = useState<CakeGenieMerchant[]>([]);
+    const [isLoadingMerchants, setIsLoadingMerchants] = useState(true);
+
     const fetchRecommendedProducts = useCallback(async (currentOffset: number) => {
         try {
             // Dynamically import to avoid server-side issues if any (though this is a client component)
@@ -146,6 +151,24 @@ const LandingClient: React.FC = () => {
     useEffect(() => {
         fetchRecommendedProducts(0);
     }, [fetchRecommendedProducts]);
+
+    // Fetch merchants on mount
+    useEffect(() => {
+        const fetchMerchants = async () => {
+            try {
+                const { getMerchants } = await import('@/services/supabaseService');
+                const { data, error } = await getMerchants();
+                if (data && !error) {
+                    setMerchants(data);
+                }
+            } catch (err) {
+                console.error('Error loading merchants:', err);
+            } finally {
+                setIsLoadingMerchants(false);
+            }
+        };
+        fetchMerchants();
+    }, []);
 
     const handleLoadMore = () => {
         const nextOffset = offset + 8;
@@ -359,7 +382,7 @@ const LandingClient: React.FC = () => {
             shadow: "shadow-gray-200",
             icon: null,
             imageUrl: "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/call%20for%20bakeshops.webp",
-            action: () => router.push('/merchant')
+            action: () => window.open('https://pro.genie.ph', '_blank')
         }
     ];
 
@@ -715,6 +738,58 @@ const LandingClient: React.FC = () => {
                                         </button>
                                     );
                                 })}
+                            </div>
+                        </div>
+
+                        {/* --- PARTNER SHOPS SHOWCASE --- */}
+                        <div className="mb-8">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-xl md:text-2xl font-bold text-gray-900">Our Partner Shops</h2>
+                                <button
+                                    onClick={() => router.push('/search?q=shops')}
+                                    className="text-purple-600 text-sm font-bold hover:underline"
+                                >
+                                    View All
+                                </button>
+                            </div>
+                            <div className="flex gap-4 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-2">
+                                {isLoadingMerchants ? (
+                                    // Skeleton loading
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <div key={i} className="flex flex-col items-center shrink-0 animate-pulse">
+                                            <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gray-200" />
+                                            <div className="mt-2 h-3 w-12 bg-gray-200 rounded" />
+                                        </div>
+                                    ))
+                                ) : merchants.length > 0 ? (
+                                    merchants.map((merchant) => (
+                                        <button
+                                            key={merchant.merchant_id}
+                                            onClick={() => router.push(`/shop/${merchant.slug}`)}
+                                            className="flex flex-col items-center shrink-0 group"
+                                            aria-label={`Visit ${merchant.business_name}`}
+                                        >
+                                            <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-gradient-to-br from-purple-100 to-pink-100 ring-2 ring-transparent group-hover:ring-purple-400 transition-all duration-300 shadow-sm group-hover:shadow-md">
+                                                {merchant.profile_image_url ? (
+                                                    <LazyImage
+                                                        src={merchant.profile_image_url}
+                                                        alt={merchant.business_name}
+                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-pink-500 text-white font-bold text-lg md:text-xl">
+                                                        {merchant.business_name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <span className="mt-2 text-xs font-medium text-gray-700 group-hover:text-purple-600 transition-colors max-w-[64px] md:max-w-[80px] truncate text-center">
+                                                {merchant.business_name}
+                                            </span>
+                                        </button>
+                                    ))
+                                ) : (
+                                    <p className="text-gray-500 text-sm">No partner shops available yet.</p>
+                                )}
                             </div>
                         </div>
 

@@ -542,17 +542,19 @@ export default function OrdersClient() {
     useEffect(() => {
         if (pageData) {
             if (currentPage === 1) {
-                setAllOrders(pageData.orders);
-                setBillShareDesigns(pageData.designs); // Only set designs on first page load
+                setAllOrders(pageData.orders || []);
+                setBillShareDesigns(pageData.designs || []);
             } else {
                 setAllOrders(prevOrders => {
+                    // Merge orders while preserving order and avoiding duplicates
                     const existingOrderIds = new Set(prevOrders.map(o => o.order_id));
-                    const newOrders = pageData.orders.filter(o => !existingOrderIds.has(o.order_id));
+                    const newOrders = (pageData.orders || []).filter(o => !existingOrderIds.has(o.order_id));
+                    // Append to the end for pagination (older orders go at the bottom)
                     return [...prevOrders, ...newOrders];
                 });
             }
         }
-    }, [pageData, currentPage]);
+    }, [pageData]); // Removed currentPage dependency to prevent extra re-runs
 
     const combinedItems = useMemo<CreationItem[]>(() => {
         const ordersWithType: CreationItem[] = allOrders.map(o => ({ ...o, type: 'order' }));

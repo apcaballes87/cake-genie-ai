@@ -303,6 +303,7 @@ export default function SharedDesignClient({ design: initialDesign }: SharedDesi
             await addToCartOptimistic({
                 user_id: user?.id || null,
                 session_id: null, // Will be handled by addToCartOptimistic/service
+                merchant_id: null, // Will be set when ordering from a specific merchant shop
                 cake_type: design.cake_type,
                 cake_thickness: design.cake_thickness,
                 cake_size: design.cake_size,

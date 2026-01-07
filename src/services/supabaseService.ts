@@ -3,7 +3,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback, AvailabilitySettings, CartItem } from '@/types';
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
-import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem, OrderContribution, CakeGenieSavedItem, CustomizationDetails, CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.types';
+import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem, OrderContribution, CakeGenieSavedItem, CustomizationDetails, CakeGenieMerchant, CakeGenieMerchantProduct, MerchantStaff, MerchantPayout, MerchantDashboardStats, MerchantStaffRole } from '@/lib/database.types';
 
 import { compressImage, validateImageFile } from '@/lib/utils/imageOptimization';
 import { calculatePriceFromDatabase } from './pricingService.database';
@@ -1235,14 +1235,14 @@ export async function getCartPageData(
   userId: string | null,
   sessionId: string | null
 ): Promise<{
-  cartData: SupabaseServiceResponse<CakeGenieCartItem[]>,
+  cartData: SupabaseServiceResponse<(CakeGenieCartItem & { merchant?: CakeGenieMerchant })[]>,
   addressesData: SupabaseServiceResponse<CakeGenieAddress[]>
 }> {
   const isAnonymous = !userId && !!sessionId;
 
   // Use Promise.all to run queries in parallel
   const [cartResult, addressesResult] = await Promise.all([
-    getCartItems(userId, sessionId),
+    getCartItemsWithMerchant(userId, sessionId), // Use enriched version
     // Only fetch addresses for authenticated (non-anonymous) users
     isAnonymous ? Promise.resolve({ data: [], error: null }) : getUserAddresses(userId!),
   ]);
@@ -1311,11 +1311,32 @@ export async function getAvailabilitySettings(): Promise<SupabaseServiceResponse
       .eq('setting_id', '00000000-0000-0000-0000-000000000001')
       .single();
     if (error) {
-      return { data: null, error };
+      // Return default settings if table doesn't exist or query fails
+      console.warn('Availability settings not found, using defaults:', error.message);
+      const defaultSettings: AvailabilitySettings = {
+        setting_id: '00000000-0000-0000-0000-000000000001',
+        lead_time_days: 3,
+        max_orders_per_day: 10,
+        blocked_dates: [],
+        operating_hours: { start: '08:00', end: '18:00' },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      return { data: defaultSettings, error: null };
     }
     return { data, error: null };
   } catch (err) {
-    return { data: null, error: err as Error };
+    // Fallback to defaults on any error
+    const defaultSettings: AvailabilitySettings = {
+      setting_id: '00000000-0000-0000-0000-000000000001',
+      lead_time_days: 3,
+      max_orders_per_day: 10,
+      blocked_dates: [],
+      operating_hours: { start: '08:00', end: '18:00' },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    return { data: defaultSettings, error: null };
   }
 }
 
@@ -1697,7 +1718,28 @@ export async function getMerchantBySlug(
   try {
     const { data, error } = await supabase
       .from('cakegenie_merchants')
-      .select('*')
+      .select(`
+        merchant_id,
+        business_name,
+        slug,
+        description,
+        cover_image_url,
+        profile_image_url,
+        address,
+        city,
+        latitude,
+        longitude,
+        phone,
+        email,
+        facebook_url,
+        instagram_url,
+        rating,
+        review_count,
+        is_verified,
+        is_active,
+        min_order_lead_days,
+        delivery_fee
+      `)
       .eq('slug', slug)
       .eq('is_active', true)
       .single();
@@ -1905,6 +1947,343 @@ export async function getMerchantProductsWithCache(
     }
 
     return { data: products, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+// ============================================================================
+// MARKETPLACE FUNCTIONS: Merchant Staff & Dashboard
+// ============================================================================
+
+/**
+ * Gets the current user's staff role for a specific merchant.
+ * @param merchantId The merchant's UUID
+ */
+export async function getUserMerchantRole(
+  merchantId: string
+): Promise<SupabaseServiceResponse<MerchantStaffRole | null>> {
+  try {
+    const { data, error } = await supabase
+      .from('merchant_staff')
+      .select('role')
+      .eq('merchant_id', merchantId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data: data?.role || null, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Gets all merchants the current user has access to.
+ */
+export async function getUserMerchants(): Promise<SupabaseServiceResponse<(MerchantStaff & { merchant: CakeGenieMerchant })[]>> {
+  try {
+    const { data, error } = await supabase
+      .from('merchant_staff')
+      .select(`
+        *,
+        merchant:cakegenie_merchants(*)
+      `)
+      .eq('is_active', true);
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Gets dashboard statistics for a merchant.
+ * @param merchantId The merchant's UUID
+ */
+export async function getMerchantDashboardStats(
+  merchantId: string
+): Promise<SupabaseServiceResponse<MerchantDashboardStats>> {
+  try {
+    const { data, error } = await supabase
+      .from('merchant_dashboard_stats')
+      .select('*')
+      .eq('merchant_id', merchantId)
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Gets orders for a specific merchant (for merchant dashboard).
+ * @param merchantId The merchant's UUID
+ * @param options Filter options
+ */
+export async function getMerchantOrders(
+  merchantId: string,
+  options?: {
+    status?: string;
+    limit?: number;
+    offset?: number;
+    startDate?: string;
+    endDate?: string;
+  }
+): Promise<SupabaseServiceResponse<CakeGenieOrder[]>> {
+  try {
+    let query = supabase
+      .from('cakegenie_orders')
+      .select(`
+        *,
+        cakegenie_order_items(*)
+      `)
+      .eq('merchant_id', merchantId)
+      .order('created_at', { ascending: false });
+
+    if (options?.status) {
+      query = query.eq('order_status', options.status);
+    }
+    if (options?.startDate) {
+      query = query.gte('created_at', options.startDate);
+    }
+    if (options?.endDate) {
+      query = query.lte('created_at', options.endDate);
+    }
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+    if (options?.offset) {
+      query = query.range(options.offset, options.offset + (options.limit || 20) - 1);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Gets payout records for a merchant.
+ * @param merchantId The merchant's UUID
+ */
+export async function getMerchantPayouts(
+  merchantId: string,
+  options?: { status?: string; limit?: number }
+): Promise<SupabaseServiceResponse<MerchantPayout[]>> {
+  try {
+    let query = supabase
+      .from('merchant_payouts')
+      .select('*')
+      .eq('merchant_id', merchantId)
+      .order('created_at', { ascending: false });
+
+    if (options?.status) {
+      query = query.eq('status', options.status);
+    }
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Gets all staff members for a merchant (owner/admin only).
+ * @param merchantId The merchant's UUID
+ */
+export async function getMerchantStaff(
+  merchantId: string
+): Promise<SupabaseServiceResponse<MerchantStaff[]>> {
+  try {
+    const { data, error } = await supabase
+      .from('merchant_staff')
+      .select('*')
+      .eq('merchant_id', merchantId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Updates a merchant's order status (for merchant fulfillment).
+ * @param orderId The order's UUID
+ * @param merchantId The merchant's UUID (for verification)
+ * @param newStatus The new order status
+ */
+export async function updateMerchantOrderStatus(
+  orderId: string,
+  merchantId: string,
+  newStatus: string
+): Promise<SupabaseServiceResponse<CakeGenieOrder>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_orders')
+      .update({
+        order_status: newStatus,
+        updated_at: new Date().toISOString(),
+        ...(newStatus === 'delivered' ? { delivered_at: new Date().toISOString() } : {}),
+        ...(newStatus === 'confirmed' ? { confirmed_at: new Date().toISOString() } : {})
+      })
+      .eq('order_id', orderId)
+      .eq('merchant_id', merchantId)
+      .select()
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+// ============================================================================
+// MARKETPLACE FUNCTIONS: Cart with Merchant Context
+// ============================================================================
+
+/**
+ * Adds an item to cart with merchant context.
+ * This should be used when adding items from a merchant's shop page.
+ */
+export async function addToCartWithMerchant(
+  userId: string | null,
+  sessionId: string | null,
+  merchantId: string,
+  item: {
+    cake_type: string;
+    cake_thickness: string;
+    cake_size: string;
+    base_price: number;
+    addon_price: number;
+    final_price: number;
+    quantity: number;
+    original_image_url: string;
+    customized_image_url: string;
+    customization_details: CustomizationDetails;
+  }
+): Promise<SupabaseServiceResponse<CakeGenieCartItem>> {
+  try {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 day expiration
+
+    const { data, error } = await supabase
+      .from('cakegenie_cart')
+      .insert({
+        user_id: userId,
+        session_id: sessionId,
+        merchant_id: merchantId,
+        ...item,
+        expires_at: expiresAt.toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Groups cart items by merchant for multi-merchant cart display.
+ */
+export function groupCartItemsByMerchant(
+  cartItems: CakeGenieCartItem[]
+): Map<string, CakeGenieCartItem[]> {
+  const grouped = new Map<string, CakeGenieCartItem[]>();
+
+  for (const item of cartItems) {
+    const merchantId = item.merchant_id || 'unknown';
+    const existing = grouped.get(merchantId) || [];
+    existing.push(item);
+    grouped.set(merchantId, existing);
+  }
+
+  return grouped;
+}
+
+/**
+ * Gets cart items with merchant details.
+ */
+export async function getCartItemsWithMerchant(
+  userId: string | null,
+  sessionId: string | null
+): Promise<SupabaseServiceResponse<(CakeGenieCartItem & { merchant?: CakeGenieMerchant })[]>> {
+  try {
+    const cartResult = await getCartItems(userId, sessionId);
+
+    if (cartResult.error || !cartResult.data) {
+      return cartResult as SupabaseServiceResponse<(CakeGenieCartItem & { merchant?: CakeGenieMerchant })[]>;
+    }
+
+    if (cartResult.data.length === 0) {
+      return { data: [], error: null };
+    }
+
+    // Get unique merchant IDs
+    const merchantIds = [...new Set(
+      cartResult.data
+        .filter(item => item.merchant_id)
+        .map(item => item.merchant_id!)
+    )];
+
+    if (merchantIds.length === 0) {
+      return { data: cartResult.data, error: null };
+    }
+
+    // Fetch merchant details
+    const { data: merchants } = await supabase
+      .from('cakegenie_merchants')
+      .select('*')
+      .in('merchant_id', merchantIds);
+
+    if (!merchants) {
+      return { data: cartResult.data, error: null };
+    }
+
+    // Create lookup map
+    const merchantMap = new Map(merchants.map(m => [m.merchant_id, m]));
+
+    // Enrich cart items with merchant details
+    const enrichedItems = cartResult.data.map(item => ({
+      ...item,
+      merchant: item.merchant_id ? merchantMap.get(item.merchant_id) : undefined
+    }));
+
+    return { data: enrichedItems, error: null };
   } catch (err) {
     return { data: null, error: err as Error };
   }

@@ -25,7 +25,8 @@ export function useOrders(userId: string | undefined, options?: { limit?: number
       };
     },
     enabled: !!userId,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 seconds - reduced for better freshness with pagination
+    refetchOnMount: 'always', // Always refetch on mount to ensure fresh data
   });
 }
 

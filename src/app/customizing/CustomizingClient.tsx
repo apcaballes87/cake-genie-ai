@@ -14,7 +14,7 @@ import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, BackIcon, ReportIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon, SideIcingGuideIcon, TopIcingGuideIcon, TopBorderGuideIcon, BaseBorderGuideIcon, BaseBoardGuideIcon, TrashIcon } from '../../components/icons';
 import { ShoppingBag } from 'lucide-react';
 import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType, AvailabilitySettings, IcingColorDetails, AnalysisItem, ClusteredMarker, CartItem } from '../../types';
-import { CakeGenieCartItem } from '../../lib/database.types';
+import { CakeGenieCartItem, CakeGenieMerchant, CakeGenieMerchantProduct } from '../../lib/database.types';
 import { SearchAutocomplete } from '../../components/SearchAutocomplete';
 import { AvailabilityType } from '../../lib/utils/availability';
 import { FloatingResultPanel } from '../../components/FloatingResultPanel';
@@ -520,7 +520,13 @@ const MotifPanel: React.FC<{
 };
 
 
-const CustomizingClient: React.FC = () => {
+// Props interface for optional product context (used by SEO-friendly routes)
+interface CustomizingClientProps {
+    product?: CakeGenieMerchantProduct;
+    merchant?: CakeGenieMerchant;
+}
+
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -571,6 +577,7 @@ const CustomizingClient: React.FC = () => {
     const accountMenuRef = useRef<HTMLDivElement>(null);
     const mainImageContainerRef = useRef<HTMLDivElement>(null);
     const isLoadingDesignRef = useRef(false); // Guard against duplicate analysis calls
+    const loadedProductSlug = useRef<string | null>(null); // Track which product is currently loaded
 
 
     // --- Hooks ---
@@ -632,6 +639,96 @@ const CustomizingClient: React.FC = () => {
 
     // --- Handlers ---
     // --- Effects ---
+    // Handle product prop loading (from SEO-friendly routes like /shop/[merchant]/[product]/customize)
+    useEffect(() => {
+        // If no product, skip
+        if (!product?.image_url) {
+            return;
+        }
+
+        // Check if we need to load this product:
+        // 1. If it's a different product than what we tracked locally (slug mismatch)
+        // 2. OR if we haven't tracked any product yet AND we don't have image data (initial load)
+        // We do NOT want to reload if we already have image data AND it's the same product (to prevent loops)
+
+        const isNewProduct = product.slug !== loadedProductSlug.current;
+        const hasLoadedImage = !!originalImageData;
+
+        if (!isNewProduct && hasLoadedImage) {
+            return;
+        }
+
+        if (isLoadingDesignRef.current) {
+            return;
+        }
+
+        isLoadingDesignRef.current = true;
+        loadedProductSlug.current = product.slug;
+        console.log("🏪 Loading product from props:", product.title);
+
+        // Clear any existing stale data
+        clearImages();
+        clearCustomization();
+
+        setIsAnalyzing(true);
+        showInfo(`Loading ${product.title}...`);
+
+        const fetchProductImage = async () => {
+            try {
+                let blob: Blob | null = null;
+
+                // Try direct fetch first
+                try {
+                    const response = await fetch(product.image_url!);
+                    if (response.ok) {
+                        blob = await response.blob();
+                    }
+                } catch {
+                    console.log("Direct fetch failed, trying proxy...");
+                }
+
+                if (!blob) {
+                    // Fallback to storage proxy
+                    const proxyResponse = await fetch(`/api/proxy?url=${encodeURIComponent(product.image_url!)}`);
+                    if (proxyResponse.ok) {
+                        blob = await proxyResponse.blob();
+                    }
+                }
+
+                if (!blob) {
+                    throw new Error('Failed to fetch product image');
+                }
+
+                const file = new File([blob], 'product.jpg', { type: blob.type || 'image/jpeg' });
+
+                hookImageUpload(
+                    file,
+                    (result) => {
+                        console.log("✅ Product loaded from props");
+                        setPendingAnalysisData(result);
+                        setIsAnalyzing(false);
+                        showSuccess("Design loaded!");
+                    },
+                    (error) => {
+                        console.error("Error processing product:", error);
+                        showError("Failed to load product");
+                        setIsAnalyzing(false);
+                        isLoadingDesignRef.current = false;
+                    },
+                    { imageUrl: product.image_url! }
+                );
+
+            } catch (err) {
+                console.error("Failed to load product:", err);
+                showError("Failed to load product.");
+                setIsAnalyzing(false);
+                isLoadingDesignRef.current = false;
+            }
+        };
+
+        fetchProductImage();
+    }, [product, originalImageData, isImageManagementLoading, hookImageUpload, setIsAnalyzing, clearImages, clearCustomization]);
+
     // Handle "Customize This Design" flow (loading from URL ref) - Shopify/external integrations
     useEffect(() => {
         const refUrl = searchParams.get('ref');
@@ -1132,6 +1229,7 @@ const CustomizingClient: React.FC = () => {
             const cartItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'> = {
                 user_id: user?.id || null,
                 session_id: user?.is_anonymous ? user.id : null,
+                merchant_id: null, // Will be set when ordering from a specific merchant shop
                 cake_type: cakeInfo.type,
                 cake_thickness: cakeInfo.thickness,
                 cake_size: cakeInfo.size,
@@ -1355,11 +1453,11 @@ const CustomizingClient: React.FC = () => {
                 return HEX_TO_COLOR_NAME_MAP[hex.toLowerCase()] || 'custom';
             };
 
-            if (analysisResult && icingDesign) {
+            if (analysisResult && icingDesign && analysisResult.icing_design) {
                 if (icingDesign.drip && !analysisResult.icing_design.drip) {
                     specificMessages.push(`Adding ${colorName(icingDesign.colors.drip)} drip effect...`);
                 }
-                if (icingDesign.colors.side !== analysisResult.icing_design.colors.side) {
+                if (analysisResult.icing_design.colors && icingDesign.colors.side !== analysisResult.icing_design.colors.side) {
                     specificMessages.push(`Painting the sides ${colorNameSimple(icingDesign.colors.side)}...`);
                 }
                 if (icingDesign.gumpasteBaseBoard && !analysisResult.icing_design.gumpasteBaseBoard) {
@@ -1415,18 +1513,21 @@ const CustomizingClient: React.FC = () => {
         const allColors: string[] = [];
         const neutralColors = ['#ffffff', '#000000', '#64748b']; // White, Black, Gray
 
-        Object.values(analysisResult.icing_design.colors).forEach(color => {
-            if (color) allColors.push(color.toLowerCase());
-        });
-        analysisResult.main_toppers.forEach(item => {
+        // Safely access icing_design.colors
+        if (analysisResult.icing_design?.colors) {
+            Object.values(analysisResult.icing_design.colors).forEach(color => {
+                if (color) allColors.push(color.toLowerCase());
+            });
+        }
+        analysisResult.main_toppers?.forEach(item => {
             if (item.color) allColors.push(item.color.toLowerCase());
             if (item.colors) item.colors.forEach(c => c && allColors.push(c.toLowerCase()));
         });
-        analysisResult.support_elements.forEach(item => {
+        analysisResult.support_elements?.forEach(item => {
             if (item.color) allColors.push(item.color.toLowerCase());
             if (item.colors) item.colors.forEach(c => c && allColors.push(c.toLowerCase()));
         });
-        analysisResult.cake_messages.forEach(item => {
+        analysisResult.cake_messages?.forEach(item => {
             if (item.color) allColors.push(item.color.toLowerCase());
         });
 
@@ -1770,6 +1871,39 @@ const CustomizingClient: React.FC = () => {
                 </button>
             </div>
 
+            {/* SEO Breadcrumbs - Only visible when product prop exists */}
+            {product && merchant && (
+                <nav className="w-full" aria-label="Breadcrumb">
+                    <ol className="flex items-center gap-1 text-xs text-slate-500 flex-wrap">
+                        <li>
+                            <a href="/" className="hover:text-purple-600 transition-colors">Home</a>
+                        </li>
+                        <li><span className="mx-1">/</span></li>
+                        <li>
+                            <a href="/shop" className="hover:text-purple-600 transition-colors">Shop</a>
+                        </li>
+                        <li><span className="mx-1">/</span></li>
+                        <li>
+                            <a href={`/shop/${merchant.slug}`} className="hover:text-purple-600 transition-colors">{merchant.business_name}</a>
+                        </li>
+                        <li><span className="mx-1">/</span></li>
+                        <li className="text-slate-700 font-medium truncate max-w-[150px]" aria-current="page">{product.title}</li>
+                    </ol>
+                </nav>
+            )}
+
+            {/* Product Title - Only visible when product prop exists */}
+            {product && (
+                <div className="w-full">
+                    <h1 className="text-xl md:text-2xl font-bold text-slate-800 leading-tight">{product.title}</h1>
+                    {product.category && (
+                        <span className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                            {product.category}
+                        </span>
+                    )}
+                </div>
+            )}
+
             <button
                 onClick={onOpenReportModal}
                 disabled={!editedImage || isLoading || isReporting}
@@ -1846,7 +1980,7 @@ const CustomizingClient: React.FC = () => {
                                             }}
                                             key={activeTab}
                                             src={activeTab === 'customized' ? (editedImage || originalImagePreview) : originalImagePreview}
-                                            alt={activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake"}
+                                            alt={product?.alt_text || (product ? `${product.title} - Custom cake${merchant ? ` from ${merchant.business_name}` : ''}` : (activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake"))}
                                             className="w-full h-full object-contain rounded-lg"
                                         />
 
@@ -2187,6 +2321,37 @@ const CustomizingClient: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Product Description & Tags - Spans full width of the two-column layout */}
+            {product && (product.long_description || product.short_description || (product.tags && product.tags.length > 0)) && (
+                <div className="w-full mt-2">
+                    <div className="bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
+                        {(product.long_description || product.short_description) && (
+                            <div className="mb-3">
+                                <h2 className="text-sm font-semibold text-slate-700 mb-2">About This Cake</h2>
+                                <p className="text-sm text-slate-600 leading-relaxed">
+                                    {product.long_description || product.short_description}
+                                </p>
+                            </div>
+                        )}
+                        {product.tags && product.tags.length > 0 && (
+                            <div>
+                                <h3 className="text-xs font-medium text-slate-500 mb-2">Related Tags</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {product.tags.map((tag, index) => (
+                                        <span
+                                            key={index}
+                                            className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full hover:bg-purple-100 hover:text-purple-700 transition-colors cursor-default"
+                                        >
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
 
             {/* FloatingResultPanel - Only show for non-icing items */}
@@ -2625,6 +2790,7 @@ const CustomizingClient: React.FC = () => {
                     </div>
                 )}
             </CustomizationBottomSheet>
+
 
             <StickyAddToCartBar
                 price={finalPrice}

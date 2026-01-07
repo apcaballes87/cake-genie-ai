@@ -85,6 +85,7 @@ export interface CakeGenieCartItem {
   cart_item_id: string; // UUID
   user_id: string | null; // UUID, nullable for guest carts
   session_id: string | null; // For guest carts
+  merchant_id: string | null; // UUID - merchant/shop this item belongs to
   cake_type: string;
   cake_thickness: string;
   cake_size: string;
@@ -107,6 +108,7 @@ export interface CakeGenieOrder {
   order_id: string; // UUID
   order_number: string;
   user_id: string | null; // UUID, nullable for guest orders
+  merchant_id: string | null; // UUID - merchant/shop this order belongs to
   guest_email: string | null;
   guest_first_name: string | null;
   guest_last_name: string | null;
@@ -165,6 +167,7 @@ export interface OrderContribution {
 export interface CakeGenieOrderItem {
   item_id: string; // UUID
   order_id: string; // UUID
+  merchant_id: string | null; // UUID - merchant/shop this item belongs to (denormalized)
   cake_type: string;
   cake_thickness: string;
   cake_size: string;
@@ -281,4 +284,68 @@ export interface CakeGenieMerchantProduct {
   // Timestamps
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * Role types for merchant staff members.
+ */
+export type MerchantStaffRole = 'owner' | 'admin' | 'staff';
+
+/**
+ * Represents a staff member associated with a merchant.
+ */
+export interface MerchantStaff {
+  staff_id: string; // UUID
+  merchant_id: string; // UUID
+  user_id: string; // UUID - references auth.users
+  role: MerchantStaffRole;
+  permissions: {
+    manage_products?: boolean;
+    view_orders?: boolean;
+    manage_orders?: boolean;
+    view_analytics?: boolean;
+    [key: string]: boolean | undefined;
+  };
+  is_active: boolean;
+  created_at: string; // ISO 8601 timestamp
+  updated_at: string; // ISO 8601 timestamp
+}
+
+/**
+ * Payment status for merchant payouts.
+ */
+export type PayoutStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+
+/**
+ * Represents a payout to a merchant from order revenue.
+ */
+export interface MerchantPayout {
+  payout_id: string; // UUID
+  merchant_id: string; // UUID
+  order_id: string | null; // UUID - order this payout relates to
+  gross_amount: number; // Total order amount
+  commission_rate: number; // Platform commission rate (e.g., 0.10 = 10%)
+  commission_amount: number; // Amount taken as commission
+  net_amount: number; // Amount paid to merchant
+  status: PayoutStatus;
+  payout_method: string | null; // 'bank_transfer', 'gcash', 'maya', etc.
+  payout_reference: string | null; // External reference from payment provider
+  notes: string | null;
+  created_at: string; // ISO 8601 timestamp
+  processed_at: string | null; // When payout was processed
+  updated_at: string; // ISO 8601 timestamp
+}
+
+/**
+ * Dashboard statistics for a merchant (from view).
+ */
+export interface MerchantDashboardStats {
+  merchant_id: string;
+  business_name: string;
+  total_orders: number;
+  pending_orders: number;
+  completed_orders: number;
+  total_revenue: number;
+  revenue_30d: number;
+  active_products: number;
 }

@@ -3,13 +3,13 @@ import { MerchantPageClient } from '../MerchantPageClient';
 import { getMerchantBySlug } from '@/services/supabaseService';
 
 interface MerchantPageProps {
-    params: Promise<{ slug: string }>;
+    params: Promise<{ merchantSlug: string }>;
 }
 
 // Generate dynamic metadata for SEO and social sharing
 export async function generateMetadata({ params }: MerchantPageProps): Promise<Metadata> {
-    const { slug } = await params;
-    const { data: merchant } = await getMerchantBySlug(slug);
+    const { merchantSlug } = await params;
+    const { data: merchant } = await getMerchantBySlug(merchantSlug);
 
     if (!merchant) {
         return {
@@ -53,7 +53,51 @@ export async function generateMetadata({ params }: MerchantPageProps): Promise<M
     };
 }
 
+// JSON-LD Schema for Local Business / Bakery
+function MerchantSchema({ merchant }: { merchant: any }) {
+    const schema = {
+        '@context': 'https://schema.org',
+        '@type': 'Bakery',
+        name: merchant.business_name,
+        description: merchant.description,
+        image: merchant.cover_image_url || merchant.profile_image_url,
+        telephone: merchant.phone,
+        address: {
+            '@type': 'PostalAddress',
+            streetAddress: merchant.address,
+            addressLocality: merchant.city,
+            addressCountry: 'PH'
+        },
+        url: `https://genie.ph/shop/${merchant.slug}`,
+        ...(merchant.rating && {
+            aggregateRating: {
+                '@type': 'AggregateRating',
+                ratingValue: merchant.rating,
+                reviewCount: merchant.review_count
+            }
+        })
+    };
+
+    return (
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+    );
+}
+
 export default async function MerchantPage({ params }: MerchantPageProps) {
-    const { slug } = await params;
-    return <MerchantPageClient slug={slug} />;
+    const { merchantSlug } = await params;
+    const { data: merchant } = await getMerchantBySlug(merchantSlug);
+
+    if (!merchant) {
+        return <MerchantPageClient slug={merchantSlug} />;
+    }
+
+    return (
+        <>
+            <MerchantSchema merchant={merchant} />
+            <MerchantPageClient slug={merchantSlug} />
+        </>
+    );
 }

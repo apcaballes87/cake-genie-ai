@@ -10,10 +10,6 @@ import { getMerchantBySlug, getMerchantProductsWithCache } from '@/services/supa
 import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.types';
 import { HybridAnalysisResult } from '@/types';
 import LazyImage from '@/components/LazyImage';
-import { useImageManagement } from '@/contexts/ImageContext';
-import { useCakeCustomization } from '@/contexts/CustomizationContext';
-import { showError, showLoading } from '@/lib/utils/toast';
-import { toast } from 'react-hot-toast';
 
 interface MerchantPageClientProps {
     slug?: string;
@@ -22,7 +18,7 @@ interface MerchantPageClientProps {
 export function MerchantPageClient({ slug }: MerchantPageClientProps) {
     const params = useParams();
     const router = useRouter();
-    const merchantSlug = slug || (params?.slug as string) || 'sweet-delights';
+    const merchantSlug = slug || (params?.merchantSlug as string) || 'sweet-delights';
 
     const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -30,17 +26,6 @@ export function MerchantPageClient({ slug }: MerchantPageClientProps) {
     const [products, setProducts] = useState<(CakeGenieMerchantProduct & { analysis_json?: HybridAnalysisResult })[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isLoadingProduct, setIsLoadingProduct] = useState(false);
-
-    // Image and Customization contexts - same as landing page
-    const { handleImageUpload: hookImageUpload, clearImages } = useImageManagement();
-    const {
-        setIsAnalyzing,
-        setAnalysisError,
-        setPendingAnalysisData,
-        initializeDefaultState,
-        clearCustomization
-    } = useCakeCustomization();
 
 
     useEffect(() => {
@@ -89,54 +74,16 @@ export function MerchantPageClient({ slug }: MerchantPageClientProps) {
         return null;
     };
 
-    // Handle product click - SAME FLOW AS LANDING PAGE
-    // hookImageUpload handles: precomputed → pHash cache check → AI analysis fallback
-    const handleProductClick = async (product: CakeGenieMerchantProduct & { analysis_json?: HybridAnalysisResult }) => {
+    // Handle product click - Navigate to SEO-friendly product page
+    // The /shop/[merchantSlug]/[productSlug] route will handle loading via product/merchant props
+    const handleProductClick = (product: CakeGenieMerchantProduct & { analysis_json?: HybridAnalysisResult }) => {
+        if (!product.image_url || !product.slug) return;
 
-        if (!product.image_url || isLoadingProduct) return;
-
-        const toastId = showLoading('Loading design...');
-        setIsLoadingProduct(true);
-
-        // Clear previous state
-        clearImages();
-        clearCustomization();
-        setIsAnalyzing(true);
-        setAnalysisError(null);
-        initializeDefaultState();
-
-        try {
-            const response = await fetch(product.image_url);
-            const blob = await response.blob();
-            const file = new File([blob], "merchant-product.jpg", { type: blob.type });
-
-            await hookImageUpload(
-                file,
-                (result) => {
-                    toast.dismiss(toastId);
-                    setPendingAnalysisData(result);
-                    setIsAnalyzing(false);
-                    setIsLoadingProduct(false);
-                    router.push('/customizing');
-                },
-                (err) => {
-                    toast.dismiss(toastId);
-                    console.error("Error processing image:", err);
-                    showError("Failed to load design");
-                    setIsLoadingProduct(false);
-                },
-                {
-                    imageUrl: product.image_url,
-                    precomputedAnalysis: product.analysis_json
-                }
-            );
-        } catch (error) {
-            toast.dismiss(toastId);
-            console.error("Error fetching image:", error);
-            showError("Failed to load design");
-            setIsLoadingProduct(false);
-        }
+        // Navigate directly to SEO-friendly route - no pre-loading needed
+        // The product page server component fetches data and passes to CustomizingClient
+        router.push(`/shop/${merchantSlug}/${product.slug}`);
     };
+
 
 
 

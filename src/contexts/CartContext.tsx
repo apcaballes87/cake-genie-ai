@@ -16,7 +16,7 @@ import { debounce } from 'lodash-es';
 import { showError } from '@/lib/utils/toast';
 
 import { createClient } from '@/lib/supabase/client';
-import { CakeGenieCartItem, CakeGenieAddress } from '@/lib/database.types';
+import { CakeGenieCartItem, CakeGenieAddress, CakeGenieMerchant } from '@/lib/database.types';
 import {
     getCartPageData,
     addToCart as addToCartService,
@@ -142,7 +142,7 @@ interface DeliveryDetails {
 // --- NEW SPLIT CONTEXT TYPES ---
 
 interface CartDataType {
-    cartItems: CakeGenieCartItem[];
+    cartItems: (CakeGenieCartItem & { merchant?: CakeGenieMerchant })[];
     addresses: CakeGenieAddress[];
     cartTotal: number;
     itemCount: number;
@@ -183,7 +183,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const supabase = createClient();
 
     // INSTANT LOAD: Initialize cart from localStorage immediately (0ms)
-    const [cartItems, setCartItems] = useState<CakeGenieCartItem[]>(() => {
+    const [cartItems, setCartItems] = useState<(CakeGenieCartItem & { merchant?: CakeGenieMerchant })[]>(() => {
         const cached = readFromLocalStorage('cart_items_cache');
         if (cached) {
             try {
@@ -265,7 +265,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const sessionIdForQuery = isAnonymous ? user?.id : null;
 
             // Add timeout to database query - if it hangs, just load empty cart
-            let cartData: { data: CakeGenieCartItem[] | null; error: Error | PostgrestError | null };
+            let cartData: { data: (CakeGenieCartItem & { merchant?: CakeGenieMerchant })[] | null; error: Error | PostgrestError | null };
             let addressesData: { data: CakeGenieAddress[] | null; error: Error | PostgrestError | null };
 
             try {
@@ -542,7 +542,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [cartItems]);
 
     const debouncedUpdateQuantity = useMemo(
-        () => debounce(async (cartItemId: string, quantity: number, originalCart: CakeGenieCartItem[]) => {
+        () => debounce(async (cartItemId: string, quantity: number, originalCart: (CakeGenieCartItem & { merchant?: CakeGenieMerchant })[]) => {
             try {
                 const { error } = await updateQuantityService(cartItemId, quantity);
                 if (error) {

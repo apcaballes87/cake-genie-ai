@@ -109,9 +109,24 @@ export default function CartClient() {
             size: item.cake_size,
             totalPrice: item.final_price * item.quantity,
             details: item.customization_details as CartItemDetails,
+            merchant_id: item.merchant_id,
+            merchant_name: item.merchant?.business_name,
         }));
         return [...pendingItems, ...mappedSupabaseItems];
     }, [pendingItems, cartItems]);
+
+    // Group items by merchant
+    const groupedItems = useMemo(() => {
+        const groups: Record<string, CartItem[]> = {};
+        allItems.forEach(item => {
+            const merchantName = item.merchant_name || 'Cake Genie';
+            if (!groups[merchantName]) {
+                groups[merchantName] = [];
+            }
+            groups[merchantName].push(item);
+        });
+        return groups;
+    }, [allItems]);
 
     const [isAddingAddress, setIsAddingAddress] = useState(false);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
@@ -995,13 +1010,27 @@ export default function CartClient() {
                     ) : (
                         <div className="space-y-4 px-4">
                             <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
-                                {allItems.map(item => (
-                                    <CartItemCard
-                                        key={item.id}
-                                        item={item}
-                                        onRemove={onRemoveItem}
-                                        onZoom={setZoomedImage}
-                                    />
+                                {Object.entries(groupedItems).map(([merchantName, items]) => (
+                                    <div key={merchantName} className="mb-6 last:mb-0">
+                                        <div className="flex items-center gap-2 mb-3 pb-1 border-b border-slate-100">
+                                            <div className="bg-slate-100 p-1.5 rounded-full">
+                                                <Users size={16} className="text-slate-500" />
+                                            </div>
+                                            <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+                                                {merchantName}
+                                            </h3>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {items.map(item => (
+                                                <CartItemCard
+                                                    key={item.id}
+                                                    item={item}
+                                                    onRemove={onRemoveItem}
+                                                    onZoom={setZoomedImage}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
 

@@ -96,7 +96,8 @@ export const usePricing = ({
             }
 
             if (results.length === 0) {
-                throw new Error(`We don't have price options for a "${cakeTypeDisplayMap[cakeInfo.type]}" cake. Please try another design.`);
+                const displayType = cakeTypeDisplayMap[cakeInfo.type] || cakeInfo.type || 'this';
+                throw new Error(`We don't have price options for a "${displayType}" cake. Please try another design.`);
             }
 
             return { options: results, effectiveThickness };
