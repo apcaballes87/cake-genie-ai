@@ -1315,12 +1315,10 @@ export async function getAvailabilitySettings(): Promise<SupabaseServiceResponse
       console.warn('Availability settings not found, using defaults:', error.message);
       const defaultSettings: AvailabilitySettings = {
         setting_id: '00000000-0000-0000-0000-000000000001',
-        lead_time_days: 3,
-        max_orders_per_day: 10,
-        blocked_dates: [],
-        operating_hours: { start: '08:00', end: '18:00' },
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        rush_to_same_day_enabled: false,
+        rush_same_to_standard_enabled: false,
+        minimum_lead_time_days: 3,
       };
       return { data: defaultSettings, error: null };
     }
@@ -1329,12 +1327,10 @@ export async function getAvailabilitySettings(): Promise<SupabaseServiceResponse
     // Fallback to defaults on any error
     const defaultSettings: AvailabilitySettings = {
       setting_id: '00000000-0000-0000-0000-000000000001',
-      lead_time_days: 3,
-      max_orders_per_day: 10,
-      blocked_dates: [],
-      operating_hours: { start: '08:00', end: '18:00' },
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      rush_to_same_day_enabled: false,
+      rush_same_to_standard_enabled: false,
+      minimum_lead_time_days: 3,
     };
     return { data: defaultSettings, error: null };
   }
@@ -1720,6 +1716,7 @@ export async function getMerchantBySlug(
       .from('cakegenie_merchants')
       .select(`
         merchant_id,
+        user_id,
         business_name,
         slug,
         description,
@@ -1738,7 +1735,9 @@ export async function getMerchantBySlug(
         is_verified,
         is_active,
         min_order_lead_days,
-        delivery_fee
+        delivery_fee,
+        created_at,
+        updated_at
       `)
       .eq('slug', slug)
       .eq('is_active', true)
