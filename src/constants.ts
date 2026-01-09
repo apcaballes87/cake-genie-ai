@@ -85,6 +85,80 @@ if (!supabaseUrl || supabaseUrl.includes('YOUR_SUPABASE_URL')) {
   throw new Error("Supabase URL is required for asset paths. Please update it in the `.env.local` file.");
 }
 
+// ============================================================================
+// STORAGE CONFIGURATION
+// ============================================================================
+
+/**
+ * Base URL for Supabase storage
+ */
+export const STORAGE_BASE_URL = `${supabaseUrl}/storage/v1/object/public`;
+
+/**
+ * Available storage buckets
+ */
+export const STORAGE_BUCKETS = {
+  cakegenie: 'cakegenie',
+  landingpage: 'landingpage',
+} as const;
+
+/**
+ * Helper function to build asset URLs
+ * @param bucket - The storage bucket name
+ * @param path - The path to the asset within the bucket
+ * @returns Full URL to the asset
+ */
+export const getAssetUrl = (bucket: keyof typeof STORAGE_BUCKETS, path: string): string =>
+  `${STORAGE_BASE_URL}/${STORAGE_BUCKETS[bucket]}/${path}`;
+
+/**
+ * Common application assets - use these instead of hardcoding URLs
+ */
+export const COMMON_ASSETS = {
+  // Branding
+  logo: getAssetUrl('cakegenie', 'genie%20logo%20long2.webp'),
+  logoSquare: getAssetUrl('cakegenie', 'genie%20logo.webp'),
+  watermark: getAssetUrl('cakegenie', 'genie%20watermark.png'),
+
+  // Reference images
+  threeTierReference: getAssetUrl('cakegenie', '3tier.webp'),
+
+  // Landing page
+  callForBakeshops: getAssetUrl('cakegenie', 'call%20for%20bakeshops.webp'),
+} as const;
+
+/**
+ * Landing page quick link image sets
+ */
+export const LANDING_PAGE_IMAGES = {
+  minimalist: [
+    getAssetUrl('landingpage', 'minimalist1.jpg'),
+    getAssetUrl('landingpage', 'minimalist2.jpg'),
+    getAssetUrl('landingpage', 'minimalist3.jpg'),
+    getAssetUrl('landingpage', 'minimalist5.jpg'),
+    getAssetUrl('landingpage', 'minimalist6.jpg'),
+    getAssetUrl('landingpage', 'minimalist7.jpg'),
+    getAssetUrl('landingpage', 'minimalist8.jpg'),
+  ],
+  ediblePhoto: [
+    getAssetUrl('landingpage', 'ep1.jpg'),
+    getAssetUrl('landingpage', 'ep2.jpg'),
+    getAssetUrl('landingpage', 'ep3.jpg'),
+    getAssetUrl('landingpage', 'ep4.jpg'),
+    getAssetUrl('landingpage', 'ep5.jpg'),
+    getAssetUrl('landingpage', 'ep6.jpg'),
+  ],
+  bento: [
+    getAssetUrl('landingpage', 'BENTO1.jpg'),
+    getAssetUrl('landingpage', 'bento2.jpg'),
+    getAssetUrl('landingpage', 'bento3.jpg'),
+    getAssetUrl('landingpage', 'bento4.jpg'),
+    getAssetUrl('landingpage', 'bento5.jpg'),
+    getAssetUrl('landingpage', 'bento6.jpg'),
+  ],
+} as const;
+
+// Legacy alias for backwards compatibility
 const storageBaseUrl = `${supabaseUrl}/storage/v1/object/public/cakegenie`;
 
 export const FLAVOR_THUMBNAILS: Record<CakeFlavor, string> = {

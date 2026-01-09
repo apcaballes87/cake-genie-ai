@@ -8,9 +8,10 @@ interface AuthContextType {
     user: User | null
     session: Session | null
     isLoading: boolean
+    loading: boolean // Backwards compatibility alias for isLoading
     isAuthenticated: boolean
     signIn: (email: string, password: string) => Promise<{ error: any }>
-    signUp: (email: string, password: string) => Promise<{ error: any }>
+    signUp: (email: string, password: string, metadata?: { first_name?: string, last_name?: string }) => Promise<{ data: any, error: any }>
     signOut: () => Promise<{ error: any }>
     signInAnonymously: () => Promise<{ error: any }>
 }
@@ -45,9 +46,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error }
     }, [supabase])
 
-    const signUp = useCallback(async (email: string, password: string) => {
-        const { error } = await supabase.auth.signUp({ email, password })
-        return { error }
+    const signUp = useCallback(async (
+        email: string,
+        password: string,
+        metadata?: { first_name?: string, last_name?: string }
+    ) => {
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: metadata
+            }
+        })
+        return { data, error }
     }, [supabase])
 
     const signOut = useCallback(async () => {
@@ -67,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             user,
             session,
             isLoading,
+            loading: isLoading, // Backwards compatibility alias
             isAuthenticated,
             signIn,
             signUp,

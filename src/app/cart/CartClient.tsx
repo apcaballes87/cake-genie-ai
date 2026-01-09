@@ -132,6 +132,7 @@ export default function CartClient() {
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
     const [isCreatingPayment, setIsCreatingPayment] = useState(false);
+    const [isRedirecting, setIsRedirecting] = useState(false);
     const [partiallyBlockedSlots, setPartiallyBlockedSlots] = useState<BlockedDateInfo[]>([]);
     const [tooltip, setTooltip] = useState<{ date: string; reason: string; } | null>(null);
 
@@ -765,6 +766,7 @@ export default function CartClient() {
                 }
 
                 // Clear cart and guest data, then redirect
+                setIsRedirecting(true);
                 clearCart();
                 setAppliedDiscount(null);
                 setDiscountCode('');
@@ -1000,6 +1002,12 @@ export default function CartClient() {
 
                     {!mounted || isCartLoading ? (
                         <div className="p-4"><CartSkeleton count={2} /></div>
+                    ) : isRedirecting ? (
+                        <div className="flex flex-col items-center justify-center py-20 px-4 animate-fade-in">
+                            <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
+                            <h2 className="text-xl font-bold text-slate-800">Redirecting to Payment...</h2>
+                            <p className="text-slate-500 mt-2">Please do not close this window.</p>
+                        </div>
                     ) : allItems.length === 0 ? (
                         <div className="text-center py-16 px-4">
                             <p className="text-slate-500">Your bag is empty.</p>

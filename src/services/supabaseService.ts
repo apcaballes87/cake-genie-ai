@@ -1243,8 +1243,8 @@ export async function getCartPageData(
   // Use Promise.all to run queries in parallel
   const [cartResult, addressesResult] = await Promise.all([
     getCartItemsWithMerchant(userId, sessionId), // Use enriched version
-    // Only fetch addresses for authenticated (non-anonymous) users
-    isAnonymous ? Promise.resolve({ data: [], error: null }) : getUserAddresses(userId!),
+    // Only fetch addresses for authenticated (non-anonymous) users AND if we have a valid userId
+    (isAnonymous || !userId) ? Promise.resolve({ data: [], error: null }) : getUserAddresses(userId!),
   ]);
 
   return {

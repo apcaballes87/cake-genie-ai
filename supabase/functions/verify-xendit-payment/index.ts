@@ -175,6 +175,7 @@ serve(async (req) => {
     if (latestStatus === 'PAID' && paymentRecord.status !== 'PAID') {
       console.log(`Status for invoice ${invoiceId} is PAID. Updating database.`);
 
+      // Update xendit_payments first to record the raw data
       const { error: updatePaymentError } = await supabaseAdmin
         .from('xendit_payments')
         .update({
@@ -187,10 +188,47 @@ serve(async (req) => {
         .eq('xendit_invoice_id', invoiceId);
       if (updatePaymentError) throw updatePaymentError;
 
-      // Also update the main order table
+      // --- SECURITY CHECK: VERIFY AMOUNT ---
+      const { data: order, error: orderError } = await supabaseAdmin
+        .from('cakegenie_orders')
+        .select('total_amount')
+        .eq('order_id', orderId)
+        .single();
+
+      if (orderError || !order) {
+        throw new Error(`Could not fetch order to verify amount for orderId: ${orderId}`);
+      }
+
+      const paidAmount = invoice.paid_amount || invoice.amount;
+      const orderTotal = order.total_amount;
+
+      // Allow for small floating point differences
+      if (Math.abs(paidAmount - orderTotal) > 1.0) {
+        console.error(`❌ Payment Mismatch in Verification! Received: ${paidAmount}, Expected: ${orderTotal}`);
+
+        await supabaseAdmin
+          .from('cakegenie_orders')
+          .update({
+            payment_status: 'payment_mismatch',
+            order_notes: `Payment Mismatch (Verification): Paid ${paidAmount}, Expected ${orderTotal}`
+          })
+          .eq('order_id', orderId);
+
+        // We still return success: true because the *check* succeeded, but the status reflects the mismatch
+        return new Response(JSON.stringify({ success: true, status: 'PAYMENT_MISMATCH', message: 'Payment amount mismatch detected.' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      }
+
+      // --- AMOUNT VERIFIED: PROCEED TO CONFIRM ---
       const { error: updateOrderError } = await supabaseAdmin
         .from('cakegenie_orders')
-        .update({ payment_status: 'paid' })
+        .update({
+          payment_status: 'paid',
+          order_status: 'confirmed',
+          updated_at: new Date().toISOString()
+        })
         .eq('order_id', orderId);
       if (updateOrderError) throw updateOrderError;
     }

@@ -10,6 +10,7 @@ import { showSuccess, showError, showLoading, showInfo } from '@/lib/utils/toast
 import { HybridAnalysisResult } from '@/types'
 import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService'
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils'
+import { COMMON_ASSETS } from '@/constants'
 
 /**
  * Generates a perceptual hash (pHash) for an image.
@@ -104,7 +105,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const fetchReferenceImage = async () => {
             try {
-                const imageUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/3tier.webp';
+                const imageUrl = COMMON_ASSETS.threeTierReference;
 
                 const response = await fetch(imageUrl);
                 if (!response.ok) throw new Error('Failed to fetch reference image');
@@ -401,7 +402,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         const toastId = showLoading("Saving image...");
 
         try {
-            const watermarkUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20watermark.png';
+            const watermarkUrl = COMMON_ASSETS.watermark;
 
             const [cakeImage, watermarkImage] = await Promise.all([
                 new Promise<HTMLImageElement>((resolve, reject) => {

@@ -13,6 +13,7 @@ import { toast } from 'react-hot-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSavedItemsActions, useSavedItemsData } from '@/contexts/SavedItemsContext';
+import { LANDING_PAGE_IMAGES, COMMON_ASSETS } from '@/constants';
 import {
     Search,
     ShoppingBag,
@@ -43,39 +44,17 @@ import {
 const quickLinks = [
     {
         name: 'Minimalist Cakes',
-        imageUrls: [
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/minimalist1.jpg',
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/minimalist2.jpg',
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/minimalist3.jpg',
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/minimalist5.jpg',
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/minimalist6.jpg',
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/minimalist7.jpg',
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/minimalist8.jpg'
-        ],
+        imageUrls: LANDING_PAGE_IMAGES.minimalist,
         searchTerm: 'minimalist cakes'
     },
     {
         name: 'Edible Photo',
-        imageUrls: [
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/ep1.jpg',
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/ep2.jpg',
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/ep3.jpg',
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/ep4.jpg',
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/ep5.jpg',
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/ep6.jpg'
-        ],
+        imageUrls: LANDING_PAGE_IMAGES.ediblePhoto,
         searchTerm: 'edible photo cakes'
     },
     {
         name: 'Bento Cakes',
-        imageUrls: [
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/BENTO1.jpg',
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/bento2.jpg',
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/bento3.jpg',
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/bento4.jpg',
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/bento5.jpg',
-            'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/bento6.jpg'
-        ],
+        imageUrls: LANDING_PAGE_IMAGES.bento,
         searchTerm: 'bento cakes'
     }
 ];
@@ -381,7 +360,7 @@ const LandingClient: React.FC = () => {
             gradient: "bg-gray-100", // Fallback
             shadow: "shadow-gray-200",
             icon: null,
-            imageUrl: "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/call%20for%20bakeshops.webp",
+            imageUrl: COMMON_ASSETS.callForBakeshops,
             action: () => window.open('https://pro.genie.ph', '_blank')
         }
     ];
@@ -478,7 +457,7 @@ const LandingClient: React.FC = () => {
                             }}
                         >
                             <img
-                                src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20logo%20long2.webp"
+                                src={COMMON_ASSETS.logo}
                                 alt="Genie Logo"
                                 className="h-16 md:h-12 object-contain"
                             />
@@ -752,7 +731,7 @@ const LandingClient: React.FC = () => {
                                     View All
                                 </button>
                             </div>
-                            <div className="flex gap-4 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-2">
+                            <div className="flex gap-4 overflow-x-auto scrollbar-hide -mx-4 px-4 py-2">
                                 {isLoadingMerchants ? (
                                     // Skeleton loading
                                     Array.from({ length: 5 }).map((_, i) => (
@@ -782,7 +761,7 @@ const LandingClient: React.FC = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                            <span className="mt-2 text-xs font-medium text-gray-700 group-hover:text-purple-600 transition-colors max-w-[64px] md:max-w-[80px] truncate text-center">
+                                            <span className="mt-2 text-xs font-medium text-gray-700 group-hover:text-purple-600 transition-colors max-w-[64px] md:max-w-[80px] line-clamp-2 text-center leading-tight">
                                                 {merchant.business_name}
                                             </span>
                                         </button>

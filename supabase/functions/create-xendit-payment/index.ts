@@ -10,31 +10,77 @@ serve(async (req) => {
     }
 
     try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+        if (!supabaseUrl || !serviceRoleKey) {
+            throw new Error('Supabase environment variables are not set.');
+        }
+
+        const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
         const requestBody = await req.json();
         console.log('Received request body:', JSON.stringify(requestBody, null, 2));
 
         const {
             orderId,
-            amount,
-            customerEmail,
-            customerName,
-            items,
             success_redirect_url,
             failure_redirect_url,
-            payment_mode
+            payment_mode,
+            items,
+            customerEmail,
+            customerName
         } = requestBody;
 
-        console.log('Extracted values:', {
-            orderId,
-            amount,
-            customerEmail,
-            customerName,
-            itemsCount: items?.length,
-            payment_mode
-        });
+        console.log('Processing payment for Order ID:', orderId);
 
+        // 1. Fetch Order from Database to get Trusted Amount
+        const { data: order, error: orderError } = await supabaseAdmin
+            .from('cakegenie_orders')
+            .select('total_amount, order_number, user_id, order_status, payment_status')
+            .eq('order_id', orderId)
+            .single();
+
+        if (orderError || !order) {
+            console.error('Order not found or access denied:', orderError);
+            throw new Error('Order not found');
+        }
+
+        const amount = order.total_amount;
+        console.log(`Order ${order.order_number} Total Amount: ${amount}`);
+
+        // 2. Handle Free Orders (100% Discount)
+        if (amount <= 0) {
+            console.log('Order amount is 0 or negative. Marking as PAID immediately.');
+
+            // Mark as paid directly
+            const { error: updateError } = await supabaseAdmin
+                .from('cakegenie_orders')
+                .update({
+                    payment_status: 'paid',
+                    order_status: 'confirmed', // or 'pending_fulfillment' depending on workflow
+                    updated_at: new Date().toISOString()
+                })
+                .eq('order_id', orderId);
+
+            if (updateError) {
+                console.error('Failed to update free order status:', updateError);
+                throw new Error('Failed to process free order');
+            }
+
+            return new Response(JSON.stringify({
+                success: true,
+                paymentUrl: success_redirect_url, // Redirect directly to success
+                invoiceId: 'FREE-' + orderId,
+                isFree: true
+            }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 200,
+            });
+        }
+
+        // 3. Proceed with Xendit Payment for non-zero amounts
         const mode = payment_mode || 'test';
-        // Check for mode-specific key first, then fall back to XENDIT_SECRET_KEY for backward compatibility
         const XENDIT_SECRET_KEY = mode === 'live'
             ? (Deno.env.get('XENDIT_LIVE_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'))
             : (Deno.env.get('XENDIT_TEST_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'));
@@ -45,17 +91,8 @@ serve(async (req) => {
             throw new Error(`Xendit API Key for ${mode} mode is not set.`);
         }
 
-        const supabaseUrl = Deno.env.get('SUPABASE_URL');
-        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-        if (!supabaseUrl || !serviceRoleKey) {
-            throw new Error('Supabase environment variables are not set.');
-        }
-
-        const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
-
         // Fetch Order Details for Description
-        const { data: orderData, error: orderError } = await supabaseAdmin
+        const { data: orderData, error: orderDetailsError } = await supabaseAdmin
             .from('cakegenie_orders')
             .select(`
                 *,
@@ -66,14 +103,16 @@ serve(async (req) => {
             .eq('order_id', orderId)
             .single();
 
-        if (orderError || !orderData) {
-            console.error('Error fetching order details:', orderError);
+        if (orderDetailsError || !orderData) {
+            console.error('Error fetching order details:', orderDetailsError);
             throw new Error('Failed to fetch order details for description');
         }
 
         // Construct Detailed Description
         let description = `Order #${orderData.order_number}\n\n`;
-        description += `View Customization Details: ${requestBody.success_redirect_url.split('#')[0]}#/account/orders\n\n`;
+        // Use client-provided success_redirect_url base or fallback
+        const baseUrl = success_redirect_url ? success_redirect_url.split('/order-confirmation')[0] : 'https://cakegenie.ph';
+        description += `View Customization Details: ${baseUrl}/account/orders\n\n`;
 
         if (orderData.cakegenie_order_items && orderData.cakegenie_order_items.length > 0) {
             orderData.cakegenie_order_items.forEach((item: any, index: number) => {
@@ -90,25 +129,6 @@ serve(async (req) => {
                     const toppers = details.mainToppers.map((t: any) => `${t.description} (${t.size || 'medium'})`).join(', ');
                     description += `Main Toppers:\n${toppers}\n`;
                 }
-
-                if (details.supportElements && details.supportElements.length > 0) {
-                    const support = details.supportElements.map((s: any) => `${s.description} (${s.coverage || 'medium'})`).join(', ');
-                    description += `Support:\n${support}\n`;
-                }
-
-                if (details.cakeMessages && details.cakeMessages.length > 0) {
-                    details.cakeMessages.forEach((msg: any, i: number) => {
-                        description += `Message #${i + 1}:\n'${msg.text}' (${msg.color})\n`;
-                    });
-                }
-
-                if (details.icingDesign && details.icingDesign.colors) {
-                    const colors = details.icingDesign.colors;
-                    if (colors.top) description += `Top Color:\n${colors.top}\n`;
-                    if (colors.side) description += `Side Color:\n${colors.side}\n`;
-                    if (colors.topBorder) description += `Top Border Color:\n${colors.topBorder}\n`;
-                    if (colors.baseBorder) description += `Base Border Color:\n${colors.baseBorder}\n`;
-                }
             });
         }
 
@@ -122,13 +142,13 @@ serve(async (req) => {
             },
             body: JSON.stringify({
                 external_id: orderId,
-                amount: amount,
+                amount: amount, // TRUSTED AMOUNT FROM DB
                 payer_email: customerEmail,
-                description: description, // Use the detailed description
-                invoice_duration: 86400, // 24 hours
+                description: description,
+                invoice_duration: 86400,
                 success_redirect_url,
                 failure_redirect_url,
-                items: items,
+                items: items, // Using items for display, but amount is overridden
                 customer: {
                     given_names: customerName,
                     email: customerEmail
@@ -144,9 +164,6 @@ serve(async (req) => {
         const invoice = await response.json();
 
         // Save to database
-        // Note: We are not storing payment_mode in DB yet as schema might not have it.
-        // If we want to store it, we need to add the column.
-        // For now, we'll rely on client passing it for verification or just trying both keys if needed (but client passing is better).
         const { error: dbError } = await supabaseAdmin
             .from('xendit_payments')
             .insert({
@@ -176,8 +193,6 @@ serve(async (req) => {
 
     } catch (error) {
         console.error('Error in create-xendit-payment:', error);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
         return new Response(JSON.stringify({ success: false, error: error.message }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 400,

@@ -6,7 +6,8 @@ export { usePricing } from './usePricing';
 export { useDesignSharing } from './useDesignSharing';
 export { useAppNavigation, type AppState } from './useAppNavigation';
 export { useDesignUpdate } from './useDesignUpdate';
-export { useAuth } from './useAuth';
+// Re-export useAuth from AuthContext (single source of truth)
+export { useAuth } from '@/contexts/AuthContext';
 export { useAddresses } from './useAddresses';
 export { useOrders } from './useOrders';
 export { useAvailabilitySettings } from './useAvailabilitySettings';

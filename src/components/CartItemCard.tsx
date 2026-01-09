@@ -69,12 +69,37 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
                         {item.details.mainToppers.length > 0 && <DetailItem label="Main Toppers" value={item.details.mainToppers.map(t => t.description).join(', ')} />}
                         {item.details.supportElements.length > 0 && <DetailItem label="Support" value={item.details.supportElements.map(s => s.description).join(', ')} />}
                         {item.details.cakeMessages.map((msg, idx) => (
-                            <DetailItem key={idx} label={`Message #${idx + 1}`} value={`'${msg.text}' (${msg.color})`} />
+                            <DetailItem
+                                key={idx}
+                                label={`Message #${idx + 1}`}
+                                value={
+                                    <div className="flex items-center justify-end gap-2">
+                                        <span>'{msg.text}'</span>
+                                        <div
+                                            className="w-4 h-4 rounded-md border border-slate-200 shadow-sm"
+                                            style={{ backgroundColor: msg.color }}
+                                        />
+                                        <span>{msg.color}</span>
+                                    </div>
+                                }
+                            />
                         ))}
                         {item.details.icingDesign.drip && <DetailItem label="Icing" value="Has Drip Effect" />}
                         {item.details.icingDesign.gumpasteBaseBoard && <DetailItem label="Icing" value="Gumpaste Base Board" />}
                         {Object.entries(item.details.icingDesign.colors).map(([loc, color]) => (
-                            <DetailItem key={loc} label={`${colorLabelMap[loc] || loc.charAt(0).toUpperCase() + loc.slice(1)} Color`} value={color} />
+                            <DetailItem
+                                key={loc}
+                                label={`${colorLabelMap[loc] || loc.charAt(0).toUpperCase() + loc.slice(1)} Color`}
+                                value={
+                                    <div className="flex items-center justify-end gap-2">
+                                        <div
+                                            className="w-4 h-4 rounded-md border border-slate-200 shadow-sm"
+                                            style={{ backgroundColor: color }}
+                                        />
+                                        <span>{color}</span>
+                                    </div>
+                                }
+                            />
                         ))}
                         {item.details.additionalInstructions && <DetailItem label="Instructions" value={item.details.additionalInstructions} />}
                     </div>

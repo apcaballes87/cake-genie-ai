@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, ChangeEvent, FormEvent, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks';
 import { showSuccess, showError } from '@/lib/utils/toast';
 import { CakeGenieOrder, CakeGenieOrderItem, PaymentStatus, OrderStatus } from '@/lib/database.types';
 import { useOrders, useUploadPaymentProof, useOrderDetails, useCancelOrder } from '@/hooks/useOrders';
@@ -272,12 +272,37 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                                                 {details.mainToppers.length > 0 && <DetailItem label="Main Toppers" value={details.mainToppers.map(t => t.description).join(', ')} />}
                                                 {details.supportElements.length > 0 && <DetailItem label="Support" value={details.supportElements.map(s => s.description).join(', ')} />}
                                                 {details.cakeMessages.map((msg, idx) => (
-                                                    <DetailItem key={idx} label={`Message #${idx + 1}`} value={`'${msg.text}' (${msg.color})`} />
+                                                    <DetailItem
+                                                        key={idx}
+                                                        label={`Message #${idx + 1}`}
+                                                        value={
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                <span>'{msg.text}'</span>
+                                                                <div
+                                                                    className="w-4 h-4 rounded-md border border-slate-200 shadow-sm"
+                                                                    style={{ backgroundColor: msg.color }}
+                                                                />
+                                                                <span>{msg.color}</span>
+                                                            </div>
+                                                        }
+                                                    />
                                                 ))}
                                                 {details.icingDesign.drip && <DetailItem label="Icing" value="Has Drip Effect" />}
                                                 {details.icingDesign.gumpasteBaseBoard && <DetailItem label="Icing" value="Gumpaste Base Board" />}
                                                 {Object.entries(details.icingDesign.colors).map(([loc, color]) => (
-                                                    <DetailItem key={loc} label={`${colorLabelMap[loc] || loc.charAt(0).toUpperCase() + loc.slice(1)} Color`} value={color} />
+                                                    <DetailItem
+                                                        key={loc}
+                                                        label={`${colorLabelMap[loc] || loc.charAt(0).toUpperCase() + loc.slice(1)} Color`}
+                                                        value={
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                <div
+                                                                    className="w-4 h-4 rounded-md border border-slate-200 shadow-sm"
+                                                                    style={{ backgroundColor: color }}
+                                                                />
+                                                                <span>{color}</span>
+                                                            </div>
+                                                        }
+                                                    />
                                                 ))}
                                                 {details.additionalInstructions && <DetailItem label="Instructions" value={details.additionalInstructions} />}
                                             </div>

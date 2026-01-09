@@ -4,7 +4,7 @@
 
 import React, { useState, FormEvent, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks';
 import { showSuccess, showError } from '@/lib/utils/toast';
 import { CakeGenieAddress } from '@/lib/database.types';
 import { useAddresses, useDeleteAddress, useSetDefaultAddress } from '@/hooks/useAddresses';

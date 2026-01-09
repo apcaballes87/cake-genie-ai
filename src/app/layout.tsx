@@ -3,6 +3,7 @@ import Script from 'next/script'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/Providers'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 import ClientHashRedirect from '@/components/ClientHashRedirect'
 import AnimatedBlobs from '@/components/UI/AnimatedBlobs'
@@ -43,10 +44,12 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100`} suppressHydrationWarning>
         <Providers>
-          <ClientHashRedirect />
-          <AnimatedBlobs />
-          {children}
-          <TawkToChat />
+          <ErrorBoundary>
+            <ClientHashRedirect />
+            <AnimatedBlobs />
+            {children}
+            <TawkToChat />
+          </ErrorBoundary>
         </Providers>
 
       </body>
