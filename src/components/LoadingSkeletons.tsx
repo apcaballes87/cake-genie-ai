@@ -157,3 +157,48 @@ export const CakeBaseSkeleton: React.FC = React.memo(() => (
   </div>
 ));
 CakeBaseSkeleton.displayName = 'CakeBaseSkeleton';
+
+export const CustomizationSkeleton: React.FC = React.memo(() => (
+  <div className="space-y-8 animate-pulse">
+    {/* Main Options */}
+    <div className="space-y-4">
+      <div className="flex gap-4 overflow-x-auto pb-2">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="flex flex-col items-center gap-2 min-w-[60px]">
+            <div className="w-12 h-12 rounded-full bg-slate-200" />
+            <div className="h-3 w-12 bg-slate-200 rounded" />
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* Section 1 */}
+    <div className="space-y-4">
+      <div className="h-6 w-1/3 bg-slate-200 rounded" />
+      <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-4">
+        <div className="flex justify-between items-center">
+          <div className="h-5 w-1/2 bg-slate-200 rounded" />
+          <div className="w-10 h-6 bg-slate-200 rounded-full" />
+        </div>
+        <div className="flex gap-3 overflow-hidden">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="w-20 h-20 bg-slate-200 rounded-lg flex-shrink-0" />
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Section 2 */}
+    <div className="space-y-4">
+      <div className="h-6 w-1/4 bg-slate-200 rounded" />
+      <div className="bg-white p-4 rounded-xl border border-slate-200">
+        <div className="flex justify-between items-center mb-4">
+          <div className="h-5 w-2/3 bg-slate-200 rounded" />
+          <div className="w-10 h-6 bg-slate-200 rounded-full" />
+        </div>
+        <div className="h-10 w-full bg-slate-200 rounded" />
+      </div>
+    </div>
+  </div>
+));
+CustomizationSkeleton.displayName = 'CustomizationSkeleton';

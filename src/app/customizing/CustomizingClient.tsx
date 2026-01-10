@@ -11,6 +11,7 @@ import { SegmentationBottomSheet } from '../../components/SegmentationBottomShee
 import { BoundingBoxOverlay } from '../../components/BoundingBoxOverlay';
 import { FeatureList } from '../../components/FeatureList';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { CustomizationSkeleton } from '../../components/LoadingSkeletons';
 import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, BackIcon, ReportIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon, SideIcingGuideIcon, TopIcingGuideIcon, TopBorderGuideIcon, BaseBorderGuideIcon, BaseBoardGuideIcon, TrashIcon } from '../../components/icons';
 import { ShoppingBag } from 'lucide-react';
 import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType, AvailabilitySettings, IcingColorDetails, AnalysisItem, ClusteredMarker, CartItem } from '../../types';
@@ -26,7 +27,7 @@ import { TopperCard } from '../../components/TopperCard';
 import StickyAddToCartBar from '../../components/StickyAddToCartBar';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
 import { clearPromptCache } from '../../services/geminiService';
-import { reportCustomization, uploadReportImage } from '../../services/supabaseService';
+import { reportCustomization, uploadReportImage, getAnalysisByExactHash } from '../../services/supabaseService';
 import ReportModal from '../../components/ReportModal';
 import ShareModal from '../../components/ShareModal';
 import { CartItemDetails } from '../../types';
@@ -582,7 +583,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     // --- Hooks ---
     const { addOnPricing, itemPrices, basePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice } = usePricing({
-        analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo, onCakeInfoCorrection: handleCakeInfoChange, analysisId
+        analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo, onCakeInfoCorrection: handleCakeInfoChange, analysisId, merchantId: merchant?.merchant_id
     });
 
     const {
@@ -671,8 +672,74 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         clearCustomization();
 
         setIsAnalyzing(true);
-        showInfo(`Loading ${product.title}...`);
+        // showInfo(`Loading ${product.title}...`); // Removed redundant toast
 
+
+        // NEW: Check for p_hash first (Fast Path)
+        if (product.p_hash) {
+            console.log("⚡ Fast Path: Using stored p_hash:", product.p_hash);
+
+            // Start image fetch in parallel with analysis fetch
+            const imageFetchPromise = (async () => {
+                let blob: Blob | null = null;
+                try {
+                    const response = await fetch(product.image_url!);
+                    if (response.ok) blob = await response.blob();
+                } catch { /* ignore direct fetch error */ }
+
+                if (!blob) {
+                    const proxyResponse = await fetch(`/api/proxy?url=${encodeURIComponent(product.image_url!)}`);
+                    if (proxyResponse.ok) blob = await proxyResponse.blob();
+                }
+                if (!blob) throw new Error("Failed to fetch image");
+                return new File([blob], 'product.jpg', { type: blob.type || 'image/jpeg' });
+            })();
+
+            const analysisFetchPromise = getAnalysisByExactHash(product.p_hash);
+
+            Promise.all([imageFetchPromise, analysisFetchPromise])
+                .then(([file, analysisData]) => {
+                    // 1. Load the image into context WITHOUT analysis
+                    hookImageUpload(
+                        file,
+                        (result) => {
+                            // This success callback is for the "analyze" path, but we're bypassing it.
+                            // However, we still need to set the result if we have it from the DB.
+                            if (analysisData) {
+                                console.log("✅ Analysis loaded from DB hash match");
+                                setPendingAnalysisData(analysisData);
+                                setIsAnalyzing(false);
+                                showSuccess("Design loaded!");
+                            } else {
+                                // Fallback: If DB lookup failed (shouldn't happen with valid FK), run analysis
+                                console.warn("⚠️ Hash lookup returned null, falling back to full analysis");
+                                // Trigger re-analysis manually or let the hook finish if it was analyzing
+                                // But hookImageUpload handles analysis internally if we don't pass precomputed result.
+                                // To force precomputed, we use the options arg.
+                            }
+                        },
+                        (error) => {
+                            console.error("Error processing product image:", error);
+                            showError("Failed to load product");
+                            setIsAnalyzing(false);
+                            isLoadingDesignRef.current = false;
+                        },
+                        // Pass analysisData as precomputed if available to skip AI
+                        analysisData ? { imageUrl: product.image_url!, precomputedAnalysis: analysisData } : { imageUrl: product.image_url! }
+                    );
+                })
+                .catch(err => {
+                    console.error("Fast path failed:", err);
+                    // Fallback to old full flow if fast path crashes
+                    isLoadingDesignRef.current = false; // Reset lock to allow retry or old flow
+                    setIsAnalyzing(false);
+                });
+
+            return;
+        }
+
+        // OLD FLOW (Fallback): Load image and calculate hash client-side
+        console.log("🐢 Slow Path: No p_hash, calculating client-side...");
         const fetchProductImage = async () => {
             try {
                 let blob: Blob | null = null;
@@ -2238,7 +2305,20 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
                     <div className="w-full bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200">
-                        {(cakeInfo || analysisError) ? (
+                        {isAnalyzing && !isDesignSaved ? (
+                            <div className="p-2 md:p-4">
+                                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                                    <div className="p-2 bg-purple-100 rounded-lg">
+                                        <MagicSparkleIcon className="w-5 h-5 text-purple-600 animate-pulse" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-bold text-slate-800">Analyzing Design...</h2>
+                                        <p className="text-xs text-slate-500">Extracting features and generating options</p>
+                                    </div>
+                                </div>
+                                <CustomizationSkeleton />
+                            </div>
+                        ) : (cakeInfo || analysisError) ? (
                             <div className="space-y-6">
                                 {/* Customization Pills - Top of cake options */}
                                 <div className="w-full">
@@ -2629,7 +2709,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                     }}
                                                 />
                                                 <div className={`mt-2 ${!isEnabled && !isDisabled ? 'opacity-40 pointer-events-none' : ''}`}>
-                                                    <div className={`pb-2 ${!isEnabled && !isDisabled ? 'pointer-events-auto' : ''}`}>
+                                                    <div className="pb-2">
                                                         <ColorPalette
                                                             selectedColor={icingDesign?.colors[colorKey] || ''}
                                                             onColorChange={(newHex) => {

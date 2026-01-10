@@ -347,6 +347,30 @@ export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string
 }
 
 /**
+ * Fetches analysis directly by exact p_hash string match.
+ * Used when we already have the p_hash from the product record.
+ */
+export async function getAnalysisByExactHash(pHash: string): Promise<HybridAnalysisResult | null> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .select('analysis_json')
+      .eq('p_hash', pHash)
+      .single();
+
+    if (error) {
+      console.error('Error fetching analysis by hash:', error);
+      return null;
+    }
+
+    return data?.analysis_json || null;
+  } catch (err) {
+    console.error('Exception fetching analysis by hash:', err);
+    return null;
+  }
+}
+
+/**
  * Saves a new AI analysis result to the cache table. This is a fire-and-forget operation.
  * @param pHash The perceptual hash of the image.
  * @param analysisResult The JSON result from the AI analysis.
