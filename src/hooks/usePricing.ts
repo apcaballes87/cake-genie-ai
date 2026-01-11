@@ -45,6 +45,7 @@ interface UsePricingProps {
     onCakeInfoCorrection: (updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => void;
     initialPriceInfo?: { size: string; price: number } | null;
     analysisId: string | null;
+    merchantId?: string;
 }
 
 async function calculateAddOnPrice(uiState: {
@@ -53,8 +54,8 @@ async function calculateAddOnPrice(uiState: {
     cakeMessages: CakeMessageUI[],
     icingDesign: IcingDesignUI,
     cakeInfo: CakeInfoUI,
-}) {
-    return await calculatePriceFromDatabase(uiState);
+}, merchantId?: string) {
+    return await calculatePriceFromDatabase(uiState, merchantId);
 }
 
 export const usePricing = ({
@@ -67,6 +68,7 @@ export const usePricing = ({
     onCakeInfoCorrection,
     initialPriceInfo = null,
     analysisId,
+    merchantId,
 }: UsePricingProps) => {
     const lastProcessedAnalysisId = useRef<string | null>(null);
 
@@ -96,7 +98,7 @@ export const usePricing = ({
             }
 
             if (results.length === 0) {
-                const displayType = cakeTypeDisplayMap[cakeInfo.type] || cakeInfo.type || 'this';
+                const displayType = cakeTypeDisplayMap[cakeInfo.type] || cakeInfo.type;
                 throw new Error(`We don't have price options for a "${displayType}" cake. Please try another design.`);
             }
 
@@ -154,12 +156,12 @@ export const usePricing = ({
         data: addonPricingResult,
         isLoading: isCalculatingAddons
     } = useQuery<{ addOnPricing: AddOnPricing | null; itemPrices: Map<string, number> }>({
-        queryKey: pricingKeys.addOnPrice(uiStateForQuery),
+        queryKey: [...pricingKeys.addOnPrice(uiStateForQuery), merchantId],
         queryFn: () => {
             if (!analysisResult || !icingDesign || !cakeInfo) {
                 return Promise.resolve({ addOnPricing: null, itemPrices: new Map<string, number>() });
             }
-            return calculateAddOnPrice({ mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo });
+            return calculateAddOnPrice({ mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo }, merchantId);
         },
         enabled: !!analysisResult && !!icingDesign && !!cakeInfo,
         staleTime: 1 * 60 * 1000,

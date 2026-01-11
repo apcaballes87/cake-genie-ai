@@ -8,30 +8,54 @@ const supabase = getSupabaseClient();
 let pricingRulesCache: {
   rules: Map<string, PricingRule[]>;
   timestamp: number;
+  key: string;
 } | null = null;
 
+const CACHE_KEY_PREFIX = 'pricing_rules_';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-async function getPricingRules(): Promise<Map<string, PricingRule[]>> {
+async function getPricingRules(merchantId?: string): Promise<Map<string, PricingRule[]>> {
   const now = Date.now();
+  const cacheKey = merchantId ? `${CACHE_KEY_PREFIX}${merchantId}` : `${CACHE_KEY_PREFIX}global`;
 
-  if (pricingRulesCache && (now - pricingRulesCache.timestamp < CACHE_DURATION)) {
+  // Check memory cache
+  if (pricingRulesCache &&
+    pricingRulesCache.key === cacheKey &&
+    (now - pricingRulesCache.timestamp < CACHE_DURATION)) {
     return pricingRulesCache.rules;
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('pricing_rules')
     .select('*')
     .eq('is_active', true);
 
+  if (merchantId) {
+    // Fetch global rules AND merchant specific rules
+    query = query.or(`merchant_id.is.null,merchant_id.eq.${merchantId}`);
+  } else {
+    // Fetch only global rules
+    query = query.is('merchant_id', null);
+  }
+
+  const { data, error } = await query;
+
   if (error) {
     console.error('Failed to fetch pricing rules:', error);
-    if (pricingRulesCache) return pricingRulesCache.rules; // Fallback to stale cache on error
+    if (pricingRulesCache && pricingRulesCache.key === cacheKey) return pricingRulesCache.rules;
     throw error;
   }
 
   const rulesMap = new Map<string, PricingRule[]>();
-  data.forEach(rule => {
+
+  // Sort data so merchant-specific rules come first
+  const sortedData = [...data].sort((a, b) => {
+    if (a.merchant_id && !b.merchant_id) return -1; // Merchant rule first
+    if (!a.merchant_id && b.merchant_id) return 1;  // Global rule last
+    return 0;
+  });
+
+  sortedData.forEach(rule => {
     const existing = rulesMap.get(rule.item_key) || [];
     existing.push(rule);
     rulesMap.set(rule.item_key, existing);
@@ -39,7 +63,8 @@ async function getPricingRules(): Promise<Map<string, PricingRule[]>> {
 
   pricingRulesCache = {
     rules: rulesMap,
-    timestamp: now
+    timestamp: now,
+    key: cacheKey
   };
 
   return rulesMap;
@@ -52,10 +77,11 @@ export async function calculatePriceFromDatabase(
     cakeMessages: CakeMessageUI[],
     icingDesign: IcingDesignUI,
     cakeInfo: CakeInfoUI,
-  }
+  },
+  merchantId?: string
 ): Promise<{ addOnPricing: AddOnPricing; itemPrices: Map<string, number> }> {
 
-  const rules = await getPricingRules();
+  const rules = await getPricingRules(merchantId);
 
   const { mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo } = uiState;
 
