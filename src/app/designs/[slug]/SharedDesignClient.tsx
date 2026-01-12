@@ -367,7 +367,7 @@ export default function SharedDesignClient({ design: initialDesign }: SharedDesi
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Left: Image */}
                     <div className="relative">
-                        <LazyImage src={design.customized_image_url} alt={design.alt_text} className="w-full aspect-square object-cover rounded-xl shadow-lg border border-slate-200" />
+                        <LazyImage src={design.customized_image_url} alt={design.alt_text || design.title || 'Custom cake design'} eager={true} className="w-full aspect-square object-cover rounded-xl shadow-lg border border-slate-200" />
                         <div className="absolute top-3 right-3 flex gap-2">
                             <button onClick={handleCopyLink} className="p-2.5 bg-white/80 backdrop-blur-md rounded-full shadow-md hover:bg-white transition-colors">
                                 {isCopying ? <CheckCircle className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5 text-slate-600" />}

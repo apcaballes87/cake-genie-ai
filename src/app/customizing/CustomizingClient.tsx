@@ -1122,12 +1122,41 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                     if (!blob) throw new Error("Failed to load image from both sources.");
 
-                    // Verify it is an image
-                    if (!blob.type.startsWith('image/')) {
-                        throw new Error(`Fetched content is not an image (${blob.type})`);
+                    // Verify it is an image (skip strict check if type is empty due to proxy)
+                    if (blob.type && !blob.type.startsWith('image/') && !blob.type.startsWith('application/octet-stream')) {
+                        console.warn(`Fetched content might not be an image: ${blob.type}`);
+                        // We continue anyway and let magic byte detection handle it
                     }
 
-                    const file = new File([blob], 'shared-design.webp', { type: blob.type || 'image/webp' });
+                    // helper to detect mime type from magic numbers
+                    const detectMimeType = async (blob: Blob): Promise<string> => {
+                        try {
+                            const arr = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+                            // JPEG: FF D8
+                            if (arr[0] === 0xFF && arr[1] === 0xD8) return 'image/jpeg';
+                            // PNG: 89 50 4E 47
+                            if (arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4E && arr[3] === 0x47) return 'image/png';
+                            // WebP: 52 49 46 46 (RIFF) ... 57 45 42 50 (WEBP) at offset 8
+                            if (arr[0] === 0x52 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x46) return 'image/webp';
+                            // GIF: 47 49 46 38
+                            if (arr[0] === 0x47 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x38) return 'image/gif';
+
+                            return blob.type || 'image/jpeg'; // fallback
+                        } catch (e) {
+                            return blob.type || 'image/jpeg';
+                        }
+                    };
+
+                    const mimeType = await detectMimeType(blob);
+                    console.log(`Detected MIME type: ${mimeType} (original: ${blob.type})`);
+
+                    // Determine extension based on mime type
+                    let extension = 'jpg';
+                    if (mimeType === 'image/png') extension = 'png';
+                    if (mimeType === 'image/webp') extension = 'webp';
+                    if (mimeType === 'image/gif') extension = 'gif';
+
+                    const file = new File([blob], `shared-design.${extension}`, { type: mimeType });
 
                     // Use hookImageUpload to trigger the full analysis flow
                     await hookImageUpload(

@@ -284,7 +284,53 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 compressedImageData = await fileToBase64(compressedFile);
 
 
-                // Upload compressed file to storage
+                // --- STEP 2.5: FALLBACK RESIZING (Keyhole) ---
+                // If compression failed or result is still too large (>1MB), force resize via Canvas
+                // This guarantees we never send a massive payload to Gemini
+                if (compressedImageData.data.length > 2 * 1024 * 1024) { // > ~1.5MB base64
+                    console.warn("⚠️ Compressed image still too large, applying forceful resizing...");
+                    try {
+                        const img = new Image();
+                        img.src = imageSrc;
+                        await new Promise((resolve) => { img.onload = resolve; });
+
+                        const canvas = document.createElement('canvas');
+                        const MAX_DIMENSION = 1024; // Force max dimension
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > MAX_DIMENSION) {
+                                height *= MAX_DIMENSION / width;
+                                width = MAX_DIMENSION;
+                            }
+                        } else {
+                            if (height > MAX_DIMENSION) {
+                                width *= MAX_DIMENSION / height;
+                                height = MAX_DIMENSION;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx?.drawImage(img, 0, 0, width, height);
+
+                        const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.8); // Force JPEG 80%
+                        const resizedBase64 = resizedDataUrl.split(',')[1];
+
+                        compressedImageData = {
+                            data: resizedBase64,
+                            mimeType: 'image/jpeg'
+                        };
+                        console.log("✅ Forceful resizing complete. New size:", (resizedBase64.length / 1024 / 1024).toFixed(2), "MB");
+
+                    } catch (resizeErr) {
+                        console.error("Force resize failed:", resizeErr);
+                    }
+                }
+
+                // Upload compressed file to storage for cache record
                 if (!uploadedImageUrl) {
                     const fileName = `analysis-cache/${uuidv4()}.webp`;
                     const { error: uploadError } = await supabase.storage

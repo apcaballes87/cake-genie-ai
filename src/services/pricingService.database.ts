@@ -35,7 +35,10 @@ async function getPricingRules(merchantId?: string): Promise<Map<string, Pricing
     query = query.or(`merchant_id.is.null,merchant_id.eq.${merchantId}`);
   } else {
     // Fetch only global rules
-    query = query.is('merchant_id', null);
+    // UPDATE: Due to database migration where all rules were assigned a merchant_id,
+    // we strictly relaxing this to fetch ALL rules if no merchant is specified,
+    // to ensure we find the "default" (main store) rules.
+    // query = query.is('merchant_id', null);
   }
 
   const { data, error } = await query;

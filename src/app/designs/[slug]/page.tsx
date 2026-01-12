@@ -40,15 +40,30 @@ export async function generateMetadata(
     return {
         title,
         description,
+        alternates: {
+            canonical: `https://genie.ph/designs/${slug}`,
+        },
+        robots: {
+            index: true,
+            follow: true,
+            googleBot: {
+                index: true,
+                follow: true,
+                'max-video-preview': -1,
+                'max-image-preview': 'large',
+                'max-snippet': -1,
+            },
+        },
         openGraph: {
             title,
             description,
+            url: `https://genie.ph/designs/${slug}`,
             images: [
                 {
                     url: design.customized_image_url,
                     width: 1200,
                     height: 630,
-                    alt: design.alt_text || 'Custom cake design',
+                    alt: design.alt_text || design.title || 'Custom cake design',
                 },
             ],
             type: 'website',
@@ -64,12 +79,14 @@ export async function generateMetadata(
 
 // JSON-LD Schema for Shared Design
 function DesignSchema({ design }: { design: any }) {
+    // Sanitize string to prevent script injection in JSON-LD
+    const sanitize = (str: string) => str ? str.replace(/<\/script/g, '<\\/script') : '';
 
     const schema = {
         '@context': 'https://schema.org',
         '@type': 'Product',
-        name: design.title || 'Custom Cake Design',
-        description: design.description || `Custom ${design.cake_type} cake design`,
+        name: sanitize(design.title || 'Custom Cake Design'),
+        description: sanitize(design.description || `Custom ${design.cake_type} cake design`),
         image: design.customized_image_url,
         brand: {
             '@type': 'Brand',
@@ -80,13 +97,15 @@ function DesignSchema({ design }: { design: any }) {
             price: design.final_price || 0,
             priceCurrency: 'PHP',
             availability: 'https://schema.org/InStock',
+            priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
             seller: {
                 '@type': 'Organization',
                 name: 'Genie.ph'
-            }
+            },
+            url: `https://genie.ph/designs/${design.url_slug || ''}`
         },
         category: design.cake_type,
-        ...(design.alt_text && { 'alternateName': design.alt_text })
+        ...(design.alt_text && { 'alternateName': sanitize(design.alt_text) })
     };
 
     return (

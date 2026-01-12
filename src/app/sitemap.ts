@@ -22,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const supabase = await createClient()
     const { data: designs } = await supabase
         .from('cakegenie_shared_designs')
-        .select('url_slug, created_at')
+        .select('url_slug, created_at, customized_image_url, title, alt_text')
         .order('created_at', { ascending: false })
         .limit(5000)
 
@@ -31,6 +31,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: new Date(design.created_at),
         changeFrequency: 'weekly' as const,
         priority: 0.8,
+        images: [
+            {
+                url: design.customized_image_url,
+                title: design.title || 'Custom Cake Design',
+                caption: design.alt_text || design.title || 'Custom Cake Design',
+            },
+        ],
     }))
 
     // 3. Dynamic routes: Merchants

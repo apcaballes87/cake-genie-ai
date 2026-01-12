@@ -1133,7 +1133,7 @@ This is SPEED MODE - only identify what items exist, not where they are.
 
         // Retry configuration: up to 2 retries with longer timeout
         const MAX_RETRIES = 2;
-        const ANALYSIS_TIMEOUT_MS = 45000; // 45 seconds (increased from 25s)
+        const ANALYSIS_TIMEOUT_MS = 90000; // 90 seconds (increased from 45s to handle redirected images)
 
         let lastError: Error | null = null;
 
