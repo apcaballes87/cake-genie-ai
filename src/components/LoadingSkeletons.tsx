@@ -11,8 +11,8 @@ Skeleton.displayName = 'Skeleton';
 // Cart item skeleton
 export const CartItemSkeleton: React.FC = React.memo(() => (
   <div className="flex gap-4 p-4 bg-white rounded-lg border border-slate-200">
-    <Skeleton className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0 rounded-md" />
-    <div className="flex-grow space-y-3">
+    <Skeleton className="w-24 h-24 md:w-32 md:h-32 shrink-0 rounded-md" />
+    <div className="grow space-y-3">
       <Skeleton className="h-5 w-3/4" />
       <Skeleton className="h-6 w-1/4" />
       <div className="pt-4">
@@ -81,7 +81,7 @@ export const AddressCardSkeleton: React.FC = React.memo(() => (
   <div className="relative p-5 bg-white rounded-xl border-2 border-slate-200">
     <div className="flex items-start gap-4">
       <Skeleton className="w-6 h-6 rounded-full" />
-      <div className="flex-grow space-y-2">
+      <div className="grow space-y-2">
         <Skeleton className="h-5 w-1/3" />
         <Skeleton className="h-4 w-1/2" />
         <Skeleton className="h-3 w-full" />
@@ -120,8 +120,8 @@ ToggleSkeleton.displayName = 'ToggleSkeleton';
 
 // New skeleton for thumbnail lists
 const ThumbnailSkeleton: React.FC = () => (
-  <div className="flex-shrink-0 w-24 flex flex-col items-center text-center gap-2">
-    <Skeleton className="w-full aspect-[5/4] rounded-lg" />
+  <div className="shrink-0 w-24 flex flex-col items-center text-center gap-2">
+    <Skeleton className="w-full aspect-5/4 rounded-lg" />
     <Skeleton className="h-3 w-16" />
   </div>
 );
@@ -182,7 +182,7 @@ export const CustomizationSkeleton: React.FC = React.memo(() => (
         </div>
         <div className="flex gap-3 overflow-hidden">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="w-20 h-20 bg-slate-200 rounded-lg flex-shrink-0" />
+            <div key={i} className="w-20 h-20 bg-slate-200 rounded-lg shrink-0" />
           ))}
         </div>
       </div>

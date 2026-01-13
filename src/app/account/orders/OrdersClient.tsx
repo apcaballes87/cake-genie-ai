@@ -182,13 +182,13 @@ const PayOrderButton: React.FC<{ order: EnrichedOrder }> = ({ order }) => {
     };
 
     return (
-        <div className="p-4 bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-lg">
+        <div className="p-4 bg-linear-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-lg">
             <h4 className="text-sm font-semibold text-slate-800 mb-2">Pay Order Online</h4>
             <p className="text-xs text-slate-500 mb-3">Pay securely via GCash, Credit Card, or other methods.</p>
             <button
                 onClick={handlePayOrder}
                 disabled={isProcessing}
-                className="w-full flex items-center justify-center bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all text-sm disabled:opacity-70 disabled:hover:scale-100"
+                className="w-full flex items-center justify-center bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all text-sm disabled:opacity-70 disabled:hover:scale-100"
             >
                 {isProcessing ? (
                     <>

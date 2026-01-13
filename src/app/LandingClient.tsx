@@ -449,7 +449,7 @@ const LandingClient: React.FC = () => {
 
                         {/* Logo - fades out on scroll on mobile, always visible on desktop */}
                         <div
-                            className="absolute left-0 transition-all duration-500 ease-out pointer-events-none md:static md:pointer-events-auto md:!opacity-100 md:!transform-none md:mr-8"
+                            className="absolute left-0 transition-all duration-500 ease-out pointer-events-none md:static md:pointer-events-auto md:opacity-100! md:transform-none! md:mr-8"
                             style={{
                                 opacity: logoOpacity,
                                 transform: `scale(${0.9 + logoOpacity * 0.1})`,
@@ -465,7 +465,7 @@ const LandingClient: React.FC = () => {
 
                         {/* Search Icon/Bar - expands on scroll on mobile, always visible on desktop */}
                         <div
-                            className="flex-1 transition-all duration-500 ease-out md:!max-w-2xl md:!opacity-100 md:mx-auto"
+                            className="flex-1 transition-all duration-500 ease-out md:max-w-2xl! md:opacity-100! md:mx-auto"
                             style={{
                                 maxWidth: isFullyScrolled ? '100%' : '0px',
                                 opacity: searchBarOpacity,
@@ -748,7 +748,7 @@ const LandingClient: React.FC = () => {
                                             className="flex flex-col items-center shrink-0 group"
                                             aria-label={`Visit ${merchant.business_name}`}
                                         >
-                                            <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-gradient-to-br from-purple-100 to-pink-100 ring-2 ring-transparent group-hover:ring-purple-400 transition-all duration-300 shadow-sm group-hover:shadow-md">
+                                            <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-linear-to-br from-purple-100 to-pink-100 ring-2 ring-transparent group-hover:ring-purple-400 transition-all duration-300 shadow-sm group-hover:shadow-md">
                                                 {merchant.profile_image_url ? (
                                                     <LazyImage
                                                         src={merchant.profile_image_url}
@@ -756,7 +756,7 @@ const LandingClient: React.FC = () => {
                                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                                     />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-pink-500 text-white font-bold text-lg md:text-xl">
+                                                    <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-purple-500 to-pink-500 text-white font-bold text-lg md:text-xl">
                                                         {merchant.business_name.charAt(0).toUpperCase()}
                                                     </div>
                                                 )}

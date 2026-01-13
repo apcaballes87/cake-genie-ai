@@ -32,7 +32,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
         return (
             <div className="flex flex-col gap-4 p-4 bg-white rounded-lg border border-slate-200">
                 <div className="flex gap-4 w-full">
-                    <div className="relative w-24 h-24 md:w-32 md:h-32 flex-shrink-0 rounded-md bg-slate-100 overflow-hidden">
+                    <div className="relative w-24 h-24 md:w-32 md:h-32 shrink-0 rounded-md bg-slate-100 overflow-hidden">
                         <LazyImage
                             src={item.image!}
                             alt="Original cake design"
@@ -43,7 +43,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
                             <p className="text-xs text-white font-semibold mt-2 text-center shadow-sm">Updating design...</p>
                         </div>
                     </div>
-                    <div className="flex-grow">
+                    <div className="grow">
                         <div className="flex justify-between items-start">
                             <div>
                                 <h2 className="font-semibold text-slate-800">{item.size}</h2>
@@ -130,12 +130,12 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
                 <button
                     type="button"
                     onClick={() => item.image && onZoom(item.image)}
-                    className="w-24 h-24 md:w-32 md:h-32 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-md transition-transform hover:scale-105"
+                    className="w-24 h-24 md:w-32 md:h-32 shrink-0 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-md transition-transform hover:scale-105"
                     aria-label="Enlarge cake image"
                 >
                     <LazyImage src={item.image!} alt="Cake Design" className="w-full h-full object-cover rounded-md" />
                 </button>
-                <div className="flex-grow">
+                <div className="grow">
                     <div className="flex justify-between items-start">
                         <div>
                             <h2 className="font-semibold text-slate-800">{item.size}</h2>

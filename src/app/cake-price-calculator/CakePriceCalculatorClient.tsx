@@ -203,7 +203,7 @@ const CakePriceCalculatorClient: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
+        <div className="min-h-screen bg-linear-to-b from-pink-50 to-white">
             {/* Header */}
             <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-pink-100">
                 <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
