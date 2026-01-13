@@ -2334,7 +2334,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
                     <div className="w-full bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200">
-                        {isAnalyzing && !isDesignSaved ? (
+                        {(isAnalyzing || isLoading) && !isDesignSaved ? (
                             <div className="p-2 md:p-4">
                                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
                                     <div className="p-2 bg-purple-100 rounded-lg">
