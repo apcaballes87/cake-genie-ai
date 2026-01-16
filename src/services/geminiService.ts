@@ -1063,9 +1063,39 @@ This is SPEED MODE - only identify what items exist, not where they are.
 `;
 
         // Use the same schema but coordinates will be 0,0
+        // IMPORTANT: Schema property order matters! Put essential fields FIRST before large arrays
+        // to prevent truncation from missing critical fields like icing_design
         const fastAnalysisSchema = {
             type: Type.OBJECT,
             properties: {
+                // === ESSENTIAL FIELDS FIRST (simple types, output early) ===
+                cakeType: { type: Type.STRING, enum: CAKE_TYPES },
+                cakeThickness: { type: Type.STRING, enum: CAKE_THICKNESSES },
+                keyword: { type: Type.STRING },
+                icing_design: {
+                    type: Type.OBJECT,
+                    properties: {
+                        base: { type: Type.STRING, enum: ['soft_icing', 'fondant'] },
+                        color_type: { type: Type.STRING, enum: ['single', 'gradient_2', 'gradient_3', 'abstract'] },
+                        colors: {
+                            type: Type.OBJECT,
+                            properties: {
+                                side: { type: Type.STRING },
+                                top: { type: Type.STRING },
+                                borderTop: { type: Type.STRING },
+                                borderBase: { type: Type.STRING },
+                                drip: { type: Type.STRING },
+                                gumpasteBaseBoardColor: { type: Type.STRING }
+                            }
+                        },
+                        border_top: { type: Type.BOOLEAN },
+                        border_base: { type: Type.BOOLEAN },
+                        drip: { type: Type.BOOLEAN },
+                        gumpasteBaseBoard: { type: Type.BOOLEAN }
+                    },
+                    required: ['base', 'color_type', 'colors', 'border_top', 'border_base', 'drip', 'gumpasteBaseBoard']
+                },
+                // === LARGE ARRAYS (can be truncated if model runs out of tokens) ===
                 main_toppers: {
                     type: Type.ARRAY,
                     items: {
@@ -1118,31 +1148,7 @@ This is SPEED MODE - only identify what items exist, not where they are.
                         required: ['type', 'text', 'position', 'color', 'x', 'y']
                     }
                 },
-                icing_design: {
-                    type: Type.OBJECT,
-                    properties: {
-                        base: { type: Type.STRING, enum: ['soft_icing', 'fondant'] },
-                        color_type: { type: Type.STRING, enum: ['single', 'gradient_2', 'gradient_3', 'abstract'] },
-                        colors: {
-                            type: Type.OBJECT,
-                            properties: {
-                                side: { type: Type.STRING },
-                                top: { type: Type.STRING },
-                                borderTop: { type: Type.STRING },
-                                borderBase: { type: Type.STRING },
-                                drip: { type: Type.STRING },
-                                gumpasteBaseBoardColor: { type: Type.STRING }
-                            }
-                        },
-                        border_top: { type: Type.BOOLEAN },
-                        border_base: { type: Type.BOOLEAN },
-                        drip: { type: Type.BOOLEAN },
-                        gumpasteBaseBoard: { type: Type.BOOLEAN }
-                    },
-                    required: ['base', 'color_type', 'colors', 'border_top', 'border_base', 'drip', 'gumpasteBaseBoard']
-                },
-                cakeType: { type: Type.STRING, enum: CAKE_TYPES },
-                cakeThickness: { type: Type.STRING, enum: CAKE_THICKNESSES },
+                // === OPTIONAL ARRAYS (nice to have but not critical) ===
                 drip_effects: {
                     type: Type.ARRAY,
                     items: {
@@ -1195,7 +1201,6 @@ This is SPEED MODE - only identify what items exist, not where they are.
                         required: ['description', 'x', 'y']
                     }
                 },
-                keyword: { type: Type.STRING },
                 // Rejection object for invalid images (non-cakes, multiple cakes, etc.)
                 rejection: {
                     type: Type.OBJECT,
@@ -1211,14 +1216,14 @@ This is SPEED MODE - only identify what items exist, not where they are.
                     required: ['isRejected', 'reason', 'message']
                 }
             },
-            // Note: We don't require the analysis fields since a rejection response won't have them
-            required: [],
+            // CRITICAL: Specify required fields to force model to include them
+            required: ['cakeType', 'cakeThickness', 'keyword', 'icing_design', 'main_toppers', 'support_elements', 'cake_messages'],
         };
 
 
         // Retry configuration: up to 2 retries with longer timeout
         const MAX_RETRIES = 2;
-        const ANALYSIS_TIMEOUT_MS = 90000; // 90 seconds (increased from 45s to handle redirected images)
+        const ANALYSIS_TIMEOUT_MS = 90000; // 90 seconds
 
         let lastError: Error | null = null;
 
@@ -1229,9 +1234,9 @@ This is SPEED MODE - only identify what items exist, not where they are.
                 }
 
                 // Create a timeout promise
-                const timeoutPromise = new Promise<never>((_, reject) =>
-                    setTimeout(() => reject(new Error('AI analysis timed out. Please try again.')), ANALYSIS_TIMEOUT_MS)
-                );
+                const timeoutPromise = new Promise<never>((_, reject) => {
+                    setTimeout(() => reject(new Error('AI analysis timed out. Please try again.')), ANALYSIS_TIMEOUT_MS);
+                });
 
                 // Race the AI call against the timeout
                 const responseCallback = getAI().models.generateContent({
@@ -1247,6 +1252,7 @@ This is SPEED MODE - only identify what items exist, not where they are.
                         responseMimeType: 'application/json',
                         responseSchema: fastAnalysisSchema,
                         temperature: 0,
+                        maxOutputTokens: 32768, // Ensure complete responses for complex cakes
                     },
                 });
 
