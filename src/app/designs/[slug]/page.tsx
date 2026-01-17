@@ -74,6 +74,9 @@ export async function generateMetadata(
             description,
             images: [design.customized_image_url],
         },
+        other: {
+            thumbnail: design.customized_image_url,
+        },
     }
 }
 

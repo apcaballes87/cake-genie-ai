@@ -59,6 +59,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .select(`
             slug,
             updated_at,
+            image_url,
+            title,
+            alt_text,
             cakegenie_merchants!inner(slug)
         `)
         .eq('is_active', true)
@@ -68,6 +71,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.6,
+        images: product.image_url ? [
+            {
+                url: product.image_url,
+                title: product.title,
+                caption: product.alt_text || product.title,
+            },
+        ] : [],
     }))
 
     // 5. Dynamic routes: Product Customize Pages (SEO-friendly customization URLs)
@@ -76,6 +86,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.7, // Higher priority than product detail pages
+        images: product.image_url ? [
+            {
+                url: product.image_url,
+                title: product.title,
+                caption: product.alt_text || product.title,
+            },
+        ] : [],
     }))
 
     return [...routes, ...designRoutes, ...merchantRoutes, ...productRoutes, ...customizeRoutes]

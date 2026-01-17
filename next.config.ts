@@ -30,6 +30,21 @@ const nextConfig: NextConfig = {
       },
     ]
   },
+  async redirects() {
+    return [
+      // Redirect old /merchant/ URLs to /shop/
+      {
+        source: '/merchant/:merchantSlug',
+        destination: '/shop/:merchantSlug',
+        permanent: true,
+      },
+      {
+        source: '/merchant/:merchantSlug/:productSlug',
+        destination: '/shop/:merchantSlug/:productSlug',
+        permanent: true,
+      },
+    ]
+  },
 }
 
 export default nextConfig

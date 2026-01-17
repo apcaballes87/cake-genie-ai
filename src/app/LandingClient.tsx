@@ -465,11 +465,10 @@ const LandingClient: React.FC = () => {
 
                         {/* Search Icon/Bar - expands on scroll on mobile, always visible on desktop */}
                         <div
-                            className="flex-1 transition-all duration-500 ease-out md:max-w-2xl! md:opacity-100! md:mx-auto"
+                            className="flex-1 transition-all duration-500 ease-out md:max-w-2xl! md:opacity-100! md:mx-auto overflow-hidden md:overflow-visible py-1"
                             style={{
                                 maxWidth: isFullyScrolled ? '100%' : '0px',
-                                opacity: searchBarOpacity,
-                                overflow: 'hidden'
+                                opacity: searchBarOpacity
                             }}
                         >
                             <SearchAutocomplete

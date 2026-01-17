@@ -6,6 +6,10 @@ import { Loader2 } from '@/components/icons'
 export const metadata: Metadata = {
     title: 'Forgot Password | Genie.ph',
     description: 'Reset your Cake Genie account password. Enter your email to receive a password reset link.',
+    robots: {
+        index: false,
+        follow: false,
+    },
 }
 
 function ForgotPasswordFallback() {

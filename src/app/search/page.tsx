@@ -18,6 +18,11 @@ export async function generateMetadata(
         description: query
             ? `Browse custom cake designs matching "${query}". Order from local bakeries in Cebu.`
             : 'Search for cake designs to customize. Find the perfect cake for any occasion.',
+        // Don't index empty search pages or search result pages (content changes frequently)
+        robots: {
+            index: false,
+            follow: true,
+        },
     }
 }
 

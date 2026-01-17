@@ -6,6 +6,10 @@ import { Loader2 } from '@/components/icons'
 export const metadata: Metadata = {
     title: 'Sign Up | Genie.ph',
     description: 'Create your Cake Genie account to start ordering custom cakes, save addresses, and earn loyalty points.',
+    robots: {
+        index: false,
+        follow: false,
+    },
 }
 
 function SignupFallback() {

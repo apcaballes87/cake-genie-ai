@@ -32,10 +32,25 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
         title,
         description,
         keywords: product.meta_keywords || undefined,
+        alternates: {
+            canonical: `https://genie.ph/shop/${merchantSlug}/${productSlug}`,
+        },
+        robots: {
+            index: true,
+            follow: true,
+            googleBot: {
+                index: true,
+                follow: true,
+                'max-video-preview': -1,
+                'max-image-preview': 'large',
+                'max-snippet': -1,
+            },
+        },
         openGraph: {
             title: product.og_title || product.title,
             description,
             type: 'website',
+            url: `https://genie.ph/shop/${merchantSlug}/${productSlug}`,
             images: product.image_url ? [
                 {
                     url: product.image_url,
@@ -52,28 +67,36 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
             description,
             images: product.image_url ? [product.image_url] : [],
         },
+        ...(product.image_url && {
+            other: {
+                thumbnail: product.image_url,
+            },
+        }),
     };
 }
 
 // JSON-LD Schema for Product (Schema.org)
 function ProductSchema({ product, merchant }: { product: CakeGenieMerchantProduct; merchant: CakeGenieMerchant }) {
+    // Sanitize string to prevent script injection in JSON-LD
+    const sanitize = (str: string | undefined | null) => str ? str.replace(/<\/script/g, '<\\/script') : '';
+
     const productSchema = {
         '@context': 'https://schema.org',
         '@type': 'Product',
-        name: product.title,
-        description: product.long_description || product.short_description || `Custom cake from ${merchant.business_name}`,
+        name: sanitize(product.title),
+        description: sanitize(product.long_description || product.short_description || `Custom cake from ${merchant.business_name}`),
         image: product.image_url ? {
             '@type': 'ImageObject',
             url: product.image_url,
-            caption: product.alt_text || product.title,
+            caption: sanitize(product.alt_text || product.title),
         } : undefined,
         brand: {
             '@type': 'Brand',
-            name: product.brand || merchant.business_name,
+            name: sanitize(product.brand || merchant.business_name),
         },
-        category: product.category || 'Cakes',
-        ...(product.sku && { sku: product.sku }),
-        ...(product.gtin && { gtin: product.gtin }),
+        category: sanitize(product.category || 'Cakes'),
+        ...(product.sku && { sku: sanitize(product.sku) }),
+        ...(product.gtin && { gtin: sanitize(product.gtin) }),
         offers: {
             '@type': 'Offer',
             price: product.custom_price || 0,
@@ -85,9 +108,10 @@ function ProductSchema({ product, merchant }: { product: CakeGenieMerchantProduc
                     : product.availability === 'made_to_order'
                         ? 'https://schema.org/MadeToOrder'
                         : 'https://schema.org/OutOfStock',
+            priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
             seller: {
                 '@type': 'Organization',
-                name: merchant.business_name,
+                name: sanitize(merchant.business_name),
             },
             url: `https://genie.ph/shop/${merchant.slug}/${product.slug}`,
         },
@@ -112,13 +136,13 @@ function ProductSchema({ product, merchant }: { product: CakeGenieMerchantProduc
             {
                 '@type': 'ListItem',
                 position: 3,
-                name: merchant.business_name,
+                name: sanitize(merchant.business_name),
                 item: `https://genie.ph/shop/${merchant.slug}`,
             },
             {
                 '@type': 'ListItem',
                 position: 4,
-                name: product.title,
+                name: sanitize(product.title),
                 item: `https://genie.ph/shop/${merchant.slug}/${product.slug}`,
             },
         ],
