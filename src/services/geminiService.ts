@@ -38,6 +38,7 @@ const PROMPT_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 let typeEnumsCache: {
     mainTopperTypes: string[];
     supportElementTypes: string[];
+    subtypesByType: Record<string, string[]>;
     timestamp: number;
 } | null = null;
 const ENUM_CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
@@ -73,28 +74,33 @@ async function getActivePrompt(): Promise<string> {
     return data.prompt_text;
 }
 
-async function getDynamicTypeEnums(): Promise<{ mainTopperTypes: string[], supportElementTypes: string[] }> {
+async function getDynamicTypeEnums(): Promise<{ mainTopperTypes: string[], supportElementTypes: string[], subtypesByType: Record<string, string[]> }> {
     const now = Date.now();
 
     // Check cache first
     if (typeEnumsCache && (now - typeEnumsCache.timestamp < ENUM_CACHE_DURATION)) {
         return {
             mainTopperTypes: typeEnumsCache.mainTopperTypes,
-            supportElementTypes: typeEnumsCache.supportElementTypes
+            supportElementTypes: typeEnumsCache.supportElementTypes,
+            subtypesByType: typeEnumsCache.subtypesByType
         };
     }
 
-    // Fetch from Supabase pricing_rules table
+    // Fetch from Supabase pricing_rules table - now including sub_item_type
     const { data, error } = await supabase
         .from('pricing_rules')
-        .select('item_type, category')
+        .select('item_type, category, sub_item_type')
         .eq('is_active', true)
         .not('item_type', 'is', null);
 
     // Define a hardcoded fallback for safety
     const fallbackEnums = {
         mainTopperTypes: ['edible_3d_complex', 'edible_3d_ordinary', 'printout', 'toy', 'figurine', 'cardstock', 'edible_photo_top', 'candle', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop', 'plastic_ball'],
-        supportElementTypes: ['edible_3d_support', 'edible_2d_support', 'chocolates', 'sprinkles', 'support_printout', 'isomalt', 'dragees', 'edible_flowers', 'edible_photo_side', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread']
+        supportElementTypes: ['edible_3d_support', 'edible_2d_support', 'chocolates', 'sprinkles', 'support_printout', 'isomalt', 'dragees', 'edible_flowers', 'edible_photo_side', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread'],
+        subtypesByType: {
+            chocolates: ['ferrero', 'oreo', 'kisses', 'm&ms'],
+            edible_3d_ordinary: ['ice_cream_cone']
+        }
     };
 
     if (error || !data) {
@@ -104,14 +110,25 @@ async function getDynamicTypeEnums(): Promise<{ mainTopperTypes: string[], suppo
 
     const mainTopperTypes = new Set<string>();
     const supportElementTypes = new Set<string>();
+    const subtypesByType: Record<string, string[]> = {};
 
-    // Separate the types based on their category
+    // Separate the types based on their category and build subtypes map
     data.forEach(rule => {
         if (rule.item_type) {
             if (rule.category === 'main_topper') {
                 mainTopperTypes.add(rule.item_type);
             } else if (rule.category === 'support_element') {
                 supportElementTypes.add(rule.item_type);
+            }
+
+            // Build subtypes map from sub_item_type column
+            if (rule.sub_item_type) {
+                if (!subtypesByType[rule.item_type]) {
+                    subtypesByType[rule.item_type] = [];
+                }
+                if (!subtypesByType[rule.item_type].includes(rule.sub_item_type)) {
+                    subtypesByType[rule.item_type].push(rule.sub_item_type);
+                }
             }
         }
     });
@@ -152,6 +169,7 @@ async function getDynamicTypeEnums(): Promise<{ mainTopperTypes: string[], suppo
     const result = {
         mainTopperTypes: sortedMainToppers,
         supportElementTypes: Array.from(supportElementTypes),
+        subtypesByType,
     };
 
     // If the fetched lists are empty for some reason, use the fallback
@@ -769,7 +787,10 @@ You MUST provide precise central coordinates for every single decorative element
 
         // Fetch the dynamic enums and the active prompt
         const activePrompt = await getActivePrompt();
-        const { mainTopperTypes, supportElementTypes } = await getDynamicTypeEnums();
+        const { mainTopperTypes, supportElementTypes, subtypesByType } = await getDynamicTypeEnums();
+
+        // Build a flat list of all possible subtypes for schema validation
+        const allSubtypes = Object.values(subtypesByType).flat();
 
         // Modify the response schema to use the dynamic lists
         const hybridAnalysisResponseSchema = {
@@ -788,6 +809,7 @@ You MUST provide precise central coordinates for every single decorative element
                             group_id: { type: Type.STRING },
                             color: { type: Type.STRING },
                             colors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            subtype: { type: Type.STRING },
                             x: { type: Type.NUMBER },
                             y: { type: Type.NUMBER }
                         },
@@ -806,6 +828,8 @@ You MUST provide precise central coordinates for every single decorative element
                             group_id: { type: Type.STRING },
                             color: { type: Type.STRING },
                             colors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            subtype: { type: Type.STRING },
+                            quantity: { type: Type.INTEGER },
                             x: { type: Type.NUMBER },
                             y: { type: Type.NUMBER }
                         },

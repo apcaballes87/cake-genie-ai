@@ -38,6 +38,7 @@ export interface MainTopper {
   classification: 'hero' | 'support' | 'hero + support';
   color?: string;
   colors?: (string | null)[];
+  subtype?: string;  // For subtype-specific pricing (e.g., 'ferrero' for chocolates)
   x?: number;
   y?: number;
   bbox?: BoundingBox;  // Object detection bounding box
@@ -50,6 +51,8 @@ export interface SupportElement {
   group_id: string;
   color?: string;
   colors?: (string | null)[];
+  subtype?: string;  // For subtype-specific pricing (e.g., 'ferrero' for chocolates)
+  quantity?: number; // For countable items like chocolates
   x?: number;
   y?: number;
   bbox?: BoundingBox;  // Object detection bounding box

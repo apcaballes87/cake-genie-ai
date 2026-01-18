@@ -98,7 +98,8 @@ export async function calculatePriceFromDatabase(
   const getRule = (
     type: string,
     size?: string,
-    category?: 'main_topper' | 'support_element' | 'message' | 'icing_feature' | 'special'
+    category?: 'main_topper' | 'support_element' | 'message' | 'icing_feature' | 'special',
+    subtype?: string
   ): PricingRule | undefined => {
 
     // Handle legacy type mapping for edible_2d_gumpaste
@@ -127,7 +128,16 @@ export async function calculatePriceFromDatabase(
       return rulesList[0];
     };
 
-    // 1. Try specific key: type_size
+    // 1. Try subtype-specific key first: type_subtype (e.g., chocolates_ferrero)
+    if (subtype) {
+      const subtypeKey = `${effectiveType}_${subtype}`;
+      const subtypeRules = rules.get(subtypeKey);
+      if (subtypeRules && subtypeRules.length > 0) {
+        return subtypeRules[0];
+      }
+    }
+
+    // 2. Try specific key: type_size (e.g., chocolates_small)
     if (size) {
       const specificKey = `${effectiveType}_${size}`;
       const specificRules = rules.get(specificKey);
@@ -136,12 +146,12 @@ export async function calculatePriceFromDatabase(
       }
     }
 
-    // 2. Try generic key: type
+    // 3. Try generic key: type (e.g., chocolates)
     const genericRules = rules.get(effectiveType);
     const rule = findMatch(genericRules || []);
 
     if (!rule) {
-      console.warn(`No pricing rule found for: type="${type}" (mapped to "${effectiveType}"), size="${size}", category="${category}"`);
+      console.warn(`No pricing rule found for: type="${type}" (mapped to "${effectiveType}"), size="${size}", subtype="${subtype}", category="${category}"`);
     }
 
     return rule;
@@ -164,7 +174,7 @@ export async function calculatePriceFromDatabase(
     }
 
     let price = 0;
-    const rule = getRule(topper.type, topper.size, 'main_topper');
+    const rule = getRule(topper.type, topper.size, 'main_topper', topper.subtype);
 
     if (rule) {
       price = rule.price;
@@ -210,10 +220,15 @@ export async function calculatePriceFromDatabase(
     let price = 0;
     // Fallback to coverage if size is missing (backward compatibility)
     const effectiveSize = element.size || (element as any).coverage;
-    const rule = getRule(element.type, effectiveSize, 'support_element');
+    const rule = getRule(element.type, effectiveSize, 'support_element', element.subtype);
 
     if (rule) {
       price = rule.price;
+
+      // Handle per-piece pricing for subtype items (e.g., chocolates_ferrero at ₱40 each)
+      if (rule.quantity_rule === 'per_piece' && element.quantity) {
+        price *= element.quantity;
+      }
 
       if (rule.multiplier_rule === 'tier_count') {
         price *= extractTierCount(cakeInfo.type);
