@@ -724,6 +724,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 setPendingAnalysisData(analysisData);
                                 setIsAnalyzing(false);
                                 showSuccess("Design loaded!");
+                                isLoadingDesignRef.current = false;
                             } else {
                                 // Fallback: If DB lookup failed (shouldn't happen with valid FK), run analysis
                                 console.warn("⚠️ Hash lookup returned null, falling back to full analysis");
@@ -789,6 +790,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         setPendingAnalysisData(result);
                         setIsAnalyzing(false);
                         showSuccess("Design loaded!");
+                        isLoadingDesignRef.current = false;
                     },
                     (error) => {
                         console.error("Error processing product:", error);
