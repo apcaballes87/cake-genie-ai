@@ -375,43 +375,61 @@ export const useImageManagement = () => {
     }, [editedImage]);
 
     const uploadCartImages = useCallback(async (
-        options: { editedImageDataUri?: string | null } = {}
+        options: { editedImageDataUri?: string | null; userId?: string } = {}
     ): Promise<{ originalImageUrl: string; finalImageUrl: string }> => {
         if (!originalImagePreview) {
             throw new Error("Cannot upload to cart: original image is missing.");
         }
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            throw new Error("Authentication session not found. Cannot upload images.");
+        // Use provided userId or fetch from auth (allows caller to cache auth)
+        let userId = options.userId;
+        if (!userId) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                throw new Error("Authentication session not found. Cannot upload images.");
+            }
+            userId = user.id;
         }
-        const userId = user.id;
 
+        // Prepare both images for upload in parallel
         const originalImageBlob = dataURItoBlob(originalImagePreview);
         const originalImageFileName = `designs/${userId}/${uuidv4()}.webp`;
 
-        const { error: originalUploadError } = await supabase.storage.from('cakegenie').upload(originalImageFileName, originalImageBlob, { contentType: 'image/webp', upsert: false });
-        if (originalUploadError) throw new Error(`Failed to upload original image: ${originalUploadError.message}`);
-        const { data: { publicUrl: originalImageUrl } } = supabase.storage.from('cakegenie').getPublicUrl(originalImageFileName);
-        if (!originalImageUrl) throw new Error("Could not get original image public URL.");
-
-        let finalImageUrl = originalImageUrl;
         const imageToUpload = options.editedImageDataUri !== undefined ? options.editedImageDataUri : editedImage;
 
+        // If we have an edited image, prepare and upload both in parallel
         if (imageToUpload) {
             const editedImageBlob = dataURItoBlob(imageToUpload);
             const editedImageFile = new File([editedImageBlob], 'edited-design.webp', { type: 'image/webp' });
             const compressedEditedFile = await compressImage(editedImageFile, { maxSizeMB: 1, fileType: 'image/webp' });
-
             const editedImageFileName = `designs/${userId}/${uuidv4()}.webp`;
-            const { error: editedUploadError } = await supabase.storage.from('cakegenie').upload(editedImageFileName, compressedEditedFile, { contentType: 'image/webp', upsert: false });
-            if (editedUploadError) throw new Error(`Failed to upload customized image: ${editedUploadError.message}`);
+
+            // Upload both images in PARALLEL for ~2x speedup
+            const [originalResult, editedResult] = await Promise.all([
+                supabase.storage.from('cakegenie').upload(originalImageFileName, originalImageBlob, { contentType: 'image/webp', upsert: false }),
+                supabase.storage.from('cakegenie').upload(editedImageFileName, compressedEditedFile, { contentType: 'image/webp', upsert: false })
+            ]);
+
+            if (originalResult.error) throw new Error(`Failed to upload original image: ${originalResult.error.message}`);
+            if (editedResult.error) throw new Error(`Failed to upload customized image: ${editedResult.error.message}`);
+
+            const { data: { publicUrl: originalImageUrl } } = supabase.storage.from('cakegenie').getPublicUrl(originalImageFileName);
             const { data: { publicUrl: editedPublicUrl } } = supabase.storage.from('cakegenie').getPublicUrl(editedImageFileName);
+
+            if (!originalImageUrl) throw new Error("Could not get original image public URL.");
             if (!editedPublicUrl) throw new Error("Could not get customized image public URL.");
-            finalImageUrl = editedPublicUrl;
+
+            return { originalImageUrl, finalImageUrl: editedPublicUrl };
         }
 
-        return { originalImageUrl, finalImageUrl };
+        // Only original image to upload
+        const { error: originalUploadError } = await supabase.storage.from('cakegenie').upload(originalImageFileName, originalImageBlob, { contentType: 'image/webp', upsert: false });
+        if (originalUploadError) throw new Error(`Failed to upload original image: ${originalUploadError.message}`);
+
+        const { data: { publicUrl: originalImageUrl } } = supabase.storage.from('cakegenie').getPublicUrl(originalImageFileName);
+        if (!originalImageUrl) throw new Error("Could not get original image public URL.");
+
+        return { originalImageUrl, finalImageUrl: originalImageUrl };
     }, [originalImagePreview, editedImage, supabase]);
 
     return {
