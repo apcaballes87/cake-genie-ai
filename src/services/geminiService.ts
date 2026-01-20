@@ -17,9 +17,15 @@ function getAI() {
     if (!ai) {
         const geminiApiKey = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY;
         if (!geminiApiKey) {
-            throw new Error("NEXT_PUBLIC_GOOGLE_AI_API_KEY environment variable not set");
+            console.error('Missing NEXT_PUBLIC_GOOGLE_AI_API_KEY environment variable');
+            throw new Error('AI service is not configured. Please contact support if this problem persists.');
         }
-        ai = new GoogleGenAI({ apiKey: geminiApiKey });
+        try {
+            ai = new GoogleGenAI({ apiKey: geminiApiKey });
+        } catch (initError) {
+            console.error('Failed to initialize Google AI:', initError);
+            throw new Error('Failed to initialize AI service. Please try again later.');
+        }
     }
     return ai;
 }
@@ -1316,6 +1322,27 @@ This is SPEED MODE - only identify what items exist, not where they are.
 
     } catch (error) {
         console.error("Error in fast feature analysis:", error);
+
+        // Provide user-friendly error messages based on error type
+        if (error instanceof Error) {
+            const message = error.message.toLowerCase();
+
+            // Network/fetch errors
+            if (message.includes('fetch') || message.includes('network') || message === 'failed to fetch') {
+                throw new Error('Unable to connect to the AI service. Please check your internet connection and try again.');
+            }
+
+            // Timeout errors
+            if (message.includes('timed out') || message.includes('timeout')) {
+                throw new Error('The AI analysis took too long. Please try again with a smaller or clearer image.');
+            }
+
+            // API configuration errors (already handled in getAI, but catch any others)
+            if (message.includes('api key') || message.includes('not configured')) {
+                throw new Error('AI service configuration error. Please contact support.');
+            }
+        }
+
         throw error;
     }
 };

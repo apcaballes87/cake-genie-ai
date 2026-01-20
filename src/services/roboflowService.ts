@@ -66,7 +66,7 @@ export async function detectObjectsWithRoboflow(
     }
 
     if (!workflowId) {
-        throw new Error('Roboflow workflow ID not configured. Set VITE_ROBOFLOW_MODEL env variable.');
+        throw new Error('Roboflow workflow ID not configured. Set NEXT_PUBLIC_ROBOFLOW_WORKFLOW_ID environment variable.');
     }
 
     // Correct V2 API endpoint format
