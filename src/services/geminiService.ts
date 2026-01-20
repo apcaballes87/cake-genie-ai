@@ -17,9 +17,13 @@ function getAI() {
     if (!ai) {
         const geminiApiKey = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY;
         if (!geminiApiKey) {
-            throw new Error("NEXT_PUBLIC_GOOGLE_AI_API_KEY environment variable not set");
+            throw new Error("AI service is not configured. Please ensure the Google AI API key is set in your environment variables. Contact support if this problem persists.");
         }
-        ai = new GoogleGenAI({ apiKey: geminiApiKey });
+        try {
+            ai = new GoogleGenAI({ apiKey: geminiApiKey });
+        } catch (error) {
+            throw new Error(`Failed to initialize AI service: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
     }
     return ai;
 }
@@ -1316,6 +1320,23 @@ This is SPEED MODE - only identify what items exist, not where they are.
 
     } catch (error) {
         console.error("Error in fast feature analysis:", error);
+
+        // Provide more helpful error messages based on error type
+        if (error instanceof Error) {
+            // Check for network/fetch errors
+            if (error.message.includes('fetch') || error.message.includes('network') || error.message === 'Failed to fetch') {
+                throw new Error('Unable to connect to the AI service. Please check your internet connection and try again.');
+            }
+            // Check for API key errors
+            if (error.message.includes('API key') || error.message.includes('environment variable')) {
+                throw new Error('AI service configuration error. Please contact support.');
+            }
+            // Check for timeout errors
+            if (error.message.includes('timed out')) {
+                throw new Error('The AI analysis took too long to complete. Please try again with a different image.');
+            }
+        }
+
         throw error;
     }
 };

@@ -2,6 +2,40 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### 1. Environment Setup
+
+First, create a `.env.local` file in the root directory by copying the example file:
+
+```bash
+cp .env.example .env.local
+```
+
+Then, edit `.env.local` and fill in your actual API keys and configuration values:
+
+**Required variables:**
+- `NEXT_PUBLIC_GOOGLE_AI_API_KEY` - Your Google Gemini API key for AI cake analysis
+- `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anonymous/public key
+
+**Optional variables:**
+- `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` - For location features
+- `NEXT_PUBLIC_ROBOFLOW_API_KEY` - For enhanced object detection
+- `NEXT_PUBLIC_ROBOFLOW_WORKSPACE` - Your Roboflow workspace name
+- `NEXT_PUBLIC_ROBOFLOW_WORKFLOW_ID` - Your Roboflow workflow ID
+
+**Important Notes:**
+- Never commit `.env.local` to Git (it's already in `.gitignore`)
+- All client-side environment variables in Next.js must start with `NEXT_PUBLIC_` prefix
+- Restart your development server after changing environment variables
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Run the Development Server
+
 First, run the development server:
 
 ```bash
