@@ -165,6 +165,14 @@ const LandingClient: React.FC = () => {
 
         if (!item.original_image_url) return;
 
+        // If item has a slug, navigate directly to the SEO-friendly URL
+        // The page component will handle loading with SSR metadata
+        if (item.slug) {
+            router.push(`/customizing/${item.slug}`);
+            return;
+        }
+
+        // Fallback for items without slug: load and navigate
         const toastId = showLoading('Loading design...');
 
         // Clear previous state

@@ -95,6 +95,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ] : [],
     }))
 
-    return [...routes, ...designRoutes, ...merchantRoutes, ...productRoutes, ...customizeRoutes]
+    // 6. Dynamic routes: Recent Searches (SEO-friendly /customizing/[slug] URLs)
+    const { data: recentSearches } = await supabase
+        .from('cakegenie_analysis_cache')
+        .select('slug, created_at, original_image_url, alt_text, keywords')
+        .not('slug', 'is', null)
+        .not('original_image_url', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(500)
+
+    const recentSearchRoutes = (recentSearches || []).map((search: any) => ({
+        url: `${baseUrl}/customizing/${search.slug}`,
+        lastModified: new Date(search.created_at),
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
+        images: search.original_image_url ? [
+            {
+                url: search.original_image_url,
+                title: search.keywords || 'Custom Cake Design',
+                caption: search.alt_text || search.keywords || 'Custom Cake Design',
+            },
+        ] : [],
+    }))
+
+    return [...routes, ...designRoutes, ...merchantRoutes, ...productRoutes, ...customizeRoutes, ...recentSearchRoutes]
 
 }

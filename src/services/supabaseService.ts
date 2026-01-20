@@ -394,6 +394,21 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
 
       const keywords = analysisResult.keyword || '';
 
+      // Generate SEO-friendly slug: keyword-XXXX (first 4 chars of pHash)
+      const slugBase = keywords
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .substring(0, 50) || 'custom-cake';
+      const hashSuffix = pHash.substring(0, 4);
+      const slug = `${slugBase}-${hashSuffix}`;
+
+      // Generate fallback SEO fields if AI didn't provide them
+      const altText = analysisResult.alt_text || `${keywords || 'Custom'} cake design`;
+      const seoTitle = analysisResult.seo_title || `${keywords || 'Custom'} Cake | Genie.ph`;
+      const seoDescription = analysisResult.seo_description || `Get instant pricing for this ${keywords || 'custom'} cake design. Customize and order at Genie.ph. Starting at ₱${totalPrice.toLocaleString()}.`;
+
       const { error } = await supabase
         .from('cakegenie_analysis_cache')
         .upsert({
@@ -401,7 +416,11 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
           analysis_json: analysisResult,
           original_image_url: imageUrl,
           price: totalPrice,
-          keywords: keywords
+          keywords: keywords,
+          slug: slug,
+          alt_text: altText,
+          seo_title: seoTitle,
+          seo_description: seoDescription
         }, {
           onConflict: 'p_hash',
           ignoreDuplicates: true // Don't update if already exists, just skip
@@ -417,7 +436,7 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
           console.log('ℹ️ Analysis already cached (duplicate pHash - this is fine).');
         }
       } else {
-        console.log('✅ Analysis result cached successfully with pHash:', pHash);
+        console.log('✅ Analysis result cached successfully with pHash:', pHash, 'slug:', slug);
       }
     } catch (err) {
       console.error('❌ Exception during fire-and-forget cache write:', err);
@@ -439,7 +458,7 @@ export async function getRecommendedProducts(limit: number = 8, offset: number =
 
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('p_hash, original_image_url, price, keywords, analysis_json')
+      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text')
       .not('original_image_url', 'is', null)
       .not('price', 'is', null)
       // Filter out duplicate/placeholder images if needed, or strict 'not null' is enough
@@ -460,6 +479,47 @@ export async function getRecommendedProducts(limit: number = 8, offset: number =
     return { data: [], error: null };
   } catch (err) {
     console.error('Exception fetching recommended products:', err);
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Type for recent search design data returned by getAnalysisBySlug
+ */
+export interface RecentSearchDesign {
+  p_hash: string;
+  original_image_url: string | null;
+  price: number | null;
+  keywords: string | null;
+  analysis_json: HybridAnalysisResult | null;
+  slug: string | null;
+  alt_text: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+  created_at: string;
+}
+
+/**
+ * Fetches a cached analysis result by its SEO-friendly slug.
+ * Used by the /customizing/[slug] dynamic route.
+ * @param slug The SEO-friendly slug (e.g., 'unicorn-birthday-cake-a3f2')
+ */
+export async function getAnalysisBySlug(slug: string): Promise<SupabaseServiceResponse<RecentSearchDesign>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, seo_title, seo_description, created_at')
+      .eq('slug', slug)
+      .single();
+
+    if (error) {
+      console.error('Error fetching analysis by slug:', error);
+      return { data: null, error };
+    }
+
+    return { data, error: null };
+  } catch (err) {
+    console.error('Exception fetching analysis by slug:', err);
     return { data: null, error: err as Error };
   }
 }

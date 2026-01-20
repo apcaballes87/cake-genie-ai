@@ -522,12 +522,26 @@ const MotifPanel: React.FC<{
 
 
 // Props interface for optional product context (used by SEO-friendly routes)
+interface RecentSearchDesignProp {
+    p_hash: string;
+    original_image_url: string | null;
+    price: number | null;
+    keywords: string | null;
+    analysis_json: any;
+    slug: string | null;
+    alt_text: string | null;
+    seo_title: string | null;
+    seo_description: string | null;
+    created_at: string;
+}
+
 interface CustomizingClientProps {
     product?: CakeGenieMerchantProduct;
     merchant?: CakeGenieMerchant;
+    recentSearchDesign?: RecentSearchDesignProp;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -795,6 +809,80 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
         fetchProductImage();
     }, [product, originalImageData, isImageManagementLoading, hookImageUpload, setIsAnalyzing, clearImages, clearCustomization]);
+
+    // Handle recentSearchDesign prop loading (from SEO-friendly routes like /customizing/[slug])
+    useEffect(() => {
+        // If no recentSearchDesign or already have image data, skip
+        if (!recentSearchDesign?.original_image_url || !recentSearchDesign?.analysis_json) {
+            return;
+        }
+
+        // Don't load if already processed this design
+        const isNewDesign = recentSearchDesign.slug !== loadedProductSlug.current;
+        const hasLoadedImage = !!originalImageData;
+
+        if (!isNewDesign && hasLoadedImage) {
+            return;
+        }
+
+        if (isLoadingDesignRef.current) {
+            return;
+        }
+
+        isLoadingDesignRef.current = true;
+        loadedProductSlug.current = recentSearchDesign.slug;
+        console.log("🔍 Loading recent search design from props:", recentSearchDesign.keywords);
+
+        // Clear any existing stale data
+        clearImages();
+        clearCustomization();
+
+        setIsAnalyzing(true);
+
+        // We have precomputed analysis, so use Fast Path
+        console.log("⚡ Fast Path: Using cached analysis from recent search");
+
+        const fetchRecentSearchImage = async () => {
+            try {
+                let blob: Blob | null = null;
+                try {
+                    const response = await fetch(recentSearchDesign.original_image_url!);
+                    if (response.ok) blob = await response.blob();
+                } catch { /* ignore direct fetch error */ }
+
+                if (!blob) {
+                    const proxyResponse = await fetch(`/api/proxy?url=${encodeURIComponent(recentSearchDesign.original_image_url!)}`);
+                    if (proxyResponse.ok) blob = await proxyResponse.blob();
+                }
+                if (!blob) throw new Error("Failed to fetch image");
+
+                const file = new File([blob], 'design.jpg', { type: blob.type || 'image/jpeg' });
+
+                hookImageUpload(
+                    file,
+                    (result) => {
+                        console.log("✅ Recent search design loaded from cache");
+                        setPendingAnalysisData(recentSearchDesign.analysis_json);
+                        setIsAnalyzing(false);
+                    },
+                    (error) => {
+                        console.error("Error processing recent search image:", error);
+                        showError("Failed to load design");
+                        setIsAnalyzing(false);
+                        isLoadingDesignRef.current = false;
+                    },
+                    { imageUrl: recentSearchDesign.original_image_url!, precomputedAnalysis: recentSearchDesign.analysis_json }
+                );
+            } catch (err) {
+                console.error("Failed to load recent search design:", err);
+                showError("Failed to load design.");
+                setIsAnalyzing(false);
+                isLoadingDesignRef.current = false;
+            }
+        };
+
+        fetchRecentSearchImage();
+    }, [recentSearchDesign, originalImageData, hookImageUpload, setIsAnalyzing, clearImages, clearCustomization, setPendingAnalysisData]);
 
     // Handle "Customize This Design" flow (loading from URL ref) - Shopify/external integrations
     useEffect(() => {

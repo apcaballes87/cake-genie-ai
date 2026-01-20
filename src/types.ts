@@ -131,6 +131,10 @@ export interface HybridAnalysisResult {
   icing_borders?: IcingBorder[];
   base_board?: BaseBoard[];
   keyword?: string;
+  // SEO fields for searchable recent searches
+  alt_text?: string;
+  seo_title?: string;
+  seo_description?: string;
 }
 
 // --- UI-specific types (extended from base types) ---
