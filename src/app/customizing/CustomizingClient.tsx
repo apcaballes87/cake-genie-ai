@@ -1408,7 +1408,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         if (!finalPrice || !cakeInfo) return;
         setIsAddingToCart(true);
         try {
-            const { originalImageUrl, finalImageUrl } = await uploadCartImages({ editedImageDataUri: editedImage });
+            // Pass userId to avoid extra auth call - user is already authenticated from context
+            const { originalImageUrl, finalImageUrl } = await uploadCartImages({
+                editedImageDataUri: editedImage,
+                userId: user?.id
+            });
 
             const cartItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'> = {
                 user_id: user?.id || null,
@@ -2189,7 +2193,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                             if (currentImageUrl.startsWith('data:')) {
                                                                 showInfo('Saving design...');
                                                                 const { originalImageUrl, finalImageUrl } = await uploadCartImages({
-                                                                    editedImageDataUri: editedImage || null
+                                                                    editedImageDataUri: editedImage || null,
+                                                                    userId: user?.id
                                                                 });
                                                                 currentImageUrl = finalImageUrl;
                                                             }
