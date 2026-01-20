@@ -6,6 +6,67 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { TrashIcon } from './icons';
 import LazyImage from './LazyImage';
 
+// Helper to render color values with inline swatches
+// Handles both pure hex codes (#FF69B4) and text with embedded hex codes
+const renderColorValue = (value: string): React.ReactNode => {
+    // Regex to match hex color codes (3 or 6 characters)
+    const hexPattern = /#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})\b/g;
+
+    // Check if the value is ONLY a hex code (e.g., "#FF69B4")
+    const trimmedValue = value.trim();
+    if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/i.test(trimmedValue)) {
+        return (
+            <div className="flex items-center justify-end gap-2">
+                <div
+                    className="w-4 h-4 rounded-md border border-slate-200 shadow-sm shrink-0"
+                    style={{ backgroundColor: trimmedValue }}
+                    title={trimmedValue}
+                />
+            </div>
+        );
+    }
+
+    // Otherwise, parse the text and replace hex codes with inline swatches
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+    let keyIndex = 0;
+
+    while ((match = hexPattern.exec(value)) !== null) {
+        // Add text before the hex code
+        if (match.index > lastIndex) {
+            parts.push(<span key={`text-${keyIndex}`}>{value.slice(lastIndex, match.index)}</span>);
+        }
+
+        // Add the color swatch
+        const hexColor = match[0];
+        parts.push(
+            <span key={`color-${keyIndex}`} className="inline-flex items-center gap-1">
+                <span
+                    className="inline-block w-3 h-3 rounded border border-slate-300 shadow-sm align-middle"
+                    style={{ backgroundColor: hexColor }}
+                    title={hexColor}
+                />
+            </span>
+        );
+
+        lastIndex = match.index + match[0].length;
+        keyIndex++;
+    }
+
+    // Add remaining text after the last match
+    if (lastIndex < value.length) {
+        parts.push(<span key={`text-end`}>{value.slice(lastIndex)}</span>);
+    }
+
+    // If no hex codes found, return the original value
+    if (parts.length === 0) {
+        return value;
+    }
+
+    return <span className="inline-flex flex-wrap items-center gap-0.5">{parts}</span>;
+};
+
 interface CartItemCardProps {
     item: CartItem;
     onRemove: (id: string) => void;
@@ -90,15 +151,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
                             <DetailItem
                                 key={loc}
                                 label={`${colorLabelMap[loc] || loc.charAt(0).toUpperCase() + loc.slice(1)} Color`}
-                                value={
-                                    <div className="flex items-center justify-end gap-2">
-                                        <div
-                                            className="w-4 h-4 rounded-md border border-slate-200 shadow-sm"
-                                            style={{ backgroundColor: color }}
-                                        />
-                                        <span>{color}</span>
-                                    </div>
-                                }
+                                value={renderColorValue(color)}
                             />
                         ))}
                         {item.details.additionalInstructions && <DetailItem label="Instructions" value={item.details.additionalInstructions} />}
@@ -182,15 +235,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
                         <DetailItem
                             key={loc}
                             label={`${colorLabelMap[loc] || loc.charAt(0).toUpperCase() + loc.slice(1)} Color`}
-                            value={
-                                <div className="flex items-center justify-end gap-2">
-                                    <div
-                                        className="w-4 h-4 rounded-md border border-slate-200 shadow-sm"
-                                        style={{ backgroundColor: color }}
-                                        title={color}
-                                    />
-                                </div>
-                            }
+                            value={renderColorValue(color)}
                         />
                     ))}
                     {item.details.additionalInstructions && <DetailItem label="Instructions" value={item.details.additionalInstructions} />}
