@@ -26,7 +26,6 @@ import { CakeToppersOptions } from '../../components/CakeToppersOptions';
 import { TopperCard } from '../../components/TopperCard';
 import StickyAddToCartBar from '../../components/StickyAddToCartBar';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
-import { clearPromptCache } from '../../services/geminiService';
 import { reportCustomization, uploadReportImage, getAnalysisByExactHash } from '../../services/supabaseService';
 import ReportModal from '../../components/ReportModal';
 import ShareModal from '../../components/ShareModal';
@@ -2489,18 +2488,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                                 {/* Action Buttons */}
                                 <div className="w-full flex items-center justify-end gap-4 pt-2 border-t border-slate-200/50">
-                                    {isAdmin && (
-                                        <button
-                                            onClick={() => {
-                                                clearPromptCache();
-                                                showSuccess("AI prompt cache cleared!");
-                                            }}
-                                            className="flex items-center justify-center text-sm text-yellow-600 hover:text-yellow-800 hover:bg-yellow-200 py-2 px-4 rounded-lg transition-colors"
-                                            aria-label="Clear AI prompt cache"
-                                        >
-                                            Clear Prompt Cache
-                                        </button>
-                                    )}
                                     <button onClick={onOpenReportModal} disabled={!editedImage || isLoading || isReporting} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Report an issue with this image">
                                         <ReportIcon />
                                         <span className="ml-2">{isReporting ? 'Submitting...' : 'Report Issue'}</span>
