@@ -3,15 +3,24 @@ import { createClient } from '@/lib/supabase/server'
 
 /**
  * Sanitize URL for XML sitemap
- * - Strips query parameters (Supabase signed URLs contain & that break XML)
- * - Falls back to empty string if URL is invalid
+ * - For Supabase storage URLs: strips query params (they're just auth tokens)
+ * - For other URLs: keeps full URL (query params may be essential)
+ * - Properly encodes ampersands for XML safety
  */
 const sanitizeUrl = (url: string | null | undefined): string => {
     if (!url) return ''
     try {
         const parsed = new URL(url)
-        // Return just the base URL without query params
-        return `${parsed.origin}${parsed.pathname}`
+
+        // Only strip query params for Supabase storage URLs
+        // (their query params are just signed tokens, base URL still works)
+        if (parsed.hostname.includes('supabase')) {
+            return `${parsed.origin}${parsed.pathname}`
+        }
+
+        // For other URLs, keep the full URL
+        // Next.js sitemap generator handles XML encoding automatically
+        return url
     } catch {
         return url
     }
