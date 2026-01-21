@@ -26,7 +26,10 @@ export async function generateMetadata(
         return { title: 'Design Not Found' }
     }
 
-    const title = design.seo_title || `${design.keywords || 'Custom'} Cake | Genie.ph`
+    const priceDisplay = design.price ? ` | Php ${Math.round(design.price).toLocaleString()}` : ''
+    const title = design.seo_title
+        ? `${design.seo_title}${priceDisplay} | Genie.ph`
+        : `${design.keywords || 'Custom'} Cake${priceDisplay} | Genie.ph`
     const description = design.seo_description || `Get instant pricing for this ${design.keywords || 'custom'} cake design. Starting at ₱${design.price?.toLocaleString() || '0'}.`
 
     return {
