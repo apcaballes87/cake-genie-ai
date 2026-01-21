@@ -731,6 +731,7 @@ export default function CartClient() {
             }
 
             // 2. Create Payment
+            setIsCreatingPayment(true);
             const emailToUse = isAnonymous ? guestEmail : user?.email || 'customer@example.com';
             const nameToUse = isAnonymous ? effectiveGuestAddress?.recipient_name : user?.user_metadata?.first_name || selectedAddress?.recipient_name || 'Customer';
 
@@ -784,6 +785,7 @@ export default function CartClient() {
             showError(error.message || 'An error occurred during checkout.');
         } finally {
             setIsPlacingOrder(false);
+            setIsCreatingPayment(false);
         }
     };
 
@@ -1144,7 +1146,7 @@ export default function CartClient() {
                                         </div>
                                     </div>
 
-                                    {cartAvailability === 'normal' && <p className="text-xs text-slate-500 -mt-2">Your cart items require a 1-day lead time. Order by 3 PM for next-day delivery.</p>}
+                                    {cartAvailability === 'normal' && <p className="text-xs text-slate-500 -mt-2">Your cart items require a {availabilitySettings?.minimum_lead_time_days || 1}-day lead time. Order by 3 PM for next-day delivery.</p>}
                                     {cartAvailability === 'same-day' && <p className="text-xs text-slate-500 -mt-2">Your cart contains items available for same-day delivery (3-hour lead time).</p>}
                                     {cartAvailability === 'rush' && <p className="text-xs text-slate-500 -mt-2">All items in your cart are available for rush delivery (30-min lead time).</p>}
 

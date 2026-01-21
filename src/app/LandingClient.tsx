@@ -187,6 +187,12 @@ const LandingClient: React.FC = () => {
             const blob = await response.blob();
             const file = new File([blob], "design.jpg", { type: blob.type });
 
+            // Validate analysis_json before using - must have required fields
+            const isValidAnalysis = item.analysis_json &&
+                typeof item.analysis_json === 'object' &&
+                'cakeType' in item.analysis_json &&
+                'icing_design' in item.analysis_json;
+
             await hookImageUpload(
                 file,
                 (result) => {
@@ -202,7 +208,7 @@ const LandingClient: React.FC = () => {
                 },
                 {
                     imageUrl: item.original_image_url,
-                    precomputedAnalysis: item.analysis_json
+                    precomputedAnalysis: isValidAnalysis ? item.analysis_json : undefined
                 }
             );
         } catch (error) {
@@ -339,6 +345,8 @@ const LandingClient: React.FC = () => {
         }
     };
 
+    const PROMO_COUNT = 3; // Keep in sync with promos array length
+
     const promos: Promo[] = [
         {
             id: 1,
@@ -374,12 +382,12 @@ const LandingClient: React.FC = () => {
     ];
 
     const handleNextPromo = useCallback(() => {
-        setCurrentPromoIndex((prev) => (prev + 1) % promos.length);
-    }, [promos.length]);
+        setCurrentPromoIndex((prev) => (prev + 1) % PROMO_COUNT);
+    }, []);
 
     const handlePrevPromo = useCallback(() => {
-        setCurrentPromoIndex((prev) => (prev - 1 + promos.length) % promos.length);
-    }, [promos.length]);
+        setCurrentPromoIndex((prev) => (prev - 1 + PROMO_COUNT) % PROMO_COUNT);
+    }, []);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -651,7 +659,7 @@ const LandingClient: React.FC = () => {
                                         e.stopPropagation();
                                         handlePrevPromo();
                                     }}
-                                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/30 hover:bg-white/50 backdrop-blur-md text-white p-2 rounded-full shadow-lg transition-all z-20 opactiy-0 group-hover:opacity-100 hidden md:flex items-center justify-center"
+                                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/30 hover:bg-white/50 backdrop-blur-md text-white p-2 rounded-full shadow-lg transition-all z-20 opacity-0 group-hover:opacity-100 hidden md:flex items-center justify-center"
                                     aria-label="Previous Slide"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
