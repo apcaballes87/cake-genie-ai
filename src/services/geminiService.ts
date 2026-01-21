@@ -105,7 +105,8 @@ async function getDynamicTypeEnums(): Promise<{ mainTopperTypes: string[], suppo
         supportElementTypes: ['edible_3d_support', 'edible_2d_support', 'chocolates', 'sprinkles', 'support_printout', 'isomalt', 'dragees', 'edible_flowers', 'edible_photo_side', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread'],
         subtypesByType: {
             chocolates: ['ferrero', 'oreo', 'kisses', 'm&ms'],
-            edible_3d_ordinary: ['ice_cream_cone']
+            edible_3d_ordinary: ['ice_cream_cone'],
+            edible_flowers: ['flower_cluster']
         }
     };
 
