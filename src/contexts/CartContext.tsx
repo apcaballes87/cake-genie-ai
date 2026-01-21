@@ -274,7 +274,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     sessionIdForQuery !== undefined ? sessionIdForQuery : null
                 );
                 const timeoutPromise = new Promise<never>((_, reject) =>
-                    setTimeout(() => reject(new Error('Database query timed out after 500ms')), 500)
+                    setTimeout(() => reject(new Error('Database query timed out after 2000ms')), 2000)
                 );
 
                 const result = await Promise.race([cartPromise, timeoutPromise]);

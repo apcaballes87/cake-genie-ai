@@ -139,14 +139,7 @@ export default function LoginClient() {
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between text-sm">
-                            <label className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    className="w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500"
-                                />
-                                <span className="ml-2 text-slate-600">Remember me</span>
-                            </label>
+                        <div className="flex items-center justify-end text-sm">
                             <Link href="/forgot-password" className="text-purple-600 hover:text-purple-700 font-medium">
                                 Forgot password?
                             </Link>

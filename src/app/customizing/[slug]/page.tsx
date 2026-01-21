@@ -27,8 +27,10 @@ export async function generateMetadata(
     }
 
     const priceDisplay = design.price ? ` | Php ${Math.round(design.price).toLocaleString()}` : ''
-    const title = design.seo_title
-        ? `${design.seo_title}${priceDisplay} | Genie.ph`
+    // Strip existing "| Genie.ph" suffix to avoid duplication
+    const baseSeoTitle = design.seo_title?.replace(/\s*\|\s*Genie\.ph\s*$/i, '') || ''
+    const title = baseSeoTitle
+        ? `${baseSeoTitle}${priceDisplay} | Genie.ph`
         : `${design.keywords || 'Custom'} Cake${priceDisplay} | Genie.ph`
     const description = design.seo_description || `Get instant pricing for this ${design.keywords || 'custom'} cake design. Starting at ₱${design.price?.toLocaleString() || '0'}.`
 
