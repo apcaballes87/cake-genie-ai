@@ -1,6 +1,22 @@
 import { MetadataRoute } from 'next'
 import { createClient } from '@/lib/supabase/server'
 
+/**
+ * Sanitize URL for XML sitemap
+ * - Strips query parameters (Supabase signed URLs contain & that break XML)
+ * - Falls back to empty string if URL is invalid
+ */
+const sanitizeUrl = (url: string | null | undefined): string => {
+    if (!url) return ''
+    try {
+        const parsed = new URL(url)
+        // Return just the base URL without query params
+        return `${parsed.origin}${parsed.pathname}`
+    } catch {
+        return url
+    }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = 'https://genie.ph'
 
@@ -31,7 +47,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: new Date(design.created_at),
         changeFrequency: 'weekly' as const,
         priority: 0.8,
-        images: design.customized_image_url ? [design.customized_image_url] : [],
+        images: sanitizeUrl(design.customized_image_url) ? [sanitizeUrl(design.customized_image_url)] : [],
     }))
 
     // 3. Dynamic routes: Merchants
@@ -65,7 +81,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.6,
-        images: product.image_url ? [product.image_url] : [],
+        images: sanitizeUrl(product.image_url) ? [sanitizeUrl(product.image_url)] : [],
     }))
 
     // 5. Dynamic routes: Product Customize Pages (SEO-friendly customization URLs)
@@ -74,7 +90,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.7, // Higher priority than product detail pages
-        images: product.image_url ? [product.image_url] : [],
+        images: sanitizeUrl(product.image_url) ? [sanitizeUrl(product.image_url)] : [],
     }))
 
     // 6. Dynamic routes: Recent Searches (SEO-friendly /customizing/[slug] URLs)
@@ -91,7 +107,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: new Date(search.created_at),
         changeFrequency: 'weekly' as const,
         priority: 0.7,
-        images: search.original_image_url ? [search.original_image_url] : [],
+        images: sanitizeUrl(search.original_image_url) ? [sanitizeUrl(search.original_image_url)] : [],
     }))
 
     return [...routes, ...designRoutes, ...merchantRoutes, ...productRoutes, ...customizeRoutes, ...recentSearchRoutes]
