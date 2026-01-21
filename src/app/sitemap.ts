@@ -31,13 +31,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: new Date(design.created_at),
         changeFrequency: 'weekly' as const,
         priority: 0.8,
-        images: [
-            {
-                url: design.customized_image_url,
-                title: design.title || 'Custom Cake Design',
-                caption: design.alt_text || design.title || 'Custom Cake Design',
-            },
-        ],
+        images: design.customized_image_url ? [design.customized_image_url] : [],
     }))
 
     // 3. Dynamic routes: Merchants
@@ -71,13 +65,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.6,
-        images: product.image_url ? [
-            {
-                url: product.image_url,
-                title: product.title,
-                caption: product.alt_text || product.title,
-            },
-        ] : [],
+        images: product.image_url ? [product.image_url] : [],
     }))
 
     // 5. Dynamic routes: Product Customize Pages (SEO-friendly customization URLs)
@@ -86,13 +74,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.7, // Higher priority than product detail pages
-        images: product.image_url ? [
-            {
-                url: product.image_url,
-                title: product.title,
-                caption: product.alt_text || product.title,
-            },
-        ] : [],
+        images: product.image_url ? [product.image_url] : [],
     }))
 
     // 6. Dynamic routes: Recent Searches (SEO-friendly /customizing/[slug] URLs)
@@ -109,13 +91,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: new Date(search.created_at),
         changeFrequency: 'weekly' as const,
         priority: 0.7,
-        images: search.original_image_url ? [
-            {
-                url: search.original_image_url,
-                title: search.keywords || 'Custom Cake Design',
-                caption: search.alt_text || search.keywords || 'Custom Cake Design',
-            },
-        ] : [],
+        images: search.original_image_url ? [search.original_image_url] : [],
     }))
 
     return [...routes, ...designRoutes, ...merchantRoutes, ...productRoutes, ...customizeRoutes, ...recentSearchRoutes]
