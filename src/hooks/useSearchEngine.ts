@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { trackSearchTerm } from '@/services/supabaseService';
 import { AppState } from './useAppNavigation';
 import { GoogleCSE, GoogleCSEElement } from '@/types';
@@ -66,6 +67,8 @@ export const useSearchEngine = ({
   originalImageData,
   setIsFetchingWebImage
 }: UseSearchEngineProps) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [isSearching, setIsSearching] = useState(false);
   const [isCSELoaded, setIsCSELoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -152,6 +155,11 @@ export const useSearchEngine = ({
     const searchQueryValue = typeof query === 'string' ? query.trim() : searchInput.trim();
     if (!searchQueryValue) return;
 
+    // Update URL to reflect the new search query
+    const newHelper = new URLSearchParams(searchParams.toString());
+    newHelper.set('q', searchQueryValue);
+    router.push(`/search?${newHelper.toString()}`);
+
     // Analytics: Track when a user starts the design process via search
     if (typeof gtag === 'function') {
       gtag('event', 'start_design', {
@@ -166,7 +174,7 @@ export const useSearchEngine = ({
     setImageError(null);
     setAppState('searching');
     setSearchQuery(searchQueryValue);
-  }, [searchInput, setImageError, setAppState]);
+  }, [searchInput, setImageError, setAppState, router, searchParams]); // Added router and searchParams to dependencies
 
   // FIX: Added React to import to make React.KeyboardEvent available.
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {

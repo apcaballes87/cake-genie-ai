@@ -1,6 +1,11 @@
 // services/pricingService.database.ts
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { PricingRule, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, AddOnPricing, CakeType } from '@/types';
+import { FEATURE_FLAGS } from '@/config/features';
+import { validateAnalysis } from '@/lib/utils/validateAnalysis';
+import { createLogger } from '@/lib/utils/logger';
+
+const logger = createLogger('PricingService');
 
 const supabase = getSupabaseClient();
 
@@ -83,6 +88,22 @@ export async function calculatePriceFromDatabase(
   },
   merchantId?: string
 ): Promise<{ addOnPricing: AddOnPricing; itemPrices: Map<string, number> }> {
+
+  // NEW: Validation layer (only runs when feature flag is enabled)
+  // This catches type mismatches early with structured logging
+  if (FEATURE_FLAGS.USE_NEW_PRICING_SYSTEM) {
+    const validation = validateAnalysis({
+      mainToppers: uiState.mainToppers,
+      supportElements: uiState.supportElements,
+      cakeMessages: uiState.cakeMessages,
+    });
+
+    if (!validation.isValid) {
+      logger.warn('Pricing validation failed, proceeding with best effort', {
+        errors: validation.errors.map(e => `${e.field}: ${e.value}`),
+      });
+    }
+  }
 
   const rules = await getPricingRules(merchantId);
 
