@@ -27,6 +27,14 @@ export const FEATURE_FLAGS = {
      * Enable debug logging for Roboflow
      */
     DEBUG_ROBOFLOW: false,
+
+    /**
+     * Use the new pricing validation system (v2)
+     * - Validates AI output against pricingEnums.ts
+     * - Logs structured errors for type mismatches
+     * - Default: false (use legacy pricing, no validation)
+     */
+    USE_NEW_PRICING_SYSTEM: process.env.NEXT_PUBLIC_USE_NEW_PRICING === 'true',
 } as const;
 
 /**

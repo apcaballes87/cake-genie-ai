@@ -1,6 +1,6 @@
 // services/geminiService.ts
 
-import { GoogleGenAI, Modality, Type } from "@google/genai";
+import { GoogleGenAI, Modality, Type, ThinkingLevel } from "@google/genai";
 import type { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, IcingColorDetails, CakeInfoUI, CakeType, CakeThickness, IcingDesign, MainTopperType, CakeMessage, SupportElementType } from '@/types';
 import { CAKE_TYPES, CAKE_THICKNESSES, COLORS } from "@/constants";
 import { createClient } from '@/lib/supabase/client';
@@ -275,11 +275,11 @@ export const validateCakeImage = async (base64ImageData: string, mimeType: strin
                 responseMimeType: 'application/json',
                 responseSchema: validationResponseSchema,
                 temperature: 0,
-                // SECRET SAUCE: Thinking budget forces the model to analyze
-                // spatial relationships before committing to coordinates
+                // Gemini 3 uses thinkingLevel instead of thinkingBudget
+                // Using 'low' for quick validation - minimal thinking for simple classification
                 thinkingConfig: {
-                    thinkingBudget: 1024
-                }
+                    thinkingLevel: ThinkingLevel.LOW,
+                },
             },
         });
 
@@ -958,6 +958,10 @@ You MUST provide precise central coordinates for every single decorative element
                 responseMimeType: 'application/json',
                 responseSchema: hybridAnalysisResponseSchema,
                 temperature: 0,
+                // Gemini 3 uses thinkingLevel - 'medium' for spatial analysis tasks
+                thinkingConfig: {
+                    thinkingLevel: ThinkingLevel.MEDIUM,
+                },
             },
         });
 
@@ -1254,7 +1258,10 @@ This is SPEED MODE - only identify what items exist, not where they are.
 
         // Retry configuration: up to 2 retries with longer timeout
         const MAX_RETRIES = 2;
-        const ANALYSIS_TIMEOUT_MS = 90000; // 90 seconds
+        const ANALYSIS_TIMEOUT_MS = 60000; // 60 seconds
+
+        console.log(`🚀 Starting Fast Feature Analysis (Timeout: ${ANALYSIS_TIMEOUT_MS}ms)`);
+        console.log(`📦 Payload approximate size: ${Math.round(base64ImageData.length / 1024)} KB`);
 
         let lastError: Error | null = null;
 
@@ -1284,6 +1291,10 @@ This is SPEED MODE - only identify what items exist, not where they are.
                         responseSchema: fastAnalysisSchema,
                         temperature: 0,
                         maxOutputTokens: 32768, // Ensure complete responses for complex cakes
+                        // Gemini 3 uses thinkingLevel - using 'low' for speed
+                        thinkingConfig: {
+                            thinkingLevel: ThinkingLevel.LOW,
+                        },
                     },
                 });
 
@@ -1573,6 +1584,10 @@ ${JSON.stringify(featureAnalysis, null, 2)}
                 responseMimeType: 'application/json',
                 responseSchema: coordinateEnrichmentSchema,
                 temperature: 0,
+                // Gemini 3 uses thinkingLevel - 'high' for precise coordinate calculation
+                thinkingConfig: {
+                    thinkingLevel: ThinkingLevel.HIGH,
+                },
             },
         });
 
@@ -1591,7 +1606,7 @@ ${JSON.stringify(featureAnalysis, null, 2)}
                     y: item.bbox_y, // Top-Left Y in app coords
                     width: item.bbox_width,
                     height: item.bbox_height,
-                    // High confidence: Gemini with thinking budget does spatial analysis
+                    // High confidence: Gemini with thinkingLevel does spatial analysis
                     confidence: 0.95,
                     class: item.description || item.text || 'unknown'
                 };
@@ -1889,6 +1904,10 @@ export const generateShareableTexts = async (
                 responseMimeType: 'application/json',
                 responseSchema: shareableTextResponseSchema,
                 temperature: 0.3,
+                // Gemini 3 uses thinkingLevel - 'low' for text generation
+                thinkingConfig: {
+                    thinkingLevel: ThinkingLevel.LOW,
+                },
             },
         });
 

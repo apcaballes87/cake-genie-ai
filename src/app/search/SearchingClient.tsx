@@ -218,7 +218,7 @@ const SearchingClient: React.FC = () => {
             )}
             <div className="relative grow">
                 {isLoading && (
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 rounded-lg p-4">
+                    <div className="fixed inset-0 bg-white/50 backdrop-blur-md flex flex-col items-center justify-center z-[9999] p-4">
                         <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 text-center w-full max-w-xs">
                             <LoadingSpinner />
                             <p className="mt-4 text-slate-700 font-semibold text-lg">Working on it...</p>

@@ -1469,7 +1469,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     };
 
     const onSearch = (query?: string) => {
-        console.log('Search not implemented');
+        if (!query || !query.trim()) return;
+        router.push(`/search?q=${encodeURIComponent(query.trim())}`);
     };
     const setAppState = (state: any) => {
         if (state === 'landing') router.push('/');
