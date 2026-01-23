@@ -51,6 +51,9 @@ export async function generateMetadata({ params }: MerchantPageProps): Promise<M
             images: merchant.cover_image_url ? [merchant.cover_image_url] :
                 merchant.profile_image_url ? [merchant.profile_image_url] : [],
         },
+        alternates: {
+            canonical: `https://genie.ph/shop/${merchantSlug}`,
+        },
     };
 }
 
