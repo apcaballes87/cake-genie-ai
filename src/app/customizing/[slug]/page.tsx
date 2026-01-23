@@ -132,6 +132,7 @@ function DesignSchema({ design }: { design: any }) {
     const productSchema = {
         '@context': 'https://schema.org',
         '@type': 'Product',
+        '@id': pageUrl, // Unique identifier for cross-referencing
         name: sanitize(title),
         description: sanitize(design.seo_description || `Custom ${keywords} cake design`),
         image: imageObject || imageUrl,
@@ -163,6 +164,7 @@ function DesignSchema({ design }: { design: any }) {
     };
 
     // WebPage schema with primaryImageOfPage - explicit signal for Google image thumbnails
+    // Uses @id reference to link to the Product schema instead of creating a duplicate
     const webPageSchema = {
         '@context': 'https://schema.org',
         '@type': 'WebPage',
@@ -170,8 +172,7 @@ function DesignSchema({ design }: { design: any }) {
         description: sanitize(design.seo_description || `Custom ${keywords} cake design`),
         url: pageUrl,
         mainEntity: {
-            '@type': 'Product',
-            name: sanitize(title)
+            '@id': pageUrl // Reference the Product by URL instead of duplicating
         },
         ...(imageObject && { primaryImageOfPage: imageObject }),
         ...(imageUrl && { thumbnailUrl: imageUrl })
