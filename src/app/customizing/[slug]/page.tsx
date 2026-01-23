@@ -198,6 +198,7 @@ function SEODesignDetails({ design }: { design: any }) {
     const analysis = design.analysis_json;
     const keywords = design.keywords || 'Custom';
     const price = design.price || 0;
+    const imageAlt = design.alt_text || `${keywords} cake design`;
 
     // Extract features from analysis
     const toppers = analysis?.main_toppers || [];
@@ -211,6 +212,18 @@ function SEODesignDetails({ design }: { design: any }) {
             <header>
                 <h1>{design.seo_title || `${keywords} Cake Design`}</h1>
                 <p>Starting at ₱{price.toLocaleString()}</p>
+                {design.original_image_url && (
+                    <figure>
+                        <img
+                            src={design.original_image_url}
+                            alt={imageAlt}
+                            width={800}
+                            height={800}
+                            loading="eager"
+                        />
+                        <figcaption>{imageAlt}</figcaption>
+                    </figure>
+                )}
             </header>
 
             <section>

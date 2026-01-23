@@ -175,11 +175,25 @@ function ProductSchema({ product, merchant }: { product: CakeGenieMerchantProduc
  * Hidden from visual users but fully visible to search bots.
  */
 function SEOProductDetails({ product, merchant }: { product: CakeGenieMerchantProduct; merchant: CakeGenieMerchant }) {
+    const imageAlt = product.alt_text || `${product.title} - Custom cake from ${merchant.business_name}`;
+
     return (
         <article className="sr-only" aria-hidden="false">
             <header>
                 <h1>{product.title}</h1>
                 <p>By {merchant.business_name}</p>
+                {product.image_url && (
+                    <figure>
+                        <img
+                            src={product.image_url}
+                            alt={imageAlt}
+                            width={800}
+                            height={800}
+                            loading="eager"
+                        />
+                        <figcaption>{imageAlt}</figcaption>
+                    </figure>
+                )}
             </header>
 
             <section>

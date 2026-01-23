@@ -125,6 +125,15 @@ function SEOProductList({ merchant, products }: { merchant: CakeGenieMerchant; p
                 {products.map((product) => (
                     <li key={product.product_id}>
                         <a href={`/shop/${merchant.slug}/${product.slug}`}>
+                            {product.image_url && (
+                                <img
+                                    src={product.image_url}
+                                    alt={product.alt_text || `${product.title} - Custom cake from ${merchant.business_name}`}
+                                    width={400}
+                                    height={400}
+                                    loading="lazy"
+                                />
+                            )}
                             <h3>{product.title}</h3>
                             <p>Price: ₱{(product.custom_price || 0).toLocaleString()}</p>
                             {product.short_description && <p>{product.short_description}</p>}
