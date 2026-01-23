@@ -4,6 +4,8 @@ import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import CustomizingClient from '../CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
+import { getCakeBasePriceOptions } from '@/services/supabaseService'
+import { CakeType, BasePriceInfo } from '@/types'
 
 type Props = {
     params: Promise<{ slug: string }>
@@ -189,13 +191,80 @@ function DesignSchema({ design }: { design: any }) {
     );
 }
 
+// FAQ data for Schema.org FAQPage structured data
+const FAQ_DATA = [
+    {
+        question: "Can I order this cake for same-day delivery?",
+        answer: "Yes! Simple designs are available for rush orders (ready in 30 minutes) or same-day delivery (ready in 3 hours). Order before 3 PM for same-day delivery."
+    },
+    {
+        question: "Do you deliver cakes in Metro Manila?",
+        answer: "We deliver across Metro Manila, Cavite, Laguna, Rizal, and nearby provinces. Delivery fees vary by location."
+    },
+    {
+        question: "Can I customize this cake design?",
+        answer: "Absolutely! You can change colors, add or remove toppers, update the message, and choose different sizes. Use our online customizer for instant pricing."
+    },
+    {
+        question: "What sizes are available?",
+        answer: "We offer 4-inch (Bento/mini), 6-inch, 8-inch, and larger sizes. Prices vary by size and design complexity."
+    },
+    {
+        question: "How do I order?",
+        answer: "Simply customize your design online, add to cart, and checkout. You can pay via GCash, credit card, or bank transfer."
+    }
+];
+
+// JSON-LD Schema for FAQ (captures featured snippets)
+function FAQSchema() {
+    const faqSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: FAQ_DATA.map(faq => ({
+            '@type': 'Question',
+            name: faq.question,
+            acceptedAnswer: {
+                '@type': 'Answer',
+                text: faq.answer
+            }
+        }))
+    };
+
+    return (
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+    );
+}
+
+/**
+ * Server-rendered FAQ section for SEO.
+ * Visible to search engines, hidden from visual users.
+ */
+function SEOFAQSection() {
+    return (
+        <section className="sr-only" aria-hidden="false">
+            <h2>Frequently Asked Questions</h2>
+            <dl>
+                {FAQ_DATA.map((faq, index) => (
+                    <div key={index}>
+                        <dt><strong>{faq.question}</strong></dt>
+                        <dd>{faq.answer}</dd>
+                    </div>
+                ))}
+            </dl>
+        </section>
+    );
+}
+
 /**
  * Server-rendered cake design details for SEO crawlers.
  * Extracts and displays key features from analysis_json.
  * Hidden from visual users but fully visible to search bots.
  */
-function SEODesignDetails({ design }: { design: any }) {
-    const analysis = design.analysis_json;
+function SEODesignDetails({ design, prices }: { design: any; prices?: BasePriceInfo[] }) {
+    const analysis = design.analysis_json || {};
     const keywords = design.keywords || 'Custom';
     const price = design.price || 0;
     const imageAlt = design.alt_text || `${keywords} cake design`;
@@ -290,6 +359,44 @@ function SEODesignDetails({ design }: { design: any }) {
                     We offer same-day and next-day delivery in the Philippines.</p>
             </section>
 
+            {prices && prices.length > 0 && (
+                <section>
+                    <h2>Available Sizes & Prices</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Size</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {prices.map((priceInfo, index) => (
+                                <tr key={index}>
+                                    <td>{priceInfo.size}</td>
+                                    <td>₱{priceInfo.price.toLocaleString()}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </section>
+            )}
+
+            <section>
+                <h2>Ordering & Delivery Information</h2>
+                <p><strong>Rush Orders:</strong> Ready in 30 minutes for simple designs</p>
+                <p><strong>Same-Day Delivery:</strong> Order before 3 PM for same-day delivery (ready in 3 hours)</p>
+                <p><strong>Standard Orders:</strong> 1-day lead time for complex designs</p>
+                <p><strong>Delivery Areas:</strong> Metro Manila, Cavite, Laguna, Rizal, Bulacan, and nearby provinces</p>
+                <p><strong>Payment Methods:</strong> GCash, Maya, Credit Card, Bank Transfer, Cash on Delivery</p>
+            </section>
+
+            <section>
+                <h2>Perfect For Any Occasion</h2>
+                <p>This custom cake is ideal for: birthdays, debut celebrations, weddings,
+                    christenings, baptisms, anniversaries, graduations, corporate events,
+                    baby showers, gender reveals, and holiday celebrations in the Philippines.</p>
+            </section>
+
             <nav aria-label="Breadcrumb">
                 <ol>
                     <li><a href="https://genie.ph">Home</a></li>
@@ -315,14 +422,27 @@ export default async function RecentSearchPage({ params }: Props) {
         notFound()
     }
 
+    // Fetch base price options for SEO table
+    let prices: BasePriceInfo[] = [];
+    try {
+        const analysis = design.analysis_json || {};
+        // Use cakeType from analysis or default to 'custom'
+        // Using '4 in' as default thickness for SEO pricing table
+        const cakeType = (analysis.cakeType as CakeType) || 'custom';
+        prices = await getCakeBasePriceOptions(cakeType, '4 in');
+    } catch (e) {
+        console.error('Error fetching SEO prices:', e);
+    }
+
     return (
         <>
             <DesignSchema design={design} />
-            <SEODesignDetails design={design} />
+            <FAQSchema />
+            <SEODesignDetails design={design} prices={prices} />
+            <SEOFAQSection />
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                 <CustomizingClient recentSearchDesign={design} />
             </Suspense>
         </>
     )
 }
-
