@@ -109,7 +109,7 @@ export async function generateMetadata(
 }
 
 // JSON-LD Schema for SEO - Enhanced for Google Image Thumbnails
-function DesignSchema({ design }: { design: any }) {
+function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[] }) {
     const sanitize = (str: string | null | undefined) => str ? str.replace(/<\/script/g, '<\\/script') : '';
 
     const keywords = design.keywords || 'Custom';
@@ -128,6 +128,42 @@ function DesignSchema({ design }: { design: any }) {
         caption: sanitize(design.seo_description || `Custom ${keywords} cake design`)
     } : null;
 
+    let offers;
+
+    if (prices && prices.length > 0) {
+        // Find min and max prices
+        const sortedPrices = [...prices].sort((a, b) => a.price - b.price);
+        const lowPrice = sortedPrices[0].price;
+        const highPrice = sortedPrices[sortedPrices.length - 1].price;
+
+        offers = {
+            '@type': 'AggregateOffer',
+            lowPrice: lowPrice,
+            highPrice: highPrice,
+            priceCurrency: 'PHP',
+            offerCount: prices.length,
+            availability: 'https://schema.org/InStock',
+            seller: {
+                '@type': 'Organization',
+                name: 'Genie.ph'
+            },
+            url: pageUrl
+        };
+    } else {
+        offers = {
+            '@type': 'Offer',
+            price: design.price || 0,
+            priceCurrency: 'PHP',
+            availability: 'https://schema.org/InStock',
+            priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+            seller: {
+                '@type': 'Organization',
+                name: 'Genie.ph'
+            },
+            url: pageUrl
+        };
+    }
+
     // Product schema
     const productSchema = {
         '@context': 'https://schema.org',
@@ -140,18 +176,7 @@ function DesignSchema({ design }: { design: any }) {
             '@type': 'Brand',
             name: 'Genie.ph'
         },
-        offers: {
-            '@type': 'Offer',
-            price: design.price || 0,
-            priceCurrency: 'PHP',
-            availability: 'https://schema.org/InStock',
-            priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-            seller: {
-                '@type': 'Organization',
-                name: 'Genie.ph'
-            },
-            url: pageUrl
-        },
+        offers: offers,
         category: 'Custom Cakes',
         aggregateRating: {
             '@type': 'AggregateRating',
@@ -437,7 +462,7 @@ export default async function RecentSearchPage({ params }: Props) {
 
     return (
         <>
-            <DesignSchema design={design} />
+            <DesignSchema design={design} prices={prices} />
             <FAQSchema />
             <SEODesignDetails design={design} prices={prices} />
             <SEOFAQSection />
