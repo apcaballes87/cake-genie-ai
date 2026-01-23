@@ -3,8 +3,9 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import CustomizingClient from '@/app/customizing/CustomizingClient';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { getMerchantBySlug, getMerchantProductBySlug } from '@/services/supabaseService';
+import { getMerchantBySlug, getMerchantProductBySlug, getCakeBasePriceOptions } from '@/services/supabaseService';
 import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.types';
+import { BasePriceInfo, CakeType } from '@/types';
 
 interface ProductPageProps {
     params: Promise<{ merchantSlug: string; productSlug: string }>;
@@ -170,11 +171,78 @@ function ProductSchema({ product, merchant }: { product: CakeGenieMerchantProduc
     );
 }
 
+// FAQ data for Schema.org FAQPage structured data
+const FAQ_DATA = [
+    {
+        question: "Can I order this cake for same-day delivery?",
+        answer: "Yes! Simple designs are available for rush orders (ready in 30 minutes) or same-day delivery (ready in 3 hours). Order before 3 PM for same-day delivery."
+    },
+    {
+        question: "Do you deliver cakes in Metro Manila?",
+        answer: "We deliver across Metro Manila, Cavite, Laguna, Rizal, and nearby provinces. Delivery fees vary by location."
+    },
+    {
+        question: "Can I customize this cake design?",
+        answer: "Absolutely! You can change colors, add or remove toppers, update the message, and choose different sizes. Use our online customizer for instant pricing."
+    },
+    {
+        question: "What sizes are available?",
+        answer: "We offer 4-inch (Bento/mini), 6-inch, 8-inch, and larger sizes. Prices vary by size and design complexity."
+    },
+    {
+        question: "How do I order?",
+        answer: "Simply customize your design online, add to cart, and checkout. You can pay via GCash, credit card, or bank transfer."
+    }
+];
+
+// JSON-LD Schema for FAQ (captures featured snippets)
+function FAQSchema() {
+    const faqSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: FAQ_DATA.map(faq => ({
+            '@type': 'Question',
+            name: faq.question,
+            acceptedAnswer: {
+                '@type': 'Answer',
+                text: faq.answer
+            }
+        }))
+    };
+
+    return (
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+    );
+}
+
+/**
+ * Server-rendered FAQ section for SEO.
+ * Visible to search engines, hidden from visual users.
+ */
+function SEOFAQSection() {
+    return (
+        <section className="sr-only" aria-hidden="false">
+            <h2>Frequently Asked Questions</h2>
+            <dl>
+                {FAQ_DATA.map((faq, index) => (
+                    <div key={index}>
+                        <dt><strong>{faq.question}</strong></dt>
+                        <dd>{faq.answer}</dd>
+                    </div>
+                ))}
+            </dl>
+        </section>
+    );
+}
+
 /**
  * Server-rendered product details for SEO crawlers.
  * Hidden from visual users but fully visible to search bots.
  */
-function SEOProductDetails({ product, merchant }: { product: CakeGenieMerchantProduct; merchant: CakeGenieMerchant }) {
+function SEOProductDetails({ product, merchant, prices }: { product: CakeGenieMerchantProduct; merchant: CakeGenieMerchant; prices?: BasePriceInfo[] }) {
     const imageAlt = product.alt_text || `${product.title} - Custom cake from ${merchant.business_name}`;
 
     return (
@@ -204,6 +272,28 @@ function SEOProductDetails({ product, merchant }: { product: CakeGenieMerchantPr
                 {product.availability && <p><strong>Availability:</strong> {product.availability.replace('_', ' ')}</p>}
             </section>
 
+            {prices && prices.length > 0 && (
+                <section>
+                    <h2>Available Sizes & Prices</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Size</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {prices.map((priceInfo, index) => (
+                                <tr key={index}>
+                                    <td>{priceInfo.size}</td>
+                                    <td>₱{priceInfo.price.toLocaleString()}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </section>
+            )}
+
             {(product.short_description || product.long_description) && (
                 <section>
                     <h2>Description</h2>
@@ -216,6 +306,22 @@ function SEOProductDetails({ product, merchant }: { product: CakeGenieMerchantPr
                 {merchant.address && <p><strong>Location:</strong> {merchant.address}</p>}
                 {merchant.city && <p><strong>City:</strong> {merchant.city}</p>}
                 {merchant.phone && <p><strong>Contact:</strong> {merchant.phone}</p>}
+            </section>
+
+            <section>
+                <h2>Ordering & Delivery Information</h2>
+                <p><strong>Rush Orders:</strong> Ready in 30 minutes for simple designs</p>
+                <p><strong>Same-Day Delivery:</strong> Order before 3 PM for same-day delivery (ready in 3 hours)</p>
+                <p><strong>Standard Orders:</strong> 1-day lead time for complex designs</p>
+                <p><strong>Delivery Areas:</strong> Metro Manila, Cavite, Laguna, Rizal, Bulacan, and nearby provinces</p>
+                <p><strong>Payment Methods:</strong> GCash, Maya, Credit Card, Bank Transfer, Cash on Delivery</p>
+            </section>
+
+            <section>
+                <h2>Perfect For Any Occasion</h2>
+                <p>This custom cake is ideal for: birthdays, debut celebrations, weddings,
+                    christenings, baptisms, anniversaries, graduations, corporate events,
+                    baby showers, gender reveals, and holiday celebrations in the Philippines.</p>
             </section>
 
             <nav aria-label="Breadcrumb">
@@ -239,10 +345,24 @@ export default async function ProductPage({ params }: ProductPageProps) {
         notFound();
     }
 
+    // Fetch base price options for SEO table (defaulting to regular thickness)
+    // Cast cake_type to CakeType enum, defaulting to 'custom' if undef/null
+    let prices: BasePriceInfo[] = [];
+    try {
+        // Using 'custom' as fallback if cake_type is missing or invalid
+        const cakeType = (product.cake_type as CakeType) || 'custom';
+        prices = await getCakeBasePriceOptions(cakeType, '4 in');
+    } catch (e) {
+        console.error('Error fetching SEO prices:', e);
+        // Fail silently for SEO enhancement, don't crash page
+    }
+
     return (
         <>
             <ProductSchema product={product} merchant={merchant} />
-            <SEOProductDetails product={product} merchant={merchant} />
+            <FAQSchema />
+            <SEOProductDetails product={product} merchant={merchant} prices={prices} />
+            <SEOFAQSection />
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                 <CustomizingClient product={product} merchant={merchant} />
             </Suspense>
