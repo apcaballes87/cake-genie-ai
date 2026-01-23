@@ -2147,7 +2147,18 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             >
                                 {isUpdatingDesign && <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-2xl z-20"><LoadingSpinner /><p className="mt-4 text-slate-500 font-semibold">{dynamicLoadingMessage}</p></div>}
                                 {error && <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-b-2xl z-20 p-4"><ErrorIcon /><p className="mt-4 font-semibold text-red-600">Update Failed</p><p className="text-sm text-red-500 text-center">{error}</p></div>}
-                                {!originalImagePreview && !isAnalyzing && <div className="absolute inset-0 flex items-center justify-center text-center text-slate-400 py-16"><ImageIcon /><p className="mt-2 font-semibold">Your creation will appear here</p></div>}
+                                {!originalImagePreview && !isAnalyzing && !product?.image_url && !recentSearchDesign?.original_image_url && <div className="absolute inset-0 flex items-center justify-center text-center text-slate-400 py-16"><ImageIcon /><p className="mt-2 font-semibold">Your creation will appear here</p></div>}
+
+                                {/* SSR / Initial Load Fallback Image using Props */}
+                                {!originalImagePreview && (product?.image_url || recentSearchDesign?.original_image_url) && (
+                                    <img
+                                        src={product?.image_url || recentSearchDesign?.original_image_url || ''}
+                                        alt={product?.alt_text || recentSearchDesign?.alt_text || product?.title || recentSearchDesign?.keywords || 'Cake Design'}
+                                        className="w-full h-full object-contain rounded-lg"
+                                        loading="eager"
+                                        fetchPriority="high"
+                                    />
+                                )}
 
                                 {(originalImagePreview) && (
                                     <>

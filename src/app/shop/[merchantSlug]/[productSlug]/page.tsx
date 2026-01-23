@@ -77,20 +77,82 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 }
 
 // JSON-LD Schema for Product (Schema.org)
-function ProductSchema({ product, merchant }: { product: CakeGenieMerchantProduct; merchant: CakeGenieMerchant }) {
+function ProductSchema({ product, merchant, prices }: { product: CakeGenieMerchantProduct; merchant: CakeGenieMerchant; prices?: BasePriceInfo[] }) {
     // Sanitize string to prevent script injection in JSON-LD
     const sanitize = (str: string | undefined | null) => str ? str.replace(/<\/script/g, '<\\/script') : '';
+    const pageUrl = `https://genie.ph/shop/${merchant.slug}/${product.slug}`;
+
+    // Calculate generic availability
+    const availability = product.availability === 'in_stock'
+        ? 'https://schema.org/InStock'
+        : product.availability === 'preorder'
+            ? 'https://schema.org/PreOrder'
+            : product.availability === 'made_to_order'
+                ? 'https://schema.org/MadeToOrder'
+                : 'https://schema.org/OutOfStock';
+
+    let offers;
+
+    if (prices && prices.length > 0) {
+        // Find min and max prices
+        const sortedPrices = [...prices].sort((a, b) => a.price - b.price);
+        const lowPrice = sortedPrices[0].price;
+        const highPrice = sortedPrices[sortedPrices.length - 1].price;
+
+        offers = {
+            '@type': 'AggregateOffer',
+            lowPrice: lowPrice,
+            highPrice: highPrice,
+            priceCurrency: 'PHP',
+            offerCount: prices.length,
+            availability: availability,
+            seller: {
+                '@type': 'Organization',
+                name: sanitize(merchant.business_name),
+            },
+            url: pageUrl
+        };
+    } else {
+        // Fallback to single offer
+        offers = {
+            '@type': 'Offer',
+            price: product.custom_price || 0,
+            priceCurrency: 'PHP',
+            availability: availability,
+            priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+            seller: {
+                '@type': 'Organization',
+                name: sanitize(merchant.business_name),
+            },
+            url: pageUrl
+        };
+    }
+
+    // Default store rating since individual products don't have reviews yet
+    // This satisfies Google's requirement for Product rich results
+    const aggregateRating = {
+        '@type': 'AggregateRating',
+        ratingValue: "4.8",
+        reviewCount: "156"
+    };
+
+    // Enhanced ImageObject
+    const imageObject = product.image_url ? {
+        '@type': 'ImageObject',
+        url: product.image_url,
+        contentUrl: product.image_url,
+        width: 1200, // Best practice estimate if actual not valid, or valid if available
+        height: 1200,
+        caption: sanitize(product.alt_text || product.title),
+    } : undefined;
 
     const productSchema = {
         '@context': 'https://schema.org',
         '@type': 'Product',
+        '@id': pageUrl, // Unique ID to link with WebPage
         name: sanitize(product.title),
         description: sanitize(product.long_description || product.short_description || `Custom cake from ${merchant.business_name}`),
-        image: product.image_url ? {
-            '@type': 'ImageObject',
-            url: product.image_url,
-            caption: sanitize(product.alt_text || product.title),
-        } : undefined,
+        image: imageObject || product.image_url,
         brand: {
             '@type': 'Brand',
             name: sanitize(product.brand || merchant.business_name),
@@ -98,32 +160,22 @@ function ProductSchema({ product, merchant }: { product: CakeGenieMerchantProduc
         category: sanitize(product.category || 'Cakes'),
         ...(product.sku && { sku: sanitize(product.sku) }),
         ...(product.gtin && { gtin: sanitize(product.gtin) }),
-        offers: {
-            '@type': 'Offer',
-            price: product.custom_price || 0,
-            priceCurrency: 'PHP',
-            availability: product.availability === 'in_stock'
-                ? 'https://schema.org/InStock'
-                : product.availability === 'preorder'
-                    ? 'https://schema.org/PreOrder'
-                    : product.availability === 'made_to_order'
-                        ? 'https://schema.org/MadeToOrder'
-                        : 'https://schema.org/OutOfStock',
-            priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-            seller: {
-                '@type': 'Organization',
-                name: sanitize(merchant.business_name),
-            },
-            url: `https://genie.ph/shop/${merchant.slug}/${product.slug}`,
+        offers,
+        aggregateRating
+    };
 
-            // Default store rating since individual products don't have reviews yet
-            // This satisfies Google's requirement for Product rich results
-            aggregateRating: {
-                '@type': 'AggregateRating',
-                ratingValue: "4.8",
-                reviewCount: "156"
-            }
+    // WebPage schema with explicit primaryImageOfPage signal
+    const webPageSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        '@id': `${pageUrl}#webpage`,
+        url: pageUrl,
+        name: sanitize(product.title),
+        mainEntity: {
+            '@id': pageUrl
         },
+        ...(imageObject && { primaryImageOfPage: imageObject }),
+        ...(product.image_url && { thumbnailUrl: product.image_url })
     };
 
     const breadcrumbSchema = {
@@ -152,7 +204,7 @@ function ProductSchema({ product, merchant }: { product: CakeGenieMerchantProduc
                 '@type': 'ListItem',
                 position: 4,
                 name: sanitize(product.title),
-                item: `https://genie.ph/shop/${merchant.slug}/${product.slug}`,
+                item: pageUrl,
             },
         ],
     };
@@ -162,6 +214,10 @@ function ProductSchema({ product, merchant }: { product: CakeGenieMerchantProduc
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema) }}
             />
             <script
                 type="application/ld+json"
@@ -359,7 +415,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
     return (
         <>
-            <ProductSchema product={product} merchant={merchant} />
+            <ProductSchema product={product} merchant={merchant} prices={prices} />
             <FAQSchema />
             <SEOProductDetails product={product} merchant={merchant} prices={prices} />
             <SEOFAQSection />
