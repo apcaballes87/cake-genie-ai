@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { MerchantPageClient } from '../MerchantPageClient';
-import { getMerchantBySlug } from '@/services/supabaseService';
+import { getMerchantBySlug, getMerchantProductsWithCache } from '@/services/supabaseService';
+import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.types';
 
 interface MerchantPageProps {
     params: Promise<{ merchantSlug: string }>;
@@ -54,7 +55,7 @@ export async function generateMetadata({ params }: MerchantPageProps): Promise<M
 }
 
 // JSON-LD Schema for Local Business / Bakery
-function MerchantSchema({ merchant }: { merchant: any }) {
+function MerchantSchema({ merchant, products }: { merchant: CakeGenieMerchant; products: CakeGenieMerchantProduct[] }) {
     const schema = {
         '@context': 'https://schema.org',
         '@type': 'Bakery',
@@ -75,6 +76,28 @@ function MerchantSchema({ merchant }: { merchant: any }) {
                 ratingValue: merchant.rating,
                 reviewCount: merchant.review_count
             }
+        }),
+        // Add products to schema for richer indexing
+        ...(products.length > 0 && {
+            hasOfferCatalog: {
+                '@type': 'OfferCatalog',
+                name: 'Available Cakes',
+                numberOfItems: products.length,
+                itemListElement: products.slice(0, 20).map((product, index) => ({
+                    '@type': 'Product',
+                    position: index + 1,
+                    name: product.title,
+                    description: product.short_description || `Custom cake from ${merchant.business_name}`,
+                    image: product.image_url,
+                    offers: {
+                        '@type': 'Offer',
+                        price: product.custom_price || 0,
+                        priceCurrency: 'PHP',
+                        availability: 'https://schema.org/InStock',
+                    },
+                    url: `https://genie.ph/shop/${merchant.slug}/${product.slug}`,
+                }))
+            }
         })
     };
 
@@ -86,18 +109,51 @@ function MerchantSchema({ merchant }: { merchant: any }) {
     );
 }
 
+/**
+ * Server-rendered product list for SEO crawlers.
+ * This content is visible to search bots but hidden from visual users.
+ * Uses sr-only class to be accessible but not displayed.
+ */
+function SEOProductList({ merchant, products }: { merchant: CakeGenieMerchant; products: CakeGenieMerchantProduct[] }) {
+    if (products.length === 0) return null;
+
+    return (
+        <div className="sr-only" aria-hidden="false">
+            <h2>{merchant.business_name} - Available Cakes</h2>
+            <p>{merchant.description}</p>
+            <ul>
+                {products.map((product) => (
+                    <li key={product.product_id}>
+                        <a href={`/shop/${merchant.slug}/${product.slug}`}>
+                            <h3>{product.title}</h3>
+                            <p>Price: ₱{(product.custom_price || 0).toLocaleString()}</p>
+                            {product.short_description && <p>{product.short_description}</p>}
+                            {product.cake_type && <p>Type: {product.cake_type}</p>}
+                        </a>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
 export default async function MerchantPage({ params }: MerchantPageProps) {
     const { merchantSlug } = await params;
     const { data: merchant } = await getMerchantBySlug(merchantSlug);
+    const { data: products } = await getMerchantProductsWithCache(merchantSlug);
 
     if (!merchant) {
         return <MerchantPageClient slug={merchantSlug} />;
     }
 
+    const productList = products || [];
+
     return (
         <>
-            <MerchantSchema merchant={merchant} />
+            <MerchantSchema merchant={merchant} products={productList} />
+            <SEOProductList merchant={merchant} products={productList} />
             <MerchantPageClient slug={merchantSlug} />
         </>
     );
 }
+
