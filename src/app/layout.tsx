@@ -18,7 +18,21 @@ export const metadata: Metadata = {
     template: '%s | Genie.ph',
   },
   description: 'Upload any cake design, customize with AI and get instant pricing from the best cakeshops and homebakers here in Cebu.',
-  keywords: ['custom cakes', 'cake design', 'AI cake', 'Cebu bakery', 'birthday cake', 'wedding cake', 'online marketplace'],
+  keywords: ['custom cakes', 'cake design', 'AI cake', 'Cebu bakery', 'birthday cake', 'wedding cake', 'online marketplace', 'cake delivery Philippines'],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -26,13 +40,54 @@ export const metadata: Metadata = {
     siteName: 'Genie.ph',
     title: 'Genie.ph | Online Marketplace for Custom Cakes in Cebu!',
     description: 'Upload any cake design, customize with AI and get instant pricing from the best cakeshops and homebakers here in Cebu.',
+    images: [
+      {
+        url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg', // Ensure this is the correct OG image
+        width: 1200,
+        height: 630,
+        alt: 'Genie.ph - Custom Cakes Online',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
+    title: 'Genie.ph | Online Marketplace for Custom Cakes',
+    description: 'Upload design, get pricing, order custom cakes online.',
+    images: ['https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg'],
   },
   icons: {
     icon: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp',
+    apple: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp',
   },
+}
+
+function OrganizationSchema() {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Genie.ph',
+    url: 'https://genie.ph',
+    logo: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp', // Using favicon as logo for now, consider a larger brand logo if available
+    description: 'The first AI-powered marketplace for custom cakes in the Philippines.',
+    sameAs: [
+      'https://www.facebook.com/genie.ph', // Add real social links if known, these are placeholders/best-guess
+      'https://www.instagram.com/genie.ph'
+    ],
+    contactPoint: {
+      '@type': 'ContactPoint',
+      telephone: '+63-917-123-4567', // Replace with real contact if available
+      contactType: 'customer service',
+      areaServed: 'PH',
+      availableLanguage: ['en', 'fil']
+    }
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
 }
 
 export default function RootLayout({
@@ -43,6 +98,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100`} suppressHydrationWarning>
+        <OrganizationSchema />
         <Providers>
           <ErrorBoundary>
             <ClientHashRedirect />

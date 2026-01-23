@@ -634,7 +634,7 @@ const LandingClient: React.FC = () => {
                                                         <span className="bg-white/20 px-3 py-1 rounded-lg text-[10px] md:text-xs font-bold backdrop-blur-md mb-4 inline-block border border-white/10 shadow-sm">
                                                             {promo.tag}
                                                         </span>
-                                                        <h2 className="text-[clamp(1.25rem,5.5vw,1.875rem)] md:text-2xl lg:text-3xl font-black leading-tight mb-4 md:mb-6 drop-shadow-sm line-clamp-3">{promo.title}</h2>
+                                                        <h1 className="text-[clamp(1.25rem,5.5vw,1.875rem)] md:text-2xl lg:text-3xl font-black leading-tight mb-4 md:mb-6 drop-shadow-sm line-clamp-3">{promo.title}</h1>
                                                         <button
                                                             className="bg-white text-gray-900 px-6 py-3 md:px-8 md:py-3.5 rounded-full text-xs md:text-sm font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all active:scale-95"
                                                         >
