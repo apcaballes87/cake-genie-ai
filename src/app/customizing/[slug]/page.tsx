@@ -189,6 +189,105 @@ function DesignSchema({ design }: { design: any }) {
     );
 }
 
+/**
+ * Server-rendered cake design details for SEO crawlers.
+ * Extracts and displays key features from analysis_json.
+ * Hidden from visual users but fully visible to search bots.
+ */
+function SEODesignDetails({ design }: { design: any }) {
+    const analysis = design.analysis_json;
+    const keywords = design.keywords || 'Custom';
+    const price = design.price || 0;
+
+    // Extract features from analysis
+    const toppers = analysis?.main_toppers || [];
+    const supportElements = analysis?.support_elements || [];
+    const icingDesign = analysis?.icing_design;
+    const cakeType = analysis?.cakeType || 'Custom';
+    const messages = analysis?.cake_messages || [];
+
+    return (
+        <article className="sr-only" aria-hidden="false">
+            <header>
+                <h1>{design.seo_title || `${keywords} Cake Design`}</h1>
+                <p>Starting at ₱{price.toLocaleString()}</p>
+            </header>
+
+            <section>
+                <h2>Cake Details</h2>
+                <p><strong>Type:</strong> {cakeType}</p>
+                <p><strong>Keywords:</strong> {keywords}</p>
+                {design.alt_text && <p><strong>Description:</strong> {design.alt_text}</p>}
+            </section>
+
+            {icingDesign && (
+                <section>
+                    <h2>Icing Design</h2>
+                    <p><strong>Style:</strong> {icingDesign.base?.replace('_', ' ')}</p>
+                    {icingDesign.color_type && <p><strong>Color Style:</strong> {icingDesign.color_type}</p>}
+                    {icingDesign.drip && <p>Features drip effect</p>}
+                    {icingDesign.border_top && <p>Features top border decoration</p>}
+                    {icingDesign.border_base && <p>Features base border decoration</p>}
+                </section>
+            )}
+
+            {toppers.length > 0 && (
+                <section>
+                    <h2>Cake Toppers</h2>
+                    <ul>
+                        {toppers.map((topper: any, index: number) => (
+                            <li key={index}>
+                                {topper.description || topper.type?.replace('_', ' ')}
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
+
+            {supportElements.length > 0 && (
+                <section>
+                    <h2>Decorations</h2>
+                    <ul>
+                        {supportElements.map((element: any, index: number) => (
+                            <li key={index}>
+                                {element.description || element.type?.replace('_', ' ')}
+                                {element.quantity && ` (${element.quantity})`}
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
+
+            {messages.length > 0 && (
+                <section>
+                    <h2>Cake Messages</h2>
+                    <ul>
+                        {messages.map((msg: any, index: number) => (
+                            <li key={index}>
+                                &quot;{msg.text}&quot; - {msg.style}
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
+
+            <section>
+                <h2>Customize This Design</h2>
+                <p>Get instant pricing and customize this {keywords} cake design at Genie.ph.
+                    We offer same-day and next-day delivery in the Philippines.</p>
+            </section>
+
+            <nav aria-label="Breadcrumb">
+                <ol>
+                    <li><a href="https://genie.ph">Home</a></li>
+                    <li><a href="https://genie.ph/customizing">Customize Cakes</a></li>
+                    <li>{design.seo_title || `${keywords} Cake`}</li>
+                </ol>
+            </nav>
+        </article>
+    );
+}
+
 export default async function RecentSearchPage({ params }: Props) {
     const { slug } = await params
     const supabase = await createClient()
@@ -206,9 +305,11 @@ export default async function RecentSearchPage({ params }: Props) {
     return (
         <>
             <DesignSchema design={design} />
+            <SEODesignDetails design={design} />
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                 <CustomizingClient recentSearchDesign={design} />
             </Suspense>
         </>
     )
 }
+
