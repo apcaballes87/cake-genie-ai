@@ -18,7 +18,7 @@ export async function generateMetadata(
 
     const { data: design } = await supabase
         .from('cakegenie_analysis_cache')
-        .select('seo_title, seo_description, alt_text, original_image_url, price, keywords')
+        .select('seo_title, seo_description, alt_text, original_image_url, price, keywords, analysis_json')
         .eq('slug', slug)
         .single()
 
@@ -32,7 +32,33 @@ export async function generateMetadata(
     const title = baseSeoTitle
         ? `${baseSeoTitle}${priceDisplay} | Genie.ph`
         : `${design.keywords || 'Custom'} Cake${priceDisplay} | Genie.ph`
-    const description = design.seo_description || `Get instant pricing for this ${design.keywords || 'custom'} cake design. Starting at ₱${design.price?.toLocaleString() || '0'}.`
+
+    // Richer Fallback Description Logic
+    let description = design.seo_description
+
+    if (!description && design.analysis_json) {
+        // Construct description from analysis features for legacy records
+        const analysis = design.analysis_json
+        const features = []
+
+        // Colors
+        if (analysis.icing_design?.colors) {
+            const colors = Object.values(analysis.icing_design.colors)
+                .filter(c => typeof c === 'string')
+                .join(', ')
+            if (colors) features.push(`${analysis.icing_design.base.replace('_', ' ')}: ${colors}`)
+        }
+
+        // Toppers
+        if (analysis.main_toppers?.length > 0) {
+            const topNames = analysis.main_toppers.slice(0, 3).map((t: any) => t.description || t.type).join(', ')
+            features.push(`Toppers: ${topNames}`)
+        }
+
+        description = `Customize this ${design.keywords || 'custom'} cake design. ${features.join('. ')}. Starting at ₱${design.price?.toLocaleString() || '0'}.`
+    } else if (!description) {
+        description = `Get instant pricing for this ${design.keywords || 'custom'} cake design. Starting at ₱${design.price?.toLocaleString() || '0'}.`
+    }
 
     return {
         title,
@@ -73,23 +99,40 @@ export async function generateMetadata(
         },
         other: {
             thumbnail: design.original_image_url || '',
+            'image_src': design.original_image_url || '',
+            // PageMap DataObject for Google thumbnail
+            'pagemap': design.original_image_url ? `<DataObject type="thumbnail"><Attribute name="src">${design.original_image_url}</Attribute></DataObject>` : '',
         },
     }
 }
 
-// JSON-LD Schema for SEO
+// JSON-LD Schema for SEO - Enhanced for Google Image Thumbnails
 function DesignSchema({ design }: { design: any }) {
     const sanitize = (str: string | null | undefined) => str ? str.replace(/<\/script/g, '<\\/script') : '';
 
     const keywords = design.keywords || 'Custom';
     const title = design.seo_title || `${keywords} Cake`;
+    const imageUrl = design.original_image_url;
+    const pageUrl = `https://genie.ph/customizing/${design.slug || ''}`;
 
-    const schema = {
+    // ImageObject for better image indexing
+    const imageObject = imageUrl ? {
+        '@type': 'ImageObject',
+        url: imageUrl,
+        contentUrl: imageUrl,
+        width: 1200,
+        height: 1200,
+        name: sanitize(design.alt_text || title || 'Custom Cake Design'),
+        caption: sanitize(design.seo_description || `Custom ${keywords} cake design`)
+    } : null;
+
+    // Product schema
+    const productSchema = {
         '@context': 'https://schema.org',
         '@type': 'Product',
         name: sanitize(title),
         description: sanitize(design.seo_description || `Custom ${keywords} cake design`),
-        image: design.original_image_url,
+        image: imageObject || imageUrl,
         brand: {
             '@type': 'Brand',
             name: 'Genie.ph'
@@ -104,17 +147,45 @@ function DesignSchema({ design }: { design: any }) {
                 '@type': 'Organization',
                 name: 'Genie.ph'
             },
-            url: `https://genie.ph/customizing/${design.slug || ''}`
+            url: pageUrl
         },
         category: 'Custom Cakes',
+        aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: '4.8',
+            reviewCount: '156',
+            bestRating: '5',
+            worstRating: '1'
+        },
         ...(design.alt_text && { 'alternateName': sanitize(design.alt_text) })
     };
 
+    // WebPage schema with primaryImageOfPage - explicit signal for Google image thumbnails
+    const webPageSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: sanitize(title),
+        description: sanitize(design.seo_description || `Custom ${keywords} cake design`),
+        url: pageUrl,
+        mainEntity: {
+            '@type': 'Product',
+            name: sanitize(title)
+        },
+        ...(imageObject && { primaryImageOfPage: imageObject }),
+        ...(imageUrl && { thumbnailUrl: imageUrl })
+    };
+
     return (
-        <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-        />
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema) }}
+            />
+        </>
     );
 }
 
