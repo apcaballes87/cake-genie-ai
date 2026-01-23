@@ -1095,6 +1095,20 @@ export const analyzeCakeFeaturesOnly = async (
 **CRITICAL SPEED OVERRIDE:**
 For ALL x and y coordinates in your response: Use 0 (zero). Do not calculate positions.
 This is SPEED MODE - only identify what items exist, not where they are.
+
+Generate these fields for SEO/sharing:
+
+### alt_text (Required string)
+Descriptive alt text for the cake image, 50-100 characters. Describe the cake visually for screen readers.
+Example: "Pink 2-tier unicorn birthday cake with rainbow fondant stars and gold accents"
+
+### seo_title (Required string)  
+SEO-optimized page title, 40-60 characters. Include cake type and occasion.
+Example: "Unicorn Birthday Cake | Custom 2-Tier Design | Genie.ph"
+
+### seo_description (Required string)
+Meta description for search engines, 120-160 characters. Mention key features and call to action.
+Example: "Beautiful pink unicorn birthday cake with rainbow fondant decorations. Get instant pricing and customize this 2-tier design at Genie.ph"
 `;
 
         // Use the same schema but coordinates will be 0,0
@@ -1107,6 +1121,9 @@ This is SPEED MODE - only identify what items exist, not where they are.
                 cakeType: { type: Type.STRING, enum: CAKE_TYPES },
                 cakeThickness: { type: Type.STRING, enum: CAKE_THICKNESSES },
                 keyword: { type: Type.STRING },
+                seo_title: { type: Type.STRING },
+                seo_description: { type: Type.STRING },
+                alt_text: { type: Type.STRING },
                 icing_design: {
                     type: Type.OBJECT,
                     properties: {
@@ -1252,7 +1269,7 @@ This is SPEED MODE - only identify what items exist, not where they are.
                 }
             },
             // CRITICAL: Specify required fields to force model to include them
-            required: ['cakeType', 'cakeThickness', 'keyword', 'icing_design', 'main_toppers', 'support_elements', 'cake_messages'],
+            required: ['cakeType', 'cakeThickness', 'keyword', 'seo_title', 'seo_description', 'alt_text', 'icing_design', 'main_toppers', 'support_elements', 'cake_messages'],
         };
 
 
@@ -1379,9 +1396,11 @@ export const enrichAnalysisWithCoordinates = async (
         const dimensions = await imageLoadPromise;
 
         const COORDINATE_ENRICHMENT_PROMPT = `
-ACT AS A HIGH-PRECISION COMPUTER VISION SYSTEM FOR CAKE OBJECT DETECTION.
+ACT AS A HIGH-PRECISION COMPUTER VISION SYSTEM FOR CAKE OBJECT DETECTION AND AN SEO MARKETING EXPERT.
 
-Your task is to perform precise bounding box detection on cake elements that have already been identified.
+This is a background process with TWO goals:
+1. CALCULATE PRECISE COORDINATES for already identified elements.
+2. GENERATE SEO METADATA for the cake design.
 
 **Image Dimensions:** ${dimensions.width}px wide × ${dimensions.height}px high
 
@@ -1391,26 +1410,25 @@ Your task is to perform precise bounding box detection on cake elements that hav
 - Y-axis: -${dimensions.height / 2} (bottom) to +${dimensions.height / 2} (top)
 - Positive Y goes UPWARD
 
-**Your Task:**
+**Task 1: Coordinate Calculation**
 1. Carefully analyze each element in the provided feature list
 2. Calculate precise center coordinates (x, y) for each element's visual center
-3. Estimate TIGHT-FITTING bounding boxes:
-   - bbox_x, bbox_y: Top-left corner coordinates in the coordinate system above
-   - bbox_width: Actual width of the visible element in pixels
-   - bbox_height: Actual height of the visible element in pixels
+3. Estimate TIGHT-FITTING bounding boxes (bbox_x, bbox_y, bbox_width, bbox_height)
+4. CRITICAL ACCURACY RULES:
+   - Bounding boxes must be TIGHT to the visible pixels of each object
+   - Apply left/right bias (x ≠ 0 unless perfectly centered)
+   - Keep ALL feature descriptions, types, sizes exactly as provided
 
-**CRITICAL ACCURACY RULES:**
-- Bounding boxes must be TIGHT to the visible pixels of each object
-- Do NOT include background space in the box
-- Do NOT create overlapping boxes unless elements actually overlap
-- Apply left/right bias (x ≠ 0 unless perfectly centered)
-- Keep ALL feature descriptions, types, sizes exactly as provided
-- ONLY update coordinates and bbox values
-
-**Confidence Assessment:**
-- Mentally trace the edges of each object before committing to coordinates
-- Ensure bbox dimensions match the visual extent of the element
-- Double-check that center coordinates align with the geometric center
+**Task 2: SEO Metadata Generation**
+Based on the visual analysis, generate high-quality SEO text for this specific design.
+1. **seo_title**: A catchy, 50-60 char title.
+   - Format: "[Main Theme/Character] [Cake Type] Design"
+   - Example: "Mermaid Fantasy 2 Tier Cake Design" or "Minimalist Blue & Gold Birthday Cake"
+2. **seo_description**: A compelling 150-160 char meta description.
+   - Include key visual elements (colors, toppers).
+   - End with "Customize and order at Genie.ph."
+3. **alt_text**: A detailed, descriptive alt text for accessibility (100-125 chars).
+   - Describe the cake type, main colors, and key toppers explicitly.
 
 **Identified Features:**
 ${JSON.stringify(featureAnalysis, null, 2)}
@@ -1419,9 +1437,10 @@ ${JSON.stringify(featureAnalysis, null, 2)}
         const { mainTopperTypes, supportElementTypes } = await getDynamicTypeEnums();
 
         const coordinateEnrichmentSchema = {
-            description: "Enriched coordinates for detected elements",
+            description: "Enriched coordinates and SEO metadata",
             type: Type.OBJECT,
             properties: {
+                // ... (Existing array properties remain unchanged, omitted for brevity in instruction but keep them in code) ...
                 main_toppers: {
                     description: "List of main toppers with updated coordinates and bounding boxes",
                     type: Type.ARRAY,
@@ -1566,9 +1585,13 @@ ${JSON.stringify(featureAnalysis, null, 2)}
                         },
                         required: ['description', 'x', 'y']
                     }
-                }
+                },
+                // NEW SEO Fields
+                seo_title: { type: Type.STRING, description: "SEO Title for the design" },
+                seo_description: { type: Type.STRING, description: "SEO Meta Description" },
+                alt_text: { type: Type.STRING, description: "Accessibility Alt Text" }
             },
-            required: ['cakeType', 'cakeThickness', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design'],
+            required: ['cakeType', 'cakeThickness', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design', 'seo_title', 'seo_description', 'alt_text'],
         };
 
         const response = await getAI().models.generateContent({
@@ -1580,7 +1603,7 @@ ${JSON.stringify(featureAnalysis, null, 2)}
                 ],
             }],
             config: {
-                systemInstruction: "You are a precise coordinate calculator. Update only x,y values, keep all other fields unchanged.",
+                systemInstruction: "You are a precise coordinate calculator and SEO expert. Update coords and generate SEO text.",
                 responseMimeType: 'application/json',
                 responseSchema: coordinateEnrichmentSchema,
                 temperature: 0,

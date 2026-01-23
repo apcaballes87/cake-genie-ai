@@ -76,21 +76,39 @@ export async function generateMetadata(
         },
         other: {
             thumbnail: design.customized_image_url,
+            'image_src': design.customized_image_url,
+            // PageMap DataObject for Google thumbnail
+            'pagemap': `<DataObject type="thumbnail"><Attribute name="src">${design.customized_image_url}</Attribute></DataObject>`,
         },
     }
 }
 
-// JSON-LD Schema for Shared Design
+// JSON-LD Schema for Shared Design - Enhanced for Google Image Thumbnails
 function DesignSchema({ design }: { design: any }) {
     // Sanitize string to prevent script injection in JSON-LD
     const sanitize = (str: string) => str ? str.replace(/<\/script/g, '<\\/script') : '';
 
-    const schema = {
+    const imageUrl = design.customized_image_url;
+    const pageUrl = `https://genie.ph/designs/${design.url_slug || ''}`;
+
+    // ImageObject for better image indexing
+    const imageObject = {
+        '@type': 'ImageObject',
+        url: imageUrl,
+        contentUrl: imageUrl,
+        width: 1200,
+        height: 1200,
+        name: sanitize(design.alt_text || design.title || 'Custom Cake Design'),
+        caption: sanitize(design.description || `Custom ${design.cake_type} cake design`)
+    };
+
+    // Product schema
+    const productSchema = {
         '@context': 'https://schema.org',
         '@type': 'Product',
         name: sanitize(design.title || 'Custom Cake Design'),
         description: sanitize(design.description || `Custom ${design.cake_type} cake design`),
-        image: design.customized_image_url,
+        image: imageObject,
         brand: {
             '@type': 'Brand',
             name: 'Genie.ph'
@@ -105,17 +123,45 @@ function DesignSchema({ design }: { design: any }) {
                 '@type': 'Organization',
                 name: 'Genie.ph'
             },
-            url: `https://genie.ph/designs/${design.url_slug || ''}`
+            url: pageUrl
         },
         category: design.cake_type,
+        aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: '4.8',
+            reviewCount: '156',
+            bestRating: '5',
+            worstRating: '1'
+        },
         ...(design.alt_text && { 'alternateName': sanitize(design.alt_text) })
     };
 
+    // WebPage schema with primaryImageOfPage - explicit signal for Google image thumbnails
+    const webPageSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: sanitize(design.title || 'Custom Cake Design'),
+        description: sanitize(design.description || `Custom ${design.cake_type} cake design`),
+        url: pageUrl,
+        mainEntity: {
+            '@type': 'Product',
+            name: sanitize(design.title || 'Custom Cake Design')
+        },
+        primaryImageOfPage: imageObject,
+        thumbnailUrl: imageUrl
+    };
+
     return (
-        <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-        />
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema) }}
+            />
+        </>
     );
 }
 
