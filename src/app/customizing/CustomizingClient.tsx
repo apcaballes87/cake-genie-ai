@@ -813,8 +813,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     // Handle recentSearchDesign prop loading (from SEO-friendly routes like /customizing/[slug])
     useEffect(() => {
+        if (recentSearchDesign?.slug) {
+            console.log(`[CustomizingClient] Checking recentSearchDesign: ${recentSearchDesign.slug}`);
+        }
+
         // If no recentSearchDesign or already have image data, skip
         if (!recentSearchDesign?.original_image_url || !recentSearchDesign?.analysis_json) {
+            if (recentSearchDesign) {
+                console.warn("[CustomizingClient] recentSearchDesign present but missing data:", recentSearchDesign);
+            }
             return;
         }
 
@@ -823,10 +830,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         const hasLoadedImage = !!originalImageData;
 
         if (!isNewDesign && hasLoadedImage) {
+            console.log(`[CustomizingClient] Skipping load: Design ${recentSearchDesign.slug} already loaded.`);
             return;
         }
 
         if (isLoadingDesignRef.current) {
+            console.log(`[CustomizingClient] Skipping load: Design loading already in progress.`);
             return;
         }
 
