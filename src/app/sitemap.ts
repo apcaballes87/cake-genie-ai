@@ -18,11 +18,21 @@ const sanitizeUrl = (url: string | null | undefined): string => {
             return `${parsed.origin}${parsed.pathname}`
         }
 
-        // For other URLs, keep the full URL
-        // Next.js sitemap generator handles XML encoding automatically
+        // For other URLs, keep the full URL but XML escape it
+        // Next.js sitemap generator doesn't seem to always escape image URLs correctly
         return url
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;')
     } catch {
-        return url
+        return url ? url
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;') : ''
     }
 }
 

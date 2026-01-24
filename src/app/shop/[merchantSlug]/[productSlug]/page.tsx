@@ -106,6 +106,7 @@ function ProductSchema({ product, merchant, prices }: { product: CakeGenieMercha
             priceCurrency: 'PHP',
             offerCount: prices.length,
             availability: availability,
+            itemCondition: 'https://schema.org/NewCondition',
             seller: {
                 '@type': 'Organization',
                 name: sanitize(merchant.business_name),
@@ -119,6 +120,7 @@ function ProductSchema({ product, merchant, prices }: { product: CakeGenieMercha
             price: product.custom_price || 0,
             priceCurrency: 'PHP',
             availability: availability,
+            itemCondition: 'https://schema.org/NewCondition',
             priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
             seller: {
                 '@type': 'Organization',
@@ -152,7 +154,7 @@ function ProductSchema({ product, merchant, prices }: { product: CakeGenieMercha
         '@id': pageUrl, // Unique ID to link with WebPage
         name: sanitize(product.title),
         description: sanitize(product.long_description || product.short_description || `Custom cake from ${merchant.business_name}`),
-        image: imageObject || product.image_url,
+        image: product.image_url ? [product.image_url] : [],
         brand: {
             '@type': 'Brand',
             name: sanitize(product.brand || merchant.business_name),

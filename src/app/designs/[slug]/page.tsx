@@ -108,7 +108,7 @@ function DesignSchema({ design }: { design: any }) {
         '@type': 'Product',
         name: sanitize(design.title || 'Custom Cake Design'),
         description: sanitize(design.description || `Custom ${design.cake_type} cake design`),
-        image: imageObject,
+        image: [imageUrl],
         brand: {
             '@type': 'Brand',
             name: 'Genie.ph'
@@ -118,6 +118,7 @@ function DesignSchema({ design }: { design: any }) {
             price: design.final_price || 0,
             priceCurrency: 'PHP',
             availability: 'https://schema.org/InStock',
+            itemCondition: 'https://schema.org/NewCondition',
             priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
             seller: {
                 '@type': 'Organization',
@@ -136,7 +137,7 @@ function DesignSchema({ design }: { design: any }) {
         ...(design.alt_text && { 'alternateName': sanitize(design.alt_text) })
     };
 
-    // WebPage schema with primaryImageOfPage - explicit signal for Google image thumbnails
+    // WebPage schema with known image
     const webPageSchema = {
         '@context': 'https://schema.org',
         '@type': 'WebPage',
@@ -145,9 +146,13 @@ function DesignSchema({ design }: { design: any }) {
         url: pageUrl,
         mainEntity: {
             '@type': 'Product',
-            name: sanitize(design.title || 'Custom Cake Design')
+            name: sanitize(design.title || 'Custom Cake Design'),
+            image: imageUrl
         },
-        primaryImageOfPage: imageObject,
+        primaryImageOfPage: {
+            '@type': 'ImageObject',
+            url: imageUrl
+        },
         thumbnailUrl: imageUrl
     };
 

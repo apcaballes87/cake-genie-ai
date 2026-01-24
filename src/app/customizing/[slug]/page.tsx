@@ -143,6 +143,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
             priceCurrency: 'PHP',
             offerCount: prices.length,
             availability: 'https://schema.org/InStock',
+            itemCondition: 'https://schema.org/NewCondition',
             seller: {
                 '@type': 'Organization',
                 name: 'Genie.ph'
@@ -155,6 +156,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
             price: design.price || 0,
             priceCurrency: 'PHP',
             availability: 'https://schema.org/InStock',
+            itemCondition: 'https://schema.org/NewCondition',
             priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
             seller: {
                 '@type': 'Organization',
@@ -171,7 +173,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         '@id': pageUrl, // Unique identifier for cross-referencing
         name: sanitize(title),
         description: sanitize(design.seo_description || `Custom ${keywords} cake design`),
-        image: imageObject || imageUrl,
+        image: imageUrl ? [imageUrl] : [],
         brand: {
             '@type': 'Brand',
             name: 'Genie.ph'
@@ -438,11 +440,20 @@ export default async function RecentSearchPage({ params }: Props) {
     const { slug } = await params
     const supabase = await createClient()
 
+    console.log(`[RecentSearchPage] Request for slug: ${slug}`);
+
     const { data: design } = await supabase
         .from('cakegenie_analysis_cache')
         .select('*')
         .eq('slug', slug)
         .single()
+
+    if (!design) {
+        console.warn(`[RecentSearchPage] No design found for slug: ${slug} - triggering 404`);
+        notFound()
+    }
+
+    console.log(`[RecentSearchPage] Design found for slug: ${slug}, passing to client.`);
 
     if (!design) {
         notFound()
