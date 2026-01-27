@@ -2467,6 +2467,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     cakeMessagesSectionRef={cakeMessagesSectionRef as React.RefObject<HTMLDivElement>}
                                     onItemClick={handleListItemClick}
                                     markerMap={markerMap}
+                                    addOnPricing={addOnPricing}
                                 />
 
                                 {/* Action Buttons */}
