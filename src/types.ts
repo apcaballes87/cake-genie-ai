@@ -228,6 +228,7 @@ export interface AddOnPricing {
 export interface BasePriceInfo {
   size: CakeSize;
   price: number;
+  description?: string;
 }
 
 // Pricing Rule from database

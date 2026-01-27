@@ -127,10 +127,52 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         width: 1200,
         height: 1200,
         name: sanitize(design.alt_text || title || 'Custom Cake Design'),
-        caption: sanitize(design.seo_description || `Custom ${keywords} cake design`)
+        caption: sanitize(design.seo_description || `Custom ${keywords} cake design`),
+        creditText: 'Genie.ph',
+        creator: {
+            '@type': 'Organization',
+            name: 'Genie.ph'
+        }
     } : null;
 
-    let offers;
+    // Standard Shipping Details (Placeholder)
+    const shippingDetails = {
+        '@type': 'OfferShippingDetails',
+        shippingRate: {
+            '@type': 'MonetaryAmount',
+            value: 0,
+            currency: 'PHP'
+        },
+        deliveryTime: {
+            '@type': 'ShippingDeliveryTime',
+            handlingTime: {
+                '@type': 'QuantitativeValue',
+                minValue: 3, // Custom cakes take longer
+                maxValue: 7,
+                unitCode: 'DAY'
+            },
+            transitTime: {
+                '@type': 'QuantitativeValue',
+                minValue: 1,
+                maxValue: 2,
+                unitCode: 'DAY'
+            }
+        },
+        shippingDestination: {
+            '@type': 'DefinedRegion',
+            addressCountry: 'PH'
+        }
+    };
+
+    // Merchant Return Policy (No Returns)
+    const returnPolicy = {
+        '@type': 'MerchantReturnPolicy',
+        returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
+        merchantReturnDays: 0,
+        returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility'
+    };
+
+    let baseOffersWrapper;
 
     if (prices && prices.length > 0) {
         // Find min and max prices
@@ -138,7 +180,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         const lowPrice = sortedPrices[0].price;
         const highPrice = sortedPrices[sortedPrices.length - 1].price;
 
-        offers = {
+        baseOffersWrapper = {
             '@type': 'AggregateOffer',
             lowPrice: lowPrice,
             highPrice: highPrice,
@@ -153,7 +195,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
             url: pageUrl
         };
     } else {
-        offers = {
+        baseOffersWrapper = {
             '@type': 'Offer',
             price: design.price || 0,
             priceCurrency: 'PHP',
@@ -168,11 +210,18 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         };
     }
 
+    const offers = {
+        ...baseOffersWrapper,
+        hasMerchantReturnPolicy: returnPolicy,
+        shippingDetails: shippingDetails
+    };
+
     // Product schema
     const productSchema = {
         '@context': 'https://schema.org',
         '@type': 'Product',
         '@id': pageUrl, // Unique identifier for cross-referencing
+        url: pageUrl, // Explicit URL
         name: sanitize(title),
         description: sanitize(design.seo_description || `Custom ${keywords} cake design`),
         image: imageUrl ? [imageUrl] : [],
@@ -364,8 +413,51 @@ export default async function RecentSearchPage({ params }: Props) {
                     />
                 </CustomizationProvider>
             </Suspense>
-            {/* SEO Content: Rendered visibly below the main app to support indexing */}
-            <div className="bg-white relative z-0">
+            {/* SEO Content: Rendered visibly to support indexing */}
+            <div className="bg-white relative z-0 container mx-auto px-4 py-12 max-w-4xl mt-8">
+                {/* LCP Optimization */}
+                {design.original_image_url && (
+                    <div className="mb-6 flex justify-center">
+                        <img
+                            src={design.original_image_url}
+                            alt={design.alt_text || 'Custom Cake Design'}
+                            width={600}
+                            height={600}
+                            className="w-full max-w-md h-auto rounded-xl shadow-md"
+                            loading="eager"
+                            {...({ fetchPriority: "high" } as any)}
+                        />
+                    </div>
+                )}
+
+                <SEODesignDetails design={design} />
+
+                {prices.length > 0 && (
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-8">
+                        <h3 className="text-lg font-bold text-slate-800 mb-4">Estimated Pricing Options</h3>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-left text-sm">
+                                <thead className="bg-slate-50 text-slate-700 font-semibold">
+                                    <tr>
+                                        <th className="px-4 py-3 rounded-l-lg">Size</th>
+                                        <th className="px-4 py-3">Description</th>
+                                        <th className="px-4 py-3 rounded-r-lg">Price Estimate</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {prices.map((p, idx) => (
+                                        <tr key={idx}>
+                                            <td className="px-4 py-3 font-medium text-slate-900">{p.size}</td>
+                                            <td className="px-4 py-3 text-slate-600">{p.description}</td>
+                                            <td className="px-4 py-3 text-slate-900">₱{p.price.toLocaleString()}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-4">* Final price may vary based on customization choices.</p>
+                    </div>
+                )}
             </div>
         </>
     )

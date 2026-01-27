@@ -71,12 +71,63 @@ export function ProductSchema({ product, merchant, prices }: { product: CakeGeni
         width: 1200, // Best practice estimate if actual not valid, or valid if available
         height: 1200,
         caption: sanitize(product.alt_text || product.title),
+        creditText: sanitize(merchant.business_name),
+        creator: {
+            '@type': 'Organization',
+            name: sanitize(merchant.business_name)
+        }
+    } : undefined;
+
+    // Standard Shipping Details (Placeholder for now as dynamic calculation isn't available here)
+    const shippingDetails = {
+        '@type': 'OfferShippingDetails',
+        shippingRate: {
+            '@type': 'MonetaryAmount',
+            value: 0, // Placeholder or standard rate could be set here
+            currency: 'PHP'
+        },
+        deliveryTime: {
+            '@type': 'ShippingDeliveryTime',
+            handlingTime: {
+                '@type': 'QuantitativeValue',
+                minValue: 1,
+                maxValue: 3,
+                unitCode: 'DAY'
+            },
+            transitTime: {
+                '@type': 'QuantitativeValue',
+                minValue: 1,
+                maxValue: 3,
+                unitCode: 'DAY'
+            }
+        },
+        shippingDestination: {
+            '@type': 'DefinedRegion',
+            addressCountry: 'PH'
+        }
+    };
+
+    // Merchant Return Policy (No Returns for Perishable Custom Goods)
+    const returnPolicy = {
+        '@type': 'MerchantReturnPolicy',
+        returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
+        merchantReturnDays: 0,
+        returnMethod: 'https://schema.org/ReturnByMail', // Required even if not permitted sometimes, but safe to include
+        returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility'
+    };
+
+    // Update offers with new merchant listing properties
+    const enhancedOffers = offers ? {
+        ...offers,
+        hasMerchantReturnPolicy: returnPolicy,
+        shippingDetails: shippingDetails
     } : undefined;
 
     const productSchema = {
         '@context': 'https://schema.org',
         '@type': 'Product',
         '@id': pageUrl, // Unique ID to link with WebPage
+        url: pageUrl, // Explicit URL property
         name: sanitize(product.title),
         description: sanitize(product.long_description || product.short_description || `Custom cake from ${merchant.business_name}`),
         image: product.image_url ? [product.image_url] : [],
@@ -87,7 +138,7 @@ export function ProductSchema({ product, merchant, prices }: { product: CakeGeni
         category: sanitize(product.category || 'Cakes'),
         ...(product.sku && { sku: sanitize(product.sku) }),
         ...(product.gtin && { gtin: sanitize(product.gtin) }),
-        offers,
+        offers: enhancedOffers,
         aggregateRating
     };
 
