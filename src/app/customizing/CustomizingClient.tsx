@@ -539,9 +539,10 @@ interface CustomizingClientProps {
     merchant?: CakeGenieMerchant;
     recentSearchDesign?: RecentSearchDesignProp;
     productDetails?: React.ReactNode;
+    initialPrices?: BasePriceInfo[];
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -596,9 +597,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
     // --- Hooks ---
-    const { addOnPricing, itemPrices, basePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice } = usePricing({
+    const { addOnPricing, itemPrices, basePriceOptions: hookBasePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice } = usePricing({
         analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo, onCakeInfoCorrection: handleCakeInfoChange, analysisId, merchantId: merchant?.merchant_id
     });
+
+    // Use initialPrices for SSR if hook data isn't ready yet
+    const basePriceOptions = useMemo(() => {
+        if (hookBasePriceOptions && hookBasePriceOptions.length > 0) return hookBasePriceOptions;
+        return initialPrices || [];
+    }, [hookBasePriceOptions, initialPrices]);
 
     const {
         isLoading: isUpdatingDesign, error: designUpdateError, lastGenerationInfoRef, handleUpdateDesign, setError: setDesignUpdateError, isSafetyFallback
@@ -655,21 +662,26 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     // --- Handlers ---
     // --- Effects ---
     // Handle product prop loading (from SEO-friendly routes like /shop/[merchant]/[product]/customize)
+    // AND recent search designs (from /customizing/[slug])
     useEffect(() => {
-        // If no product, skip
-        if (!product?.image_url) {
+        // Unify the data source (Product Page vs Customizing Page)
+        const targetSlug = product?.slug || recentSearchDesign?.slug || recentSearchDesign?.p_hash;
+        const targetImageUrl = product?.image_url || recentSearchDesign?.original_image_url;
+        const targetPHash = product?.p_hash || recentSearchDesign?.p_hash;
+        const targetTitle = product?.title || recentSearchDesign?.seo_title || 'Design';
+
+        // If no image URL to load, skip
+        if (!targetImageUrl) {
             return;
         }
 
-        // Check if we need to load this product:
-        // 1. If it's a different product than what we tracked locally (slug mismatch)
-        // 2. OR if we haven't tracked any product yet AND we don't have image data (initial load)
-        // We do NOT want to reload if we already have image data AND it's the same product (to prevent loops)
-
-        const isNewProduct = product.slug !== loadedProductSlug.current;
+        // Check if we need to load this content:
+        // 1. If it's a different item than what we tracked locally (slug/hash mismatch)
+        // 2. OR if we haven't tracked any item yet AND we don't have image data (initial load)
+        const isNewItem = targetSlug !== loadedProductSlug.current;
         const hasLoadedImage = !!originalImageData;
 
-        if (!isNewProduct && hasLoadedImage) {
+        if (!isNewItem && hasLoadedImage) {
             return;
         }
 
@@ -678,59 +690,70 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         }
 
         isLoadingDesignRef.current = true;
-        loadedProductSlug.current = product.slug;
-        console.log("🏪 Loading product from props:", product.title);
+        loadedProductSlug.current = targetSlug || 'unknown';
+        console.log(`🏪 Loading item from props: ${targetTitle}`);
 
         // Clear any existing stale data
+        // 1. Reset Image Context (always needed as it persists across products if provider is higher up)
         clearImages();
-        clearCustomization();
 
-        setIsAnalyzing(true);
-        // showInfo(`Loading ${product.title}...`); // Removed redundant toast
+        // 2. Check for SSR Data
+        // Since CustomizationProvider is keyed by product ID/slug in the parent page, if analysisResult exists here,
+        // it means it was initialized from SSR for THIS item.
+        const hasSSRData = !!(analysisResult && targetPHash);
 
+        if (!hasSSRData) {
+            clearCustomization();
+            setIsAnalyzing(true);
+        } else {
+            console.log("⚡ Reusing SSR Analysis Data");
+        }
 
-        // NEW: Check for p_hash first (Fast Path)
-        if (product.p_hash) {
-            console.log("⚡ Fast Path: Using stored p_hash:", product.p_hash);
+        if (targetPHash) {
+            console.log("⚡ Fast Path: Using stored p_hash:", targetPHash);
 
             // Start image fetch in parallel with analysis fetch
             const imageFetchPromise = (async () => {
                 let blob: Blob | null = null;
                 try {
-                    const response = await fetch(product.image_url!);
+                    const response = await fetch(targetImageUrl);
                     if (response.ok) blob = await response.blob();
                 } catch { /* ignore direct fetch error */ }
 
                 if (!blob) {
-                    const proxyResponse = await fetch(`/api/proxy?url=${encodeURIComponent(product.image_url!)}`);
+                    const proxyResponse = await fetch(`/api/proxy?url=${encodeURIComponent(targetImageUrl)}`);
                     if (proxyResponse.ok) blob = await proxyResponse.blob();
                 }
                 if (!blob) throw new Error("Failed to fetch image");
                 return new File([blob], 'product.jpg', { type: blob.type || 'image/jpeg' });
             })();
 
-            const analysisFetchPromise = getAnalysisByExactHash(product.p_hash);
+            // Reuse SSR result if available, otherwise fetch from DB
+            const analysisFetchPromise = hasSSRData
+                ? Promise.resolve(analysisResult!)
+                : getAnalysisByExactHash(targetPHash);
 
             Promise.all([imageFetchPromise, analysisFetchPromise])
                 .then(([file, analysisData]) => {
-                    // 1. Load the image into context WITHOUT analysis
+                    // Load the image into context
                     hookImageUpload(
                         file,
                         (result) => {
-                            // This success callback is for the "analyze" path, but we're bypassing it.
-                            // However, we still need to set the result if we have it from the DB.
                             if (analysisData) {
-                                console.log("✅ Analysis loaded from DB hash match");
-                                setPendingAnalysisData(analysisData);
+                                console.log("✅ Image loaded (Analysis synced)");
+
+                                // Only trigger 'setPendingAnalysisData' if we didn't start with SSR data.
+                                // If hasSSRData is true, the context is already populated via initialData.
+                                if (!hasSSRData) {
+                                    setPendingAnalysisData(analysisData);
+                                    showSuccess("Design loaded!");
+                                }
+
                                 setIsAnalyzing(false);
-                                showSuccess("Design loaded!");
                                 isLoadingDesignRef.current = false;
                             } else {
                                 // Fallback: If DB lookup failed (shouldn't happen with valid FK), run analysis
                                 console.warn("⚠️ Hash lookup returned null, falling back to full analysis");
-                                // Trigger re-analysis manually or let the hook finish if it was analyzing
-                                // But hookImageUpload handles analysis internally if we don't pass precomputed result.
-                                // To force precomputed, we use the options arg.
                             }
                         },
                         (error) => {
@@ -740,7 +763,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             isLoadingDesignRef.current = false;
                         },
                         // Pass analysisData as precomputed if available to skip AI
-                        analysisData ? { imageUrl: product.image_url!, precomputedAnalysis: analysisData } : { imageUrl: product.image_url! }
+                        analysisData ? { imageUrl: targetImageUrl, precomputedAnalysis: analysisData } : { imageUrl: targetImageUrl }
                     );
                 })
                 .catch(err => {
@@ -761,7 +784,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                 // Try direct fetch first
                 try {
-                    const response = await fetch(product.image_url!);
+                    const response = await fetch(targetImageUrl);
                     if (response.ok) {
                         blob = await response.blob();
                     }
@@ -771,7 +794,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                 if (!blob) {
                     // Fallback to storage proxy
-                    const proxyResponse = await fetch(`/api/proxy?url=${encodeURIComponent(product.image_url!)}`);
+                    const proxyResponse = await fetch(`/api/proxy?url=${encodeURIComponent(targetImageUrl)}`);
                     if (proxyResponse.ok) {
                         blob = await proxyResponse.blob();
                     }
@@ -798,7 +821,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         setIsAnalyzing(false);
                         isLoadingDesignRef.current = false;
                     },
-                    { imageUrl: product.image_url! }
+                    { imageUrl: targetImageUrl! }
                 );
 
             } catch (err) {
@@ -810,117 +833,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         };
 
         fetchProductImage();
-    }, [product, originalImageData, isImageManagementLoading, hookImageUpload, setIsAnalyzing, clearImages, clearCustomization]);
-
-    // Handle recentSearchDesign prop loading (from SEO-friendly routes like /customizing/[slug])
-    useEffect(() => {
-        if (recentSearchDesign?.slug) {
-            console.log(`[CustomizingClient] Checking recentSearchDesign: ${recentSearchDesign.slug}`);
-        }
-
-        // If no recentSearchDesign or already have image data, skip
-        if (!recentSearchDesign?.original_image_url || !recentSearchDesign?.analysis_json) {
-            if (recentSearchDesign) {
-                console.warn("[CustomizingClient] recentSearchDesign present but missing data:", recentSearchDesign);
-            }
-            return;
-        }
-
-        // DETECT SSR HYDRATION
-        // If the context already has the analysis for this slug, we assume hydration occurred.
-        // We use loose equality for ID check as some might be hashes vs slugs
-        const isHydrated = (analysisId === recentSearchDesign.slug && !!analysisResult) ||
-            (analysisId === recentSearchDesign.p_hash && !!analysisResult);
-
-        if (isHydrated) {
-            // If already hydrated, we just need to ensure the image is loaded.
-            // We do NOT want to clear customization or re-set analysis data.
-
-            if (recentSearchDesign.slug !== loadedProductSlug.current) {
-                console.log(`[CustomizingClient] Hydrated state detected for: ${recentSearchDesign.slug}`);
-                loadedProductSlug.current = recentSearchDesign.slug;
-            }
-
-            if (!originalImageData && !isLoadingDesignRef.current) {
-                console.log("[CustomizingClient] Hydrated but missing image - loading image only.");
-                isLoadingDesignRef.current = true;
-
-                loadImageWithoutAnalysis(recentSearchDesign.original_image_url!)
-                    .finally(() => {
-                        isLoadingDesignRef.current = false;
-                    });
-            }
-            return;
-        }
-
-        // Don't load if already processed this design
-        const isNewDesign = recentSearchDesign.slug !== loadedProductSlug.current;
-        const hasLoadedImage = !!originalImageData;
-
-        if (!isNewDesign && hasLoadedImage) {
-            console.log(`[CustomizingClient] Skipping load: Design ${recentSearchDesign.slug} already loaded.`);
-            return;
-        }
-
-        if (isLoadingDesignRef.current) {
-            console.log(`[CustomizingClient] Skipping load: Design loading already in progress.`);
-            return;
-        }
-
-        isLoadingDesignRef.current = true;
-        loadedProductSlug.current = recentSearchDesign.slug;
-        console.log("🔍 Loading recent search design from props:", recentSearchDesign.keywords);
-
-        // Clear any existing stale data
-        clearImages();
-        clearCustomization();
-
-        setIsAnalyzing(true);
-
-        // We have precomputed analysis, so use Fast Path
-        console.log("⚡ Fast Path: Using cached analysis from recent search");
-
-        const fetchRecentSearchImage = async () => {
-            try {
-                let blob: Blob | null = null;
-                try {
-                    const response = await fetch(recentSearchDesign.original_image_url!);
-                    if (response.ok) blob = await response.blob();
-                } catch { /* ignore direct fetch error */ }
-
-                if (!blob) {
-                    const proxyResponse = await fetch(`/api/proxy?url=${encodeURIComponent(recentSearchDesign.original_image_url!)}`);
-                    if (proxyResponse.ok) blob = await proxyResponse.blob();
-                }
-                if (!blob) throw new Error("Failed to fetch image");
-
-                const file = new File([blob], 'design.jpg', { type: blob.type || 'image/jpeg' });
-
-                hookImageUpload(
-                    file,
-                    (result) => {
-                        console.log("✅ Recent search design loaded from cache");
-                        setPendingAnalysisData(recentSearchDesign.analysis_json);
-                        setIsAnalyzing(false);
-                    },
-                    (error) => {
-                        console.error("Error processing recent search image:", error);
-                        showError("Failed to load design");
-                        setIsAnalyzing(false);
-                        isLoadingDesignRef.current = false;
-                    },
-                    { imageUrl: recentSearchDesign.original_image_url!, precomputedAnalysis: recentSearchDesign.analysis_json }
-                );
-            } catch (err) {
-                console.error("Failed to load recent search design:", err);
-                showError("Failed to load design.");
-                setIsAnalyzing(false);
-                isLoadingDesignRef.current = false;
-            }
-        };
-
-        fetchRecentSearchImage();
-    }, [recentSearchDesign, originalImageData, hookImageUpload, setIsAnalyzing, clearImages, clearCustomization, setPendingAnalysisData, analysisId, analysisResult, loadImageWithoutAnalysis]);
+    }, [product, recentSearchDesign, originalImageData, isImageManagementLoading, hookImageUpload, setIsAnalyzing, clearImages, clearCustomization, analysisResult, analysisId]);
 
     // Handle "Customize This Design" flow (loading from URL ref) - Shopify/external integrations
     useEffect(() => {
@@ -2098,32 +2011,49 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 </button>
             </div>
 
-            {/* SEO Breadcrumbs - Only visible when product prop exists */}
-            {product && merchant && (
+            {/* SEO Breadcrumbs - Visible for both Shop Product and SEO Landing Pages */}
+            {((product && merchant) || (recentSearchDesign && recentSearchDesign.slug)) && (
                 <nav className="w-full" aria-label="Breadcrumb">
                     <ol className="flex items-center gap-1 text-xs text-slate-500 flex-wrap">
                         <li>
                             <a href="/" className="hover:text-purple-600 transition-colors">Home</a>
                         </li>
                         <li><span className="mx-1">/</span></li>
-                        <li>
-                            <a href="/shop" className="hover:text-purple-600 transition-colors">Shop</a>
-                        </li>
-                        <li><span className="mx-1">/</span></li>
-                        <li>
-                            <a href={`/shop/${merchant.slug}`} className="hover:text-purple-600 transition-colors">{merchant.business_name}</a>
-                        </li>
-                        <li><span className="mx-1">/</span></li>
-                        <li className="text-slate-700 font-medium truncate max-w-[150px]" aria-current="page">{product.title}</li>
+
+                        {product && merchant ? (
+                            <>
+                                <li>
+                                    <a href="/shop" className="hover:text-purple-600 transition-colors">Shop</a>
+                                </li>
+                                <li><span className="mx-1">/</span></li>
+                                <li>
+                                    <a href={`/shop/${merchant.slug}`} className="hover:text-purple-600 transition-colors">{merchant.business_name}</a>
+                                </li>
+                                <li><span className="mx-1">/</span></li>
+                                <li className="text-slate-700 font-medium truncate max-w-[150px]" aria-current="page">{product.title}</li>
+                            </>
+                        ) : recentSearchDesign ? (
+                            <>
+                                <li>
+                                    <a href="/customizing" className="hover:text-purple-600 transition-colors">Customizing</a>
+                                </li>
+                                <li><span className="mx-1">/</span></li>
+                                <li className="text-slate-700 font-medium truncate max-w-[150px]" aria-current="page">
+                                    {recentSearchDesign.seo_title?.replace(/\s*\|\s*Genie\.ph\s*$/i, '') || recentSearchDesign.keywords || 'Custom Design'}
+                                </li>
+                            </>
+                        ) : null}
                     </ol>
                 </nav>
             )}
 
-            {/* Product Title - Only visible when product prop exists */}
-            {product && (
+            {/* Product/Design Title */}
+            {(product || recentSearchDesign) && (
                 <div className="w-full">
-                    <h1 className="text-xl md:text-2xl font-bold text-slate-800 leading-tight">{product.title}</h1>
-                    {product.category && (
+                    <h1 className="text-xl md:text-2xl font-bold text-slate-800 leading-tight">
+                        {product ? product.title : (recentSearchDesign?.seo_title?.replace(/\s*\|\s*Genie\.ph\s*$/i, '') || recentSearchDesign?.keywords || 'Custom Design')}
+                    </h1>
+                    {product?.category && (
                         <span className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
                             {product.category}
                         </span>
@@ -2473,12 +2403,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             </div></div>
                     </div>
 
-                    {/* Render Server-Side Product Details (SEO Content) */}
-                    {productDetails && (
-                        <div className="w-full">
-                            {productDetails}
-                        </div>
-                    )}
+
                 </div>
                 {/* RIGHT COLUMN: Availability at top, then Feature List */}
                 <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
@@ -2571,36 +2496,49 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 </div>
             </div>
 
-            {/* Product Description & Tags - Spans full width of the two-column layout */}
-            {product && (product.long_description || product.short_description || (product.tags && product.tags.length > 0)) && (
-                <div className="w-full mt-6">
-                    <div className="bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
-                        {(product.long_description || product.short_description) && (
-                            <div className="mb-3">
-                                <h2 className="text-sm font-semibold text-slate-700 mb-2">About This Cake</h2>
-                                <p className="text-sm text-slate-600 leading-relaxed">
-                                    {product.long_description || product.short_description}
-                                </p>
-                            </div>
-                        )}
-                        {product.tags && product.tags.length > 0 && (
-                            <div>
-                                <h3 className="text-xs font-medium text-slate-500 mb-2">Related Tags</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {product.tags.map((tag, index) => (
-                                        <span
-                                            key={index}
-                                            className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full hover:bg-purple-100 hover:text-purple-700 transition-colors cursor-default"
-                                        >
-                                            {tag}
-                                        </span>
-                                    ))}
+            {/* Product/Design Description & Tags - Spans full width of the two-column layout */}
+            {((product && (product.long_description || product.short_description || (product.tags && product.tags.length > 0))) ||
+                (recentSearchDesign && (recentSearchDesign.seo_description || recentSearchDesign.alt_text))) && (
+                    <div className="w-full mt-6">
+                        <div className="bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
+                            {/* Product Description */}
+                            {product && (product.long_description || product.short_description) && (
+                                <div className="mb-3">
+                                    <h2 className="text-sm font-semibold text-slate-700 mb-2">About This Cake</h2>
+                                    <p className="text-sm text-slate-600 leading-relaxed">
+                                        {product.long_description || product.short_description}
+                                    </p>
                                 </div>
-                            </div>
-                        )}
+                            )}
+
+                            {/* Design Description */}
+                            {recentSearchDesign && (recentSearchDesign.seo_description || recentSearchDesign.alt_text) && (
+                                <div className="mb-3">
+                                    <h2 className="text-sm font-semibold text-slate-700 mb-2">About This Design</h2>
+                                    <p className="text-sm text-slate-600 leading-relaxed">
+                                        {recentSearchDesign.seo_description || recentSearchDesign.alt_text}
+                                    </p>
+                                </div>
+                            )}
+
+                            {product && product.tags && product.tags.length > 0 && (
+                                <div>
+                                    <h3 className="text-xs font-medium text-slate-500 mb-2">Related Tags</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {product.tags.map((tag, index) => (
+                                            <span
+                                                key={index}
+                                                className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full hover:bg-purple-100 hover:text-purple-700 transition-colors cursor-default"
+                                            >
+                                                {tag}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
 
 
             {/* FloatingResultPanel - Only show for non-icing items */}
