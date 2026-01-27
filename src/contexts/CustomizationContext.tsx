@@ -16,6 +16,7 @@ import {
 import { DEFAULT_THICKNESS_MAP, DEFAULT_SIZE_MAP, DEFAULT_ICING_DESIGN } from '@/constants'
 import { showSuccess } from '@/lib/utils/toast'
 import { calculateCustomizingAvailability, AvailabilityType } from '@/lib/utils/availability'
+import { mapAnalysisToState } from '@/utils/customizationMapper'
 
 // 'icingDesign' is now handled with granular dot-notation strings
 type DirtyField = 'cakeInfo' | 'mainToppers' | 'supportElements' | 'cakeMessages' | 'additionalInstructions';
@@ -371,134 +372,62 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         setAnalysisId(uuidv4());
         setAnalysisResult(rawData);
 
-        if (!dirtyFields.has('cakeInfo')) {
-            const getFlavorCount = (type: CakeType): number => {
-                if (!type) return 1;
-                if (type.includes('2 Tier')) return 2;
-                if (type.includes('3 Tier')) return 3;
-                return 1;
-            };
-            // Fallback to '1 Tier' if cakeType is missing from analysis
-            const cakeType: CakeType = rawData.cakeType || '1 Tier';
-            // Fallback to default thickness for the cake type
-            const cakeThickness = rawData.cakeThickness || DEFAULT_THICKNESS_MAP[cakeType] || '3 in';
-            const flavorCount = getFlavorCount(cakeType);
-            const initialFlavors: CakeFlavor[] = Array(flavorCount).fill('Chocolate Cake');
-            setCakeInfo({
-                type: cakeType,
-                thickness: cakeThickness,
-                flavors: initialFlavors,
-                size: DEFAULT_SIZE_MAP[cakeType] || '6" Round'
-            });
+        // Use the shared mapper to generate the target state from the analysis result
+        // We import mapAnalysisToState dynamically to avoid circular dependencies if any, 
+        // or just rely on the static import if added at top of file.
+        // Ideally we added: import { mapAnalysisToState } from '@/utils/customizationMapper';
+
+        // Since we can't easily add top-level imports with replace_file_content in a small chunk without potentially breaking things if we miss context,
+        // we will assume the import is added or we will use require? No, let's just implement the logic using the imported function.
+        // IMPORTANT: I need to ensure the import is present. I will add it separately or assume previous step was valid.
+        // Actually, I should probably do a multi_replace to add the import too.
+
+        const newState = mapAnalysisToState(rawData);
+
+        if (!dirtyFields.has('cakeInfo') && newState.cakeInfo) {
+            setCakeInfo(newState.cakeInfo);
         }
 
-        if (!dirtyFields.has('mainToppers')) {
-            const newMainToppers = (rawData.main_toppers || []).map((t): MainTopperUI => {
-                let initialType = t.type;
-                const canBePrintout = ['edible_3d', 'toy', 'figurine', 'edible_photo_top'].includes(t.type);
-                const isCharacterOrLogo = /character|figure|logo|brand/i.test(t.description);
-
-                // Default to 'printout' for characters, logos, etc., if it's a valid alternative
-                if (canBePrintout && isCharacterOrLogo) {
-                    initialType = 'printout';
-                }
-
-                return {
-                    ...t,
-                    x: t.x, // Explicitly carry over x
-                    y: t.y, // Explicitly carry over y
-                    id: uuidv4(),
-                    isEnabled: true,
-                    price: 0,
-                    original_type: t.type,
-                    type: initialType,
-                    replacementImage: undefined,
-                    original_color: t.color,
-                    original_colors: t.colors,
-                };
-            });
-            setMainToppers(newMainToppers);
+        if (!dirtyFields.has('mainToppers') && newState.mainToppers) {
+            setMainToppers(newState.mainToppers);
         }
 
-        if (!dirtyFields.has('supportElements')) {
-            const newSupportElements = (rawData.support_elements || []).map((s): SupportElementUI => {
-                let initialType = s.type;
-                // Default edible photo wraps to the more common 'support_printout' option first.
-                if (s.type === 'edible_photo_side') {
-                    initialType = 'support_printout';
-                }
-
-                return {
-                    ...s,
-                    x: s.x, // Explicitly carry over x
-                    y: s.y, // Explicitly carry over y
-                    id: uuidv4(),
-                    isEnabled: true,
-                    price: 0,
-                    original_type: s.type,
-                    type: initialType,
-                    replacementImage: undefined,
-                    original_color: s.color,
-                    original_colors: s.colors,
-                };
-            });
-            setSupportElements(newSupportElements);
+        if (!dirtyFields.has('supportElements') && newState.supportElements) {
+            setSupportElements(newState.supportElements);
         }
 
-        if (!dirtyFields.has('cakeMessages')) {
-            const newCakeMessages = (rawData.cake_messages || []).map((msg): CakeMessageUI => ({
-                ...msg,
-                x: msg.x, // Explicitly carry over x
-                y: msg.y, // Explicitly carry over y
-                id: uuidv4(),
-                isEnabled: true,
-                price: 0,
-                originalMessage: { ...msg }
-            }));
-            setCakeMessages(newCakeMessages);
+        if (!dirtyFields.has('cakeMessages') && newState.cakeMessages) {
+            setCakeMessages(newState.cakeMessages);
         }
 
         setIcingDesign(prev => {
-            const analysisIcing = rawData.icing_design;
+            const newDesign = newState.icingDesign;
+            if (!newDesign) return prev; // Should not happen given mapper logic
+            if (!prev) return newDesign;
 
-            // Guard: If analysisIcing is undefined, preserve current state or use defaults
-            if (!analysisIcing) {
-                return prev || { ...DEFAULT_ICING_DESIGN, dripPrice: 100, gumpasteBaseBoardPrice: 100 };
-            }
+            // Merge logic for partial updates (preserving user edits)
+            const mergedIcing = { ...prev, colors: { ...prev.colors } };
 
-            if (!prev) return { ...analysisIcing, dripPrice: 100, gumpasteBaseBoardPrice: 100 };
+            if (!dirtyFields.has('icingDesign.base')) mergedIcing.base = newDesign.base;
+            if (!dirtyFields.has('icingDesign.color_type')) mergedIcing.color_type = newDesign.color_type;
+            if (!dirtyFields.has('icingDesign.drip')) mergedIcing.drip = newDesign.drip;
+            if (!dirtyFields.has('icingDesign.gumpasteBaseBoard')) mergedIcing.gumpasteBaseBoard = newDesign.gumpasteBaseBoard;
+            if (!dirtyFields.has('icingDesign.border_top')) mergedIcing.border_top = newDesign.border_top;
+            if (!dirtyFields.has('icingDesign.border_base')) mergedIcing.border_base = newDesign.border_base;
 
-            const newIcing = { ...prev, colors: { ...prev.colors } };
-
-            if (!dirtyFields.has('icingDesign.base')) newIcing.base = analysisIcing.base;
-            if (!dirtyFields.has('icingDesign.color_type')) newIcing.color_type = analysisIcing.color_type;
-            if (!dirtyFields.has('icingDesign.drip')) newIcing.drip = analysisIcing.drip;
-
-            if (!dirtyFields.has('icingDesign.gumpasteBaseBoard')) {
-                // Logic for white baseboard is now handled at the start of the function
-                newIcing.gumpasteBaseBoard = analysisIcing.gumpasteBaseBoard;
-            }
-
-            if (!dirtyFields.has('icingDesign.border_top')) newIcing.border_top = analysisIcing.border_top;
-            if (!dirtyFields.has('icingDesign.border_base')) newIcing.border_base = analysisIcing.border_base;
-
-            // Handle colors: If no specific color fields are dirty, we want to adopt the analysis colors EXACTLY
-            // to avoid key-order mismatches in JSON.stringify comparisons later.
+            // Handle colors
             const areAnyColorsDirty = Object.keys(prev.colors).some(k => dirtyFields.has(`icingDesign.colors.${k}`));
-
             if (!areAnyColorsDirty) {
-                newIcing.colors = { ...analysisIcing.colors };
+                mergedIcing.colors = { ...newDesign.colors };
             } else {
-                // Fallback to merging if user has modified some colors
-                const allAnalysisColorKeys = Object.keys(analysisIcing.colors) as Array<keyof IcingColorDetails>;
+                const allAnalysisColorKeys = Object.keys(newDesign.colors) as Array<keyof IcingColorDetails>;
                 for (const colorKey of allAnalysisColorKeys) {
                     if (!dirtyFields.has(`icingDesign.colors.${String(colorKey)}`)) {
-                        newIcing.colors[colorKey] = analysisIcing.colors[colorKey];
+                        mergedIcing.colors[colorKey] = newDesign.colors[colorKey];
                     }
                 }
             }
-
-            return newIcing;
+            return mergedIcing;
         });
 
         if (!dirtyFields.has('additionalInstructions')) {
@@ -508,9 +437,8 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         setIsCustomizationDirty(false);
         setDirtyFields(new Set());
 
-        // Only show toast if not skipped (Phase 1 only, not Phase 2 coordinate updates)
         if (!options?.skipToast) {
-            // Toast notification removed per user request
+            // Toast notification removed
         }
 
     }, [dirtyFields]);
