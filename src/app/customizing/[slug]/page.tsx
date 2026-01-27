@@ -412,35 +412,7 @@ export default async function RecentSearchPage({ params }: Props) {
                     />
                 </CustomizationProvider>
             </Suspense>
-            {/* SEO Content: Pricing Table only (Text/Image handled by Client Component) */}
-            <div className="bg-white relative z-0 container mx-auto px-4 py-8 max-w-4xl mt-8">
-                {prices.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                        <h3 className="text-lg font-bold text-slate-800 mb-4">Estimated Pricing Options</h3>
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full text-left text-sm">
-                                <thead className="bg-slate-50 text-slate-700 font-semibold">
-                                    <tr>
-                                        <th className="px-4 py-3 rounded-l-lg">Size</th>
-                                        <th className="px-4 py-3">Description</th>
-                                        <th className="px-4 py-3 rounded-r-lg">Price Estimate</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {prices.map((p, idx) => (
-                                        <tr key={idx}>
-                                            <td className="px-4 py-3 font-medium text-slate-900">{p.size}</td>
-                                            <td className="px-4 py-3 text-slate-600">{p.description}</td>
-                                            <td className="px-4 py-3 text-slate-900">₱{p.price.toLocaleString()}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-4">* Final price may vary based on customization choices.</p>
-                    </div>
-                )}
-            </div>
+            {/* SEO Content: Pricing Table removed as per user request (redundant with UI options) */}
         </>
     )
 }
