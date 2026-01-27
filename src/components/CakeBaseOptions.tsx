@@ -156,7 +156,10 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                                 })()}
                                             </div>
                                         </div>
-                                        <span className="mt-2 text-[10px] font-semibold text-slate-800 leading-tight">{option.size}</span>
+                                        <div className="flex flex-col items-center mt-2">
+                                            <span className="text-[10px] font-semibold text-slate-800 leading-tight">{option.size}</span>
+                                            <span className="text-[10px] font-bold text-purple-700 leading-tight">₱{option.price.toLocaleString()}</span>
+                                        </div>
                                     </button>
                                 ))}
                             </div>
