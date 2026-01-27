@@ -221,52 +221,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
     );
 }
 
-// FAQ data for Schema.org FAQPage structured data
-const FAQ_DATA = [
-    {
-        question: "Can I order this cake for same-day delivery?",
-        answer: "Yes! Simple designs are available for rush orders (ready in 30 minutes) or same-day delivery (ready in 3 hours). Order before 3 PM for same-day delivery."
-    },
-    {
-        question: "Do you deliver cakes in Metro Manila?",
-        answer: "We deliver across Metro Manila, Cavite, Laguna, Rizal, and nearby provinces. Delivery fees vary by location."
-    },
-    {
-        question: "Can I customize this cake design?",
-        answer: "Absolutely! You can change colors, add or remove toppers, update the message, and choose different sizes. Use our online customizer for instant pricing."
-    },
-    {
-        question: "What sizes are available?",
-        answer: "We offer 4-inch (Bento/mini), 6-inch, 8-inch, and larger sizes. Prices vary by size and design complexity."
-    },
-    {
-        question: "How do I order?",
-        answer: "Simply customize your design online, add to cart, and checkout. You can pay via GCash, credit card, or bank transfer."
-    }
-];
 
-// JSON-LD Schema for FAQ (captures featured snippets)
-function FAQSchema() {
-    const faqSchema = {
-        '@context': 'https://schema.org',
-        '@type': 'FAQPage',
-        mainEntity: FAQ_DATA.map(faq => ({
-            '@type': 'Question',
-            name: faq.question,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: faq.answer
-            }
-        }))
-    };
-
-    return (
-        <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-        />
-    );
-}
 
 
 
@@ -400,7 +355,7 @@ export default async function RecentSearchPage({ params }: Props) {
     return (
         <>
             <DesignSchema design={design} prices={prices} />
-            <FAQSchema />
+
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                 <CustomizationProvider initialData={initialState}>
                     <CustomizingClient

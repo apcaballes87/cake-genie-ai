@@ -6,7 +6,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { getMerchantBySlug, getMerchantProductBySlug, getCakeBasePriceOptions, getAnalysisByExactHash } from '@/services/supabaseService';
 import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.types';
 import { BasePriceInfo, CakeType, ProductPageProps, CakeThickness } from '@/types';
-import { ProductSchema, FAQSchema } from '@/components/SEOSchemas';
+import { ProductSchema } from '@/components/SEOSchemas';
 import { CustomizationProvider } from '@/contexts/CustomizationContext';
 import { mapAnalysisToState } from '@/utils/customizationMapper';
 
@@ -111,7 +111,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     return (
         <>
             <ProductSchema product={product} merchant={merchant} prices={prices} />
-            <FAQSchema />
+
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                 <CustomizationProvider initialData={initialCustomizationState} key={product.product_id}>
                     <CustomizingClient
