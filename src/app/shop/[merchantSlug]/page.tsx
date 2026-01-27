@@ -112,42 +112,7 @@ function MerchantSchema({ merchant, products }: { merchant: CakeGenieMerchant; p
     );
 }
 
-/**
- * Server-rendered product list for SEO crawlers.
- * This content is visible to search bots but hidden from visual users.
- * Uses sr-only class to be accessible but not displayed.
- */
-function SEOProductList({ merchant, products }: { merchant: CakeGenieMerchant; products: CakeGenieMerchantProduct[] }) {
-    if (products.length === 0) return null;
 
-    return (
-        <div className="sr-only" aria-hidden="false">
-            <h2>{merchant.business_name} - Available Cakes</h2>
-            <p>{merchant.description}</p>
-            <ul>
-                {products.map((product) => (
-                    <li key={product.product_id}>
-                        <a href={`/shop/${merchant.slug}/${product.slug}`}>
-                            {product.image_url && (
-                                <img
-                                    src={product.image_url}
-                                    alt={product.alt_text || `${product.title} - Custom cake from ${merchant.business_name}`}
-                                    width={400}
-                                    height={400}
-                                    loading="lazy"
-                                />
-                            )}
-                            <h3>{product.title}</h3>
-                            <p>Price: ₱{(product.custom_price || 0).toLocaleString()}</p>
-                            {product.short_description && <p>{product.short_description}</p>}
-                            {product.cake_type && <p>Type: {product.cake_type}</p>}
-                        </a>
-                    </li>
-                ))}
-            </ul>
-        </div>
-    );
-}
 
 export default async function MerchantPage({ params }: MerchantPageProps) {
     const { merchantSlug } = await params;
@@ -163,7 +128,7 @@ export default async function MerchantPage({ params }: MerchantPageProps) {
     return (
         <>
             <MerchantSchema merchant={merchant} products={productList} />
-            <SEOProductList merchant={merchant} products={productList} />
+            <MerchantPageClient slug={merchantSlug} />
             <MerchantPageClient slug={merchantSlug} />
         </>
     );

@@ -276,123 +276,9 @@ function FAQSchema() {
     );
 }
 
-/**
- * Server-rendered FAQ section for SEO.
- * Visible to search engines, hidden from visual users.
- */
-function SEOFAQSection() {
-    return (
-        <section className="sr-only" aria-hidden="false">
-            <h2>Frequently Asked Questions</h2>
-            <dl>
-                {FAQ_DATA.map((faq, index) => (
-                    <div key={index}>
-                        <dt><strong>{faq.question}</strong></dt>
-                        <dd>{faq.answer}</dd>
-                    </div>
-                ))}
-            </dl>
-        </section>
-    );
-}
 
-/**
- * Server-rendered product details for SEO crawlers.
- * Hidden from visual users but fully visible to search bots.
- */
-function SEOProductDetails({ product, merchant, prices }: { product: CakeGenieMerchantProduct; merchant: CakeGenieMerchant; prices?: BasePriceInfo[] }) {
-    const imageAlt = product.alt_text || `${product.title} - Custom cake from ${merchant.business_name}`;
 
-    return (
-        <article className="sr-only" aria-hidden="false">
-            <header>
-                <h1>{product.title}</h1>
-                <p>By {merchant.business_name}</p>
-                {product.image_url && (
-                    <figure>
-                        <img
-                            src={product.image_url}
-                            alt={imageAlt}
-                            width={800}
-                            height={800}
-                            loading="eager"
-                        />
-                        <figcaption>{imageAlt}</figcaption>
-                    </figure>
-                )}
-            </header>
 
-            <section>
-                <h2>Product Details</h2>
-                <p><strong>Price:</strong> ₱{(product.custom_price || 0).toLocaleString()}</p>
-                {product.cake_type && <p><strong>Cake Type:</strong> {product.cake_type}</p>}
-                {product.category && <p><strong>Category:</strong> {product.category}</p>}
-                {product.availability && <p><strong>Availability:</strong> {product.availability.replace('_', ' ')}</p>}
-            </section>
-
-            {prices && prices.length > 0 && (
-                <section>
-                    <h2>Available Sizes & Prices</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Size</th>
-                                <th>Price</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {prices.map((priceInfo, index) => (
-                                <tr key={index}>
-                                    <td>{priceInfo.size}</td>
-                                    <td>₱{priceInfo.price.toLocaleString()}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </section>
-            )}
-
-            {(product.short_description || product.long_description) && (
-                <section>
-                    <h2>Description</h2>
-                    <p>{product.long_description || product.short_description}</p>
-                </section>
-            )}
-
-            <section>
-                <h2>Order from {merchant.business_name}</h2>
-                {merchant.address && <p><strong>Location:</strong> {merchant.address}</p>}
-                {merchant.city && <p><strong>City:</strong> {merchant.city}</p>}
-                {merchant.phone && <p><strong>Contact:</strong> {merchant.phone}</p>}
-            </section>
-
-            <section>
-                <h2>Ordering & Delivery Information</h2>
-                <p><strong>Rush Orders:</strong> Ready in 30 minutes for simple designs</p>
-                <p><strong>Same-Day Delivery:</strong> Order before 3 PM for same-day delivery (ready in 3 hours)</p>
-                <p><strong>Standard Orders:</strong> 1-day lead time for complex designs</p>
-                <p><strong>Delivery Areas:</strong> Metro Manila, Cavite, Laguna, Rizal, Bulacan, and nearby provinces</p>
-                <p><strong>Payment Methods:</strong> GCash, Maya, Credit Card, Bank Transfer, Cash on Delivery</p>
-            </section>
-
-            <section>
-                <h2>Perfect For Any Occasion</h2>
-                <p>This custom cake is ideal for: birthdays, debut celebrations, weddings,
-                    christenings, baptisms, anniversaries, graduations, corporate events,
-                    baby showers, gender reveals, and holiday celebrations in the Philippines.</p>
-            </section>
-
-            <nav aria-label="Breadcrumb">
-                <ol>
-                    <li><a href="https://genie.ph">Home</a></li>
-                    <li><a href="https://genie.ph/shop">Shop</a></li>
-                    <li><a href={`https://genie.ph/shop/${merchant.slug}`}>{merchant.business_name}</a></li>
-                    <li>{product.title}</li>
-                </ol>
-            </nav>
-        </article>
-    );
-}
 
 export default async function ProductPage({ params }: ProductPageProps) {
     const { merchantSlug, productSlug } = await params;
@@ -419,11 +305,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <>
             <ProductSchema product={product} merchant={merchant} prices={prices} />
             <FAQSchema />
-            <SEOProductDetails product={product} merchant={merchant} prices={prices} />
-            <SEOFAQSection />
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                 <CustomizingClient product={product} merchant={merchant} />
             </Suspense>
+            {/* SEO Content: Rendered visibly below the main app */}
+            <div className="bg-white relative z-0">
+            </div>
         </>
     );
 }
