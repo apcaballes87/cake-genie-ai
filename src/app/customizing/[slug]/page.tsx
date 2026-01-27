@@ -409,31 +409,13 @@ export default async function RecentSearchPage({ params }: Props) {
                 <CustomizationProvider initialData={initialState}>
                     <CustomizingClient
                         recentSearchDesign={design}
-                        productDetails={<SEODesignDetails design={design} />}
                     />
                 </CustomizationProvider>
             </Suspense>
-            {/* SEO Content: Rendered visibly to support indexing */}
-            <div className="bg-white relative z-0 container mx-auto px-4 py-12 max-w-4xl mt-8">
-                {/* LCP Optimization */}
-                {design.original_image_url && (
-                    <div className="mb-6 flex justify-center">
-                        <img
-                            src={design.original_image_url}
-                            alt={design.alt_text || 'Custom Cake Design'}
-                            width={600}
-                            height={600}
-                            className="w-full max-w-md h-auto rounded-xl shadow-md"
-                            loading="eager"
-                            {...({ fetchPriority: "high" } as any)}
-                        />
-                    </div>
-                )}
-
-                <SEODesignDetails design={design} />
-
+            {/* SEO Content: Pricing Table only (Text/Image handled by Client Component) */}
+            <div className="bg-white relative z-0 container mx-auto px-4 py-8 max-w-4xl mt-8">
                 {prices.length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-8">
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                         <h3 className="text-lg font-bold text-slate-800 mb-4">Estimated Pricing Options</h3>
                         <div className="overflow-x-auto">
                             <table className="min-w-full text-left text-sm">
