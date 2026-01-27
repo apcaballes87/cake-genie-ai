@@ -347,3 +347,10 @@ export type ClusteredMarker = {
   isCluster: true;
   items: AnalysisItem[];
 } | (AnalysisItem & { isCluster?: false });
+
+export interface ProductPageProps {
+  params: Promise<{
+    merchantSlug: string;
+    productSlug: string;
+  }>;
+}
