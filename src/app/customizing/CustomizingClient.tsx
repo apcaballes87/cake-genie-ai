@@ -538,9 +538,10 @@ interface CustomizingClientProps {
     product?: CakeGenieMerchantProduct;
     merchant?: CakeGenieMerchant;
     recentSearchDesign?: RecentSearchDesignProp;
+    productDetails?: React.ReactNode;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -825,6 +826,33 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             return;
         }
 
+        // DETECT SSR HYDRATION
+        // If the context already has the analysis for this slug, we assume hydration occurred.
+        // We use loose equality for ID check as some might be hashes vs slugs
+        const isHydrated = (analysisId === recentSearchDesign.slug && !!analysisResult) ||
+            (analysisId === recentSearchDesign.p_hash && !!analysisResult);
+
+        if (isHydrated) {
+            // If already hydrated, we just need to ensure the image is loaded.
+            // We do NOT want to clear customization or re-set analysis data.
+
+            if (recentSearchDesign.slug !== loadedProductSlug.current) {
+                console.log(`[CustomizingClient] Hydrated state detected for: ${recentSearchDesign.slug}`);
+                loadedProductSlug.current = recentSearchDesign.slug;
+            }
+
+            if (!originalImageData && !isLoadingDesignRef.current) {
+                console.log("[CustomizingClient] Hydrated but missing image - loading image only.");
+                isLoadingDesignRef.current = true;
+
+                loadImageWithoutAnalysis(recentSearchDesign.original_image_url!)
+                    .finally(() => {
+                        isLoadingDesignRef.current = false;
+                    });
+            }
+            return;
+        }
+
         // Don't load if already processed this design
         const isNewDesign = recentSearchDesign.slug !== loadedProductSlug.current;
         const hasLoadedImage = !!originalImageData;
@@ -892,7 +920,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         };
 
         fetchRecentSearchImage();
-    }, [recentSearchDesign, originalImageData, hookImageUpload, setIsAnalyzing, clearImages, clearCustomization, setPendingAnalysisData]);
+    }, [recentSearchDesign, originalImageData, hookImageUpload, setIsAnalyzing, clearImages, clearCustomization, setPendingAnalysisData, analysisId, analysisResult, loadImageWithoutAnalysis]);
 
     // Handle "Customize This Design" flow (loading from URL ref) - Shopify/external integrations
     useEffect(() => {
@@ -2123,9 +2151,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             )}
 
             {/* Two-column layout for desktop/tablet landscape */}
-            <div className="w-full flex flex-col md:flex-row gap-3">
+            <div className="w-full flex flex-col md:flex-row gap-4">
                 {/* LEFT COLUMN: Image and Update Design */}
-                <div className="flex flex-col gap-2 w-full md:w-[calc(50%-6px)]">
+                <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
                     <div ref={mainImageContainerRef} className="w-full bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 flex flex-col">
                         <div className="p-2 shrink-0">
                             {editedImage && (
@@ -2442,9 +2470,18 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 )}
 
 
-                            </div></div></div></div>
+                            </div></div>
+                    </div>
+
+                    {/* Render Server-Side Product Details (SEO Content) */}
+                    {productDetails && (
+                        <div className="w-full">
+                            {productDetails}
+                        </div>
+                    )}
+                </div>
                 {/* RIGHT COLUMN: Availability at top, then Feature List */}
-                <div className="flex flex-col gap-2 w-full md:w-[calc(50%-6px)]">
+                <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
                     {/* Availability Section - at top of right column */}
 
 
@@ -2536,7 +2573,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
             {/* Product Description & Tags - Spans full width of the two-column layout */}
             {product && (product.long_description || product.short_description || (product.tags && product.tags.length > 0)) && (
-                <div className="w-full mt-2">
+                <div className="w-full mt-6">
                     <div className="bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
                         {(product.long_description || product.short_description) && (
                             <div className="mb-3">
@@ -3036,7 +3073,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 finalPrice={finalPrice}
                 imageUrl={editedImage || originalImagePreview || ''}
             />
-        </div>
+        </div >
     </>);
 };
 

@@ -59,17 +59,30 @@ interface CustomizationContextType {
 
 const CustomizationContext = createContext<CustomizationContextType | null>(null)
 
-export function CustomizationProvider({ children }: { children: React.ReactNode }) {
-    // --- State ---
-    const [cakeInfo, setCakeInfo] = useState<CakeInfoUI | null>(null);
-    const [mainToppers, setMainToppers] = useState<MainTopperUI[]>([]);
-    const [supportElements, setSupportElements] = useState<SupportElementUI[]>([]);
-    const [cakeMessages, setCakeMessages] = useState<CakeMessageUI[]>([]);
-    const [icingDesign, setIcingDesign] = useState<IcingDesignUI | null>(null);
-    const [additionalInstructions, setAdditionalInstructions] = useState<string>('');
+// Initial state interface for SSR hydration
+export interface CustomizationState {
+    cakeInfo?: CakeInfoUI | null;
+    mainToppers?: MainTopperUI[];
+    supportElements?: SupportElementUI[];
+    cakeMessages?: CakeMessageUI[];
+    icingDesign?: IcingDesignUI | null;
+    additionalInstructions?: string;
+    analysisResult?: HybridAnalysisResult | null;
+    analysisId?: string | null;
+}
 
-    const [analysisResult, setAnalysisResult] = useState<HybridAnalysisResult | null>(null);
-    const [analysisId, setAnalysisId] = useState<string | null>(null);
+export function CustomizationProvider({ children, initialData }: { children: React.ReactNode; initialData?: CustomizationState }) {
+    // --- State ---
+    // Initialize state with initialData if provided, otherwise null/empty
+    const [cakeInfo, setCakeInfo] = useState<CakeInfoUI | null>(initialData?.cakeInfo || null);
+    const [mainToppers, setMainToppers] = useState<MainTopperUI[]>(initialData?.mainToppers || []);
+    const [supportElements, setSupportElements] = useState<SupportElementUI[]>(initialData?.supportElements || []);
+    const [cakeMessages, setCakeMessages] = useState<CakeMessageUI[]>(initialData?.cakeMessages || []);
+    const [icingDesign, setIcingDesign] = useState<IcingDesignUI | null>(initialData?.icingDesign || null);
+    const [additionalInstructions, setAdditionalInstructions] = useState<string>(initialData?.additionalInstructions || '');
+
+    const [analysisResult, setAnalysisResult] = useState<HybridAnalysisResult | null>(initialData?.analysisResult || null);
+    const [analysisId, setAnalysisId] = useState<string | null>(initialData?.analysisId || null);
     const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
     const [analysisError, setAnalysisError] = useState<string | null>(null);
     const [pendingAnalysisData, setPendingAnalysisData] = useState<HybridAnalysisResult | null>(null);
@@ -81,6 +94,10 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
     // --- Persistence Logic ---
     useEffect(() => {
         // Load state from localStorage on mount
+        // Priority: initialData (SSR) > localStorage > defaults
+        // If initialData is provided, we skip loading from localStorage to respect server source of truth
+        if (initialData) return;
+
         const savedAnalysis = localStorage.getItem('cakegenie_analysis');
         const savedCustomization = localStorage.getItem('cakegenie_customization');
 
@@ -107,7 +124,7 @@ export function CustomizationProvider({ children }: { children: React.ReactNode 
                 console.error('Failed to parse saved customization:', e);
             }
         }
-    }, []);
+    }, [initialData]);
 
     useEffect(() => {
         // Save analysis result whenever it changes

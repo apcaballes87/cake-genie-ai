@@ -5,7 +5,9 @@ import { createClient } from '@/lib/supabase/server'
 import CustomizingClient from '../CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { getCakeBasePriceOptions } from '@/services/supabaseService'
-import { CakeType, BasePriceInfo } from '@/types'
+import { CakeType, BasePriceInfo, HybridAnalysisResult, CakeInfoUI, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI } from '@/types'
+import { CustomizationProvider, CustomizationState } from '@/contexts/CustomizationContext'
+import { v4 as uuidv4 } from 'uuid'
 
 type Props = {
     params: Promise<{ slug: string }>
@@ -266,173 +268,36 @@ function FAQSchema() {
     );
 }
 
-/**
- * Server-rendered FAQ section for SEO.
- * Visible to search engines, hidden from visual users.
- */
-function SEOFAQSection() {
-    return (
-        <section className="sr-only" aria-hidden="false">
-            <h2>Frequently Asked Questions</h2>
-            <dl>
-                {FAQ_DATA.map((faq, index) => (
-                    <div key={index}>
-                        <dt><strong>{faq.question}</strong></dt>
-                        <dd>{faq.answer}</dd>
-                    </div>
-                ))}
-            </dl>
-        </section>
-    );
-}
+
 
 /**
  * Server-rendered cake design details for SEO crawlers.
  * Extracts and displays key features from analysis_json.
  * Hidden from visual users but fully visible to search bots.
  */
-function SEODesignDetails({ design, prices }: { design: any; prices?: BasePriceInfo[] }) {
-    const analysis = design.analysis_json || {};
+/**
+ * Server-rendered cake design details for SEO crawlers and user information.
+ * Matches the UI style of the Customizing Client (glassmorphism).
+ */
+function SEODesignDetails({ design }: { design: any }) {
     const keywords = design.keywords || 'Custom';
-    const price = design.price || 0;
-    const imageAlt = design.alt_text || `${keywords} cake design`;
 
-    // Extract features from analysis
-    const toppers = analysis?.main_toppers || [];
-    const supportElements = analysis?.support_elements || [];
-    const icingDesign = analysis?.icing_design;
-    const cakeType = analysis?.cakeType || 'Custom';
-    const messages = analysis?.cake_messages || [];
+    // Clean title: remove "| Genie.ph" suffix
+    const title = (design.seo_title || `${keywords} Cake Design`).replace(/\s*\|\s*Genie\.ph\s*$/i, '');
 
     return (
-        <article className="sr-only" aria-hidden="false">
-            <header>
-                <h1>{design.seo_title || `${keywords} Cake Design`}</h1>
-                <p>Starting at ₱{price.toLocaleString()}</p>
-                {design.original_image_url && (
-                    <figure>
-                        <img
-                            src={design.original_image_url}
-                            alt={imageAlt}
-                            width={800}
-                            height={800}
-                            loading="eager"
-                        />
-                        <figcaption>{imageAlt}</figcaption>
-                    </figure>
-                )}
+        <div className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-6 space-y-4">
+            <header className="border-b border-slate-200 pb-4">
+                <h2 className="text-xl font-bold text-slate-800">{title}</h2>
             </header>
 
-            <section>
-                <h2>Cake Details</h2>
-                <p><strong>Type:</strong> {cakeType}</p>
-                <p><strong>Keywords:</strong> {keywords}</p>
-                {design.alt_text && <p><strong>Description:</strong> {design.alt_text}</p>}
-            </section>
-
-            {icingDesign && (
+            {design.alt_text && (
                 <section>
-                    <h2>Icing Design</h2>
-                    <p><strong>Style:</strong> {icingDesign.base?.replace('_', ' ')}</p>
-                    {icingDesign.color_type && <p><strong>Color Style:</strong> {icingDesign.color_type}</p>}
-                    {icingDesign.drip && <p>Features drip effect</p>}
-                    {icingDesign.border_top && <p>Features top border decoration</p>}
-                    {icingDesign.border_base && <p>Features base border decoration</p>}
+                    <h3 className="text-sm font-semibold text-slate-700 mb-1">Description</h3>
+                    <p className="text-sm text-slate-600 leading-relaxed">{design.alt_text}</p>
                 </section>
             )}
-
-            {toppers.length > 0 && (
-                <section>
-                    <h2>Cake Toppers</h2>
-                    <ul>
-                        {toppers.map((topper: any, index: number) => (
-                            <li key={index}>
-                                {topper.description || topper.type?.replace('_', ' ')}
-                            </li>
-                        ))}
-                    </ul>
-                </section>
-            )}
-
-            {supportElements.length > 0 && (
-                <section>
-                    <h2>Decorations</h2>
-                    <ul>
-                        {supportElements.map((element: any, index: number) => (
-                            <li key={index}>
-                                {element.description || element.type?.replace('_', ' ')}
-                                {element.quantity && ` (${element.quantity})`}
-                            </li>
-                        ))}
-                    </ul>
-                </section>
-            )}
-
-            {messages.length > 0 && (
-                <section>
-                    <h2>Cake Messages</h2>
-                    <ul>
-                        {messages.map((msg: any, index: number) => (
-                            <li key={index}>
-                                &quot;{msg.text}&quot; - {msg.style}
-                            </li>
-                        ))}
-                    </ul>
-                </section>
-            )}
-
-            <section>
-                <h2>Customize This Design</h2>
-                <p>Get instant pricing and customize this {keywords} cake design at Genie.ph.
-                    We offer same-day and next-day delivery in the Philippines.</p>
-            </section>
-
-            {prices && prices.length > 0 && (
-                <section>
-                    <h2>Available Sizes & Prices</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Size</th>
-                                <th>Price</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {prices.map((priceInfo, index) => (
-                                <tr key={index}>
-                                    <td>{priceInfo.size}</td>
-                                    <td>₱{priceInfo.price.toLocaleString()}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </section>
-            )}
-
-            <section>
-                <h2>Ordering & Delivery Information</h2>
-                <p><strong>Rush Orders:</strong> Ready in 30 minutes for simple designs</p>
-                <p><strong>Same-Day Delivery:</strong> Order before 3 PM for same-day delivery (ready in 3 hours)</p>
-                <p><strong>Standard Orders:</strong> 1-day lead time for complex designs</p>
-                <p><strong>Delivery Areas:</strong> Metro Manila, Cavite, Laguna, Rizal, Bulacan, and nearby provinces</p>
-                <p><strong>Payment Methods:</strong> GCash, Maya, Credit Card, Bank Transfer, Cash on Delivery</p>
-            </section>
-
-            <section>
-                <h2>Perfect For Any Occasion</h2>
-                <p>This custom cake is ideal for: birthdays, debut celebrations, weddings,
-                    christenings, baptisms, anniversaries, graduations, corporate events,
-                    baby showers, gender reveals, and holiday celebrations in the Philippines.</p>
-            </section>
-
-            <nav aria-label="Breadcrumb">
-                <ol>
-                    <li><a href="https://genie.ph">Home</a></li>
-                    <li><a href="https://genie.ph/customizing">Customize Cakes</a></li>
-                    <li>{design.seo_title || `${keywords} Cake`}</li>
-                </ol>
-            </nav>
-        </article>
+        </div>
     );
 }
 
@@ -471,15 +336,82 @@ export default async function RecentSearchPage({ params }: Props) {
         console.error('Error fetching SEO prices:', e);
     }
 
+    // Prepare State for Hydration (SSR)
+    const analysis: HybridAnalysisResult | null = design.analysis_json ? { ...design.analysis_json } : null;
+
+    let initialState: CustomizationState | undefined;
+    if (analysis) {
+        // Construct the initial state matching CustomizationContext structure
+        const cakeType: CakeType = analysis.cakeType || '1 Tier';
+        // Note: Default thickness/size maps might be needed if not in analysis
+        // Using basic defaults if missing from analysis
+        const defaultCakeInfo: CakeInfoUI = {
+            type: cakeType,
+            thickness: analysis.cakeThickness || '3 in',
+            flavors: ['Chocolate Cake'], // Default flavor
+            size: '6" Round' // Default size, ideally mapped from type
+        };
+
+        // Transform arrays to add IDs if needed (though IDs should ideally be valid strings)
+        // We'll trust the analysis structure mostly matches, but ensure IDs exist
+        const mainToppers = (analysis.main_toppers || []).map((t: any) => ({
+            ...t,
+            id: t.id || uuidv4(),
+            isEnabled: true,
+            original_type: t.type,
+            original_color: t.color,
+            original_colors: t.colors
+        }));
+
+        const supportElements = (analysis.support_elements || []).map((s: any) => ({
+            ...s,
+            id: s.id || uuidv4(),
+            isEnabled: true,
+            original_type: s.type,
+            original_color: s.color,
+            original_colors: s.colors
+        }));
+
+        const cakeMessages = (analysis.cake_messages || []).map((m: any) => ({
+            ...m,
+            id: m.id || uuidv4(),
+            isEnabled: true,
+            originalMessage: { ...m }
+        }));
+
+        const icingDesign: IcingDesignUI | null = analysis.icing_design ? {
+            ...analysis.icing_design,
+            dripPrice: 100, // Default pricing assumption
+            gumpasteBaseBoardPrice: 100
+        } : null;
+
+        initialState = {
+            cakeInfo: defaultCakeInfo,
+            mainToppers,
+            supportElements,
+            cakeMessages,
+            icingDesign,
+            additionalInstructions: '',
+            analysisResult: analysis, // The full analysis result
+            analysisId: design.slug // Using slug or p_hash as ID
+        };
+    }
+
     return (
         <>
             <DesignSchema design={design} prices={prices} />
             <FAQSchema />
-            <SEODesignDetails design={design} prices={prices} />
-            <SEOFAQSection />
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
-                <CustomizingClient recentSearchDesign={design} />
+                <CustomizationProvider initialData={initialState}>
+                    <CustomizingClient
+                        recentSearchDesign={design}
+                        productDetails={<SEODesignDetails design={design} />}
+                    />
+                </CustomizationProvider>
             </Suspense>
+            {/* SEO Content: Rendered visibly below the main app to support indexing */}
+            <div className="bg-white relative z-0">
+            </div>
         </>
     )
 }
