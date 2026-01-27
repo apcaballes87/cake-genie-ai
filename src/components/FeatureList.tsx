@@ -50,6 +50,7 @@ interface FeatureListProps {
     // New props for interaction
     onItemClick: (item: AnalysisItem) => void;
     markerMap: Map<string, string>;
+    addOnPricing: number;
 }
 
 const cakeTypeDisplayMap: Record<CakeType, string> = {
@@ -91,11 +92,11 @@ const ListItem: React.FC<{ item: AnalysisItem; marker?: string; onClick: (item: 
             className="w-full flex items-center gap-3 p-3 text-left bg-white rounded-md border border-slate-200 hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-400"
         >
             {marker && (
-                <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-slate-200 text-slate-600 text-xs font-bold rounded-full">
+                <div className="shrink-0 w-6 h-6 flex items-center justify-center bg-slate-200 text-slate-600 text-xs font-bold rounded-full">
                     {marker}
                 </div>
             )}
-            <div className="flex-grow text-sm font-medium text-slate-800">
+            <div className="grow text-sm font-medium text-slate-800">
                 {description}
             </div>
         </button>
@@ -107,7 +108,7 @@ ListItem.displayName = 'ListItem';
 export const FeatureList = React.memo<FeatureListProps>(({
     analysisError, analysisId, cakeInfo, basePriceOptions, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions,
     onCakeInfoChange, onAdditionalInstructionsChange, updateCakeMessage, removeCakeMessage, addCakeMessage, isAnalyzing, shopifyFixedSize, shopifyBasePrice, cakeBaseSectionRef, cakeMessagesSectionRef,
-    onItemClick, markerMap
+    onItemClick, markerMap, addOnPricing
 }) => {
     const cakeTypeScrollContainerRef = useRef<HTMLDivElement>(null);
     const cakeThicknessScrollContainerRef = useRef<HTMLDivElement>(null);
@@ -152,6 +153,7 @@ export const FeatureList = React.memo<FeatureListProps>(({
                     basePriceOptions={basePriceOptions}
                     onCakeInfoChange={onCakeInfoChange}
                     isAnalyzing={isAnalyzing}
+                    addOnPricing={addOnPricing}
                 />
             </Section>
 

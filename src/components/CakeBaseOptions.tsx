@@ -9,6 +9,7 @@ interface CakeBaseOptionsProps {
     basePriceOptions: BasePriceInfo[] | null;
     onCakeInfoChange: (updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => void;
     isAnalyzing: boolean;
+    addOnPricing: number;
 }
 
 const cakeTypeDisplayMap: Record<CakeType, string> = {
@@ -21,7 +22,8 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
     cakeInfo,
     basePriceOptions,
     onCakeInfoChange,
-    isAnalyzing
+    isAnalyzing,
+    addOnPricing
 }) => {
     const cakeTypeScrollContainerRef = useRef<HTMLDivElement>(null);
     const cakeThicknessScrollContainerRef = useRef<HTMLDivElement>(null);
@@ -86,9 +88,9 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                 data-caketype={type}
                                 type="button"
                                 onClick={() => onCakeInfoChange({ type })}
-                                className="group flex-shrink-0 w-20 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
+                                className="group shrink-0 w-20 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
                             >
-                                <div className={`w-full aspect-[5/4] rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.type === type ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
+                                <div className={`w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.type === type ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
                                     <img src={CAKE_TYPE_THUMBNAILS[type]} alt={cakeTypeDisplayMap[type]} className="w-full h-full object-cover" />
                                 </div>
                                 <span className="mt-2 text-[10px] font-medium text-slate-700 leading-tight">{cakeTypeDisplayMap[type]}</span>
@@ -107,9 +109,9 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                 data-cakethickness={thickness}
                                 type="button"
                                 onClick={() => onCakeInfoChange({ thickness })}
-                                className="group flex-shrink-0 w-20 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
+                                className="group shrink-0 w-20 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
                             >
-                                <div className={`relative w-full aspect-[5/4] rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.thickness === thickness ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
+                                <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.thickness === thickness ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
                                     <img src={CAKE_THICKNESS_THUMBNAILS[thickness]} alt={`${thickness} height`} className="w-full h-full object-cover" />
                                 </div>
                                 <span className="mt-2 text-[10px] font-semibold text-slate-800 leading-tight">{thickness}</span>
@@ -136,9 +138,9 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                         data-cakesize={option.size}
                                         type="button"
                                         onClick={() => onCakeInfoChange({ size: option.size })}
-                                        className="group flex-shrink-0 w-20 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
+                                        className="group shrink-0 w-20 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
                                     >
-                                        <div className={`relative w-full aspect-[5/4] rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.size === option.size ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
+                                        <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.size === option.size ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
                                             <img src={CAKE_SIZE_THUMBNAILS[option.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]} alt={option.size} className="w-full h-full object-cover" />
                                             <div className="absolute inset-x-0 top-0 pt-4 text-black text-[10px] font-bold text-center leading-tight">
                                                 {(() => {
@@ -158,7 +160,7 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                         </div>
                                         <div className="flex flex-col items-center mt-2">
                                             <span className="text-[10px] font-semibold text-slate-800 leading-tight">{option.size}</span>
-                                            <span className="text-[10px] font-bold text-purple-700 leading-tight">₱{option.price.toLocaleString()}</span>
+                                            <span className="text-[10px] font-bold text-purple-700 leading-tight">₱{(option.price + addOnPricing).toLocaleString()}</span>
                                         </div>
                                     </button>
                                 ))}
@@ -192,9 +194,9 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                                         newFlavors[index] = flavor;
                                                         onCakeInfoChange({ flavors: newFlavors });
                                                     }}
-                                                    className={`group flex-shrink-0 w-20 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 transition-opacity ${isFlavorDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    className={`group shrink-0 w-20 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 transition-opacity ${isFlavorDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 >
-                                                    <div className={`w-full aspect-[5/4] rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.flavors[index] === flavor ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
+                                                    <div className={`w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.flavors[index] === flavor ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
                                                         <img src={FLAVOR_THUMBNAILS[flavor]} alt={flavor} className={`w-full h-full object-cover transition-all ${isFlavorDisabled ? 'filter grayscale' : ''}`} />
                                                     </div>
                                                     <span className="mt-2 text-[10px] font-medium text-slate-700 leading-tight">{flavor}</span>
