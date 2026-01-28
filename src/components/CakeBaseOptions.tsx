@@ -3,6 +3,7 @@ import React, { useRef } from 'react';
 import { CakeInfoUI, BasePriceInfo, CakeType } from '@/types';
 import { CAKE_TYPES, THICKNESS_OPTIONS_MAP, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_OPTIONS, FLAVOR_THUMBNAILS } from '@/constants';
 import { CakeBaseSkeleton } from './LoadingSkeletons';
+import { roundDownToNearest99 } from '@/lib/utils/pricing';
 
 interface CakeBaseOptionsProps {
     cakeInfo: CakeInfoUI | null;
@@ -160,7 +161,7 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                         </div>
                                         <div className="flex flex-col items-center mt-2">
                                             <span className="text-[10px] font-semibold text-slate-800 leading-tight">{option.size}</span>
-                                            <span className="text-[10px] font-bold text-purple-700 leading-tight">₱{(option.price + addOnPricing).toLocaleString()}</span>
+                                            <span className="text-[10px] font-bold text-purple-700 leading-tight">₱{roundDownToNearest99(option.price + addOnPricing, option.price).toLocaleString()}</span>
                                         </div>
                                     </button>
                                 ))}
