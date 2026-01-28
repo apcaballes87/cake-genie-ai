@@ -240,13 +240,6 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         },
         offers: offers,
         category: 'Custom Cakes',
-        aggregateRating: {
-            '@type': 'AggregateRating',
-            ratingValue: '4.8',
-            reviewCount: '156',
-            bestRating: '5',
-            worstRating: '1'
-        },
         ...(design.alt_text && { 'alternateName': sanitize(design.alt_text) })
     };
 
