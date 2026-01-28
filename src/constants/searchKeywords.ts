@@ -5,7 +5,7 @@
 // ============================================================================
 
 export const CAKE_SEARCH_KEYWORDS = [
-  
+
   // ========== OCCASIONS (Most Popular) ==========
   'birthday cake',
   'wedding cake',
@@ -20,7 +20,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'first communion cake',
   'confirmation cake',
   'gender reveal cake',
-  
+
   // ========== POPULAR CHARACTERS & CLASSIC THEMES ==========
   'unicorn cake',
   'dinosaur cake',
@@ -51,7 +51,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'minnie mouse cake',
   'peppa pig cake',
   'bluey cake',
-  
+
   // ========== ANIME & MANGA ==========
   'naruto cake',
   'luffy cake',
@@ -78,7 +78,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'tokyo ghoul cake',
   'My Neighbor Totoro cake',
   'No Face cake',
-  
+
   // ========== VIDEO GAMES ==========
   'fortnite cake',
   'call of duty cake',
@@ -94,7 +94,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'splatoon cake',
   'gaming cake',
   'video game cake',
-  
+
   // ========== MUSIC & CELEBRITIES ==========
   'taylor swift cake',
   'eras tour cake',
@@ -120,7 +120,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'music cake',
   'guitar cake',
   'piano cake',
-  
+
   // ========== K-POP ==========
   'bts cake',
   'bangtan cake',
@@ -166,7 +166,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'fantasy kpop cake',
   'Dreamcatcher cake',
   'photocard cake',
-  
+
   // ========== SPORTS ==========
   'football cake',
   'soccer cake',
@@ -205,7 +205,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'bmx cake',
   'surfing cake',
   'snowboard cake',
-  
+
   // ========== TRAVEL & DESTINATIONS ==========
   'eiffel tower cake',
   'paris cake',
@@ -233,7 +233,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'hot air balloon cake',
   'travel cake',
   'adventure cake',
-  
+
   // ========== BRANDS & LOGOS ==========
   'chanel cake',
   'gucci cake',
@@ -258,7 +258,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'supreme cake',
   'tesla cake',
   'amazon cake',
-  
+
   // ========== YOUTUBERS & INFLUENCERS ==========
   'mrbeast cake',
   'pewdiepie cake',
@@ -276,7 +276,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'dream cake',
   'technoblade cake',
   'tommyinnit cake',
-  
+
   // ========== TV SHOWS & MOVIES ==========
   'wednesday cake',
   'wednesday addams cake',
@@ -326,7 +326,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'The Queen\'s Gambit cake',
   'chessboard cake',
   'Disney cake',
-  
+
   // ========== AGE-SPECIFIC ==========
   'baby cake',
   'kids cake',
@@ -339,7 +339,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   '30th birthday cake',
   '40th birthday cake',
   '50th birthday cake',
-  
+
   // ========== ANIMALS ==========
   'cat cake',
   'dog cake',
@@ -354,7 +354,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'bear cake',
   'butterfly cake',
   'ladybug cake',
-  
+
   // ========== STYLES & AESTHETICS ==========
   'simple cake',
   'elegant cake',
@@ -395,7 +395,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'vintage heart cake',
   'cherry on top cake',
   'korean style cake',
-  
+
   // ========== COLORS & DECORATIONS ==========
   'pink cake',
   'blue cake',
@@ -414,7 +414,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'mirror glaze cake',
   'monochrome cake',
   'black and white cake',
-  
+
   // ========== CURRENT TRENDS (2024-2025) ==========
   'money pulling cake',
   'pinata cake',
@@ -432,7 +432,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'bento cake',
   'lunchbox cake',
   'lambeth cake',
-  
+
   // ========== HOBBIES & INTERESTS ==========
   'book cake',
   'book lover cake',
@@ -474,7 +474,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'dance cake',
   'ballet cake',
   'art cake',
-  
+
   // ========== PROFESSIONS ==========
   'doctor cake',
   'nurse cake',
@@ -498,14 +498,14 @@ export const CAKE_SEARCH_KEYWORDS = [
   'mechanic cake',
   'hairdresser cake',
   'salon cake',
-  
+
   // ========== FOOD THEMES ==========
   'fruit cake',
   'strawberry cake',
   'chocolate cake design',
   'vanilla cake design',
-  'red velvet cake design',
-  
+
+
   // ========== GENDER-SPECIFIC ==========
   'cake for boy',
   'cake for girl',
@@ -513,7 +513,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'cake for women',
   'cake for boys',
   'cake for girls',
-  
+
   // ========== INTERNET CULTURE ==========
   'meme cake',
   'tiktok cake',
@@ -521,7 +521,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'emoji cake',
   'viral cake',
   'trending cake',
-  
+
   // ========== ZODIAC & SPIRITUAL ==========
   'zodiac cake',
   'astrology cake',
@@ -541,7 +541,7 @@ export const CAKE_SEARCH_KEYWORDS = [
   'celestial cake',
   'crystal cake',
   'tarot cake',
-  
+
   // ========== SEASONS & NATURE ==========
   'fall aesthetic cake',
   'autumn cake',
@@ -564,78 +564,78 @@ export const CAKE_SEARCH_KEYWORDS = [
 
 export const KEYWORD_CATEGORIES = {
   occasions: [
-    'birthday', 'wedding', 'anniversary', 'graduation', 
+    'birthday', 'wedding', 'anniversary', 'graduation',
     'baby shower', 'bridal shower', 'retirement', 'engagement',
     'gender reveal', 'christening', 'baptism'
   ],
-  
+
   characters: [
     'unicorn', 'dinosaur', 'princess', 'spiderman', 'batman',
     'frozen', 'elsa', 'paw patrol', 'minecraft', 'pokemon',
     'barbie', 'hello kitty', 'mickey mouse', 'peppa pig'
   ],
-  
+
   anime: [
     'naruto', 'one piece', 'demon slayer', 'goku', 'dragon ball',
     'jujutsu kaisen', 'attack on titan', 'sailor moon', 'totoro'
   ],
-  
+
   videogames: [
     'fortnite', 'minecraft', 'roblox', 'mario', 'sonic',
     'valorant', 'genshin impact', 'pokemon', 'zelda'
   ],
-  
+
   kpop: [
     'bts', 'blackpink', 'twice', 'stray kids', 'seventeen',
     'txt', 'enhypen', 'newjeans', 'aespa', 'jimin', 'jungkook'
   ],
-  
+
   celebrities: [
     'taylor swift', 'beyonce', 'ariana grande', 'billie eilish',
     'olivia rodrigo', 'bad bunny', 'drake'
   ],
-  
+
   sports: [
     'football', 'soccer', 'basketball', 'baseball', 'tennis',
     'golf', 'hockey', 'cricket', 'f1', 'nfl', 'nba'
   ],
-  
+
   brands: [
     'chanel', 'gucci', 'louis vuitton', 'starbucks', 'nike',
     'adidas', 'supreme', 'apple', 'tiffany'
   ],
-  
+
   animals: [
-    'cat', 'dog', 'bunny', 'elephant', 'lion', 'panda', 
+    'cat', 'dog', 'bunny', 'elephant', 'lion', 'panda',
     'butterfly', 'unicorn', 'dinosaur'
   ],
-  
+
   styles: [
-    'simple', 'elegant', 'minimalist', 'modern', 'vintage', 
+    'simple', 'elegant', 'minimalist', 'modern', 'vintage',
     'rustic', 'glamorous', 'cute', 'aesthetic', 'y2k',
     'cottagecore', 'dark academia'
   ],
-  
+
   colors: [
     'pink', 'blue', 'purple', 'gold', 'rainbow', 'pastel',
     'rose gold', 'black and white', 'monochrome'
   ],
-  
+
   trends: [
     'bento', 'money pulling', 'drip', 'geode', 'number',
     'letter', 'mirror glaze', 'pinata', 'dome'
   ],
-  
+
   hobbies: [
     'book', 'reading', 'photography', 'art', 'music',
     'gaming', 'travel', 'fitness', 'cooking', 'baking'
   ],
-  
+
   travel: [
     'paris', 'new york', 'london', 'tokyo', 'dubai',
     'beach', 'tropical', 'airplane', 'passport'
   ],
-  
+
   professions: [
     'doctor', 'nurse', 'teacher', 'lawyer', 'chef',
     'pilot', 'photographer', 'scientist', 'engineer'

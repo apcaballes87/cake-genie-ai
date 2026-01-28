@@ -4,13 +4,14 @@ import SearchingClient from './SearchingClient';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 type Props = {
-    searchParams: { [key: string]: string | string[] | undefined }
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
 export async function generateMetadata(
     { searchParams }: Props,
 ): Promise<Metadata> {
-    const q = searchParams.q
+    const resolvedParams = await searchParams
+    const q = resolvedParams.q
     const query = typeof q === 'string' ? q : ''
 
     return {
