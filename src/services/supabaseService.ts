@@ -484,6 +484,65 @@ export async function getRecommendedProducts(limit: number = 8, offset: number =
 }
 
 /**
+ * Fetches related products based on keywords from the current design.
+ * Matches cakes that share similar keywords using ILIKE.
+ * Falls back to recent products if no keyword matches found.
+ */
+export async function getRelatedProductsByKeywords(
+  keywords: string | null,
+  excludeSlug: string | null,
+  limit: number = 6,
+  offset: number = 0
+): Promise<SupabaseServiceResponse<any[]>> {
+  try {
+    // Split keywords into individual words for matching
+    const keywordList = keywords
+      ? keywords.toLowerCase().split(/[\s,]+/).filter(k => k.length > 2)
+      : [];
+
+    let query = supabase
+      .from('cakegenie_analysis_cache')
+      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text')
+      .not('original_image_url', 'is', null)
+      .not('price', 'is', null)
+      .neq('original_image_url', '');
+
+    // Exclude the current design
+    if (excludeSlug) {
+      query = query.neq('slug', excludeSlug);
+    }
+
+    // If we have keywords, search for matches using OR conditions
+    if (keywordList.length > 0) {
+      // Build OR filter for keyword matching (match any keyword)
+      const orFilters = keywordList.map(k => `keywords.ilike.%${k}%`).join(',');
+      query = query.or(orFilters);
+    }
+
+    const { data, error } = await query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      console.error('Error fetching related products by keywords:', error);
+      return { data: null, error };
+    }
+
+    // If we got results with keyword matching, return them
+    if (data && data.length > 0) {
+      return { data, error: null };
+    }
+
+    // Fallback to recent products if no keyword matches
+    console.log('No keyword matches found, falling back to recent products');
+    return getRecommendedProducts(limit, offset);
+  } catch (err) {
+    console.error('Exception fetching related products by keywords:', err);
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
  * Type for recent search design data returned by getAnalysisBySlug
  */
 export interface RecentSearchDesign {

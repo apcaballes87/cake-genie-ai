@@ -2,8 +2,9 @@
 
 import React, { Dispatch, SetStateAction, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { v4 as uuidv4 } from 'uuid';
-import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Heart } from 'lucide-react';
+import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Heart, Cake, Star } from 'lucide-react';
 import { CustomizationPills } from '../../components/CustomizationPills';
 import { CustomizationBottomSheet } from '../../components/CustomizationBottomSheet';
 import { SegmentationOverlay } from '../../components/SegmentationOverlay';
@@ -26,7 +27,7 @@ import { CakeToppersOptions } from '../../components/CakeToppersOptions';
 import { TopperCard } from '../../components/TopperCard';
 import StickyAddToCartBar from '../../components/StickyAddToCartBar';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
-import { reportCustomization, uploadReportImage, getAnalysisByExactHash } from '../../services/supabaseService';
+import { reportCustomization, uploadReportImage, getAnalysisByExactHash, getRelatedProductsByKeywords } from '../../services/supabaseService';
 import ReportModal from '../../components/ReportModal';
 import ShareModal from '../../components/ShareModal';
 import { CartItemDetails } from '../../types';
@@ -540,9 +541,18 @@ interface CustomizingClientProps {
     recentSearchDesign?: RecentSearchDesignProp;
     productDetails?: React.ReactNode;
     initialPrices?: BasePriceInfo[];
+    relatedDesigns?: Array<{
+        slug: string;
+        original_image_url: string;
+        keywords: string | null;
+        alt_text: string | null;
+        price: number | null;
+    }>;
+    currentKeywords?: string | null;
+    currentSlug?: string | null;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -573,7 +583,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         isLoading: isImageManagementLoading, error: imageManagementError,
         setEditedImage, setError: setImageManagementError, setOriginalImageData, setPreviousImageData,
         handleImageUpload: hookImageUpload, handleSave, uploadCartImages, clearImages,
-        loadImageWithoutAnalysis,
+        loadImageWithoutAnalysis, setCurrentSlug, currentSlug: persistedSlug,
     } = useImageManagement();
 
     // --- Local State ---
@@ -589,12 +599,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [previousAnalysisSnapshot, setPreviousAnalysisSnapshot] = useState<HybridAnalysisResult | null>(null);
     const [searchInput, setSearchInput] = useState('');
 
+    // Related Designs Pagination State
+    const [displayedRelatedDesigns, setDisplayedRelatedDesigns] = useState(relatedDesigns || []);
+    const [isLoadingMoreDesigns, setIsLoadingMoreDesigns] = useState(false);
+    const [hasMoreDesigns, setHasMoreDesigns] = useState(true);
+
     // --- Refs ---
     const accountMenuRef = useRef<HTMLDivElement>(null);
     const mainImageContainerRef = useRef<HTMLDivElement>(null);
     const isLoadingDesignRef = useRef(false); // Guard against duplicate analysis calls
-    const loadedProductSlug = useRef<string | null>(null); // Track which product is currently loaded
-
 
     // --- Hooks ---
     const { addOnPricing, itemPrices, basePriceOptions: hookBasePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice } = usePricing({
@@ -660,6 +673,80 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const availabilityType = calculatedAvailability;
 
     // --- Handlers ---
+
+    // Load more related designs with pagination
+    const handleLoadMoreDesigns = async () => {
+        if (isLoadingMoreDesigns || !hasMoreDesigns) return;
+
+        setIsLoadingMoreDesigns(true);
+        try {
+            const effectiveKeywords = currentKeywords || recentSearchDesign?.keywords || null;
+            const effectiveSlug = currentSlug || recentSearchDesign?.slug || null;
+            const { data } = await getRelatedProductsByKeywords(
+                effectiveKeywords,
+                effectiveSlug,
+                6,
+                displayedRelatedDesigns.length
+            );
+
+            if (data && data.length > 0) {
+                setDisplayedRelatedDesigns(prev => [...prev, ...data]);
+                // If we got fewer than 6, there are no more
+                if (data.length < 6) {
+                    setHasMoreDesigns(false);
+                }
+            } else {
+                setHasMoreDesigns(false);
+            }
+        } catch (error) {
+            console.error('Error loading more designs:', error);
+        } finally {
+            setIsLoadingMoreDesigns(false);
+        }
+    };
+
+    // Auto-load related designs when analysis is complete
+    useEffect(() => {
+        // Only run if we have analysis result with keywords
+        if (!analysisResult || !analysisResult.keyword) return;
+
+        const targetKeyword = analysisResult.keyword;
+
+        // Don't auto-load if we already have items (prevent dupes or overriding props)
+        if (displayedRelatedDesigns.length > 0) return;
+
+        // Don't auto-load if we're currently loading
+        if (isLoadingMoreDesigns) return;
+
+        console.log('🤖 Analysis complete, fetching related designs for:', targetKeyword);
+
+        const fetchRelated = async () => {
+            setIsLoadingMoreDesigns(true);
+            try {
+                // Use the analysis keyword for the first batch
+                const { data } = await getRelatedProductsByKeywords(
+                    targetKeyword,
+                    currentSlug || null,
+                    6,
+                    0
+                );
+
+                if (data && data.length > 0) {
+                    setDisplayedRelatedDesigns(data);
+                    if (data.length < 6) setHasMoreDesigns(false);
+                } else {
+                    setHasMoreDesigns(false);
+                }
+            } catch (error) {
+                console.error('Error auto-loading related designs:', error);
+            } finally {
+                setIsLoadingMoreDesigns(false);
+            }
+        };
+
+        fetchRelated();
+    }, [analysisResult, currentSlug, displayedRelatedDesigns.length]);
+
     // --- Effects ---
 
     // Hide SSR content once client hydrates - enables progressive enhancement
@@ -684,10 +771,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             return;
         }
 
+        // CRITICAL: Set the current slug FIRST - this will automatically clear stale images
+        // if the slug changed from a previously persisted session
+        setCurrentSlug(targetSlug || null);
+
         // Check if we need to load this content:
         // 1. If it's a different item than what we tracked locally (slug/hash mismatch)
         // 2. OR if we haven't tracked any item yet AND we don't have image data (initial load)
-        const isNewItem = targetSlug !== loadedProductSlug.current;
+        // Use currentSlug from context (persisted) for comparison, not just the local ref
+        const isNewItem = targetSlug !== persistedSlug;
         const hasLoadedImage = !!originalImageData;
 
         if (!isNewItem && hasLoadedImage) {
@@ -699,7 +791,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         }
 
         isLoadingDesignRef.current = true;
-        loadedProductSlug.current = targetSlug || 'unknown';
         console.log(`🏪 Loading item from props: ${targetTitle}`);
 
         // Clear any existing stale data
@@ -842,7 +933,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         };
 
         fetchProductImage();
-    }, [product, recentSearchDesign, originalImageData, isImageManagementLoading, hookImageUpload, setIsAnalyzing, clearImages, clearCustomization, analysisResult, analysisId]);
+    }, [product, recentSearchDesign, originalImageData, isImageManagementLoading, hookImageUpload, setIsAnalyzing, clearImages, clearCustomization, analysisResult, analysisId, persistedSlug, setCurrentSlug, setPendingAnalysisData]);
 
     // Handle "Customize This Design" flow (loading from URL ref) - Shopify/external integrations
     useEffect(() => {
@@ -2508,7 +2599,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
             {/* Product/Design Description & Tags - Spans full width of the two-column layout */}
             {((product && (product.long_description || product.short_description || (product.tags && product.tags.length > 0))) ||
-                (recentSearchDesign && (recentSearchDesign.seo_description || recentSearchDesign.alt_text))) && (
+                (recentSearchDesign && (recentSearchDesign.seo_description || recentSearchDesign.alt_text)) ||
+                (analysisResult && (analysisResult.seo_description || analysisResult.alt_text))) && (
                     <div className="w-full mt-6">
                         <div className="bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
                             {/* Product Description */}
@@ -2522,14 +2614,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             )}
 
                             {/* Design Description */}
-                            {recentSearchDesign && (recentSearchDesign.seo_description || recentSearchDesign.alt_text) && (
-                                <div className="mb-3">
-                                    <h2 className="text-sm font-semibold text-slate-700 mb-2">About This Design</h2>
-                                    <p className="text-sm text-slate-600 leading-relaxed">
-                                        {recentSearchDesign.seo_description || recentSearchDesign.alt_text}
-                                    </p>
-                                </div>
-                            )}
+                            {((recentSearchDesign && (recentSearchDesign.seo_description || recentSearchDesign.alt_text)) ||
+                                (analysisResult && (analysisResult.seo_description || analysisResult.alt_text))) && (
+                                    <div className="mb-3">
+                                        <h2 className="text-sm font-semibold text-slate-700 mb-2">About This Design</h2>
+                                        <p className="text-sm text-slate-600 leading-relaxed">
+                                            {analysisResult?.seo_description || analysisResult?.alt_text || recentSearchDesign?.seo_description || recentSearchDesign?.alt_text}
+                                        </p>
+                                    </div>
+                                )}
 
                             {product && product.tags && product.tags.length > 0 && (
                                 <div>
@@ -2988,6 +3081,87 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 )}
             </CustomizationBottomSheet>
 
+            {/* Related Designs Section */}
+            {displayedRelatedDesigns && displayedRelatedDesigns.length > 0 && (
+                <div className="w-full max-w-6xl mx-auto px-4 py-6 mb-24">
+                    <h2 className="text-lg font-semibold text-slate-800 mb-4">You May Also Like</h2>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                        {displayedRelatedDesigns.map((related, i) => (
+                            <Link
+                                key={`${related.slug}-${i}`}
+                                href={`/customizing/${related.slug}`}
+                                className="bg-white p-3 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-100 transition-all duration-300 group cursor-pointer h-full flex flex-col"
+                                aria-label={`View ${related.keywords || 'custom'} cake design`}
+                                tabIndex={0}
+                            >
+                                <div className="relative aspect-square mb-3 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                                    {related.original_image_url && (
+                                        <img
+                                            src={related.original_image_url}
+                                            alt={related.alt_text || `${related.keywords || 'Custom'} cake design`}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                            loading="lazy"
+                                        />
+                                    )}
+                                    {/* Overlay Gradient on Hover */}
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
+
+                                    {/* Heart Button (decorative) */}
+                                    <div className="absolute top-3 right-3 w-8 h-8 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm bg-white/90 text-gray-600 z-10">
+                                        <Heart size={16} />
+                                    </div>
+
+                                    {/* Affordable Tag */}
+                                    <span className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-md text-gray-900 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold shadow-sm z-10">
+                                        Affordable
+                                    </span>
+                                </div>
+
+                                <div className="px-1 flex flex-col flex-1">
+                                    <h3 className="font-bold text-gray-900 text-sm leading-tight mb-1 line-clamp-2 group-hover:text-purple-600 transition-colors capitalize">
+                                        {related.keywords || 'Custom Cake'}
+                                    </h3>
+                                    <p className="text-xs text-gray-500 flex items-center gap-1 mb-auto">
+                                        <Cake size={12} /> 1 Tier
+                                    </p>
+                                    <div className="flex justify-between items-end border-t border-gray-50 pt-3 mt-3">
+                                        <span className="font-black text-gray-900 text-base">
+                                            ₱{related.price ? Math.round(related.price).toLocaleString() : '999'}
+                                        </span>
+                                        <div className="flex items-center gap-1 text-xs font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-lg">
+                                            <Star size={12} fill="currentColor" /> 5.0
+                                        </div>
+                                    </div>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+
+                    {/* Show More Button */}
+                    {hasMoreDesigns && (
+                        <div className="flex justify-center mt-6">
+                            <button
+                                onClick={handleLoadMoreDesigns}
+                                disabled={isLoadingMoreDesigns}
+                                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+                                aria-label="Show more related designs"
+                            >
+                                {isLoadingMoreDesigns ? (
+                                    <>
+                                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Loading...
+                                    </>
+                                ) : (
+                                    'Show More Designs'
+                                )}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <StickyAddToCartBar
                 price={finalPrice}

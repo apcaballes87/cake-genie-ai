@@ -1,10 +1,11 @@
 import { Metadata, ResolvingMetadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import CustomizingClient from '../CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
-import { getCakeBasePriceOptions } from '@/services/supabaseService'
+import { getCakeBasePriceOptions, getRelatedProductsByKeywords } from '@/services/supabaseService'
 import { CakeType, BasePriceInfo, HybridAnalysisResult, CakeInfoUI, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI } from '@/types'
 import { CustomizationProvider, CustomizationState } from '@/contexts/CustomizationContext'
 import { v4 as uuidv4 } from 'uuid'
@@ -85,6 +86,7 @@ export async function generateMetadata(
             title,
             description,
             url: `https://genie.ph/customizing/${slug}`,
+            siteName: 'Genie.ph',
             images: design.original_image_url ? [
                 {
                     url: design.original_image_url,
@@ -258,6 +260,32 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         ...(imageUrl && { thumbnailUrl: imageUrl })
     };
 
+    // BreadcrumbList schema for better SERP breadcrumb display
+    const breadcrumbSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+            {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'Home',
+                item: 'https://genie.ph',
+            },
+            {
+                '@type': 'ListItem',
+                position: 2,
+                name: 'Designs',
+                item: 'https://genie.ph/designs',
+            },
+            {
+                '@type': 'ListItem',
+                position: 3,
+                name: sanitize(title),
+                item: pageUrl,
+            },
+        ],
+    };
+
     return (
         <>
             <script
@@ -268,10 +296,13 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema) }}
             />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+            />
         </>
     );
 }
-
 
 
 
@@ -281,7 +312,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
  * This content is shown on initial page load before client hydration.
  * Once CustomizingClient hydrates, it takes over the interactive display.
  */
-function SSRCakeDetails({ design, prices }: { design: any; prices?: BasePriceInfo[] }) {
+function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; prices?: BasePriceInfo[]; relatedDesigns?: any[] }) {
     const keywords = design.keywords || 'Custom';
     const analysis = design.analysis_json || {};
 
@@ -428,6 +459,45 @@ function SSRCakeDetails({ design, prices }: { design: any; prices?: BasePriceInf
                         </div>
                     )}
 
+                    {/* Related Designs Section - SEO Internal Linking */}
+                    {relatedDesigns && relatedDesigns.length > 0 && (
+                        <div className="space-y-3 pt-4 border-t border-slate-200">
+                            <h2 className="text-sm font-semibold text-slate-700">You May Also Like</h2>
+                            <div className="grid grid-cols-2 gap-3">
+                                {relatedDesigns.map((related, i) => (
+                                    <Link
+                                        key={related.slug || i}
+                                        href={`/customizing/${related.slug}`}
+                                        className="group block overflow-hidden rounded-lg border border-slate-200 hover:border-pink-300 transition-colors"
+                                        aria-label={`View ${related.keywords || 'custom'} cake design`}
+                                        tabIndex={0}
+                                    >
+                                        {related.original_image_url && (
+                                            <div className="aspect-square bg-slate-100 overflow-hidden">
+                                                <img
+                                                    src={related.original_image_url}
+                                                    alt={related.alt_text || `${related.keywords || 'Custom'} cake design`}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                                    loading="lazy"
+                                                />
+                                            </div>
+                                        )}
+                                        <div className="p-2">
+                                            <p className="text-xs font-medium text-slate-700 line-clamp-1">
+                                                {related.keywords || 'Custom Cake'}
+                                            </p>
+                                            {related.price && (
+                                                <p className="text-xs text-pink-600 font-semibold">
+                                                    ₱{Math.round(related.price).toLocaleString()}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Loading indicator for interactive features */}
                     <div className="flex items-center justify-center py-4 text-slate-500">
                         <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -476,6 +546,15 @@ export default async function RecentSearchPage({ params }: Props) {
         prices = await getCakeBasePriceOptions(cakeType, '4 in');
     } catch (e) {
         console.error('Error fetching SEO prices:', e);
+    }
+
+    // Fetch related designs for internal linking (SEO) - keyword-based matching
+    let relatedDesigns: any[] = [];
+    try {
+        const { data } = await getRelatedProductsByKeywords(design.keywords, slug, 6, 0);
+        relatedDesigns = data || [];
+    } catch (e) {
+        console.error('Error fetching related designs:', e);
     }
 
     // Prepare State for Hydration (SSR)
@@ -545,13 +624,16 @@ export default async function RecentSearchPage({ params }: Props) {
 
             {/* SSR Content - Visible initial content for SEO and fast first paint */}
             {/* This is hidden by CustomizingClient once JavaScript hydrates */}
-            <SSRCakeDetails design={design} prices={prices} />
+            <SSRCakeDetails design={design} prices={prices} relatedDesigns={relatedDesigns} />
 
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                 <CustomizationProvider initialData={initialState}>
                     <CustomizingClient
                         recentSearchDesign={design}
                         initialPrices={prices}
+                        relatedDesigns={relatedDesigns}
+                        currentKeywords={design.keywords}
+                        currentSlug={slug}
                     />
                 </CustomizationProvider>
             </Suspense>

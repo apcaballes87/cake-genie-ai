@@ -69,11 +69,13 @@ interface ImageContextType {
     threeTierReferenceImage: { data: string; mimeType: string } | null;
     isLoading: boolean;
     error: string | null;
+    currentSlug: string | null;
     setEditedImage: (image: string | null) => void;
     setError: (error: string | null) => void;
     setIsLoading: (isLoading: boolean) => void;
     setOriginalImageData: (data: { data: string; mimeType: string } | null) => void;
     setPreviousImageData: (data: { data: string; mimeType: string } | null) => void;
+    setCurrentSlug: (slug: string | null) => void;
     handleImageUpload: (
         file: File,
         onSuccess: (result: HybridAnalysisResult) => void,
@@ -100,6 +102,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
     const [threeTierReferenceImage, setThreeTierReferenceImage] = useState<{ data: string; mimeType: string } | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
+    const [currentSlug, setCurrentSlugState] = useState<string | null>(null);
 
     // Fetch 3-tier reference image on mount
     useEffect(() => {
@@ -129,10 +132,32 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         setEditedImage(null);
         setError(null);
         setIsLoading(false);
+        setCurrentSlugState(null);
 
         // Clear IndexedDB
         import('@/lib/utils/storage').then(({ clearIndexedDB }) => {
             clearIndexedDB();
+        });
+    }, []);
+
+    // Set current slug and clear images if slug changed (prevents stale image persistence)
+    const setCurrentSlug = useCallback((newSlug: string | null) => {
+        setCurrentSlugState(prevSlug => {
+            // If slug is changing to a different value, clear persisted images
+            if (prevSlug !== null && newSlug !== null && prevSlug !== newSlug) {
+                console.log(`🔄 Slug changed from ${prevSlug} to ${newSlug}, clearing stale images`);
+                // Clear state immediately
+                setOriginalImageData(null);
+                setSourceImageData(null);
+                setPreviousImageData(null);
+                setOriginalImagePreview(null);
+                setEditedImage(null);
+                // Clear persistence
+                import('@/lib/utils/storage').then(({ clearIndexedDB }) => {
+                    clearIndexedDB();
+                });
+            }
+            return newSlug;
         });
     }, []);
 
@@ -141,11 +166,17 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         const loadImages = async () => {
             try {
                 const { getFromIndexedDB } = await import('@/lib/utils/storage');
-                const [original, source, edited] = await Promise.all([
+                const [original, source, edited, storedSlug] = await Promise.all([
                     getFromIndexedDB('originalImageData'),
                     getFromIndexedDB('sourceImageData'),
-                    getFromIndexedDB('editedImage')
+                    getFromIndexedDB('editedImage'),
+                    getFromIndexedDB('imageSlug')
                 ]);
+
+                // Store the slug that was persisted so we can compare later
+                if (storedSlug) {
+                    setCurrentSlugState(storedSlug);
+                }
 
                 if (original) {
                     const parsed = JSON.parse(original);
@@ -182,9 +213,16 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             } else {
                 removeFromIndexedDB('editedImage');
             }
+
+            // Persist the current slug alongside the images
+            if (currentSlug) {
+                saveToIndexedDB('imageSlug', currentSlug);
+            } else {
+                removeFromIndexedDB('imageSlug');
+            }
         };
         saveImages();
-    }, [originalImageData, sourceImageData, editedImage]);
+    }, [originalImageData, sourceImageData, editedImage, currentSlug]);
 
     const handleImageUpload = useCallback(async (
         file: File,
@@ -575,11 +613,13 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         threeTierReferenceImage,
         isLoading,
         error,
+        currentSlug,
         setEditedImage,
         setError,
         setIsLoading,
         setOriginalImageData,
         setPreviousImageData,
+        setCurrentSlug,
         handleImageUpload,
         loadImageWithoutAnalysis,
         handleSave,
