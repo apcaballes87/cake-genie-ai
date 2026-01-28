@@ -280,27 +280,45 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
  * Hidden from visual users but fully visible to search bots.
  */
 /**
- * Server-rendered cake design details for SEO crawlers and user information.
- * Matches the UI style of the Customizing Client (glassmorphism).
+ * Server-rendered cake design details for SEO crawlers.
+ * Contains the main image and key product details visible to search bots.
+ * Uses sr-only to hide from visual users while keeping content crawlable.
  */
-function SEODesignDetails({ design }: { design: any }) {
+function SEODesignDetails({ design, price }: { design: any; price?: number }) {
     const keywords = design.keywords || 'Custom';
 
     // Clean title: remove "| Genie.ph" suffix
     const title = (design.seo_title || `${keywords} Cake Design`).replace(/\s*\|\s*Genie\.ph\s*$/i, '');
+    const altText = design.alt_text || design.seo_title || `${keywords} cake design`;
+    const displayPrice = price || design.price;
 
     return (
-        <div className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-6 space-y-4">
-            <header className="border-b border-slate-200 pb-4">
-                <h2 className="text-xl font-bold text-slate-800">{title}</h2>
-            </header>
-
-            {design.alt_text && (
-                <section>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-1">Description</h3>
-                    <p className="text-sm text-slate-600 leading-relaxed">{design.alt_text}</p>
-                </section>
+        <div className="sr-only">
+            {/* Main product image for Google Image Search */}
+            {design.original_image_url && (
+                <figure>
+                    <img
+                        src={design.original_image_url}
+                        alt={altText}
+                        width={1200}
+                        height={1200}
+                        itemProp="image"
+                    />
+                    <figcaption>{altText}</figcaption>
+                </figure>
             )}
+
+            {/* Product details for search snippets */}
+            <article itemScope itemType="https://schema.org/Product">
+                <h1 itemProp="name">{title}</h1>
+                {design.alt_text && (
+                    <p itemProp="description">{design.alt_text}</p>
+                )}
+                {displayPrice && (
+                    <p>Starting at <span itemProp="price">₱{Math.round(displayPrice).toLocaleString()}</span></p>
+                )}
+                <p>Custom cake design available for order at Genie.ph</p>
+            </article>
         </div>
     );
 }
@@ -405,6 +423,9 @@ export default async function RecentSearchPage({ params }: Props) {
         <>
             <DesignSchema design={design} prices={prices} />
 
+            {/* SSR Content for SEO - visible to crawlers, hidden from users */}
+            <SEODesignDetails design={design} price={prices?.[0]?.price} />
+
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                 <CustomizationProvider initialData={initialState}>
                     <CustomizingClient
@@ -412,7 +433,6 @@ export default async function RecentSearchPage({ params }: Props) {
                     />
                 </CustomizationProvider>
             </Suspense>
-            {/* SEO Content: Pricing Table removed as per user request (redundant with UI options) */}
         </>
     )
 }
