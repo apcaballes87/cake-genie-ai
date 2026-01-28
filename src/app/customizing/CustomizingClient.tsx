@@ -661,6 +661,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     // --- Handlers ---
     // --- Effects ---
+
+    // Hide SSR content once client hydrates - enables progressive enhancement
+    useEffect(() => {
+        const ssrContent = document.getElementById('ssr-content');
+        if (ssrContent) {
+            ssrContent.style.display = 'none';
+        }
+    }, []);
+
     // Handle product prop loading (from SEO-friendly routes like /shop/[merchant]/[product]/customize)
     // AND recent search designs (from /customizing/[slug])
     useEffect(() => {

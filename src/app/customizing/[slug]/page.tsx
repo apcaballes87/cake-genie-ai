@@ -192,12 +192,20 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
                 '@type': 'Organization',
                 name: 'Genie.ph'
             },
-            url: pageUrl
+            url: pageUrl,
+            offers: prices.map(p => ({
+                '@type': 'Offer',
+                name: p.size,
+                price: Math.round(p.price).toString(),
+                priceCurrency: 'PHP',
+                availability: 'https://schema.org/InStock',
+                url: pageUrl
+            }))
         };
     } else {
         baseOffersWrapper = {
             '@type': 'Offer',
-            price: design.price || 0,
+            price: design.price ? Math.round(design.price).toString() : '0',
             priceCurrency: 'PHP',
             availability: 'https://schema.org/InStock',
             itemCondition: 'https://schema.org/NewCondition',
@@ -209,6 +217,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
             url: pageUrl
         };
     }
+
 
     const offers = {
         ...baseOffersWrapper,
@@ -275,53 +284,171 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
 
 
 /**
- * Server-rendered cake design details for SEO crawlers.
- * Extracts and displays key features from analysis_json.
- * Hidden from visual users but fully visible to search bots.
+ * Server-rendered cake design details displayed VISIBLY for both SEO and users.
+ * This content is shown on initial page load before client hydration.
+ * Once CustomizingClient hydrates, it takes over the interactive display.
  */
-/**
- * Server-rendered cake design details for SEO crawlers.
- * Contains the main image and key product details visible to search bots.
- * Uses sr-only to hide from visual users while keeping content crawlable.
- */
-function SEODesignDetails({ design, price }: { design: any; price?: number }) {
+function SSRCakeDetails({ design, prices }: { design: any; prices?: BasePriceInfo[] }) {
     const keywords = design.keywords || 'Custom';
+    const analysis = design.analysis_json || {};
 
     // Clean title: remove "| Genie.ph" suffix
     const title = (design.seo_title || `${keywords} Cake Design`).replace(/\s*\|\s*Genie\.ph\s*$/i, '');
     const altText = design.alt_text || design.seo_title || `${keywords} cake design`;
-    const displayPrice = price || design.price;
+    const displayPrice = prices?.[0]?.price || design.price;
+
+    // Extract product details from analysis
+    const cakeType = analysis.cakeType || 'Custom';
+    const icingDesign = analysis.icing_design || {};
+    const mainToppers = analysis.main_toppers || [];
+    const cakeMessages = analysis.cake_messages || [];
+
+    // Extract icing colors
+    const icingColors: string[] = [];
+    if (icingDesign.colors) {
+        if (icingDesign.colors.top) icingColors.push(icingDesign.colors.top);
+        if (icingDesign.colors.side && icingDesign.colors.side !== icingDesign.colors.top) {
+            icingColors.push(icingDesign.colors.side);
+        }
+        if (icingDesign.colors.drip) icingColors.push(`Drip: ${icingDesign.colors.drip}`);
+    }
 
     return (
-        <div className="sr-only">
-            {/* Main product image for Google Image Search */}
-            {design.original_image_url && (
-                <figure>
-                    <img
-                        src={design.original_image_url}
-                        alt={altText}
-                        width={1200}
-                        height={1200}
-                        itemProp="image"
-                    />
-                    <figcaption>{altText}</figcaption>
-                </figure>
-            )}
+        <div id="ssr-content" className="w-full max-w-4xl mx-auto px-4 py-6">
+            {/* Main card container - matches CustomizingClient styling */}
+            <article
+                className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 overflow-hidden"
+            >
+                {/* Hero Image Section */}
+                {design.original_image_url && (
+                    <figure className="relative w-full aspect-square bg-slate-100">
+                        <img
+                            src={design.original_image_url}
+                            alt={altText}
+                            className="w-full h-full object-contain"
+                            loading="eager"
+                            fetchPriority="high"
+                        />
+                    </figure>
+                )}
 
-            {/* Product details for search snippets */}
-            <article itemScope itemType="https://schema.org/Product">
-                <h1 itemProp="name">{title}</h1>
-                {design.alt_text && (
-                    <p itemProp="description">{design.alt_text}</p>
-                )}
-                {displayPrice && (
-                    <p>Starting at <span itemProp="price">₱{Math.round(displayPrice).toLocaleString()}</span></p>
-                )}
-                <p>Custom cake design available for order at Genie.ph</p>
+                {/* Product Details */}
+                <div className="p-4 md:p-6 space-y-4">
+                    {/* Title */}
+                    <h1
+                        className="text-xl md:text-2xl font-bold text-slate-800"
+                    >
+                        {title}
+                    </h1>
+
+                    {/* Description */}
+                    {design.alt_text && (
+                        <p className="text-slate-600 text-sm">
+                            {design.alt_text}
+                        </p>
+                    )}
+
+                    {/* Cake Type Badge */}
+                    <div className="flex flex-wrap gap-2">
+                        <span className="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-700 text-sm font-medium rounded-full">
+                            {cakeType} Cake
+                        </span>
+                    </div>
+
+                    {/* Icing Colors */}
+                    {icingColors.length > 0 && (
+                        <div className="space-y-2">
+                            <h2 className="text-sm font-semibold text-slate-700">Icing Colors</h2>
+                            <div className="flex flex-wrap gap-2">
+                                {icingColors.map((color, i) => (
+                                    <span
+                                        key={i}
+                                        className="inline-flex items-center px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded-full"
+                                    >
+                                        {color}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Cake Toppers */}
+                    {mainToppers.length > 0 && (
+                        <div className="space-y-2">
+                            <h2 className="text-sm font-semibold text-slate-700">Cake Toppers</h2>
+                            <ul className="flex flex-wrap gap-2">
+                                {mainToppers.map((topper: any, i: number) => (
+                                    <li
+                                        key={i}
+                                        className="inline-flex items-center px-2.5 py-1 bg-pink-50 text-pink-700 text-xs font-medium rounded-full"
+                                    >
+                                        {topper.description || topper.type}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {/* Cake Messages */}
+                    {cakeMessages.length > 0 && (
+                        <div className="space-y-2">
+                            <h2 className="text-sm font-semibold text-slate-700">Cake Messages</h2>
+                            <ul className="space-y-1">
+                                {cakeMessages.map((msg: any, i: number) => (
+                                    <li
+                                        key={i}
+                                        className="text-sm text-slate-600 italic"
+                                    >
+                                        "{msg.text || 'Custom message'}"
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {/* Price Display */}
+                    {displayPrice && (
+                        <div className="pt-2 border-t border-slate-200">
+                            <p className="text-lg font-bold text-pink-600">
+                                Starting at <span>₱{Math.round(displayPrice).toLocaleString()}</span>
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Size & Pricing Table */}
+                    {prices && prices.length > 0 && (
+                        <div className="space-y-2">
+                            <h2 className="text-sm font-semibold text-slate-700">Available Sizes & Prices</h2>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {prices.map((option, i) => (
+                                    <div
+                                        key={i}
+                                        className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-center"
+                                    >
+                                        <p className="text-sm font-medium text-slate-800">{option.size}</p>
+                                        <p className="text-sm text-pink-600 font-semibold">
+                                            ₱{Math.round(option.price).toLocaleString()}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Loading indicator for interactive features */}
+                    <div className="flex items-center justify-center py-4 text-slate-500">
+                        <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span className="text-sm">Loading customization tools...</span>
+                    </div>
+                </div>
             </article>
         </div>
     );
 }
+
 
 export default async function RecentSearchPage({ params }: Props) {
     const { slug } = await params
@@ -423,16 +550,19 @@ export default async function RecentSearchPage({ params }: Props) {
         <>
             <DesignSchema design={design} prices={prices} />
 
-            {/* SSR Content for SEO - visible to crawlers, hidden from users */}
-            <SEODesignDetails design={design} price={prices?.[0]?.price} />
+            {/* SSR Content - Visible initial content for SEO and fast first paint */}
+            {/* This is hidden by CustomizingClient once JavaScript hydrates */}
+            <SSRCakeDetails design={design} prices={prices} />
 
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                 <CustomizationProvider initialData={initialState}>
                     <CustomizingClient
                         recentSearchDesign={design}
+                        initialPrices={prices}
                     />
                 </CustomizationProvider>
             </Suspense>
         </>
     )
 }
+
