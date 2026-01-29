@@ -137,7 +137,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         }
     } : null;
 
-    // Standard Shipping Details (Placeholder)
+    // Standard Shipping Details (Free Delivery)
     const shippingDetails = {
         '@type': 'OfferShippingDetails',
         shippingRate: {
@@ -174,6 +174,9 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility'
     };
 
+    const priceValidUntil = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const productMpn = design.p_hash || design.slug;
+
     let baseOffersWrapper;
 
     if (prices && prices.length > 0) {
@@ -190,18 +193,24 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
             offerCount: prices.length,
             availability: 'https://schema.org/InStock',
             itemCondition: 'https://schema.org/NewCondition',
-            seller: {
-                '@type': 'Organization',
-                name: 'Genie.ph'
-            },
             url: pageUrl,
             offers: prices.map(p => ({
                 '@type': 'Offer',
                 name: p.size,
+                sku: `${productMpn}-${p.size.replace(/[^a-z0-9]/gi, '-').toLowerCase()}`,
+                mpn: productMpn,
                 price: Math.round(p.price).toString(),
                 priceCurrency: 'PHP',
                 availability: 'https://schema.org/InStock',
-                url: pageUrl
+                itemCondition: 'https://schema.org/NewCondition',
+                priceValidUntil: priceValidUntil,
+                url: pageUrl,
+                seller: {
+                    '@type': 'Organization',
+                    name: 'Genie.ph'
+                },
+                shippingDetails: shippingDetails,
+                hasMerchantReturnPolicy: returnPolicy
             }))
         };
     } else {
@@ -211,20 +220,22 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
             priceCurrency: 'PHP',
             availability: 'https://schema.org/InStock',
             itemCondition: 'https://schema.org/NewCondition',
-            priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+            priceValidUntil: priceValidUntil,
+            sku: productMpn,
+            mpn: productMpn,
             seller: {
                 '@type': 'Organization',
                 name: 'Genie.ph'
             },
-            url: pageUrl
+            url: pageUrl,
+            shippingDetails: shippingDetails,
+            hasMerchantReturnPolicy: returnPolicy
         };
     }
 
 
     const offers = {
-        ...baseOffersWrapper,
-        hasMerchantReturnPolicy: returnPolicy,
-        shippingDetails: shippingDetails
+        ...baseOffersWrapper
     };
 
     // Product schema
@@ -234,8 +245,10 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         '@id': pageUrl, // Unique identifier for cross-referencing
         url: pageUrl, // Explicit URL
         name: sanitize(title),
+        sku: productMpn,
+        mpn: productMpn,
         description: sanitize(design.seo_description || `Custom ${keywords} cake design`),
-        image: imageUrl ? [imageUrl] : [],
+        image: imageUrl || undefined,
         brand: {
             '@type': 'Brand',
             name: 'Genie.ph'
