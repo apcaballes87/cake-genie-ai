@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import LazyImage from '@/components/LazyImage';
 import type { CakeGenieMerchant } from '@/lib/database.types';
@@ -57,6 +58,14 @@ const quickLinks = [
         imageUrls: LANDING_PAGE_IMAGES.bento,
         searchTerm: 'bento cakes'
     }
+];
+
+const occasionLinks = [
+    { label: 'Birthday Cakes', slug: 'birthday' },
+    { label: 'Wedding Cakes', slug: 'wedding' },
+    { label: 'Graduation Cakes', slug: 'graduation' },
+    { label: 'Anniversary Cakes', slug: 'anniversary' },
+    { label: 'Christening Cakes', slug: 'christening' },
 ];
 
 const LandingClient: React.FC = () => {
@@ -732,6 +741,22 @@ const LandingClient: React.FC = () => {
                                         </button>
                                     );
                                 })}
+                            </div>
+                        </div>
+
+                        {/* --- SHOP BY OCCASION (SEO Links) --- */}
+                        <div className="mb-8">
+                            <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">Shop by Occasion</h2>
+                            <div className="flex flex-wrap gap-2 md:gap-3">
+                                {occasionLinks.map((link) => (
+                                    <Link
+                                        key={link.slug}
+                                        href={`/customizing/${link.slug}`}
+                                        className="px-4 py-2 md:px-5 md:py-2.5 bg-white border border-slate-200 rounded-xl text-xs md:text-sm font-bold text-slate-700 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700 transition-all shadow-sm"
+                                    >
+                                        {link.label}
+                                    </Link>
+                                ))}
                             </div>
                         </div>
 

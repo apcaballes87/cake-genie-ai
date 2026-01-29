@@ -2,6 +2,16 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+    // 1. WWW to Non-WWW Redirect
+    const host = request.headers.get('host') || ''
+    if (host.startsWith('www.')) {
+        const newHost = host.replace('www.', '')
+        const url = request.nextUrl.clone()
+        url.host = newHost
+        url.protocol = 'https'
+        return NextResponse.redirect(url, 301)
+    }
+
     let supabaseResponse = NextResponse.next({
         request,
     })
