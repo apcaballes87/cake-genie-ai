@@ -10,6 +10,34 @@ import { CakeType, BasePriceInfo, HybridAnalysisResult, CakeInfoUI, MainTopperUI
 import { CustomizationProvider, CustomizationState } from '@/contexts/CustomizationContext'
 import { v4 as uuidv4 } from 'uuid'
 
+// Helper to fetch design by slug OR keyword fallback
+async function getDesign(supabase: any, slug: string) {
+    // 1. Try exact slug match
+    let { data } = await supabase
+        .from('cakegenie_analysis_cache')
+        .select('*')
+        .eq('slug', slug)
+        .single()
+
+    // 2. Fallback: Search by keyword (e.g. 'graduation' -> latest graduation cake)
+    if (!data) {
+        const keyword = slug.replace(/-/g, ' ');
+        const { data: fallback } = await supabase
+            .from('cakegenie_analysis_cache')
+            .select('*')
+            .ilike('keywords', `%${keyword}%`)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+        if (fallback) {
+            data = fallback
+        }
+    }
+
+    return data
+}
+
 type Props = {
     params: Promise<{ slug: string }>
 }
@@ -21,11 +49,7 @@ export async function generateMetadata(
     const { slug } = await params
     const supabase = await createClient()
 
-    const { data: design } = await supabase
-        .from('cakegenie_analysis_cache')
-        .select('seo_title, seo_description, alt_text, original_image_url, price, keywords, analysis_json')
-        .eq('slug', slug)
-        .single()
+    const design = await getDesign(supabase, slug)
 
     if (!design) {
         return { title: 'Design Not Found' }
@@ -532,11 +556,7 @@ export default async function RecentSearchPage({ params }: Props) {
 
     console.log(`[RecentSearchPage] Request for slug: ${slug}`);
 
-    const { data: design } = await supabase
-        .from('cakegenie_analysis_cache')
-        .select('*')
-        .eq('slug', slug)
-        .single()
+    const design = await getDesign(supabase, slug)
 
     if (!design) {
         console.warn(`[RecentSearchPage] No design found for slug: ${slug} - triggering 404`);
