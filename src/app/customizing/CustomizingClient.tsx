@@ -3083,14 +3083,14 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
             {/* Related Designs Section */}
             {displayedRelatedDesigns && displayedRelatedDesigns.length > 0 && (
-                <div className="w-full max-w-6xl mx-auto px-4 py-6 mb-24">
+                <div className="w-full py-6 mb-24">
                     <h2 className="text-lg font-semibold text-slate-800 mb-4">You May Also Like</h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div className="flex flex-wrap justify-center gap-3">
                         {displayedRelatedDesigns.map((related, i) => (
                             <Link
                                 key={`${related.slug}-${i}`}
                                 href={`/customizing/${related.slug}`}
-                                className="bg-white p-3 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-100 transition-all duration-300 group cursor-pointer h-full flex flex-col"
+                                className="w-[calc(50%-6px)] sm:w-[calc(33.333%-8px)] lg:w-[calc(16.667%-10px)] bg-white p-3 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-100 transition-all duration-300 group cursor-pointer h-full flex flex-col"
                                 aria-label={`View ${related.keywords || 'custom'} cake design`}
                                 tabIndex={0}
                             >

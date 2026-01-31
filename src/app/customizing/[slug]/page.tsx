@@ -89,11 +89,15 @@ export async function generateMetadata(
         description = `Get instant pricing for this ${design.keywords || 'custom'} cake design. Starting at ₱${design.price?.toLocaleString() || '0'}.`
     }
 
+    // Use the actual design slug for canonical URL to prevent Soft 404s on fallback matches
+    const canonicalSlug = design.slug || slug
+    const canonicalUrl = `https://genie.ph/customizing/${canonicalSlug}`
+
     return {
         title,
         description,
         alternates: {
-            canonical: `https://genie.ph/customizing/${slug}`,
+            canonical: canonicalUrl,
         },
         robots: {
             index: true,
@@ -109,7 +113,7 @@ export async function generateMetadata(
         openGraph: {
             title,
             description,
-            url: `https://genie.ph/customizing/${slug}`,
+            url: canonicalUrl,
             siteName: 'Genie.ph',
             images: design.original_image_url ? [
                 {
