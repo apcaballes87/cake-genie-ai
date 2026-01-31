@@ -569,7 +569,7 @@ const LandingClient: React.FC = () => {
                         <div className="sticky top-24 space-y-8">
                             {/* Categories Sidebar */}
                             <div>
-                                <h3 className="font-bold text-gray-900 mb-4 text-lg">Celebrations</h3>
+                                <h3 className="font-bold text-gray-900 mb-4 text-lg">Shop by Occasion</h3>
                                 <div className="space-y-1">
                                     {categories.map((cat) => (
                                         <button
@@ -702,6 +702,7 @@ const LandingClient: React.FC = () => {
                         </div>
 
                         {/* Mobile Categories (Horizontal Scroll) - Placed above Available Cakes */}
+                        <h2 className="text-xl font-bold text-gray-900 mb-4 md:hidden">Shop by Occasion</h2>
                         <div className="md:hidden flex gap-2 mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4">
                             {categories.map((cat) => (
                                 <button
@@ -744,21 +745,7 @@ const LandingClient: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* --- SHOP BY OCCASION (SEO Links) --- */}
-                        <div className="mb-8">
-                            <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">Shop by Occasion</h2>
-                            <div className="flex flex-wrap gap-2 md:gap-3">
-                                {occasionLinks.map((link) => (
-                                    <Link
-                                        key={link.slug}
-                                        href={`/customizing/${link.slug}`}
-                                        className="px-4 py-2 md:px-5 md:py-2.5 bg-white border border-slate-200 rounded-xl text-xs md:text-sm font-bold text-slate-700 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700 transition-all shadow-sm"
-                                    >
-                                        {link.label}
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
+                        {/* --- SHOP BY OCCASION (SEO Links) - REMOVED AS REQUESTED --- */}
 
                         {/* --- PARTNER SHOPS SHOWCASE --- */}
                         <div className="mb-8">

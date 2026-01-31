@@ -108,14 +108,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         images: sanitizeUrl(product.image_url) ? [sanitizeUrl(product.image_url)] : [],
     }))
 
-    // 5. Dynamic routes: Product Customize Pages (SEO-friendly customization URLs)
-    const customizeRoutes = (products || []).map((product: any) => ({
-        url: `${baseUrl}/shop/${product.cakegenie_merchants.slug}/${product.slug}/customize`,
-        lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),
-        changeFrequency: 'weekly' as const,
-        priority: 0.7, // Higher priority than product detail pages
-        images: sanitizeUrl(product.image_url) ? [sanitizeUrl(product.image_url)] : [],
-    }))
+
 
     // 6. Dynamic routes: Recent Searches (SEO-friendly /customizing/[slug] URLs)
     const { data: recentSearches } = await supabase
@@ -134,6 +127,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         images: sanitizeUrl(search.original_image_url) ? [sanitizeUrl(search.original_image_url)] : [],
     }))
 
-    return [...routes, ...designRoutes, ...merchantRoutes, ...productRoutes, ...customizeRoutes, ...recentSearchRoutes]
+    return [...routes, ...designRoutes, ...merchantRoutes, ...productRoutes, ...recentSearchRoutes]
 
 }
