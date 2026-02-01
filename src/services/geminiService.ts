@@ -1656,6 +1656,7 @@ ${JSON.stringify(featureAnalysis, null, 2)}
                             type: { type: Type.STRING, enum: supportElementTypes },
                             description: { type: Type.STRING },
                             size: { type: Type.STRING, enum: ['large', 'medium', 'small', 'tiny'] },
+                            quantity: { type: Type.INTEGER },
                             group_id: { type: Type.STRING },
                             color: { type: Type.STRING },
                             colors: { type: Type.ARRAY, items: { type: Type.STRING } },
@@ -1666,7 +1667,7 @@ ${JSON.stringify(featureAnalysis, null, 2)}
                             bbox_width: { type: Type.NUMBER, description: "Bounding box width in pixels" },
                             bbox_height: { type: Type.NUMBER, description: "Bounding box height in pixels" }
                         },
-                        required: ["id", "type", "description", "size", "group_id", "x", "y", "bbox_x", "bbox_y", "bbox_width", "bbox_height"]
+                        required: ["id", "type", "description", "size", "quantity", "group_id", "x", "y", "bbox_x", "bbox_y", "bbox_width", "bbox_height"]
                     }
                 },
                 cake_messages: {

@@ -251,7 +251,7 @@ export async function calculatePriceFromDatabase(
 
       // Fallback for missing quantity if it's a countable type
       if (effectiveQty === 0 && element.size) {
-        const countableTypes = ['plastic_ball_regular', 'plastic_ball_disco', 'chocolates', 'candy', 'macarons', 'meringue', 'edible_flowers', 'gumpaste_bundle'];
+        const countableTypes = ['plastic_ball_regular', 'plastic_ball_disco', 'gumpaste_bundle'];
         if (countableTypes.includes(element.type)) {
           if (element.size === 'large') effectiveQty = 12;
           else if (element.size === 'medium') effectiveQty = 8;
