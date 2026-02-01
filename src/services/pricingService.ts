@@ -117,8 +117,8 @@ export const calculatePrice = (
                         // Price disco balls at 50 pesos each
                         price = 50 * topper.quantity;
                     } else { // Regular plastic balls
-                        // Price normal balls at 100 pesos per 3 pieces
-                        price = Math.ceil(topper.quantity / 3) * 100;
+                        // Price normal balls at 20 pesos per piece (based on Pricing Rules Table Rule ID 97)
+                        price = topper.quantity * 20;
                     }
                 }
                 nonGumpasteTotal += price;
@@ -237,16 +237,59 @@ export const calculatePrice = (
                 nonGumpasteTotal += price;
                 break;
 
-            case 'edible_flowers': // Kept for non-gumpaste flowers if any
-                if (element.size === 'large') price = 300;
-                else if (element.size === 'medium') price = 200;
-                else if (element.size === 'small') price = 100;
-                nonGumpasteTotal += price; // Assuming these might not be gumpaste, e.g., real flowers
+            case 'edible_flowers':
+                let flowerPrice = 0;
+                if (element.size === 'large') flowerPrice = 300;
+                else if (element.size === 'medium') flowerPrice = 200;
+                else if (element.size === 'small') flowerPrice = 100;
+                else flowerPrice = 50; // Tiny/Default
+
+                price = flowerPrice * (element.quantity || 1);
+                nonGumpasteTotal += price;
+                // Note: If edible_flowers are "gumpaste features" they should strictly be in supportGumpasteRawTotal?
+                // But prompt says "fresh_flowers" vs "edible_flowers (Gum paste)".
+                // Current code put them in nonGumpasteTotal. I will keep it there unless user specifies otherwise, 
+                // or move to supportGumpasteRawTotal if they are definitely gumpaste.
+                // Rule 153 says 'edible_flowers' category 'support_element'.
+                // I will keep as is (nonGumpasteTotal) to avoid logic drift, but maybe they SHOULD be allowance eligible?
+                // Step 89 shows they were added to nonGumpasteTotal.
+                break;
+
+            case 'macarons':
+                price = 40 * (element.quantity || 1);
+                nonGumpasteTotal += price;
+                break;
+
+            case 'meringue':
+                price = 15 * (element.quantity || 1);
+                nonGumpasteTotal += price;
+                break;
+
+            case 'gumpaste_bundle':
+                let bundlePrice = 0;
+                if (element.size === 'large') bundlePrice = 300;
+                else if (element.size === 'medium') bundlePrice = 200;
+                else bundlePrice = 100; // small/default
+
+                price = bundlePrice * (element.quantity || 1);
+                supportGumpasteRawTotal += price; // Eligible for allowance
                 break;
 
             case 'plastic_ball_regular':
-                // Regular plastic balls: 100 pesos per 3 pieces
-                price = Math.ceil((element.quantity || 1) / 3) * 100;
+                // Regular plastic balls: 20 pesos per piece
+                // FALLBACK: If AI fails to count (quantity=0/undefined), use size estimate
+                let pbQty = element.quantity || 0;
+                if (pbQty === 0 && element.size) {
+                    // Fallback map for coverage -> quantity
+                    if (element.size === 'large') pbQty = 12;      // Coverage assumption
+                    else if (element.size === 'medium') pbQty = 8;
+                    else if (element.size === 'small') pbQty = 4;
+                    else pbQty = 1; // tiny
+                }
+                // Default to at least 1 if it exists in the list
+                pbQty = Math.max(1, pbQty);
+
+                price = pbQty * 20;
                 nonGumpasteTotal += price;
                 break;
 
@@ -256,11 +299,20 @@ export const calculatePrice = (
                 nonGumpasteTotal += price;
                 break;
 
-            case 'plastic_ball': // Fallback if type comes in as generic plastic_ball
+            case 'plastic_ball': // Generic fallback
                 if (element.description?.toLowerCase().includes('disco')) {
                     price = 50 * (element.quantity || 1);
                 } else {
-                    price = Math.ceil((element.quantity || 1) / 3) * 100;
+                    // Same fallback logic for generic plastic_ball
+                    let qty = element.quantity || 0;
+                    if (qty === 0 && element.size) {
+                        if (element.size === 'large') qty = 12;
+                        else if (element.size === 'medium') qty = 8;
+                        else if (element.size === 'small') qty = 4;
+                        else qty = 1;
+                    }
+                    qty = Math.max(1, qty);
+                    price = qty * 20;
                 }
                 nonGumpasteTotal += price;
                 break;
