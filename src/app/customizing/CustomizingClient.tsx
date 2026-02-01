@@ -5,12 +5,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { v4 as uuidv4 } from 'uuid';
 import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Heart, Cake, Star } from 'lucide-react';
-import { CustomizationPills } from '../../components/CustomizationPills';
+import { CakeBaseOptions } from '@/components/CakeBaseOptions';
+import { CustomizationTabs } from '@/components/CustomizationTabs';
 import { CustomizationBottomSheet } from '../../components/CustomizationBottomSheet';
 import { SegmentationOverlay } from '../../components/SegmentationOverlay';
 import { SegmentationBottomSheet } from '../../components/SegmentationBottomSheet';
 import { BoundingBoxOverlay } from '../../components/BoundingBoxOverlay';
-import { FeatureList } from '../../components/FeatureList';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { CustomizationSkeleton } from '../../components/LoadingSkeletons';
 import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, BackIcon, ReportIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon, SideIcingGuideIcon, TopIcingGuideIcon, TopBorderGuideIcon, BaseBorderGuideIcon, BaseBoardGuideIcon, TrashIcon } from '../../components/icons';
@@ -587,7 +587,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     } = useImageManagement();
 
     // --- Local State ---
-    const [activeTab, setActiveTab] = useState<ImageTab>('original');
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
@@ -1375,13 +1374,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const error = analysisError || imageManagementError || designUpdateError || basePriceError || authError || null;
     const isSharing = isPreparingSharedDesign || isSavingDesign;
 
-    const toyWarningMessage = useMemo(() => {
+    const { warningMessage, warningDescription } = useMemo(() => {
+        // Check for toys in both current type and original type (in case it was auto-converted)
         const hasToy = mainToppers.some(
-            topper => topper.isEnabled && ['toy', 'figurine', 'plastic_ball'].includes(topper.type)
+            topper => topper.isEnabled && (
+                ['toy', 'figurine', 'plastic_ball'].includes(topper.type) ||
+                ['toy', 'figurine', 'plastic_ball'].includes(topper.original_type)
+            )
         );
-        return hasToy ? "Toys are subject for availability" : null;
+        return {
+            warningMessage: hasToy ? "Toy temporarily replaced with printout." : null,
+            warningDescription: hasToy ? "We changed the topper to printout for now, please message our partner shop for the availability of the toy before ordering" : null
+        };
     }, [mainToppers]);
-    const warningMessage = toyWarningMessage;
 
 
 
@@ -1550,35 +1555,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [hasShownGuide, setHasShownGuide] = useState(false);
     const [showColorPicker, setShowColorPicker] = useState(false); // Collapsible color picker state
     const [showMessagesPanel, setShowMessagesPanel] = useState(false); // Messages panel visibility
-    const [wasUpdating, setWasUpdating] = useState(false); // Track if we were updating
-
-    // New State for Refactored UI
+    const [wasUpdating, setWasUpdating] = useState(false);
+    // --- UI State ---
+    const [activeTab, setActiveTab] = useState<'original' | 'customized'>('customized');
     const [activeCustomization, setActiveCustomization] = useState<string | null>(null);
 
-    const customizationTabs = useMemo(() => {
-        const tabs = [
-            { id: 'icing', label: 'Change Icing Colors', icon: <Palette className="w-4 h-4" /> },
-            { id: 'messages', label: 'Cake Messages', icon: <MessageSquare className="w-4 h-4" /> },
-        ];
 
-        // Check for non-photo toppers/elements
-        const hasToppers = mainToppers.some(t => t.original_type !== 'edible_photo_top') ||
-            supportElements.some(e => e.original_type !== 'edible_photo_side');
-
-        if (hasToppers) {
-            tabs.push({ id: 'toppers', label: 'Cake Toppers', icon: <PartyPopper className="w-4 h-4" /> });
-        }
-
-        // Check for edible photos
-        const hasEdiblePhotos = mainToppers.some(t => t.original_type === 'edible_photo_top') ||
-            supportElements.some(e => e.original_type === 'edible_photo_side');
-
-        if (hasEdiblePhotos) {
-            tabs.push({ id: 'photos', label: 'Edible Photos', icon: <ImageIconLucide className="w-4 h-4" /> });
-        }
-
-        return tabs;
-    }, [mainToppers, supportElements]);
 
 
 
@@ -2086,8 +2068,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     };
 
     return (<>
-        <div className="flex flex-col items-center gap-2 w-full max-w-7xl mx-auto pb-28 px-4"> {/* Added px-4 padding */}
-            <div className="w-full flex items-center gap-2 md:gap-4 mb-4 pt-6"> {/* Added mb-4 and pt-6 */}
+        <div className="flex flex-col items-center gap-4 w-full max-w-7xl mx-auto pb-28 px-4"> {/* Added px-4 padding */}
+            <div className="w-full flex items-center gap-2 md:gap-4 pt-6"> {/* Added mb-4 and pt-6 */}
                 <button onClick={onClose} className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label="Go back">
                     <BackIcon />
                 </button>
@@ -2164,7 +2146,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             <button
                 onClick={onOpenReportModal}
                 disabled={!editedImage || isLoading || isReporting}
-                className="w-full text-center bg-yellow-100 border border-yellow-200 text-yellow-800 text-sm font-semibold px-4 py-2 rounded-xl shadow-sm mt-[18px] transition-colors hover:bg-yellow-200 disabled:bg-yellow-100/50 disabled:text-yellow-600 disabled:cursor-not-allowed disabled:hover:bg-yellow-100"
+                className="w-full text-center bg-yellow-100 border border-yellow-200 text-yellow-800 text-sm font-semibold px-4 py-2 rounded-xl shadow-sm transition-colors hover:bg-yellow-200 disabled:bg-yellow-100/50 disabled:text-yellow-600 disabled:cursor-not-allowed disabled:hover:bg-yellow-100"
             >
                 BETA TEST: Features are experimental. Click here to report any issues.
             </button>
@@ -2526,49 +2508,38 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             </div>
                         ) : (cakeInfo || analysisError) ? (
                             <div className="space-y-6">
-                                {/* Customization Pills - Top of cake options */}
+                                {/* Customization Tabs - Top of cake options */}
                                 <div className="w-full">
-                                    <CustomizationPills
-                                        tabs={customizationTabs}
+                                    <p className="text-center text-xs font-semibold text-purple-600 mb-2 px-4">
+                                        Tap the icons below to customize your cake
+                                    </p>
+                                    <CustomizationTabs
                                         activeTab={activeCustomization}
-                                        onTabSelect={(id) => {
+                                        onTabClick={(id) => {
                                             setActiveCustomization(id === activeCustomization ? null : id);
                                             setSelectedItem(null);
                                         }}
-                                        className="w-full"
                                     />
                                 </div>
-                                <FeatureList
-                                    analysisError={analysisError}
-                                    analysisId={analysisId}
-                                    cakeInfo={cakeInfo}
-                                    basePriceOptions={basePriceOptions}
-                                    mainToppers={mainToppers}
-                                    supportElements={supportElements}
-                                    cakeMessages={cakeMessages}
-                                    icingDesign={icingDesign}
-                                    additionalInstructions={additionalInstructions}
-                                    onCakeInfoChange={onCakeInfoChange}
-                                    updateMainTopper={updateMainTopper}
-                                    removeMainTopper={removeMainTopper}
-                                    updateSupportElement={updateSupportElement}
-                                    removeSupportElement={removeSupportElement}
-                                    updateCakeMessage={updateCakeMessage}
-                                    removeCakeMessage={removeCakeMessage}
-                                    addCakeMessage={addCakeMessage}
-                                    onIcingDesignChange={onIcingDesignChange}
-                                    onAdditionalInstructionsChange={onAdditionalInstructionsChange}
-                                    onTopperImageReplace={onTopperImageReplace}
-                                    onSupportElementImageReplace={onSupportElementImageReplace}
-                                    isAnalyzing={isAnalyzing}
-                                    itemPrices={itemPrices}
-                                    user={user}
-                                    cakeBaseSectionRef={cakeBaseSectionRef as React.RefObject<HTMLDivElement>}
-                                    cakeMessagesSectionRef={cakeMessagesSectionRef as React.RefObject<HTMLDivElement>}
-                                    onItemClick={handleListItemClick}
-                                    markerMap={markerMap}
-                                    addOnPricing={addOnPricing?.addOnPrice ?? 0}
-                                />
+
+                                {/* Additional Instructions - Always visible in main view */}
+                                <div className="mt-4 bg-slate-50 rounded-lg border border-slate-200 p-3">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h3 className="font-semibold text-slate-700 text-sm">Additional Instructions</h3>
+                                    </div>
+                                    <textarea
+                                        value={additionalInstructions}
+                                        onChange={(e) => onAdditionalInstructionsChange(e.target.value)}
+                                        className="w-full p-2 text-sm border-slate-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                                        placeholder="Specific notes (e.g., 'Make horn gold'). Do not add new items here."
+                                        rows={3}
+                                    />
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        Note: Use for clarifications on existing items.
+                                    </p>
+                                </div>
+                                {/* FeatureList removed as its parts are now broken out */}
+                                {/* Previously FeatureList was here */}
 
                                 {/* Action Buttons */}
                                 <div className="w-full flex items-center justify-end gap-4 pt-2 border-t border-slate-200/50">
@@ -2752,16 +2723,29 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 )
             }
 
-            {/* Unified Customization Bottom Sheet */}
             <CustomizationBottomSheet
                 isOpen={activeCustomization !== null}
                 onClose={() => setActiveCustomization(null)}
-                title={customizationTabs.find(t => t.id === activeCustomization)?.label || 'Customize'}
+                title={
+                    activeCustomization === 'options' ? 'Cake Options' :
+                        activeCustomization === 'icing' ? 'Icing Colors' :
+                            activeCustomization === 'messages' ? 'Cake Messages' :
+                                activeCustomization === 'toppers' ? 'Cake Toppers' :
+                                    activeCustomization === 'photos' ? 'Edible Photos' : 'Customize'
+                }
                 style={{ bottom: (67 + (availabilityType && !isAnalyzing ? 38 : 0) + (warningMessage ? 38 : 0)) + 'px' }}
                 wrapperClassName="md:max-w-7xl md:mx-auto md:justify-end md:px-6"
                 className="md:w-[calc(50%-6px)] md:max-w-none"
                 actionButton={
-                    activeCustomization === 'icing' ? (
+                    activeCustomization === 'options' ? (
+                        <button
+                            onClick={() => setActiveCustomization(null)}
+                            className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg flex items-center justify-center gap-2"
+                        >
+                            <MagicSparkleIcon className="w-5 h-5" />
+                            Apply Changes
+                        </button>
+                    ) : activeCustomization === 'icing' ? (
                         (hasIcingChanges || isUpdatingDesign) ? (
                             <button
                                 onClick={onUpdateDesign}
@@ -2853,6 +2837,18 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     ) : null
                 }
             >
+                {activeCustomization === 'options' && (
+                    <div className="space-y-4">
+                        <CakeBaseOptions
+                            cakeInfo={cakeInfo}
+                            basePriceOptions={basePriceOptions}
+                            onCakeInfoChange={onCakeInfoChange}
+                            isAnalyzing={isAnalyzing}
+                            addOnPricing={addOnPricing?.addOnPrice ?? 0}
+                        />
+                    </div>
+                )}
+
                 {activeCustomization === 'icing' && (
                     <div className="space-y-4">
                         <div className="flex justify-between items-center">
@@ -3175,6 +3171,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 isAnalyzing={isAnalyzing}
                 cakeInfo={cakeInfo}
                 warningMessage={isSafetyFallback ? "AI editing disabled for adult-themed content. Your design changes will still be saved." : warningMessage}
+                warningDescription={warningDescription}
+                onWarningClick={warningMessage && !isSafetyFallback ? () => setActiveCustomization('toppers') : undefined}
                 availability={availabilityType}
             />
             <ReportModal
