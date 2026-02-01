@@ -1375,17 +1375,33 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const isSharing = isPreparingSharedDesign || isSavingDesign;
 
     const { warningMessage, warningDescription } = useMemo(() => {
-        // Check for toys in both current type and original type (in case it was auto-converted)
-        const hasToy = mainToppers.some(
-            topper => topper.isEnabled && (
-                ['toy', 'figurine', 'plastic_ball'].includes(topper.type) ||
-                ['toy', 'figurine', 'plastic_ball'].includes(topper.original_type)
-            )
+        // Check for active toys/figurines (manual selection)
+        const hasActiveToy = mainToppers.some(
+            topper => topper.isEnabled && ['toy', 'figurine'].includes(topper.type)
         );
-        return {
-            warningMessage: hasToy ? "Toy temporarily replaced with printout." : null,
-            warningDescription: hasToy ? "We changed the topper to printout for now, please message our partner shop for the availability of the toy before ordering" : null
-        };
+
+        if (hasActiveToy) {
+            return {
+                warningMessage: "Toy is subject for availability",
+                warningDescription: "Please message our partner shop for the availability of the toy."
+            };
+        }
+
+        // Check for auto-replaced toys (original was toy, now printout)
+        const hasReplacedToy = mainToppers.some(
+            topper => topper.isEnabled &&
+                ['toy', 'figurine'].includes(topper.original_type) &&
+                topper.type === 'printout'
+        );
+
+        if (hasReplacedToy) {
+            return {
+                warningMessage: "toy temporarily replaced with printout",
+                warningDescription: "We changed the topper to printout for now due to availability."
+            };
+        }
+
+        return { warningMessage: null, warningDescription: null };
     }, [mainToppers]);
 
 
