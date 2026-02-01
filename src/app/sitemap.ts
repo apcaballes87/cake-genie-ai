@@ -117,7 +117,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .not('slug', 'is', null)
         .not('original_image_url', 'is', null)
         .order('created_at', { ascending: false })
-        .limit(500)
+        .limit(5000)
 
     const recentSearchRoutes = (recentSearches || []).map((search: any) => ({
         url: `${baseUrl}/customizing/${search.slug}`,
