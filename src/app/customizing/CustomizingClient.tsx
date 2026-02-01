@@ -2507,7 +2507,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 <CustomizationSkeleton />
                             </div>
                         ) : (cakeInfo || analysisError) ? (
-                            <div className="space-y-6">
+                            <div className="">
                                 {/* Customization Tabs - Top of cake options */}
                                 <div className="w-full">
                                     <p className="text-center text-xs font-semibold text-purple-600 mb-2 px-4">
@@ -2524,7 +2524,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                                 {/* Chosen Options Preview - Clickable to edit */}
                                 {cakeInfo && !isAnalyzing && (
-                                    <div className="mt-2 px-1">
+                                    <div className="mt-2 px-2">
                                         <p className="text-xs font-semibold text-slate-500 mb-1">Chosen Options</p>
                                         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                                             {/* Cake Type */}
@@ -2603,7 +2603,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
                                 {/* Additional Instructions - Always visible in main view */}
-                                <div className="mt-2 bg-slate-50 rounded-lg border border-slate-200 p-3">
+                                <div className="mt-1 bg-slate-50 rounded-lg border border-slate-200 p-3">
                                     <div className="flex justify-between items-center mb-2">
                                         <h3 className="font-semibold text-slate-700 text-sm">Additional Instructions</h3>
                                     </div>
@@ -2622,7 +2622,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 {/* Previously FeatureList was here */}
 
                                 {/* Action Buttons */}
-                                <div className="w-full flex items-center justify-end gap-4 pt-2 border-t border-slate-200/50">
+                                <div className="w-full flex items-center justify-end gap-4 pt-2 mt-4 border-t border-slate-200/50">
                                     <button onClick={onOpenReportModal} disabled={!editedImage || isLoading || isReporting} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Report an issue with this image">
                                         <ReportIcon />
                                         <span className="ml-2">{isReporting ? 'Submitting...' : 'Report Issue'}</span>

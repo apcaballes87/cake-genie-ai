@@ -120,7 +120,7 @@ export const TopperCard: React.FC<{
                         {((item as MainTopperUI).quantity || 0) > 1 && ` × ${(item as MainTopperUI).quantity}`}
                     </div>
                     <div className="text-[10px] text-slate-500 mt-0.5">
-                        {materialLabel} • {item.size}
+                        <span className="capitalize">{materialLabel || item.type.replace(/_/g, ' ')}</span> • {item.size}
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
