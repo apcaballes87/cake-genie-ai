@@ -244,6 +244,27 @@ export const calculatePrice = (
                 nonGumpasteTotal += price; // Assuming these might not be gumpaste, e.g., real flowers
                 break;
 
+            case 'plastic_ball_regular':
+                // Regular plastic balls: 100 pesos per 3 pieces
+                price = Math.ceil((element.quantity || 1) / 3) * 100;
+                nonGumpasteTotal += price;
+                break;
+
+            case 'plastic_ball_disco':
+                // Disco balls: 50 pesos each
+                price = 50 * (element.quantity || 1);
+                nonGumpasteTotal += price;
+                break;
+
+            case 'plastic_ball': // Fallback if type comes in as generic plastic_ball
+                if (element.description?.toLowerCase().includes('disco')) {
+                    price = 50 * (element.quantity || 1);
+                } else {
+                    price = Math.ceil((element.quantity || 1) / 3) * 100;
+                }
+                nonGumpasteTotal += price;
+                break;
+
             default:
                 price = 0;
         }
