@@ -20,7 +20,7 @@ import { CakeGenieCartItem, CakeGenieMerchant, CakeGenieMerchantProduct } from '
 import { SearchAutocomplete } from '../../components/SearchAutocomplete';
 import { AvailabilityType } from '../../lib/utils/availability';
 import { FloatingResultPanel } from '../../components/FloatingResultPanel';
-import { COLORS } from '../../constants';
+import { COLORS, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_THUMBNAILS } from '@/constants';
 import { ColorPalette } from '../../components/ColorPalette';
 import { CakeMessagesOptions } from '../../components/CakeMessagesOptions';
 import { CakeToppersOptions } from '../../components/CakeToppersOptions';
@@ -2522,8 +2522,88 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     />
                                 </div>
 
+                                {/* Chosen Options Preview - Clickable to edit */}
+                                {cakeInfo && !isAnalyzing && (
+                                    <div className="mt-2 px-1">
+                                        <p className="text-xs font-semibold text-slate-500 mb-1">Chosen Options</p>
+                                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                            {/* Cake Type */}
+                                            <button
+                                                onClick={() => setActiveCustomization('options')}
+                                                className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                            >
+                                                <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white">
+                                                    <img
+                                                        src={CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
+                                                        alt={cakeInfo.type}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                                <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                    {cakeInfo.type}
+                                                </span>
+                                            </button>
+
+                                            {/* Size */}
+                                            <button
+                                                onClick={() => setActiveCustomization('options')}
+                                                className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                            >
+                                                <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white">
+                                                    <img
+                                                        src={CAKE_SIZE_THUMBNAILS[cakeInfo.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
+                                                        alt={cakeInfo.size}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                                <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                    {cakeInfo.size}
+                                                </span>
+                                            </button>
+
+                                            {/* Thickness */}
+                                            <button
+                                                onClick={() => setActiveCustomization('options')}
+                                                className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                            >
+                                                <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white">
+                                                    <img
+                                                        src={CAKE_THICKNESS_THUMBNAILS[cakeInfo.thickness]}
+                                                        alt={cakeInfo.thickness}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                                <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                    {cakeInfo.thickness}
+                                                </span>
+                                            </button>
+
+                                            {/* Flavors */}
+                                            {cakeInfo.flavors.map((flavor, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => setActiveCustomization('options')}
+                                                    className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                >
+                                                    <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white">
+                                                        <img
+                                                            src={FLAVOR_THUMBNAILS[flavor]}
+                                                            alt={flavor}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+                                                    <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                        {flavor}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+
                                 {/* Additional Instructions - Always visible in main view */}
-                                <div className="mt-4 bg-slate-50 rounded-lg border border-slate-200 p-3">
+                                <div className="mt-2 bg-slate-50 rounded-lg border border-slate-200 p-3">
                                     <div className="flex justify-between items-center mb-2">
                                         <h3 className="font-semibold text-slate-700 text-sm">Additional Instructions</h3>
                                     </div>
