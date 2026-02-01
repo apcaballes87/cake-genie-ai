@@ -812,7 +812,7 @@ const LandingClient: React.FC = () => {
 
 
                         {/* Product Grid (Responsive Cols) */}
-                        <div className="grid grid-cols-2 min-[490px]:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5 lg:gap-6 mb-12">
+                        <div className="grid grid-cols-2 min-[490px]:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5 lg:gap-6 mb-12">
                             {isLoadingProducts && offset === 0 ? (
                                 // Initial Skeleton Loading State
                                 Array.from({ length: 4 }).map((_, i) => (

@@ -18,11 +18,13 @@ interface StickyAddToCartBarProps {
     isAnalyzing?: boolean;
     cakeInfo?: CakeInfoUI | null;
     warningMessage?: string | null;
+    warningDescription?: string | null;
+    onWarningClick?: () => void;
     availability?: AvailabilityType;
     className?: string;
 }
 
-const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({ price, isLoading, isAdding, error, onAddToCartClick, onShareClick, isSharing, canShare, isAnalyzing, cakeInfo, warningMessage, availability, className }) => {
+const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({ price, isLoading, isAdding, error, onAddToCartClick, onShareClick, isSharing, canShare, isAnalyzing, cakeInfo, warningMessage, warningDescription, onWarningClick, availability, className }) => {
     const [show, setShow] = useState(false);
 
     useEffect(() => {
@@ -104,11 +106,21 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({ pric
         <div className={`fixed bottom-0 left-0 right-0 z-40 transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}>
             {renderAvailabilityNotification()}
             {warningMessage && (
-                <div className="bg-yellow-100 border-b border-yellow-200">
-                    <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-yellow-800 text-xs sm:text-sm font-semibold p-2">
-                        <AlertTriangleIcon className="w-5 h-5 text-yellow-600 flex-shrink-0" />
+                <div
+                    className={`bg-red-50 border-b border-red-200 group relative ${onWarningClick ? 'cursor-pointer hover:bg-red-100 transition-colors' : ''}`}
+                    onClick={onWarningClick}
+                >
+                    <div className={`max-w-4xl mx-auto flex items-center justify-center gap-2 text-red-800 text-xs sm:text-sm font-semibold p-2 ${!onWarningClick ? 'cursor-help' : ''}`}>
+                        <AlertTriangleIcon className="w-5 h-5 text-red-600 shrink-0" />
                         <span>{warningMessage}</span>
                     </div>
+                    {/* Tooltip */}
+                    {warningDescription && (
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-72 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-xl z-50 text-center leading-relaxed pointer-events-none">
+                            {warningDescription}
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800"></div>
+                        </div>
+                    )}
                 </div>
             )}
             <div className="bg-white/80 backdrop-blur-lg p-3 shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] border-t border-slate-200">
@@ -124,7 +136,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({ pric
                         <button
                             onClick={onAddToCartClick}
                             disabled={isLoading || !!error || price === null || isAdding || isAnalyzing}
-                            className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md flex justify-center items-center"
+                            className="flex-1 bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md flex justify-center items-center"
                         >
                             {isAdding ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Adding...</> : 'Add to Cart'}
                         </button>
