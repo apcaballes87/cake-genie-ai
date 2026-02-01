@@ -115,10 +115,19 @@ export const calculatePrice = (
                     const lowerDescPB = topper.description?.toLowerCase() || '';
                     if (lowerDescPB.includes('disco ball')) {
                         // Price disco balls at 50 pesos each
-                        price = 50 * topper.quantity;
+                        price = 50 * (topper.quantity || 1);
                     } else { // Regular plastic balls
                         // Price normal balls at 20 pesos per piece (based on Pricing Rules Table Rule ID 97)
-                        price = topper.quantity * 20;
+                        let qty = topper.quantity || 0;
+                        if (qty === 0 && topper.size) {
+                            if (topper.size === 'large') qty = 12;
+                            else if (topper.size === 'medium') qty = 8;
+                            else if (topper.size === 'small') qty = 4;
+                            else qty = 1;
+                        }
+                        qty = Math.max(1, qty);
+                        price = qty * 20;
+                        console.log(`[Pricing] Main Topper Plastic Ball: qty=${qty}, size=${topper.size}, price=${price}`);
                     }
                 }
                 nonGumpasteTotal += price;
@@ -211,16 +220,47 @@ export const calculatePrice = (
                 break;
 
             case 'chocolates':
-                if (element.size === 'large') price = 200; // Changed from 'heavy'
-                else if (element.size === 'medium') price = 100;
-                else if (element.size === 'small') price = 50; // Changed from 'light'
+                let chocoPrice = 0;
+                // Subtype specific pricing from DB
+                if (element.subtype === 'ferrero') chocoPrice = 40;
+                else if (element.subtype === 'oreo') chocoPrice = 20;
+                else if (element.subtype === 'kisses') chocoPrice = 15;
+                // Size-based fallback if generic
+                else if (element.size === 'large') chocoPrice = 200;
+                else if (element.size === 'medium') chocoPrice = 100;
+                else chocoPrice = 50; // common/small default
+
+                // Multiply by quantity (mandatory counting in prompt v3.7)
+                price = chocoPrice * (element.quantity || 1);
+                nonGumpasteTotal += price;
+                break;
+
+            case 'candy':
+                // Candy (lollipops etc) are 15 per piece in DB
+                price = 15 * (element.quantity || 1);
                 nonGumpasteTotal += price;
                 break;
 
             case 'sprinkles':
             case 'dragees':
-                if (element.size === 'large') price = 100; // Changed from 'heavy'
-                supportGumpasteRawTotal += price; // MOVED TO ALLOWANCE BUCKET
+                if (element.size === 'large') price = 100;
+                else if (element.size === 'medium') price = 50;
+                else price = 25; // small/tiny
+                supportGumpasteRawTotal += price;
+                break;
+
+            case 'gumpaste_panel':
+            case 'gumpaste_creations':
+                // Size-based estimation for coverage
+                if (element.size === 'large') price = 200;
+                else if (element.size === 'medium') price = 100;
+                else price = 50; // small/tiny
+                supportGumpasteRawTotal += price;
+                break;
+
+            case 'icing_decorations':
+                price = 0; // Currently no cost in DB
+                nonGumpasteTotal += price;
                 break;
 
             case 'isomalt':
@@ -277,19 +317,18 @@ export const calculatePrice = (
 
             case 'plastic_ball_regular':
                 // Regular plastic balls: 20 pesos per piece
-                // FALLBACK: If AI fails to count (quantity=0/undefined), use size estimate
                 let pbQty = element.quantity || 0;
                 if (pbQty === 0 && element.size) {
                     // Fallback map for coverage -> quantity
-                    if (element.size === 'large') pbQty = 12;      // Coverage assumption
+                    if (element.size === 'large') pbQty = 12;
                     else if (element.size === 'medium') pbQty = 8;
                     else if (element.size === 'small') pbQty = 4;
                     else pbQty = 1; // tiny
                 }
-                // Default to at least 1 if it exists in the list
                 pbQty = Math.max(1, pbQty);
 
                 price = pbQty * 20;
+                console.log(`[Pricing] Support Element Plastic Ball Regular: qty=${pbQty}, size=${element.size}, price=${price}`);
                 nonGumpasteTotal += price;
                 break;
 
@@ -303,7 +342,6 @@ export const calculatePrice = (
                 if (element.description?.toLowerCase().includes('disco')) {
                     price = 50 * (element.quantity || 1);
                 } else {
-                    // Same fallback logic for generic plastic_ball
                     let qty = element.quantity || 0;
                     if (qty === 0 && element.size) {
                         if (element.size === 'large') qty = 12;
@@ -313,6 +351,7 @@ export const calculatePrice = (
                     }
                     qty = Math.max(1, qty);
                     price = qty * 20;
+                    console.log(`[Pricing] Support Element Plastic Ball Generic: qty=${qty}, size=${element.size}, price=${price}`);
                 }
                 nonGumpasteTotal += price;
                 break;

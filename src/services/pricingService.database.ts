@@ -246,9 +246,32 @@ export async function calculatePriceFromDatabase(
     if (rule) {
       price = rule.price;
 
-      // Handle per-piece pricing for subtype items (e.g., chocolates_ferrero at ₱40 each)
-      if (rule.quantity_rule === 'per_piece' && element.quantity) {
-        price *= element.quantity;
+      // Robust Quantity Handling for Support Elements (mirroring main topper logic)
+      let effectiveQty = element.quantity || 0;
+
+      // Fallback for missing quantity if it's a countable type
+      if (effectiveQty === 0 && element.size) {
+        const countableTypes = ['plastic_ball_regular', 'plastic_ball_disco', 'chocolates', 'candy', 'macarons', 'meringue', 'edible_flowers', 'gumpaste_bundle'];
+        if (countableTypes.includes(element.type)) {
+          if (element.size === 'large') effectiveQty = 12;
+          else if (element.size === 'medium') effectiveQty = 8;
+          else if (element.size === 'small') effectiveQty = 4;
+          else effectiveQty = 1;
+        }
+      }
+
+      // Ensure at least 1 if rule is per-something
+      if (rule.quantity_rule) {
+        effectiveQty = Math.max(1, effectiveQty);
+      }
+
+      if (rule.quantity_rule === 'per_piece') {
+        price *= effectiveQty;
+      } else if (rule.quantity_rule === 'per_3_pieces') {
+        price = Math.ceil(effectiveQty / 3) * rule.price;
+      } else if (rule.quantity_rule === 'per_digit') {
+        const digitCount = (element.description.match(/\d/g) || []).length || 1;
+        price = digitCount * rule.price;
       }
 
       if (rule.multiplier_rule === 'tier_count') {
@@ -261,6 +284,8 @@ export async function calculatePriceFromDatabase(
       } else {
         nonGumpasteTotal += price;
       }
+
+      console.log(`[Database Pricing] Support: ${element.description}, qty=${effectiveQty}, rule=${rule.quantity_rule}, unit_price=${rule.price}, final_price=${price}`);
     }
 
     itemPrices.set(element.id, price);

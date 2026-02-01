@@ -102,7 +102,7 @@ async function getDynamicTypeEnums(): Promise<{ mainTopperTypes: string[], suppo
     // Define a hardcoded fallback for safety
     const fallbackEnums = {
         mainTopperTypes: ['edible_3d_complex', 'edible_3d_ordinary', 'printout', 'toy', 'figurine', 'cardstock', 'edible_photo_top', 'candle', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop', 'plastic_ball'],
-        supportElementTypes: ['edible_3d_support', 'edible_2d_support', 'chocolates', 'sprinkles', 'support_printout', 'isomalt', 'dragees', 'edible_flowers', 'edible_photo_side', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'macarons', 'meringue', 'gumpaste_bundle'],
+        supportElementTypes: ['edible_3d_support', 'edible_2d_support', 'chocolates', 'sprinkles', 'support_printout', 'isomalt', 'dragees', 'edible_flowers', 'edible_photo_side', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'macarons', 'meringue', 'gumpaste_bundle', 'candy', 'gumpaste_panel', 'icing_decorations', 'gumpaste_creations'],
         subtypesByType: {
             chocolates: ['ferrero', 'oreo', 'kisses', 'm&ms'],
             edible_3d_ordinary: ['ice_cream_cone'],
@@ -1359,6 +1359,7 @@ Example: "Beautiful pink unicorn birthday cake with rainbow fondant decorations.
                             group_id: { type: Type.STRING },
                             color: { type: Type.STRING },
                             colors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            quantity: { type: Type.INTEGER },
                             x: { type: Type.NUMBER },
                             y: { type: Type.NUMBER }
                         },
