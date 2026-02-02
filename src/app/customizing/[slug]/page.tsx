@@ -659,9 +659,6 @@ export default async function RecentSearchPage({ params }: Props) {
         <>
             <DesignSchema design={design} prices={prices} />
 
-            {/* SSR Content - Visible initial content for SEO and fast first paint */}
-            {/* This is hidden by CustomizingClient once JavaScript hydrates */}
-            <SSRCakeDetails design={design} prices={prices} relatedDesigns={relatedDesigns} />
 
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                 <CustomizationProvider initialData={initialState}>

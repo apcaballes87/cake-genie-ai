@@ -1,5 +1,6 @@
 'use client';
 import React, { useRef } from 'react';
+import Image from 'next/image';
 import { CakeInfoUI, BasePriceInfo, CakeType } from '@/types';
 import { CAKE_TYPES, THICKNESS_OPTIONS_MAP, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_OPTIONS, FLAVOR_THUMBNAILS } from '@/constants';
 import { CakeBaseSkeleton } from './LoadingSkeletons';
@@ -91,8 +92,14 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                 onClick={() => onCakeInfoChange({ type })}
                                 className="group shrink-0 w-20 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
                             >
-                                <div className={`w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.type === type ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
-                                    <img src={CAKE_TYPE_THUMBNAILS[type]} alt={cakeTypeDisplayMap[type]} className="w-full h-full object-cover" />
+                                <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.type === type ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
+                                    <Image
+                                        src={CAKE_TYPE_THUMBNAILS[type]}
+                                        alt={cakeTypeDisplayMap[type]}
+                                        fill
+                                        sizes="80px"
+                                        className="object-cover"
+                                    />
                                 </div>
                                 <span className="mt-2 text-[10px] font-medium text-slate-700 leading-tight">{cakeTypeDisplayMap[type]}</span>
                             </button>
@@ -113,7 +120,13 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                 className="group shrink-0 w-20 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
                             >
                                 <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.thickness === thickness ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
-                                    <img src={CAKE_THICKNESS_THUMBNAILS[thickness]} alt={`${thickness} height`} className="w-full h-full object-cover" />
+                                    <Image
+                                        src={CAKE_THICKNESS_THUMBNAILS[thickness]}
+                                        alt={`${thickness} height`}
+                                        fill
+                                        sizes="80px"
+                                        className="object-cover"
+                                    />
                                 </div>
                                 <span className="mt-2 text-[10px] font-semibold text-slate-800 leading-tight">{thickness}</span>
                             </button>
@@ -142,7 +155,13 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                         className="group shrink-0 w-20 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
                                     >
                                         <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.size === option.size ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
-                                            <img src={CAKE_SIZE_THUMBNAILS[option.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]} alt={option.size} className="w-full h-full object-cover" />
+                                            <Image
+                                                src={CAKE_SIZE_THUMBNAILS[option.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
+                                                alt={option.size}
+                                                fill
+                                                sizes="80px"
+                                                className="object-cover"
+                                            />
                                             <div className="absolute inset-x-0 top-0 pt-4 text-black text-[10px] font-bold text-center leading-tight">
                                                 {(() => {
                                                     const sizePart = option.size?.split(' ')[0] || '';
@@ -197,8 +216,14 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                                     }}
                                                     className={`group shrink-0 w-20 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 transition-opacity ${isFlavorDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 >
-                                                    <div className={`w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.flavors[index] === flavor ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
-                                                        <img src={FLAVOR_THUMBNAILS[flavor]} alt={flavor} className={`w-full h-full object-cover transition-all ${isFlavorDisabled ? 'filter grayscale' : ''}`} />
+                                                    <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.flavors[index] === flavor ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
+                                                        <Image
+                                                            src={FLAVOR_THUMBNAILS[flavor]}
+                                                            alt={flavor}
+                                                            fill
+                                                            sizes="80px"
+                                                            className={`object-cover transition-all ${isFlavorDisabled ? 'filter grayscale' : ''}`}
+                                                        />
                                                     </div>
                                                     <span className="mt-2 text-[10px] font-medium text-slate-700 leading-tight">{flavor}</span>
                                                 </button>

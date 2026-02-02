@@ -77,12 +77,14 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
         }
     }, [isOpen]);
 
-    if (!isVisible) return null;
+    // if (!isVisible) return null; // Removed for SEO - keep mounted but hidden
+
 
     return (
         <div
-            className={`fixed inset-x-0 z-40 flex justify-center pointer-events-none transition-all duration-500 ease-in-out ${!style?.bottom ? 'bottom-[80px]' : ''} ${wrapperClassName}`}
+            className={`fixed inset-x-0 z-40 flex justify-center pointer-events-none transition-all duration-500 ease-in-out ${!style?.bottom ? 'bottom-[80px]' : ''} ${wrapperClassName} ${!isVisible ? 'invisible' : ''}`}
             style={style}
+            aria-hidden={!isOpen}
         >
             {/* Sheet */}
             <div
