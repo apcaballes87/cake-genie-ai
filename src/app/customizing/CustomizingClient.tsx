@@ -3,6 +3,7 @@
 import React, { Dispatch, SetStateAction, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { v4 as uuidv4 } from 'uuid';
 import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Heart, Cake, Star } from 'lucide-react';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
@@ -399,18 +400,18 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
     const icingColorsSame = topColor && sideColor && topColor.toUpperCase() === sideColor.toUpperCase();
 
     const tools = (icingColorsSame ? [
-        { id: 'drip', description: 'Drip', label: 'Drip', icon: <img src={getDripImage(effectiveIcingDesign.drip)} alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
-        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <img src={getTopBorderImage(effectiveIcingDesign.border_top)} alt="Top border" />, featureFlag: effectiveIcingDesign.border_top },
-        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <img src={getBaseBorderImage(effectiveIcingDesign.border_base)} alt="Base border" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
-        { id: 'icing', description: 'Body Icing', label: 'Body Icing', icon: <img src={getIcingImage('top', false)} alt="Icing color" />, featureFlag: !!(effectiveIcingDesign.colors?.top || effectiveIcingDesign.colors?.side) },
-        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <img src={getBaseboardImage(effectiveIcingDesign.gumpasteBaseBoard)} alt="Gumpaste baseboard" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
+        { id: 'drip', description: 'Drip', label: 'Drip', icon: <Image src={getDripImage(effectiveIcingDesign.drip)} alt="Drip effect" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.drip },
+        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <Image src={getTopBorderImage(effectiveIcingDesign.border_top)} alt="Top border" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.border_top },
+        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <Image src={getBaseBorderImage(effectiveIcingDesign.border_base)} alt="Base border" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
+        { id: 'icing', description: 'Body Icing', label: 'Body Icing', icon: <Image src={getIcingImage('top', false)} alt="Icing color" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: !!(effectiveIcingDesign.colors?.top || effectiveIcingDesign.colors?.side) },
+        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <Image src={getBaseboardImage(effectiveIcingDesign.gumpasteBaseBoard)} alt="Gumpaste baseboard" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
     ] : [
-        { id: 'drip', description: 'Drip', label: 'Drip', icon: <img src={getDripImage(effectiveIcingDesign.drip)} alt="Drip effect" />, featureFlag: effectiveIcingDesign.drip },
-        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <img src={getTopBorderImage(effectiveIcingDesign.border_top)} alt="Top border" />, featureFlag: effectiveIcingDesign.border_top },
-        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <img src={getBaseBorderImage(effectiveIcingDesign.border_base)} alt="Base border" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
-        { id: 'top', description: 'Top Icing', label: 'Top Icing', icon: <img src={getIcingImage('top', true)} alt="Top icing" />, featureFlag: !!effectiveIcingDesign.colors?.top },
-        { id: 'side', description: 'Side Icing', label: 'Body Icing', icon: <img src={getIcingImage('side', false)} alt="Side icing" />, featureFlag: !!effectiveIcingDesign.colors?.side },
-        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <img src={getBaseboardImage(effectiveIcingDesign.gumpasteBaseBoard)} alt="Gumpaste baseboard" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
+        { id: 'drip', description: 'Drip', label: 'Drip', icon: <Image src={getDripImage(effectiveIcingDesign.drip)} alt="Drip effect" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.drip },
+        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <Image src={getTopBorderImage(effectiveIcingDesign.border_top)} alt="Top border" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.border_top },
+        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <Image src={getBaseBorderImage(effectiveIcingDesign.border_base)} alt="Base border" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
+        { id: 'top', description: 'Top Icing', label: 'Top Icing', icon: <Image src={getIcingImage('top', true)} alt="Top icing" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: !!effectiveIcingDesign.colors?.top },
+        { id: 'side', description: 'Side Icing', label: 'Body Icing', icon: <Image src={getIcingImage('side', false)} alt="Side icing" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: !!effectiveIcingDesign.colors?.side },
+        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <Image src={getBaseboardImage(effectiveIcingDesign.gumpasteBaseBoard)} alt="Gumpaste baseboard" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
     ]).filter(tool => {
         // Hide Top Icing tool when there's an edible photo on top (top will be covered)
         if (tool.id === 'top' && hasEdiblePhotoOnTop) {
@@ -749,12 +750,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     // --- Effects ---
 
     // Hide SSR content once client hydrates - enables progressive enhancement
-    useEffect(() => {
-        const ssrContent = document.getElementById('ssr-content');
-        if (ssrContent) {
-            ssrContent.style.display = 'none';
-        }
-    }, []);
+
 
     // Handle product prop loading (from SEO-friendly routes like /shop/[merchant]/[product]/customize)
     // AND recent search designs (from /customizing/[slug])
@@ -2216,18 +2212,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                                 {/* SSR / Initial Load Fallback Image using Props */}
                                 {!originalImagePreview && (product?.image_url || recentSearchDesign?.original_image_url) && (
-                                    <img
+                                    <Image
                                         src={product?.image_url || recentSearchDesign?.original_image_url || ''}
                                         alt={product?.alt_text || recentSearchDesign?.alt_text || product?.title || recentSearchDesign?.keywords || 'Cake Design'}
-                                        className="w-full h-full object-contain rounded-lg"
-                                        loading="eager"
-                                        fetchPriority="high"
+                                        fill
+                                        sizes="(max-width: 768px) 100vw, 50vw"
+                                        className="object-contain rounded-lg"
+                                        priority
                                     />
                                 )}
 
                                 {(originalImagePreview) && (
                                     <>
-                                        <img
+                                        <Image
                                             onLoad={(e) => {
                                                 const img = e.currentTarget;
                                                 const container = markerContainerRef.current;
@@ -2247,7 +2244,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             key={activeTab}
                                             src={activeTab === 'customized' ? (editedImage || originalImagePreview) : originalImagePreview}
                                             alt={product?.alt_text || (product ? `${product.title} - Custom cake${merchant ? ` from ${merchant.business_name}` : ''}` : (activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake"))}
-                                            className="w-full h-full object-contain rounded-lg"
+                                            fill
+                                            sizes="(max-width: 768px) 100vw, 50vw"
+                                            className="object-contain rounded-lg"
+                                            priority
                                         />
 
                                         {/* Save Design button - top left */}
@@ -2549,9 +2549,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                 className="group flex flex-col items-center gap-1 min-w-[60px]"
                                             >
                                                 <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white">
-                                                    <img
+                                                    <Image
                                                         src={CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
                                                         alt={cakeInfo.type}
+                                                        width={56}
+                                                        height={56}
                                                         className="w-full h-full object-cover"
                                                     />
                                                 </div>
@@ -2566,9 +2568,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                 className="group flex flex-col items-center gap-1 min-w-[60px]"
                                             >
                                                 <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white">
-                                                    <img
+                                                    <Image
                                                         src={CAKE_SIZE_THUMBNAILS[cakeInfo.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
                                                         alt={cakeInfo.size}
+                                                        width={56}
+                                                        height={56}
                                                         className="w-full h-full object-cover"
                                                     />
                                                 </div>
@@ -2583,9 +2587,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                 className="group flex flex-col items-center gap-1 min-w-[60px]"
                                             >
                                                 <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white">
-                                                    <img
+                                                    <Image
                                                         src={CAKE_THICKNESS_THUMBNAILS[cakeInfo.thickness]}
                                                         alt={cakeInfo.thickness}
+                                                        width={56}
+                                                        height={56}
                                                         className="w-full h-full object-cover"
                                                     />
                                                 </div>
@@ -2602,9 +2608,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                     className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                 >
                                                     <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white">
-                                                        <img
+                                                        <Image
                                                             src={FLAVOR_THUMBNAILS[flavor]}
                                                             alt={flavor}
+                                                            width={56}
+                                                            height={56}
                                                             className="w-full h-full object-cover"
                                                         />
                                                     </div>
@@ -2933,19 +2941,21 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     ) : null
                 }
             >
-                {activeCustomization === 'options' && (
-                    <div className="space-y-4">
-                        <CakeBaseOptions
-                            cakeInfo={cakeInfo}
-                            basePriceOptions={basePriceOptions}
-                            onCakeInfoChange={onCakeInfoChange}
-                            isAnalyzing={isAnalyzing}
-                            addOnPricing={addOnPricing?.addOnPrice ?? 0}
-                        />
-                    </div>
-                )}
+                <div className={activeCustomization === 'options' ? 'block' : 'hidden'}>
+                    {cakeInfo && (
+                        <div className="space-y-4">
+                            <CakeBaseOptions
+                                cakeInfo={cakeInfo}
+                                basePriceOptions={basePriceOptions}
+                                onCakeInfoChange={onCakeInfoChange}
+                                isAnalyzing={isAnalyzing}
+                                addOnPricing={addOnPricing?.addOnPrice ?? 0}
+                            />
+                        </div>
+                    )}
+                </div>
 
-                {activeCustomization === 'icing' && (
+                <div className={activeCustomization === 'icing' ? 'block' : 'hidden'}>
                     <div className="space-y-4">
                         <div className="flex justify-between items-center">
                             <p className="text-xs text-slate-500">Customize your cake's colors and icing details.</p>
@@ -2974,12 +2984,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             onSelectItem={setSelectedItem}
                             icingDesign={icingDesign}
                             cakeType={cakeInfo?.type || null}
-                            isVisible={true}
+                            isVisible={activeCustomization === 'icing'}
                             showGuide={false}
                             selectedItem={selectedItem}
                             mainToppers={mainToppers}
                         />
-                        {/* Inline Icing Editor Panel - Reused from original but inside sheet */}
+                        {/* Inline Icing Editor Panel */}
                         {selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'icing' && (
                             <div className="mt-2 pt-2 border-t border-slate-100 animate-fade-in">
                                 {(() => {
@@ -2992,33 +3002,39 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         colorKey: keyof IcingColorDetails,
                                         label: string
                                     ) => {
-                                        const isEnabled = icingDesign?.[featureKey] || false;
+                                        if (!icingDesign) return null;
+                                        const isEnabled = icingDesign[featureKey];
                                         const isDisabled = (featureKey === 'border_base' || featureKey === 'gumpasteBaseBoard') && isBento;
 
                                         return (
                                             <>
-                                                <SimpleToggle
-                                                    label={label}
-                                                    isEnabled={isEnabled}
-                                                    disabled={isDisabled}
-                                                    onChange={(enabled) => {
-                                                        if (!icingDesign) return;
-                                                        const newIcingDesign = { ...icingDesign, [featureKey]: enabled };
-                                                        if (enabled && !newIcingDesign.colors[colorKey]) {
-                                                            newIcingDesign.colors = { ...newIcingDesign.colors, [colorKey]: '#FFFFFF' };
-                                                        }
-                                                        onIcingDesignChange(newIcingDesign);
-                                                    }}
-                                                />
-                                                <div className={`mt-2 ${!isEnabled && !isDisabled ? 'opacity-40 pointer-events-none' : ''}`}>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-xs font-semibold text-slate-700">{label}</span>
+                                                    <label className="relative inline-flex items-center cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="sr-only peer"
+                                                            checked={isEnabled}
+                                                            disabled={isDisabled}
+                                                            onChange={(e) => {
+                                                                const newIcingDesign = { ...icingDesign, [featureKey]: e.target.checked };
+                                                                if (e.target.checked && !newIcingDesign.colors[colorKey]) {
+                                                                    newIcingDesign.colors = { ...newIcingDesign.colors, [colorKey]: '#FFFFFF' };
+                                                                }
+                                                                onIcingDesignChange(newIcingDesign);
+                                                            }}
+                                                        />
+                                                        <div className={`w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'peer-checked:bg-purple-600'}`}></div>
+                                                    </label>
+                                                </div>
+                                                <div className={`transition-all duration-300 ${isEnabled && !isDisabled ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
                                                     <div className="pb-2">
                                                         <ColorPalette
-                                                            selectedColor={icingDesign?.colors[colorKey] || ''}
+                                                            selectedColor={icingDesign.colors[colorKey] || ''}
                                                             onColorChange={(newHex) => {
-                                                                if (!icingDesign) return;
                                                                 const newIcingDesign = {
                                                                     ...icingDesign,
-                                                                    [featureKey]: true,
+                                                                    [featureKey]: true, // Ensure feature is enabled when color is picked
                                                                     colors: { ...icingDesign.colors, [colorKey]: newHex }
                                                                 };
                                                                 onIcingDesignChange(newIcingDesign);
@@ -3032,12 +3048,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                                     // Helper function for color picker only (top/side icing)
                                     const renderColorOnly = (colorKey: keyof IcingColorDetails, label: string) => {
+                                        if (!icingDesign) return null;
                                         return (
                                             <div className="pb-2">
                                                 <ColorPalette
-                                                    selectedColor={icingDesign?.colors[colorKey] || ''}
+                                                    selectedColor={icingDesign.colors[colorKey] || ''}
                                                     onColorChange={(newHex) => {
-                                                        if (!icingDesign) return;
                                                         onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: newHex } });
                                                     }}
                                                 />
@@ -3047,13 +3063,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                                     // Helper function for combined icing color picker
                                     const renderCombinedIcingColor = () => {
-                                        const currentColor = icingDesign?.colors.top || icingDesign?.colors.side || '#FFFFFF';
+                                        if (!icingDesign) return null;
+                                        const currentColor = icingDesign.colors.top || icingDesign.colors.side || '#FFFFFF';
                                         return (
                                             <div className="pb-2">
                                                 <ColorPalette
                                                     selectedColor={currentColor}
                                                     onColorChange={(newHex) => {
-                                                        if (!icingDesign) return;
                                                         onIcingDesignChange({
                                                             ...icingDesign,
                                                             colors: {
@@ -3091,9 +3107,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             </div>
                         )}
                     </div>
-                )}
+                </div>
 
-                {activeCustomization === 'messages' && (
+                <div className={activeCustomization === 'messages' ? 'block' : 'hidden'}>
                     <CakeMessagesOptions
                         cakeMessages={cakeMessages}
                         markerMap={markerMap}
@@ -3102,9 +3118,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         updateCakeMessage={updateCakeMessage}
                         removeCakeMessage={removeCakeMessage}
                     />
-                )}
+                </div>
 
-                {activeCustomization === 'toppers' && (
+                <div className={activeCustomization === 'toppers' ? 'block' : 'hidden'}>
                     <CakeToppersOptions
                         mainToppers={mainToppers}
                         supportElements={supportElements}
@@ -3116,9 +3132,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         itemPrices={itemPrices}
                         isAdmin={isAdmin}
                     />
-                )}
+                </div>
 
-                {activeCustomization === 'photos' && (
+                <div className={activeCustomization === 'photos' ? 'block' : 'hidden'}>
                     <div className="space-y-4">
                         {/* Logic to show Edible Photo options */}
                         {(() => {
@@ -3170,7 +3186,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             ));
                         })()}
                     </div>
-                )}
+                </div>
             </CustomizationBottomSheet>
 
             {/* Related Designs Section */}
@@ -3188,11 +3204,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             >
                                 <div className="relative aspect-square mb-3 rounded-xl overflow-hidden bg-gray-100 shrink-0">
                                     {related.original_image_url && (
-                                        <img
+                                        <Image
                                             src={related.original_image_url}
                                             alt={related.alt_text || `${related.keywords || 'Custom'} cake design`}
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                            loading="lazy"
+                                            fill
+                                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
+                                            className="object-cover group-hover:scale-110 transition-transform duration-500"
                                         />
                                     )}
                                     {/* Overlay Gradient on Hover */}
