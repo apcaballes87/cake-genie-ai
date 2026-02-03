@@ -23,12 +23,12 @@ export default function TawkToChat() {
                 desktop: {
                     position: 'br', // bottom right
                     xOffset: 15,
-                    yOffset: 35   // Default is usually ~15-20, so 35-40
+                    yOffset: 55   // Default is usually ~15-20, so 35-40 + 20 = 55
                 },
                 mobile: {
                     position: 'br',
                     xOffset: 15,
-                    yOffset: 95   // To clear mobile bottom nav (estimated at 70-80px + padding)
+                    yOffset: 115   // To clear mobile bottom nav (estimated at 70-80px + padding) + 20
                 }
             }
         };
