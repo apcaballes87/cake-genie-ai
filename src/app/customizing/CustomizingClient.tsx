@@ -559,7 +559,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     // --- Context Hooks ---
     const { user, isAuthenticated, signOut } = useAuth();
-    const { itemCount: supabaseItemCount, addToCartOptimistic, removeItemOptimistic, authError, isLoading: isCartLoading } = useCart();
+    const { itemCount: supabaseItemCount, addToCartOptimistic, addToCartWithBackgroundUpload, removeItemOptimistic, authError, isLoading: isCartLoading } = useCart();
     const { settings: availabilitySettings, loading: isLoadingAvailabilitySettings } = useAvailabilitySettings();
     const { toggleSaveDesign, isDesignSaved } = useSavedItemsActions();
     const { savedDesignHashes } = useSavedItemsData();
@@ -1476,8 +1476,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         if (!finalPrice || !cakeInfo) return;
         setIsAddingToCart(true);
         try {
-            // Pass userId to avoid extra auth call - user is already authenticated from context
-            const { originalImageUrl, finalImageUrl } = await uploadCartImages({
+            // 1. Prepare Base64 placeholders for immediate optimistic display
+            const optimisticOriginal = originalImagePreview || '';
+            const optimisticCustomized = editedImage || '';
+
+            // 2. Start Upload in Background (Do NOT await)
+            const uploadPromise = uploadCartImages({
                 editedImageDataUri: editedImage,
                 userId: user?.id
             });
@@ -1493,8 +1497,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 addon_price: (finalPrice || 0) - (basePrice || 0),
                 final_price: finalPrice || 0,
                 quantity: 1,
-                original_image_url: originalImageUrl || '',
-                customized_image_url: finalImageUrl || '',
+                original_image_url: optimisticOriginal, // Base64
+                customized_image_url: optimisticCustomized, // Base64
                 customization_details: {
                     flavors: cakeInfo.flavors,
                     mainToppers: mainToppers.filter(t => t.isEnabled).map(t => ({
@@ -1520,11 +1524,16 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 }
             };
 
-            addToCartOptimistic(cartItem);
+            // 4. Update UI Optimistically & Hand off upload task
+            // We await it only to catch immediate sync errors if we want, but checking 
+            // implementation, it triggers background task. However, since the function allows passing promise,
+            // we should NOT await the background task completion, but we CAN await the *invocation* which is fast.
+            await addToCartWithBackgroundUpload(cartItem, uploadPromise);
+
             showSuccess('Added to cart!');
             router.push('/cart');
         } catch (err) {
-            showError('Failed to add to cart');
+            showError('Failed to add to cart: ' + (err instanceof Error ? err.message : 'Unknown error'));
             console.error(err);
         } finally {
             setIsAddingToCart(false);

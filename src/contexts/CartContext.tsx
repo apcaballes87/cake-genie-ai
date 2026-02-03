@@ -170,6 +170,10 @@ interface CartActionsType {
     updateQuantityOptimistic: (cartItemId: string, quantity: number) => Promise<void>;
     removeItemOptimistic: (cartItemId: string) => Promise<void>;
     clearCart: () => void;
+    addToCartWithBackgroundUpload: (
+        initialItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
+        uploadTask: Promise<{ originalImageUrl: string; finalImageUrl: string }>
+    ) => Promise<void>;
 }
 
 interface CartContextType extends CartDataType, CartActionsType { }
@@ -526,6 +530,72 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, []);
 
+    const addToCartWithBackgroundUpload = useCallback(async (
+        initialItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
+        uploadTask: Promise<{ originalImageUrl: string; finalImageUrl: string }>
+    ) => {
+        const tempId = `temp-${Date.now()}`;
+        const now = new Date().toISOString();
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
+
+        // 1. Optimistic Update with Initial Item (Base64)
+        const tempItem: CakeGenieCartItem = {
+            ...initialItem,
+            cart_item_id: tempId,
+            created_at: now,
+            updated_at: now,
+            expires_at: expiresAt.toISOString(),
+        };
+
+        setCartItems(prevItems => [tempItem, ...prevItems]);
+
+        // 2. Background Process
+        (async () => {
+            try {
+                // Wait for upload
+                const { originalImageUrl, finalImageUrl } = await uploadTask;
+
+                // Prepare real item for DB
+                const finalItemParams = {
+                    ...initialItem,
+                    original_image_url: originalImageUrl,
+                    customized_image_url: finalImageUrl
+                };
+
+                const { data: { user } } = await supabase.auth.getUser();
+                // If no user, we might be in trouble if we need a session, but let's try to proceed 
+                // (service handles anonymous session creation if passed, but here we assume context already inited)
+                // The context initializes user on mount, so user should exist (anon or real).
+
+                const isAnonymous = user?.is_anonymous ?? false;
+                // If user is null (auth error?), we can't really save to DB properly.
+                if (!user) {
+                    throw new Error("User session not found during background save");
+                }
+
+                const itemToSend = {
+                    ...finalItemParams,
+                    user_id: isAnonymous ? null : user.id,
+                    session_id: isAnonymous ? user.id : null,
+                };
+
+                const { data: realItem, error } = await addToCartService(itemToSend);
+
+                if (error || !realItem) throw error;
+
+                // Replace temp item with real item
+                setCartItems(prev => prev.map(item => item.cart_item_id === tempId ? realItem : item));
+
+            } catch (error) {
+                console.error("Background upload/add failed", error);
+                // Rollback
+                setCartItems(prev => prev.filter(item => item.cart_item_id !== tempId));
+                showError("Failed to save item to cart. Please try again.");
+            }
+        })();
+    }, [supabase]);
+
     const removeItemOptimistic = useCallback(async (cartItemId: string) => {
         const originalCart = [...cartItems];
 
@@ -618,6 +688,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setEventTime,
         setDeliveryInstructions,
         setSelectedAddressId,
+        addToCartWithBackgroundUpload,
     }), [
         refreshCart,
         addToCartOptimistic,
@@ -628,6 +699,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setEventTime,
         setDeliveryInstructions,
         setSelectedAddressId,
+        addToCartWithBackgroundUpload,
     ]);
 
     const dataValue = useMemo(() => ({
