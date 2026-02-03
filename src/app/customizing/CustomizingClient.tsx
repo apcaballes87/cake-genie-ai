@@ -13,7 +13,7 @@ import { SegmentationOverlay } from '../../components/SegmentationOverlay';
 import { SegmentationBottomSheet } from '../../components/SegmentationBottomSheet';
 import { BoundingBoxOverlay } from '../../components/BoundingBoxOverlay';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { CustomizationSkeleton } from '../../components/LoadingSkeletons';
+import { CustomizationSkeleton, CustomizationTabsSkeleton, ChosenOptionsSkeleton } from '../../components/LoadingSkeletons';
 import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, BackIcon, ReportIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon, SideIcingGuideIcon, TopIcingGuideIcon, TopBorderGuideIcon, BaseBorderGuideIcon, BaseBoardGuideIcon, TrashIcon } from '../../components/icons';
 import { ShoppingBag } from 'lucide-react';
 import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType, AvailabilitySettings, IcingColorDetails, AnalysisItem, ClusteredMarker, CartItem } from '../../types';
@@ -2529,7 +2529,22 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         <p className="text-xs text-slate-500">Extracting features and generating options</p>
                                     </div>
                                 </div>
-                                <CustomizationSkeleton />
+                                {/* Use granular skeletons to maintain layout structure */}
+                                <div className="w-full">
+                                    <p className="text-center text-xs font-semibold text-purple-600 mb-2 px-4 opacity-50">
+                                        Tap the icons below to customize your cake
+                                    </p>
+                                    <CustomizationTabsSkeleton />
+                                </div>
+                                <ChosenOptionsSkeleton />
+
+                                {/* Placeholder for other sections if needed, or keeping it minimal */}
+                                <div className="mt-4 px-2">
+                                    <div className="bg-slate-50 rounded-lg p-3 space-y-2 border border-slate-200/50">
+                                        <div className="h-4 w-32 bg-slate-200 rounded" />
+                                        <div className="h-16 w-full bg-slate-200 rounded" />
+                                    </div>
+                                </div>
                             </div>
                         ) : (cakeInfo || analysisError) ? (
                             <div className="">

@@ -158,46 +158,57 @@ export const CakeBaseSkeleton: React.FC = React.memo(() => (
 ));
 CakeBaseSkeleton.displayName = 'CakeBaseSkeleton';
 
+// Customization Tabs Skeleton (Circles)
+export const CustomizationTabsSkeleton: React.FC = React.memo(() => (
+  <div className="w-full px-4 mb-4">
+    <div className="flex gap-4 overflow-x-auto pb-2 justify-between md:justify-center">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="flex flex-col items-center gap-2 min-w-[60px]">
+          <div className="w-12 h-12 rounded-full bg-slate-200/80" />
+          <div className="h-2.5 w-10 bg-slate-200/80 rounded" />
+        </div>
+      ))}
+    </div>
+  </div>
+));
+CustomizationTabsSkeleton.displayName = 'CustomizationTabsSkeleton';
+
+// Chosen Options Skeleton (Squares)
+export const ChosenOptionsSkeleton: React.FC = React.memo(() => (
+  <div className="mt-2 px-2 space-y-2">
+    <div className="h-3 w-24 bg-slate-200 rounded ml-1" /> {/* "Chosen Options" label */}
+    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="flex flex-col items-center gap-1 min-w-[60px]">
+          <div className="w-14 h-14 rounded-lg bg-slate-200 border border-slate-100" />
+          <div className="h-2.5 w-12 bg-slate-200 rounded mt-1" />
+        </div>
+      ))}
+    </div>
+  </div>
+));
+ChosenOptionsSkeleton.displayName = 'ChosenOptionsSkeleton';
+
 export const CustomizationSkeleton: React.FC = React.memo(() => (
-  <div className="space-y-8 animate-pulse">
-    {/* Main Options */}
-    <div className="space-y-4">
-      <div className="flex gap-4 overflow-x-auto pb-2">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="flex flex-col items-center gap-2 min-w-[60px]">
-            <div className="w-12 h-12 rounded-full bg-slate-200" />
-            <div className="h-3 w-12 bg-slate-200 rounded" />
-          </div>
-        ))}
+  <div className="space-y-6 animate-pulse">
+    {/* Tabs */}
+    <CustomizationTabsSkeleton />
+
+    {/* Chosen Options */}
+    <ChosenOptionsSkeleton />
+
+    {/* Additional Instructions Placeholder */}
+    <div className="px-2">
+      <div className="bg-slate-50 rounded-lg p-3 space-y-2 border border-slate-200/50">
+        <div className="h-4 w-32 bg-slate-200 rounded" />
+        <div className="h-16 w-full bg-slate-200 rounded" />
       </div>
     </div>
 
-    {/* Section 1 */}
-    <div className="space-y-4">
-      <div className="h-6 w-1/3 bg-slate-200 rounded" />
-      <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-4">
-        <div className="flex justify-between items-center">
-          <div className="h-5 w-1/2 bg-slate-200 rounded" />
-          <div className="w-10 h-6 bg-slate-200 rounded-full" />
-        </div>
-        <div className="flex gap-3 overflow-hidden">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="w-20 h-20 bg-slate-200 rounded-lg shrink-0" />
-          ))}
-        </div>
-      </div>
-    </div>
-
-    {/* Section 2 */}
-    <div className="space-y-4">
-      <div className="h-6 w-1/4 bg-slate-200 rounded" />
-      <div className="bg-white p-4 rounded-xl border border-slate-200">
-        <div className="flex justify-between items-center mb-4">
-          <div className="h-5 w-2/3 bg-slate-200 rounded" />
-          <div className="w-10 h-6 bg-slate-200 rounded-full" />
-        </div>
-        <div className="h-10 w-full bg-slate-200 rounded" />
-      </div>
+    {/* Actions */}
+    <div className="flex justify-end px-2 pt-2 gap-2">
+      <div className="h-9 w-24 bg-slate-200 rounded-lg" />
+      <div className="h-9 w-20 bg-slate-200 rounded-lg" />
     </div>
   </div>
 ));
