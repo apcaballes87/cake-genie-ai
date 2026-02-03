@@ -98,49 +98,42 @@ export const useSearchEngine = ({
     clickedElement.style.transform = 'scale(0.95)';
     clickedElement.style.opacity = '0.9';
 
-    const proxies = [
-      'https://corsproxy.io/?', // Primary, fastest
-      'https://api.allorigins.win/raw?url=' // Reliable backup
-    ];
-    const timeout = 6000; // 6 seconds
-
-    const fetchPromises = proxies.map(proxy =>
-      fetchWithTimeout(`${proxy}${encodeURIComponent(imageUrl)}`, { timeout })
-        .then(response => response.blob())
-        .then(blob => {
-          if (blob.type.startsWith('text/')) {
-            throw new Error('Proxy returned non-image content.');
-          }
-          return blob;
-        })
-    );
-
-    // Add direct fetch as a last resort, it might work for some sites
-    fetchPromises.push(
-      fetchWithTimeout(imageUrl, { timeout, mode: 'cors' })
-        .then(response => response.blob())
-        .catch(() => {
-          throw new Error('Direct fetch failed (likely CORS)');
-        })
-    );
+    // Use our local API route as the primary proxy
+    // This avoids 403 errors from public proxies
+    const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+    const timeout = 10000; // 10 seconds
 
     try {
-      // Race all promises. The first one to resolve (not reject) wins.
-      const blob = await Promise.race(fetchPromises);
+      const blob = await fetchWithTimeout(proxyUrl, { timeout })
+        .then(response => {
+          if (!response.ok) throw new Error(`Proxy error: ${response.status}`);
+          return response.blob();
+        })
+        .then(blob => {
+          if (blob.type.startsWith('text/') || blob.type.includes('json')) {
+            throw new Error('Proxy returned invalid content');
+          }
+          return blob;
+        });
+
       const file = new File([blob], 'cake-design.webp', { type: blob.type || 'image/webp' });
       await handleImageUpload(file, imageUrl);
-    } catch (err) {
-      console.warn("Promise.race failed, falling back to allSettled to find any success.", err);
-      const results = await Promise.allSettled(fetchPromises);
-      const successResult = results.find(result => result.status === 'fulfilled');
 
-      if (successResult && 'value' in successResult && successResult.value instanceof Blob) {
-        const blob = successResult.value;
+    } catch (err) {
+      console.warn("Primary proxy failed, trying fallbacks...", err);
+
+      // Fallback strategies if local proxy fails
+      try {
+        // Backup: Try allorigins
+        const backupProxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`;
+        const blob = await fetchWithTimeout(backupProxy, { timeout })
+          .then(r => r.blob());
+
         const file = new File([blob], 'cake-design.webp', { type: blob.type || 'image/webp' });
         await handleImageUpload(file, imageUrl);
-      } else {
-        console.error("All fetch attempts failed completely:", results);
-        setImageError("Could not load image from any source. It may be protected. Tip: Try saving it to your device and using the 'Upload' button.");
+      } catch (backupErr) {
+        console.error("All fetch attempts failed:", backupErr);
+        setImageError("Could not load image. It may be protected. Tip: Try saving the image to your device and using the 'Upload' button.");
         clickedElement.style.border = '4px solid #EF4444';
         clickedElement.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.6)';
         setAppState('searching');

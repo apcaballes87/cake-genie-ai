@@ -24,6 +24,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'encrypted-tbn0.gstatic.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'congofivupobtfudnhni.supabase.co',
+        pathname: '/storage/v1/object/**',
+      },
     ],
   },
   async rewrites() {

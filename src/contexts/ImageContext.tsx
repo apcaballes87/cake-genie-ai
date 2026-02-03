@@ -447,7 +447,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 console.warn(`Fetch for ${imageUrl} timed out.`);
             }, 8000); // 8-second timeout
 
-            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(imageUrl)}`;
+            const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
             const response = await fetch(proxyUrl, { signal: controller.signal });
 
             clearTimeout(timeoutId); // Clear timeout if fetch succeeds
