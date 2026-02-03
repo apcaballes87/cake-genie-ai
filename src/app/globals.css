@@ -5,7 +5,7 @@
 /* --- Progress Bar Animation --- */
 .progress-bar-fill {
   width: 0%;
-  animation: fillProgressBar 30s linear forwards;
+  animation: fillProgressBar 16s linear forwards;
 }
 
 @keyframes fillProgressBar {
