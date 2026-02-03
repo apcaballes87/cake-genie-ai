@@ -985,6 +985,8 @@ export default function CartClient() {
                     <img
                         src={zoomedImage}
                         alt="Zoomed cake design"
+                        width={800}
+                        height={800}
                         className="w-full h-full object-contain"
                         onClick={(e) => e.stopPropagation()}
                     />

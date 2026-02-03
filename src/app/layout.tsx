@@ -8,6 +8,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import ClientHashRedirect from '@/components/ClientHashRedirect'
 import AnimatedBlobs from '@/components/UI/AnimatedBlobs'
 import TawkToChat from '@/components/TawkToChat'
+import ErrorLogger from '@/components/ErrorLogger'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -105,6 +106,7 @@ export default function RootLayout({
             <AnimatedBlobs />
             {children}
             <TawkToChat />
+            <ErrorLogger />
           </ErrorBoundary>
         </Providers>
 

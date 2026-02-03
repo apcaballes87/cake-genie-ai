@@ -345,6 +345,8 @@ export default function SharedDesignClient({ design: initialDesign }: SharedDesi
                 <img
                     src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20face%20logo.webp"
                     alt="Genie Logo"
+                    width={64}
+                    height={64}
                     className="w-16 h-16 object-contain"
                 />
                 <div>

@@ -285,7 +285,6 @@ export async function calculatePriceFromDatabase(
         nonGumpasteTotal += price;
       }
 
-      console.log(`[Database Pricing] Support: ${element.description}, qty=${effectiveQty}, rule=${rule.quantity_rule}, unit_price=${rule.price}, final_price=${price}`);
     }
 
     itemPrices.set(element.id, price);

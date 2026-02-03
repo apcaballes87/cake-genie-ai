@@ -130,11 +130,12 @@ export default function ContributeClient({ orderId }: ContributeClientProps) {
                     <p className="text-gray-600">Please wait while we update the contribution status.</p>
                 </div>
             )}
-            {/* Logo */}
             <div className="flex justify-center mb-6">
                 <img
                     src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20logo%20long2.webp"
                     alt="CakeGenie Logo"
+                    width={160}
+                    height={160}
                     className="w-40 h-40 object-contain cursor-pointer hover:scale-105 transition-transform"
                     onClick={onNavigateHome}
                 />
@@ -212,7 +213,13 @@ export default function ContributeClient({ orderId }: ContributeClientProps) {
                                     <div key={idx} className="flex flex-col gap-3 p-3 bg-white rounded-lg border border-gray-200">
                                         <div className="flex gap-3 items-center">
                                             {item.customized_image_url && (
-                                                <img src={item.customized_image_url} alt={item.cake_type} className="w-12 h-12 rounded-md object-cover bg-gray-100" />
+                                                <img
+                                                    src={item.customized_image_url}
+                                                    alt={item.cake_type}
+                                                    width={48}
+                                                    height={48}
+                                                    className="w-12 h-12 rounded-md object-cover bg-gray-100"
+                                                />
                                             )}
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-medium text-gray-900 truncate">{item.cake_type}</p>
