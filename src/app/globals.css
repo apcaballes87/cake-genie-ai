@@ -245,3 +245,10 @@
   z-index: 10005 !important;
   /* Higher than modal's z-[9999] */
 }
+
+/* --- Tawk.to Chat Widget Scaling --- */
+iframe[title="chat widget"],
+.tawk-min-container {
+  transform: scale(0.7) !important;
+  transform-origin: bottom right !important;
+}

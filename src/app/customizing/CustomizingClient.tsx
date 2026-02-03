@@ -2133,7 +2133,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     <a href={`/shop/${merchant.slug}`} className="hover:text-purple-600 transition-colors">{merchant.business_name}</a>
                                 </li>
                                 <li><span className="mx-1">/</span></li>
-                                <li className="text-slate-700 font-medium truncate max-w-[150px]" aria-current="page">{product.title}</li>
+                                <li className="text-slate-700 font-medium" aria-current="page">{product.title}</li>
                             </>
                         ) : recentSearchDesign ? (
                             <>
@@ -2141,7 +2141,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     <a href="/customizing" className="hover:text-purple-600 transition-colors">Customizing</a>
                                 </li>
                                 <li><span className="mx-1">/</span></li>
-                                <li className="text-slate-700 font-medium truncate max-w-[150px]" aria-current="page">
+                                <li className="text-slate-700 font-medium" aria-current="page">
                                     {recentSearchDesign.seo_title?.replace(/\s*\|\s*Genie\.ph\s*$/i, '') || recentSearchDesign.keywords || 'Custom Design'}
                                 </li>
                             </>
