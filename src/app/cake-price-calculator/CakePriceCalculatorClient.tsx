@@ -267,6 +267,8 @@ const CakePriceCalculatorClient: React.FC = () => {
                                         <img
                                             src={uploadedImageUrl}
                                             alt="Uploaded cake design"
+                                            width={192}
+                                            height={192}
                                             className="max-w-full max-h-48 mx-auto rounded-lg shadow-md"
                                         />
                                     </div>

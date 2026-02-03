@@ -484,7 +484,9 @@ const LandingClient: React.FC = () => {
                             <img
                                 src={COMMON_ASSETS.logo}
                                 alt="Genie Logo"
-                                className="h-16 md:h-12 object-contain"
+                                width={180}
+                                height={64}
+                                className="h-16 md:h-12 w-auto object-contain"
                             />
                         </div>
 
@@ -1052,7 +1054,13 @@ const LandingClient: React.FC = () => {
                         {/* Brand Info */}
                         <div className="max-w-md">
                             <div className="flex items-center gap-2 mb-4">
-                                <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20logo%20long2.webp" alt="Genie Logo" className="h-10 object-contain" />
+                                <img
+                                    src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20logo%20long2.webp"
+                                    alt="Genie Logo"
+                                    width={150}
+                                    height={40}
+                                    className="h-10 w-auto object-contain"
+                                />
                             </div>
                             <p className="text-gray-600 text-sm leading-relaxed mb-6">
                                 We're an online marketplace and delivery service for decorated cakes. We have a wide range of available and customizable cake designs, all with updated and affordable prices so you can search and decide immediately on what to buy when you use our platform.
