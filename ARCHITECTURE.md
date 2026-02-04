@@ -4,102 +4,96 @@ This document provides an overview of the Cake Genie application's architecture.
 
 ## 1. PROJECT STRUCTURE
 
-The project is a client-side Single Page Application (SPA) built with React. It follows a feature-oriented structure, primarily organized by hooks, components, and services. There is no separate backend repository; it utilizes a Backend-as-a-Service (BaaS) model.
+The project is a **Next.js 14+ application** using the **App Router**. It follows a hybrid SSR/CSR model with React Server Components (RSC) for data fetching and Client Components for interactivity.
 
 ```
-[Project Root]/
-├── app/                      # Page components, organized by view/route
-│   ├── (auth)/               # Authentication-related pages
-│   ├── account/              # User account pages (orders, addresses)
-│   └── ...                   # Other top-level pages (cart, customizing, etc.)
+src/
+├── app/                      # Next.js App Router pages & layouts
+│   ├── layout.tsx            # Root layout (fonts, metadata, Providers, scripts)
+│   ├── page.tsx              # Homepage
+│   ├── (auth)/               # Auth routes (login, signup, forgot-password)
+│   ├── account/              # User account pages
+│   ├── shop/                 # Merchant pages ([merchantSlug]/page.tsx)
+│   ├── customizing/          # AI cake customization flow
+│   └── ...                   # Other feature routes
 │
-├── components/               # Reusable React UI components
-│   ├── UI/                   # General-purpose, stylistic UI components
+├── components/               # Reusable React components
+│   ├── Providers.tsx         # Client-side context providers wrapper
+│   ├── UI/                   # General UI components
 │   └── ...                   # Feature-specific components
 │
-├── constants/                # Application-wide constants (colors, keywords, etc.)
-├── contexts/                 # React Context providers (e.g., CartContext)
-├── hooks/                    # Custom hooks containing business logic
-├── lib/                      # Core libraries and utilities
-│   ├── supabase/             # Supabase client setup
-│   ├── utils/                # General utility functions
-│   └── queryClient.ts        # TanStack Query client configuration
+├── contexts/                 # React Context providers
+│   ├── AuthContext.tsx       # Authentication state
+│   ├── CartContext.tsx       # Shopping cart
+│   ├── CustomizationContext.tsx
+│   └── ...
 │
-├── services/                 # Modules for interacting with external APIs and services
-├── types.ts                  # Shared TypeScript type definitions
-├── App.tsx                   # Main application component, handles routing and state orchestration
-├── config.ts                 # Configuration file for Supabase credentials
-├── index.html                # Main HTML entry point with import maps
-└── index.tsx                 # React application root
+├── hooks/                    # Custom React hooks (business logic)
+├── services/                 # API interaction modules
+│   ├── supabaseService.ts    # Supabase database operations
+│   ├── geminiService.ts      # Google Gemini AI integration
+│   ├── pricingService.ts     # Price calculation logic
+│   └── ...
+│
+├── lib/                      # Core utilities
+│   └── supabase/             # Supabase client (browser & server)
+│
+├── constants/                # Application constants
+└── types.ts                  # Shared TypeScript types
 ```
 
-## 2. HIGH-LEVEL SYSTEM DIAGRAM
+## 2. SSR vs CSR SPLIT
 
-The application employs a serverless architecture, with the frontend client directly interacting with various cloud services.
+- **Server Components (default)**: Route pages (`page.tsx`) fetch data server-side using async functions. Metadata generation (`generateMetadata`) runs on the server for SEO.
+- **Client Components**: Marked with `'use client'`. Used for interactivity (forms, state, effects). Contexts and hooks live in client components.
+- **Example pattern**: `shop/[merchantSlug]/page.tsx` (Server) fetches merchant data, then renders `MerchantPageClient` (Client) for interactive UI.
 
-```
-[User] <--> [React SPA (Browser)] <--+
-                 |                   |
-                 +-----------------> [Google Gemini API] (For AI analysis & image generation)
-                 |                   |
-                 +-----------------> [Supabase] (BaaS)
-                                       |
-                                       +--> [Auth]
-                                       |
-                                       +--> [PostgreSQL Database] (Orders, Users, Cart, etc.)
-                                       |
-                                       +--> [Storage] (Cake Images)
-```
+## 3. LAYOUT & PROVIDERS
 
-**Data Flow:**
-1.  **User Interaction:** The user interacts with the React application in their browser.
-2.  **AI Features:** For cake analysis or design generation, the client makes secure API calls directly to the Google Gemini API.
-3.  **Data & Auth:** The client communicates with Supabase for:
-    *   **Authentication:** User sign-up, login (including anonymous sessions).
-    *   **Database:** CRUD operations for cart items, orders, user addresses, shared designs, etc.
-    *   **Storage:** Uploading and retrieving user-generated cake images.
+### Root Layout (`src/app/layout.tsx`)
 
-## 3. CORE COMPONENTS
+- Sets global metadata, fonts (Inter via `next/font`), and base styling.
+- Wraps children in `<Providers>` for client-side state.
+- Includes analytics scripts (Google Analytics, Microsoft Clarity).
 
--   **Frontend Application**: A React SPA that handles all user interface and interactions. It's built with TypeScript and styled with Tailwind CSS. A key feature is its use of browser-native **import maps**, eliminating the need for a traditional bundling step during development.
+### Providers (`src/components/Providers.tsx`)
 
--   **Routing**: A custom, state-based routing mechanism managed within `App.tsx`. The `appState` variable determines which "page" component from the `app/` directory is rendered.
+A client component that nests context providers:
 
--   **State Management**:
-    *   **UI State:** Managed by React's `useState`, `useReducer`, and custom hooks.
-    *   **Shared State:** React Context API is used for global state like the shopping cart (`CartContext`).
-    *   **Server State:** **TanStack Query** is used to manage server state, including caching, refetching, and synchronization of data from Supabase.
+- `QueryClientProvider` (TanStack Query)
+- `AuthProvider`, `CartProvider`, `ImageProvider`, `CustomizationProvider`, `SavedItemsProvider`, `GoogleMapsLoaderProvider`
+- `Toaster` (react-hot-toast)
 
--   **Business Logic Abstraction**: The `hooks/` directory is central to the architecture. Custom hooks encapsulate specific domains of business logic (e.g., `usePricing`, `useImageManagement`, `useAuth`), keeping `App.tsx` and UI components cleaner and focused on orchestration and presentation.
+## 4. SUPABASE INTEGRATION
 
--   **Backend-as-a-Service (BaaS)**: **Supabase** provides the entire backend infrastructure, including authentication, a PostgreSQL database, and file storage. The frontend interacts with it via the Supabase client library.
+- **Client-side**: `@supabase/ssr` browser client for auth and data access.
+- **Server-side**: Server client for RSC data fetching with cookies.
+- **Auth**: Email/password, anonymous sessions. Managed via `AuthContext`.
+- **Database**: PostgreSQL (orders, users, cart, merchants, products).
+- **Storage**: Cake images, user uploads.
 
--   **AI Service**: The **Google Gemini API** is used for the core AI functionalities:
-    *   **Vision Analysis:** Analyzing user-uploaded cake images to identify features.
-    *   **Image Generation:** Creating customized cake images based on user modifications.
+## 5. KEY SERVICES
 
-## 4. KEY DECISIONS & PATTERNS
+| Service | Purpose |
+|---------|---------|
+| `supabaseService.ts` | CRUD operations for merchants, products, orders |
+| `geminiService.ts` | AI cake analysis & image generation |
+| `pricingService.ts` | Calculates cake pricing from analysis |
+| `shareService.ts` | Share design links |
 
--   **Serverless Architecture**: The decision to use Supabase as a BaaS and call Gemini directly from the client simplifies development and deployment by eliminating the need to build and maintain a custom backend server. This is well-suited for rapid prototyping and modern frontend-heavy applications.
+## 6. KEY DECISIONS & PATTERNS
 
--   **Hook-Driven Architecture**: Business logic is heavily decoupled from the UI through custom hooks. This improves modularity, testability, and reusability of code. For example, `usePricing` contains all logic for price calculation, independent of how the price is displayed.
+- **Next.js App Router**: File-based routing with nested layouts. SSR for SEO-critical pages, CSR for interactive features.
+- **Hook-Driven Logic**: Business logic encapsulated in `hooks/` (e.g., `usePricing`, `useAuth`).
+- **TanStack Query**: Server state management with caching and background refetching.
+- **Optimistic UI**: Cart updates reflect immediately before server confirmation.
+- **Serverless Architecture**: Supabase BaaS + Gemini API; no custom backend.
 
--   **Optimistic UI Updates**: The cart (`CartContext`) uses optimistic updates for adding/removing items. This provides a fast and responsive user experience by updating the UI immediately, before the server has confirmed the change.
+## 7. GETTING STARTED
 
--   **Buildless Development with Import Maps**: The use of an `importmap` in `index.html` allows the browser to resolve module specifiers like `react` or `@google/genai` directly to CDN URLs. This simplifies the local development setup, as no bundler (like Webpack or Vite) is strictly necessary to run the application.
-
--   **Single-Component Router**: `App.tsx` acts as a central controller, using a `switch` statement on `appState` to render different page components. While simple, this approach might become difficult to manage as the application grows compared to a library like React Router.
-
-## 5. GETTING STARTED
-
-1.  **Configure Credentials**:
-    *   **Supabase**: Open `config.ts` and replace the placeholder values for `SUPABASE_URL` and `SUPABASE_ANON_KEY` with your project's credentials.
-    *   **Gemini API**: The application expects the Gemini API key to be available as `process.env.API_KEY`. In the development environment where this app is intended to run (like AI Studio), this is typically configured externally.
-
-2.  **Run the Application**: Since there is no build step, you only need to serve the project files with a simple static file server.
-    ```bash
-    # If you have Node.js and serve installed
-    npm install -g serve
-    serve .
-    ```
-    Then, open your browser to the provided local URL.
+1. **Install dependencies**: `npm install`
+2. **Environment variables**: Copy `.env.example` to `.env.local` and fill in:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `GEMINI_API_KEY`
+3. **Run dev server**: `npm run dev`

@@ -129,7 +129,6 @@ export default async function MerchantPage({ params }: MerchantPageProps) {
         <>
             <MerchantSchema merchant={merchant} products={productList} />
             <MerchantPageClient slug={merchantSlug} />
-            <MerchantPageClient slug={merchantSlug} />
         </>
     );
 }
