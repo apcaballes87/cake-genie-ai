@@ -2720,6 +2720,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         <p className="text-sm text-slate-600 leading-relaxed">
                                             {analysisResult?.seo_description || analysisResult?.alt_text || recentSearchDesign?.seo_description || recentSearchDesign?.alt_text}
                                         </p>
+                                        <p className="text-xs text-slate-400 mt-2 flex items-center gap-1.5">
+                                            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            Design inspiration shared by customer for pricing—final cake may vary slightly.
+                                        </p>
                                     </div>
                                 )}
 
