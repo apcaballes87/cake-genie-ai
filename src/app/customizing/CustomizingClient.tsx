@@ -566,7 +566,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     const {
         cakeInfo, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions,
-        analysisResult, analysisId, isAnalyzing, analysisError, isCustomizationDirty,
+        analysisResult, analysisId, isAnalyzing, analysisError, isCustomizationDirty, dirtyFields,
         setIsAnalyzing, setAnalysisError, setPendingAnalysisData, setIsCustomizationDirty,
         handleCakeInfoChange,
         updateMainTopper, removeMainTopper, onMainTopperChange,
@@ -2518,7 +2518,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
                     <div className="w-full bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200">
-                        {(isAnalyzing || isLoading) && !isDesignSaved ? (
+                        {isAnalyzing || (isLoading && !isDesignSaved) ? (
                             <div className="p-2 md:p-4">
                                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
                                     <div className="p-2 bg-purple-100 rounded-lg">
@@ -2534,7 +2534,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     <p className="text-center text-xs font-semibold text-purple-600 mb-2 px-4 opacity-50">
                                         Tap the icons below to customize your cake
                                     </p>
-                                    <CustomizationTabsSkeleton />
+                                    <CustomizationTabs
+                                        activeTab={null}
+                                        onTabClick={() => { }}
+                                    />
                                 </div>
                                 <ChosenOptionsSkeleton />
 
@@ -2872,17 +2875,22 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 className="md:w-[calc(50%-6px)] md:max-w-none"
                 actionButton={
                     activeCustomization === 'options' ? (
-                        <button
-                            onClick={() => setActiveCustomization(null)}
-                            className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg flex items-center justify-center gap-2"
-                        >
-                            <MagicSparkleIcon className="w-5 h-5" />
-                            Apply Changes
-                        </button>
+                        dirtyFields.has('cakeInfo') ? (
+                            <button
+                                onClick={() => setActiveCustomization(null)}
+                                className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg flex items-center justify-center gap-2"
+                            >
+                                <MagicSparkleIcon className="w-5 h-5" />
+                                Apply Changes
+                            </button>
+                        ) : null
                     ) : activeCustomization === 'icing' ? (
                         (hasIcingChanges || isUpdatingDesign) ? (
                             <button
-                                onClick={onUpdateDesign}
+                                onClick={() => {
+                                    onUpdateDesign();
+                                    setActiveCustomization(null);
+                                }}
                                 disabled={isUpdatingDesign || !originalImageData}
                                 className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
