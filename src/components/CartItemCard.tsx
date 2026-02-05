@@ -97,6 +97,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
                         <LazyImage
                             src={item.image!}
                             alt="Original cake design"
+                            fill
                             className="absolute inset-0 w-full h-full object-cover opacity-40"
                         />
                         <div className="absolute inset-0 bg-slate-900/30 flex flex-col items-center justify-center p-2">
@@ -186,7 +187,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
                     className="w-24 h-24 md:w-32 md:h-32 shrink-0 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-md transition-transform hover:scale-105"
                     aria-label="Enlarge cake image"
                 >
-                    <LazyImage src={item.image!} alt="Cake Design" className="w-full h-full object-cover rounded-md" />
+                    <LazyImage src={item.image!} alt="Cake Design" fill className="w-full h-full object-cover rounded-md" />
                 </button>
                 <div className="grow">
                     <div className="flex justify-between items-start">

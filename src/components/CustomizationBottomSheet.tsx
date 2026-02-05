@@ -28,6 +28,8 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
     const [dragOffset, setDragOffset] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
     const touchStartY = React.useRef<number>(0);
+    const contentRef = React.useRef<HTMLDivElement>(null);
+    const startScrollTop = React.useRef<number>(0);
 
     useEffect(() => {
         if (isOpen) {
@@ -45,16 +47,25 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
 
     const handleTouchStart = (e: React.TouchEvent) => {
         touchStartY.current = e.touches[0].clientY;
-        setIsDragging(true);
+        startScrollTop.current = contentRef.current?.scrollTop || 0;
+
+        // If we are at the top, potentially preparing to drag
+        if (startScrollTop.current === 0) {
+            setIsDragging(true);
+        }
     };
 
     const handleTouchMove = (e: React.TouchEvent) => {
-        if (!isDragging) return;
+        // If we started scrolling not at the top, don't drag
+        if (startScrollTop.current > 0) return;
+
         const currentY = e.touches[0].clientY;
         const diff = currentY - touchStartY.current;
 
-        // Only allow dragging down
-        if (diff > 0) {
+        // Only allow dragging down and if content is still at top
+        if (diff > 0 && contentRef.current?.scrollTop === 0) {
+            // Prevent default pulling behavior if possible, though passive listeners might prevent this
+            // e.preventDefault(); 
             setDragOffset(diff);
         }
     };
@@ -95,15 +106,13 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
                 `}
                 style={{
                     transform: isAnimating ? `translateY(${dragOffset}px)` : 'translateY(100%)',
-                    transition: isDragging ? 'none' : 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)',
+                    transition: isDragging && dragOffset > 0 ? 'none' : 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)',
                 }}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
             >
-                <div
-                    className="touch-none"
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                >
+                <div className="touch-none">
                     {/* Drag Handle Area */}
                     <div className="w-full flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing">
                         <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
@@ -122,7 +131,10 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-3 overscroll-contain bg-white">
+                <div
+                    ref={contentRef}
+                    className="flex-1 overflow-y-auto p-3 overscroll-contain bg-white"
+                >
                     {children}
                 </div>
 

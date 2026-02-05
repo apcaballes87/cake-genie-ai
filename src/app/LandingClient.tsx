@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import LazyImage from '@/components/LazyImage';
-import type { CakeGenieMerchant } from '@/lib/database.types';
 import { useImageManagement } from '@/contexts/ImageContext';
 import { useCakeCustomization } from '@/contexts/CustomizationContext';
 import { ImageUploader } from '@/components/ImageUploader';
@@ -13,7 +12,6 @@ import { showError, showSuccess, showLoading } from '@/lib/utils/toast';
 import { toast } from 'react-hot-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSavedItemsActions, useSavedItemsData } from '@/contexts/SavedItemsContext';
 import { LANDING_PAGE_IMAGES, COMMON_ASSETS } from '@/constants';
 import {
     Search,
@@ -68,7 +66,11 @@ const occasionLinks = [
     { label: 'Christening Cakes', slug: 'christening' },
 ];
 
-const LandingClient: React.FC = () => {
+interface LandingClientProps {
+    children?: React.ReactNode;
+}
+
+const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
     const [selectedCategory, setSelectedCategory] = useState('All');
@@ -95,137 +97,8 @@ const LandingClient: React.FC = () => {
         clearCustomization
     } = useCakeCustomization();
 
-    const { toggleSaveDesign, isDesignSaved } = useSavedItemsActions();
-    const { savedDesignHashes } = useSavedItemsData();
+    // Note: Merchants and products are now rendered via server components passed as children
 
-    const [recommendedProducts, setRecommendedProducts] = useState<any[]>([]);
-    const [isLoadingProducts, setIsLoadingProducts] = useState(true);
-
-    const [offset, setOffset] = useState(0);
-    const [hasMore, setHasMore] = useState(true);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-
-    // Merchant showcase state
-    const [merchants, setMerchants] = useState<CakeGenieMerchant[]>([]);
-    const [isLoadingMerchants, setIsLoadingMerchants] = useState(true);
-
-    const fetchRecommendedProducts = useCallback(async (currentOffset: number) => {
-        try {
-            // Dynamically import to avoid server-side issues if any (though this is a client component)
-            const { getRecommendedProducts } = await import('@/services/supabaseService');
-            const { data, error } = await getRecommendedProducts(8, currentOffset);
-
-            if (data) {
-                if (currentOffset === 0) {
-                    setRecommendedProducts(data);
-                } else {
-                    setRecommendedProducts(prev => [...prev, ...data]);
-                }
-
-                if (data.length < 8) {
-                    setHasMore(false);
-                }
-            } else {
-                console.error("Failed to load recommended products:", error);
-            }
-        } catch (err) {
-            console.error("Error loading recommended products:", err);
-        } finally {
-            setIsLoadingProducts(false);
-            setIsLoadingMore(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchRecommendedProducts(0);
-    }, [fetchRecommendedProducts]);
-
-    // Fetch merchants on mount
-    useEffect(() => {
-        const fetchMerchants = async () => {
-            try {
-                const { getMerchants } = await import('@/services/supabaseService');
-                const { data, error } = await getMerchants();
-                if (data && !error) {
-                    setMerchants(data);
-                }
-            } catch (err) {
-                console.error('Error loading merchants:', err);
-            } finally {
-                setIsLoadingMerchants(false);
-            }
-        };
-        fetchMerchants();
-    }, []);
-
-    const handleLoadMore = () => {
-        const nextOffset = offset + 8;
-        setOffset(nextOffset);
-        setIsLoadingMore(true);
-        fetchRecommendedProducts(nextOffset);
-    };
-
-
-    const handleRecommendedProductClick = async (e: React.MouseEvent | React.TouchEvent, item: any) => {
-        // Prevent if we clicked the heart button or any of its children
-        if ((e.target as HTMLElement).closest('button.save-heart-button')) {
-            return;
-        }
-
-        if (!item.original_image_url) return;
-
-        // If item has a slug, navigate directly to the SEO-friendly URL
-        // The page component will handle loading with SSR metadata
-        if (item.slug) {
-            router.push(`/customizing/${item.slug}`);
-            return;
-        }
-
-        // Fallback for items without slug: load and navigate
-        const toastId = showLoading('Loading design...');
-
-        // Clear previous state
-        clearImages();
-        clearCustomization();
-        setIsAnalyzing(true);
-        setAnalysisError(null);
-        initializeDefaultState();
-
-        try {
-            const response = await fetch(item.original_image_url);
-            const blob = await response.blob();
-            const file = new File([blob], "design.jpg", { type: blob.type });
-
-            // Validate analysis_json before using - must have required fields
-            const isValidAnalysis = item.analysis_json &&
-                typeof item.analysis_json === 'object' &&
-                'cakeType' in item.analysis_json &&
-                'icing_design' in item.analysis_json;
-
-            await hookImageUpload(
-                file,
-                (result) => {
-                    toast.dismiss(toastId);
-                    setPendingAnalysisData(result);
-                    setIsAnalyzing(false);
-                    router.push('/customizing');
-                },
-                (error) => {
-                    toast.dismiss(toastId);
-                    console.error("Error processing image:", error);
-                    showError("Failed to load design");
-                },
-                {
-                    imageUrl: item.original_image_url,
-                    precomputedAnalysis: isValidAnalysis ? item.analysis_json : undefined
-                }
-            );
-        } catch (error) {
-            toast.dismiss(toastId);
-            console.error("Error fetching image:", error);
-            showError("Failed to load design");
-        }
-    };
 
     // Brand Colors
     const brandGradient = "bg-gradient-to-r from-purple-500 to-pink-500";
@@ -636,7 +509,8 @@ const LandingClient: React.FC = () => {
                                                     src={promo.imageUrl}
                                                     alt={promo.title}
                                                     className="w-full h-full object-cover cursor-pointer"
-                                                    eager={true}
+                                                    priority={true}
+                                                    fill
                                                 />
                                             ) : (
                                                 <>
@@ -736,7 +610,8 @@ const LandingClient: React.FC = () => {
                                                 src={currentImageUrl}
                                                 alt={link.name}
                                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                eager={true}
+                                                priority={true}
+                                                fill
                                             />
                                             <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent flex items-end p-3 md:p-4">
                                                 <span className="text-white font-bold text-xs md:text-base leading-tight">{link.name}</span>
@@ -749,199 +624,8 @@ const LandingClient: React.FC = () => {
 
                         {/* --- SHOP BY OCCASION (SEO Links) - REMOVED AS REQUESTED --- */}
 
-                        {/* --- PARTNER SHOPS SHOWCASE --- */}
-                        <div className="mb-8">
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-xl md:text-2xl font-bold text-gray-900">Our Partner Shops</h2>
-                                <button
-                                    onClick={() => router.push('/search?q=shops')}
-                                    className="text-purple-600 text-sm font-bold hover:underline"
-                                >
-                                    View All
-                                </button>
-                            </div>
-                            <div className="flex gap-4 overflow-x-auto scrollbar-hide -mx-4 px-4 py-2">
-                                {isLoadingMerchants ? (
-                                    // Skeleton loading
-                                    Array.from({ length: 5 }).map((_, i) => (
-                                        <div key={i} className="flex flex-col items-center shrink-0 animate-pulse">
-                                            <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gray-200" />
-                                            <div className="mt-2 h-3 w-12 bg-gray-200 rounded" />
-                                        </div>
-                                    ))
-                                ) : merchants.length > 0 ? (
-                                    merchants.map((merchant) => (
-                                        <button
-                                            key={merchant.merchant_id}
-                                            onClick={() => router.push(`/shop/${merchant.slug}`)}
-                                            className="flex flex-col items-center shrink-0 group"
-                                            aria-label={`Visit ${merchant.business_name}`}
-                                        >
-                                            <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-linear-to-br from-purple-100 to-pink-100 ring-2 ring-transparent group-hover:ring-purple-400 transition-all duration-300 shadow-sm group-hover:shadow-md">
-                                                {merchant.profile_image_url ? (
-                                                    <LazyImage
-                                                        src={merchant.profile_image_url}
-                                                        alt={merchant.business_name}
-                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-purple-500 to-pink-500 text-white font-bold text-lg md:text-xl">
-                                                        {merchant.business_name.charAt(0).toUpperCase()}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <span className="mt-2 text-xs font-medium text-gray-700 group-hover:text-purple-600 transition-colors max-w-[64px] md:max-w-[80px] line-clamp-2 text-center leading-tight">
-                                                {merchant.business_name}
-                                            </span>
-                                        </button>
-                                    ))
-                                ) : (
-                                    <p className="text-gray-500 text-sm">No partner shops available yet.</p>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Section Header */}
-                        <div className="flex justify-between items-end mb-6">
-                            <div>
-                                <h2 className="text-xl md:text-2xl font-bold text-gray-900">Recent searches by users</h2>
-                                <p className="text-gray-500 text-sm md:text-base">Get the price in 15 seconds!</p>
-                            </div>
-                            <button className="text-purple-600 text-sm font-bold hover:underline hidden md:block">View All</button>
-                        </div>
-
-                        {/* Product Grid (Responsive Cols) */}
-
-
-                        {/* Product Grid (Responsive Cols) */}
-                        <div className="grid grid-cols-2 min-[490px]:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5 lg:gap-6 mb-12">
-                            {isLoadingProducts && offset === 0 ? (
-                                // Initial Skeleton Loading State
-                                Array.from({ length: 4 }).map((_, i) => (
-                                    <div key={i} className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 animate-pulse">
-                                        <div className="aspect-square mb-3 rounded-xl bg-gray-200"></div>
-                                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                                        <div className="h-3 bg-gray-200 rounded w-1/2 mb-3"></div>
-                                        <div className="flex justify-between items-end border-t border-gray-50 pt-3">
-                                            <div className="h-5 bg-gray-200 rounded w-1/3"></div>
-                                            <div className="h-5 bg-gray-200 rounded w-1/4"></div>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : recommendedProducts.length > 0 ? (
-                                <>
-                                    {recommendedProducts.map((item, index) => (
-                                        <div
-                                            key={`${item.p_hash}-${index}`} // Composite key to ensure uniqueness even if duplicates occur
-                                            onClick={(e) => handleRecommendedProductClick(e, item)}
-                                            className="bg-white p-3 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-100 transition-all duration-300 group cursor-pointer"
-                                        >
-                                            <div className="relative aspect-square mb-3 rounded-xl overflow-hidden bg-gray-100">
-                                                <LazyImage
-                                                    src={item.original_image_url}
-                                                    alt={item.keywords || 'Cake Design'}
-                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                    eager={index < 4} // Eager load first few images
-                                                />
-
-                                                {/* Overlay Gradient on Hover */}
-                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
-
-                                                <button
-                                                    onClick={async (e) => {
-                                                        e.stopPropagation();
-                                                        e.preventDefault();
-                                                        if (!isAuthenticated || user?.is_anonymous) {
-                                                            toast('Please log in to save items', { icon: '💜' });
-                                                            router.push('/login');
-                                                            return;
-                                                        }
-
-                                                        // Use the custom design toggle since these are recent searches (custom designs)
-                                                        const pHash = item.p_hash || item.id;
-                                                        await toggleSaveDesign({
-                                                            analysisPHash: pHash,
-                                                            customizationSnapshot: item.analysis_json || {},
-                                                            customizedImageUrl: item.original_image_url
-                                                        });
-
-                                                        const wasSaved = isDesignSaved(pHash);
-                                                        toast.success(wasSaved ? 'Removed from saved' : 'Saved!');
-                                                    }}
-                                                    className={`save-heart-button absolute top-3 right-3 w-8 h-8 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-all z-10 ${isDesignSaved(item.p_hash || item.id)
-                                                        ? 'bg-red-500 text-white'
-                                                        : 'bg-white/90 text-gray-600 hover:bg-red-50 hover:text-red-500'
-                                                        }`}
-                                                >
-                                                    <Heart
-                                                        size={16}
-                                                        fill={isDesignSaved(item.p_hash || item.id) ? 'currentColor' : 'none'}
-                                                        className={isDesignSaved(item.p_hash || item.id) ? 'text-white' : ''}
-                                                    />
-                                                </button>
-
-                                                {/* Tag based on price or random for now since we don't have tags in DB yet */}
-                                                {item.price < 1000 && (
-                                                    <span className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-md text-gray-900 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold shadow-sm">
-                                                        Affordable
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="px-1">
-                                                <h3 className="font-bold text-gray-900 text-sm md:text-base leading-tight mb-1 line-clamp-2 group-hover:text-purple-600 transition-colors">
-                                                    {(() => {
-                                                        const title = item.keywords ? item.keywords.split(',')[0] : 'Custom Cake';
-                                                        return title.trim().toLowerCase().endsWith('cake') ? title : `${title} Cake`;
-                                                    })()}
-                                                </h3>
-                                                <p className="text-xs text-gray-500 flex items-center gap-1">
-                                                    <Cake size={12} /> {item.analysis_json?.cakeType || 'Custom Design'}
-                                                </p>
-                                                <div className="flex justify-between items-end border-t border-gray-50 pt-3">
-                                                    <span className="font-black text-gray-900 text-base md:text-lg">₱{item.price.toLocaleString()}</span>
-                                                    <div className="flex items-center gap-1 text-xs font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-lg">
-                                                        <Star size={12} fill="currentColor" /> 5.0
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {/* Additional Skeleton Loading State when "Load More" is clicked */}
-                                    {isLoadingMore && (
-                                        Array.from({ length: 4 }).map((_, i) => (
-                                            <div key={`loading-more-${i}`} className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 animate-pulse">
-                                                <div className="aspect-square mb-3 rounded-xl bg-gray-200"></div>
-                                                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                                                <div className="h-3 bg-gray-200 rounded w-1/2 mb-3"></div>
-                                                <div className="flex justify-between items-end border-t border-gray-50 pt-3">
-                                                    <div className="h-5 bg-gray-200 rounded w-1/3"></div>
-                                                    <div className="h-5 bg-gray-200 rounded w-1/4"></div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </>
-                            ) : (
-                                // Fallback if no products found (show original hardcoded or empty message)
-                                <div className="col-span-full text-center py-10 text-gray-500">
-                                    No recommended cakes found at the moment.
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="text-center pb-10">
-                            {hasMore ? (
-                                <button
-                                    onClick={handleLoadMore}
-                                    disabled={isLoadingMore}
-                                    className="border border-gray-300 bg-white px-8 py-3 rounded-full text-sm font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {isLoadingMore ? 'Loading...' : 'Load More'}
-                                </button>
-                            ) : (
-                                <div className="text-gray-400 text-xs">End of results</div>
-                            )}
-                        </div>
+                        {/* Server-rendered merchants and products sections */}
+                        {children}
                     </div>
                 </div>
             </main >

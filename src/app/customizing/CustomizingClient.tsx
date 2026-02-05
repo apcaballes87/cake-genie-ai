@@ -2511,11 +2511,20 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     </div>
 
 
+
                 </div>
                 {/* RIGHT COLUMN: Availability at top, then Feature List */}
                 <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
                     {/* Availability Section - at top of right column */}
 
+
+                    {/* Tip for reducing price - Moved from left column */}
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-2">
+                        <span className="text-amber-500 text-sm">💡</span>
+                        <p className="text-xs text-amber-700">
+                            <span className="font-semibold">Tip:</span> Switch from toy toppers to edible or printed toppers to reduce the total price!
+                        </p>
+                    </div>
 
                     <div className="w-full bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200">
                         {isAnalyzing || (isLoading && !isDesignSaved) ? (
@@ -2531,19 +2540,22 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 </div>
                                 {/* Use granular skeletons to maintain layout structure */}
                                 <div className="w-full">
-                                    <p className="text-center text-xs font-semibold text-purple-600 mb-2 px-4 opacity-50">
-                                        Tap the icons below to customize your cake
+                                    <p className="text-center text-xs font-semibold text-fuchsia-500 mb-2 px-4">
+                                        LOWER THE PRICE by customizing your cake below
                                     </p>
                                     <CustomizationTabs
-                                        activeTab={null}
-                                        onTabClick={() => { }}
+                                        activeTab={activeCustomization}
+                                        onTabClick={(id) => {
+                                            setActiveCustomization(id === activeCustomization ? null : id);
+                                            setSelectedItem(null);
+                                        }}
                                     />
                                 </div>
                                 <ChosenOptionsSkeleton />
 
                                 {/* Placeholder for other sections if needed, or keeping it minimal */}
                                 <div className="mt-4 px-2">
-                                    <div className="bg-slate-50 rounded-lg p-3 space-y-2 border border-slate-200/50">
+                                    <div className="bg-slate-50 rounded-lg p-3 space-y-2 border border-slate-200/50 animate-pulse">
                                         <div className="h-4 w-32 bg-slate-200 rounded" />
                                         <div className="h-16 w-full bg-slate-200 rounded" />
                                     </div>
@@ -2553,8 +2565,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             <div className="">
                                 {/* Customization Tabs - Top of cake options */}
                                 <div className="w-full">
-                                    <p className="text-center text-xs font-semibold text-purple-600 mb-2 px-4">
-                                        Tap the icons below to customize your cake
+                                    <p className="text-center text-xs font-semibold text-fuchsia-500 mb-2 px-4">
+                                        LOWER THE PRICE by customizing your cake below
                                     </p>
                                     <CustomizationTabs
                                         activeTab={activeCustomization}
@@ -2567,7 +2579,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                                 {/* Chosen Options Preview - Clickable to edit */}
                                 {cakeInfo && !isAnalyzing && (
-                                    <div className="mt-2 px-2">
+                                    <div className="mt-4 px-2">
                                         <p className="text-xs font-semibold text-slate-500 mb-1">Chosen Options</p>
                                         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                                             {/* Cake Type */}
@@ -2723,7 +2735,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         <p className="text-sm text-slate-600 leading-relaxed">
                                             {analysisResult?.seo_description || analysisResult?.alt_text || recentSearchDesign?.seo_description || recentSearchDesign?.alt_text}
                                         </p>
-                                        <p className="text-xs text-slate-400 mt-2 flex items-center gap-1.5">
+                                        <p className="text-xs text-red-400 mt-4 flex items-center justify-center gap-1.5 text-center">
                                             <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
@@ -3169,6 +3181,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         onSupportElementImageReplace={onSupportElementImageReplace}
                         itemPrices={itemPrices}
                         isAdmin={isAdmin}
+                        isAnalyzing={isAnalyzing}
                     />
                 </div>
 

@@ -15,6 +15,7 @@ import type { SupabaseClient, User, PostgrestError } from '@supabase/supabase-js
 import { debounce } from 'lodash-es';
 import { showError } from '@/lib/utils/toast';
 
+import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { CakeGenieCartItem, CakeGenieAddress, CakeGenieMerchant } from '@/lib/database.types';
 import {
@@ -211,14 +212,20 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return [];
     });
 
-    const [isLoading, setIsLoading] = useState<boolean>(false); // Start as false since we have cached data
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [sessionId, setSessionId] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(true); // Start as true until auth resolves
+    // Removed local currentUser state, rely on useAuth
+    // Derived sessionId below
     const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetails | null>(null);
     const [authError, setAuthError] = useState<string | null>(null);
 
+    const { user, isLoading: authLoading } = useAuth();
+
+    // Derive sessionId from user
+    const sessionId = useMemo(() => {
+        return user?.is_anonymous ? user.id : null;
+    }, [user]);
+
     const prevUserIdRef = useRef<string | null>(null);
-    const isInitializingRef = useRef<boolean>(true); // Track if we're in initial load
     const cartItemsRef = useRef(cartItems);
 
     useEffect(() => {
@@ -325,131 +332,63 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, []);
 
+    // Unified Effect for Auth Changes and Cart Loading
     useEffect(() => {
-        const initialize = async () => {
-            cleanupExpiredLocalStorage();
-            setIsLoading(true);
-            try {
-                // Try to get existing session (to reuse anonymous user)
-                let userToLoad: User | null = null;
+        // Cleanup old storage on mount
+        cleanupExpiredLocalStorage();
+    }, []);
 
-                try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    if (session?.user) {
-                        userToLoad = session.user;
-                    }
-                } catch (sessionError) {
-                    // Silently ignore session retrieval errors
-                }
+    useEffect(() => {
+        const handleAuthChange = async () => {
+            if (authLoading) return;
 
-                // Only create new session if we don't have one
-                if (!userToLoad) {
-                    const { data, error } = await supabase.auth.signInAnonymously();
-                    if (error) {
-                        throw error;
-                    }
-                    userToLoad = data.user;
-                }
-
-                setCurrentUser(userToLoad);
-                if (userToLoad?.is_anonymous) {
-                    setSessionId(userToLoad.id);
-                } else {
-                    setSessionId(null);
-                }
-                prevUserIdRef.current = userToLoad?.id ?? null;
-
-                await loadCartData(userToLoad);
-
-                // Mark initialization as complete
-                isInitializingRef.current = false;
-                setAuthError(null);
-
-            } catch (error: any) {
-                console.error('Failed to initialize user session:', error);
-                if (error.message.includes("disabled")) {
-                    setAuthError("Guest sessions are currently disabled. Please ask the site administrator to enable Anonymous Sign-ins in the Supabase project's authentication settings.");
-                } else if (error.code === 'over_request_rate_limit') {
-                    setAuthError("Too many requests. Please wait a moment and refresh the page.");
-                } else {
-                    // A more user-friendly message
-                    setAuthError(`Could not connect to the service. Please check your internet connection and try again.`);
-                }
-                setIsLoading(false); // CRITICAL: Turn off loading on initialization failure.
+            // Update prevUserIdRef if it's the first run (initialization)
+            // preventing logic from thinking it's a "change" from null
+            if (prevUserIdRef.current === null && user?.id) {
+                prevUserIdRef.current = user.id;
+                await loadCartData(user);
+                return;
             }
-        };
 
-        initialize();
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            const user = session?.user ?? null;
             const currentUserId = user?.id ?? null;
 
-            const isAnonymous = user?.is_anonymous;
-
-            // Only reload the cart if the user has actually changed.
-            if (currentUserId !== prevUserIdRef.current) {
-                // Check for guest -> user transition with local items
-                const isUpgrade = !prevUserIdRef.current && currentUserId;
+            // User changed (e.g. Guest -> Real User)
+            if (currentUserId !== prevUserIdRef.current && prevUserIdRef.current !== null) {
+                const isUpgrade = !prevUserIdRef.current && currentUserId; // Note: prevUserIdRef might be initialized to null, so this check logic needs to be robust. 
+                // Actually, simplified: if we had a user (guest) and now have a different user (real), we sync.
+                // But simplified sync logic: If we have local items and user changes, try to sync.
                 const localItems = cartItemsRef.current;
 
-                // Only sync if upgrading AND not just initializing (refreshing page)
-                if (isUpgrade && localItems.length > 0 && !isInitializingRef.current) {
-                    console.log("Syncing guest items to new user...", localItems.length);
+                if (localItems.length > 0) {
+                    console.log("Syncing items...", localItems.length);
                     try {
                         const syncPromise = Promise.all(localItems.map(async (item) => {
                             const { cart_item_id, created_at, updated_at, expires_at, ...itemParams } = item;
                             const result = await addToCartService({
                                 ...itemParams,
-                                user_id: user?.is_anonymous ? null : (user?.id ?? null), // For real users
-                                session_id: user?.is_anonymous ? user?.id : null // For anonymous users
+                                user_id: user?.is_anonymous ? null : (user?.id ?? null),
+                                session_id: user?.is_anonymous ? user?.id : null
                             });
-                            if (result.error) {
-                                console.error("Failed to sync item:", itemParams.cake_type, result.error);
-                            }
                             return result;
                         }));
-
-                        const timeoutPromise = new Promise((_, reject) =>
-                            setTimeout(() => reject(new Error("Cart sync timed out")), 3000)
-                        );
-
-                        await Promise.race([syncPromise, timeoutPromise]);
-                        console.log("Guest items synced successfully.");
-
-                        // Clear local cart items to prevent duplication
+                        await syncPromise;
                         setCartItems([]);
                         batchRemoveFromLocalStorage('cart_items_cache');
-                    } catch (err) {
-                        console.error("Failed to sync guest items (or timed out):", err);
+                    } catch (e) {
+                        console.error("Sync failed", e);
                     }
                 }
-
-                prevUserIdRef.current = currentUserId;
-                setCurrentUser(user);
-
-                if (user?.is_anonymous) {
-                    setSessionId(user.id);
-                } else {
-                    setSessionId(null);
-                }
-
-                // If there's no auth error, load the cart for the new user.
-                // This handles login/logout scenarios.
-                // Skip loading during initialization to prevent duplicate calls
-                if (!authError && !isInitializingRef.current) {
-                    await loadCartData(user);
-                }
-            } else {
-                // If user hasn't changed (e.g., token refresh), just update the user object.
-                setCurrentUser(user);
             }
-        });
 
-        return () => {
-            subscription?.unsubscribe();
+            if (currentUserId !== prevUserIdRef.current || !cartItems.length) {
+                prevUserIdRef.current = currentUserId;
+                // Load cart for the (new) user
+                await loadCartData(user);
+            }
         };
-    }, [loadCartData, authError]);
+
+        handleAuthChange();
+    }, [user, authLoading, loadCartData]);
 
     // Auto-cache cart items whenever they change (for instant load on next visit)
     useEffect(() => {
@@ -649,8 +588,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [cartItems, removeItemOptimistic, debouncedUpdateQuantity]);
 
     const refreshCart = useCallback(async () => {
-        await loadCartData(currentUser);
-    }, [loadCartData, currentUser]);
+        await loadCartData(user);
+    }, [loadCartData, user]);
 
     const clearCart = useCallback(() => {
         setCartItems([]);

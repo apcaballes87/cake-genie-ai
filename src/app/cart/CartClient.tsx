@@ -21,7 +21,7 @@ import { createXenditPayment } from '@/services/xenditService';
 import AddressForm, { StaticMap } from '@/components/AddressForm';
 import { SplitWithFriendsModal } from '@/components/SplitWithFriendsModal';
 import { SplitOrderShareModal } from '@/components/SplitOrderShareModal';
-import { useGoogleMapsLoader } from '@/contexts/GoogleMapsLoaderContext';
+import { useGoogleMapsLoader, GoogleMapsLoaderProvider } from '@/contexts/GoogleMapsLoaderContext';
 import { calculateCartAvailability, AvailabilityType } from '@/lib/utils/availability';
 import CartItemCard from '@/components/CartItemCard';
 import { useQuery } from '@tanstack/react-query';
@@ -52,7 +52,7 @@ const paymentMethods = [
     { name: 'Palawan', logoUrl: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/payment_logos/palawan.jpg' },
 ];
 
-export default function CartClient() {
+function CartClient() {
     const router = useRouter();
     const { user, signInAnonymously } = useAuth();
     const isRegisteredUser = !!(user && !user.is_anonymous);
@@ -1473,3 +1473,15 @@ export default function CartClient() {
         </>
     );
 }
+
+// Wrap the exported component with GoogleMapsLoaderProvider
+// This ensures Google Maps only loads when the cart page is visited
+function CartClientWithMaps() {
+    return (
+        <GoogleMapsLoaderProvider>
+            <CartClient />
+        </GoogleMapsLoaderProvider>
+    );
+}
+
+export default CartClientWithMaps;

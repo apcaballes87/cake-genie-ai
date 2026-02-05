@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { showSuccess, showError } from '@/lib/utils/toast'
+import { isValidRedirect } from '@/lib/utils/urlHelpers'
 import { Loader2 } from '@/components/icons'
 
 export default function LoginClient() {
@@ -20,8 +21,8 @@ export default function LoginClient() {
     // Redirect if already logged in
     useEffect(() => {
         if (user && !user.is_anonymous) {
-            const redirect = searchParams.get('redirect') || '/'
-            router.push(redirect)
+            const redirect = searchParams.get('redirect')
+            router.push(isValidRedirect(redirect) ? redirect || '/' : '/')
         }
     }, [user, router, searchParams])
 
@@ -45,8 +46,8 @@ export default function LoginClient() {
                 }
             } else {
                 showSuccess('Welcome back!')
-                const redirect = searchParams.get('redirect') || '/'
-                router.push(redirect)
+                const redirect = searchParams.get('redirect')
+                router.push(isValidRedirect(redirect) ? redirect || '/' : '/')
             }
         } catch (error: any) {
             showError(error.message || 'An error occurred during sign in')

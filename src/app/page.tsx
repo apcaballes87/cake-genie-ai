@@ -1,5 +1,10 @@
 import { Metadata } from 'next';
 import LandingClient from './LandingClient';
+import { getRecommendedProducts, getMerchants } from '@/services/supabaseService';
+import { MerchantShowcase, RecommendedProductsSection } from '@/components/landing';
+
+// ISR: Revalidate every hour for fresh data while maintaining fast loads
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'Genie.ph | Online Marketplace for Custom Cakes in Cebu!',
@@ -37,11 +42,24 @@ function WebSiteSchema() {
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const [recommendedProductsRes, merchantsRes] = await Promise.all([
+    getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err })),
+    getMerchants().catch(err => ({ data: [], error: err }))
+  ]);
+
+  const recommendedProducts = recommendedProductsRes.data || [];
+  const merchants = merchantsRes.data || [];
+
   return (
     <>
       <WebSiteSchema />
-      <LandingClient />
+      <LandingClient>
+        {/* Server-rendered sections for LCP optimization */}
+        <MerchantShowcase merchants={merchants} />
+        <RecommendedProductsSection products={recommendedProducts} />
+      </LandingClient>
     </>
   );
 }
+

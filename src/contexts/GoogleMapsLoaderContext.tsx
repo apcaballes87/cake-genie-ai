@@ -32,8 +32,7 @@ export const GoogleMapsLoaderProvider: React.FC<{ children: ReactNode }> = ({ ch
 
 export const useGoogleMapsLoader = (): GoogleMapsLoaderContextType => {
     const context = useContext(GoogleMapsLoaderContext);
-    if (context === undefined) {
-        throw new Error('useGoogleMapsLoader must be used within a GoogleMapsLoaderProvider');
-    }
-    return context;
+    // Return a safe default if not wrapped in provider
+    // This allows components to lazily load the provider when needed
+    return context ?? { isLoaded: false, loadError: undefined };
 };
