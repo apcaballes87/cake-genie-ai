@@ -5,7 +5,7 @@
 /* --- Progress Bar Animation --- */
 .progress-bar-fill {
   width: 0%;
-  animation: fillProgressBar 16s linear forwards;
+  animation: fillProgressBar 12s linear forwards;
 }
 
 @keyframes fillProgressBar {
@@ -246,9 +246,49 @@
   /* Higher than modal's z-[9999] */
 }
 
-/* --- Tawk.to Chat Widget Scaling --- */
-iframe[title="chat widget"],
-.tawk-min-container {
-  transform: scale(0.7) !important;
-  transform-origin: bottom right !important;
+/* Tawk.to widget - using native sizing (configure size in Tawk.to dashboard) */
+
+/* --- Google Search Results Fix --- */
+/* Force GSC to take full width */
+#google-search-container {
+  width: 100% !important;
+}
+
+.gsc-control-cse {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.gsc-results-wrapper-visible {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.gsc-wrapper {
+  width: 100% !important;
+}
+
+.gsc-expansionArea {
+  width: 100% !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 16px !important;
+}
+
+/* Ensure image results occupy space but dont force fixed width that breaks 1-column */
+.gsc-imageResult {
+  width: auto !important;
+  float: none !important;
+  display: inline-block !important;
+}
+
+/* Remove default styles that might constrain */
+.gsc-webResult.gsc-result,
+.gsc-results .gsc-imageResult {
+  border-color: transparent !important;
+  background-color: transparent !important;
+  padding: 0 !important;
 }

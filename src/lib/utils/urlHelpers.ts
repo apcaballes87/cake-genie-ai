@@ -2,7 +2,7 @@
 export function generateUrlSlug(title: string, uuid: string): string {
   // Take first 8 chars of UUID
   const shortId = uuid.substring(0, 8);
-  
+
   // Clean and format title
   const slug = title
     .toLowerCase()
@@ -11,6 +11,10 @@ export function generateUrlSlug(title: string, uuid: string): string {
     .replace(/-+/g, '-') // Multiple hyphens to single
     .substring(0, 50) // Limit length
     .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
-  
+
   return `${slug}-${shortId}`;
+}
+
+export function isValidRedirect(path: string | null): boolean {
+  return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//');
 }

@@ -1,12 +1,12 @@
 /**
- * Roboflow Serverless + Florence-2 Integration
+ * Roboflow Serverless + Florence-2 Integration (Client Service)
  * 
- * This service handles object detection using Roboflow's serverless API
- * with the Florence-2 vision model from Microsoft.
+ * This service handles object detection by calling the server-side API route.
+ * It includes utility functions for coordinate transformation that run on the client.
  */
 
 import { BoundingBox } from '@/types';
-import { ROBOFLOW_CONFIG, FEATURE_FLAGS } from '@/config/features';
+import { FEATURE_FLAGS } from '@/config/features';
 
 // ============================================================================
 // Type Definitions
@@ -25,15 +25,6 @@ export interface RoboflowBbox {
 }
 
 /**
- * Roboflow Serverless API response
- */
-export interface RoboflowResponse {
-    outputs: {
-        bboxes: RoboflowBbox[];
-    };
-}
-
-/**
  * Coordinates with bounding box in app coordinate system
  */
 export interface AppCoordinates {
@@ -47,64 +38,43 @@ export interface AppCoordinates {
 // ============================================================================
 
 /**
- * Detect objects using Roboflow Serverless + Florence-2
+ * Detect objects using Roboflow Serverless + Florence-2 via Server Proxy
  * 
- * @param base64Image - Base64 encoded image data
+ * @param base64Image - Base64 encoded image data (without prefix)
  * @param mimeType - Image MIME type (e.g., 'image/jpeg')
+ * @param classes - List of classes to detect
  * @returns Array of detected bounding boxes
- * @throws Error if API call fails or configuration is missing
  */
 export async function detectObjectsWithRoboflow(
     base64Image: string,
     mimeType: string,
     classes: string[]
 ): Promise<RoboflowBbox[]> {
-    const { apiKey, workspace, workflowId } = ROBOFLOW_CONFIG;
-
-    if (!apiKey || !workspace) {
-        throw new Error('Roboflow not configured: missing API key or workspace');
-    }
-
-    if (!workflowId) {
-        throw new Error('Roboflow workflow ID not configured. Set NEXT_PUBLIC_ROBOFLOW_WORKFLOW_ID environment variable.');
-    }
-
-    // Correct V2 API endpoint format
-    const url = `https://serverless.roboflow.com/${workspace}/workflows/${workflowId}`;
-
-    // Convert base64 to data URL for Roboflow
-    const imageDataUrl = `data:${mimeType};base64,${base64Image}`;
-
     if (FEATURE_FLAGS.DEBUG_ROBOFLOW) {
-        console.log('🤖 Calling Roboflow Serverless API...');
-        console.log(`   Workspace: ${workspace}`);
-        console.log(`   Workflow ID: ${workflowId}`);
-        console.log(`   Image size: ${(base64Image.length / 1024).toFixed(2)} KB`);
+        console.log('🤖 Calling Roboflow Proxy API...');
         console.log(`   Classes: ${classes.length} items`);
     }
 
     try {
-        const response = await fetch(url, {
+        const response = await fetch('/api/roboflow/detect', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                api_key: apiKey,
-                inputs: {
-                    image: imageDataUrl,
-                    classes: classes
-                }
+                imageData: base64Image,
+                mimeType: mimeType,
+                classes: classes
             })
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Roboflow API error (${response.status}): ${errorText}`);
+            throw new Error(`Roboflow proxy error: ${errorText}`);
         }
 
-        const result: RoboflowResponse = await response.json();
-        const bboxes = result.outputs?.bboxes || [];
+        const result = await response.json();
+        const bboxes: RoboflowBbox[] = result.bboxes || [];
 
         if (FEATURE_FLAGS.DEBUG_ROBOFLOW) {
             console.log(`✅ Roboflow detected ${bboxes.length} objects`);
@@ -113,7 +83,7 @@ export async function detectObjectsWithRoboflow(
             });
         }
 
-        // Filter by confidence threshold
+        // Filter by confidence threshold (client-side filtering is fine)
         const filtered = bboxes.filter(
             bbox => bbox.confidence >= FEATURE_FLAGS.ROBOFLOW_CONFIDENCE_THRESHOLD
         );
@@ -126,7 +96,8 @@ export async function detectObjectsWithRoboflow(
 
     } catch (error) {
         console.error('❌ Roboflow API call failed:', error);
-        throw error;
+        // Return empty array on error to allow app to continue without enrichment
+        return [];
     }
 }
 

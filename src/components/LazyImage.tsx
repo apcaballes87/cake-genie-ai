@@ -1,12 +1,14 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
+import Image, { ImageProps } from 'next/image';
 import { Skeleton } from './LoadingSkeletons';
 import { ImageOff } from 'lucide-react';
 
-interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+interface LazyImageProps extends Omit<ImageProps, 'onLoad' | 'onError'> {
   placeholderClassName?: string;
-  eager?: boolean;
-  preventFlickerOnUpdate?: boolean;
+  containerClassName?: string;
+  onLoad?: (event: React.SyntheticEvent<HTMLImageElement>) => void; // Update to match native event if needed, but next/image onLoad is slightly different
+  onError?: (event: React.SyntheticEvent<HTMLImageElement>) => void;
 }
 
 export const LazyImage: React.FC<LazyImageProps> = ({
@@ -14,51 +16,26 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   alt,
   className,
   placeholderClassName,
+  containerClassName,
   onLoad,
   onError,
-  eager = false,
-  preventFlickerOnUpdate = false,
+  priority = false,
+  fill = false,
+  width,
+  height,
   ...props
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [isInView, setIsInView] = useState(eager);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const imgRef = useRef<HTMLImageElement | null>(null);
 
-  useEffect(() => {
-    if (eager || !src) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsInView(true);
-          observer.unobserve(entry.target);
-        }
-      },
-      { rootMargin: '200px 0px' }
-    );
-
-    const currentContainerRef = containerRef.current;
-    if (currentContainerRef) {
-      observer.observe(currentContainerRef);
-    }
-
-    return () => {
-      if (currentContainerRef) {
-        observer.unobserve(currentContainerRef);
-      }
-    };
-  }, [src, eager]);
-
-  const handleLoad = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+  const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     setIsLoaded(true);
     if (onLoad) {
       onLoad(e);
     }
   };
 
-  const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+  const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     setHasError(true);
     setIsLoaded(true); // Stop loading/skeleton
     if (onError) {
@@ -66,52 +43,35 @@ export const LazyImage: React.FC<LazyImageProps> = ({
     }
   };
 
-  useEffect(() => {
-    // When the src changes, reset the loaded/error state, but only if we want the flicker.
-    if (!preventFlickerOnUpdate) {
-      setIsLoaded(false);
-      setHasError(false);
-    }
-    if (eager) {
-      setIsInView(true);
-    }
-  }, [src, eager, preventFlickerOnUpdate]);
-
-  // Fix for cached images: Check if image is already complete after render
-  useEffect(() => {
-    if (imgRef.current?.complete && imgRef.current?.naturalWidth > 0) {
-      setIsLoaded(true);
-    }
-  }, [src, isInView]);
+  // If fill is true, we don't need width/height. If fill is false, we might need them.
+  // next/image requires width/height if fill=false, unless imported static image.
+  // Assuming usage provides necessary props.
 
   return (
-    // The container should take up the space defined by className to prevent layout shift
-    <div ref={containerRef} className={`relative overflow-hidden ${className} ${placeholderClassName || ''}`}>
+    <div className={`relative overflow-hidden ${containerClassName || ''} ${placeholderClassName || ''} ${className || ''}`}>
       {!isLoaded && !hasError && (
-        // The skeleton is absolutely positioned to fill the container
-        <Skeleton className="absolute inset-0 w-full h-full" />
+        <Skeleton className="absolute inset-0 w-full h-full z-10" />
       )}
 
       {hasError && (
-        <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-slate-100 text-slate-300">
+        <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-slate-100 text-slate-300 z-10">
           <ImageOff size={24} />
         </div>
       )}
 
-      {isInView && src && !hasError && (
-        <img
-          ref={imgRef}
-          src={src}
-          alt={alt}
-          // The image also takes the className to fill the container
-          className={`${className} transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
-          onLoad={handleLoad}
-          onError={handleError}
-          loading={eager ? 'eager' : 'lazy'}
-          decoding="async"
-          {...props}
-        />
-      )}
+      <Image
+        src={src}
+        alt={alt}
+        onLoad={handleLoad}
+        onError={handleError}
+        priority={priority}
+        fill={fill}
+        width={!fill ? width : undefined}
+        height={!fill ? height : undefined}
+        sizes={props.sizes || "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"}
+        className={`transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'} ${fill ? 'object-cover' : ''}`}
+        {...props}
+      />
     </div>
   );
 };

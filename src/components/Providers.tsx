@@ -8,7 +8,7 @@ import { ImageProvider } from '@/contexts/ImageContext'
 import { CustomizationProvider } from '@/contexts/CustomizationContext'
 import { CartProvider } from '@/contexts/CartContext'
 import { SavedItemsProvider } from '@/contexts/SavedItemsContext'
-import { GoogleMapsLoaderProvider } from '@/contexts/GoogleMapsLoaderContext'
+import ComposeProviders from './ComposeProviders'
 
 export function Providers({ children }: { children: React.ReactNode }) {
     const [queryClient] = useState(
@@ -30,32 +30,28 @@ export function Providers({ children }: { children: React.ReactNode }) {
     )
 
     return (
-        <QueryClientProvider client={queryClient}>
-            <AuthProvider>
-                <ImageProvider>
-                    <CustomizationProvider>
-                        <CartProvider>
-                            <SavedItemsProvider>
-                                <GoogleMapsLoaderProvider>
-                                    {children}
-                                    <Toaster
-                                        position="bottom-center"
-                                        toastOptions={{
-                                            style: {
-                                                borderRadius: '9999px',
-                                                background: '#333',
-                                                color: '#fff',
-                                                boxShadow: '0 3px 10px rgba(0, 0, 0, 0.2)',
-                                            },
-                                        }}
-                                    />
-                                </GoogleMapsLoaderProvider>
-                            </SavedItemsProvider>
-                        </CartProvider>
-                    </CustomizationProvider>
-                </ImageProvider>
-            </AuthProvider>
-        </QueryClientProvider>
+        <ComposeProviders
+            components={[
+                [QueryClientProvider, { client: queryClient }],
+                AuthProvider,
+                ImageProvider,
+                CustomizationProvider,
+                CartProvider,
+                SavedItemsProvider,
+            ]}
+        >
+            {children}
+            <Toaster
+                position="bottom-center"
+                toastOptions={{
+                    style: {
+                        borderRadius: '9999px',
+                        background: '#333',
+                        color: '#fff',
+                        boxShadow: '0 3px 10px rgba(0, 0, 0, 0.2)',
+                    },
+                }}
+            />
+        </ComposeProviders>
     )
 }
-

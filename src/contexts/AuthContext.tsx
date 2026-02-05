@@ -18,7 +18,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
+import { useAnonymousAuth } from '@/hooks/useAnonymousAuth'
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+    useAnonymousAuth();
     const supabase = createClient()
     const [user, setUser] = useState<User | null>(null)
     const [session, setSession] = useState<Session | null>(null)

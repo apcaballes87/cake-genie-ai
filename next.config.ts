@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'congofivupobtfudnhni.supabase.co',
+        pathname: '/storage/v1/object/**',
+      },
+      {
+        protocol: 'https',
         hostname: '*.googleusercontent.com',
       },
       {
@@ -26,8 +31,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'congofivupobtfudnhni.supabase.co',
-        pathname: '/storage/v1/object/**',
+        hostname: 'maps.googleapis.com',
       },
     ],
   },
@@ -38,6 +42,16 @@ const nextConfig: NextConfig = {
         destination: 'https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/generate-sitemap',
       },
     ]
+  },
+  async headers() {
+    return [{
+      source: '/:path*',
+      headers: [
+        { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+        { key: 'X-Content-Type-Options', value: 'nosniff' },
+        { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
+      ],
+    }];
   },
   async redirects() {
     return [

@@ -5,6 +5,7 @@ import { MainTopperUI, SupportElementUI, MainTopperType, SupportElementType } fr
 import { PencilIcon, PhotoIcon, TrashIcon, Loader2, ResetIcon } from './icons';
 import { ColorPalette } from './ColorPalette';
 import { MultiColorEditor } from './MultiColorEditor';
+import { CakeToppersSkeleton } from './LoadingSkeletons';
 
 interface CakeToppersOptionsProps {
     mainToppers: MainTopperUI[];
@@ -16,6 +17,7 @@ interface CakeToppersOptionsProps {
     onSupportElementImageReplace: (elementId: string, file: File) => void;
     itemPrices?: Map<string, number>;
     isAdmin?: boolean;
+    isAnalyzing?: boolean;
 }
 
 import { TopperCard } from './TopperCard';
@@ -29,9 +31,15 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
     onTopperImageReplace,
     onSupportElementImageReplace,
     itemPrices,
-    isAdmin
+    isAdmin,
+    isAnalyzing
 }) => {
     const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+
+    // Show skeleton during AI analysis
+    if (isAnalyzing) {
+        return <CakeToppersSkeleton />;
+    }
 
     return (
         <div className="space-y-3">

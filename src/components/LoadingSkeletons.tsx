@@ -158,6 +158,41 @@ export const CakeBaseSkeleton: React.FC = React.memo(() => (
 ));
 CakeBaseSkeleton.displayName = 'CakeBaseSkeleton';
 
+// Cake Toppers Skeleton for bottom sheet loading state
+const TopperCardSkeleton: React.FC = () => (
+  <div className="bg-white p-3 rounded-lg border border-slate-200 animate-pulse">
+    <div className="flex items-center gap-3">
+      <div className="w-12 h-12 bg-slate-200 rounded-lg" />
+      <div className="flex-1 space-y-2">
+        <div className="h-4 bg-slate-200 rounded w-3/4" />
+        <div className="h-3 bg-slate-200 rounded w-1/2" />
+      </div>
+      <div className="w-10 h-6 bg-slate-200 rounded-full" />
+    </div>
+  </div>
+);
+
+export const CakeToppersSkeleton: React.FC = React.memo(() => (
+  <div className="space-y-3 animate-pulse">
+    {/* Main Toppers Section */}
+    <div>
+      <div className="h-3 w-28 bg-slate-200 rounded mb-2" />
+      <div className="space-y-2">
+        <TopperCardSkeleton />
+        <TopperCardSkeleton />
+      </div>
+    </div>
+    {/* Support Elements Section */}
+    <div className="mt-4">
+      <div className="h-3 w-32 bg-slate-200 rounded mb-2" />
+      <div className="space-y-2">
+        <TopperCardSkeleton />
+      </div>
+    </div>
+  </div>
+));
+CakeToppersSkeleton.displayName = 'CakeToppersSkeleton';
+
 // Customization Tabs Skeleton (Circles)
 export const CustomizationTabsSkeleton: React.FC = React.memo(() => (
   <div className="w-full px-4 mb-4">
@@ -175,7 +210,7 @@ CustomizationTabsSkeleton.displayName = 'CustomizationTabsSkeleton';
 
 // Chosen Options Skeleton (Squares)
 export const ChosenOptionsSkeleton: React.FC = React.memo(() => (
-  <div className="mt-2 px-2 space-y-2">
+  <div className="mt-2 px-2 space-y-2 animate-pulse">
     <div className="h-3 w-24 bg-slate-200 rounded ml-1" /> {/* "Chosen Options" label */}
     <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
       {[1, 2, 3, 4].map((i) => (
@@ -199,7 +234,7 @@ export const CustomizationSkeleton: React.FC = React.memo(() => (
 
     {/* Additional Instructions Placeholder */}
     <div className="px-2">
-      <div className="bg-slate-50 rounded-lg p-3 space-y-2 border border-slate-200/50">
+      <div className="bg-slate-50 rounded-lg p-3 space-y-2 border border-slate-200/50 animate-pulse">
         <div className="h-4 w-32 bg-slate-200 rounded" />
         <div className="h-16 w-full bg-slate-200 rounded" />
       </div>
@@ -213,3 +248,93 @@ export const CustomizationSkeleton: React.FC = React.memo(() => (
   </div>
 ));
 CustomizationSkeleton.displayName = 'CustomizationSkeleton';
+
+// Full Page Skeleton for Customizing Page
+export const CustomizingPageSkeleton: React.FC = React.memo(() => (
+  <div className="flex flex-col items-center gap-4 w-full max-w-7xl mx-auto pb-28 px-4 animate-pulse">
+
+    {/* Header: Back Button + Search + Cart */}
+    <div className="w-full flex items-center gap-2 md:gap-4 pt-6">
+      <Skeleton className="w-10 h-10 rounded-full shrink-0" /> {/* Back Button */}
+      <div className="relative grow">
+        <Skeleton className="w-full h-12 rounded-full" /> {/* Search Input */}
+      </div>
+      <Skeleton className="w-10 h-10 rounded-full shrink-0" /> {/* Cart Icon */}
+    </div>
+
+    {/* Breadcrumbs */}
+    <div className="w-full flex gap-2">
+      <Skeleton className="h-4 w-16" />
+      <Skeleton className="h-4 w-4" />
+      <Skeleton className="h-4 w-24" />
+      <Skeleton className="h-4 w-4" />
+      <Skeleton className="h-4 w-32" />
+    </div>
+
+    {/* Title & Tag */}
+    <div className="w-full space-y-2">
+      <Skeleton className="h-8 w-3/4 md:w-1/3 rounded-lg" />
+      <Skeleton className="h-5 w-24 rounded-full" />
+    </div>
+
+    {/* Beta Banner */}
+    <Skeleton className="w-full h-10 rounded-xl" />
+
+    {/* Main Two-Column Layout */}
+    <div className="w-full flex flex-col md:flex-row gap-4">
+
+      {/* LEFT COLUMN: Image & Preview */}
+      <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
+        <div className="w-full bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-2 min-h-[400px] flex flex-col">
+          {/* Tab Toggle */}
+          <div className="bg-slate-100 p-1 rounded-lg flex space-x-1 mb-2">
+            <div className="w-1/2 h-8 bg-white rounded shadow-sm" />
+            <div className="w-1/2 h-8" />
+          </div>
+
+          {/* Image Area */}
+          <div className="grow bg-slate-200/50 rounded-xl w-full aspect-square relative flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full border-4 border-slate-300 border-t-slate-500 animate-spin" />
+          </div>
+
+          {/* Bottom Right Small Button */}
+          <div className="absolute bottom-4 right-4 h-8 w-24 bg-slate-200 rounded-lg" />
+        </div>
+      </div>
+
+      {/* RIGHT COLUMN: Controls */}
+      <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
+        <div className="w-full bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200 space-y-6">
+
+          {/* Tabs Title */}
+          <div className="flex justify-center">
+            <Skeleton className="h-4 w-48 mb-2" />
+          </div>
+
+          {/* Customization Tabs (Circles) */}
+          <CustomizationTabsSkeleton />
+
+          {/* Chosen Options (Squares) */}
+          <ChosenOptionsSkeleton />
+
+          {/* Additional Instructions / Text Area */}
+          <div className="bg-slate-50 rounded-lg p-3 space-y-2 border border-slate-200">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-3 w-64" />
+          </div>
+
+          {/* Bottom Action Buttons */}
+          <div className="w-full flex items-center justify-end gap-2 pt-4 mt-2 border-t border-slate-200/50">
+            <Skeleton className="h-9 w-28 rounded-lg" /> {/* Report */}
+            <Skeleton className="h-9 w-24 rounded-lg" /> {/* Save */}
+            <Skeleton className="h-9 w-32 rounded-lg" /> {/* Reset */}
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+));
+CustomizingPageSkeleton.displayName = 'CustomizingPageSkeleton';

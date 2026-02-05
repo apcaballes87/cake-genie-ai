@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import CustomizingClient from '@/app/customizing/CustomizingClient';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { CustomizingPageSkeleton } from '@/components/LoadingSkeletons';
 import { getMerchantBySlug, getMerchantProductBySlug, getCakeBasePriceOptions, getAnalysisByExactHash } from '@/services/supabaseService';
 import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.types';
 import { BasePriceInfo, CakeType, ProductPageProps, CakeThickness } from '@/types';
@@ -112,7 +113,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <>
             <ProductSchema product={product} merchant={merchant} prices={prices} />
 
-            <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
+            <Suspense fallback={<CustomizingPageSkeleton />}>
                 <CustomizationProvider initialData={initialCustomizationState} key={product.product_id}>
                     <CustomizingClient
                         product={product}

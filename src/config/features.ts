@@ -38,21 +38,12 @@ export const FEATURE_FLAGS = {
 } as const;
 
 /**
- * Roboflow configuration
- */
-export const ROBOFLOW_CONFIG = {
-    apiKey: process.env.NEXT_PUBLIC_ROBOFLOW_API_KEY || '',
-    workspace: process.env.NEXT_PUBLIC_ROBOFLOW_WORKSPACE || '',
-    workflowId: process.env.NEXT_PUBLIC_ROBOFLOW_WORKFLOW_ID || process.env.NEXT_PUBLIC_ROBOFLOW_MODEL || '',
-    version: process.env.NEXT_PUBLIC_ROBOFLOW_VERSION || '1',
-} as const;
+// ROBOFLOW_CONFIG removed - keys are now server-side only
+
 
 /**
  * Validate Roboflow configuration
  */
-export function isRoboflowConfigured(): boolean {
-    return !!(
-        ROBOFLOW_CONFIG.apiKey &&
-        ROBOFLOW_CONFIG.workspace
-    );
-}
+export const isRoboflowConfigured = () => {
+    return FEATURE_FLAGS.USE_ROBOFLOW_COORDINATES;
+};
