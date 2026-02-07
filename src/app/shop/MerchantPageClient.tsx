@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
+
 import { useParams, useRouter } from 'next/navigation';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import { ImageUploader } from '@/components/ImageUploader';
@@ -116,12 +116,12 @@ export function MerchantPageClient({ slug }: MerchantPageClientProps) {
                 {/* Cover Photo */}
                 <div className="h-48 md:h-64 w-full relative overflow-hidden bg-slate-200">
                     {merchant.cover_image_url && (
-                        <Image
+                        <LazyImage
                             src={merchant.cover_image_url}
                             alt="Cover Photo"
                             fill
                             sizes="100vw"
-                            className="object-cover"
+                            imageClassName="object-cover"
                             priority
                         />
                     )}
@@ -134,12 +134,12 @@ export function MerchantPageClient({ slug }: MerchantPageClientProps) {
                     <div className="relative shrink-0 mx-auto md:mx-0">
                         <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-lg overflow-hidden relative bg-white">
                             {merchant.profile_image_url && (
-                                <Image
+                                <LazyImage
                                     src={merchant.profile_image_url}
                                     alt={merchant.business_name}
                                     fill
                                     sizes="128px"
-                                    className="object-cover"
+                                    imageClassName="object-cover"
                                 />
                             )}
                         </div>
@@ -244,7 +244,9 @@ export function MerchantPageClient({ slug }: MerchantPageClientProps) {
                                         <LazyImage
                                             src={product.image_url || '/placeholder-cake.png'}
                                             alt={product.alt_text || product.title}
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                            fill
+                                            className="group-hover:scale-110 transition-transform duration-500"
+                                            imageClassName="object-cover"
                                             sizes="(max-width: 490px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
                                         />
 

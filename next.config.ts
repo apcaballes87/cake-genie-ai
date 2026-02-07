@@ -1,37 +1,17 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  // Only our own Supabase domains need optimization via next/image.
+  // All other external domains are handled by LazyImage with unoptimized={true}.
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'cqmhanqnfybyxezhobkx.supabase.co',
-        pathname: '/storage/v1/object/**',
       },
       {
         protocol: 'https',
         hostname: 'congofivupobtfudnhni.supabase.co',
-        pathname: '/storage/v1/object/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.googleusercontent.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'es.pinterest.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'encrypted-tbn0.gstatic.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'maps.googleapis.com',
       },
     ],
   },

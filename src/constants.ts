@@ -156,6 +156,14 @@ export const LANDING_PAGE_IMAGES = {
     getAssetUrl('landingpage', 'bento5.jpg'),
     getAssetUrl('landingpage', 'bento6.jpg'),
   ],
+  birthdayPrintouts: [
+    getAssetUrl('landingpage', 'ep1.jpg'),
+    getAssetUrl('landingpage', 'ep2.jpg'),
+    getAssetUrl('landingpage', 'ep3.jpg'),
+    getAssetUrl('landingpage', 'ep4.jpg'),
+    getAssetUrl('landingpage', 'ep5.jpg'),
+    getAssetUrl('landingpage', 'ep6.jpg'),
+  ],
 } as const;
 
 // Legacy alias for backwards compatibility

@@ -47,6 +47,10 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Compute the visible list of keywords for keyboard navigation
+  // When input is empty, show suggested + popular + same-day keywords
+  // When input has text, show autocomplete suggestions
+
   // --- State for suggested and popular keywords ---
   const [suggestedKeywords, setSuggestedKeywords] = useState<string[]>([]);
   const [popularKeywords, setPopularKeywords] = useState<string[]>([]);
@@ -73,27 +77,43 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     }
   }, [query]);
 
+  // Compute visible keywords for keyboard navigation
+  const getVisibleKeywords = (): string[] => {
+    if (query.trim().length > 0) {
+      return suggestions;
+    }
+    // When input is empty, combine all visible keyword lists
+    return [...suggestedKeywords, ...popularKeywords, ...sameDayKeywords];
+  };
+
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    const visibleKeywords = getVisibleKeywords();
+
     // Handle Enter key separately to ensure it always works
     if (e.key === 'Enter') {
       e.preventDefault();
-      // If a suggestion is highlighted, select it. Otherwise, perform a search.
-      if (showSuggestions && selectedIndex >= 0 && suggestions[selectedIndex]) {
-        handleSelectSuggestion(suggestions[selectedIndex]);
+      // If a suggestion is highlighted, select it. Otherwise, search the typed text.
+      if (showSuggestions && selectedIndex >= 0 && visibleKeywords[selectedIndex]) {
+        handleSelectSuggestion(visibleKeywords[selectedIndex]);
       } else {
-        handleSearch();
+        // Search the current input text explicitly
+        const currentQuery = query.trim();
+        if (currentQuery) {
+          onSearch(currentQuery);
+          setShowSuggestions(false);
+        }
       }
       return; // Stop further execution for Enter key
     }
 
     // Guard for other navigation keys (Arrows, Escape)
-    if (!showSuggestions || suggestions.length === 0) return;
+    if (!showSuggestions || visibleKeywords.length === 0) return;
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : prev));
+        setSelectedIndex(prev => (prev < visibleKeywords.length - 1 ? prev + 1 : prev));
         break;
 
       case 'ArrowUp':
@@ -108,14 +128,15 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   };
 
   const handleSelectSuggestion = (suggestion: string) => {
-    setQuery(suggestion);
+    // Directly trigger search, which will update the input value via parent
     setShowSuggestions(false);
     onSearch(suggestion);
   };
 
   const handleSearch = () => {
-    if (query.trim()) {
-      onSearch(query.trim());
+    const currentQuery = query.trim();
+    if (currentQuery) {
+      onSearch(currentQuery);
       setShowSuggestions(false);
     }
   };
@@ -212,15 +233,22 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                     <div className="p-3">
                       <h3 className="px-1 pb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Popular Searches</h3>
                       <div className="flex flex-wrap gap-2">
-                        {suggestedKeywords.map(keyword => (
-                          <button
-                            key={`sugg-${keyword}`}
-                            onClick={() => handleSelectSuggestion(keyword)}
-                            className="px-3 py-1.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-full hover:bg-pink-100 hover:text-pink-700 transition-colors"
-                          >
-                            {keyword}
-                          </button>
-                        ))}
+                        {suggestedKeywords.map((keyword, idx) => {
+                          const globalIndex = idx;
+                          const isSelected = selectedIndex === globalIndex;
+                          return (
+                            <button
+                              key={`sugg-${keyword}`}
+                              onClick={() => handleSelectSuggestion(keyword)}
+                              className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${isSelected
+                                ? 'bg-pink-100 text-pink-700 ring-2 ring-pink-300'
+                                : 'bg-slate-100 text-slate-700 hover:bg-pink-100 hover:text-pink-700'
+                                }`}
+                            >
+                              {keyword}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -228,30 +256,44 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                     <div className={`p-3 ${suggestedKeywords.length > 0 ? 'border-t border-slate-100' : ''}`}>
                       <h3 className="px-1 pb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Popular Searches</h3>
                       <div className="flex flex-wrap gap-2">
-                        {popularKeywords.map(keyword => (
-                          <button
-                            key={`pop-${keyword}`}
-                            onClick={() => handleSelectSuggestion(keyword)}
-                            className="px-3 py-1.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-full hover:bg-pink-100 hover:text-pink-700 transition-colors"
-                          >
-                            {keyword}
-                          </button>
-                        ))}
+                        {popularKeywords.map((keyword, idx) => {
+                          const globalIndex = suggestedKeywords.length + idx;
+                          const isSelected = selectedIndex === globalIndex;
+                          return (
+                            <button
+                              key={`pop-${keyword}`}
+                              onClick={() => handleSelectSuggestion(keyword)}
+                              className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${isSelected
+                                ? 'bg-pink-100 text-pink-700 ring-2 ring-pink-300'
+                                : 'bg-slate-100 text-slate-700 hover:bg-pink-100 hover:text-pink-700'
+                                }`}
+                            >
+                              {keyword}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
                   <div className={`p-3 ${(suggestedKeywords.length > 0 || popularKeywords.length > 0) ? 'border-t border-slate-100' : ''}`}>
                     <h3 className="px-1 pb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Available for same-day deliveries</h3>
                     <div className="flex flex-wrap gap-2">
-                      {sameDayKeywords.map(keyword => (
-                        <button
-                          key={`sameday-${keyword}`}
-                          onClick={() => handleSelectSuggestion(keyword)}
-                          className="px-3 py-1.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-full hover:bg-pink-100 hover:text-pink-700 transition-colors"
-                        >
-                          {keyword}
-                        </button>
-                      ))}
+                      {sameDayKeywords.map((keyword, idx) => {
+                        const globalIndex = suggestedKeywords.length + popularKeywords.length + idx;
+                        const isSelected = selectedIndex === globalIndex;
+                        return (
+                          <button
+                            key={`sameday-${keyword}`}
+                            onClick={() => handleSelectSuggestion(keyword)}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${isSelected
+                              ? 'bg-pink-100 text-pink-700 ring-2 ring-pink-300'
+                              : 'bg-slate-100 text-slate-700 hover:bg-pink-100 hover:text-pink-700'
+                              }`}
+                          >
+                            {keyword}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                   {suggestedKeywords.length === 0 && popularKeywords.length === 0 && !isLoadingSuggestions && (

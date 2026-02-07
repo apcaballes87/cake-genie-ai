@@ -73,13 +73,172 @@ export const useSearchEngine = ({
   const [isCSELoaded, setIsCSELoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [searchTrigger, setSearchTrigger] = useState(0); // Add trigger for forcing re-searches
   const cseElementRef = useRef<GoogleCSEElement | null>(null);
   const isProcessingUrlRef = useRef(false);
 
-  const handleImageFromUrl = useCallback(async (imageUrl: string, clickedElement: HTMLElement) => {
+  /**
+   * Waits for Google CSE to load the high-resolution image in its modal/popup.
+   * When a user clicks a CSE image result, Google starts fetching the original
+   * image from the source. This function watches for that image to appear.
+   * 
+   * @param thumbnailUrl - The low-res thumbnail URL (fallback if high-res not found)
+   * @param clickedImg - The clicked image element to trigger CSE behavior
+   * @returns The high-resolution URL if found, otherwise the original thumbnail URL
+   */
+  const extractHighResUrl = useCallback(async (thumbnailUrl: string, clickedImg: HTMLElement): Promise<string> => {
+    const maxWaitTime = 1600; // 1.6 seconds max wait for high-res image
+    const startTime = Date.now();
+
+    return new Promise((resolve) => {
+      // Try to find an already-loaded high-res image
+      const checkForHighRes = (): string | null => {
+        // Look for images that are NOT gstatic thumbnails and have loaded
+        const images = document.querySelectorAll('img');
+        for (const img of Array.from(images)) {
+          const htmlImg = img as HTMLImageElement;
+          // Skip if it's a gstatic thumbnail, data URL, or hasn't loaded
+          if (
+            !htmlImg.src.includes('gstatic.com') &&
+            !htmlImg.src.startsWith('data:') &&
+            htmlImg.src.startsWith('http') &&
+            htmlImg.naturalWidth > 200 && // Must be reasonable size
+            htmlImg.complete // Must be loaded
+          ) {
+            // Check if this is in the CSE modal/popup area (usually appended to body)
+            const isInPopup = htmlImg.closest('.gs-image-popup-box, .gs-image-box-popup, [class*="popup"], [class*="modal"]');
+            const isLargeInViewport = htmlImg.getBoundingClientRect().width > 200;
+
+            if (isInPopup || isLargeInViewport) {
+              console.log('[CSE] Found high-res image:', htmlImg.src);
+              return htmlImg.src;
+            }
+          }
+        }
+        return null;
+      };
+
+      // Set up observer to watch for new images being added to the DOM
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          // Check new nodes
+          if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach((node) => {
+              if (node instanceof HTMLElement) {
+                const imgs = node.querySelectorAll ?
+                  [node, ...Array.from(node.querySelectorAll('img'))] :
+                  [node];
+                for (const el of imgs) {
+                  if (el instanceof HTMLImageElement) {
+                    if (
+                      !el.src.includes('gstatic.com') &&
+                      el.src.startsWith('http') &&
+                      el.naturalWidth > 200
+                    ) {
+                      console.log('[CSE] Found high-res via observer:', el.src);
+                      observer.disconnect();
+                      clearInterval(intervalId);
+                      resolve(el.src);
+                      return;
+                    }
+                  }
+                }
+              }
+            });
+          }
+          // Check src attribute changes
+          if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
+            const target = mutation.target as HTMLImageElement;
+            if (
+              target instanceof HTMLImageElement &&
+              !target.src.includes('gstatic.com') &&
+              target.src.startsWith('http')
+            ) {
+              console.log('[CSE] Found high-res via src change:', target.src);
+              observer.disconnect();
+              clearInterval(intervalId);
+              resolve(target.src);
+              return;
+            }
+          }
+        }
+      });
+
+      // Observe the entire document for changes
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['src']
+      });
+
+      // Poll periodically as a backup
+      const intervalId = setInterval(() => {
+        const highRes = checkForHighRes();
+        if (highRes) {
+          clearInterval(intervalId);
+          observer.disconnect();
+          resolve(highRes);
+        } else if (Date.now() - startTime > maxWaitTime) {
+          // Timeout - fall back to thumbnail
+          console.log('[CSE] Timeout waiting for high-res, using thumbnail');
+          clearInterval(intervalId);
+          observer.disconnect();
+          resolve(thumbnailUrl);
+        }
+      }, 100);
+
+      // Initial check
+      const immediate = checkForHighRes();
+      if (immediate) {
+        clearInterval(intervalId);
+        observer.disconnect();
+        resolve(immediate);
+      }
+    });
+  }, []);
+
+  const handleImageFromUrl = useCallback(async (thumbnailUrl: string, clickedElement: HTMLElement) => {
     if (isProcessingUrlRef.current) return;
     isProcessingUrlRef.current = true;
     setIsFetchingWebImage(true);
+
+    // IMMEDIATELY hide CSE modals before CSE can display them
+    // This runs synchronously to beat CSE's modal rendering
+    const styleId = 'cse-modal-hide-style';
+    let styleTag = document.getElementById(styleId) as HTMLStyleElement | null;
+    if (!styleTag) {
+      styleTag = document.createElement('style');
+      styleTag.id = styleId;
+      document.head.appendChild(styleTag);
+    }
+    styleTag.textContent = `
+      .gsc-modal-background-image,
+      .gsc-modal-background-image-visible,
+      .gsc-lightbox,
+      .gsc-expansionArea,
+      .gs-image-popup-box,
+      .gs-image-box-popup,
+      .gsc-resultsRoot > .gsc-expansionArea,
+      [class*="gsc-"][class*="modal"],
+      [class*="gsc-"][class*="lightbox"],
+      [class*="gsc-"][class*="expansion"] {
+        filter: blur(12px) !important;
+        opacity: 0.5 !important;
+        z-index: 1 !important;
+        pointer-events: none !important;
+        transform: scale(0.98) !important;
+        transition: all 0.3s ease !important;
+      }
+      .gsc-modal-background-image img,
+      .gsc-modal-background-image-visible img,
+      .gsc-lightbox img,
+      .gs-image-popup-box img,
+      .gs-image-box-popup img {
+        filter: blur(12px) !important;
+        opacity: 0.5 !important;
+      }
+    `;
 
     // Reset styles on all other images and apply active style to the clicked one
     const container = document.getElementById(GOOGLE_SEARCH_CONTAINER_ID);
@@ -97,6 +256,28 @@ export const useSearchEngine = ({
     clickedElement.style.boxShadow = '0 0 20px rgba(236, 72, 153, 0.6)';
     clickedElement.style.transform = 'scale(0.95)';
     clickedElement.style.opacity = '0.9';
+
+    // Step 1: Trigger CSE's native click behavior to start loading the high-res modal
+    // We need to find and click the parent anchor to trigger CSE's internal logic
+    const parentAnchor = clickedElement.closest('a.gs-image');
+    if (parentAnchor) {
+      // Dispatch a synthetic click that CSE can handle
+      const syntheticClick = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: false, // Don't allow cancellation so CSE processes it
+        view: window
+      });
+      // Note: We dispatch on a clone to avoid infinite loop with our own handler
+      setTimeout(() => {
+        // CSE listens on 'a.gs-image' elements for clicks
+        parentAnchor.dispatchEvent(syntheticClick);
+      }, 0);
+    }
+
+    // Step 2: Wait for CSE to load the high-resolution image
+    console.log('[CSE] Waiting for high-resolution URL...');
+    const imageUrl = await extractHighResUrl(thumbnailUrl, clickedElement);
+    console.log('[CSE] Using image URL:', imageUrl, imageUrl !== thumbnailUrl ? '(HIGH-RES)' : '(THUMBNAIL)');
 
     // Use our local API route as the primary proxy
     // This avoids 403 errors from public proxies
@@ -142,16 +323,19 @@ export const useSearchEngine = ({
       setIsFetchingWebImage(false);
       isProcessingUrlRef.current = false;
     }
-  }, [handleImageUpload, setImageError, setAppState, setIsFetchingWebImage]);
+  }, [handleImageUpload, setImageError, setAppState, setIsFetchingWebImage, extractHighResUrl]);
 
   const handleSearch = useCallback((query?: string) => {
     const searchQueryValue = typeof query === 'string' ? query.trim() : searchInput.trim();
     if (!searchQueryValue) return;
 
-    // Update URL to reflect the new search query
-    const newHelper = new URLSearchParams(searchParams.toString());
-    newHelper.set('q', searchQueryValue);
-    router.push(`/search?${newHelper.toString()}`);
+    // Only push if URL actually changes to avoid redundant history entries
+    const currentParams = new URLSearchParams(searchParams.toString());
+    if (currentParams.get('q') !== searchQueryValue) {
+      const newHelper = new URLSearchParams(searchParams.toString());
+      newHelper.set('q', searchQueryValue);
+      router.push(`/search?${newHelper.toString()}`);
+    }
 
     // Analytics: Track when a user starts the design process via search
     if (typeof gtag === 'function') {
@@ -163,10 +347,13 @@ export const useSearchEngine = ({
 
     trackSearchTerm(searchQueryValue).catch(console.error);
     if (typeof query === 'string') setSearchInput(searchQueryValue);
+
+    // Always trigger a new search, even if query string is identical
     setIsSearching(true);
     setImageError(null);
     setAppState('searching');
     setSearchQuery(searchQueryValue);
+    setSearchTrigger(prev => prev + 1);
   }, [searchInput, setImageError, setAppState, router, searchParams]); // Added router and searchParams to dependencies
 
   // FIX: Added React to import to make React.KeyboardEvent available.
@@ -240,7 +427,7 @@ export const useSearchEngine = ({
     const renderAndExecute = () => {
       try {
         let element = cseElementRef.current;
-        if (!element) {
+        if (!element && window.google?.search?.cse?.element) {
           element = window.google.search.cse.element.render({
             div: GOOGLE_SEARCH_CONTAINER_ID,
             tag: 'searchresults-only',
@@ -249,11 +436,21 @@ export const useSearchEngine = ({
           });
           cseElementRef.current = element;
         }
-        element?.execute(searchQuery);
+
+        if (element) {
+          element.execute(searchQuery);
+        } else {
+          // Retry if element isn't ready yet
+          setTimeout(renderAndExecute, 100);
+          return;
+        }
       } catch (e) {
+        console.error("CSE Execute Error:", e);
         setImageError('Failed to initialize or run the search service. Please refresh.');
       } finally {
-        setIsSearching(false);
+        // Debounce hiding the spinner to avoid flickering if search is fast
+        // or to allow UI to update
+        setTimeout(() => setIsSearching(false), 500);
       }
     };
 
@@ -278,7 +475,7 @@ export const useSearchEngine = ({
 
       return () => clearInterval(intervalId);
     }
-  }, [appState, isCSELoaded, searchQuery, setImageError]);
+  }, [appState, isCSELoaded, searchQuery, searchTrigger, setImageError]); // Added searchTrigger to dependencies
 
   useEffect(() => {
     let timeoutId: number | null = null;
@@ -316,7 +513,18 @@ export const useSearchEngine = ({
     const container = document.getElementById(GOOGLE_SEARCH_CONTAINER_ID);
     if (!container) return;
     const processResults = () => {
-      container.querySelectorAll('.gcse-result-tabs, .gsc-tabsArea, .gsc-above-wrapper-area, .gsc-adBlock, .gs-image-box-popup, .gs-image-popup-box, .gs-title, .gs-bidi-start-align').forEach(el => (el as HTMLElement).style.display = 'none');
+      // Hide UI elements we don't want, but keep popup boxes in DOM (just visually hidden)
+      // so CSE can load high-res images that our observer can detect
+      container.querySelectorAll('.gcse-result-tabs, .gsc-tabsArea, .gsc-above-wrapper-area, .gsc-adBlock, .gs-title, .gs-bidi-start-align').forEach(el => (el as HTMLElement).style.display = 'none');
+      // Hide popup boxes visually but keep them in DOM for high-res image extraction
+      // Also set z-index: -1 so they stay behind the "Working on it..." overlay
+      container.querySelectorAll('.gs-image-box-popup, .gs-image-popup-box, .gsc-modal-background-image, .gsc-modal-background-image-visible, .gsc-lightbox, [class*="lightbox"], [class*="modal"]').forEach(el => {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.visibility = 'hidden';
+        htmlEl.style.position = 'absolute';
+        htmlEl.style.pointerEvents = 'none';
+        htmlEl.style.zIndex = '-1';
+      });
       container.querySelectorAll('.gs-image-box:not(.customize-btn-added)').forEach(resultContainer => {
         const containerEl = resultContainer as HTMLElement;
         containerEl.classList.add('customize-btn-added'); // Mark as processed immediately to prevent re-adding

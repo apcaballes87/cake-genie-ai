@@ -1,12 +1,36 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Image, { ImageProps } from 'next/image';
 import { Skeleton } from './LoadingSkeletons';
 import { ImageOff } from 'lucide-react';
 
+// Our own Supabase storage domains that are safe for next/image optimization.
+const OWN_SUPABASE_DOMAINS = [
+  'cqmhanqnfybyxezhobkx.supabase.co',
+  'congofivupobtfudnhni.supabase.co',
+];
+
+/**
+ * Simple check: if the URL is NOT from our own Supabase storage, it's external
+ * and should be unoptimized to avoid 400 errors from unreliable external servers.
+ */
+const shouldUseUnoptimized = (src: string | undefined): boolean => {
+  if (!src || typeof src !== 'string') return false;
+
+  // Relative URLs are always safe (local images)
+  if (src.startsWith('/') || src.startsWith('data:')) return false;
+
+  // Simple check: is it from our own Supabase storage?
+  const isOwnSupabase = OWN_SUPABASE_DOMAINS.some(domain => src.includes(domain));
+
+  // If it's NOT our own Supabase, it's external and should be unoptimized.
+  return !isOwnSupabase;
+};
+
 interface LazyImageProps extends Omit<ImageProps, 'onLoad' | 'onError'> {
   placeholderClassName?: string;
   containerClassName?: string;
+  imageClassName?: string;
   onLoad?: (event: React.SyntheticEvent<HTMLImageElement>) => void; // Update to match native event if needed, but next/image onLoad is slightly different
   onError?: (event: React.SyntheticEvent<HTMLImageElement>) => void;
 }
@@ -17,16 +41,26 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   className,
   placeholderClassName,
   containerClassName,
+  imageClassName,
   onLoad,
   onError,
   priority = false,
   fill = false,
   width,
   height,
+  unoptimized,
   ...props
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+
+  // Determine if we should skip next/image optimization for this URL
+  const useUnoptimized = useMemo(() => {
+    // If explicitly set, use that value
+    if (typeof unoptimized === 'boolean') return unoptimized;
+    // Otherwise, check if the domain is whitelisted
+    return shouldUseUnoptimized(typeof src === 'string' ? src : undefined);
+  }, [src, unoptimized]);
 
   const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     setIsLoaded(true);
@@ -43,12 +77,12 @@ export const LazyImage: React.FC<LazyImageProps> = ({
     }
   };
 
-  // If fill is true, we don't need width/height. If fill is false, we might need them.
-  // next/image requires width/height if fill=false, unless imported static image.
-  // Assuming usage provides necessary props.
+  // If fill is true, the wrapper should be absolute to mimic next/image behavior
+  // properly within a relative container.
+  const positionClass = fill ? 'absolute inset-0 w-full h-full' : 'relative';
 
   return (
-    <div className={`relative overflow-hidden ${containerClassName || ''} ${placeholderClassName || ''} ${className || ''}`}>
+    <div className={`${positionClass} overflow-hidden ${containerClassName || ''} ${placeholderClassName || ''} ${className || ''}`}>
       {!isLoaded && !hasError && (
         <Skeleton className="absolute inset-0 w-full h-full z-10" />
       )}
@@ -69,7 +103,8 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         width={!fill ? width : undefined}
         height={!fill ? height : undefined}
         sizes={props.sizes || "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"}
-        className={`transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'} ${fill ? 'object-cover' : ''}`}
+        className={`transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'} ${fill ? 'object-cover' : ''} ${imageClassName || ''}`}
+        unoptimized={useUnoptimized}
         {...props}
       />
     </div>

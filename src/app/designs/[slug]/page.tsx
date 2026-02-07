@@ -1,6 +1,7 @@
 import { Metadata, ResolvingMetadata } from 'next'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
+import LazyImage from '@/components/LazyImage'
 import { createClient } from '@/lib/supabase/server'
 import SharedDesignClient, { SharedDesign } from './SharedDesignClient'
 import { SharedDesignBackButton, SharedDesignCopyButton } from './SharedDesignComponents'
@@ -209,16 +210,16 @@ export default async function SharedDesignPage({ params }: Props) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Left: Image */}
-                    <div className="relative">
-                        <Image
+                    <div className="relative w-full aspect-square">
+                        <LazyImage
                             src={design.customized_image_url}
                             alt={design.alt_text || design.title || 'Custom cake design'}
                             priority={true}
-                            width={800} // Approximate width for 4xl container split in 2
-                            height={800}
-                            className="w-full aspect-square object-cover rounded-xl shadow-lg border border-slate-200"
+                            fill
+                            className="rounded-xl shadow-lg border border-slate-200"
+                            imageClassName="object-cover"
                         />
-                        <div className="absolute top-3 right-3 flex gap-2">
+                        <div className="absolute top-3 right-3 flex gap-2 z-10">
                             <SharedDesignCopyButton />
                         </div>
                     </div>

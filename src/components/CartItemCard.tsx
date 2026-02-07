@@ -184,7 +184,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
                 <button
                     type="button"
                     onClick={() => item.image && onZoom(item.image)}
-                    className="w-24 h-24 md:w-32 md:h-32 shrink-0 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-md transition-transform hover:scale-105"
+                    className="relative w-24 h-24 md:w-32 md:h-32 shrink-0 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-md transition-transform hover:scale-105"
                     aria-label="Enlarge cake image"
                 >
                     <LazyImage src={item.image!} alt="Cake Design" fill className="w-full h-full object-cover rounded-md" />
