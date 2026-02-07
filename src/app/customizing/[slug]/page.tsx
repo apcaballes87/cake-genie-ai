@@ -10,30 +10,13 @@ import { CakeType, BasePriceInfo, HybridAnalysisResult, CakeInfoUI, MainTopperUI
 import { CustomizationProvider, CustomizationState } from '@/contexts/CustomizationContext'
 import { v4 as uuidv4 } from 'uuid'
 
-// Helper to fetch design by slug OR keyword fallback
+// Helper to fetch design by exact slug only
 async function getDesign(supabase: any, slug: string) {
-    // 1. Try exact slug match
-    let { data } = await supabase
+    const { data } = await supabase
         .from('cakegenie_analysis_cache')
         .select('*')
         .eq('slug', slug)
         .single()
-
-    // 2. Fallback: Search by keyword (e.g. 'graduation' -> latest graduation cake)
-    if (!data) {
-        const keyword = slug.replace(/-/g, ' ');
-        const { data: fallback } = await supabase
-            .from('cakegenie_analysis_cache')
-            .select('*')
-            .ilike('keywords', `%${keyword}%`)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-
-        if (fallback) {
-            data = fallback
-        }
-    }
 
     return data
 }
@@ -89,9 +72,7 @@ export async function generateMetadata(
         description = `Get instant pricing for this ${design.keywords || 'custom'} cake design. Starting at ₱${design.price?.toLocaleString() || '0'}.`
     }
 
-    // Use the actual design slug for canonical URL to prevent Soft 404s on fallback matches
-    const canonicalSlug = design.slug || slug
-    const canonicalUrl = `https://genie.ph/customizing/${canonicalSlug}`
+    const canonicalUrl = `https://genie.ph/customizing/${slug}`
 
     return {
         title,
@@ -558,16 +539,7 @@ export default async function RecentSearchPage({ params }: Props) {
     const { slug } = await params
     const supabase = await createClient()
 
-    console.log(`[RecentSearchPage] Request for slug: ${slug}`);
-
     const design = await getDesign(supabase, slug)
-
-    if (!design) {
-        console.warn(`[RecentSearchPage] No design found for slug: ${slug} - triggering 404`);
-        notFound()
-    }
-
-    console.log(`[RecentSearchPage] Design found for slug: ${slug}, passing to client.`);
 
     if (!design) {
         notFound()
