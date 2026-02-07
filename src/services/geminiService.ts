@@ -9,6 +9,7 @@ import {
     findMatchingDetection
 } from './roboflowService';
 import { FEATURE_FLAGS, isRoboflowConfigured } from '@/config/features';
+import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 
 const supabase = createClient();
 
@@ -247,12 +248,34 @@ export async function editCakeImage(
     systemInstruction: string,
 ): Promise<string> {
     try {
+        // --- OPTIMIZATION START ---
+        // Compress the image before sending to the API to reduce payload size and latency
+        // The API only needs a visual reference (1024px is plenty), not the full 12MP upload
+
+        const fullDataUri = `data:${originalImage.mimeType};base64,${originalImage.data}`;
+        const imageBlob = dataURItoBlob(fullDataUri);
+        const imageFile = new File([imageBlob], "input-image.png", { type: originalImage.mimeType });
+
+        // Use the imported compressImage utility (target ~1MB or 1024px)
+        const compressedFile = await compressImage(imageFile, {
+            maxSizeMB: 0.8,
+            maxWidthOrHeight: 1024,
+            useWebWorker: true,
+            fileType: 'image/jpeg' // JPEG is efficient for AI input
+        });
+
+        // Convert back to the format expected by the API ({ data, mimeType })
+        // We use the local fileToBase64 helper or just read it here
+        const compressedBase64Result = await fileToBase64(compressedFile);
+
+        console.log(`🚀 Designing Image: Compressed input from ${(imageFile.size / 1024 / 1024).toFixed(2)}MB to ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+
         const response = await fetch('/api/ai/edit-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 prompt,
-                originalImage,
+                originalImage: compressedBase64Result,
                 threeTierReferenceImage,
                 systemInstruction // We pass this through as it's dynamically constructed in the UI
             })

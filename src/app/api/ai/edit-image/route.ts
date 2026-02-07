@@ -47,8 +47,10 @@ export async function POST(req: NextRequest) {
         parts.push({ text: prompt });
 
         const aiClient = getAI();
+        // Use Gemini 2.5 Flash Image for faster, optimized image editing
+        const MODEL_NAME = 'gemini-2.5-flash-image';
         const response = await aiClient.models.generateContent({
-            model: "gemini-3-pro-image-preview", // UPDATED: Using Nano Banana 2 (Gemini 3 Pro Image)
+            model: MODEL_NAME, // UPDATED: Using Gemini 2.5 Flash Image
             contents: [{ parts }],
             config: {
                 systemInstruction: systemInstruction,
