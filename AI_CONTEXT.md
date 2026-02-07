@@ -11,11 +11,15 @@
 ### Current Setup (as of January 2026)
 
 | Configuration | Value | DO NOT CHANGE TO |
-|---------------|-------|------------------|
+| :--- | :--- | :--- |
 | **SDK Package** | `@google/genai` | `@google/generative-ai` (old) |
 | **SDK Version** | `^1.38.0` or later | Any version below 1.38.0 |
-| **Model Name** | `gemini-3-flash-preview` | `gemini-2.0-flash`, `gemini-1.5-pro`, etc. |
+| **Model Name** | `gemini-3-flash-preview`, `gemini-3-pro-image-preview` | `gemini-2.0-flash`, `gemini-1.5-pro`, etc. |
 | **Thinking Config** | `thinkingLevel: ThinkingLevel.LOW/MEDIUM/HIGH` | `thinkingBudget`, `includeThoughts` |
+| **Thinking Config (`thinkingLevel`)**:
+
+- REQUIRED for `gemini-3-flash-preview`
+- NOT SUPPORTED for `gemini-3-pro-image-preview`
 
 ### Why This Matters
 
@@ -64,7 +68,7 @@ model: "gemini-pro"
 ## 🔧 Service File Locations
 
 | Service | File Path | Purpose |
-|---------|-----------|---------|
+| :--- | :--- | :--- |
 | Gemini AI Service | `src/services/geminiService.ts` | All AI analysis functions |
 | Roboflow Service | `src/services/roboflowService.ts` | Object detection |
 | Pricing Service | `src/services/pricingService.database.ts` | Pricing calculations |
@@ -92,19 +96,20 @@ model: "gemini-pro"
 ## 🎯 AI Function Configuration Reference
 
 | Function | File | ThinkingLevel | Purpose |
-|----------|------|---------------|---------|
+| :--- | :--- | :--- | :--- |
 | `validateCakeImage` | geminiService.ts | LOW | Simple image classification |
 | `analyzeCakeWithHybridCoordinates` | geminiService.ts | MEDIUM | Full spatial analysis |
 | `analyzeCakeFeaturesOnly` | geminiService.ts | LOW | Fast feature detection |
 | `enrichAnalysisWithCoordinates` | geminiService.ts | HIGH | Precise coordinate calculation |
 | `generateShareableTexts` | geminiService.ts | LOW | SEO text generation |
+| `editCakeImage` | geminiService.ts | N/A | Image editing (Nano Banana 2) |
 
 ---
 
 ## 📜 Change Log
 
 | Date | Change | Reason |
-|------|--------|--------|
+| :--- | :--- | :--- |
 | 2026-01-22 | Updated to `thinkingLevel` from `includeThoughts` | Gemini 3 API compatibility |
 | 2026-01-22 | Updated SDK to v1.38.0 | Full Gemini 3 support |
 | 2026-01-22 | Created this AI_CONTEXT.md file | Prevent AI assistants from reverting changes |

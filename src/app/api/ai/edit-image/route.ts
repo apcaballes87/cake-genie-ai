@@ -48,14 +48,11 @@ export async function POST(req: NextRequest) {
 
         const aiClient = getAI();
         const response = await aiClient.models.generateContent({
-            model: "gemini-3-flash-preview", // UPDATED: Using compliant Gemini 3 model
+            model: "gemini-3-pro-image-preview", // UPDATED: Using Nano Banana 2 (Gemini 3 Pro Image)
             contents: [{ parts }],
             config: {
                 systemInstruction: systemInstruction,
                 // responseMimeType: 'image/png', // Gemini 3 might require this differently or infer from prompt
-                thinkingConfig: {
-                    thinkingLevel: ThinkingLevel.HIGH, // High thinking for complex visual tasks
-                },
             },
         });
 
@@ -87,7 +84,7 @@ export async function POST(req: NextRequest) {
     } catch (error) {
         console.error("Error editing cake image:", error);
         return NextResponse.json(
-            { error: 'Failed to edit image' },
+            { error: `Failed to edit image: ${error instanceof Error ? error.message : String(error)}` },
             { status: 500 }
         );
     }
