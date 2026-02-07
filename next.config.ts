@@ -35,14 +35,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  async rewrites() {
-    return [
-      {
-        source: '/sitemap.xml',
-        destination: 'https://cqmhanqnfybyxezhobkx.supabase.co/functions/v1/generate-sitemap',
-      },
-    ]
-  },
+  // Sitemap is now served by Next.js via src/app/sitemap.ts
+  // The old Supabase Edge Function (generate-sitemap) is no longer used
   async headers() {
     return [{
       source: '/:path*',
@@ -64,6 +58,32 @@ const nextConfig: NextConfig = {
       {
         source: '/merchant/:merchantSlug/:productSlug',
         destination: '/shop/:merchantSlug/:productSlug',
+        permanent: true,
+      },
+      // Redirect old category slugs to search page
+      {
+        source: '/customizing/birthday',
+        destination: '/search?q=birthday',
+        permanent: true,
+      },
+      {
+        source: '/customizing/wedding',
+        destination: '/search?q=wedding',
+        permanent: true,
+      },
+      {
+        source: '/customizing/graduation',
+        destination: '/search?q=graduation',
+        permanent: true,
+      },
+      {
+        source: '/customizing/anniversary',
+        destination: '/search?q=anniversary',
+        permanent: true,
+      },
+      {
+        source: '/customizing/christening',
+        destination: '/search?q=christening',
         permanent: true,
       },
     ]
