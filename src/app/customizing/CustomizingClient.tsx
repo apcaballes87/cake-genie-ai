@@ -3068,7 +3068,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         <input
                                                             type="checkbox"
                                                             className="sr-only peer"
-                                                            checked={isEnabled}
+                                                            checked={isEnabled || false}
                                                             disabled={isDisabled}
                                                             onChange={(e) => {
                                                                 const newIcingDesign = { ...icingDesign, [featureKey]: e.target.checked };
