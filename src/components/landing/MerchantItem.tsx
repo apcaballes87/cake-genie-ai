@@ -30,7 +30,7 @@ export const MerchantItem = ({ merchant }: MerchantItemProps) => {
             aria-label={`Visit ${merchant.business_name}`}
             tabIndex={0}
         >
-            <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-linear-to-br from-purple-100 to-pink-100 ring-2 ring-transparent group-hover:ring-purple-400 transition-all duration-300 shadow-sm group-hover:shadow-md">
+            <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-linear-to-br from-purple-100 to-pink-100 ring-2 ring-transparent group-hover:ring-purple-400 transition-all duration-300 shadow-sm group-hover:shadow-md">
                 {merchant.profile_image_url ? (
                     <LazyImage
                         src={merchant.profile_image_url}

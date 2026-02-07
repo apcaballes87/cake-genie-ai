@@ -3,7 +3,7 @@
 import React, { Dispatch, SetStateAction, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
+import LazyImage from '@/components/LazyImage';
 import { v4 as uuidv4 } from 'uuid';
 import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Heart, Cake, Star } from 'lucide-react';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
@@ -400,18 +400,18 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
     const icingColorsSame = topColor && sideColor && topColor.toUpperCase() === sideColor.toUpperCase();
 
     const tools = (icingColorsSame ? [
-        { id: 'drip', description: 'Drip', label: 'Drip', icon: <Image src={getDripImage(effectiveIcingDesign.drip)} alt="Drip effect" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.drip },
-        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <Image src={getTopBorderImage(effectiveIcingDesign.border_top)} alt="Top border" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.border_top },
-        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <Image src={getBaseBorderImage(effectiveIcingDesign.border_base)} alt="Base border" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
-        { id: 'icing', description: 'Body Icing', label: 'Body Icing', icon: <Image src={getIcingImage('top', false)} alt="Icing color" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: !!(effectiveIcingDesign.colors?.top || effectiveIcingDesign.colors?.side) },
-        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <Image src={getBaseboardImage(effectiveIcingDesign.gumpasteBaseBoard)} alt="Gumpaste baseboard" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
+        { id: 'drip', description: 'Drip', label: 'Drip', icon: <LazyImage src={getDripImage(effectiveIcingDesign.drip)} alt="Drip effect" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.drip },
+        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <LazyImage src={getTopBorderImage(effectiveIcingDesign.border_top)} alt="Top border" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.border_top },
+        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <LazyImage src={getBaseBorderImage(effectiveIcingDesign.border_base)} alt="Base border" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
+        { id: 'icing', description: 'Body Icing', label: 'Body Icing', icon: <LazyImage src={getIcingImage('top', false)} alt="Icing color" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: !!(effectiveIcingDesign.colors?.top || effectiveIcingDesign.colors?.side) },
+        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <LazyImage src={getBaseboardImage(effectiveIcingDesign.gumpasteBaseBoard)} alt="Gumpaste baseboard" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
     ] : [
-        { id: 'drip', description: 'Drip', label: 'Drip', icon: <Image src={getDripImage(effectiveIcingDesign.drip)} alt="Drip effect" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.drip },
-        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <Image src={getTopBorderImage(effectiveIcingDesign.border_top)} alt="Top border" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.border_top },
-        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <Image src={getBaseBorderImage(effectiveIcingDesign.border_base)} alt="Base border" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
-        { id: 'top', description: 'Top Icing', label: 'Top Icing', icon: <Image src={getIcingImage('top', true)} alt="Top icing" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: !!effectiveIcingDesign.colors?.top },
-        { id: 'side', description: 'Side Icing', label: 'Body Icing', icon: <Image src={getIcingImage('side', false)} alt="Side icing" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: !!effectiveIcingDesign.colors?.side },
-        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <Image src={getBaseboardImage(effectiveIcingDesign.gumpasteBaseBoard)} alt="Gumpaste baseboard" width={48} height={48} className="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
+        { id: 'drip', description: 'Drip', label: 'Drip', icon: <LazyImage src={getDripImage(effectiveIcingDesign.drip)} alt="Drip effect" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.drip },
+        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <LazyImage src={getTopBorderImage(effectiveIcingDesign.border_top)} alt="Top border" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.border_top },
+        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <LazyImage src={getBaseBorderImage(effectiveIcingDesign.border_base)} alt="Base border" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
+        { id: 'top', description: 'Top Icing', label: 'Top Icing', icon: <LazyImage src={getIcingImage('top', true)} alt="Top icing" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: !!effectiveIcingDesign.colors?.top },
+        { id: 'side', description: 'Side Icing', label: 'Body Icing', icon: <LazyImage src={getIcingImage('side', false)} alt="Side icing" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: !!effectiveIcingDesign.colors?.side },
+        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <LazyImage src={getBaseboardImage(effectiveIcingDesign.gumpasteBaseBoard)} alt="Gumpaste baseboard" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
     ]).filter(tool => {
         // Hide Top Icing tool when there's an edible photo on top (top will be covered)
         if (tool.id === 'top' && hasEdiblePhotoOnTop) {
@@ -2221,19 +2221,20 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                                 {/* SSR / Initial Load Fallback Image using Props */}
                                 {!originalImagePreview && (product?.image_url || recentSearchDesign?.original_image_url) && (
-                                    <Image
+                                    <LazyImage
                                         src={product?.image_url || recentSearchDesign?.original_image_url || ''}
                                         alt={product?.alt_text || recentSearchDesign?.alt_text || product?.title || recentSearchDesign?.keywords || 'Cake Design'}
                                         fill
                                         sizes="(max-width: 768px) 100vw, 50vw"
-                                        className="object-contain rounded-lg"
+                                        imageClassName="object-contain rounded-lg"
                                         priority
+                                        unoptimized
                                     />
                                 )}
 
                                 {(originalImagePreview) && (
                                     <>
-                                        <Image
+                                        <LazyImage
                                             onLoad={(e) => {
                                                 const img = e.currentTarget;
                                                 const container = markerContainerRef.current;
@@ -2255,8 +2256,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             alt={product?.alt_text || (product ? `${product.title} - Custom cake${merchant ? ` from ${merchant.business_name}` : ''}` : (activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake"))}
                                             fill
                                             sizes="(max-width: 768px) 100vw, 50vw"
-                                            className="object-contain rounded-lg"
+                                            imageClassName="object-contain rounded-lg"
                                             priority
+                                            unoptimized
                                         />
 
                                         {/* Save Design button - top left */}
@@ -2551,7 +2553,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         }}
                                     />
                                 </div>
-                                <ChosenOptionsSkeleton />
+                                <div className="mt-6">
+                                    <ChosenOptionsSkeleton />
+                                </div>
 
                                 {/* Placeholder for other sections if needed, or keeping it minimal */}
                                 <div className="mt-4 px-2">
@@ -2588,12 +2592,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                 className="group flex flex-col items-center gap-1 min-w-[60px]"
                                             >
                                                 <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white">
-                                                    <Image
+                                                    <LazyImage
                                                         src={CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
                                                         alt={cakeInfo.type}
-                                                        width={56}
-                                                        height={56}
-                                                        className="w-full h-full object-cover"
+                                                        fill
+                                                        sizes="56px"
+                                                        imageClassName="object-cover"
                                                     />
                                                 </div>
                                                 <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
@@ -2607,12 +2611,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                 className="group flex flex-col items-center gap-1 min-w-[60px]"
                                             >
                                                 <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white">
-                                                    <Image
+                                                    <LazyImage
                                                         src={CAKE_SIZE_THUMBNAILS[cakeInfo.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
                                                         alt={cakeInfo.size}
-                                                        width={56}
-                                                        height={56}
-                                                        className="w-full h-full object-cover"
+                                                        fill
+                                                        sizes="56px"
+                                                        imageClassName="object-cover"
                                                     />
                                                 </div>
                                                 <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
@@ -2626,12 +2630,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                 className="group flex flex-col items-center gap-1 min-w-[60px]"
                                             >
                                                 <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white">
-                                                    <Image
+                                                    <LazyImage
                                                         src={CAKE_THICKNESS_THUMBNAILS[cakeInfo.thickness]}
                                                         alt={cakeInfo.thickness}
-                                                        width={56}
-                                                        height={56}
-                                                        className="w-full h-full object-cover"
+                                                        fill
+                                                        sizes="56px"
+                                                        imageClassName="object-cover"
                                                     />
                                                 </div>
                                                 <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
@@ -2647,12 +2651,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                     className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                 >
                                                     <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white">
-                                                        <Image
+                                                        <LazyImage
                                                             src={FLAVOR_THUMBNAILS[flavor]}
                                                             alt={flavor}
-                                                            width={56}
-                                                            height={56}
-                                                            className="w-full h-full object-cover"
+                                                            fill
+                                                            sizes="56px"
+                                                            imageClassName="object-cover"
                                                         />
                                                     </div>
                                                     <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
@@ -3255,12 +3259,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             >
                                 <div className="relative aspect-square mb-3 rounded-xl overflow-hidden bg-gray-100 shrink-0">
                                     {related.original_image_url && (
-                                        <Image
+                                        <LazyImage
                                             src={related.original_image_url}
                                             alt={related.alt_text || `${related.keywords || 'Custom'} cake design`}
                                             fill
                                             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-                                            className="object-cover group-hover:scale-110 transition-transform duration-500"
+                                            imageClassName="object-cover group-hover:scale-110 transition-transform duration-500"
+                                            unoptimized
                                         />
                                     )}
                                     {/* Overlay Gradient on Hover */}

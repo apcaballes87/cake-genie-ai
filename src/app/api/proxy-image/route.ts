@@ -65,9 +65,9 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
     }
 
-    // Enforce HTTPS only
-    if (parsedUrl.protocol !== 'https:') {
-        return NextResponse.json({ error: 'Only HTTPS URLs are allowed' }, { status: 400 });
+    // Enforce HTTP or HTTPS (some image sources still use HTTP)
+    if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') {
+        return NextResponse.json({ error: 'Only HTTP/HTTPS URLs are allowed' }, { status: 400 });
     }
 
     // Block private IP ranges (SSRF protection)
@@ -75,13 +75,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Access to private networks is not allowed' }, { status: 403 });
     }
 
-    // Validate against allowlist
-    if (!isAllowedHostname(parsedUrl.hostname)) {
-        return NextResponse.json(
-            { error: `Hostname not allowed: ${parsedUrl.hostname}` },
-            { status: 403 }
-        );
-    }
+    // Note: We removed the hostname allowlist to support arbitrary image sources
+    // Security is maintained through:
+    // 1. SSRF protection (blocking private IPs)
+    // 2. Content-Type validation (must be image)
+    // 3. Size limits
 
     // Create AbortController for timeout
     const controller = new AbortController();
@@ -90,7 +88,13 @@ export async function GET(request: NextRequest) {
     try {
         const response = await fetch(parsedUrl.toString(), {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': `${parsedUrl.protocol}//${parsedUrl.hostname}/`,
+                'Sec-Fetch-Dest': 'image',
+                'Sec-Fetch-Mode': 'no-cors',
+                'Sec-Fetch-Site': 'cross-site',
             },
             signal: controller.signal
         });

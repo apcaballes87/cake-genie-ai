@@ -55,6 +55,11 @@ const quickLinks = [
         name: 'Bento Cakes',
         imageUrls: LANDING_PAGE_IMAGES.bento,
         searchTerm: 'bento cakes'
+    },
+    {
+        name: 'Birthday Printouts',
+        imageUrls: LANDING_PAGE_IMAGES.birthdayPrintouts,
+        searchTerm: 'birthday printouts'
     }
 ];
 
@@ -597,14 +602,14 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                         {/* --- AVAILABLE CAKES FOR TODAY (Quick Links) --- */}
                         <div className="mb-8">
                             <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">Available Cakes For Today</h2>
-                            <div className="grid grid-cols-3 gap-3 md:gap-6">
+                            <div className="flex overflow-x-auto gap-3 pb-4 md:grid md:grid-cols-4 md:gap-6 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
                                 {quickLinks.map((link) => {
                                     const currentImageUrl = link.imageUrls[imageIndex % link.imageUrls.length];
                                     return (
                                         <button
                                             key={link.name}
                                             onClick={() => handleSearch(link.searchTerm)}
-                                            className="group relative overflow-hidden rounded-2xl aspect-square shadow-sm hover:shadow-lg transition-all duration-300"
+                                            className="group relative overflow-hidden rounded-2xl aspect-square shadow-sm hover:shadow-lg transition-all duration-300 min-w-[30%] md:min-w-0"
                                         >
                                             <LazyImage
                                                 src={currentImageUrl}

@@ -114,12 +114,15 @@ const SearchingClient: React.FC = () => {
     });
 
     // Trigger initial search from URL
+    // We only want this to run when the URL parameter (initialQuery) changes,
+    // NOT when our internal state (searchQuery) changes, to avoid race conditions.
     useEffect(() => {
         if (initialQuery && initialQuery !== searchQuery) {
             setSearchInput(initialQuery);
             handleSearch(initialQuery);
         }
-    }, [initialQuery, handleSearch, setSearchInput]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialQuery]);
 
     // Loading animation effect
     const isLoading = isFetchingWebImage; // Map to local loading state
@@ -141,6 +144,82 @@ const SearchingClient: React.FC = () => {
             if (interval) clearInterval(interval);
         };
     }, [isLoading, loadingMessages.length]);
+
+    // Hide CSE modals globally when loading (CSE injects modals into body, not our container)
+    // Hide CSE modals globally when loading (CSE injects modals into body, not our container)
+    useEffect(() => {
+        if (isLoading) {
+            const styleId = 'cse-modal-hide-style';
+
+            const injectStyles = () => {
+                let styleTag = document.getElementById(styleId) as HTMLStyleElement | null;
+                if (!styleTag) {
+                    styleTag = document.createElement('style');
+                    styleTag.id = styleId;
+                    document.head.appendChild(styleTag);
+                }
+                styleTag.textContent = `
+                    .gsc-modal-background-image,
+                    .gsc-modal-background-image-visible,
+                    .gsc-lightbox,
+                    .gs-image-popup-box,
+                    .gs-image-box-popup,
+                    .gs-imageResult-popup,
+                    .gsc-lightbox-main,
+                    .gsc-popup,
+                    div[class*="popup"],
+                    div[class*="modal"],
+                    [class*="gsc-"][class*="modal"],
+                    [class*="gsc-"][class*="lightbox"] {
+                        filter: blur(12px) !important;
+                        opacity: 0.6 !important;
+                        z-index: 1 !important; /* Ensure it stays behind our overlay */
+                        pointer-events: none !important;
+                        transform: scale(0.98) !important;
+                        transition: all 0.3s ease !important;
+                        background: transparent !important; /* Try to make background transparent so blur shows through */
+                        box-shadow: none !important;
+                    }
+                    /* Target images inside popups specifically */
+                    .gsc-modal-background-image img,
+                    .gsc-modal-background-image-visible img,
+                    .gsc-lightbox img,
+                    .gs-image-popup-box img,
+                    .gs-image-box-popup img,
+                    .gs-imageResult-popup img,
+                    div[class*="popup"] img {
+                        filter: blur(12px) !important;
+                        opacity: 0.6 !important;
+                    }
+                    /* Hide specifically the black background or overlay from Google */
+                    .gsc-modal-background-image-visible {
+                        background-color: rgba(0, 0, 0, 0.5) !important; 
+                    }
+                `;
+            };
+
+            injectStyles();
+
+            // Use a MutationObserver to ensure our styles stick if Google tries to remove/overwrite them
+            const observer = new MutationObserver(() => {
+                const styleTag = document.getElementById(styleId);
+                if (!styleTag) {
+                    injectStyles();
+                }
+            });
+
+            observer.observe(document.head, { childList: true });
+
+            return () => {
+                observer.disconnect();
+                const styleTag = document.getElementById(styleId);
+                if (styleTag && styleTag.parentNode) {
+                    // Optional: We can keep it or remove it. Better to remove to clean up.
+                    styleTag.parentNode.removeChild(styleTag);
+                }
+            };
+        }
+    }, [isLoading]);
 
     // Close account menu on click outside
     useEffect(() => {
@@ -218,7 +297,7 @@ const SearchingClient: React.FC = () => {
             )}
             <div className="relative grow">
                 {isLoading && (
-                    <div className="fixed inset-0 bg-white/50 backdrop-blur-md flex flex-col items-center justify-center z-[9999] p-4">
+                    <div className="fixed inset-0 bg-white/50 backdrop-blur-md flex flex-col items-center justify-center z-50 p-4">
                         <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 text-center w-full max-w-xs">
                             <LoadingSpinner />
                             <p className="mt-4 text-slate-700 font-semibold text-lg">Working on it...</p>

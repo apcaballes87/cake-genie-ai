@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import Image from 'next/image';
+import LazyImage from '@/components/LazyImage';
 import Link from 'next/link';
 import { Search, MapPin, Star, BadgeCheck, Store } from 'lucide-react';
 import { CakeGenieMerchant } from '@/lib/database.types';
@@ -86,12 +86,12 @@ export function ShopClient({ merchants }: ShopClientProps) {
                                 {/* Cover Image */}
                                 <div className="relative h-32 bg-linear-to-br from-purple-100 to-pink-100 overflow-hidden">
                                     {merchant.cover_image_url ? (
-                                        <Image
+                                        <LazyImage
                                             src={merchant.cover_image_url}
                                             alt={`${merchant.business_name} cover`}
                                             fill
                                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                            imageClassName="object-cover group-hover:scale-105 transition-transform duration-500"
                                         />
                                     ) : (
                                         <div className="absolute inset-0 flex items-center justify-center">
@@ -104,12 +104,12 @@ export function ShopClient({ merchants }: ShopClientProps) {
                                     <div className="absolute -bottom-8 left-4">
                                         <div className="w-16 h-16 rounded-full border-4 border-white shadow-md overflow-hidden bg-white">
                                             {merchant.profile_image_url ? (
-                                                <Image
+                                                <LazyImage
                                                     src={merchant.profile_image_url}
                                                     alt={merchant.business_name}
                                                     width={64}
                                                     height={64}
-                                                    className="object-cover w-full h-full"
+                                                    imageClassName="object-cover w-full h-full"
                                                 />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center bg-purple-100">
