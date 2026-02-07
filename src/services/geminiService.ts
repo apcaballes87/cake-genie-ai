@@ -259,7 +259,8 @@ export async function editCakeImage(
         });
 
         if (!response.ok) {
-            throw new Error('Failed to edit image');
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to edit image');
         }
 
         const result = await response.json();
@@ -269,7 +270,7 @@ export async function editCakeImage(
 
     } catch (error) {
         console.error("Error editing image:", error);
-        throw new Error("Failed to generate the edited image.");
+        throw error; // Re-throw the specific error
     }
 }
 

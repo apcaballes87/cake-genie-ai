@@ -13,7 +13,7 @@ const TEXT_GENERATION_PROMPT = `You are an expert copywriter and SEO specialist 
 **Output Requirements:**
 1.  **title:**
     *   **Structure:** "[Theme] Themed [Size] [Type] Cake"
-    *   **Prioritize the Theme:** The theme you identified MUST be the first part of the title. Capitalize it appropriately.
+    *   **Prioritize the Theme:** The theme you identified MUST be the first part of the title. Capitalize the first letter of each major word (Title Case).
     *   **Include Size:** Mention if it's "Bento", "6-inch", "2-Tier", etc.
     *   **Keep it concise:** Max 60 characters if possible, optimized for search clicks.
     *   **Examples:** "Spiderman Themed 6-inch Cake", "Elegant Floral 2-Tier Wedding Cake", "Cute Bear Bento Cake".
