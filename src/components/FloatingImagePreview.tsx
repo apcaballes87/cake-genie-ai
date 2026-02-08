@@ -61,8 +61,8 @@ export const FloatingImagePreview: React.FC<FloatingImagePreviewProps> = React.m
               <button
                 onClick={() => onTabChange('original')}
                 className={`w-1/2 py-1 text-xs font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'original'
-                    ? 'bg-white shadow text-purple-700'
-                    : 'text-slate-600 hover:bg-white/50'
+                  ? 'bg-white shadow text-purple-700'
+                  : 'text-slate-600 hover:bg-white/50'
                   }`}
               >
                 Original
@@ -71,8 +71,8 @@ export const FloatingImagePreview: React.FC<FloatingImagePreviewProps> = React.m
                 onClick={handleCustomizedTabClick}
                 disabled={(!customizedImage && !isCustomizationDirty) || isUpdatingDesign}
                 className={`w-1/2 py-1 text-xs font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'customized'
-                    ? 'bg-white shadow text-purple-700'
-                    : 'text-slate-600 hover:bg-white/50 disabled:text-slate-400 disabled:hover:bg-transparent disabled:cursor-not-allowed'
+                  ? 'bg-white shadow text-purple-700'
+                  : 'text-slate-600 hover:bg-white/50 disabled:text-slate-400 disabled:hover:bg-transparent disabled:cursor-not-allowed'
                   }`}
               >
                 Customized
@@ -99,6 +99,7 @@ export const FloatingImagePreview: React.FC<FloatingImagePreviewProps> = React.m
                   alt={activeTab === 'customized' && customizedImage ? "Customized Cake" : "Original Cake"}
                   className="max-w-full max-h-full object-contain rounded-lg"
                   placeholderClassName="w-full h-full object-contain rounded-lg"
+                  priority
                 />
               </button>
             )}
