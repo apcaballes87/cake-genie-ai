@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import LandingClient from './LandingClient';
-import { getRecommendedProducts, getMerchants } from '@/services/supabaseService';
-import { MerchantShowcase, RecommendedProductsSection } from '@/components/landing';
+import { getRecommendedProducts } from '@/services/supabaseService';
+import { RecommendedProductsSection } from '@/components/landing';
 
 // ISR: Revalidate every hour for fresh data while maintaining fast loads
 export const revalidate = 3600;
@@ -43,20 +43,16 @@ function WebSiteSchema() {
 }
 
 export default async function Home() {
-  const [recommendedProductsRes, merchantsRes] = await Promise.all([
-    getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err })),
-    getMerchants().catch(err => ({ data: [], error: err }))
-  ]);
+  const recommendedProductsRes = await getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err }));
 
   const recommendedProducts = recommendedProductsRes.data || [];
-  const merchants = merchantsRes.data || [];
 
   return (
     <>
       <WebSiteSchema />
       <LandingClient>
         {/* Server-rendered sections for LCP optimization */}
-        <MerchantShowcase merchants={merchants} />
+        {/* <MerchantShowcase merchants={merchants} /> - Hidden for now */}
         <RecommendedProductsSection products={recommendedProducts} />
       </LandingClient>
     </>
