@@ -313,8 +313,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                 setIsAnalyzing(false);
             },
             (error) => {
-                const errorMessage = error.message;
-                setAnalysisError(errorMessage);
+                let errorMessage = error.message;
+                if (error.message.startsWith('AI_REJECTION:')) {
+                    errorMessage = error.message.replace('AI_REJECTION: ', '');
+                }
+                // Keep the prefix for state logic, but show clean message to user
+                setAnalysisError(error.message);
                 showError(errorMessage);
                 setIsAnalyzing(false);
             }
