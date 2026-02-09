@@ -93,6 +93,124 @@ const AVAILABILITY_MAP: Record<AvailabilityType, AvailabilityInfo> = {
 
 type ImageTab = 'original' | 'customized';
 
+// --- Helper functions for icing images ---
+
+const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+};
+
+const findClosestColor = (color: string, availableColors: { name: string; keywords: string[]; hex: string }[]): string => {
+    const DIRECT_COLOR_MAP: Record<string, string> = {
+        '#EF4444': 'red', '#FCA5A5': 'red', '#F97316': 'orange', '#EAB308': 'yellow',
+        '#16A34A': 'green', '#4ADE80': 'green', '#14B8A6': 'green', '#3B82F6': 'blue',
+        '#93C5FD': 'blue', '#8B5CF6': 'purple', '#C4B5FD': 'purple', '#EC4899': 'pink',
+        '#FBCFE8': 'pink', '#78350F': 'brown', '#B45309': 'brown', '#64748B': 'white',
+        '#FFFFFF': 'white', '#000000': 'black',
+    };
+
+    const normalizedColor = color.toUpperCase();
+    if (DIRECT_COLOR_MAP[normalizedColor]) return DIRECT_COLOR_MAP[normalizedColor];
+
+    const colorLower = color.toLowerCase().trim();
+    for (const colorOption of availableColors) {
+        const sortedKeywords = [...colorOption.keywords].sort((a, b) => b.length - a.length);
+        for (const keyword of sortedKeywords) {
+            if (colorLower.includes(keyword)) return colorOption.name;
+        }
+    }
+
+    if (colorLower.startsWith('#')) {
+        const inputRgb = hexToRgb(colorLower);
+        if (inputRgb) {
+            let closestColor = availableColors[0].name;
+            let minDistance = Infinity;
+            for (const colorOption of availableColors) {
+                const optionRgb = hexToRgb(colorOption.hex);
+                if (optionRgb) {
+                    const distance = Math.sqrt(
+                        Math.pow(inputRgb.r - optionRgb.r, 2) +
+                        Math.pow(inputRgb.g - optionRgb.g, 2) +
+                        Math.pow(inputRgb.b - optionRgb.b, 2)
+                    );
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestColor = colorOption.name;
+                    }
+                }
+            }
+            return closestColor;
+        }
+    }
+    return 'white';
+};
+
+type IcingImageType = 'top' | 'side' | 'drip' | 'borderTop' | 'borderBase' | 'gumpasteBaseBoard';
+
+const getIcingImage = (icingDesign: IcingDesignUI, type: IcingImageType, isTopSpecific: boolean = false): string => {
+    const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
+
+    let color: string | undefined;
+    let prefix = 'icing';
+    let defaultFile = 'icing_white.webp';
+
+    switch (type) {
+        case 'top':
+            color = icingDesign.colors?.top;
+            if (isTopSpecific) {
+                prefix = 'topicing';
+                defaultFile = 'topicing_white.webp';
+            }
+            break;
+        case 'side':
+            color = icingDesign.colors?.side;
+            break;
+        case 'drip':
+            color = icingDesign.colors?.drip;
+            prefix = 'drip';
+            defaultFile = 'drip_white.webp';
+            break;
+        case 'borderTop':
+            color = icingDesign.colors?.borderTop;
+            prefix = 'top';
+            defaultFile = 'top_white.webp';
+            break;
+        case 'borderBase':
+            color = icingDesign.colors?.borderBase;
+            prefix = 'baseborder';
+            defaultFile = 'baseborder_white.webp';
+            break;
+        case 'gumpasteBaseBoard':
+            color = icingDesign.colors?.gumpasteBaseBoardColor;
+            prefix = 'baseboard';
+            defaultFile = 'baseboardwhite.webp';
+            break;
+    }
+
+    if (!color) return baseUrl + defaultFile;
+
+    const availableColors = [
+        { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
+        { name: 'white', keywords: ['white', 'light white', 'gray', 'grey', 'cream', 'silver'], hex: '#FFFFFF' },
+        { name: 'blue', keywords: ['blue', 'cyan', 'sky', 'baby blue'], hex: '#0000FF' },
+        { name: 'red', keywords: ['red', 'maroon', 'crimson'], hex: '#FF0000' },
+        { name: 'purple', keywords: ['purple', 'violet', 'lavender'], hex: '#800080' },
+        { name: 'green', keywords: ['green', 'mint', 'lime'], hex: '#00FF00' },
+        { name: 'yellow', keywords: ['yellow', 'gold'], hex: '#FFFF00' },
+        { name: 'orange', keywords: ['orange'], hex: '#FFA500' },
+        { name: 'brown', keywords: ['brown', 'chocolate'], hex: '#8B4513' },
+        { name: 'pink', keywords: ['pink', 'rose'], hex: '#FFC0CB' },
+    ];
+
+    const matchedColor = findClosestColor(color, availableColors);
+    const separator = (prefix === 'baseboard') ? '' : '_';
+    return `${baseUrl}${prefix}${separator}${matchedColor}.webp`;
+};
+
 // Simple toggle switch component for icing features
 const SimpleToggle: React.FC<{ label: string; isEnabled: boolean; onChange: (enabled: boolean) => void; disabled?: boolean; }> = ({ label, isEnabled, onChange, disabled = false }) => (
     <div className={`flex justify-between items-center p-1 ${disabled ? 'opacity-50' : ''}`}>
@@ -153,265 +271,24 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
         }
     };
 
-    // Helper function to convert hex color to RGB
-    const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? {
-            r: parseInt(result[1], 16),
-            g: parseInt(result[2], 16),
-            b: parseInt(result[3], 16)
-        } : null;
-    };
-
-    // Helper function to find closest color match
-    const findClosestColor = (color: string, availableColors: { name: string; keywords: string[]; hex: string }[]): string => {
-        // 1. Direct Map Check for known palette colors
-        const DIRECT_COLOR_MAP: Record<string, string> = {
-            '#EF4444': 'red',       // Red
-            '#FCA5A5': 'red',       // Light Red
-            '#F97316': 'orange',    // Orange
-            '#EAB308': 'yellow',    // Yellow
-            '#16A34A': 'green',     // Green
-            '#4ADE80': 'green',     // Light Green
-            '#14B8A6': 'green',     // Teal -> Green
-            '#3B82F6': 'blue',      // Blue
-            '#93C5FD': 'blue',      // Light Blue
-            '#8B5CF6': 'purple',    // Purple
-            '#C4B5FD': 'purple',    // Light Purple
-            '#EC4899': 'pink',      // Pink
-            '#FBCFE8': 'pink',      // Light Pink
-            '#78350F': 'brown',     // Brown
-            '#B45309': 'brown',     // Light Brown
-            '#64748B': 'white',     // Gray -> White
-            '#FFFFFF': 'white',     // White
-            '#000000': 'black',     // Black
-        };
-
-        const normalizedColor = color.toUpperCase();
-        if (DIRECT_COLOR_MAP[normalizedColor]) {
-            return DIRECT_COLOR_MAP[normalizedColor];
-        }
-
-        const colorLower = color.toLowerCase().trim();
-
-        // First, try exact keyword match (e.g., "red", "light red", "dark blue")
-        // Check longer keywords first to avoid partial matches (e.g., "light blue" before "blue")
-        for (const colorOption of availableColors) {
-            // Sort keywords by length (longest first) to match "light blue" before "blue"
-            const sortedKeywords = [...colorOption.keywords].sort((a, b) => b.length - a.length);
-            for (const keyword of sortedKeywords) {
-                if (colorLower.includes(keyword)) {
-                    return colorOption.name;
-                }
-            }
-        }
-
-        // If it's a hex color, find closest match by RGB distance
-        if (colorLower.startsWith('#')) {
-            const inputRgb = hexToRgb(colorLower);
-            if (inputRgb) {
-                let closestColor = availableColors[0].name;
-                let minDistance = Infinity;
-
-                for (const colorOption of availableColors) {
-                    const optionRgb = hexToRgb(colorOption.hex);
-                    if (optionRgb) {
-                        const distance = Math.sqrt(
-                            Math.pow(inputRgb.r - optionRgb.r, 2) +
-                            Math.pow(inputRgb.g - optionRgb.g, 2) +
-                            Math.pow(inputRgb.b - optionRgb.b, 2)
-                        );
-                        if (distance < minDistance) {
-                            minDistance = distance;
-                            closestColor = colorOption.name;
-                        }
-                    }
-                }
-                return closestColor;
-            }
-        }
-
-        // Default to white if no match found
-        return 'white';
-    };
-
-    // Helper function to get color-aware baseboard image
-    const getBaseboardImage = (isEnabled: boolean = true): string => {
-        const baseboardColor = effectiveIcingDesign.colors?.gumpasteBaseBoardColor;
-        const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
-
-        if (!isEnabled || !baseboardColor) {
-            return baseUrl + 'baseboardwhite.webp';
-        }
-
-        const availableColors = [
-            { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
-            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey', 'cream'], hex: '#FFFFFF' },
-            { name: 'white', keywords: [], hex: '#F5E6D3' }, // Cream anchor
-            { name: 'red', keywords: ['light red', 'dark red', 'red'], hex: '#FF0000' },
-            { name: 'blue', keywords: ['light blue', 'dark blue', 'blue'], hex: '#0000FF' },
-            { name: 'purple', keywords: ['light purple', 'purple', 'violet'], hex: '#800080' },
-            { name: 'green', keywords: ['light green', 'dark green', 'green'], hex: '#00FF00' },
-            { name: 'yellow', keywords: ['light yellow', 'yellow'], hex: '#FFFF00' },
-            { name: 'pink', keywords: ['light pink', 'pink'], hex: '#FFC0CB' },
-        ];
-
-        const matchedColor = findClosestColor(baseboardColor, availableColors);
-        return baseUrl + `baseboard${matchedColor}.webp`;
-    };
-
-    // Helper function to get color-aware icing image
-    const getIcingImage = (colorKey: 'top' | 'side', isTopSpecific: boolean = false): string => {
-        const icingColor = effectiveIcingDesign.colors?.[colorKey];
-        const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
-
-        // Determine prefix based on colorKey and flag
-        // Only use topicing_ prefix if it is explicitly the Top Icing tool in dual-color mode
-        const useTopPrefix = colorKey === 'top' && isTopSpecific;
-        const prefix = useTopPrefix ? 'topicing_' : 'icing_';
-        const defaultImage = useTopPrefix ? 'topicing_white.webp' : 'icing_white.webp';
-
-        if (!icingColor) {
-            return baseUrl + defaultImage;
-        }
-
-        const availableColors = [
-            { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
-            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey', 'silver', 'cream'], hex: '#FFFFFF' },
-            { name: 'white', keywords: [], hex: '#F5E6D3' }, // Cream anchor
-            { name: 'white', keywords: [], hex: '#808080' }, // Gray anchor
-            { name: 'white', keywords: [], hex: '#C0C0C0' }, // Silver anchor
-            { name: 'blue', keywords: ['light blue', 'dark blue', 'blue', 'cyan', 'sky', 'azure', 'baby blue'], hex: '#0000FF' },
-            { name: 'blue', keywords: [], hex: '#87CEEB' }, // Light Blue anchor
-            { name: 'red', keywords: ['light red', 'dark red', 'red', 'maroon', 'crimson'], hex: '#FF0000' },
-            { name: 'red', keywords: [], hex: '#FA8072' }, // Light Red anchor (Salmon)
-            { name: 'red', keywords: [], hex: '#FFCCCB' }, // Light Red anchor (Pastel)
-            { name: 'purple', keywords: ['light purple', 'purple', 'violet', 'lavender', 'lilac'], hex: '#800080' },
-            { name: 'purple', keywords: [], hex: '#D8BFD8' }, // Light Purple anchor
-            { name: 'green', keywords: ['light green', 'dark green', 'green', 'lime', 'mint'], hex: '#00FF00' },
-            { name: 'green', keywords: [], hex: '#98FB98' }, // Light Green anchor
-            { name: 'yellow', keywords: ['light yellow', 'yellow', 'gold'], hex: '#FFFF00' },
-            { name: 'yellow', keywords: [], hex: '#FFFFE0' }, // Light Yellow anchor
-            { name: 'orange', keywords: ['light orange', 'orange'], hex: '#FFA500' },
-            { name: 'brown', keywords: ['brown', 'chocolate', 'tan'], hex: '#8B4513' },
-            { name: 'pink', keywords: ['light pink', 'pink', 'rose', 'magenta', 'fuchsia'], hex: '#FFC0CB' },
-        ];
-
-        const matchedColor = findClosestColor(icingColor, availableColors);
-        return baseUrl + `${prefix}${matchedColor}.webp`;
-    };
-
-    // Helper function to get color-aware drip image
-    const getDripImage = (isEnabled: boolean = true): string => {
-        const dripColor = effectiveIcingDesign.colors?.drip;
-        const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
-
-        if (!isEnabled) {
-            return baseUrl + 'drip_white.webp';
-        }
-
-        if (!dripColor) {
-            return baseUrl + 'drip_black.webp';
-        }
-
-        const availableColors = [
-            { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
-            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey', 'cream'], hex: '#FFFFFF' },
-            { name: 'white', keywords: [], hex: '#F5E6D3' }, // Cream anchor
-            { name: 'red', keywords: ['light red', 'dark red', 'red'], hex: '#FF0000' },
-            { name: 'blue', keywords: ['light blue', 'dark blue', 'blue'], hex: '#0000FF' },
-            { name: 'purple', keywords: ['light purple', 'purple', 'violet'], hex: '#800080' },
-            { name: 'green', keywords: ['light green', 'dark green', 'green'], hex: '#00FF00' },
-            { name: 'yellow', keywords: ['light yellow', 'yellow'], hex: '#FFFF00' },
-            { name: 'orange', keywords: ['light orange', 'orange'], hex: '#FFA500' },
-            { name: 'brown', keywords: ['brown', 'chocolate', 'tan'], hex: '#8B4513' },
-            { name: 'pink', keywords: ['light pink', 'pink'], hex: '#FFC0CB' },
-        ];
-
-        const matchedColor = findClosestColor(dripColor, availableColors);
-        return baseUrl + `drip_${matchedColor}.webp`;
-    };
-
-    // Helper function to get color-aware top border image
-    const getTopBorderImage = (isEnabled: boolean = true): string => {
-        const borderColor = effectiveIcingDesign.colors?.borderTop;
-        const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
-
-        if (!isEnabled) {
-            return baseUrl + 'top_white.webp';
-        }
-
-        if (!borderColor) {
-            return baseUrl + 'top_black.webp';
-        }
-
-        const availableColors = [
-            { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
-            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey', 'cream'], hex: '#FFFFFF' },
-            { name: 'white', keywords: [], hex: '#F5E6D3' }, // Cream anchor
-            { name: 'red', keywords: ['light red', 'dark red', 'red'], hex: '#FF0000' },
-            { name: 'blue', keywords: ['light blue', 'dark blue', 'blue'], hex: '#0000FF' },
-            { name: 'purple', keywords: ['light purple', 'purple', 'violet'], hex: '#800080' },
-            { name: 'green', keywords: ['light green', 'dark green', 'green'], hex: '#00FF00' },
-            { name: 'yellow', keywords: ['light yellow', 'yellow'], hex: '#FFFF00' },
-            { name: 'orange', keywords: ['light orange', 'orange'], hex: '#FFA500' },
-            { name: 'brown', keywords: ['brown', 'chocolate', 'tan'], hex: '#8B4513' },
-            { name: 'pink', keywords: ['light pink', 'pink'], hex: '#FFC0CB' },
-        ];
-
-        const matchedColor = findClosestColor(borderColor, availableColors);
-        return baseUrl + `top_${matchedColor}.webp`;
-    };
-
-    // Helper function to get color-aware base border image
-    const getBaseBorderImage = (isEnabled: boolean = true): string => {
-        const borderColor = effectiveIcingDesign.colors?.borderBase;
-        const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
-
-        if (!isEnabled) {
-            return baseUrl + 'baseborder_white.webp';
-        }
-
-        if (!borderColor) {
-            return baseUrl + 'baseborder_black.webp';
-        }
-
-        const availableColors = [
-            { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
-            { name: 'white', keywords: ['white', 'light white', 'gray', 'grey', 'cream'], hex: '#FFFFFF' },
-            { name: 'white', keywords: [], hex: '#F5E6D3' }, // Cream anchor
-            { name: 'red', keywords: ['light red', 'dark red', 'red'], hex: '#FF0000' },
-            { name: 'blue', keywords: ['light blue', 'dark blue', 'blue'], hex: '#0000FF' },
-            { name: 'purple', keywords: ['light purple', 'purple', 'violet'], hex: '#800080' },
-            { name: 'green', keywords: ['light green', 'dark green', 'green'], hex: '#00FF00' },
-            { name: 'yellow', keywords: ['light yellow', 'yellow'], hex: '#FFFF00' },
-            { name: 'orange', keywords: ['light orange', 'orange'], hex: '#FFA500' },
-            { name: 'brown', keywords: ['brown', 'chocolate', 'tan'], hex: '#8B4513' },
-            { name: 'pink', keywords: ['light pink', 'pink'], hex: '#FFC0CB' },
-        ];
-
-        const matchedColor = findClosestColor(borderColor, availableColors);
-        return baseUrl + `baseborder_${matchedColor}.webp`;
-    };
-
     // Check if top and side icing colors are the same
     const topColor = effectiveIcingDesign.colors?.top;
     const sideColor = effectiveIcingDesign.colors?.side;
     const icingColorsSame = topColor && sideColor && topColor.toUpperCase() === sideColor.toUpperCase();
 
     const tools = (icingColorsSame ? [
-        { id: 'drip', description: 'Drip', label: 'Drip', icon: <LazyImage src={getDripImage(effectiveIcingDesign.drip)} alt="Drip effect" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.drip },
-        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <LazyImage src={getTopBorderImage(effectiveIcingDesign.border_top)} alt="Top border" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.border_top },
-        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <LazyImage src={getBaseBorderImage(effectiveIcingDesign.border_base)} alt="Base border" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
-        { id: 'icing', description: 'Body Icing', label: 'Body Icing', icon: <LazyImage src={getIcingImage('top', false)} alt="Icing color" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: !!(effectiveIcingDesign.colors?.top || effectiveIcingDesign.colors?.side) },
-        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <LazyImage src={getBaseboardImage(effectiveIcingDesign.gumpasteBaseBoard)} alt="Gumpaste baseboard" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
+        { id: 'drip', description: 'Drip', label: 'Drip', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'drip')} alt="Drip effect" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.drip },
+        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'borderTop')} alt="Top border" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.border_top },
+        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'borderBase')} alt="Base border" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
+        { id: 'icing', description: 'Body Icing', label: 'Body Icing', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'top', false)} alt="Icing color" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: !!(effectiveIcingDesign.colors?.top || effectiveIcingDesign.colors?.side) },
+        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'gumpasteBaseBoard')} alt="Gumpaste baseboard" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
     ] : [
-        { id: 'drip', description: 'Drip', label: 'Drip', icon: <LazyImage src={getDripImage(effectiveIcingDesign.drip)} alt="Drip effect" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.drip },
-        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <LazyImage src={getTopBorderImage(effectiveIcingDesign.border_top)} alt="Top border" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.border_top },
-        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <LazyImage src={getBaseBorderImage(effectiveIcingDesign.border_base)} alt="Base border" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
-        { id: 'top', description: 'Top Icing', label: 'Top Icing', icon: <LazyImage src={getIcingImage('top', true)} alt="Top icing" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: !!effectiveIcingDesign.colors?.top },
-        { id: 'side', description: 'Side Icing', label: 'Body Icing', icon: <LazyImage src={getIcingImage('side', false)} alt="Side icing" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: !!effectiveIcingDesign.colors?.side },
-        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <LazyImage src={getBaseboardImage(effectiveIcingDesign.gumpasteBaseBoard)} alt="Gumpaste baseboard" width={48} height={48} imageClassName="w-full h-full object-contain" />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
+        { id: 'drip', description: 'Drip', label: 'Drip', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'drip')} alt="Drip effect" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.drip },
+        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'borderTop')} alt="Top border" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.border_top },
+        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'borderBase')} alt="Base border" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
+        { id: 'top', description: 'Top Icing', label: 'Top Icing', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'top', true)} alt="Top icing" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: !!effectiveIcingDesign.colors?.top },
+        { id: 'side', description: 'Side Icing', label: 'Body Icing', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'side', false)} alt="Side icing" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: !!effectiveIcingDesign.colors?.side },
+        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'gumpasteBaseBoard')} alt="Gumpaste baseboard" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
     ]).filter(tool => {
         // Hide Top Icing tool when there's an edible photo on top (top will be covered)
         if (tool.id === 'top' && hasEdiblePhotoOnTop) {
@@ -1750,6 +1627,61 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         }
     }, [isUpdatingDesign, selectedItem, wasUpdating]);
 
+    // Prefetch icing images when an icing tool is selected to avoid delay on color change
+    useEffect(() => {
+        if (!selectedItem || !('itemCategory' in selectedItem) || selectedItem.itemCategory !== 'icing') return;
+
+        const description = (selectedItem as any).description;
+        let type: IcingImageType | null = null;
+        let isTopSpecific = false;
+
+        // Map tool description to IcingImageType
+        switch (description) {
+            case 'Drip':
+                type = 'drip';
+                break;
+            case 'Top': // Top Border
+                type = 'borderTop';
+                break;
+            case 'Bottom': // Base Border
+                type = 'borderBase';
+                break;
+            case 'Board':
+                type = 'gumpasteBaseBoard';
+                break;
+            case 'Top Icing':
+                type = 'top';
+                isTopSpecific = true;
+                break;
+            case 'Body Icing':
+            case 'Side Icing':
+                // Both use standard 'icing' prefix
+                type = 'side';
+                break;
+        }
+
+        if (!type) return;
+
+        // Prefetch all available colors
+        COLORS.forEach(color => {
+            // Create a minimal design object for URL generation
+            const colorKey = type === 'gumpasteBaseBoard' ? 'gumpasteBaseBoardColor' : type;
+            const tempDesign = {
+                colors: {
+                    [colorKey]: color.hex
+                }
+            } as any as IcingDesignUI;
+
+            const url = getIcingImage(tempDesign, type as IcingImageType, isTopSpecific);
+
+            if (url) {
+                const img = new Image();
+                img.src = url;
+            }
+        });
+    }, [selectedItem]);
+
+
     const dominantMotif = useMemo(() => {
         if (!analysisResult) return null;
 
@@ -2664,6 +2596,167 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                     </span>
                                                 </button>
                                             ))}
+
+                                            {/* Icing Colors */}
+                                            {icingDesign && (
+                                                <>
+                                                    {/* Body Icing / Side & Top */}
+                                                    {(() => {
+                                                        const topColor = icingDesign.colors?.top;
+                                                        const sideColor = icingDesign.colors?.side;
+                                                        const icingColorsSame = topColor && sideColor && topColor.toUpperCase() === sideColor.toUpperCase();
+
+                                                        if (icingColorsSame && topColor) {
+                                                            return (
+                                                                <button
+                                                                    onClick={() => setActiveCustomization('icing')}
+                                                                    className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                                >
+                                                                    <div className="w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center">
+                                                                        <LazyImage
+                                                                            src={getIcingImage(icingDesign as IcingDesignUI, 'top', false)}
+                                                                            alt="Icing"
+                                                                            width={56}
+                                                                            height={56}
+                                                                            imageClassName="w-full h-full object-contain"
+                                                                        />
+                                                                    </div>
+                                                                    <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                                        Body Icing
+                                                                    </span>
+                                                                </button>
+                                                            );
+                                                        }
+
+                                                        return (
+                                                            <>
+                                                                {topColor && (
+                                                                    <button
+                                                                        onClick={() => setActiveCustomization('icing')}
+                                                                        className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                                    >
+                                                                        <div className="w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center">
+                                                                            <LazyImage
+                                                                                src={getIcingImage(icingDesign as IcingDesignUI, 'top', true)}
+                                                                                alt="Top Icing"
+                                                                                width={56}
+                                                                                height={56}
+                                                                                imageClassName="w-full h-full object-contain"
+                                                                            />
+                                                                        </div>
+                                                                        <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                                            Top Icing
+                                                                        </span>
+                                                                    </button>
+                                                                )}
+                                                                {sideColor && (
+                                                                    <button
+                                                                        onClick={() => setActiveCustomization('icing')}
+                                                                        className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                                    >
+                                                                        <div className="w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center">
+                                                                            <LazyImage
+                                                                                src={getIcingImage(icingDesign as IcingDesignUI, 'side', false)}
+                                                                                alt="Body Icing"
+                                                                                width={56}
+                                                                                height={56}
+                                                                                imageClassName="w-full h-full object-contain"
+                                                                            />
+                                                                        </div>
+                                                                        <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                                            Body Icing
+                                                                        </span>
+                                                                    </button>
+                                                                )}
+                                                            </>
+                                                        );
+                                                    })()}
+
+                                                    {/* Drip */}
+                                                    {icingDesign.drip && icingDesign.colors?.drip && (
+                                                        <button
+                                                            onClick={() => setActiveCustomization('icing')}
+                                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                        >
+                                                            <div className="w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center">
+                                                                <LazyImage
+                                                                    src={getIcingImage(icingDesign as IcingDesignUI, 'drip')}
+                                                                    alt="Drip"
+                                                                    width={56}
+                                                                    height={56}
+                                                                    imageClassName="w-full h-full object-contain"
+                                                                />
+                                                            </div>
+                                                            <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                                Drip
+                                                            </span>
+                                                        </button>
+                                                    )}
+
+                                                    {/* Top Border */}
+                                                    {icingDesign.border_top && icingDesign.colors?.borderTop && (
+                                                        <button
+                                                            onClick={() => setActiveCustomization('icing')}
+                                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                        >
+                                                            <div className="w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center">
+                                                                <LazyImage
+                                                                    src={getIcingImage(icingDesign as IcingDesignUI, 'borderTop')}
+                                                                    alt="Top Border"
+                                                                    width={56}
+                                                                    height={56}
+                                                                    imageClassName="w-full h-full object-contain"
+                                                                />
+                                                            </div>
+                                                            <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                                Top Border
+                                                            </span>
+                                                        </button>
+                                                    )}
+
+                                                    {/* Base Border */}
+                                                    {icingDesign.border_base && icingDesign.colors?.borderBase && (
+                                                        <button
+                                                            onClick={() => setActiveCustomization('icing')}
+                                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                        >
+                                                            <div className="w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center">
+                                                                <LazyImage
+                                                                    src={getIcingImage(icingDesign as IcingDesignUI, 'borderBase')}
+                                                                    alt="Base Border"
+                                                                    width={56}
+                                                                    height={56}
+                                                                    imageClassName="w-full h-full object-contain"
+                                                                />
+                                                            </div>
+                                                            <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                                Base Border
+                                                            </span>
+                                                        </button>
+                                                    )}
+
+                                                    {/* Base Board */}
+                                                    {icingDesign.gumpasteBaseBoard && icingDesign.colors?.gumpasteBaseBoardColor && (
+                                                        <button
+                                                            onClick={() => setActiveCustomization('icing')}
+                                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                        >
+                                                            <div className="w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center">
+                                                                <LazyImage
+                                                                    src={getIcingImage(icingDesign as IcingDesignUI, 'gumpasteBaseBoard')}
+                                                                    alt="Base Board"
+                                                                    width={56}
+                                                                    height={56}
+                                                                    imageClassName="w-full h-full object-contain"
+                                                                />
+                                                            </div>
+                                                            <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                                Base Board
+                                                            </span>
+                                                        </button>
+                                                    )}
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -3081,8 +3174,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         <div className={`w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'peer-checked:bg-purple-600'}`}></div>
                                                     </label>
                                                 </div>
-                                                <div className={`transition-all duration-300 ${isEnabled && !isDisabled ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-                                                    <div className="pb-2">
+                                                <div className={`transition-all duration-300 ${isDisabled ? 'max-h-0 opacity-0 overflow-hidden' : 'max-h-24 opacity-100'}`}>
+                                                    <div className={`pb-2 transition-all duration-200 ${!isEnabled ? 'opacity-40 pointer-events-auto' : ''}`}>
                                                         <ColorPalette
                                                             selectedColor={icingDesign.colors[colorKey] || ''}
                                                             onColorChange={(newHex) => {

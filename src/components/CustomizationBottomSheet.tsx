@@ -101,7 +101,7 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
             <div
                 className={`
                     relative w-full max-w-lg bg-white rounded-t-2xl shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] 
-                    flex flex-col max-h-[60vh] pointer-events-auto border-t border-slate-100
+                    flex flex-col max-h-[40vh] pointer-events-auto border-t border-slate-100
                     ${className}
                 `}
                 style={{
