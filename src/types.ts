@@ -124,6 +124,7 @@ export interface HybridAnalysisResult {
   icing_design: IcingDesign;
   rejection?: {
     isRejected: boolean;
+    reason: string;
     message: string;
   };
   drip_effects?: DripEffect[];

@@ -88,10 +88,20 @@ export async function analyzeCakeFeaturesOnly(
             throw new Error(error.error || 'Analysis failed');
         }
 
-        return await response.json();
+        const result = await response.json();
+
+        // Check for AI rejection
+        if (result.rejection && result.rejection.isRejected) {
+            throw new Error(`AI_REJECTION: ${result.rejection.message}`);
+        }
+
+        return result;
 
     } catch (error) {
         console.error("Error analyzing cake:", error);
+        if (error instanceof Error && error.message.startsWith('AI_REJECTION:')) {
+            throw error;
+        }
         throw new Error("Failed to analyze cake image. Please try again.");
     }
 }

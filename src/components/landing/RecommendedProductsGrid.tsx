@@ -119,7 +119,11 @@ export const RecommendedProductsGrid = ({ initialProducts }: RecommendedProducts
                 (error) => {
                     toast.dismiss(toastId);
                     console.error("Error processing image:", error);
-                    showError("Failed to load design");
+                    if (error instanceof Error && error.message.startsWith('AI_REJECTION:')) {
+                        showError(error.message.replace('AI_REJECTION: ', ''));
+                    } else {
+                        showError("Failed to load design");
+                    }
                 },
                 {
                     imageUrl: item.original_image_url,

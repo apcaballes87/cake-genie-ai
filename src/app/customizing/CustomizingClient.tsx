@@ -45,6 +45,7 @@ import { useDesignSharing } from '@/hooks/useDesignSharing';
 import { useAvailabilitySettings } from '@/hooks/useAvailabilitySettings';
 import { useSearchEngine } from '@/hooks/useSearchEngine';
 import { AppState } from '@/hooks/useAppNavigation';
+import { toast } from 'react-hot-toast';
 
 interface AvailabilityInfo {
     type: AvailabilityType;
@@ -730,7 +731,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         },
                         (error) => {
                             console.error("Error processing product image:", error);
-                            showError("Failed to load product");
+                            if (error instanceof Error && error.message.startsWith('AI_REJECTION:')) {
+                                setAnalysisError(error.message);
+                                showError(error.message.replace('AI_REJECTION: ', ''));
+                            } else {
+                                setAnalysisError("Failed to load product");
+                                showError("Failed to load product");
+                            }
                             setIsAnalyzing(false);
                             isLoadingDesignRef.current = false;
                         },
@@ -789,7 +796,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     },
                     (error) => {
                         console.error("Error processing product:", error);
-                        showError("Failed to load product");
+                        if (error instanceof Error && error.message.startsWith('AI_REJECTION:')) {
+                            setAnalysisError(error.message);
+                            showError(error.message.replace('AI_REJECTION: ', ''));
+                        } else {
+                            setAnalysisError("Failed to load product");
+                            showError("Failed to load product");
+                        }
                         setIsAnalyzing(false);
                         isLoadingDesignRef.current = false;
                     },
@@ -906,7 +919,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                                         (err) => {
                                             console.error("Analysis failed:", err);
-                                            showError("Failed to analyze saved design.");
+                                            if (err instanceof Error) {
+                                                if (err.message.startsWith('AI_REJECTION:')) {
+                                                    const message = err.message;
+                                                    setAnalysisError(message);
+                                                    showError(message.replace('AI_REJECTION: ', ''));
+                                                    // Optional: Redirect or reset state if needed
+                                                } else {
+                                                    showError('Failed to analyze image. Please try again.');
+                                                }
+                                            } else {
+                                                showError('Failed to analyze image. Please try again.');
+                                            }
+                                            console.error("Analysis error:", err);
                                             setIsAnalyzing(false);
                                             isLoadingDesignRef.current = false; // Reset guard
                                         },
@@ -1012,7 +1037,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                                         (error) => {
                                             console.error("Error processing merchant product:", error);
-                                            showError("Failed to load product");
+                                            if (error instanceof Error && error.message.startsWith('AI_REJECTION:')) {
+                                                setAnalysisError(error.message);
+                                                showError(error.message.replace('AI_REJECTION: ', ''));
+                                            } else {
+                                                setAnalysisError("Failed to load product");
+                                                showError("Failed to load product");
+                                            }
                                             setIsAnalyzing(false);
                                             isLoadingDesignRef.current = false;
                                         },
@@ -1180,7 +1211,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         },
                         (err) => {
                             console.error("Analysis failed:", err);
-                            showError("Failed to analyze the shared design.");
+                            if (err instanceof Error && err.message.startsWith('AI_REJECTION:')) {
+                                setAnalysisError(err.message);
+                                showError(err.message.replace('AI_REJECTION: ', ''));
+                            } else {
+                                showError("Failed to analyze the shared design.");
+                            }
                             setIsAnalyzing(false);
                         },
                         { imageUrl: decodedUrl } // Pass original URL
@@ -1245,6 +1281,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     const canUndo = !!previousImageData;
     const error = analysisError || imageManagementError || designUpdateError || basePriceError || authError || null;
+    const isRejectionError = analysisError?.startsWith('AI_REJECTION:');
     const isSharing = isPreparingSharedDesign || isSavingDesign;
 
     const { warningMessage, warningDescription } = useMemo(() => {
@@ -2148,7 +2185,17 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 }}
                             >
                                 {isUpdatingDesign && <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-2xl z-20"><LoadingSpinner /><p className="mt-4 text-slate-500 font-semibold">{dynamicLoadingMessage}</p></div>}
-                                {error && <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-b-2xl z-20 p-4"><ErrorIcon /><p className="mt-4 font-semibold text-red-600">Update Failed</p><p className="text-sm text-red-500 text-center">{error}</p></div>}
+                                {error && (
+                                    <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-b-2xl z-20 p-4">
+                                        <ErrorIcon />
+                                        <p className="mt-4 font-semibold text-red-600">
+                                            {error.startsWith('AI_REJECTION:') ? 'Image Rejected' : 'Update Failed'}
+                                        </p>
+                                        <p className="text-sm text-red-500 text-center">
+                                            {error.replace('AI_REJECTION: ', '')}
+                                        </p>
+                                    </div>
+                                )}
                                 {!originalImagePreview && !isAnalyzing && !product?.image_url && !recentSearchDesign?.original_image_url && <div className="absolute inset-0 flex items-center justify-center text-center text-slate-400 py-16"><ImageIcon /><p className="mt-2 font-semibold">Your creation will appear here</p></div>}
 
                                 {/* SSR / Initial Load Fallback Image using Props */}
@@ -2504,17 +2551,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     <p className="text-center text-xs font-semibold text-fuchsia-500 mb-2 px-4">
                                         LOWER THE PRICE by customizing your cake below
                                     </p>
-                                    <CustomizationTabs
-                                        activeTab={activeCustomization}
-                                        onTabClick={(id) => {
-                                            setActiveCustomization(id === activeCustomization ? null : id);
-                                            setSelectedItem(null);
-                                        }}
-                                    />
+                                    <div className={`transition-all duration-300 ${isRejectionError ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+                                        <CustomizationTabs
+                                            activeTab={activeCustomization}
+                                            onTabClick={(id) => {
+                                                setActiveCustomization(id === activeCustomization ? null : id);
+                                                setSelectedItem(null);
+                                            }}
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* Chosen Options Preview - Clickable to edit */}
-                                {cakeInfo && !isAnalyzing && (
+                                {cakeInfo && !isAnalyzing && !isRejectionError && (
                                     <div className="mt-4 px-2">
                                         <p className="text-xs font-semibold text-slate-500 mb-1">Chosen Options</p>
                                         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -2763,15 +2812,16 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
                                 {/* Additional Instructions - Always visible in main view */}
-                                <div className="mt-1 bg-slate-50 rounded-lg border border-slate-200 p-3">
+                                <div className={`mt-1 bg-slate-50 rounded-lg border border-slate-200 p-3 transition-all duration-300 ${isRejectionError ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
                                     <div className="flex justify-between items-center mb-2">
                                         <h3 className="font-semibold text-slate-700 text-sm">Additional Instructions</h3>
                                     </div>
                                     <textarea
                                         value={additionalInstructions}
                                         onChange={(e) => onAdditionalInstructionsChange(e.target.value)}
-                                        className="w-full p-2 text-sm border-slate-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                                        className="w-full p-2 text-sm border-slate-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 disabled:bg-slate-100 disabled:text-slate-400"
                                         placeholder="Specific notes (e.g., 'Make horn gold'). Do not add new items here."
+                                        disabled={!!isRejectionError}
                                         rows={3}
                                     />
                                     <p className="text-xs text-slate-500 mt-1">
