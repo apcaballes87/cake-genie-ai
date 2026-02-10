@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import LazyImage from '@/components/LazyImage';
 import { v4 as uuidv4 } from 'uuid';
+import { findClosestColor } from '@/utils/colorUtils';
 import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Heart, Cake, Star } from 'lucide-react';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
 import { CustomizationTabs } from '@/components/CustomizationTabs';
@@ -96,59 +97,6 @@ type ImageTab = 'original' | 'customized';
 
 // --- Helper functions for icing images ---
 
-const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-    } : null;
-};
-
-const findClosestColor = (color: string, availableColors: { name: string; keywords: string[]; hex: string }[]): string => {
-    const DIRECT_COLOR_MAP: Record<string, string> = {
-        '#EF4444': 'red', '#FCA5A5': 'red', '#F97316': 'orange', '#EAB308': 'yellow',
-        '#16A34A': 'green', '#4ADE80': 'green', '#14B8A6': 'green', '#3B82F6': 'blue',
-        '#93C5FD': 'blue', '#8B5CF6': 'purple', '#C4B5FD': 'purple', '#EC4899': 'pink',
-        '#FBCFE8': 'pink', '#78350F': 'brown', '#B45309': 'brown', '#64748B': 'white',
-        '#FFFFFF': 'white', '#000000': 'black',
-    };
-
-    const normalizedColor = color.toUpperCase();
-    if (DIRECT_COLOR_MAP[normalizedColor]) return DIRECT_COLOR_MAP[normalizedColor];
-
-    const colorLower = color.toLowerCase().trim();
-    for (const colorOption of availableColors) {
-        const sortedKeywords = [...colorOption.keywords].sort((a, b) => b.length - a.length);
-        for (const keyword of sortedKeywords) {
-            if (colorLower.includes(keyword)) return colorOption.name;
-        }
-    }
-
-    if (colorLower.startsWith('#')) {
-        const inputRgb = hexToRgb(colorLower);
-        if (inputRgb) {
-            let closestColor = availableColors[0].name;
-            let minDistance = Infinity;
-            for (const colorOption of availableColors) {
-                const optionRgb = hexToRgb(colorOption.hex);
-                if (optionRgb) {
-                    const distance = Math.sqrt(
-                        Math.pow(inputRgb.r - optionRgb.r, 2) +
-                        Math.pow(inputRgb.g - optionRgb.g, 2) +
-                        Math.pow(inputRgb.b - optionRgb.b, 2)
-                    );
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        closestColor = colorOption.name;
-                    }
-                }
-            }
-            return closestColor;
-        }
-    }
-    return 'white';
-};
 
 type IcingImageType = 'top' | 'side' | 'drip' | 'borderTop' | 'borderBase' | 'gumpasteBaseBoard';
 
@@ -194,20 +142,7 @@ const getIcingImage = (icingDesign: IcingDesignUI, type: IcingImageType, isTopSp
 
     if (!color) return baseUrl + defaultFile;
 
-    const availableColors = [
-        { name: 'black', keywords: ['black', 'dark'], hex: '#000000' },
-        { name: 'white', keywords: ['white', 'light white', 'gray', 'grey', 'cream', 'silver'], hex: '#FFFFFF' },
-        { name: 'blue', keywords: ['blue', 'cyan', 'sky', 'baby blue'], hex: '#0000FF' },
-        { name: 'red', keywords: ['red', 'maroon', 'crimson'], hex: '#FF0000' },
-        { name: 'purple', keywords: ['purple', 'violet', 'lavender'], hex: '#800080' },
-        { name: 'green', keywords: ['green', 'mint', 'lime'], hex: '#00FF00' },
-        { name: 'yellow', keywords: ['yellow', 'gold'], hex: '#FFFF00' },
-        { name: 'orange', keywords: ['orange'], hex: '#FFA500' },
-        { name: 'brown', keywords: ['brown', 'chocolate'], hex: '#8B4513' },
-        { name: 'pink', keywords: ['pink', 'rose'], hex: '#FFC0CB' },
-    ];
-
-    const matchedColor = findClosestColor(color, availableColors);
+    const matchedColor = findClosestColor(color);
     const separator = (prefix === 'baseboard') ? '' : '_';
     return `${baseUrl}${prefix}${separator}${matchedColor}.webp`;
 };
@@ -694,7 +629,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 } catch { /* ignore direct fetch error */ }
 
                 if (!blob) {
-                    const proxyResponse = await fetch(`/api/proxy?url=${encodeURIComponent(targetImageUrl)}`);
+                    // Use the correct proxy endpoint which handles Pinterest domains
+                    const proxyResponse = await fetch(`/api/proxy-image?url=${encodeURIComponent(targetImageUrl)}`);
                     if (proxyResponse.ok) blob = await proxyResponse.blob();
                 }
                 if (!blob) throw new Error("Failed to fetch image");
@@ -773,7 +709,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                 if (!blob) {
                     // Fallback to storage proxy
-                    const proxyResponse = await fetch(`/api/proxy?url=${encodeURIComponent(targetImageUrl)}`);
+                    const proxyResponse = await fetch(`/api/proxy-image?url=${encodeURIComponent(targetImageUrl)}`);
                     if (proxyResponse.ok) {
                         blob = await proxyResponse.blob();
                     }
@@ -1012,7 +948,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                                     if (!blob) {
                                         // Fallback to storage proxy
-                                        const proxyResponse = await fetch(`/api/proxy?url=${encodeURIComponent(parsed.imageUrl)}`);
+                                        const proxyResponse = await fetch(`/api/proxy-image?url=${encodeURIComponent(parsed.imageUrl)}`);
                                         if (proxyResponse.ok) {
                                             blob = await proxyResponse.blob();
                                         }
@@ -2572,7 +2508,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                 onClick={() => setActiveCustomization('options')}
                                                 className="group flex flex-col items-center gap-1 min-w-[60px]"
                                             >
-                                                <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white">
+                                                <div className={`w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
                                                     <LazyImage
                                                         src={CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
                                                         alt={cakeInfo.type}
@@ -2591,7 +2527,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                 onClick={() => setActiveCustomization('options')}
                                                 className="group flex flex-col items-center gap-1 min-w-[60px]"
                                             >
-                                                <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white">
+                                                <div className={`w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
                                                     <LazyImage
                                                         src={CAKE_SIZE_THUMBNAILS[cakeInfo.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
                                                         alt={cakeInfo.size}
@@ -2599,6 +2535,21 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         sizes="56px"
                                                         imageClassName="object-cover"
                                                     />
+                                                    <div className="absolute inset-x-0 top-0 pt-4 text-black text-[10px] font-bold text-center leading-tight">
+                                                        {(() => {
+                                                            const sizePart = cakeInfo.size?.split(' ')[0] || '';
+                                                            const tiers = sizePart?.match(/\d+"/g) || [];
+                                                            return (
+                                                                <div>
+                                                                    {tiers.map((tier, index) => (
+                                                                        <React.Fragment key={index}>
+                                                                            <span>&lt;- {tier} -&gt;</span><br />
+                                                                        </React.Fragment>
+                                                                    ))}
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                    </div>
                                                 </div>
                                                 <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
                                                     {cakeInfo.size}
@@ -2610,7 +2561,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                 onClick={() => setActiveCustomization('options')}
                                                 className="group flex flex-col items-center gap-1 min-w-[60px]"
                                             >
-                                                <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white">
+                                                <div className={`w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
                                                     <LazyImage
                                                         src={CAKE_THICKNESS_THUMBNAILS[cakeInfo.thickness]}
                                                         alt={cakeInfo.thickness}
@@ -2631,7 +2582,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                     onClick={() => setActiveCustomization('options')}
                                                     className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                 >
-                                                    <div className="w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white">
+                                                    <div className={`w-14 h-14 rounded-lg border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
                                                         <LazyImage
                                                             src={FLAVOR_THUMBNAILS[flavor]}
                                                             alt={flavor}
@@ -2658,10 +2609,18 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         if (icingColorsSame && topColor) {
                                                             return (
                                                                 <button
-                                                                    onClick={() => setActiveCustomization('icing')}
+                                                                    onClick={() => {
+                                                                        setActiveCustomization('icing');
+                                                                        setSelectedItem({
+                                                                            id: 'icing-edit-icing',
+                                                                            itemCategory: 'icing',
+                                                                            description: 'Body Icing',
+                                                                            cakeType: cakeInfo?.type || '1 Tier'
+                                                                        });
+                                                                    }}
                                                                     className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                                 >
-                                                                    <div className="w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center">
+                                                                    <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-icing' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
                                                                         <LazyImage
                                                                             src={getIcingImage(icingDesign as IcingDesignUI, 'top', false)}
                                                                             alt="Icing"
@@ -2681,10 +2640,18 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                             <>
                                                                 {topColor && (
                                                                     <button
-                                                                        onClick={() => setActiveCustomization('icing')}
+                                                                        onClick={() => {
+                                                                            setActiveCustomization('icing');
+                                                                            setSelectedItem({
+                                                                                id: 'icing-edit-top',
+                                                                                itemCategory: 'icing',
+                                                                                description: 'Top Icing',
+                                                                                cakeType: cakeInfo?.type || '1 Tier'
+                                                                            });
+                                                                        }}
                                                                         className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                                     >
-                                                                        <div className="w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center">
+                                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-top' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
                                                                             <LazyImage
                                                                                 src={getIcingImage(icingDesign as IcingDesignUI, 'top', true)}
                                                                                 alt="Top Icing"
@@ -2700,10 +2667,18 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                 )}
                                                                 {sideColor && (
                                                                     <button
-                                                                        onClick={() => setActiveCustomization('icing')}
+                                                                        onClick={() => {
+                                                                            setActiveCustomization('icing');
+                                                                            setSelectedItem({
+                                                                                id: 'icing-edit-side',
+                                                                                itemCategory: 'icing',
+                                                                                description: 'Side Icing',
+                                                                                cakeType: cakeInfo?.type || '1 Tier'
+                                                                            });
+                                                                        }}
                                                                         className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                                     >
-                                                                        <div className="w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center">
+                                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-side' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
                                                                             <LazyImage
                                                                                 src={getIcingImage(icingDesign as IcingDesignUI, 'side', false)}
                                                                                 alt="Body Icing"
@@ -2724,10 +2699,18 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                     {/* Drip */}
                                                     {icingDesign.drip && icingDesign.colors?.drip && (
                                                         <button
-                                                            onClick={() => setActiveCustomization('icing')}
+                                                            onClick={() => {
+                                                                setActiveCustomization('icing');
+                                                                setSelectedItem({
+                                                                    id: 'icing-edit-drip',
+                                                                    itemCategory: 'icing',
+                                                                    description: 'Drip',
+                                                                    cakeType: cakeInfo?.type || '1 Tier'
+                                                                });
+                                                            }}
                                                             className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                         >
-                                                            <div className="w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center">
+                                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-drip' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
                                                                 <LazyImage
                                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'drip')}
                                                                     alt="Drip"
@@ -2745,10 +2728,18 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                     {/* Top Border */}
                                                     {icingDesign.border_top && icingDesign.colors?.borderTop && (
                                                         <button
-                                                            onClick={() => setActiveCustomization('icing')}
+                                                            onClick={() => {
+                                                                setActiveCustomization('icing');
+                                                                setSelectedItem({
+                                                                    id: 'icing-edit-borderTop',
+                                                                    itemCategory: 'icing',
+                                                                    description: 'Top',
+                                                                    cakeType: cakeInfo?.type || '1 Tier'
+                                                                });
+                                                            }}
                                                             className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                         >
-                                                            <div className="w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center">
+                                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderTop' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
                                                                 <LazyImage
                                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'borderTop')}
                                                                     alt="Top Border"
@@ -2766,10 +2757,18 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                     {/* Base Border */}
                                                     {icingDesign.border_base && icingDesign.colors?.borderBase && (
                                                         <button
-                                                            onClick={() => setActiveCustomization('icing')}
+                                                            onClick={() => {
+                                                                setActiveCustomization('icing');
+                                                                setSelectedItem({
+                                                                    id: 'icing-edit-borderBase',
+                                                                    itemCategory: 'icing',
+                                                                    description: 'Bottom',
+                                                                    cakeType: cakeInfo?.type || '1 Tier'
+                                                                });
+                                                            }}
                                                             className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                         >
-                                                            <div className="w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center">
+                                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderBase' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
                                                                 <LazyImage
                                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'borderBase')}
                                                                     alt="Base Border"
@@ -2787,10 +2786,18 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                     {/* Base Board */}
                                                     {icingDesign.gumpasteBaseBoard && icingDesign.colors?.gumpasteBaseBoardColor && (
                                                         <button
-                                                            onClick={() => setActiveCustomization('icing')}
+                                                            onClick={() => {
+                                                                setActiveCustomization('icing');
+                                                                setSelectedItem({
+                                                                    id: 'icing-edit-gumpasteBaseBoard',
+                                                                    itemCategory: 'icing',
+                                                                    description: 'Board',
+                                                                    cakeType: cakeInfo?.type || '1 Tier'
+                                                                });
+                                                            }}
                                                             className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                         >
-                                                            <div className="w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center">
+                                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-gumpasteBaseBoard' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
                                                                 <LazyImage
                                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'gumpasteBaseBoard')}
                                                                     alt="Base Board"

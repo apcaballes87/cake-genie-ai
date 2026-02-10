@@ -32,7 +32,7 @@ export const CustomizationTabs: React.FC<CustomizationTabsProps> = ({
                             className={`
                                 flex-1 flex flex-col items-center justify-center py-3 px-4 min-w-[80px]
                                 transition-colors relative
-                                ${isActive ? 'text-purple-600' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}
+                                ${isActive ? 'text-purple-700 bg-purple-50 font-semibold' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}
                             `}
                         >
                             <Icon className={`w-6 h-6 mb-1 ${isActive ? 'stroke-current' : 'stroke-current'}`} />
