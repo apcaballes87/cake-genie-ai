@@ -51,7 +51,7 @@ export const FloatingImagePreview: React.FC<FloatingImagePreviewProps> = React.m
       <div
         className={`fixed top-4 left-4 w-[43vw] max-w-xl md:w-[24vw] md:max-w-xs z-30 transition-all duration-300 ease-in-out ${show ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'
           }`}
-        aria-hidden={!show}
+        inert={!show ? true : undefined}
         role="region"
         aria-label="Floating Image Preview"
       >

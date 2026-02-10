@@ -637,12 +637,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                         {children}
                     </div>
                 </div>
-            </main >
+            </main>
 
             {/* --- FOOTER --- */}
-            < footer className="bg-purple-50 text-gray-900 pt-16 pb-24 md:pb-8 border-t border-purple-100" >
+            <footer className="bg-purple-50 text-gray-900 pt-16 pb-24 md:pb-8 border-t border-purple-100">
                 {/* Top Section: Features */}
-                < div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12" >
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
                     <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
                         {/* Feature 1 */}
                         <div className="bg-white p-4 md:p-6 rounded-2xl text-center hover:shadow-lg transition duration-300 border border-purple-100">
@@ -692,10 +692,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                             </button>
                         </div>
                     </div>
-                </div >
+                </div>
 
                 {/* Middle Section: Social & Ratings */}
-                < div className="border-t border-purple-200 bg-purple-100/50" >
+                <div className="border-t border-purple-200 bg-purple-100/50">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                             {/* Social Icons */}
@@ -739,10 +739,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                             </div>
                         </div>
                     </div>
-                </div >
+                </div>
 
                 {/* Bottom Section: Company Info */}
-                < div className="border-t border-purple-200 pt-12" >
+                <div className="border-t border-purple-200 pt-12">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-start gap-8">
                         {/* Brand Info */}
                         <div className="max-w-md">
@@ -779,13 +779,13 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                             <ChevronUp size={24} />
                         </button>
                     </div>
-                </div >
-            </footer >
+                </div>
+            </footer>
 
 
 
             {/* --- MOBILE BOTTOM NAV --- */}
-            < nav className="md:hidden fixed bottom-0 w-full bg-white/95 backdrop-blur-lg border-t border-gray-100 py-4 px-6 flex justify-between items-center text-gray-500 z-50 pb-safe" >
+            <nav className="md:hidden fixed bottom-0 w-full bg-white/95 backdrop-blur-lg border-t border-gray-100 py-4 px-6 flex justify-between items-center text-gray-500 z-50 pb-safe">
                 <button
                     onClick={() => { setActiveTab('home'); router.push('/'); }}
                     className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'home' ? 'text-purple-600' : 'hover:text-purple-400'}`}
