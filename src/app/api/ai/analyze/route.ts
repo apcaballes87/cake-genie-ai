@@ -203,6 +203,9 @@ export async function POST(req: NextRequest) {
                     required: ['base', 'color_type', 'colors'],
                 },
                 keyword: { type: Type.STRING },
+                alt_text: { type: Type.STRING },
+                seo_title: { type: Type.STRING },
+                seo_description: { type: Type.STRING },
                 rejection: {
                     type: Type.OBJECT,
                     properties: {
@@ -213,7 +216,7 @@ export async function POST(req: NextRequest) {
                     required: ['isRejected', 'reason', 'message'],
                 },
             },
-            // specific required fields removed to allow for rejection-only response
+            required: ['cakeType', 'cakeThickness', 'alt_text', 'seo_title', 'seo_description'],
         };
 
         const aiClient = getAI();
