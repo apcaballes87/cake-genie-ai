@@ -2624,8 +2624,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                         <LazyImage
                                                                             src={getIcingImage(icingDesign as IcingDesignUI, 'top', false)}
                                                                             alt="Icing"
-                                                                            width={56}
-                                                                            height={56}
+                                                                            width={36}
+                                                                            height={36}
                                                                             imageClassName="w-full h-full object-contain"
                                                                         />
                                                                     </div>
@@ -2655,8 +2655,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                             <LazyImage
                                                                                 src={getIcingImage(icingDesign as IcingDesignUI, 'top', true)}
                                                                                 alt="Top Icing"
-                                                                                width={56}
-                                                                                height={56}
+                                                                                width={36}
+                                                                                height={36}
                                                                                 imageClassName="w-full h-full object-contain"
                                                                             />
                                                                         </div>
@@ -2682,8 +2682,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                             <LazyImage
                                                                                 src={getIcingImage(icingDesign as IcingDesignUI, 'side', false)}
                                                                                 alt="Body Icing"
-                                                                                width={56}
-                                                                                height={56}
+                                                                                width={36}
+                                                                                height={36}
                                                                                 imageClassName="w-full h-full object-contain"
                                                                             />
                                                                         </div>
@@ -2714,8 +2714,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                 <LazyImage
                                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'drip')}
                                                                     alt="Drip"
-                                                                    width={56}
-                                                                    height={56}
+                                                                    width={36}
+                                                                    height={36}
                                                                     imageClassName="w-full h-full object-contain"
                                                                 />
                                                             </div>
@@ -2743,8 +2743,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                 <LazyImage
                                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'borderTop')}
                                                                     alt="Top Border"
-                                                                    width={56}
-                                                                    height={56}
+                                                                    width={36}
+                                                                    height={36}
                                                                     imageClassName="w-full h-full object-contain"
                                                                 />
                                                             </div>
@@ -2772,8 +2772,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                 <LazyImage
                                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'borderBase')}
                                                                     alt="Base Border"
-                                                                    width={56}
-                                                                    height={56}
+                                                                    width={36}
+                                                                    height={36}
                                                                     imageClassName="w-full h-full object-contain"
                                                                 />
                                                             </div>
@@ -2801,8 +2801,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                 <LazyImage
                                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'gumpasteBaseBoard')}
                                                                     alt="Base Board"
-                                                                    width={56}
-                                                                    height={56}
+                                                                    width={36}
+                                                                    height={36}
                                                                     imageClassName="w-full h-full object-contain"
                                                                 />
                                                             </div>
@@ -2812,6 +2812,29 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         </button>
                                                     )}
                                                 </>
+                                            )}
+
+                                            {/* Cake Toppers */}
+                                            {(mainToppers.some(t => t.isEnabled) || supportElements.some(s => s.isEnabled)) && (
+                                                <button
+                                                    onClick={() => setActiveCustomization('toppers')}
+                                                    className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                    aria-label="Edit Cake Toppers"
+                                                    tabIndex={0}
+                                                >
+                                                    <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'toppers' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                                        <LazyImage
+                                                            src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/topper.webp"
+                                                            alt="Cake Toppers"
+                                                            width={36}
+                                                            height={36}
+                                                            imageClassName="w-full h-full object-contain"
+                                                        />
+                                                    </div>
+                                                    <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                        Toppers
+                                                    </span>
+                                                </button>
                                             )}
                                         </div>
                                     </div>
