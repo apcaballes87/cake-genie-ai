@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { getAllBlogPosts } from '@/data/blogPosts'
 
 /**
  * Sanitize URL for XML sitemap
@@ -119,6 +120,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         images: sanitizeUrl(search.original_image_url) ? [sanitizeUrl(search.original_image_url)] : [],
     }))
 
-    return [...routes, ...designRoutes, ...merchantRoutes, ...productRoutes, ...recentSearchRoutes]
+    // 7. Blog routes
+    const blogPosts = getAllBlogPosts()
+    const blogRoutes = [
+        {
+            url: `${baseUrl}/blog`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly' as const,
+            priority: 0.8,
+        },
+        ...blogPosts.map((post) => ({
+            url: `${baseUrl}/blog/${post.slug}`,
+            lastModified: new Date(post.date),
+            changeFrequency: 'monthly' as const,
+            priority: 0.7,
+        })),
+    ]
+
+    return [...routes, ...designRoutes, ...merchantRoutes, ...productRoutes, ...recentSearchRoutes, ...blogRoutes]
 
 }
