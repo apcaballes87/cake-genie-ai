@@ -2514,7 +2514,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         alt={cakeInfo.type}
                                                         fill
                                                         sizes="56px"
-                                                        imageClassName="object-cover"
+                                                        imageClassName="object-contain"
                                                     />
                                                 </div>
                                                 <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
@@ -2533,7 +2533,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         alt={cakeInfo.size}
                                                         fill
                                                         sizes="56px"
-                                                        imageClassName="object-cover"
+                                                        imageClassName="object-contain"
                                                     />
                                                     <div className="absolute inset-x-0 top-0 pt-4 text-black text-[10px] font-bold text-center leading-tight">
                                                         {(() => {
@@ -2567,7 +2567,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         alt={cakeInfo.thickness}
                                                         fill
                                                         sizes="56px"
-                                                        imageClassName="object-cover"
+                                                        imageClassName="object-contain"
                                                     />
                                                 </div>
                                                 <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
@@ -2588,7 +2588,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                             alt={flavor}
                                                             fill
                                                             sizes="56px"
-                                                            imageClassName="object-cover"
+                                                            imageClassName="object-contain"
                                                         />
                                                     </div>
                                                     <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
