@@ -2502,7 +2502,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 {cakeInfo && !isAnalyzing && !isRejectionError && (
                                     <div className="mt-4 px-2">
                                         <p className="text-xs font-semibold text-slate-500 mb-1">Chosen Options</p>
-                                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                        <div className="flex gap-2 overflow-x-auto pt-1 pb-2 scrollbar-hide mt-1">
                                             {/* Cake Type */}
                                             <button
                                                 onClick={() => setActiveCustomization('options')}
@@ -2822,12 +2822,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                     aria-label="Edit Cake Toppers"
                                                     tabIndex={0}
                                                 >
-                                                    <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'toppers' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                                    <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-1 shadow-sm flex items-center justify-center ${activeCustomization === 'toppers' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
                                                         <LazyImage
                                                             src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/topper.webp"
                                                             alt="Cake Toppers"
-                                                            width={36}
-                                                            height={36}
+                                                            width={48}
+                                                            height={48}
                                                             imageClassName="w-full h-full object-contain"
                                                         />
                                                     </div>
