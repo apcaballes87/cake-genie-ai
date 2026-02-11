@@ -13,6 +13,7 @@ import { toast } from 'react-hot-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { LANDING_PAGE_IMAGES, COMMON_ASSETS } from '@/constants';
+import { getAllBlogPosts } from '@/data/blogPosts';
 import {
     Search,
     ShoppingBag,
@@ -635,6 +636,32 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
 
                         {/* Server-rendered merchants and products sections */}
                         {children}
+
+                        {/* --- BLOG SECTION --- */}
+                        <div className="mt-10">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl md:text-2xl font-bold text-gray-900">Blogs</h2>
+                                <Link href="/blog" className="text-sm font-semibold text-purple-600 hover:text-purple-800 transition-colors">
+                                    View all
+                                </Link>
+                            </div>
+                            <div className="space-y-4">
+                                {getAllBlogPosts().map((post) => (
+                                    <Link
+                                        key={post.slug}
+                                        href={`/blog/${post.slug}`}
+                                        className="block bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-purple-100 hover:shadow-md hover:border-purple-200 transition-all group"
+                                    >
+                                        <h3 className="text-base md:text-lg font-bold text-gray-900 mb-2 group-hover:text-purple-700 transition-colors leading-snug">
+                                            {post.title}
+                                        </h3>
+                                        <p className="text-gray-500 text-sm leading-relaxed line-clamp-2">
+                                            {post.excerpt}
+                                        </p>
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>
