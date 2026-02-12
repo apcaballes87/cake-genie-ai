@@ -204,6 +204,10 @@ export async function calculatePriceFromDatabase(
         price *= topper.quantity;
       } else if (rule.quantity_rule === 'per_3_pieces') {
         price = Math.ceil(topper.quantity / 3) * rule.price;
+      } else if (rule.quantity_rule === 'buy_3_get_1_free') {
+        const qty = topper.quantity || 1;
+        const freeItems = Math.floor(qty / 3);
+        price = rule.price * qty - freeItems * rule.price;
       } else if (rule.quantity_rule === 'per_digit') {
         const digitCount = (topper.description.match(/\d/g) || []).length || 1;
         price = digitCount * rule.price;
@@ -269,6 +273,10 @@ export async function calculatePriceFromDatabase(
         price *= effectiveQty;
       } else if (rule.quantity_rule === 'per_3_pieces') {
         price = Math.ceil(effectiveQty / 3) * rule.price;
+      } else if (rule.quantity_rule === 'buy_3_get_1_free') {
+        const qty = effectiveQty || 1;
+        const freeItems = Math.floor(qty / 3);
+        price = rule.price * qty - freeItems * rule.price;
       } else if (rule.quantity_rule === 'per_digit') {
         const digitCount = (element.description.match(/\d/g) || []).length || 1;
         price = digitCount * rule.price;
