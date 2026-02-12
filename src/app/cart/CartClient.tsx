@@ -948,7 +948,7 @@ function CartClient() {
 
     const inputStyle = "w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 disabled:bg-slate-50 disabled:cursor-not-allowed";
 
-    const onRemoveItem = async (id: string) => {
+    const onRemoveItem = useCallback(async (id: string) => {
         try {
             await removeItemOptimistic(id);
             showSuccess('Item removed from cart');
@@ -956,10 +956,10 @@ function CartClient() {
             console.error('Failed to remove item:', error);
             showError('Failed to remove item');
         }
-    };
+    }, [removeItemOptimistic]);
 
     const handleClose = () => {
-        router.push('/');
+        router.back();
     };
 
     const handleContinueShopping = () => {

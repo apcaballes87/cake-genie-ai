@@ -536,7 +536,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [supabase]);
 
     const removeItemOptimistic = useCallback(async (cartItemId: string) => {
-        const originalCart = [...cartItems];
+        // Use ref to avoid stale closure over cartItems — prevents this callback
+        // from being re-created on every cart change, which would cascade re-renders
+        // through the actions context and break React.memo on child components.
+        const originalCart = [...cartItemsRef.current];
 
         setCartItems(prev => prev.filter(item => item.cart_item_id !== cartItemId));
 
@@ -548,7 +551,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setCartItems(originalCart);
             throw error;
         }
-    }, [cartItems]);
+    }, []);
 
     const debouncedUpdateQuantity = useMemo(
         () => debounce(async (cartItemId: string, quantity: number, originalCart: (CakeGenieCartItem & { merchant?: CakeGenieMerchant })[]) => {
@@ -572,8 +575,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             return;
         }
 
-        const originalCart = [...cartItems];
-        const itemToUpdate = cartItems.find(item => item.cart_item_id === cartItemId);
+        const originalCart = [...cartItemsRef.current];
+        const itemToUpdate = cartItemsRef.current.find(item => item.cart_item_id === cartItemId);
         if (!itemToUpdate) return;
 
         setCartItems(prev =>
@@ -585,7 +588,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } catch (error) {
             throw error;
         }
-    }, [cartItems, removeItemOptimistic, debouncedUpdateQuantity]);
+    }, [removeItemOptimistic, debouncedUpdateQuantity]);
 
     const refreshCart = useCallback(async () => {
         await loadCartData(user);
