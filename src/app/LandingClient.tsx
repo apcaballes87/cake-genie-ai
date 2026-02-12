@@ -356,8 +356,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                     <div className="w-full flex items-center justify-between gap-2 md:gap-4 mb-4 pt-6 relative">
 
                         {/* Logo - fades out on scroll on mobile, always visible on desktop */}
-                        <div
-                            className="absolute left-0 transition-all duration-500 ease-out pointer-events-none md:static md:pointer-events-auto md:opacity-100! md:transform-none! md:mr-8"
+                        <Link
+                            href="/"
+                            className={`absolute left-0 transition-all duration-500 ease-out ${isFullyScrolled ? 'pointer-events-none' : 'pointer-events-auto'} md:static md:pointer-events-auto md:opacity-100! md:transform-none! md:mr-8`}
                             style={{
                                 opacity: logoOpacity,
                                 transform: `scale(${0.9 + logoOpacity * 0.1})`,
@@ -371,7 +372,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                                 height={64}
                                 className="h-16 md:h-12 w-auto object-contain"
                             />
-                        </div>
+                        </Link>
 
                         {/* Search Icon/Bar - expands on scroll on mobile, always visible on desktop */}
                         <div

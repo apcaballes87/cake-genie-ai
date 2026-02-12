@@ -8,13 +8,13 @@ import { MultiColorEditor } from './MultiColorEditor';
 // Constants
 export const topperTypeDisplayMap: Record<MainTopperType, string> = {
     'edible_3d_complex': 'Gumpaste (Complex)', 'edible_3d_ordinary': 'Gumpaste (Ordinary)', 'printout': 'Printout', 'edible_photo_top': 'Printout (Edible)',
-    'toy': 'Toy', 'figurine': 'Figurine (Simpler)', 'plastic_ball': 'Plastic Ball', 'cardstock': 'Cardstock', 'candle': 'Candle',
+    'toy': 'Toy', 'figurine': 'Figurine (Simpler)', 'plastic_ball': 'Plastic Ball', 'cardstock': 'Cardstock', 'candle': 'Candle', 'edible_flowers': 'Edible Flowers',
     'icing_doodle': 'Piped Doodles', 'icing_palette_knife': 'Palette Knife Finish', 'icing_brush_stroke': 'Brush Stroke Finish',
     'icing_splatter': 'Splatter Finish', 'icing_minimalist_spread': 'Minimalist Spread', 'meringue_pop': 'Meringue Pop',
 };
 export const originalTypeLabelMap: Record<MainTopperType, string> = {
     'edible_3d_complex': '3D Complex', 'edible_3d_ordinary': '3D Ordinary', 'figurine': 'Figurine', 'toy': 'Toy', 'plastic_ball': 'Plastic Ball', 'cardstock': 'Cardstock',
-    'edible_photo_top': 'Edible Photo', 'printout': 'Printout', 'candle': 'Candle',
+    'edible_photo_top': 'Edible Photo', 'printout': 'Printout', 'candle': 'Candle', 'edible_flowers': 'Edible Flowers',
     'icing_doodle': 'Piped Doodles', 'icing_palette_knife': 'Palette Knife Finish', 'icing_brush_stroke': 'Brush Stroke Finish',
     'icing_splatter': 'Splatter Finish', 'icing_minimalist_spread': 'Minimalist Spread', 'meringue_pop': 'Meringue Pop',
 };
