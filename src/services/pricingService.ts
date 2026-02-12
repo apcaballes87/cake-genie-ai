@@ -41,6 +41,25 @@ function getEdible2DSupportPrice(size: Size): number {
 }
 
 
+function getEdibleFlowerPrice(size: Size): number {
+    if (size === 'large') return 300;
+    if (size === 'medium') return 200;
+    if (size === 'small') return 100;
+    if (size === 'tiny') return 50;
+    return 0;
+}
+
+/**
+ * Edible Flowers Discount: for every 3 pieces, 1 piece is free.
+ * e.g. 8pcs × 100 = 800 − (floor(8/3) × 100) = 800 − 200 = 600
+ */
+function applyEdibleFlowerDiscount(unitPrice: number, quantity: number): number {
+    const rawTotal = unitPrice * quantity;
+    const freeItems = Math.floor(quantity / 3);
+    const discount = freeItems * unitPrice;
+    return rawTotal - discount;
+}
+
 function extractTierCount(cakeType: CakeType): number {
     if (cakeType.includes('3 Tier')) return 3;
     if (cakeType.includes('2 Tier')) return 2;
@@ -169,6 +188,13 @@ export const calculatePrice = (
                 price = digitCount * 25; // 25 per digit
                 nonGumpasteTotal += price;
                 break;
+            case 'edible_flowers': {
+                const flowerUnitPrice = getEdibleFlowerPrice(topper.size);
+                const qty = topper.quantity || 1;
+                price = applyEdibleFlowerDiscount(flowerUnitPrice, qty);
+                nonGumpasteTotal += price;
+                break;
+            }
             default:
                 price = 0;
         }
@@ -277,23 +303,13 @@ export const calculatePrice = (
                 nonGumpasteTotal += price;
                 break;
 
-            case 'edible_flowers':
-                let flowerPrice = 0;
-                if (element.size === 'large') flowerPrice = 300;
-                else if (element.size === 'medium') flowerPrice = 200;
-                else if (element.size === 'small') flowerPrice = 100;
-                else flowerPrice = 50; // Tiny/Default
-
-                price = flowerPrice * (element.quantity || 1);
+            case 'edible_flowers': {
+                const flowerUnitPriceSE = getEdibleFlowerPrice(element.size);
+                const flowerQtySE = element.quantity || 1;
+                price = applyEdibleFlowerDiscount(flowerUnitPriceSE, flowerQtySE);
                 nonGumpasteTotal += price;
-                // Note: If edible_flowers are "gumpaste features" they should strictly be in supportGumpasteRawTotal?
-                // But prompt says "fresh_flowers" vs "edible_flowers (Gum paste)".
-                // Current code put them in nonGumpasteTotal. I will keep it there unless user specifies otherwise, 
-                // or move to supportGumpasteRawTotal if they are definitely gumpaste.
-                // Rule 153 says 'edible_flowers' category 'support_element'.
-                // I will keep as is (nonGumpasteTotal) to avoid logic drift, but maybe they SHOULD be allowance eligible?
-                // Step 89 shows they were added to nonGumpasteTotal.
                 break;
+            }
 
             case 'macarons':
                 price = 40 * (element.quantity || 1);
