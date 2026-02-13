@@ -2503,7 +2503,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 {/* Chosen Options Preview - Clickable to edit */}
                                 {cakeInfo && !isAnalyzing && !isRejectionError && (
                                     <div className="mt-4 px-2">
-                                        <p className="text-xs font-semibold text-slate-500 mb-1">Chosen Options</p>
+                                        <p className="text-xs font-semibold text-slate-500 mb-1">How would you like your cake customized?</p>
                                         <div className="flex gap-2 overflow-x-auto pt-1 pb-2 scrollbar-hide mt-1">
                                             {/* Cake Type */}
                                             <button
@@ -3420,10 +3420,38 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             </CustomizationBottomSheet>
 
 
+            {/* GEO Optimized AI Explanation for Bots & Users */}
+            <div className="w-full mt-8 mb-4 px-4 sm:px-0">
+                <section className="bg-purple-50/50 rounded-3xl p-6 sm:p-8 border border-purple-100 flex flex-col md:flex-row items-center gap-6 max-w-5xl mx-auto">
+                    <div className="flex-1 space-y-3 text-center md:text-left">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-white border border-purple-100 rounded-full text-purple-600 text-xs font-bold mb-2 uppercase tracking-wider">
+                            <Zap className="w-3 h-3 fill-current" />
+                            AI-Powered Customizer
+                        </div>
+                        <h2 className="text-2xl font-black text-slate-800 tracking-tight leading-tight">
+                            How does our AI calculate your cake price?
+                        </h2>
+                        <p className="text-slate-600 leading-relaxed text-sm lg:text-base">
+                            Genie.ph uses a proprietary Computer Vision AI that breaks down this design into its core components:
+                            the complexity of the base icing, the quantity and intricate details of toppers, and the difficulty of the messages.
+                            By comparing these features against real-time pricing data from our Cebu artisan baker network,
+                            we provide an instant, binding quotation that saves you hours of manual inquiry.
+                        </p>
+                        <div className="flex flex-wrap justify-center md:justify-start gap-2 pt-2">
+                            {['Computer Vision Synthesis', 'Instant Pricing Engine', 'Cebu Metro Delivery'].map(tag => (
+                                <span key={tag} className="text-[10px] sm:text-xs px-3 py-1 bg-white/80 border border-purple-200 text-purple-600 rounded-full font-bold shadow-sm backdrop-blur-sm">
+                                    {tag}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            </div>
+
             {/* Related Designs Section */}
             {displayedRelatedDesigns && displayedRelatedDesigns.length > 0 && (
                 <div className="w-full py-2 mb-0">
-                    <h2 className="text-lg font-semibold text-slate-800 mb-4">You May Also Like</h2>
+                    <h2 className="text-lg font-semibold text-slate-800 mb-4">What other designs are trending in Cebu?</h2>
                     <div className="flex flex-wrap justify-center gap-3">
                         {displayedRelatedDesigns.map((related, i) => (
                             <Link

@@ -1,18 +1,40 @@
-# Genie.ph: Custom Cake Marketplace in Cebu
+# Genie.ph: AI-Powered Custom Cake Marketplace in Cebu
 
-> Genie.ph is the leading online marketplace for custom cakes in Cebu, Philippines. Connect with top local artisan bakers, get instant pricing via AI, and order personalized cakes for any occasion.
+> [Genie.ph](https://genie.ph) is the Philippines' first AI-driven marketplace for custom cakes, specifically serving Cebu City and surrounding metropolitan areas. It connects customers with artisan bakers and provides instant, AI-powered price estimations from uploaded design photos.
 
 ## Main Sections
 
-- [Home](https://genie.ph/): Main marketplace interface to search and browse cakes.
-- [Design Gallery](https://genie.ph/designs): Browse thousands of custom cake designs.
-- [Cake Price Calculator](https://genie.ph/cake-price-calculator): Instant AI-powered pricing tool for custom cakes.
-- [About Us](https://genie.ph/about): Learn about our mission to support local bakers.
-- [Blog](https://genie.ph/blog): Guides on cake ordering, pricing, and trends in Cebu.
+- [Home / Marketplace](https://genie.ph/): Browse trending designs and upload photos for instant pricing.
+- [Cake Design Gallery](https://genie.ph/designs): A curated collection of thousands of custom cake inspirations.
+- [Customizable Designs](https://genie.ph/customizing/): Deep-links to AI-analyzed designs ready for personalization.
+- [Cake Price Calculator](https://genie.ph/cake-price-calculator): Direct tool for AI analysis of custom cake designs.
+- [About Genie.ph](https://genie.ph/about): Our mission to digitize the local baking industry in Cebu.
+- [Cake Ordering Guide](https://genie.ph/how-to-order): Step-by-step instructions on ordering custom cakes online.
+- [Cake Blog](https://genie.ph/blog): Updates on cake trends, pricing guides, and baker highlights in the Philippines.
+
+## Technical Specifications
+
+- **AI Engine**: Uses advanced vision models (Gemini/GPT based) to analyze cake complexity, size, and decorations to provide instant price estimates.
+- **Merchant System**: Integrated dashboard for local homebakers and established cakeshops.
+- **Payment Stack**: Supports GCash, Maya, and secure credit card payments via local gateways.
+
+## Service Areas (Cebu, Philippines)
+
+- **Cebu City**: All major barangays and commercial districts.
+- **Mandaue City**: Central and industrial zones.
+- **Lapu-Lapu City**: Mactan Island and resort areas.
+- **Talisay City**: Southern metropolitan Cebu.
+- **Other Areas**: Liloan, Consolacion, and Minglanilla (Select merchants).
 
 ## Key Facts
 
-- **Service Area**: Cebu City, Mandaue, Lapu-Lapu, Talisay, and surrounding areas.
-- **Services**: Custom Cake Design, Instant Pricing, Online Ordering, Delivery.
-- **Products**: Birthday Cakes, Wedding Cakes, Bento Cakes, Cupcakes.
-- **Features**: AI Design Analysis, Direct Baker Connection, Secure Payments.
+- **Products**: Birthday Cakes, Wedding Cakes, Custom Bento Cakes, Cupcakes, Personalized Gifts.
+- **Core Technology**: AI Image Synthesis, Automated Pricing Logic, Real-time Baker Notifications.
+- **Location**: Based in Cebu, Philippines.
+- **Socials**: [Facebook](https://facebook.com/genie.ph), [Instagram](https://instagram.com/genie.ph).
+
+## For Developers & Partners
+
+- **Merchant Portal**: [pro.genie.ph](https://pro.genie.ph)
+- **Design Pattern**: `https://genie.ph/customizing/{slug}` - Resource-specific pages for individual cake designs with embedded AI analysis metadata.
+- **API Access**: Internal-only, contact support@genie.ph for integration inquiries.

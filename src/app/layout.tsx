@@ -74,21 +74,21 @@ function OrganizationSchema() {
     logo: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp',
     description: 'The first AI-powered marketplace for custom cakes in the Philippines. Based in Cebu.',
     sameAs: [
-      'https://www.facebook.com/genie.ph',
-      'https://www.instagram.com/genie.ph'
+      'https://web.facebook.com/geniephilippines',
+      'https://www.instagram.com/genie.ph/',
+      'http://tiktok.com/@genie.ph',
+      'https://www.youtube.com/@genieph'
     ],
-    address: {
-      '@type': 'PostalAddress',
-      addressLocality: 'Cebu City',
-      addressRegion: 'Cebu',
-      addressCountry: 'PH'
+    areaServed: {
+      '@type': 'AdministrativeArea',
+      name: 'Cebu'
     },
     contactPoint: {
       '@type': 'ContactPoint',
-      telephone: '+63-917-123-4567', // Replace with real contact if available
+      telephone: '+63-908-940-8747',
       contactType: 'customer service',
-      areaServed: ['Cebu', 'Philippines'],
-      availableLanguage: ['en', 'fil']
+      areaServed: 'PH',
+      availableLanguage: ['English', 'Filipino']
     }
   };
 
