@@ -18,7 +18,7 @@ import DetailItem from '@/components/UI/DetailItem';
 import { createOrderFromCart, createSplitOrderFromCart, getAvailableDeliveryDates, getBlockedDatesInRange, AvailableDate, BlockedDateInfo, createGuestUser } from '@/services/supabaseService';
 import { upgradeAnonymousToEmailAccount } from '@/services/accountActivation';
 import { createXenditPayment } from '@/services/xenditService';
-import AddressForm, { StaticMap } from '@/components/AddressForm';
+import { AddressForm, StaticMap } from '@/components/AddressForm';
 import { SplitWithFriendsModal } from '@/components/SplitWithFriendsModal';
 import { SplitOrderShareModal } from '@/components/SplitOrderShareModal';
 import { useGoogleMapsLoader, GoogleMapsLoaderProvider } from '@/contexts/GoogleMapsLoaderContext';
@@ -304,21 +304,29 @@ function CartClient() {
             return;
         }
 
-        const geocoder = new window.google.maps.Geocoder();
-        geocoder.geocode(
-            { location: { lat, lng } },
-            (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
-                if (status === 'OK' && results && results[0]) {
-                    // Look for city in address components
-                    const cityComponent = results[0].address_components.find(c =>
-                        c.types.includes('locality') || c.types.includes('administrative_area_level_2')
-                    );
-                    if (cityComponent) {
-                        setDerivedCity(cityComponent.long_name);
+        try {
+            const geocoder = new window.google.maps.Geocoder();
+            geocoder.geocode(
+                { location: { lat, lng } },
+                (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
+                    try {
+                        if (status === 'OK' && results && results[0]) {
+                            // Look for city in address components
+                            const cityComponent = results[0].address_components.find(c =>
+                                c.types.includes('locality') || c.types.includes('administrative_area_level_2')
+                            );
+                            if (cityComponent) {
+                                setDerivedCity(cityComponent.long_name);
+                            }
+                        }
+                    } catch (callbackErr) {
+                        console.error('Error processing geocode result in cart:', callbackErr);
                     }
                 }
-            }
-        );
+            );
+        } catch (err) {
+            console.error('Geocoder initialization error in cart:', err);
+        }
     }, [selectedAddress, guestAddress, isMapsLoaded]);
 
     // Calculate dynamic delivery fee based on city

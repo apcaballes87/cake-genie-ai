@@ -6,7 +6,7 @@ import Link from 'next/link';
 import LazyImage from '@/components/LazyImage';
 import { v4 as uuidv4 } from 'uuid';
 import { findClosestColor } from '@/utils/colorUtils';
-import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Heart, Cake, Star } from 'lucide-react';
+import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Heart, Cake, Star, Zap, Clock, CalendarDays } from 'lucide-react';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
 import { CustomizationTabs } from '@/components/CustomizationTabs';
 import { CustomizationBottomSheet } from '../../components/CustomizationBottomSheet';
@@ -33,6 +33,7 @@ import { reportCustomization, uploadReportImage, getAnalysisByExactHash, getRela
 import ReportModal from '../../components/ReportModal';
 import ShareModal from '../../components/ShareModal';
 import { CartItemDetails } from '../../types';
+import CollapsibleFAQ from '@/components/CollapsibleFAQ';
 
 // Hooks
 import { useCakeCustomization } from '@/contexts/CustomizationContext';
@@ -361,6 +362,7 @@ interface CustomizingClientProps {
         keywords: string | null;
         alt_text: string | null;
         price: number | null;
+        availability?: string;
     }>;
     currentKeywords?: string | null;
     currentSlug?: string | null;
@@ -3417,9 +3419,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 </div>
             </CustomizationBottomSheet>
 
+
             {/* Related Designs Section */}
             {displayedRelatedDesigns && displayedRelatedDesigns.length > 0 && (
-                <div className="w-full py-6 mb-24">
+                <div className="w-full py-2 mb-0">
                     <h2 className="text-lg font-semibold text-slate-800 mb-4">You May Also Like</h2>
                     <div className="flex flex-wrap justify-center gap-3">
                         {displayedRelatedDesigns.map((related, i) => (
@@ -3449,10 +3452,20 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         <Heart size={16} />
                                     </div>
 
-                                    {/* Affordable Tag */}
-                                    <span className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-md text-gray-900 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold shadow-sm z-10">
-                                        Affordable
-                                    </span>
+                                    {/* Availability Badge */}
+                                    {(() => {
+                                        const avail = related.availability || 'normal';
+                                        const config = avail === 'rush'
+                                            ? { label: 'Rush Order', icon: <Zap size={10} />, className: 'bg-emerald-500/90 text-white' }
+                                            : avail === 'same-day'
+                                                ? { label: 'Same Day', icon: <Clock size={10} />, className: 'bg-blue-500/90 text-white' }
+                                                : { label: 'Pre-order', icon: <CalendarDays size={10} />, className: 'bg-purple-500/90 text-white' };
+                                        return (
+                                            <span className={`absolute bottom-3 left-3 backdrop-blur-md text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold shadow-sm z-10 flex items-center gap-1 ${config.className}`}>
+                                                {config.icon} {config.label}
+                                            </span>
+                                        );
+                                    })()}
                                 </div>
 
                                 <div className="px-1 flex flex-col flex-1">
@@ -3500,6 +3513,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     )}
                 </div>
             )}
+
+            {/* FAQ Section */}
+            <div className="mb-24">
+                <CollapsibleFAQ />
+            </div>
 
             <StickyAddToCartBar
                 price={finalPrice}

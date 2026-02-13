@@ -8,6 +8,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { getCakeBasePriceOptions, getRelatedProductsByKeywords } from '@/services/supabaseService'
 import { CakeType, BasePriceInfo, HybridAnalysisResult, CakeInfoUI, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI } from '@/types'
 import { CustomizationProvider, CustomizationState } from '@/contexts/CustomizationContext'
+import { FAQPageSchema } from '@/components/SEOSchemas'
 import { v4 as uuidv4 } from 'uuid'
 
 // Helper to fetch design by exact slug only
@@ -623,13 +624,28 @@ export default async function RecentSearchPage({ params }: Props) {
             icingDesign,
             additionalInstructions: '',
             analysisResult: analysis, // The full analysis result
-            analysisId: design.slug // Using slug or p_hash as ID
+            analysisId: design.slug, // Using slug or p_hash as ID
+            availability: design.availability
         };
     }
 
     return (
         <>
             <DesignSchema design={design} prices={prices} />
+            <FAQPageSchema faqs={[
+                {
+                    question: `Can I customize this ${design.keywords || 'cake'} design?`,
+                    answer: `Yes! You can fully customize specific details like colors, flavor, size, and toppers for this ${design.keywords || 'cake'} design directly on Genie.ph.`
+                },
+                {
+                    question: `How much is this ${design.keywords || 'custom'} cake?`,
+                    answer: `This design starts at ₱${(design.price || 0).toLocaleString()}, but the final price depends on your selected size and flavor.`
+                },
+                {
+                    question: `How do I order this cake?`,
+                    answer: `Simply click "Customize" to adjust the design to your liking, then get instant quotes from our partner bakeries in Cebu.`
+                }
+            ]} />
 
 
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>

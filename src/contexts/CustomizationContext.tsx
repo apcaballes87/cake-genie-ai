@@ -71,6 +71,7 @@ export interface CustomizationState {
     additionalInstructions?: string;
     analysisResult?: HybridAnalysisResult | null;
     analysisId?: string | null;
+    availability?: AvailabilityType;
 }
 
 export function CustomizationProvider({ children, initialData }: { children: React.ReactNode; initialData?: CustomizationState }) {
@@ -91,7 +92,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
 
     const [isCustomizationDirty, setIsCustomizationDirty] = useState(false);
     const [dirtyFields, setDirtyFields] = useState<Set<string>>(new Set());
-    const [availability, setAvailability] = useState<AvailabilityType>('normal');
+    const [availability, setAvailability] = useState<AvailabilityType>(initialData?.availability || 'rush');
 
     // --- Persistence Logic ---
     useEffect(() => {

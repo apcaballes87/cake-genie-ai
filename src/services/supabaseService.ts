@@ -8,6 +8,7 @@ import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem
 import { compressImage, validateImageFile } from '@/lib/utils/imageOptimization';
 import { calculatePriceFromDatabase } from './pricingService.database';
 import { roundDownToNearest99 } from '@/lib/utils/pricing';
+import { getDesignAvailability } from '@/lib/utils/availability';
 import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI } from '@/types';
 
 const supabase: SupabaseClient = getSupabaseClient();
@@ -409,6 +410,19 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
       const seoTitle = analysisResult.seo_title || `${keywords || 'Custom'} Cake | Genie.ph`;
       const seoDescription = analysisResult.seo_description || `Get instant pricing for this ${keywords || 'custom'} cake design. Customize and order at Genie.ph. Starting at ₱${totalPrice.toLocaleString()}.`;
 
+      // Calculate availability from the analysis result
+      const mainToppers = (analysisResult.main_toppers || []).map(t => ({ type: t.type, description: t.description || '' }));
+      const supportElements = (analysisResult.support_elements || []).map(s => ({ type: s.type, description: s.description || '' }));
+      const availability = getDesignAvailability({
+        cakeType: analysisResult.cakeType,
+        cakeSize: '6" Round', // Default size — initial analysis doesn't specify size
+        icingBase: analysisResult.icing_design?.base || 'soft_icing',
+        drip: analysisResult.icing_design?.drip || false,
+        gumpasteBaseBoard: analysisResult.icing_design?.gumpasteBaseBoard || false,
+        mainToppers,
+        supportElements,
+      });
+
       const { error } = await supabase
         .from('cakegenie_analysis_cache')
         .upsert({
@@ -420,7 +434,8 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
           slug: slug,
           alt_text: altText,
           seo_title: seoTitle,
-          seo_description: seoDescription
+          seo_description: seoDescription,
+          availability: availability,
         }, {
           onConflict: 'p_hash',
           ignoreDuplicates: true // Don't update if already exists, just skip
@@ -458,7 +473,7 @@ export async function getRecommendedProducts(limit: number = 8, offset: number =
 
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text')
+      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability')
       .not('original_image_url', 'is', null)
       .not('price', 'is', null)
       // Filter out duplicate/placeholder images if needed, or strict 'not null' is enough
@@ -502,7 +517,7 @@ export async function getRelatedProductsByKeywords(
 
     let query = supabase
       .from('cakegenie_analysis_cache')
-      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text')
+      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability')
       .not('original_image_url', 'is', null)
       .not('price', 'is', null)
       .neq('original_image_url', '');

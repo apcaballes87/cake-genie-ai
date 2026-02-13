@@ -23,19 +23,35 @@ export default function CakePriceCalculatorPage() {
                 dangerouslySetInnerHTML={{
                     __html: JSON.stringify({
                         "@context": "https://schema.org",
-                        "@type": "BreadcrumbList",
-                        "itemListElement": [
+                        "@graph": [
                             {
-                                "@type": "ListItem",
-                                "position": 1,
-                                "name": "Home",
-                                "item": "https://genie.ph/"
+                                "@type": "BreadcrumbList",
+                                "itemListElement": [
+                                    {
+                                        "@type": "ListItem",
+                                        "position": 1,
+                                        "name": "Home",
+                                        "item": "https://genie.ph/"
+                                    },
+                                    {
+                                        "@type": "ListItem",
+                                        "position": 2,
+                                        "name": "Cake Price Calculator",
+                                        "item": "https://genie.ph/cake-price-calculator"
+                                    }
+                                ]
                             },
                             {
-                                "@type": "ListItem",
-                                "position": 2,
-                                "name": "Cake Price Calculator",
-                                "item": "https://genie.ph/cake-price-calculator"
+                                "@type": "SoftwareApplication",
+                                "name": "Genie.ph Cake Price Calculator",
+                                "applicationCategory": "BusinessApplication",
+                                "operatingSystem": "Web",
+                                "offers": {
+                                    "@type": "Offer",
+                                    "price": "0",
+                                    "priceCurrency": "PHP"
+                                },
+                                "description": "AI-powered tool to instantly calculate custom cake prices in Cebu and Cavite based on design, size, and flavor."
                             }
                         ]
                     })

@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import LazyImage from '@/components/LazyImage';
-import { Heart, Cake, Star } from 'lucide-react';
+import { Heart, Cake, Star, Zap, Clock, CalendarDays } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSavedItemsActions } from '@/contexts/SavedItemsContext';
 import { useImageManagement } from '@/contexts/ImageContext';
@@ -20,6 +20,7 @@ interface RecommendedProduct {
     price: number;
     keywords?: string;
     slug?: string;
+    availability?: string;
     analysis_json?: {
         cakeType?: string;
         icing_design?: string;
@@ -213,11 +214,20 @@ export const RecommendedProductsGrid = ({ initialProducts }: RecommendedProducts
                                         />
                                     </button>
 
-                                    {item.price < 1000 && (
-                                        <span className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-md text-gray-900 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold shadow-sm">
-                                            Affordable
-                                        </span>
-                                    )}
+                                    {/* Availability Badge */}
+                                    {(() => {
+                                        const avail = (item as any).availability || 'normal';
+                                        const config = avail === 'rush'
+                                            ? { label: 'Rush Order', icon: <Zap size={10} />, className: 'bg-emerald-500/90 text-white' }
+                                            : avail === 'same-day'
+                                                ? { label: 'Same Day', icon: <Clock size={10} />, className: 'bg-blue-500/90 text-white' }
+                                                : { label: 'Pre-order', icon: <CalendarDays size={10} />, className: 'bg-purple-500/90 text-white' };
+                                        return (
+                                            <span className={`absolute bottom-3 left-3 backdrop-blur-md text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold shadow-sm z-10 flex items-center gap-1 ${config.className}`}>
+                                                {config.icon} {config.label}
+                                            </span>
+                                        );
+                                    })()}
                                 </div>
                                 <div className="px-1">
                                     <h3 className="font-bold text-gray-900 text-sm md:text-base leading-tight mb-1 line-clamp-2 group-hover:text-purple-600 transition-colors">

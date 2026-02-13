@@ -444,6 +444,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
 
             {/* --- MAIN CONTENT AREA --- */}
             <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+                <h1 className="sr-only">Genie.ph | Best Custom Cakes in Cebu & Online Cake Delivery</h1>
 
 
 
@@ -458,10 +459,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                                 <h3 className="font-bold text-gray-900 mb-4 text-lg">Shop by Occasion</h3>
                                 <div className="space-y-1">
                                     {categories.map((cat) => (
-                                        <button
+                                        <Link
                                             key={cat.id}
-                                            onClick={() => router.push(`/search?q=${encodeURIComponent(cat.name)}`)}
-                                            className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${selectedCategory === cat.id
+                                            href={`/search?q=${encodeURIComponent(cat.name)}`}
+                                            className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all block ${selectedCategory === cat.id
                                                 ? 'bg-purple-50 text-purple-700 font-bold shadow-sm'
                                                 : 'text-gray-500 hover:bg-purple-50 hover:text-purple-700'
                                                 }`}
@@ -470,7 +471,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                                                 {cat.name}
                                                 {selectedCategory === cat.id && <div className="w-1.5 h-1.5 rounded-full bg-purple-600"></div>}
                                             </div>
-                                        </button>
+                                        </Link>
                                     ))}
                                 </div>
                             </div>
@@ -530,7 +531,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                                                         <span className="bg-white/20 px-3 py-1 rounded-lg text-[10px] md:text-xs font-bold backdrop-blur-md mb-4 inline-block border border-white/10 shadow-sm">
                                                             {promo.tag}
                                                         </span>
-                                                        <h1 className="text-[clamp(1.25rem,5.5vw,1.875rem)] md:text-2xl lg:text-3xl font-black leading-tight mb-4 md:mb-6 drop-shadow-sm line-clamp-3">{promo.title}</h1>
+                                                        <h2 className="text-[clamp(1.25rem,5.5vw,1.875rem)] md:text-2xl lg:text-3xl font-black leading-tight mb-4 md:mb-6 drop-shadow-sm line-clamp-3">{promo.title}</h2>
                                                         <button
                                                             className="bg-white text-gray-900 px-6 py-3 md:px-8 md:py-3.5 rounded-full text-xs md:text-sm font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all active:scale-95"
                                                         >
@@ -592,16 +593,16 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                         <h2 className="text-xl font-bold text-gray-900 mb-4 md:hidden">Shop by Occasion</h2>
                         <div className="md:hidden flex gap-2 mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4">
                             {categories.map((cat) => (
-                                <button
+                                <Link
                                     key={cat.id}
-                                    onClick={() => router.push(`/search?q=${encodeURIComponent(cat.name)}`)}
-                                    className={`px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${selectedCategory === cat.id
+                                    href={`/search?q=${encodeURIComponent(cat.name)}`}
+                                    className={`px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all inline-block ${selectedCategory === cat.id
                                         ? 'bg-purple-600 text-white shadow-lg'
                                         : 'bg-white border border-gray-100 text-gray-500 hover:border-purple-200 hover:text-purple-600'
                                         }`}
                                 >
                                     {cat.name}
-                                </button>
+                                </Link>
                             ))}
                         </div>
 
@@ -612,10 +613,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                                 {quickLinks.map((link) => {
                                     const currentImageUrl = link.imageUrls[imageIndex % link.imageUrls.length];
                                     return (
-                                        <button
+                                        <Link
                                             key={link.name}
-                                            onClick={() => handleSearch(link.searchTerm)}
-                                            className="group relative overflow-hidden rounded-2xl aspect-square shadow-sm hover:shadow-lg transition-all duration-300 min-w-[30%] md:min-w-0"
+                                            href={`/search?q=${encodeURIComponent(link.searchTerm)}`}
+                                            className="group relative overflow-hidden rounded-2xl aspect-square shadow-sm hover:shadow-lg transition-all duration-300 min-w-[30%] md:min-w-0 block"
                                         >
                                             <LazyImage
                                                 src={currentImageUrl}
@@ -627,7 +628,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                                             <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent flex items-end p-3 md:p-4">
                                                 <span className="text-white font-bold text-xs md:text-base leading-tight">{link.name}</span>
                                             </div>
-                                        </button>
+                                        </Link>
                                     );
                                 })}
                             </div>

@@ -98,25 +98,36 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
         }
 
         setIsGeocoding(true);
-        const geocoder = new window.google.maps.Geocoder();
-        geocoder.geocode({ location: { lat, lng } }, (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
-            if (status === 'OK' && results && results[0]) {
-                setSuggestedAddress(results[0].formatted_address);
+        try {
+            const geocoder = new window.google.maps.Geocoder();
+            geocoder.geocode({ location: { lat, lng } }, (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
+                try {
+                    if (status === 'OK' && results && results[0]) {
+                        setSuggestedAddress(results[0].formatted_address);
 
-                // Check serviceability and extract city
-                const { isServiceable: isAllowed, city } = checkServiceability(results[0].address_components);
-                setIsServiceable(isAllowed);
-                setDetectedCity(city);
+                        // Check serviceability and extract city
+                        const { isServiceable: isAllowed, city } = checkServiceability(results[0].address_components);
+                        setIsServiceable(isAllowed);
+                        setDetectedCity(city);
 
-                lastGeocodedLocation.current = { lat, lng };
-            } else {
-                console.error("Reverse geocoding failed:", status);
-                setSuggestedAddress('Could not determine address from map.');
-                setIsServiceable(false);
-                setDetectedCity(null);
-            }
+                        lastGeocodedLocation.current = { lat, lng };
+                    } else {
+                        console.error("Reverse geocoding failed:", status);
+                        setSuggestedAddress('Could not determine address from map.');
+                        setIsServiceable(false);
+                        setDetectedCity(null);
+                    }
+                } catch (callbackErr) {
+                    console.error('Error processing geocode result:', callbackErr);
+                    setSuggestedAddress('Could not determine address from map.');
+                    setIsServiceable(false);
+                }
+                setIsGeocoding(false);
+            });
+        } catch (err) {
+            console.error('Geocoder initialization error:', err);
             setIsGeocoding(false);
-        });
+        }
     }, [isLoaded]);
 
     const onMapIdle = useCallback(() => {
@@ -136,29 +147,35 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
 
     useEffect(() => {
         if (isLoaded && inputRef.current && map && !autocompleteRef.current) {
-            // Calculate bounds based on current map center with 7km radius
-            const mapCenter = map.getCenter();
-            const circle = new window.google.maps.Circle({
-                center: mapCenter,
-                radius: 7000, // 7km in meters
-            });
+            try {
+                // Calculate bounds based on current map center with 7km radius
+                const mapCenter = map.getCenter();
+                if (!mapCenter || !window.google?.maps?.places) return;
 
-            const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-                componentRestrictions: { country: "ph" },
-                fields: ["address_components", "geometry", "name"],
-                bounds: circle.getBounds(),
-                strictBounds: false,
-            });
+                const circle = new window.google.maps.Circle({
+                    center: mapCenter,
+                    radius: 7000, // 7km in meters
+                });
 
-            autocomplete.addListener("place_changed", () => {
-                const place = autocomplete.getPlace();
-                if (place.geometry?.location) {
-                    map?.panTo(place.geometry.location);
-                    map?.setZoom(17);
-                }
-            });
+                const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+                    componentRestrictions: { country: "ph" },
+                    fields: ["address_components", "geometry", "name"],
+                    bounds: circle.getBounds(),
+                    strictBounds: false,
+                });
 
-            autocompleteRef.current = autocomplete;
+                autocomplete.addListener("place_changed", () => {
+                    const place = autocomplete.getPlace();
+                    if (place.geometry?.location) {
+                        map?.panTo(place.geometry.location);
+                        map?.setZoom(17);
+                    }
+                });
+
+                autocompleteRef.current = autocomplete;
+            } catch (err) {
+                console.error('Failed to initialize Places Autocomplete:', err);
+            }
         }
     }, [isLoaded, map]);
 
@@ -450,8 +467,11 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
     );
 };
 
+// Named export: use this when the parent already provides GoogleMapsLoaderProvider
+export { AddressForm };
+
 // Wrap the exported component with GoogleMapsLoaderProvider
-// This ensures Google Maps only loads when AddressForm is actually used
+// This ensures Google Maps only loads when AddressForm is actually used standalone
 const AddressFormWithMaps: React.FC<AddressFormProps> = (props) => {
     return (
         <GoogleMapsLoaderProvider>

@@ -7,7 +7,7 @@ import { CustomizingPageSkeleton } from '@/components/LoadingSkeletons';
 import { getMerchantBySlug, getMerchantProductBySlug, getCakeBasePriceOptions, getAnalysisByExactHash } from '@/services/supabaseService';
 import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.types';
 import { BasePriceInfo, CakeType, ProductPageProps, CakeThickness } from '@/types';
-import { ProductSchema } from '@/components/SEOSchemas';
+import { ProductSchema, FAQPageSchema } from '@/components/SEOSchemas';
 import { CustomizationProvider } from '@/contexts/CustomizationContext';
 import { mapAnalysisToState } from '@/utils/customizationMapper';
 
@@ -109,9 +109,25 @@ export default async function ProductPage({ params }: ProductPageProps) {
         console.error('Error fetching SSR prices:', e);
     }
 
+    const faqs = [
+        {
+            question: `How much is the ${product.title} from ${merchant.business_name}?`,
+            answer: `The ${product.title} starts at ₱${product.custom_price?.toLocaleString()}. Prices may vary based on your selected customization options.`
+        },
+        {
+            question: `Can I customize the ${product.title}?`,
+            answer: `Yes! You can fully customize the ${product.title} with different flavors, colors, sizes, and toppers directly here on Genie.ph.`
+        },
+        {
+            question: `Do you deliver ${product.title} in ${merchant.city || 'Cebu'}?`,
+            answer: `Yes, ${merchant.business_name} delivers to ${merchant.city || 'Cebu City'} and surrounding areas. You can check delivery availability during checkout.`
+        }
+    ];
+
     return (
         <>
             <ProductSchema product={product} merchant={merchant} prices={prices} />
+            <FAQPageSchema faqs={faqs} />
 
             <Suspense fallback={<CustomizingPageSkeleton />}>
                 <CustomizationProvider initialData={initialCustomizationState} key={product.product_id}>
