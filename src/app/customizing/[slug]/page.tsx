@@ -389,6 +389,9 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
 
                 {/* Product Details */}
                 <div className="p-4 md:p-6 space-y-4">
+                    {/* User-requested customization guide text for SEO */}
+                    <p className="text-xs font-semibold text-slate-500 mb-1">How would you like your cake customized?</p>
+
                     {/* Title */}
                     <h1
                         className="text-xl md:text-2xl font-bold text-slate-800"
@@ -684,8 +687,11 @@ export default async function RecentSearchPage({ params }: Props) {
                 ]}
             />
 
-
-
+            <SSRCakeDetails
+                design={design}
+                prices={prices}
+                relatedDesigns={relatedDesigns}
+            />
 
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                 <CustomizationProvider initialData={initialState}>
