@@ -8,7 +8,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { getCakeBasePriceOptions, getRelatedProductsByKeywords } from '@/services/supabaseService'
 import { CakeType, BasePriceInfo, HybridAnalysisResult, CakeInfoUI, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI } from '@/types'
 import { CustomizationProvider, CustomizationState } from '@/contexts/CustomizationContext'
-import { FAQPageSchema } from '@/components/SEOSchemas'
+import { FAQPageSchema, HowToSchema } from '@/components/SEOSchemas'
 import { v4 as uuidv4 } from 'uuid'
 
 // Helper to fetch design by exact slug only
@@ -248,12 +248,12 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         ...baseOffersWrapper
     };
 
-    // Product schema
+    // Product schema with SoftwareApplication link
     const productSchema = {
         '@context': 'https://schema.org',
         '@type': 'Product',
-        '@id': pageUrl, // Unique identifier for cross-referencing
-        url: pageUrl, // Explicit URL
+        '@id': pageUrl,
+        url: pageUrl,
         name: sanitize(title),
         sku: productMpn,
         mpn: productMpn,
@@ -265,6 +265,13 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         },
         offers: offers,
         category: 'Custom Cakes',
+        // Link to the AI engine that analyzed this design
+        subjectOf: {
+            '@type': 'SoftwareApplication',
+            name: 'Genie.ph AI Cake Price Calculator',
+            url: 'https://genie.ph/cake-price-calculator',
+            applicationCategory: 'BusinessApplication'
+        },
         ...(design.alt_text && { 'alternateName': sanitize(design.alt_text) })
     };
 
@@ -543,6 +550,8 @@ export default async function RecentSearchPage({ params }: Props) {
 
     const design = await getDesign(supabase, slug)
 
+    const pageUrl = `https://genie.ph/customizing/${slug}`;
+
     if (!design) {
         notFound()
     }
@@ -647,6 +656,35 @@ export default async function RecentSearchPage({ params }: Props) {
                     answer: `Simply click "Customize" to adjust the design to your liking, then get instant quotes from our partner bakeries in Cebu.`
                 }
             ]} />
+
+            <HowToSchema
+                name={`How to Order this ${design.keywords || 'Custom'} Cake`}
+                description={`Step-by-step guide to customizing and ordering this specific cake design online in Cebu.`}
+                steps={[
+                    {
+                        name: 'Adjust Customization',
+                        text: 'Change colors, add messages, or choose different toppers to match your theme.',
+                        url: pageUrl
+                    },
+                    {
+                        name: 'Select Size & Flavor',
+                        text: 'Choose from various sizes (Bento to Multi-tier) and premium cake flavors.',
+                        url: pageUrl
+                    },
+                    {
+                        name: 'Get Quotation',
+                        text: 'Our AI analyzes your final design to provide instant pricing from local Cebu bakeshops.',
+                        url: pageUrl
+                    },
+                    {
+                        name: 'Place Order',
+                        text: 'Securely pay via Maya or GCash and schedule your delivery/pickup.',
+                        url: pageUrl
+                    }
+                ]}
+            />
+
+
 
 
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>

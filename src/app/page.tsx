@@ -58,6 +58,16 @@ function WebSiteSchema() {
             '@type': 'CreativeWork',
             name: 'Wedding Cakes',
             url: 'https://genie.ph/search?q=wedding'
+          },
+          {
+            '@type': 'CreativeWork',
+            name: 'Cake Price Calculator',
+            url: 'https://genie.ph/cake-price-calculator'
+          },
+          {
+            '@type': 'CreativeWork',
+            name: 'How to Order Custom Cakes',
+            url: 'https://genie.ph/how-to-order'
           }
         ]
       }

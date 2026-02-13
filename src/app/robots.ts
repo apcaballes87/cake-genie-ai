@@ -23,7 +23,7 @@ export default function robots(): MetadataRoute.Robots {
             },
             // Explicitly allow AI crawlers for GEO
             {
-                userAgent: ['GPTBot', 'ClaudeBot', 'Google-Extended'],
+                userAgent: ['GPTBot', 'ClaudeBot', 'Google-Extended', 'PerplexityBot', 'OAI-SearchBot'],
                 allow: '/',
                 disallow: ['/admin/', '/api/', '/account/'],
             },
