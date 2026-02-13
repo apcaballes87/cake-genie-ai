@@ -44,10 +44,10 @@ export async function generateMetadata(
     const baseSeoTitle = design.seo_title?.replace(/\s*\|\s*Genie\.ph\s*$/i, '') || ''
     const title = baseSeoTitle
         ? `${baseSeoTitle}${priceDisplay} | Genie.ph`
-        : `${design.keywords || 'Custom'} Cake${priceDisplay} | Genie.ph`
+        : `${design.keywords || 'Custom'} Cake Designs & Photos${priceDisplay} | Genie.ph`
 
     // Richer Fallback Description Logic
-    let description = design.seo_description
+    let description = design.seo_description || `Customize this ${design.keywords || 'custom'} cake design on Genie.ph. Get instant pricing from local bakers in Cebu and Cavite. ${design.alt_text || ''}`
 
     if (!description && design.analysis_json) {
         // Construct description from analysis features for legacy records
@@ -339,8 +339,9 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
     const keywords = design.keywords || 'Custom';
     const analysis = design.analysis_json || {};
 
-    // Clean title: remove "| Genie.ph" suffix
-    const title = (design.seo_title || `${keywords} Cake Design`).replace(/\s*\|\s*Genie\.ph\s*$/i, '');
+    // Clean title: use keywords + "Cake Designs" if seo_title is missing
+    const baseTitle = design.seo_title || `${keywords} Cake Designs`;
+    const title = baseTitle.replace(/\s*\|\s*Genie\.ph\s*$/i, '');
     const altText = design.alt_text || design.seo_title || `${keywords} cake design`;
     const displayPrice = prices?.[0]?.price || design.price;
 
