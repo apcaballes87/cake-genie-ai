@@ -1,0 +1,18 @@
+# Genie.ph: Custom Cake Marketplace in Cebu
+
+> Genie.ph is the leading online marketplace for custom cakes in Cebu, Philippines. Connect with top local artisan bakers, get instant pricing via AI, and order personalized cakes for any occasion.
+
+## Main Sections
+
+- [Home](https://genie.ph/): Main marketplace interface to search and browse cakes.
+- [Design Gallery](https://genie.ph/designs): Browse thousands of custom cake designs.
+- [Cake Price Calculator](https://genie.ph/cake-price-calculator): Instant AI-powered pricing tool for custom cakes.
+- [About Us](https://genie.ph/about): Learn about our mission to support local bakers.
+- [Blog](https://genie.ph/blog): Guides on cake ordering, pricing, and trends in Cebu.
+
+## Key Facts
+
+- **Service Area**: Cebu City, Mandaue, Lapu-Lapu, Talisay, and surrounding areas.
+- **Services**: Custom Cake Design, Instant Pricing, Online Ordering, Delivery.
+- **Products**: Birthday Cakes, Wedding Cakes, Bento Cakes, Cupcakes.
+- **Features**: AI Design Analysis, Direct Baker Connection, Secure Payments.

@@ -1,5 +1,6 @@
 // Landing page components for SSR optimization
 export { MerchantShowcase } from './MerchantShowcase';
-export { MerchantItem } from './MerchantItem';
-export { RecommendedProductsSection } from './RecommendedProductsSection';
-export { RecommendedProductsGrid } from './RecommendedProductsGrid';
+export * from './RecommendedProductsGrid';
+export * from './RecommendedProductsSection';
+export * from './IntroContent';
+

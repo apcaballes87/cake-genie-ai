@@ -6,7 +6,7 @@ export type AvailabilityType = 'rush' | 'same-day' | 'normal';
 
 // This is the data structure needed by the function, which can be constructed
 // from either a CartItem or the state in the customizing page.
-interface DesignData {
+export interface DesignData {
     cakeType: CakeType;
     cakeSize: string;
     icingBase: 'soft_icing' | 'fondant';
@@ -19,7 +19,7 @@ interface DesignData {
 /**
  * Determines the availability of a cake design based on its complexity using a hierarchical approach.
  */
-function getDesignAvailability(design: DesignData): AvailabilityType {
+export function getDesignAvailability(design: DesignData): AvailabilityType {
     const allItems = [...design.mainToppers, ...design.supportElements];
 
     // --- STEP 1: NORMAL ORDER CHECKS (1-day lead time) ---

@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: MerchantPageProps): Promise<M
     }
 
     const title = `${merchant.business_name} | CakeGenie Partner Bakeshop`;
-    const description = merchant.description || `Order custom cakes from ${merchant.business_name} in ${merchant.city || 'Philippines'}`;
+    const description = merchant.description || `Order custom cakes from ${merchant.business_name}, serving ${merchant.city || 'Cebu'} and nearby areas. Check reviews, prices, and available cake designs.`;
 
     return {
         title,
@@ -71,6 +71,10 @@ function MerchantSchema({ merchant, products }: { merchant: CakeGenieMerchant; p
             streetAddress: merchant.address,
             addressLocality: merchant.city,
             addressCountry: 'PH'
+        },
+        areaServed: {
+            '@type': 'City',
+            name: merchant.city || 'Cebu City'
         },
         url: `https://genie.ph/shop/${merchant.slug}`,
         ...(merchant.rating && {

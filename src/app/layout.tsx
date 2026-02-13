@@ -33,6 +33,9 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: '/',
+    languages: {
+      'en-PH': '/',
+    },
   },
   openGraph: {
     type: 'website',
@@ -68,17 +71,23 @@ function OrganizationSchema() {
     '@type': 'Organization',
     name: 'Genie.ph',
     url: 'https://genie.ph',
-    logo: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp', // Using favicon as logo for now, consider a larger brand logo if available
-    description: 'The first AI-powered marketplace for custom cakes in the Philippines.',
+    logo: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp',
+    description: 'The first AI-powered marketplace for custom cakes in the Philippines. Based in Cebu.',
     sameAs: [
-      'https://www.facebook.com/genie.ph', // Add real social links if known, these are placeholders/best-guess
+      'https://www.facebook.com/genie.ph',
       'https://www.instagram.com/genie.ph'
     ],
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: 'Cebu City',
+      addressRegion: 'Cebu',
+      addressCountry: 'PH'
+    },
     contactPoint: {
       '@type': 'ContactPoint',
       telephone: '+63-917-123-4567', // Replace with real contact if available
       contactType: 'customer service',
-      areaServed: 'PH',
+      areaServed: ['Cebu', 'Philippines'],
       availableLanguage: ['en', 'fil']
     }
   };
