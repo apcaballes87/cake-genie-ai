@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { getAllBlogPosts } from '@/data/blogPosts';
 import { ArrowLeft, Calendar, ChevronRight } from 'lucide-react';
+import { BlogSchema } from '@/components/SEOSchemas';
 
 export const metadata: Metadata = {
   title: 'Blog | Genie.ph',
@@ -21,6 +22,7 @@ export default function BlogPage() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100">
+      <BlogSchema posts={posts} />
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-md border-b border-purple-100">
         <div className="max-w-4xl mx-auto px-4 py-4">

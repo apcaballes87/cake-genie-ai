@@ -258,3 +258,90 @@ export function HowToSchema({ name, description, steps }: { name: string; descri
         />
     );
 }
+
+// JSON-LD Schema for BlogPosting
+export function BlogPostingSchema({
+    headline,
+    datePublished,
+    authorName,
+    image,
+    description
+}: {
+    headline: string;
+    datePublished: string;
+    authorName: string;
+    image?: string;
+    description: string;
+}) {
+    // Sanitize string to prevent script injection in JSON-LD
+    const sanitize = (str: string | undefined | null) => str ? str.replace(/<\/script/g, '<\\/script') : '';
+
+    const schema = {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: sanitize(headline),
+        datePublished: datePublished,
+        author: {
+            '@type': 'Organization', // Or Person, but for company blogs Organization is often used if author is the brand
+            name: sanitize(authorName)
+        },
+        image: image ? [image] : [],
+        description: sanitize(description),
+        publisher: {
+            '@type': 'Organization',
+            name: 'Genie.ph',
+            logo: {
+                '@type': 'ImageObject',
+                url: 'https://genie.ph/images/logo.png' // Ensure this path is correct or generic
+            }
+        }
+    };
+
+    return (
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+    );
+}
+
+// JSON-LD Schema for Blog Listing
+export function BlogSchema({ posts }: { posts: { title: string; slug: string; date: string; excerpt: string; author: string }[] }) {
+    const schema = {
+        '@context': 'https://schema.org',
+        '@type': 'Blog',
+        name: 'Genie.ph Blog',
+        description: 'Guides, tips, and helpful articles for your special celebrations.',
+        url: 'https://genie.ph/blog',
+        publisher: {
+            '@type': 'Organization',
+            name: 'Genie.ph',
+            logo: {
+                '@type': 'ImageObject',
+                url: 'https://genie.ph/images/logo.png'
+            }
+        },
+        blogPost: posts.map(post => ({
+            '@type': 'BlogPosting',
+            headline: post.title,
+            description: post.excerpt,
+            datePublished: post.date,
+            author: {
+                '@type': 'Organization',
+                name: post.author
+            },
+            url: `https://genie.ph/blog/${post.slug}`,
+            mainEntityOfPage: {
+                '@type': 'WebPage',
+                '@id': `https://genie.ph/blog/${post.slug}`
+            }
+        }))
+    };
+
+    return (
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+    );
+}

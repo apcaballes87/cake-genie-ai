@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getBlogPostBySlug, getAllBlogPosts } from '@/data/blogPosts';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { BlogContent } from './BlogContent';
+import { BlogPostingSchema } from '@/components/SEOSchemas';
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
@@ -30,6 +31,7 @@ export async function generateMetadata({
       url: `https://genie.ph/blog/${post.slug}`,
       type: 'article',
       publishedTime: post.date,
+      images: post.image ? [post.image] : [],
     },
   };
 }
@@ -44,6 +46,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100">
+      <BlogPostingSchema
+        headline={post.title}
+        datePublished={post.date}
+        authorName={post.author}
+        image={post.image}
+        description={post.excerpt}
+      />
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-md border-b border-purple-100 sticky top-0 z-30">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">

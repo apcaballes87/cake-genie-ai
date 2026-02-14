@@ -191,6 +191,7 @@ export default async function SharedDesignPage({ params }: Props) {
                     width={64}
                     height={64}
                     className="w-16 h-16 object-contain"
+                    unoptimized
                 />
                 <div>
                     <h1 className="text-5xl font-extrabold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">
