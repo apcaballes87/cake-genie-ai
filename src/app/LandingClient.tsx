@@ -606,9 +606,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                             ))}
                         </div>
 
-                        {/* --- HOW DOES AI CAKE PRICING WORK? (Available Cakes) --- */}
+                        {/* --- CAKES AVAILABLE TODAY --- */}
                         <div className="mb-8">
-                            <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">How does Genie.ph AI pricing work for custom cakes?</h2>
+                            <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">Shop Cakes Available Today</h2>
                             <div className="flex overflow-x-auto gap-3 pb-4 md:grid md:grid-cols-4 md:gap-6 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
                                 {quickLinks.map((link) => {
                                     const currentImageUrl = link.imageUrls[imageIndex % link.imageUrls.length];
