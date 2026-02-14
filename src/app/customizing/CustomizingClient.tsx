@@ -153,18 +153,26 @@ const getIcingImage = (icingDesign: IcingDesignUI, type: IcingImageType, isTopSp
 const SimpleToggle: React.FC<{ label: string; isEnabled: boolean; onChange: (enabled: boolean) => void; disabled?: boolean; }> = ({ label, isEnabled, onChange, disabled = false }) => (
     <div className={`flex justify-between items-center p-1 ${disabled ? 'opacity-50' : ''}`}>
         <label className="text-xs font-medium text-slate-700">{label}</label>
-        <button
-            type="button"
+        <div
+            role="button"
+            tabIndex={disabled ? -1 : 0}
             onClick={(e) => {
                 e.stopPropagation();
                 if (!disabled) onChange(!isEnabled);
             }}
-            disabled={disabled}
-            className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors ${isEnabled ? 'bg-purple-600' : 'bg-slate-400'}`}
+            onKeyDown={(e) => {
+                if (disabled) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onChange(!isEnabled);
+                }
+            }}
+            className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors cursor-pointer ${isEnabled ? 'bg-purple-600' : 'bg-slate-400'} ${disabled ? 'cursor-not-allowed' : ''}`}
             aria-pressed={isEnabled}
         >
             <span className={`inline-block w-3.5 h-3.5 transform bg-white rounded-full transition-transform shadow-sm ${isEnabled ? 'translate-x-4' : 'translate-x-1'}`} />
-        </button>
+        </div>
     </div>
 );
 
@@ -274,7 +282,9 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
 
                 return (
                     <div key={tool.id} className="flex flex-col items-center gap-1 group">
-                        <button
+                        <div
+                            role="button"
+                            tabIndex={tool.disabled ? -1 : 0}
                             onClick={() => {
                                 if (tool.disabled) return;
                                 // Toggle selection: if already selected, deselect; otherwise select
@@ -284,16 +294,28 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
                                     onSelectItem({ id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: effectiveCakeType });
                                 }
                             }}
-                            className={`relative ${buttonSizeClasses} p-2 rounded-full hover:bg-purple-100 transition-all ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500' : 'bg-white/80'} backdrop-blur-md ${tool.featureFlag ? 'border-2 border-purple-600' : 'border border-slate-200'} shadow-md ${tool.featureFlag ? '' : 'opacity-60'} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
-                            disabled={tool.disabled}
+                            onKeyDown={(e) => {
+                                if (tool.disabled) return;
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    // Toggle selection: if already selected, deselect; otherwise select
+                                    if (isSelected) {
+                                        onSelectItem(null as any);
+                                    } else {
+                                        onSelectItem({ id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: effectiveCakeType });
+                                    }
+                                }
+                            }}
+                            className={`relative ${buttonSizeClasses} p-2 rounded-full hover:bg-purple-100 transition-all cursor-pointer ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500' : 'bg-white/80'} backdrop-blur-md ${tool.featureFlag ? 'border-2 border-purple-600' : 'border border-slate-200'} shadow-md ${tool.featureFlag ? '' : 'opacity-60'} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} ${tool.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+                            aria-disabled={tool.disabled}
                         >
-                            {React.cloneElement(tool.icon as React.ReactElement<any>, { className: 'w-full h-full object-contain' })}
+                            {React.cloneElement(tool.icon as React.ReactElement<any>, { className: 'w-full h-full object-contain pointer-events-none' })}
                             {tool.disabled && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
                                     <X className="w-6 h-6 text-white" />
                                 </div>
                             )}
-                        </button>
+                        </div>
                         <span className={`text-[10px] font-medium transition-colors whitespace-nowrap ${isSelected ? 'text-purple-600' : 'text-slate-600 group-hover:text-purple-600'} ${tool.disabled ? 'opacity-40' : ''}`}>
                             {tool.label}
                         </span>
@@ -472,6 +494,23 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         cakeMessages, additionalInstructions
     });
 
+    // --- Derived State ---
+    const isLoading = useMemo(() => isImageManagementLoading || isUpdatingDesign, [isImageManagementLoading, isUpdatingDesign]);
+    const itemCount = useMemo(() => supabaseItemCount + pendingCartItems.length, [supabaseItemCount, pendingCartItems]);
+
+    const calculatedAvailability = useMemo(() => {
+        if (!availabilitySettings || !baseAvailability) return baseAvailability;
+        if (availabilitySettings.rush_same_to_standard_enabled) {
+            if (baseAvailability === 'rush' || baseAvailability === 'same-day') return 'normal';
+        }
+        if (availabilitySettings.rush_to_same_day_enabled) {
+            if (baseAvailability === 'rush') return 'same-day';
+        }
+        return baseAvailability;
+    }, [baseAvailability, availabilitySettings]);
+    const availabilityWasOverridden = calculatedAvailability !== baseAvailability;
+    const availabilityType = calculatedAvailability;
+
     // --- SEO ---
     const seoConfig = useMemo(() => {
         const title = seoMetadata?.seo_title || 'Customize Your Cake | Genie.ph';
@@ -494,23 +533,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         return { title, description, image, keywords, url, type: 'product' as const, structuredData };
     }, [seoMetadata, cakeInfo, finalPrice, baseAvailability]);
     useSEO(seoConfig);
-
-    // --- Derived State ---
-    const isLoading = useMemo(() => isImageManagementLoading || isUpdatingDesign, [isImageManagementLoading, isUpdatingDesign]);
-    const itemCount = useMemo(() => supabaseItemCount + pendingCartItems.length, [supabaseItemCount, pendingCartItems]);
-
-    const calculatedAvailability = useMemo(() => {
-        if (!availabilitySettings || !baseAvailability) return baseAvailability;
-        if (availabilitySettings.rush_same_to_standard_enabled) {
-            if (baseAvailability === 'rush' || baseAvailability === 'same-day') return 'normal';
-        }
-        if (availabilitySettings.rush_to_same_day_enabled) {
-            if (baseAvailability === 'rush') return 'same-day';
-        }
-        return baseAvailability;
-    }, [baseAvailability, availabilitySettings]);
-    const availabilityWasOverridden = calculatedAvailability !== baseAvailability;
-    const availabilityType = calculatedAvailability;
 
     // --- Handlers ---
 
