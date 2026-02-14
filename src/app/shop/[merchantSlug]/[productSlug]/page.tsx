@@ -124,9 +124,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
         }
     ];
 
+    // Generate a stable validUntil date for the schema (1 year from now)
+    const validUntil = new Date();
+    validUntil.setFullYear(validUntil.getFullYear() + 1);
+    const validUntilStr = validUntil.toISOString().split('T')[0];
+
     return (
         <>
-            <ProductSchema product={product} merchant={merchant} prices={prices} />
+            <ProductSchema product={product} merchant={merchant} prices={prices} validUntil={validUntilStr} />
             <FAQPageSchema faqs={faqs} />
 
             <Suspense fallback={<CustomizingPageSkeleton />}>

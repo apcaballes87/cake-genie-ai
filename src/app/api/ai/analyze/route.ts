@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
                     required: ['isRejected', 'reason', 'message'],
                 },
             },
-            required: ['cakeType', 'cakeThickness', 'alt_text', 'seo_title', 'seo_description'],
+            required: [],
         };
 
         const aiClient = getAI();

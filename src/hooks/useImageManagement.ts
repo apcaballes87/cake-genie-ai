@@ -127,10 +127,10 @@ export const useImageManagement = () => {
             if (cacheHit) {
                 const cachedAnalysis = cacheHit.analysisResult;
                 console.log('✅ Using cached analysis result');
-                onSuccess(cachedAnalysis);
+                onSuccess(cachedAnalysis.analysisResult);
 
                 // Check if cached result has bbox data
-                const hasBbox = hasBoundingBoxData(cachedAnalysis);
+                const hasBbox = hasBoundingBoxData(cachedAnalysis.analysisResult);
 
                 if (!hasBbox) {
                     console.log('🔄 Cached result missing bbox data, enriching in background...');
@@ -152,7 +152,7 @@ export const useImageManagement = () => {
                             const enrichedResult = await enrichAnalysisWithRoboflow(
                                 compressedImageData.data,
                                 compressedImageData.mimeType,
-                                cachedAnalysis
+                                cachedAnalysis.analysisResult
                             );
 
                             // Update cache with bbox data
