@@ -184,7 +184,7 @@ export async function trackSearchTerm(term: string): Promise<void> {
  * Helper to map HybridAnalysisResult to the UI state structure expected by calculatePriceFromDatabase.
  */
 function mapAnalysisToPricingState(analysis: HybridAnalysisResult) {
-  const mainToppers: MainTopperUI[] = analysis.main_toppers.map(t => ({
+  const mainToppers: MainTopperUI[] = (analysis.main_toppers || []).map(t => ({
     ...t,
     id: uuidv4(),
     isEnabled: true,
@@ -192,7 +192,7 @@ function mapAnalysisToPricingState(analysis: HybridAnalysisResult) {
     original_type: t.type,
   }));
 
-  const supportElements: SupportElementUI[] = analysis.support_elements.map(t => ({
+  const supportElements: SupportElementUI[] = (analysis.support_elements || []).map(t => ({
     ...t,
     id: uuidv4(),
     isEnabled: true,
@@ -200,7 +200,7 @@ function mapAnalysisToPricingState(analysis: HybridAnalysisResult) {
     original_type: t.type,
   }));
 
-  const cakeMessages: CakeMessageUI[] = analysis.cake_messages.map(t => ({
+  const cakeMessages: CakeMessageUI[] = (analysis.cake_messages || []).map(t => ({
     ...t,
     id: uuidv4(),
     isEnabled: true,
