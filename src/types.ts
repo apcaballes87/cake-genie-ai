@@ -138,6 +138,17 @@ export interface HybridAnalysisResult {
   seo_description?: string;
 }
 
+export interface CacheSEOMetadata {
+  seo_title: string | null;
+  seo_description: string | null;
+  keywords: string | null;
+  alt_text: string | null;
+  slug: string | null;
+  original_image_url: string | null;
+  price: number | null;
+  availability: string | null;
+}
+
 // --- UI-specific types (extended from base types) ---
 
 export interface MainTopperUI extends MainTopper {

@@ -13,6 +13,7 @@ import {
     CakeFlavor,
     IcingColorDetails,
     MainTopperType,
+    CacheSEOMetadata,
 } from '@/types'
 import { DEFAULT_THICKNESS_MAP, DEFAULT_SIZE_MAP, DEFAULT_ICING_DESIGN } from '@/constants'
 import { showSuccess } from '@/lib/utils/toast'
@@ -57,6 +58,8 @@ interface CustomizationContextType {
     clearCustomization: () => void;
     initializeDefaultState: () => void;
     syncAnalysisResultWithCurrentState: () => void;
+    seoMetadata: CacheSEOMetadata | null;
+    setSEOMetadata: (metadata: CacheSEOMetadata | null) => void;
 }
 
 const CustomizationContext = createContext<CustomizationContextType | null>(null)
@@ -93,6 +96,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
     const [isCustomizationDirty, setIsCustomizationDirty] = useState(false);
     const [dirtyFields, setDirtyFields] = useState<Set<string>>(new Set());
     const [availability, setAvailability] = useState<AvailabilityType>(initialData?.availability || 'rush');
+    const [seoMetadata, setSEOMetadata] = useState<CacheSEOMetadata | null>(null);
 
     // --- Persistence Logic ---
     useEffect(() => {
@@ -366,6 +370,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         setIsAnalyzing(false);
         setIsCustomizationDirty(false);
         setDirtyFields(new Set());
+        setSEOMetadata(null);
         // Clear the stored image ref when clearing customization
         localStorage.removeItem('cakegenie_analysis');
     }, []);
@@ -614,6 +619,8 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         clearCustomization,
         initializeDefaultState,
         syncAnalysisResultWithCurrentState,
+        seoMetadata,
+        setSEOMetadata,
     };
 
     return (

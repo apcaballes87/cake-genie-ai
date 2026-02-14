@@ -1,6 +1,6 @@
 // services/supabaseService.ts
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback, AvailabilitySettings, CartItem } from '@/types';
+import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback, AvailabilitySettings, CartItem, CacheSEOMetadata } from '@/types';
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem, OrderContribution, CakeGenieSavedItem, CustomizationDetails, CakeGenieMerchant, CakeGenieMerchantProduct, MerchantStaff, MerchantPayout, MerchantDashboardStats, MerchantStaffRole } from '@/lib/database.types';
@@ -295,13 +295,14 @@ export async function backfillCacheFields(pHash: string, analysisResult: HybridA
  * @param imageUrl Optional URL of the image being searched (used for backfilling if cache hit has no URL).
  * @returns The cached analysis JSON if a similar one is found, otherwise null.
  */
-export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string): Promise<HybridAnalysisResult | null> {
+export interface CacheHitResult {
+  analysisResult: HybridAnalysisResult;
+  seoMetadata: CacheSEOMetadata;
+}
+
+export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string): Promise<CacheHitResult | null> {
   try {
     console.log('🔍 Calling find_similar_analysis RPC with pHash:', pHash);
-    // We need to select the new columns too, but the RPC might return the whole row or just the json.
-    // Let's check what the RPC returns. It returns "RETURNS SETOF cakegenie_analysis_cache".
-    // So we can select specific columns if we call it via rpc(), but usually rpc returns the function result.
-    // If the function returns SETOF table, it returns rows.
 
     const { data, error } = await supabase.rpc('find_similar_analysis', {
       new_hash: pHash,
@@ -327,15 +328,25 @@ export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string
         });
 
       // Check if we need to backfill
-      // Backfill if price/keywords are missing OR if original_image_url is missing and we have a new one
       const needsBackfill = result.price === null || result.keywords === null || (result.original_image_url === null && imageUrl);
 
       if (needsBackfill) {
-        // Fire and forget backfill
         backfillCacheFields(result.p_hash, result.analysis_json, imageUrl);
       }
 
-      return result.analysis_json;
+      const analysisResult: HybridAnalysisResult = result.analysis_json;
+      const seoMetadata: CacheSEOMetadata = {
+        seo_title: result.seo_title || null,
+        seo_description: result.seo_description || null,
+        keywords: result.keywords || null,
+        alt_text: result.alt_text || null,
+        slug: result.slug || null,
+        original_image_url: result.original_image_url || null,
+        price: result.price ? Number(result.price) : null,
+        availability: result.availability || null,
+      };
+
+      return { analysisResult, seoMetadata };
 
     } else {
       console.log('⚫️ Cache MISS. No matching pHash found in database.');
