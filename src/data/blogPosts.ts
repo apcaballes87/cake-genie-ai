@@ -5,6 +5,7 @@ export interface BlogPost {
   date: string;
   author: string;
   content: string;
+  image?: string;
 }
 
 export const blogPosts: BlogPost[] = [
@@ -330,6 +331,150 @@ The key is to start early, stay organized, and enjoy the process. After all, thi
 *Disclaimer: This guide is based on publicly available information and research as of 2025. Requirements, fees, and processes may change. Always verify the latest requirements directly with your Local Civil Registrar's office before proceeding.*
 
 *Sources: Philippine Family Code (E.O. 209), R.A. 10354 (Responsible Parenthood & Reproductive Health Act), R.A. 11596 (Prohibition of Child Marriage), Local Civil Registrar offices of Cebu City, Mandaue City, Lapu-Lapu City, and Talisay City, PSAHelpline.ph*`,
+  },
+  {
+    slug: 'how-to-get-best-value-ordering-custom-cake',
+    title: 'How to Get the Best Value When Ordering Your Custom Cake from Genie.ph',
+    excerpt:
+      "Ordering a custom cake doesn't have to break the bank. At Genie.ph, we've built smart customization features that put you in control of both the design and the budget.",
+    date: '2026-02-14',
+    author: 'Genie.ph',
+    content: `Ordering a custom cake doesn't have to break the bank. At Genie.ph, we've built smart customization features that put you in control of both the design and the budget. Whether you're planning a debut, baptism, or birthday celebration, here's how to maximize value while still getting a beautiful, personalized cake.
+
+---
+
+## Understanding Genie.ph's Instant Customization
+
+Unlike traditional cake shops where you message back and forth for days to adjust your order, Genie.ph shows you real-time pricing as you customize. Upload your dream cake design, and our AI analyzes every element—from the icing type to decorative toppers—giving you instant pricing. Then, you can adjust each element to fit your budget.
+
+---
+
+## 5 Ways to Lower Your Cake Cost Without Sacrificing Beauty
+
+### 1. Adjust the Cake Size
+
+This is the most straightforward way to control costs. If you've uploaded a design for a 3-tier cake but only expect 30 guests, you can:
+
+- Reduce from 3 tiers to 2 tiers
+- Decrease the diameter of each tier
+- Switch from tall layers to standard height
+
+> **Real example:** A three-tier fondant cake might cost ₱8,500, but reducing it to two tiers could bring it down to ₱5,200—still impressive, but ₱3,300 saved.
+
+### 2. Choose Soft Icing Instead of Fondant
+
+Fondant creates that smooth, polished look you see on Instagram, but it's significantly more expensive than buttercream or soft icing. Here's what many parents don't know: soft icing can look just as elegant for many designs.
+
+**When to switch:**
+
+- Simple, modern designs work beautifully with buttercream
+- If the design has minimal sculpting or sharp edges
+- When texture and taste matter more than ultra-smooth surfaces
+
+> **Price difference:** Switching from fondant to soft icing can reduce your cake cost by 30-40% depending on the size.
+
+### 3. Swap Expensive Toppers for Budget-Friendly Alternatives
+
+Cake toppers can dramatically affect the final price. Genie.ph lets you choose from three topper types, each with different price points:
+
+- **Edible toppers (most expensive)**
+  - Made from wafer paper or fondant
+  - Fully edible and food-safe
+  - **Best for:** pristine presentation when the cake is the centerpiece
+
+- **Toy toppers (mid-range)**
+  - Small figurines or plastic decorations
+  - Guests can take them home as keepsakes
+  - **Best for:** kids' parties where the toy becomes part of the gift
+
+- **Printout toppers (most affordable)**
+  - High-quality cardstock with your design
+  - Looks great in photos
+  - **Best for:** budget-conscious celebrations where you want the design without the premium cost
+
+> **Smart tip:** If your uploaded design shows edible character toppers, ask yourself if a cardstock printout would work just as well. For a child's Bluey-themed cake, a printout topper can save you ₱800-1,200 while still delivering the same visual impact.
+
+### 4. Remove or Simplify the Cake Board
+
+Many elaborate cake designs include a gumpaste-covered cake board—a decorative base that elevates the presentation. While beautiful, this adds both material and labor costs.
+
+**You can:**
+
+- Remove the covered board entirely and use a standard cake board
+- Reduce the size of the decorative board
+- Switch from gumpaste covering to simple ribbon trim
+
+> **Savings:** Removing a large gumpaste-covered board can reduce costs by ₱400-800.
+
+**When to keep it:** For formal events like weddings or corporate celebrations where the cake will be displayed for photos before cutting, the decorative board adds professional polish.
+
+### 5. Simplify Cardstock Decorations
+
+If your design includes elaborate cardstock toppers, banners, or decorative elements, you can:
+
+- Reduce the number of cardstock pieces
+- Choose simpler shapes that require less cutting and assembly
+- Opt for printed elements instead of hand-cut designs
+
+---
+
+## How to Use These Features on Genie.ph
+
+Here's the actual workflow:
+
+1. **Upload your inspiration photo** – Find a cake design you love from Pinterest, Instagram, or anywhere online
+2. **Get instant AI analysis** – Genie.ph identifies every element: size, icing type, toppers, decorations
+3. **Review the initial price** – See what the exact replica would cost
+4. **Customize to your budget** – Use the customization panel to adjust each element
+5. **Watch the price update in real-time** – Every change immediately shows the new total
+6. **Order when you're satisfied** – No waiting, no back-and-forth messaging
+
+---
+
+## Real Parent Strategy: The "70% Rule"
+
+Many smart parents use what we call the "70% rule": Get a cake that's 70% as elaborate as the original design for 50% of the cost.
+
+**Example scenario:**
+
+- **Original design:** 3-tier fondant cake with edible character toppers and covered board = ₱9,800
+- **Adjusted order:** 2-tier soft icing cake with toy toppers and standard board = ₱4,900
+
+The result? A cake that still wows guests and makes your child happy, but costs half as much. The photos will look nearly identical, and let's be honest—the cake gets cut and eaten within 30 minutes anyway.
+
+---
+
+## When NOT to Cut Corners
+
+While value is important, there are times when investing in premium options makes sense:
+
+- Major milestone events (18th birthday, wedding, golden anniversary)
+- When the cake is the main attraction (small, intimate gatherings)
+- Corporate or business events where presentation impacts your brand
+- When specific dietary needs require premium ingredients
+
+---
+
+## The Genie.ph Advantage for Filipino Families
+
+Traditional custom cake ordering in the Philippines means:
+
+- Days of messaging back and forth
+- Unclear pricing until the very end
+- Last-minute surprises when the quote comes in over budget
+- Limited ability to adjust once the process starts
+
+Genie.ph changes this completely. You're in control from the first second. Upload, customize, and order—all in minutes, not days.
+
+---
+
+## Start Customizing Your Perfect Cake Today
+
+Ready to create a stunning custom cake that fits your budget? Visit [Genie.ph](https://genie.ph) and upload your dream design. Watch how easy it is to adjust every element until you've found the perfect balance of beauty and value.
+
+Because celebrating life's special moments shouldn't mean choosing between the cake you want and the budget you need.
+
+*Have questions about customizing your cake? Our support team is ready to help you maximize value while creating something beautiful. Chat with us directly on the Genie.ph platform.*`,
   },
 ];
 

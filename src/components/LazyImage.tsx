@@ -23,8 +23,13 @@ const shouldUseUnoptimized = (src: string | undefined): boolean => {
   // Simple check: is it from our own Supabase storage?
   const isOwnSupabase = OWN_SUPABASE_DOMAINS.some(domain => src.includes(domain));
 
-  // If it's NOT our own Supabase, it's external and should be unoptimized.
-  return !isOwnSupabase;
+  // If it IS our own Supabase, we prevent Next.js optimization to save costs/limits.
+  if (isOwnSupabase) return true;
+
+  // For other external domains, default to unoptimized to be safe/consistent with previous logic if desired,
+  // or return false if you want to optimize other external images. 
+  // Based on context, we likely want to unoptimize everything external if we are hitting limits.
+  return true;
 };
 
 interface LazyImageProps extends Omit<ImageProps, 'onLoad' | 'onError'> {

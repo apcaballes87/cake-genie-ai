@@ -24,6 +24,12 @@ function parseMarkdownToHtml(markdown: string): string {
   // Italic
   html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
 
+  // Images
+  html = html.replace(
+    /!\[([^\]]*)\]\(([^)]+)\)/g,
+    '<img src="$2" alt="$1" class="w-full h-auto rounded-xl my-8 shadow-md border border-purple-100" loading="lazy" />'
+  );
+
   // Links
   html = html.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
