@@ -7,7 +7,7 @@ import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithCoordinates, e
 import { createClient } from '@/lib/supabase/client'
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization'
 import { showSuccess, showError, showLoading, showInfo } from '@/lib/utils/toast'
-import { HybridAnalysisResult } from '@/types'
+import { HybridAnalysisResult, CacheSEOMetadata } from '@/types'
 import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService'
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils'
 import { COMMON_ASSETS } from '@/constants'
@@ -86,6 +86,7 @@ interface ImageContextType {
     handleSave: () => Promise<void>;
     uploadCartImages: (options?: { editedImageDataUri?: string | null; userId?: string }) => Promise<{ originalImageUrl: string; finalImageUrl: string }>;
     clearImages: () => void;
+    seoMetadata: CacheSEOMetadata | null;
 }
 
 const ImageContext = createContext<ImageContextType | null>(null)
@@ -103,6 +104,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [currentSlug, setCurrentSlugState] = useState<string | null>(null);
+    const [seoMetadata, setSeoMetadata] = useState<CacheSEOMetadata | null>(null);
 
     // Fetch 3-tier reference image on mount
     useEffect(() => {
@@ -133,6 +135,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         setError(null);
         setIsLoading(false);
         setCurrentSlugState(null);
+        setSeoMetadata(null);
 
         // Clear IndexedDB
         import('@/lib/utils/storage').then(({ clearIndexedDB }) => {
@@ -251,10 +254,12 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             // --- STEP 1: CHECK CACHE FIRST (FAST PATH) ---
 
             const pHash = await generatePerceptualHash(imageSrc);
-            const cachedAnalysis = await findSimilarAnalysisByHash(pHash);
+            const cacheHit = await findSimilarAnalysisByHash(pHash);
 
-            if (cachedAnalysis) {
+            if (cacheHit) {
                 console.log('✅ Using cached analysis result');
+                const cachedAnalysis = cacheHit.analysisResult;
+                setSeoMetadata(cacheHit.seoMetadata);
                 onSuccess(cachedAnalysis);
 
                 // Check if cached result has bbox data
@@ -625,6 +630,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         handleSave,
         uploadCartImages,
         clearImages,
+        seoMetadata,
     };
 
     return (

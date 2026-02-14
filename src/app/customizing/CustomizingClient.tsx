@@ -46,6 +46,7 @@ import { useDesignUpdate } from '@/hooks/useDesignUpdate';
 import { useDesignSharing } from '@/hooks/useDesignSharing';
 import { useAvailabilitySettings } from '@/hooks/useAvailabilitySettings';
 import { useSearchEngine } from '@/hooks/useSearchEngine';
+import { useSEO, generateCakeStructuredData } from '@/hooks/useSEO';
 import { AppState } from '@/hooks/useAppNavigation';
 import { toast } from 'react-hot-toast';
 
@@ -314,7 +315,7 @@ const MotifPanel: React.FC<{
     return (
         <div className={`fixed bottom-28 right-4 w-80 max-w-[90vw] bg-white/90 backdrop-blur-lg shadow-2xl border border-slate-200 z-50 flex flex-col transform rounded-xl transition-transform duration-300 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)]'}`}>
             <div className="p-4 flex justify-between items-center border-b border-slate-200">
-                <h3 className="text-sm font-bold text-slate-800">Change Motif Color</h3>
+                <h2 className="text-sm font-bold text-slate-800">Change Motif Color</h2>
                 <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-full">
                     <X className="w-4 h-4 text-slate-500" />
                 </button>
@@ -400,6 +401,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setEditedImage, setError: setImageManagementError, setOriginalImageData, setPreviousImageData,
         handleImageUpload: hookImageUpload, handleSave, uploadCartImages, clearImages,
         loadImageWithoutAnalysis, setCurrentSlug, currentSlug: persistedSlug,
+        seoMetadata,
     } = useImageManagement();
 
     // --- Local State ---
@@ -469,6 +471,29 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         supportElements, icingDesign, analysisResult, HEX_TO_COLOR_NAME_MAP: HEX_TO_COLOR_NAME_MAP_SHARING,
         cakeMessages, additionalInstructions
     });
+
+    // --- SEO ---
+    const seoConfig = useMemo(() => {
+        const title = seoMetadata?.seo_title || 'Customize Your Cake | Genie.ph';
+        const description = seoMetadata?.seo_description || 'Customize your cake design with AI-powered suggestions. Get instant pricing at Genie.ph.';
+        const image = seoMetadata?.original_image_url || 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg';
+        const keywords = seoMetadata?.keywords || 'custom cake, cake design, AI cake, Cebu bakery';
+        const url = seoMetadata?.slug ? `https://genie.ph/designs/${seoMetadata.slug}` : 'https://genie.ph/customizing';
+        const structuredData = (seoMetadata?.seo_title && cakeInfo)
+            ? generateCakeStructuredData({
+                title: seoMetadata.seo_title,
+                description,
+                image,
+                price: finalPrice || seoMetadata.price || 0,
+                url,
+                cakeType: cakeInfo.type,
+                cakeSize: cakeInfo.size,
+                availability: availability || seoMetadata.availability || 'normal',
+            })
+            : undefined;
+        return { title, description, image, keywords, url, type: 'product' as const, structuredData };
+    }, [seoMetadata, cakeInfo, finalPrice, availability]);
+    useSEO(seoConfig);
 
     // --- Derived State ---
     const isLoading = useMemo(() => isImageManagementLoading || isUpdatingDesign, [isImageManagementLoading, isUpdatingDesign]);
@@ -2000,6 +2025,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     };
 
     return (<>
+        <h1 className="sr-only">{seoMetadata?.seo_title || 'Customize Your Cake Design - Genie.ph'}</h1>
         <div className="flex flex-col items-center gap-4 w-full max-w-7xl mx-auto pb-28 px-4"> {/* Added px-4 padding */}
             <div className="w-full flex items-center gap-2 md:gap-4 pt-6"> {/* Added mb-4 and pt-6 */}
                 <button onClick={onClose} className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label="Go back">
