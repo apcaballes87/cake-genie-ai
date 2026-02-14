@@ -40,11 +40,11 @@ export async function generateMetadata(
     }
 
     const priceDisplay = design.price ? ` | Php ${Math.round(design.price).toLocaleString()}` : ''
-    // Strip existing "| Genie.ph" suffix to avoid duplication
+    // Strip existing "| Genie.ph" suffix — the root layout template already appends it
     const baseSeoTitle = design.seo_title?.replace(/\s*\|\s*Genie\.ph\s*$/i, '') || ''
     const title = baseSeoTitle
-        ? `${baseSeoTitle}${priceDisplay} | Genie.ph`
-        : `${design.keywords || 'Custom'} Cake Designs & Photos${priceDisplay} | Genie.ph`
+        ? `${baseSeoTitle}${priceDisplay}`
+        : `${design.keywords || 'Custom'} Cake Designs & Photos${priceDisplay}`
 
     // Richer Fallback Description Logic
     let description = design.seo_description || `Customize this ${design.keywords || 'custom'} cake design on Genie.ph. Get instant pricing from local bakers in Cebu and Cavite. ${design.alt_text || ''}`
