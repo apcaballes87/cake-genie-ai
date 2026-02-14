@@ -122,9 +122,10 @@ export const useImageManagement = () => {
             // --- STEP 1: CHECK CACHE FIRST (FAST PATH) ---
 
             const pHash = await generatePerceptualHash(imageSrc);
-            const cachedAnalysis = await findSimilarAnalysisByHash(pHash, options?.imageUrl);
+            const cacheHit = await findSimilarAnalysisByHash(pHash, options?.imageUrl);
 
-            if (cachedAnalysis) {
+            if (cacheHit) {
+                const cachedAnalysis = cacheHit.analysisResult;
                 console.log('✅ Using cached analysis result');
                 onSuccess(cachedAnalysis);
 
