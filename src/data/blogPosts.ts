@@ -361,6 +361,8 @@ This is the most straightforward way to control costs. If you've uploaded a desi
 
 > **Real example:** A three-tier fondant cake might cost ₱8,500, but reducing it to two tiers could bring it down to ₱5,200—still impressive, but ₱3,300 saved.
 
+![Adjust the Cake Size](https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/blogs/Adjust-the-Cake-Size.png)
+
 ### 2. Choose Soft Icing Instead of Fondant
 
 Fondant creates that smooth, polished look you see on Instagram, but it's significantly more expensive than buttercream or soft icing. Here's what many parents don't know: soft icing can look just as elegant for many designs.
@@ -372,6 +374,8 @@ Fondant creates that smooth, polished look you see on Instagram, but it's signif
 - When texture and taste matter more than ultra-smooth surfaces
 
 > **Price difference:** Switching from fondant to soft icing can reduce your cake cost by 30-40% depending on the size.
+
+![Soft Icing to Fondant](https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/blogs/soft-icing-to-fondant.png)
 
 ### 3. Swap Expensive Toppers for Budget-Friendly Alternatives
 
@@ -483,5 +487,5 @@ export function getBlogPostBySlug(slug: string): BlogPost | undefined {
 }
 
 export function getAllBlogPosts(): BlogPost[] {
-  return blogPosts;
+  return [...blogPosts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }

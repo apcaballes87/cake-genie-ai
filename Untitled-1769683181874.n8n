@@ -1,11 +1,82 @@
 {
+  "updatedAt": "2026-02-14T11:41:12.087Z",
+  "createdAt": "2026-01-29T10:39:42.588Z",
   "id": "Y54toRIA8plPsDVx",
   "name": "Untitled-1769683181874",
+  "description": null,
+  "active": false,
+  "isArchived": false,
   "nodes": [],
   "connections": {},
   "settings": {
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "active": false
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "13275231-07b9-412b-a092-9a65f4588d8e",
+  "activeVersionId": null,
+  "versionCounter": 2,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-01-29T10:39:42.592Z",
+      "createdAt": "2026-01-29T10:39:42.592Z",
+      "role": "workflow:owner",
+      "workflowId": "Y54toRIA8plPsDVx",
+      "projectId": "rOaITR456auJN5ea",
+      "project": {
+        "updatedAt": "2025-08-24T03:35:12.429Z",
+        "createdAt": "2025-08-24T03:04:00.151Z",
+        "id": "rOaITR456auJN5ea",
+        "name": "Alan Paris Caballes <apcaballes@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "172e3120-9ea4-4b8a-b756-61dacf42bfc5",
+        "projectRelations": [
+          {
+            "updatedAt": "2025-08-24T03:04:00.151Z",
+            "createdAt": "2025-08-24T03:04:00.151Z",
+            "userId": "172e3120-9ea4-4b8a-b756-61dacf42bfc5",
+            "projectId": "rOaITR456auJN5ea",
+            "user": {
+              "updatedAt": "2026-02-14T11:41:10.000Z",
+              "createdAt": "2025-08-24T03:03:59.796Z",
+              "id": "172e3120-9ea4-4b8a-b756-61dacf42bfc5",
+              "email": "apcaballes@gmail.com",
+              "firstName": "Alan Paris",
+              "lastName": "Caballes",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-08-24T03:35:28.964Z",
+                "personalization_survey_n8n_version": "1.107.4",
+                "companySize": "<20",
+                "companyType": "ecommerce",
+                "role": "business-owner",
+                "reportedSource": "friend"
+              },
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "iyvTSYdnHhO3gQUs",
+                "userActivatedAt": 1756015225023,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1756953630070
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-02-13",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": null
 }
