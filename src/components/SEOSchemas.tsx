@@ -2,7 +2,7 @@ import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.type
 import { BasePriceInfo } from '@/types';
 
 // JSON-LD Schema for Product (Schema.org)
-export function ProductSchema({ product, merchant, prices, validUntil }: { product: CakeGenieMerchantProduct; merchant: CakeGenieMerchant; prices?: BasePriceInfo[]; validUntil?: string }) {
+export function ProductSchema({ product, merchant, prices }: { product: CakeGenieMerchantProduct; merchant: CakeGenieMerchant; prices?: BasePriceInfo[] }) {
     // Sanitize string to prevent script injection in JSON-LD
     const sanitize = (str: string | undefined | null) => str ? str.replace(/<\/script/g, '<\\/script') : '';
     const pageUrl = `https://genie.ph/shop/${merchant.slug}/${product.slug}`;
@@ -46,7 +46,7 @@ export function ProductSchema({ product, merchant, prices, validUntil }: { produ
             priceCurrency: 'PHP',
             availability: availability,
             itemCondition: 'https://schema.org/NewCondition',
-            priceValidUntil: validUntil || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+            priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
             seller: {
                 '@type': 'Organization',
                 name: sanitize(merchant.business_name),
