@@ -488,11 +488,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 url,
                 cakeType: cakeInfo.type,
                 cakeSize: cakeInfo.size,
-                availability: availability || seoMetadata.availability || 'normal',
+                availability: availabilityType || seoMetadata.availability || 'normal',
             })
             : undefined;
         return { title, description, image, keywords, url, type: 'product' as const, structuredData };
-    }, [seoMetadata, cakeInfo, finalPrice, availability]);
+    }, [seoMetadata, cakeInfo, finalPrice, availabilityType]);
     useSEO(seoConfig);
 
     // --- Derived State ---
