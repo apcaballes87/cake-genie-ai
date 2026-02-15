@@ -33,11 +33,12 @@ const ListItem: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 const PermitThumbnail: React.FC<{ src: string; alt: string; onClick: () => void }> = ({ src, alt, onClick }) => (
     <button onClick={onClick} className="group text-center focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 rounded-lg">
-        <div className="aspect-w-3 aspect-h-4 bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+        <div className="aspect-w-3 aspect-h-4 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 relative">
             <LazyImage
                 src={src}
                 alt={alt}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                fill
+                imageClassName="group-hover:scale-105 transition-transform duration-300"
             />
         </div>
         <p className="mt-2 text-sm font-medium text-slate-700 group-hover:text-pink-600 transition-colors">{alt}</p>
@@ -139,11 +140,12 @@ const AboutClient: React.FC = () => {
                     >
                         <X size={24} />
                     </button>
-                    <div className="relative" onClick={e => e.stopPropagation()}>
+                    <div className="relative w-full max-w-4xl h-[80vh]" onClick={e => e.stopPropagation()}>
                         <LazyImage
                             src={zoomedPermit}
                             alt="Permit document"
-                            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                            fill
+                            imageClassName="object-contain rounded-lg shadow-2xl"
                         />
                     </div>
                 </div>
