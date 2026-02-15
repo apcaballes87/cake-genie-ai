@@ -353,6 +353,8 @@ Unlike traditional cake shops where you message back and forth for days to adjus
 
 ### 1. Adjust the Cake Size
 
+<img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/blogs/Adjust-the-Cake-Size.png" alt="Adjust the Cake Size" class="w-full md:w-1/2 h-auto rounded-xl my-4 shadow-md border border-purple-100" />
+
 This is the most straightforward way to control costs. If you've uploaded a design for a 3-tier cake but only expect 30 guests, you can:
 
 - Reduce from 3 tiers to 2 tiers
@@ -361,9 +363,9 @@ This is the most straightforward way to control costs. If you've uploaded a desi
 
 > **Real example:** A three-tier fondant cake might cost ₱8,500, but reducing it to two tiers could bring it down to ₱5,200—still impressive, but ₱3,300 saved.
 
-![Adjust the Cake Size](https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/blogs/Adjust-the-Cake-Size.png)
-
 ### 2. Choose Soft Icing Instead of Fondant
+
+<img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/blogs/soft-icing-to-fondant.png" alt="Soft Icing to Fondant" class="w-full md:w-1/2 h-auto rounded-xl my-4 shadow-md border border-purple-100" />
 
 Fondant creates that smooth, polished look you see on Instagram, but it's significantly more expensive than buttercream or soft icing. Here's what many parents don't know: soft icing can look just as elegant for many designs.
 
@@ -375,9 +377,9 @@ Fondant creates that smooth, polished look you see on Instagram, but it's signif
 
 > **Price difference:** Switching from fondant to soft icing can reduce your cake cost by 30-40% depending on the size.
 
-![Soft Icing to Fondant](https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/blogs/soft-icing-to-fondant.png)
-
 ### 3. Swap Expensive Toppers for Budget-Friendly Alternatives
+
+<img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/blogs/cake-toppers.png" alt="Swap Expensive Toppers" class="w-full md:w-1/2 h-auto rounded-xl my-4 shadow-md border border-purple-100" />
 
 Cake toppers can dramatically affect the final price. Genie.ph lets you choose from three topper types, each with different price points:
 

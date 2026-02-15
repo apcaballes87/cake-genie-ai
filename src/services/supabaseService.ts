@@ -587,6 +587,34 @@ export async function getDesignCategories(): Promise<SupabaseServiceResponse<{ k
 }
 
 /**
+ * Fetches ALL recent designs for the "Newest" fallback section in Collections.
+ * This ensures "orphan" designs (count < 3) are still indexable.
+ */
+export async function getAllRecentDesigns(limit: number = 24, offset: number = 0): Promise<SupabaseServiceResponse<any[]>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .select('slug, keywords, original_image_url, price, alt_text, created_at')
+      .not('original_image_url', 'is', null)
+      .not('slug', 'is', null)
+      .not('price', 'is', null)
+      .neq('keywords', '')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      console.error('Error fetching all recent designs:', error);
+      return { data: null, error };
+    }
+
+    return { data: data || [], error: null };
+  } catch (err) {
+    console.error('Exception fetching all recent designs:', err);
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
  * Fetches designs matching a keyword category.
  */
 export async function getDesignsByKeyword(keyword: string, limit: number = 50): Promise<SupabaseServiceResponse<any[]>> {

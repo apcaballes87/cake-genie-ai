@@ -13,6 +13,18 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'congofivupobtfudnhni.supabase.co',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.pinimg.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'encrypted-tbn0.gstatic.com',
+      },
     ],
   },
   // Sitemap is now served by Next.js via src/app/sitemap.ts
