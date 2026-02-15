@@ -47,6 +47,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         '/blog',
         '/about',
         '/cake-price-calculator',
+        '/faq',
+        '/how-to-order',
+        '/contact',
+        '/compare',
+        '/compare/genie-ph-vs-traditional-bakeries',
+        '/compare/genie-ph-vs-social-media-ordering',
+        '/compare/custom-cake-pricing-cebu',
     ].map((route) => ({
         url: `${baseUrl}${route}`,
         lastModified: new Date(),

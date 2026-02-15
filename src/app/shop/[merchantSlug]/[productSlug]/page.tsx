@@ -7,7 +7,7 @@ import { CustomizingPageSkeleton } from '@/components/LoadingSkeletons';
 import { getMerchantBySlug, getMerchantProductBySlug, getCakeBasePriceOptions, getAnalysisByExactHash } from '@/services/supabaseService';
 import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.types';
 import { BasePriceInfo, CakeType, ProductPageProps, CakeThickness } from '@/types';
-import { ProductSchema, FAQPageSchema } from '@/components/SEOSchemas';
+import { ProductSchema } from '@/components/SEOSchemas';
 import { CustomizationProvider } from '@/contexts/CustomizationContext';
 import { mapAnalysisToState } from '@/utils/customizationMapper';
 
@@ -127,7 +127,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
     return (
         <>
             <ProductSchema product={product} merchant={merchant} prices={prices} />
-            <FAQPageSchema faqs={faqs} />
 
             <Suspense fallback={<CustomizingPageSkeleton />}>
                 <CustomizationProvider initialData={initialCustomizationState} key={product.product_id}>
@@ -206,6 +205,23 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             </div>
                         </div>
                     )}
+
+                    {/* Visible FAQ section (FAQPage schema restricted to gov/healthcare Aug 2023) */}
+                    <section className="mt-8">
+                        <h2 className="text-xl font-semibold text-slate-800 mb-4">Frequently Asked Questions</h2>
+                        <div className="space-y-3">
+                            {faqs.map((faq, idx) => (
+                                <details key={idx} className="group bg-slate-50 rounded-lg border border-slate-200">
+                                    <summary className="cursor-pointer px-4 py-3 font-medium text-slate-800 hover:bg-slate-100 rounded-lg transition-colors">
+                                        {faq.question}
+                                    </summary>
+                                    <p className="px-4 pb-3 text-slate-600 text-sm">
+                                        {faq.answer}
+                                    </p>
+                                </details>
+                            ))}
+                        </div>
+                    </section>
                 </div>
             </div>
         </>

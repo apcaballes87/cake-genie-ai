@@ -26,9 +26,9 @@ const shouldUseUnoptimized = (src: string | undefined): boolean => {
   // If it IS our own Supabase, we prevent Next.js optimization to save costs/limits.
   if (isOwnSupabase) return true;
 
-  // For other external domains, default to unoptimized to be safe/consistent with previous logic if desired,
-  // or return false if you want to optimize other external images. 
-  // Based on context, we likely want to unoptimize everything external if we are hitting limits.
+  // For other external domains, we skip optimization to avoid 400 errors and save on
+  // Next.js Image Optimization costs. To improve LCP/CWV scores, consider setting this
+  // to `false` for trusted external domains and configuring them in next.config images.remotePatterns.
   return true;
 };
 

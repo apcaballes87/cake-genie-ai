@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     default: 'Genie.ph | Online Marketplace for Custom Cakes in Cebu!',
     template: '%s | Genie.ph',
   },
-  description: 'Upload any cake design, customize with AI and get instant pricing from the best cakeshops and homebakers here in Cebu.',
+  description: 'Upload any cake design, customize with AI, and get instant pricing from the best cakeshops and homebakers here in Cebu. Order custom cakes online today!',
   keywords: ['custom cakes', 'cake design', 'AI cake', 'Cebu bakery', 'birthday cake', 'wedding cake', 'online marketplace', 'cake delivery Philippines'],
   robots: {
     index: true,
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     url: 'https://genie.ph',
     siteName: 'Genie.ph',
     title: 'Genie.ph | Online Marketplace for Custom Cakes in Cebu!',
-    description: 'Upload any cake design, customize with AI and get instant pricing from the best cakeshops and homebakers here in Cebu.',
+    description: 'Upload any cake design, customize with AI, and get instant pricing from the best cakeshops and homebakers here in Cebu. Order custom cakes online today!',
     images: [
       {
         url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg', // Ensure this is the correct OG image
@@ -120,7 +120,7 @@ export default function RootLayout({
         </Providers>
 
       </body>
-      <Script id="microsoft-clarity" strategy="afterInteractive">
+      <Script id="microsoft-clarity" strategy="lazyOnload">
         {`
           (function(c,l,a,r,i,t,y){
               c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
@@ -139,6 +139,6 @@ export default function RootLayout({
           gtag('config', 'G-C28QNPRWFK');
         `}
       </Script>
-    </html >
+    </html>
   )
 }

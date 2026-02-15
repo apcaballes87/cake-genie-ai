@@ -21,9 +21,9 @@ export default function robots(): MetadataRoute.Robots {
                     '/search',
                 ],
             },
-            // Explicitly allow AI crawlers for GEO
+            // Explicitly allow AI crawlers for GEO (Generative Engine Optimization)
             {
-                userAgent: ['GPTBot', 'ClaudeBot', 'Google-Extended', 'PerplexityBot', 'OAI-SearchBot'],
+                userAgent: ['GPTBot', 'ChatGPT-User', 'ClaudeBot', 'Google-Extended', 'PerplexityBot', 'OAI-SearchBot', 'Bytespider'],
                 allow: '/',
                 disallow: ['/admin/', '/api/', '/account/'],
             },

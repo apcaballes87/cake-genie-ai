@@ -18,8 +18,10 @@ export default function AboutPage() {
             url: 'https://genie.ph',
             logo: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp',
             sameAs: [
-                'https://www.facebook.com/genie.ph',
-                'https://www.instagram.com/genie.ph'
+                'https://web.facebook.com/geniephilippines',
+                'https://www.instagram.com/genie.ph/',
+                'http://tiktok.com/@genie.ph',
+                'https://www.youtube.com/@genieph'
             ]
         }
     };
