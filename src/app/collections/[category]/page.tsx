@@ -1,8 +1,9 @@
+import { ArrowLeft } from 'lucide-react'
 import { Metadata, ResolvingMetadata } from 'next'
 import Link from 'next/link'
-import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { getDesignsByKeyword } from '@/services/supabaseService'
+import { ProductCard } from '@/components/ProductCard'
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
@@ -65,43 +66,34 @@ export default async function CategoryPage({ params }: Props) {
                 </nav>
 
                 {/* Header */}
-                <header className="mb-8">
-                    <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text capitalize">
-                        {readableTitle} Designs
-                    </h1>
-                    <p className="text-slate-500 font-medium mt-1">
-                        Found {designs.length} {readableTitle} ideas. Click any design to customize it and get a price.
-                    </p>
-                </header>
+                {/* Header */}
+                <div className="flex items-center gap-4 mb-8">
+                    <Link href="/collections" className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Go back">
+                        <ArrowLeft />
+                    </Link>
+                    <div className="grow">
+                        <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text capitalize">
+                            {readableTitle} Designs
+                        </h1>
+                        <p className="text-slate-500 font-medium mt-1">
+                            Found {designs.length} {readableTitle} ideas. Click any design to customize it and get a price.
+                        </p>
+                    </div>
+                </div>
 
                 {/* Designs Grid */}
                 <div className="grid grid-cols-2 min-[490px]:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
                     {designs.map((design: any) => (
-                        <Link
+                        <ProductCard
                             key={design.slug}
-                            href={`/customizing/${design.slug}`}
-                            className="group bg-white p-3 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-100 transition-all duration-300"
-                        >
-                            <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-100">
-                                <Image
-                                    src={design.original_image_url}
-                                    alt={design.alt_text || `${design.keywords} cake`}
-                                    fill
-                                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-                                    className="object-cover group-hover:scale-110 transition-transform duration-500"
-                                    unoptimized
-                                />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
-                            </div>
-                            <div className="px-1 mt-3">
-                                <h3 className="font-bold text-gray-900 text-sm leading-tight line-clamp-2 group-hover:text-purple-600 transition-colors capitalize">
-                                    {design.keywords || 'Custom Cake'}
-                                </h3>
-                                <div className="flex justify-between items-end border-t border-gray-50 pt-2 mt-2">
-                                    <span className="font-black text-gray-900 text-base">₱{design.price?.toLocaleString()}</span>
-                                </div>
-                            </div>
-                        </Link>
+                            p_hash={design.p_hash}
+                            original_image_url={design.original_image_url}
+                            price={design.price}
+                            keywords={design.keywords}
+                            slug={design.slug}
+                            availability={design.availability}
+                            analysis_json={design.analysis_json}
+                        />
                     ))}
                 </div>
             </div>

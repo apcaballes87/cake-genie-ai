@@ -84,7 +84,9 @@ export const LazyImage: React.FC<LazyImageProps> = ({
 
   // If fill is true, the wrapper should be absolute to mimic next/image behavior
   // properly within a relative container.
-  const positionClass = fill ? 'absolute inset-0 w-full h-full' : 'relative';
+  // We also default to fill if no dimensions are provided to prevent next/image runtime errors.
+  const isFilling = fill || (!width && !height);
+  const positionClass = isFilling ? 'absolute inset-0 w-full h-full' : 'relative';
 
   return (
     <div className={`${positionClass} overflow-hidden ${containerClassName || ''} ${placeholderClassName || ''} ${className || ''}`}>
@@ -104,11 +106,11 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         onLoad={handleLoad}
         onError={handleError}
         priority={priority}
-        fill={fill}
-        width={!fill ? width : undefined}
-        height={!fill ? height : undefined}
+        fill={isFilling}
+        width={!isFilling ? width : undefined}
+        height={!isFilling ? height : undefined}
         sizes={props.sizes || "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"}
-        className={`transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'} ${fill ? 'object-cover' : ''} ${imageClassName || ''}`}
+        className={`transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'} ${isFilling ? 'object-cover' : ''} ${imageClassName || ''}`}
         unoptimized={useUnoptimized}
         {...props}
       />

@@ -628,7 +628,7 @@ export async function getAllRecentDesigns(limit: number = 24, offset: number = 0
   try {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, price, alt_text, created_at')
+      .select('slug, keywords, original_image_url, price, alt_text, created_at, p_hash, availability, analysis_json')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .not('price', 'is', null)
@@ -655,7 +655,7 @@ export async function getDesignsByKeyword(keyword: string, limit: number = 50): 
   try {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, price, alt_text, usage_count')
+      .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .ilike('keywords', `%${keyword}%`)

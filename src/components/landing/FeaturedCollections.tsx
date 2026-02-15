@@ -56,7 +56,6 @@ export const FeaturedCollections: React.FC<FeaturedCollectionsProps> = ({ catego
                     className="group flex items-center gap-1 md:gap-2 text-purple-600 font-semibold hover:text-purple-700 transition-colors text-[13px] md:text-base shrink-0"
                 >
                     View all
-                    <ArrowRight className="w-3 h-3 md:w-4 md:h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
             </div>
 
