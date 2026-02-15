@@ -75,11 +75,16 @@ export default async function CollectionsPage() {
                 {/* "Newest Designs" Catch-All (The Orphan Safety Net) */}
                 {recentDesigns.length > 0 && (
                     <section>
-                        <div className="flex justify-between items-end mb-6">
-                            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-                                <span className="bg-pink-500 w-2 h-8 rounded-full mr-3"></span>
-                                Newest Arrivals
-                            </h2>
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 gap-2">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900 flex items-center mb-1">
+                                    <span className="bg-pink-500 w-2 h-8 rounded-full mr-3"></span>
+                                    Recent Price Quotes
+                                </h2>
+                                <p className="text-sm text-gray-500 ml-5">
+                                    Browse designs that other users have recently requested pricing for.
+                                </p>
+                            </div>
                             {/* In a real app, this would link to a paginated "All" page */}
                         </div>
 

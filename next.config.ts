@@ -25,6 +25,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'encrypted-tbn0.gstatic.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'cakesandmemories.com',
+      },
     ],
   },
   // Sitemap is now served by Next.js via src/app/sitemap.ts

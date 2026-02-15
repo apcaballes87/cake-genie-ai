@@ -36,18 +36,7 @@ export default async function CustomizingPage() {
     return (
         <>
             {/* SSR content for Google — helpful context about the tool */}
-            <section className="bg-gray-50 py-10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="mb-12">
-                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                            Cake Designs & Customization
-                        </h1>
-                        <p className="text-gray-600 mb-6">
-                            Upload your own image to get instant AI pricing from bakers in Cebu. Or <Link href="/collections" className="text-purple-600 hover:underline">browse our design collections</Link>.
-                        </p>
-                    </div>
-                </div>
-            </section>
+            {/* Header removed as requested */}
 
             {/* Client-side customization tool */}
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>

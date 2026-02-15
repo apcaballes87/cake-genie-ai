@@ -555,29 +555,63 @@ export async function getDesignCategories(): Promise<SupabaseServiceResponse<{ k
       return { data: null, error };
     }
 
-    // Aggregate by keyword
-    const categoryMap = new Map<string, { count: number; sample_image: string }>();
-    for (const item of (data || [])) {
-      const kw = (item.keywords || '').trim();
-      if (!kw) continue;
-      const existing = categoryMap.get(kw);
-      if (existing) {
-        existing.count++;
+    // 1. First, identify "candidate" categories based on exact matches to avoid spammy tags
+    //    We only want to show a category if at least one item was explicitly tagged with it (or enough items)
+    const exactCounts = new Map<string, number>();
+    const displayForms = new Map<string, string>();
+    const allItems = data || [];
+
+    for (const item of allItems) {
+      const rawKw = (item.keywords || '').trim();
+      if (!rawKw) continue;
+
+      const normalizedKw = rawKw.toLowerCase();
+      exactCounts.set(normalizedKw, (exactCounts.get(normalizedKw) || 0) + 1);
+
+      // Save a display form. Prefer the one with more capital letters (simple heuristic for "Demon Slayer" vs "demon slayer")
+      const currentDisplay = displayForms.get(normalizedKw);
+      if (!currentDisplay) {
+        displayForms.set(normalizedKw, rawKw);
       } else {
-        categoryMap.set(kw, { count: 1, sample_image: item.original_image_url });
+        // If the new one has more uppercase letters, use it? Or just if it's not all lowercase?
+        // Let's just pick the one that has uppercase letters if the current one doesn't.
+        if (rawKw !== normalizedKw && currentDisplay === normalizedKw) {
+          displayForms.set(normalizedKw, rawKw);
+        }
       }
     }
 
-    // Convert to array, filter to categories with 3+ designs, sort by count
-    const categories = Array.from(categoryMap.entries())
-      .filter(([, v]) => v.count >= 3)
-      .map(([keyword, v]) => ({
-        keyword,
-        slug: keyword.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-'),
-        count: v.count,
-        sample_image: v.sample_image,
-      }))
-      .sort((a, b) => b.count - a.count);
+    // Filter to get our list of displayable categories (e.g. must have >= 3 exact matches originally, or just exist)
+    // We use the normalized keys here.
+    let candidateKeywords = Array.from(exactCounts.entries())
+      .filter(([, count]) => count >= 3)
+      .map(([keyword]) => keyword);
+
+    // 2. Recalculate counts using "includes" logic (mimicking the %keyword% search)
+    //    and find the sample image (preferring exact match items)
+    const categories = candidateKeywords.map(normalizedKw => {
+      // Recover the display form
+      const displayKeyword = displayForms.get(normalizedKw) || normalizedKw;
+
+      // Find all items that would show up in the search for this keyword
+      const matchingItems = allItems.filter(item =>
+        (item.keywords || '').toLowerCase().includes(normalizedKw)
+      );
+
+      // Total count on the card
+      const count = matchingItems.length;
+
+      // Find best sample image: prefer one where the keyword is the EXACT match (ignoring case) if possible
+      const exactMatchItem = matchingItems.find(item => (item.keywords || '').toLowerCase() === normalizedKw);
+      const sample_image = exactMatchItem ? exactMatchItem.original_image_url : matchingItems[0]?.original_image_url;
+
+      return {
+        keyword: displayKeyword,
+        slug: normalizedKw.replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-'),
+        count,
+        sample_image,
+      };
+    }).sort((a, b) => b.count - a.count);
 
     return { data: categories, error: null };
   } catch (err) {
