@@ -305,8 +305,8 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
             {
                 '@type': 'ListItem',
                 position: 2,
-                name: 'Designs',
-                item: 'https://genie.ph/designs',
+                name: 'Cake Designs',
+                item: 'https://genie.ph/customizing',
             },
             {
                 '@type': 'ListItem',
@@ -371,6 +371,17 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
 
     return (
         <div id="ssr-content" className="w-full max-w-4xl mx-auto px-4 py-6">
+            {/* Breadcrumb navigation */}
+            <nav className="mb-4" aria-label="Breadcrumb">
+                <ol className="flex items-center text-sm text-gray-500 space-x-2">
+                    <li><Link href="/" className="hover:text-purple-600">Home</Link></li>
+                    <li>/</li>
+                    <li><Link href="/customizing" className="hover:text-purple-600">Cake Designs</Link></li>
+                    <li>/</li>
+                    <li className="text-gray-900 font-medium line-clamp-1">{title}</li>
+                </ol>
+            </nav>
+
             {/* Main card container - matches CustomizingClient styling */}
             <article
                 className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 overflow-hidden"
