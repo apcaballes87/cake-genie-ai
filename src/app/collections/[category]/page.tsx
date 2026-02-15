@@ -40,10 +40,11 @@ export async function generateMetadata(
 export default async function CategoryPage({ params }: Props) {
     const { category } = await params
 
-    // Convert slug to keyword for search (e.g., "birthday-cakes" -> "birthday")
-    // Simple heuristic: take the first word or the whole thing defined by how slugs were generated
-    const keyword = category.split('-')[0];
+    // Convert slug to keyword for search
+    // OLD: const keyword = category.split('-')[0]; (caused "18th-birthday" -> "18th" -> matches "18th Debut")
+    // NEW: Use the full slug converted to spaces -> "18th birthday"
     const readableTitle = category.split('-').join(' ');
+    const keyword = readableTitle;
 
     const { data: designs } = await getDesignsByKeyword(keyword, 50);
 

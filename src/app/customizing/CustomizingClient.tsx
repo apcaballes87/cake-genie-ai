@@ -2027,7 +2027,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     return (<>
         <h1 className="sr-only">{seoMetadata?.seo_title || 'Customize Your Cake Design - Genie.ph'}</h1>
         <div className="flex flex-col items-center gap-4 w-full max-w-7xl mx-auto pb-28 px-4"> {/* Added px-4 padding */}
-            <div className="w-full flex items-center gap-2 md:gap-4 pt-6"> {/* Added mb-4 and pt-6 */}
+            <div className="w-full flex items-center gap-2 md:gap-4 pt-2"> {/* Reduced top padding */}
                 <button onClick={onClose} className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label="Go back">
                     <BackIcon />
                 </button>
