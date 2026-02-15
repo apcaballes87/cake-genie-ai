@@ -47,13 +47,13 @@ export const FeaturedCollections: React.FC<FeaturedCollectionsProps> = ({ catego
 
     return (
         <section className="mb-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
-                <h2 className="text-[21px] font-bold text-gray-900">
+            <div className="flex justify-between items-center mb-4 gap-2">
+                <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 leading-tight">
                     Find the Perfect Cake by Theme
                 </h2>
                 <Link
                     href="/collections"
-                    className="group flex items-center gap-1 md:gap-2 text-purple-600 font-semibold hover:text-purple-700 transition-colors text-xs md:text-base hidden md:flex"
+                    className="group flex items-center gap-1 md:gap-2 text-purple-600 font-semibold hover:text-purple-700 transition-colors text-[13px] md:text-base shrink-0"
                 >
                     View all
                     <ArrowRight className="w-3 h-3 md:w-4 md:h-4 group-hover:translate-x-1 transition-transform" />
