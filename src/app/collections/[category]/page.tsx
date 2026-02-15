@@ -41,71 +41,64 @@ export default async function CategoryPage({ params }: Props) {
     const { category } = await params
 
     // Convert slug to keyword for search
-    // OLD: const keyword = category.split('-')[0]; (caused "18th-birthday" -> "18th" -> matches "18th Debut")
-    // NEW: Use the full slug converted to spaces -> "18th birthday"
     const readableTitle = category.split('-').join(' ');
     const keyword = readableTitle;
 
     const { data: designs } = await getDesignsByKeyword(keyword, 50);
 
     if (!designs || designs.length === 0) {
-        // Fallback or 404 if truly empty
-        // In this architecture, it's better to show empty state than 404 IF the category is valid but empty
-        // But for SEO, if it's empty, it shouldn't exist.
         return notFound();
     }
 
     return (
-        <main className="bg-gray-50 min-h-screen py-10">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <main className="min-h-screen py-10">
+            <div className="w-full max-w-4xl mx-auto bg-white/80 backdrop-blur-lg p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200">
                 {/* Breadcrumb */}
-                <nav className="flex text-sm text-gray-500 mb-6" aria-label="Breadcrumb">
-                    <Link href="/" className="hover:text-purple-600">Home</Link>
-                    <span className="mx-2">/</span>
-                    <Link href="/collections" className="hover:text-purple-600">Collections</Link>
-                    <span className="mx-2">/</span>
-                    <span className="font-semibold text-gray-900 capitalize">{readableTitle}</span>
+                <nav className="mb-6" aria-label="Breadcrumb">
+                    <ol className="flex items-center text-sm text-slate-500 space-x-2">
+                        <li><Link href="/" className="hover:text-purple-600 transition-colors">Home</Link></li>
+                        <li>/</li>
+                        <li><Link href="/collections" className="hover:text-purple-600 transition-colors">Collections</Link></li>
+                        <li>/</li>
+                        <li className="text-slate-800 font-medium capitalize">{readableTitle}</li>
+                    </ol>
                 </nav>
 
-                <div className="mb-10 text-center md:text-left">
-                    <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2 capitalize">
+                {/* Header */}
+                <header className="mb-8">
+                    <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text capitalize">
                         {readableTitle} Designs
                     </h1>
-                    <p className="text-gray-600">
+                    <p className="text-slate-500 font-medium mt-1">
                         Found {designs.length} {readableTitle} ideas. Click any design to customize it and get a price.
                     </p>
-                </div>
+                </header>
 
                 {/* Designs Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 min-[490px]:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
                     {designs.map((design: any) => (
                         <Link
                             key={design.slug}
                             href={`/customizing/${design.slug}`}
-                            className="group bg-white rounded-xl shadow-sm hover:shadow-md border border-gray-100 overflow-hidden transition-all"
+                            className="group bg-white p-3 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-100 transition-all duration-300"
                         >
-                            <div className="relative aspect-square bg-gray-100">
+                            <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-100">
                                 <Image
                                     src={design.original_image_url}
                                     alt={design.alt_text || `${design.keywords} cake`}
                                     fill
-                                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 20vw"
-                                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                                    className="object-cover group-hover:scale-110 transition-transform duration-500"
                                     unoptimized
                                 />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
                             </div>
-                            <div className="p-3">
-                                <p className="text-sm font-semibold text-gray-900 line-clamp-2 md:line-clamp-1 group-hover:text-purple-600 capitalize">
+                            <div className="px-1 mt-3">
+                                <h3 className="font-bold text-gray-900 text-sm leading-tight line-clamp-2 group-hover:text-purple-600 transition-colors capitalize">
                                     {design.keywords || 'Custom Cake'}
-                                </p>
-                                <div className="flex justify-between items-center mt-2">
-                                    <p className="text-purple-600 font-bold text-xs">
-                                        ₱{design.price?.toLocaleString()}
-                                    </p>
-                                    <span className="text-[10px] text-gray-400">
-                                        {design.usage_count > 0 ? `${design.usage_count} views` : 'New'}
-                                    </span>
+                                </h3>
+                                <div className="flex justify-between items-end border-t border-gray-50 pt-2 mt-2">
+                                    <span className="font-black text-gray-900 text-base">₱{design.price?.toLocaleString()}</span>
                                 </div>
                             </div>
                         </Link>
