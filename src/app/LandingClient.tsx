@@ -671,9 +671,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             </div>
                         </div>
 
-                        {/* --- FEATURED COLLECTIONS SECTION --- */}
-                        <FeaturedCollections categories={categories} />
-
                         {/* --- POPULAR DESIGNS SECTION --- */}
                         <div className="mt-16">
                             <PopularDesigns designs={popularDesigns} />
