@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import LandingClient from './LandingClient';
-import { getRecommendedProducts } from '@/services/supabaseService';
-import { RecommendedProductsSection, IntroContent } from '@/components/landing';
+import { getRecommendedProducts, getPopularDesigns } from '@/services/supabaseService';
+import { RecommendedProductsSection, IntroContent, PopularDesigns } from '@/components/landing';
 
 // ISR: Revalidate every hour for fresh data while maintaining fast loads
 export const revalidate = 3600;
@@ -83,9 +83,13 @@ function WebSiteSchema() {
 }
 
 export default async function Home() {
-  const recommendedProductsRes = await getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err }));
+  const [recommendedProductsRes, popularDesignsRes] = await Promise.all([
+    getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err })),
+    getPopularDesigns(20).catch(err => ({ data: [], error: err })),
+  ]);
 
   const recommendedProducts = recommendedProductsRes.data || [];
+  const popularDesigns = popularDesignsRes.data || [];
 
   return (
     <>
@@ -96,6 +100,8 @@ export default async function Home() {
         <RecommendedProductsSection products={recommendedProducts} />
         <IntroContent />
       </LandingClient>
+      {/* SSR section with real <Link> tags for Google crawlability */}
+      <PopularDesigns designs={popularDesigns} />
     </>
   );
 }

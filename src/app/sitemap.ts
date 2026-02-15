@@ -118,7 +118,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .from('cakegenie_analysis_cache')
         .select('slug, created_at, original_image_url, alt_text, keywords')
         .not('slug', 'is', null)
-        .not('original_image_url', 'is', null)
+        // Note: Don't filter out NULL original_image_url — pages without images are still valid
+        // and should be indexed. The images array will just be empty for those entries.
         .order('created_at', { ascending: false })
         .limit(5000)
 
@@ -139,6 +140,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.7,
     }))
 
-    return [...routes, ...designRoutes, ...merchantRoutes, ...productRoutes, ...blogRoutes, ...recentSearchRoutes]
+    // 7. Dynamic routes: Category pages (aggregate keywords with 3+ designs)
+    const keywordMap = new Map<string, number>()
+    for (const search of (recentSearches || [])) {
+        const kw = (search.keywords || '').trim()
+        if (!kw) continue
+        keywordMap.set(kw, (keywordMap.get(kw) || 0) + 1)
+    }
+    const categoryRoutes = Array.from(keywordMap.entries())
+        .filter(([, count]) => count >= 3)
+        .map(([keyword]) => ({
+            url: `${baseUrl}/customizing/category/${keyword.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-')}`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly' as const,
+            priority: 0.8,
+        }))
+
+    return [...routes, ...designRoutes, ...merchantRoutes, ...productRoutes, ...blogRoutes, ...recentSearchRoutes, ...categoryRoutes]
 
 }
