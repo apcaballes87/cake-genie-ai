@@ -106,78 +106,79 @@ export default async function CategoryPage({ params }: Props) {
     return (
         <>
             <CategorySchema keyword={decodedKeyword} designs={designs} url={url} />
-            <main className="min-h-screen bg-gray-50">
-                {/* Breadcrumb */}
-                <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4" aria-label="Breadcrumb">
-                    <ol className="flex items-center text-sm text-gray-500 space-x-2">
-                        <li><Link href="/" className="hover:text-purple-600">Home</Link></li>
-                        <li>/</li>
-                        <li><Link href="/customizing" className="hover:text-purple-600">Cake Designs</Link></li>
-                        <li>/</li>
-                        <li className="text-gray-900 font-medium">{displayName}</li>
-                    </ol>
-                </nav>
+            <main className="min-h-screen py-10">
+                <div className="w-full max-w-4xl mx-auto bg-white/80 backdrop-blur-lg p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200">
+                    {/* Breadcrumb */}
+                    <nav className="mb-6" aria-label="Breadcrumb">
+                        <ol className="flex items-center text-sm text-slate-500 space-x-2">
+                            <li><Link href="/" className="hover:text-purple-600 transition-colors">Home</Link></li>
+                            <li>/</li>
+                            <li><Link href="/customizing" className="hover:text-purple-600 transition-colors">Cake Designs</Link></li>
+                            <li>/</li>
+                            <li className="text-slate-800 font-medium">{displayName}</li>
+                        </ol>
+                    </nav>
 
-                {/* Header */}
-                <header className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-                    <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-                        {displayName} Cake Designs
-                    </h1>
-                    <p className="text-gray-600 mt-2 max-w-2xl">
-                        Browse {designs.length} {displayName.toLowerCase()} cake designs. Get instant AI pricing and order from trusted bakers in Cebu.
-                    </p>
-                </header>
+                    {/* Header */}
+                    <header className="mb-8">
+                        <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">
+                            {displayName} Cake Designs
+                        </h1>
+                        <p className="text-slate-500 font-medium mt-1">
+                            Browse {designs.length} {displayName.toLowerCase()} cake designs. Get instant AI pricing and order from trusted bakers in Cebu.
+                        </p>
+                    </header>
 
-                {/* Design Grid */}
-                <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5">
-                        {designs.map((design) => (
+                    {/* Design Grid */}
+                    <div className="grid grid-cols-2 min-[490px]:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5 mb-10">
+                        {designs.map((design, index) => (
                             <Link
                                 key={design.slug}
                                 href={`/customizing/${design.slug}`}
-                                className="group bg-white rounded-2xl shadow-sm hover:shadow-lg border border-gray-100 overflow-hidden transition-all duration-300 hover:-translate-y-1"
+                                className="group bg-white p-3 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-100 transition-all duration-300"
                             >
-                                <div className="relative aspect-square bg-gray-100">
+                                <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-100">
                                     <Image
                                         src={design.original_image_url}
                                         alt={design.alt_text || `${displayName} cake design`}
                                         fill
-                                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                                        className="object-cover group-hover:scale-110 transition-transform duration-500"
                                         unoptimized
                                     />
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
                                 </div>
-                                <div className="p-3">
-                                    <h2 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2 group-hover:text-purple-600 transition-colors">
+                                <div className="px-1 mt-3">
+                                    <h2 className="font-bold text-gray-900 text-sm leading-tight line-clamp-2 group-hover:text-purple-600 transition-colors">
                                         {design.alt_text || `${displayName} Cake`}
                                     </h2>
-                                    <p className="text-purple-600 font-bold text-sm mt-1">
-                                        ₱{design.price?.toLocaleString() || 'Get Price'}
-                                    </p>
+                                    <div className="flex justify-between items-end border-t border-gray-50 pt-2 mt-2">
+                                        <span className="font-black text-gray-900 text-base">
+                                            ₱{design.price?.toLocaleString() || 'Get Price'}
+                                        </span>
+                                    </div>
                                 </div>
                             </Link>
                         ))}
                     </div>
-                </section>
 
-                {/* SEO Content */}
-                <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-                    <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
-                        <h2 className="text-xl font-bold text-gray-900 mb-4">
+                    {/* SEO Content */}
+                    <div className="pt-6 border-t border-slate-200">
+                        <h2 className="text-xl font-bold text-slate-800 mb-4">
                             Order {displayName} Cakes in Cebu
                         </h2>
-                        <p className="text-gray-600 leading-relaxed">
+                        <p className="text-slate-600 leading-relaxed">
                             Looking for the perfect {displayName.toLowerCase()} cake? Genie.ph makes it easy to find and order custom {displayName.toLowerCase()} cake designs from the best bakers in Cebu City, Mandaue, Lapu-Lapu, and Talisay. Simply choose a design you love, customize it with our AI-powered tools, and get an instant price. You can also <Link href="/" className="text-purple-600 hover:underline">upload your own {displayName.toLowerCase()} cake image</Link> to get started.
                         </p>
                         <div className="mt-6 flex flex-wrap gap-3">
                             <Link href="/cake-price-calculator" className="text-sm text-purple-600 hover:underline">Cake Price Calculator</Link>
-                            <span className="text-gray-300">|</span>
+                            <span className="text-slate-300">|</span>
                             <Link href="/how-to-order" className="text-sm text-purple-600 hover:underline">How to Order</Link>
-                            <span className="text-gray-300">|</span>
+                            <span className="text-slate-300">|</span>
                             <Link href="/customizing" className="text-sm text-purple-600 hover:underline">All Cake Designs</Link>
                         </div>
                     </div>
-                </section>
+                </div>
             </main>
         </>
     );
