@@ -3,4 +3,5 @@ export { MerchantShowcase } from './MerchantShowcase';
 export * from './RecommendedProductsGrid';
 export * from './RecommendedProductsSection';
 export * from './IntroContent';
+export * from './PopularDesigns';
 

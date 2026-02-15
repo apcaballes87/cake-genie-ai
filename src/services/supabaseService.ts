@@ -510,6 +510,109 @@ export async function getRecommendedProducts(limit: number = 8, offset: number =
 }
 
 /**
+ * Fetches the most popular designs by usage_count for SSR homepage section.
+ * Returns designs with real <Link> tags for Google crawlability.
+ */
+export async function getPopularDesigns(limit: number = 20): Promise<SupabaseServiceResponse<any[]>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .select('slug, keywords, original_image_url, price, alt_text')
+      .not('original_image_url', 'is', null)
+      .not('slug', 'is', null)
+      .not('price', 'is', null)
+      .neq('keywords', '')
+      .order('usage_count', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching popular designs:', error);
+      return { data: null, error };
+    }
+
+    return { data: data || [], error: null };
+  } catch (err) {
+    console.error('Exception fetching popular designs:', err);
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches distinct keyword categories with counts for the category index page.
+ */
+export async function getDesignCategories(): Promise<SupabaseServiceResponse<{ keyword: string; slug: string; count: number; sample_image: string }[]>> {
+  try {
+    // Use raw SQL via RPC or just fetch all keywords and aggregate client-side
+    const { data, error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .select('keywords, original_image_url')
+      .not('original_image_url', 'is', null)
+      .not('slug', 'is', null)
+      .neq('keywords', '');
+
+    if (error) {
+      console.error('Error fetching design categories:', error);
+      return { data: null, error };
+    }
+
+    // Aggregate by keyword
+    const categoryMap = new Map<string, { count: number; sample_image: string }>();
+    for (const item of (data || [])) {
+      const kw = (item.keywords || '').trim();
+      if (!kw) continue;
+      const existing = categoryMap.get(kw);
+      if (existing) {
+        existing.count++;
+      } else {
+        categoryMap.set(kw, { count: 1, sample_image: item.original_image_url });
+      }
+    }
+
+    // Convert to array, filter to categories with 3+ designs, sort by count
+    const categories = Array.from(categoryMap.entries())
+      .filter(([, v]) => v.count >= 3)
+      .map(([keyword, v]) => ({
+        keyword,
+        slug: keyword.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-'),
+        count: v.count,
+        sample_image: v.sample_image,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    return { data: categories, error: null };
+  } catch (err) {
+    console.error('Exception fetching design categories:', err);
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches designs matching a keyword category.
+ */
+export async function getDesignsByKeyword(keyword: string, limit: number = 50): Promise<SupabaseServiceResponse<any[]>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .select('slug, keywords, original_image_url, price, alt_text, usage_count')
+      .not('original_image_url', 'is', null)
+      .not('slug', 'is', null)
+      .ilike('keywords', `%${keyword}%`)
+      .order('usage_count', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching designs by keyword:', error);
+      return { data: null, error };
+    }
+
+    return { data: data || [], error: null };
+  } catch (err) {
+    console.error('Exception fetching designs by keyword:', err);
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
  * Fetches related products based on keywords from the current design.
  * Matches cakes that share similar keywords using ILIKE.
  * Falls back to recent products if no keyword matches found.
