@@ -8,7 +8,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { getCakeBasePriceOptions, getRelatedProductsByKeywords } from '@/services/supabaseService'
 import { CakeType, BasePriceInfo, HybridAnalysisResult, CakeInfoUI, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI } from '@/types'
 import { CustomizationProvider, CustomizationState } from '@/contexts/CustomizationContext'
-import { FAQPageSchema, HowToSchema } from '@/components/SEOSchemas'
+// FAQPageSchema deprecated (restricted to gov/healthcare Aug 2023) — using HTML accordions instead
 import { v4 as uuidv4 } from 'uuid'
 
 // Helper to fetch design by exact slug only
@@ -181,7 +181,8 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         '@type': 'MerchantReturnPolicy',
         returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
         merchantReturnDays: 0,
-        returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility'
+        returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility',
+        returnPolicyCountry: 'PH' // Required since March 2025
     };
 
     const priceValidUntil = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -645,47 +646,9 @@ export default async function RecentSearchPage({ params }: Props) {
     return (
         <>
             <DesignSchema design={design} prices={prices} />
-            <FAQPageSchema faqs={[
-                {
-                    question: `Can I customize this ${design.keywords || 'cake'} design?`,
-                    answer: `Yes! You can fully customize specific details like colors, flavor, size, and toppers for this ${design.keywords || 'cake'} design directly on Genie.ph.`
-                },
-                {
-                    question: `How much is this ${design.keywords || 'custom'} cake?`,
-                    answer: `This design starts at ₱${(design.price || 0).toLocaleString()}, but the final price depends on your selected size and flavor.`
-                },
-                {
-                    question: `How do I order this cake?`,
-                    answer: `Simply click "Customize" to adjust the design to your liking, then get instant quotes from our partner bakeries in Cebu.`
-                }
-            ]} />
+            {/* FAQ as visible HTML accordion (FAQPage schema restricted to gov/healthcare Aug 2023) */}
 
-            <HowToSchema
-                name={`How to Order this ${design.keywords || 'Custom'} Cake`}
-                description={`Step-by-step guide to customizing and ordering this specific cake design online in Cebu.`}
-                steps={[
-                    {
-                        name: 'Adjust Customization',
-                        text: 'Change colors, add messages, or choose different toppers to match your theme.',
-                        url: pageUrl
-                    },
-                    {
-                        name: 'Select Size & Flavor',
-                        text: 'Choose from various sizes (Bento to Multi-tier) and premium cake flavors.',
-                        url: pageUrl
-                    },
-                    {
-                        name: 'Get Quotation',
-                        text: 'Our AI analyzes your final design to provide instant pricing from local Cebu bakeshops.',
-                        url: pageUrl
-                    },
-                    {
-                        name: 'Place Order',
-                        text: 'Securely pay via Maya or GCash and schedule your delivery/pickup.',
-                        url: pageUrl
-                    }
-                ]}
-            />
+            {/* Ordering steps as visible HTML (HowTo schema deprecated Sept 2023) */}
 
             <SSRCakeDetails
                 design={design}

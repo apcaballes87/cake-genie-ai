@@ -2,7 +2,7 @@ import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.type
 import { BasePriceInfo } from '@/types';
 
 // JSON-LD Schema for Product (Schema.org)
-export function ProductSchema({ product, merchant, prices }: { product: CakeGenieMerchantProduct; merchant: CakeGenieMerchant; prices?: BasePriceInfo[] }) {
+export function ProductSchema({ product, merchant, prices, ratingValue, reviewCount }: { product: CakeGenieMerchantProduct; merchant: CakeGenieMerchant; prices?: BasePriceInfo[]; ratingValue?: string; reviewCount?: string }) {
     // Sanitize string to prevent script injection in JSON-LD
     const sanitize = (str: string | undefined | null) => str ? str.replace(/<\/script/g, '<\\/script') : '';
     const pageUrl = `https://genie.ph/shop/${merchant.slug}/${product.slug}`;
@@ -55,13 +55,13 @@ export function ProductSchema({ product, merchant, prices }: { product: CakeGeni
         };
     }
 
-    // Default store rating since individual products don't have reviews yet
-    // This satisfies Google's requirement for Product rich results
-    const aggregateRating = {
+    // Only include aggregateRating when real review data is provided.
+    // Hardcoded/fake ratings risk a manual action from Google for misleading structured data.
+    const aggregateRating = (ratingValue && reviewCount) ? {
         '@type': 'AggregateRating',
-        ratingValue: "4.8",
-        reviewCount: "156"
-    };
+        ratingValue,
+        reviewCount
+    } : undefined;
 
     // Enhanced ImageObject
     const imageObject = product.image_url ? {
@@ -113,7 +113,8 @@ export function ProductSchema({ product, merchant, prices }: { product: CakeGeni
         returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
         merchantReturnDays: 0,
         returnMethod: 'https://schema.org/ReturnByMail', // Required even if not permitted sometimes, but safe to include
-        returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility'
+        returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility',
+        returnPolicyCountry: 'PH' // Required since March 2025
     };
 
     // Update offers with new merchant listing properties
@@ -139,7 +140,7 @@ export function ProductSchema({ product, merchant, prices }: { product: CakeGeni
         ...(product.sku && { sku: sanitize(product.sku) }),
         ...(product.gtin && { gtin: sanitize(product.gtin) }),
         offers: enhancedOffers,
-        aggregateRating
+        ...(aggregateRating && { aggregateRating })
     };
 
     // WebPage schema with explicit primaryImageOfPage signal
@@ -205,70 +206,38 @@ export function ProductSchema({ product, merchant, prices }: { product: CakeGeni
     );
 }
 
-// JSON-LD Schema for FAQPage
+// RESTRICTED: FAQPage schema is restricted to government and healthcare authority sites only (August 2023).
+// Using it on e-commerce sites risks a manual action from Google.
+// See: https://developers.google.com/search/docs/appearance/structured-data/faqpage
+// Use visible HTML <details>/<summary> accordions instead for FAQ content.
+/** @deprecated FAQPage restricted to government/healthcare sites (Aug 2023). Use HTML accordions instead. */
 export function FAQPageSchema({ faqs }: { faqs: { question: string; answer: string }[] }) {
-    if (!faqs || faqs.length === 0) return null;
-
-    const schema = {
-        '@context': 'https://schema.org',
-        '@type': 'FAQPage',
-        mainEntity: faqs.map(faq => ({
-            '@type': 'Question',
-            name: faq.question,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: faq.answer
-            }
-        }))
-    };
-
-    return (
-        <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-        />
-    );
+    // Returns null — FAQPage schema restricted to government/healthcare only
+    return null;
 }
 
-// JSON-LD Schema for HowTo
+// DEPRECATED: HowTo schema was deprecated by Google in September 2023.
+// Rich results are no longer generated for HowTo markup.
+// Keeping export signature for backward compatibility but rendering nothing.
+// See: https://developers.google.com/search/docs/appearance/structured-data/how-to
+/** @deprecated HowTo rich results removed by Google September 2023. Use visible HTML steps instead. */
 export function HowToSchema({ name, description, steps }: { name: string; description: string; steps: { name: string; text: string; url: string }[] }) {
-    if (!steps || steps.length === 0) return null;
-
-    const schema = {
-        '@context': 'https://schema.org',
-        '@type': 'HowTo',
-        name,
-        description,
-        step: steps.map((step, index) => ({
-            '@type': 'HowToStep',
-            position: index + 1,
-            name: step.name,
-            itemListElement: [{
-                '@type': 'HowToDirection',
-                text: step.text
-            }],
-            url: step.url
-        }))
-    };
-
-    return (
-        <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-        />
-    );
+    // Returns null — HowTo schema no longer generates rich results
+    return null;
 }
 
 // JSON-LD Schema for BlogPosting
 export function BlogPostingSchema({
     headline,
     datePublished,
+    dateModified,
     authorName,
     image,
     description
 }: {
     headline: string;
     datePublished: string;
+    dateModified?: string;
     authorName: string;
     image?: string;
     description: string;
@@ -281,6 +250,7 @@ export function BlogPostingSchema({
         '@type': 'BlogPosting',
         headline: sanitize(headline),
         datePublished: datePublished,
+        ...(dateModified && { dateModified }),
         author: {
             '@type': 'Organization', // Or Person, but for company blogs Organization is often used if author is the brand
             name: sanitize(authorName)
@@ -292,7 +262,7 @@ export function BlogPostingSchema({
             name: 'Genie.ph',
             logo: {
                 '@type': 'ImageObject',
-                url: 'https://genie.ph/images/logo.png' // Ensure this path is correct or generic
+                url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp' // Ensure this path is correct or generic
             }
         }
     };
@@ -318,7 +288,7 @@ export function BlogSchema({ posts }: { posts: { title: string; slug: string; da
             name: 'Genie.ph',
             logo: {
                 '@type': 'ImageObject',
-                url: 'https://genie.ph/images/logo.png'
+                url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp'
             }
         },
         blogPost: posts.map(post => ({

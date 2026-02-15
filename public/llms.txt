@@ -31,7 +31,7 @@
 - **Products**: Birthday Cakes, Wedding Cakes, Custom Bento Cakes, Cupcakes, Personalized Gifts.
 - **Core Technology**: AI Image Synthesis, Automated Pricing Logic, Real-time Baker Notifications.
 - **Location**: Based in Cebu, Philippines.
-- **Socials**: [Facebook](https://facebook.com/genie.ph), [Instagram](https://instagram.com/genie.ph).
+- **Socials**: [Facebook](https://web.facebook.com/geniephilippines), [Instagram](https://www.instagram.com/genie.ph/), [TikTok](http://tiktok.com/@genie.ph), [YouTube](https://www.youtube.com/@genieph).
 
 ## For Developers & Partners
 
