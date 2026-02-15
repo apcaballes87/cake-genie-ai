@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { PopularDesigns } from '@/components/landing';
+import { FeaturedCollections, FeaturedCollectionItem } from '@/components/landing/FeaturedCollections';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import LazyImage from '@/components/LazyImage';
 import { useImageManagement } from '@/contexts/ImageContext';
@@ -74,9 +76,11 @@ const occasionLinks = [
 
 interface LandingClientProps {
     children?: React.ReactNode;
+    popularDesigns?: any[];
+    categories?: FeaturedCollectionItem[];
 }
 
-const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
+const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], categories = [] }) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
     const [selectedCategory, setSelectedCategory] = useState('All');
@@ -110,7 +114,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
     const brandGradient = "bg-gradient-to-r from-purple-500 to-pink-500";
     const textGradient = "bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600";
 
-    const categories = [
+    const categoriesList = [
         { id: 'Birthdays', name: 'Birthdays' },
         { id: 'Anniversaries', name: 'Anniversaries' },
         { id: 'Christmas Day', name: 'Christmas Day' },
@@ -402,7 +406,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                                         window.scrollTo({ top: scrollThreshold + 10, behavior: 'smooth' });
                                     }}
                                     className="p-2 text-slate-600 hover:text-purple-700 transition-all shrink-0 md:hidden"
-                                    style={{ opacity: 1 - searchBarOpacity }}
                                     aria-label="Search"
                                 >
                                     <Search size={24} />
@@ -458,7 +461,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                             <div>
                                 <h3 className="font-bold text-gray-900 mb-4 text-lg">Shop by Occasion</h3>
                                 <div className="space-y-1">
-                                    {categories.map((cat) => (
+                                    {categoriesList.map((cat) => (
                                         <Link
                                             key={cat.id}
                                             href={`/search?q=${encodeURIComponent(cat.name)}`}
@@ -592,7 +595,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                         {/* Mobile Categories (Horizontal Scroll) - Placed above Available Cakes */}
                         <h2 className="text-xl font-bold text-gray-900 mb-4 md:hidden">Shop by Occasion</h2>
                         <div className="md:hidden flex gap-2 mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4">
-                            {categories.map((cat) => (
+                            {categoriesList.map((cat) => (
                                 <Link
                                     key={cat.id}
                                     href={`/search?q=${encodeURIComponent(cat.name)}`}
@@ -634,6 +637,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                             </div>
                         </div>
 
+                        {/* --- FEATURED COLLECTIONS SECTION --- */}
+                        <FeaturedCollections categories={categories} />
+
                         {/* --- SHOP BY OCCASION (SEO Links) - REMOVED AS REQUESTED --- */}
 
                         {/* Server-rendered merchants and products sections */}
@@ -663,6 +669,14 @@ const LandingClient: React.FC<LandingClientProps> = ({ children }) => {
                                     </Link>
                                 ))}
                             </div>
+                        </div>
+
+                        {/* --- FEATURED COLLECTIONS SECTION --- */}
+                        <FeaturedCollections categories={categories} />
+
+                        {/* --- POPULAR DESIGNS SECTION --- */}
+                        <div className="mt-16">
+                            <PopularDesigns designs={popularDesigns} />
                         </div>
                     </div>
                 </div>

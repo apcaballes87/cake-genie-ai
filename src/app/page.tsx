@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import LandingClient from './LandingClient';
-import { getRecommendedProducts, getPopularDesigns } from '@/services/supabaseService';
+import { getRecommendedProducts, getPopularDesigns, getDesignCategories } from '@/services/supabaseService';
 import { RecommendedProductsSection, IntroContent, PopularDesigns } from '@/components/landing';
 
 // ISR: Revalidate every hour for fresh data while maintaining fast loads
@@ -83,25 +83,25 @@ function WebSiteSchema() {
 }
 
 export default async function Home() {
-  const [recommendedProductsRes, popularDesignsRes] = await Promise.all([
+  const [recommendedProductsRes, popularDesignsRes, categoriesRes] = await Promise.all([
     getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err })),
-    getPopularDesigns(20).catch(err => ({ data: [], error: err })),
+    getPopularDesigns(6).catch(err => ({ data: [], error: err })),
+    getDesignCategories().catch(err => ({ data: [], error: err })),
   ]);
 
   const recommendedProducts = recommendedProductsRes.data || [];
   const popularDesigns = popularDesignsRes.data || [];
+  const categories = categoriesRes.data || [];
 
   return (
     <>
       <WebSiteSchema />
-      <LandingClient>
+      <LandingClient popularDesigns={popularDesigns} categories={categories}>
         {/* Server-rendered sections for LCP optimization */}
         {/* <MerchantShowcase merchants={merchants} /> - Hidden for now */}
         <RecommendedProductsSection products={recommendedProducts} />
         <IntroContent />
       </LandingClient>
-      {/* SSR section with real <Link> tags for Google crawlability */}
-      <PopularDesigns designs={popularDesigns} />
     </>
   );
 }
