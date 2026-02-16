@@ -258,7 +258,7 @@ const SearchingClient: React.FC = () => {
     }, []);
 
     return (
-        <div className="w-full max-w-7xl mx-auto h-full flex flex-col min-h-screen px-4 pb-24 md:pb-0">
+        <div className="w-full max-w-7xl mx-auto h-full flex flex-col min-h-screen px-4 pb-24 md:pb-0 overflow-hidden">
             {/* Consistent Header */}
             <div className="w-full flex items-center gap-2 md:gap-4 mb-4 pt-6">
                 <button onClick={() => router.back()} className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label="Go back">
