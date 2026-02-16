@@ -651,7 +651,7 @@ export async function getAllRecentDesigns(limit: number = 24, offset: number = 0
 /**
  * Fetches designs matching a keyword category.
  */
-export async function getDesignsByKeyword(keyword: string, limit: number = 50): Promise<SupabaseServiceResponse<any[]>> {
+export async function getDesignsByKeyword(keyword: string, limit: number = 50, offset: number = 0): Promise<SupabaseServiceResponse<any[]>> {
   try {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
@@ -660,7 +660,8 @@ export async function getDesignsByKeyword(keyword: string, limit: number = 50): 
       .not('slug', 'is', null)
       .ilike('keywords', `%${keyword}%`)
       .order('usage_count', { ascending: false })
-      .limit(limit);
+      .limit(limit)
+      .range(offset, offset + limit - 1);
 
     if (error) {
       console.error('Error fetching designs by keyword:', error);

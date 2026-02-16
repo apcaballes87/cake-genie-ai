@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getDesignsByKeyword } from '@/services/supabaseService'
 import { ProductCard } from '@/components/ProductCard'
+import { DesignGridWithLoadMore } from '@/components/collections/DesignGridWithLoadMore'
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
@@ -45,7 +46,7 @@ export default async function CategoryPage({ params }: Props) {
     const readableTitle = category.split('-').join(' ');
     const keyword = readableTitle;
 
-    const { data: designs } = await getDesignsByKeyword(keyword, 50);
+    const { data: designs } = await getDesignsByKeyword(keyword, 30);
 
     if (!designs || designs.length === 0) {
         return notFound();
@@ -81,21 +82,8 @@ export default async function CategoryPage({ params }: Props) {
                     </div>
                 </div>
 
-                {/* Designs Grid */}
-                <div className="grid grid-cols-2 min-[490px]:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
-                    {designs.map((design: any) => (
-                        <ProductCard
-                            key={design.slug}
-                            p_hash={design.p_hash}
-                            original_image_url={design.original_image_url}
-                            price={design.price}
-                            keywords={design.keywords}
-                            slug={design.slug}
-                            availability={design.availability}
-                            analysis_json={design.analysis_json}
-                        />
-                    ))}
-                </div>
+                {/* Designs Grid with Load More & Google Search */}
+                <DesignGridWithLoadMore initialDesigns={designs} keyword={keyword} />
             </div>
         </main>
     )

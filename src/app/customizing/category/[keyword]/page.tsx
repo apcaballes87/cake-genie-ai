@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getDesignsByKeyword, getDesignCategories } from '@/services/supabaseService';
+import { DesignGridWithLoadMore } from '@/components/collections/DesignGridWithLoadMore';
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
@@ -95,7 +96,7 @@ export default async function CategoryPage({ params }: Props) {
     const decodedKeyword = decodeKeyword(keyword);
     const displayName = toTitleCase(decodedKeyword);
 
-    const { data: designs } = await getDesignsByKeyword(decodedKeyword, 50);
+    const { data: designs } = await getDesignsByKeyword(decodedKeyword, 30);
 
     if (!designs || designs.length === 0) {
         notFound();
@@ -129,37 +130,9 @@ export default async function CategoryPage({ params }: Props) {
                         </p>
                     </header>
 
-                    {/* Design Grid */}
-                    <div className="grid grid-cols-2 min-[490px]:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5 mb-10">
-                        {designs.map((design, index) => (
-                            <Link
-                                key={design.slug}
-                                href={`/customizing/${design.slug}`}
-                                className="group bg-white p-3 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-100 transition-all duration-300"
-                            >
-                                <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-100">
-                                    <Image
-                                        src={design.original_image_url}
-                                        alt={design.alt_text || `${displayName} cake design`}
-                                        fill
-                                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-                                        className="object-cover group-hover:scale-110 transition-transform duration-500"
-                                        unoptimized
-                                    />
-                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
-                                </div>
-                                <div className="px-1 mt-3">
-                                    <h2 className="font-bold text-gray-900 text-sm leading-tight line-clamp-2 group-hover:text-purple-600 transition-colors">
-                                        {design.alt_text || `${displayName} Cake`}
-                                    </h2>
-                                    <div className="flex justify-between items-end border-t border-gray-50 pt-2 mt-2">
-                                        <span className="font-black text-gray-900 text-base">
-                                            ₱{design.price?.toLocaleString() || 'Get Price'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </Link>
-                        ))}
+                    {/* Design Grid with Load More & Google Search */}
+                    <div className="mb-10">
+                        <DesignGridWithLoadMore initialDesigns={designs} keyword={decodedKeyword} />
                     </div>
 
                     {/* SEO Content */}
