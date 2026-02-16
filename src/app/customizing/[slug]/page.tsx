@@ -540,10 +540,6 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
     const mainToppers = analysis.main_toppers || [];
     const cakeMessages = analysis.cake_messages || [];
 
-    // Generate unique content for this specific design
-    const designDetails = generateDesignDetails(design, prices);
-    const dynamicFAQs = generateDynamicFAQ(design, prices);
-
     // Extract icing colors
     const icingColors: string[] = [];
     if (icingDesign.colors) {
@@ -661,16 +657,6 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
                         </div>
                     )}
 
-                    {/* Design Details — unique prose paragraph per cake for content depth */}
-                    {designDetails && (
-                        <div className="space-y-2 pt-2">
-                            <h2 className="text-sm font-semibold text-slate-700">Design Details</h2>
-                            <p className="text-sm text-slate-600 leading-relaxed">
-                                {designDetails}
-                            </p>
-                        </div>
-                    )}
-
                     {/* Price Display */}
                     {displayPrice && (
                         <div className="pt-2 border-t border-slate-200">
@@ -697,21 +683,6 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
                                     </div>
                                 ))}
                             </div>
-                        </div>
-                    )}
-
-                    {/* Dynamic FAQ — unique questions & answers per cake design */}
-                    {dynamicFAQs.length > 0 && (
-                        <div className="space-y-3 pt-4 border-t border-slate-200">
-                            <h2 className="text-sm font-semibold text-slate-700">Frequently Asked Questions</h2>
-                            <dl className="space-y-3">
-                                {dynamicFAQs.map((faq, i) => (
-                                    <div key={i} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
-                                        <dt className="text-sm font-medium text-slate-800 mb-1">{faq.question}</dt>
-                                        <dd className="text-xs text-slate-600 leading-relaxed">{faq.answer}</dd>
-                                    </div>
-                                ))}
-                            </dl>
                         </div>
                     )}
 
@@ -764,6 +735,47 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
                     </div>
                 </div>
             </article>
+        </div>
+    );
+}
+
+
+/**
+ * Persistent server-rendered content that is ALWAYS visible — never hidden by hydration.
+ * Lives outside #ssr-content and outside Suspense so both Googlebot and users see it.
+ * This avoids any cloaking concerns where crawlers see different content than users.
+ */
+function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceInfo[] }) {
+    const designDetails = generateDesignDetails(design, prices);
+    const dynamicFAQs = generateDynamicFAQ(design, prices);
+    const keywords = design.keywords || 'Custom';
+
+    return (
+        <div className="w-full max-w-4xl mx-auto px-4 pb-6 space-y-6">
+            {/* Design Details — unique prose paragraph per cake */}
+            {designDetails && (
+                <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
+                    <h2 className="text-lg font-bold text-slate-800 mb-2">About This {keywords} Cake</h2>
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                        {designDetails}
+                    </p>
+                </section>
+            )}
+
+            {/* Dynamic FAQ — unique questions & answers per cake design */}
+            {dynamicFAQs.length > 0 && (
+                <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
+                    <h2 className="text-lg font-bold text-slate-800 mb-4">Frequently Asked Questions</h2>
+                    <dl className="space-y-4">
+                        {dynamicFAQs.map((faq, i) => (
+                            <div key={i}>
+                                <dt className="text-sm font-semibold text-slate-800 mb-1">{faq.question}</dt>
+                                <dd className="text-sm text-slate-600 leading-relaxed">{faq.answer}</dd>
+                            </div>
+                        ))}
+                    </dl>
+                </section>
+            )}
         </div>
     );
 }
@@ -888,6 +900,9 @@ export default async function RecentSearchPage({ params }: Props) {
                     />
                 </CustomizationProvider>
             </Suspense>
+
+            {/* Persistent SEO content — always visible to both users and Googlebot */}
+            <SSRDesignContent design={design} prices={prices} />
         </>
     )
 }
