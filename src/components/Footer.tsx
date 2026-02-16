@@ -158,8 +158,21 @@ export const Footer = () => {
                             </div>
                         </div>
 
+                        {/* Helpful Links */}
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-6 text-sm text-gray-500">
+                            <Link href="/faq" className="hover:text-purple-600 transition-colors">
+                                FAQ
+                            </Link>
+                            <Link href="/cake-price-calculator" className="hover:text-purple-600 transition-colors">
+                                Cake Price Calculator
+                            </Link>
+                            <Link href="/compare" className="hover:text-purple-600 transition-colors">
+                                Compare Options
+                            </Link>
+                        </div>
+
                         {/* Legal Links */}
-                        <div className="flex items-center gap-6 mt-6 text-sm text-gray-500">
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3 text-sm text-gray-500">
                             <Link href="/terms" className="hover:text-purple-600 transition-colors">
                                 Terms of Service
                             </Link>

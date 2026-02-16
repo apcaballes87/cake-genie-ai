@@ -33,7 +33,7 @@ export default function ClientHashRedirect() {
         }
 
         // Static routes
-        const staticRoutes = ['/about', '/contact', '/how-to-order', '/reviews', '/cart', '/customizing', '/login', '/signup']
+        const staticRoutes = ['/about', '/contact', '/how-to-order', '/cart', '/customizing', '/login', '/signup']
         for (const route of staticRoutes) {
             if (path === route || path.startsWith(route + '/')) {
                 router.replace(path)
