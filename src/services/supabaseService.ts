@@ -602,9 +602,17 @@ export async function getDesignCategories(): Promise<SupabaseServiceResponse<{ k
       // Total count on the card
       const count = matchingItems.length;
 
-      // Find best sample image: prefer one where the keyword is the EXACT match (ignoring case) if possible
-      const exactMatchItem = matchingItems.find(item => (item.keywords || '').toLowerCase() === normalizedKw);
-      const sample_image = exactMatchItem ? exactMatchItem.original_image_url : matchingItems[0]?.original_image_url;
+      // Find best sample image:
+      // 1. Prefer ones hosted on our Supabase (reliable)
+      // 2. Prefer exact match keyword
+      // 3. Fallback to first available
+      const supabaseItems = matchingItems.filter(item =>
+        (item.original_image_url || '').includes('.supabase.co')
+      );
+
+      const candidates = supabaseItems.length > 0 ? supabaseItems : matchingItems;
+      const exactMatchItem = candidates.find(item => (item.keywords || '').toLowerCase() === normalizedKw);
+      const sample_image = exactMatchItem ? exactMatchItem.original_image_url : candidates[0]?.original_image_url;
 
       return {
         keyword: displayKeyword,
