@@ -158,30 +158,41 @@ export const Footer = () => {
                             </div>
                         </div>
 
-                        {/* Helpful Links */}
-                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-6 text-sm text-gray-500">
-                            <Link href="/faq" className="hover:text-purple-600 transition-colors">
-                                FAQ
-                            </Link>
-                            <Link href="/cake-price-calculator" className="hover:text-purple-600 transition-colors">
-                                Cake Price Calculator
-                            </Link>
-                            <Link href="/compare" className="hover:text-purple-600 transition-colors">
-                                Compare Options
-                            </Link>
-                        </div>
+                        {/* Footer Link Groups */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-4 mt-6 text-sm">
+                            {/* Explore */}
+                            <div>
+                                <h4 className="font-semibold text-gray-700 mb-2">Explore</h4>
+                                <div className="flex flex-col gap-1.5 text-gray-500">
+                                    <Link href="/shop" className="hover:text-purple-600 transition-colors">Shop</Link>
+                                    <Link href="/collections" className="hover:text-purple-600 transition-colors">Collections</Link>
+                                    <Link href="/customizing" className="hover:text-purple-600 transition-colors">Customize a Cake</Link>
+                                    <Link href="/blog" className="hover:text-purple-600 transition-colors">Blog</Link>
+                                </div>
+                            </div>
 
-                        {/* Legal Links */}
-                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3 text-sm text-gray-500">
-                            <Link href="/terms" className="hover:text-purple-600 transition-colors">
-                                Terms of Service
-                            </Link>
-                            <Link href="/privacy" className="hover:text-purple-600 transition-colors">
-                                Privacy Policy
-                            </Link>
-                            <Link href="/return-policy" className="hover:text-purple-600 transition-colors">
-                                Return Policy
-                            </Link>
+                            {/* Help */}
+                            <div>
+                                <h4 className="font-semibold text-gray-700 mb-2">Help</h4>
+                                <div className="flex flex-col gap-1.5 text-gray-500">
+                                    <Link href="/how-to-order" className="hover:text-purple-600 transition-colors">How to Order</Link>
+                                    <Link href="/faq" className="hover:text-purple-600 transition-colors">FAQ</Link>
+                                    <Link href="/cake-price-calculator" className="hover:text-purple-600 transition-colors">Cake Price Calculator</Link>
+                                    <Link href="/compare" className="hover:text-purple-600 transition-colors">Compare Options</Link>
+                                    <Link href="/contact" className="hover:text-purple-600 transition-colors">Contact Us</Link>
+                                </div>
+                            </div>
+
+                            {/* Legal */}
+                            <div>
+                                <h4 className="font-semibold text-gray-700 mb-2">Legal</h4>
+                                <div className="flex flex-col gap-1.5 text-gray-500">
+                                    <Link href="/about" className="hover:text-purple-600 transition-colors">About Us</Link>
+                                    <Link href="/terms" className="hover:text-purple-600 transition-colors">Terms of Service</Link>
+                                    <Link href="/privacy" className="hover:text-purple-600 transition-colors">Privacy Policy</Link>
+                                    <Link href="/return-policy" className="hover:text-purple-600 transition-colors">Return Policy</Link>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
