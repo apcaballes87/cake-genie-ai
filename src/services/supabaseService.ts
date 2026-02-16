@@ -10,6 +10,7 @@ import { calculatePriceFromDatabase } from './pricingService.database';
 import { roundDownToNearest99 } from '@/lib/utils/pricing';
 import { getDesignAvailability } from '@/lib/utils/availability';
 import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI } from '@/types';
+import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers';
 
 const supabase: SupabaseClient = getSupabaseClient();
 
@@ -406,15 +407,14 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
 
       const keywords = analysisResult.keyword || '';
 
-      // Generate SEO-friendly slug: keyword-XXXX (first 4 chars of pHash)
-      const slugBase = keywords
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .trim()
-        .replace(/\s+/g, '-')
-        .substring(0, 50) || 'custom-cake';
-      const hashSuffix = pHash.substring(0, 4);
-      const slug = `${slugBase}-${hashSuffix}`;
+      // Generate SEO-friendly slug: keyword + icing color + type + phash
+      const icingColor = analysisResult.icing_design?.colors?.top || analysisResult.icing_design?.colors?.side || null;
+      const slug = generateCakeAnalysisSlug({
+        keyword: keywords,
+        icingColor,
+        cakeType: analysisResult.cakeType,
+        pHash
+      });
 
       // Generate fallback SEO fields if AI didn't provide them
       const altText = analysisResult.alt_text || `${keywords || 'Custom'} cake design`;
