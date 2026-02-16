@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { LazyImage } from '@/components/LazyImage';
 import { ArrowRight } from 'lucide-react';
 
 export interface FeaturedCollectionItem {
@@ -68,12 +68,12 @@ export const FeaturedCollections: React.FC<FeaturedCollectionsProps> = ({ catego
                             href={`/collections/${cat.slug}`}
                             className={`group relative rounded-xl md:rounded-2xl overflow-hidden aspect-4/5 shadow-sm md:shadow-md hover:shadow-xl transition-all duration-300 min-w-[30%] lg:min-w-[calc((100%-96px)/5)] snap-center shrink-0 ${index >= 5 ? 'lg:hidden' : ''}`}
                         >
-                            <Image
+                            <LazyImage
                                 src={cat.sample_image || 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/placeholder-cake.jpg'}
                                 alt={displayName}
                                 fill
                                 sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 16vw"
-                                className="object-cover group-hover:scale-110 transition-transform duration-700"
+                                imageClassName="object-cover group-hover:scale-110 transition-transform duration-700"
                             />
                             <div className="absolute inset-x-0 bottom-0 h-2/3 bg-linear-to-t from-black/90 via-black/40 to-transparent opacity-90 group-hover:opacity-100 transition-opacity" />
 
