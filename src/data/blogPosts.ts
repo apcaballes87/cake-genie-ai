@@ -339,6 +339,7 @@ The key is to start early, stay organized, and enjoy the process. After all, thi
       "Ordering a custom cake doesn't have to break the bank. At Genie.ph, we've built smart customization features that put you in control of both the design and the budget.",
     date: '2026-02-14',
     author: 'Genie.ph',
+    image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/blogs/blog2.webp',
     content: `Ordering a custom cake doesn't have to break the bank. At Genie.ph, we've built smart customization features that put you in control of both the design and the budget. Whether you're planning a debut, baptism, or birthday celebration, here's how to maximize value while still getting a beautiful, personalized cake.
 
 ---

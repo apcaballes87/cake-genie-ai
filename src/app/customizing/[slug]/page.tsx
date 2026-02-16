@@ -115,9 +115,6 @@ export async function generateMetadata(
         },
         other: {
             thumbnail: design.original_image_url || '',
-            'image_src': design.original_image_url || '',
-            // PageMap DataObject for Google thumbnail
-            'pagemap': design.original_image_url ? `<DataObject type="thumbnail"><Attribute name="src">${design.original_image_url}</Attribute></DataObject>` : '',
         },
     }
 }
