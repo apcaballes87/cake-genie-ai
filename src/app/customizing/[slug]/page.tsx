@@ -339,6 +339,190 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
 
 
 /**
+ * Maps hex color codes to human-readable color names for prose generation.
+ * Uses the same palette defined in the AI system instruction.
+ */
+const HEX_TO_NAME: Record<string, string> = {
+    '#EF4444': 'red', '#FCA5A5': 'light red', '#F97316': 'orange',
+    '#EAB308': 'yellow', '#16A34A': 'green', '#4ADE80': 'light green',
+    '#14B8A6': 'teal', '#3B82F6': 'blue', '#93C5FD': 'light blue',
+    '#8B5CF6': 'purple', '#C4B5FD': 'light purple', '#EC4899': 'pink',
+    '#FBCFE8': 'light pink', '#78350F': 'brown', '#B45309': 'light brown',
+    '#64748B': 'gray', '#FFFFFF': 'white', '#000000': 'black',
+};
+
+function hexToName(hex: string): string {
+    if (!hex) return '';
+    const upper = hex.toUpperCase();
+    return HEX_TO_NAME[upper] || hex;
+}
+
+/**
+ * Generates a unique prose paragraph describing the cake design from its analysis data.
+ * This creates substantive, unique content per page to avoid thin-content penalties.
+ */
+function generateDesignDetails(design: any, prices?: BasePriceInfo[]): string {
+    const analysis = design.analysis_json || {};
+    const keywords = design.keywords || 'custom';
+    const cakeType = analysis.cakeType || 'Custom';
+    const icingDesign = analysis.icing_design || {};
+    const mainToppers = analysis.main_toppers || [];
+    const supportElements = analysis.support_elements || [];
+    const cakeMessages = analysis.cake_messages || [];
+    const availability = design.availability || 'normal';
+
+    const sentences: string[] = [];
+
+    // Sentence 1: Introduce the cake with its type and icing base
+    const icingBase = icingDesign.base?.replace(/[-_]/g, ' ') || 'soft icing';
+    const topColor = hexToName(icingDesign.colors?.top || '');
+    const sideColor = hexToName(icingDesign.colors?.side || '');
+    const colorDesc = topColor && sideColor && topColor !== sideColor
+        ? `a ${topColor} top and ${sideColor} sides`
+        : topColor ? `a ${topColor} base` : 'a custom color palette';
+    sentences.push(`This ${keywords} cake is a ${cakeType.toLowerCase()} design with ${icingBase} featuring ${colorDesc}.`);
+
+    // Sentence 2: Describe the main toppers (the hero elements)
+    if (mainToppers.length > 0) {
+        const topperDescs = mainToppers
+            .slice(0, 4)
+            .map((t: any) => t.description || t.type?.replace(/_/g, ' '))
+            .filter(Boolean);
+        if (topperDescs.length === 1) {
+            sentences.push(`The design is highlighted by ${topperDescs[0]}.`);
+        } else if (topperDescs.length > 1) {
+            const last = topperDescs.pop();
+            sentences.push(`The design features ${topperDescs.join(', ')}, and ${last}.`);
+        }
+    }
+
+    // Sentence 3: Describe support elements if present
+    if (supportElements.length > 0) {
+        const supportDescs = supportElements
+            .slice(0, 3)
+            .map((s: any) => {
+                const desc = s.description || s.type?.replace(/_/g, ' ');
+                return s.quantity > 1 ? `${s.quantity} ${desc}` : desc;
+            })
+            .filter(Boolean);
+        if (supportDescs.length > 0) {
+            const last = supportDescs.length > 1 ? supportDescs.pop() : null;
+            const joined = last ? `${supportDescs.join(', ')}, and ${last}` : supportDescs[0];
+            sentences.push(`Decorative accents include ${joined}.`);
+        }
+    }
+
+    // Sentence 4: Drip or special icing features
+    const specialFeatures: string[] = [];
+    if (icingDesign.drip) specialFeatures.push('a drip effect');
+    if (icingDesign.border_top) specialFeatures.push('a decorative top border');
+    if (icingDesign.border_base) specialFeatures.push('a base border');
+    if (icingDesign.gumpasteBaseBoard) specialFeatures.push('a gumpaste baseboard');
+    if (specialFeatures.length > 0) {
+        const last = specialFeatures.length > 1 ? specialFeatures.pop() : null;
+        const joined = last ? `${specialFeatures.join(', ')}, and ${last}` : specialFeatures[0];
+        sentences.push(`The icing work includes ${joined} for added detail.`);
+    }
+
+    // Sentence 5: Cake messages
+    if (cakeMessages.length > 0) {
+        const messages = cakeMessages.map((m: any) => `"${m.text}"`).join(' and ');
+        sentences.push(`The cake carries the message ${messages}.`);
+    }
+
+    // Sentence 6: Pricing and sizes
+    if (prices && prices.length > 0) {
+        const sorted = [...prices].sort((a, b) => a.price - b.price);
+        const lowest = sorted[0];
+        const highest = sorted[sorted.length - 1];
+        const sizeList = prices.map(p => p.size).join(', ');
+        sentences.push(`Available in ${sizeList}, this design starts at ₱${Math.round(lowest.price).toLocaleString()} and goes up to ₱${Math.round(highest.price).toLocaleString()} for the largest size.`);
+    }
+
+    // Sentence 7: Availability
+    const availabilityMap: Record<string, string> = {
+        'rush': 'This is a simple design eligible for rush orders — you can have it ready in as little as 30 minutes to 1 hour.',
+        'same-day': 'This design qualifies for same-day orders with approximately 3 to 4 hours of lead time.',
+        'normal': 'Due to the complexity of this design, we recommend ordering at least 1 day in advance for the best results.',
+    };
+    if (availabilityMap[availability]) {
+        sentences.push(availabilityMap[availability]);
+    }
+
+    return sentences.join(' ');
+}
+
+/**
+ * Generates dynamic FAQ items specific to this cake design.
+ * Each page gets unique Q&A content instead of identical boilerplate.
+ */
+function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { question: string; answer: string }[] {
+    const keywords = design.keywords || 'custom';
+    const analysis = design.analysis_json || {};
+    const cakeType = analysis.cakeType || 'Custom';
+    const availability = design.availability || 'normal';
+    const mainToppers = analysis.main_toppers || [];
+    const supportElements = analysis.support_elements || [];
+
+    const faqs: { question: string; answer: string }[] = [];
+
+    // FAQ 1: Price — always unique per design
+    if (prices && prices.length > 0) {
+        const sorted = [...prices].sort((a, b) => a.price - b.price);
+        const priceLines = sorted.map(p => `${p.size} at ₱${Math.round(p.price).toLocaleString()}`).join(', ');
+        faqs.push({
+            question: `How much does this ${keywords} cake cost?`,
+            answer: `This ${keywords} ${cakeType.toLowerCase()} cake is available in multiple sizes: ${priceLines}. The price includes the base icing, all decorations shown in the design, and free delivery within Metro Cebu. You can also customize individual elements which may adjust the final price.`,
+        });
+    }
+
+    // FAQ 2: Availability — varies by design complexity
+    const availabilityAnswers: Record<string, string> = {
+        'rush': `This ${keywords} cake design is simple enough for a rush order. You can have it ready in as little as 30 minutes to 1 hour, making it perfect for last-minute celebrations. Rush orders are available for pickup or delivery within Metro Cebu.`,
+        'same-day': `This ${keywords} cake can be prepared as a same-day order with approximately 3 to 4 hours of lead time. The design includes elements that require some preparation time, but you can still order and receive it on the same day. Place your order before noon for the best availability.`,
+        'normal': `This ${keywords} cake design requires at least 1 day of lead time due to its complexity. We recommend ordering at least 1 to 2 days in advance to ensure our bakers can craft every detail perfectly. Order by 3 PM for next-day delivery slots.`,
+    };
+    faqs.push({
+        question: `How soon can I get this ${keywords} cake?`,
+        answer: availabilityAnswers[availability] || availabilityAnswers['normal'],
+    });
+
+    // FAQ 3: Customization — varies based on what's actually on the cake
+    const customizableElements: string[] = [];
+    if (mainToppers.length > 0) {
+        const topperTypes = [...new Set(mainToppers.map((t: any) => t.type?.replace(/_/g, ' ')))];
+        customizableElements.push(`toppers (currently ${topperTypes.join(', ')})`);
+    }
+    if (analysis.icing_design) {
+        customizableElements.push('icing colors and style');
+    }
+    if (analysis.cake_messages?.length > 0) {
+        customizableElements.push('cake messages and text');
+    }
+    if (supportElements.length > 0) {
+        customizableElements.push('decorative accents');
+    }
+
+    if (customizableElements.length > 0) {
+        const lastEl = customizableElements.length > 1 ? customizableElements.pop() : null;
+        const joined = lastEl ? `${customizableElements.join(', ')}, and ${lastEl}` : customizableElements[0];
+        faqs.push({
+            question: `Can I customize this ${keywords} cake design?`,
+            answer: `Yes, you can fully customize this design. Editable elements include ${joined}. Use our AI-powered customizer to swap, add, or remove individual elements and see how each change affects the price in real time. For example, switching a toy topper to a printed one can adjust the cost.`,
+        });
+    }
+
+    // FAQ 4: Delivery — semi-dynamic with cake type context
+    faqs.push({
+        question: `Do you deliver this ${cakeType.toLowerCase()} cake in Cebu?`,
+        answer: `Yes, we offer free delivery for this ${keywords} ${cakeType.toLowerCase()} cake throughout Metro Cebu, including Cebu City, Mandaue, Mactan, Lapu-Lapu, and Talisay. We also serve select areas in Cavite. All cakes are delivered fresh by our partner bakers to ensure quality.`,
+    });
+
+    return faqs;
+}
+
+
+/**
  * Server-rendered cake design details displayed VISIBLY for both SEO and users.
  * This content is shown on initial page load before client hydration.
  * Once CustomizingClient hydrates, it takes over the interactive display.
@@ -358,6 +542,10 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
     const icingDesign = analysis.icing_design || {};
     const mainToppers = analysis.main_toppers || [];
     const cakeMessages = analysis.cake_messages || [];
+
+    // Generate unique content for this specific design
+    const designDetails = generateDesignDetails(design, prices);
+    const dynamicFAQs = generateDynamicFAQ(design, prices);
 
     // Extract icing colors
     const icingColors: string[] = [];
@@ -476,6 +664,16 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
                         </div>
                     )}
 
+                    {/* Design Details — unique prose paragraph per cake for content depth */}
+                    {designDetails && (
+                        <div className="space-y-2 pt-2">
+                            <h2 className="text-sm font-semibold text-slate-700">Design Details</h2>
+                            <p className="text-sm text-slate-600 leading-relaxed">
+                                {designDetails}
+                            </p>
+                        </div>
+                    )}
+
                     {/* Price Display */}
                     {displayPrice && (
                         <div className="pt-2 border-t border-slate-200">
@@ -502,6 +700,21 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    )}
+
+                    {/* Dynamic FAQ — unique questions & answers per cake design */}
+                    {dynamicFAQs.length > 0 && (
+                        <div className="space-y-3 pt-4 border-t border-slate-200">
+                            <h2 className="text-sm font-semibold text-slate-700">Frequently Asked Questions</h2>
+                            <dl className="space-y-3">
+                                {dynamicFAQs.map((faq, i) => (
+                                    <div key={i} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                                        <dt className="text-sm font-medium text-slate-800 mb-1">{faq.question}</dt>
+                                        <dd className="text-xs text-slate-600 leading-relaxed">{faq.answer}</dd>
+                                    </div>
+                                ))}
+                            </dl>
                         </div>
                     )}
 
