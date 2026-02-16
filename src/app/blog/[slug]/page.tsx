@@ -86,6 +86,17 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </h1>
         </header>
 
+        {/* Featured Image */}
+        {post.image && (
+          <div className="mb-8">
+            <img
+              src={post.image}
+              alt={post.title}
+              className="w-full h-auto rounded-xl shadow-md"
+            />
+          </div>
+        )}
+
         {/* Post Content */}
         <BlogContent content={post.content} />
       </article>
