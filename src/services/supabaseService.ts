@@ -547,6 +547,7 @@ export async function getDesignCategories(): Promise<SupabaseServiceResponse<{ k
       .from('cakegenie_analysis_cache')
       .select('keywords, original_image_url')
       .not('original_image_url', 'is', null)
+      .neq('original_image_url', '')
       .not('slug', 'is', null)
       .neq('keywords', '');
 
