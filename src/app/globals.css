@@ -21,11 +21,14 @@
 /* --- Search Pagination Styles --- */
 .gsc-cursor-box {
   display: block !important;
+  column-span: all !important;
+  width: 100% !important;
 }
 
 .gsc-cursor-area {
   display: flex !important;
   justify-content: center;
+  flex-wrap: wrap !important;
   padding: 20px 0;
   gap: 8px;
 }
@@ -249,9 +252,17 @@
 /* Tawk.to widget - using native sizing (configure size in Tawk.to dashboard) */
 
 /* --- Google Search Results Fix --- */
-/* Force GSC to take full width */
-#google-search-container {
+/* Force GSC to take full width and prevent overflow */
+#google-search-container,
+#google-search-container-collections {
   width: 100% !important;
+  overflow: hidden !important;
+}
+
+#google-search-container *,
+#google-search-container-collections * {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .gsc-control-cse {
@@ -262,7 +273,9 @@
   border: none !important;
 }
 
-.gsc-results-wrapper-visible {
+.gsc-results-wrapper-visible,
+.gsc-results-wrapper-nooverlay,
+.gsc-results-wrapper-overlay {
   width: 100% !important;
   max-width: 100% !important;
 }
@@ -271,18 +284,90 @@
   width: 100% !important;
 }
 
-.gsc-expansionArea {
+.gsc-results {
   width: 100% !important;
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 16px !important;
 }
 
-/* Ensure image results occupy space but dont force fixed width that breaks 1-column */
+/* Masonry / staggered grid using CSS columns */
+.gsc-expansionArea {
+  width: 100% !important;
+  display: block !important;
+  columns: 2 !important;
+  column-gap: 10px !important;
+}
+
+@media (min-width: 490px) {
+  .gsc-expansionArea {
+    columns: 3 !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .gsc-expansionArea {
+    columns: 4 !important;
+    column-gap: 12px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .gsc-expansionArea {
+    columns: 5 !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  .gsc-expansionArea {
+    columns: 6 !important;
+  }
+}
+
+/* Each image result is a masonry item — prevent column breaks inside */
 .gsc-imageResult {
-  width: auto !important;
+  width: 100% !important;
   float: none !important;
   display: inline-block !important;
+  break-inside: avoid !important;
+  margin: 0 0 10px 0 !important;
+  padding: 0 !important;
+}
+
+@media (min-width: 768px) {
+  .gsc-imageResult {
+    margin: 0 0 12px 0 !important;
+  }
+}
+
+/* Override Google's inline table layout */
+.gsc-imageResult > div,
+.gsc-imageResult .gs-result,
+.gsc-imageResult .gs-image-box {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Constrain the image box and images to their container */
+.gs-image-box {
+  width: 100% !important;
+  overflow: hidden !important;
+  border-radius: 12px !important;
+}
+
+.gs-image-box a.gs-image {
+  display: block !important;
+  width: 100% !important;
+}
+
+/* Let images show at natural aspect ratio — no cropping */
+#google-search-container .gsc-imageResult img,
+#google-search-container .gs-image-box img,
+#google-search-container-collections .gsc-imageResult img,
+#google-search-container-collections .gs-image-box img {
+  width: 100% !important;
+  height: auto !important;
+  object-fit: cover !important;
+  border-radius: 12px !important;
+  max-width: 100% !important;
+  display: block !important;
 }
 
 /* Remove default styles that might constrain */
@@ -291,6 +376,44 @@
   border-color: transparent !important;
   background-color: transparent !important;
   padding: 0 !important;
+}
+
+/* Override Google's table-based layout that forces fixed widths */
+.gsc-table-result,
+.gsc-table-result > tbody,
+.gsc-table-result > tbody > tr {
+  display: block !important;
+  width: 100% !important;
+}
+
+.gsc-table-cell-thumbnail {
+  display: block !important;
+  width: 100% !important;
+  padding: 0 !important;
+}
+
+/* Hide snippet cells that Google adds next to thumbnails */
+.gsc-table-cell-snippet-close,
+.gsc-table-cell-snippet-open {
+  display: none !important;
+}
+
+/* Ensure thumbnail divs stretch */
+div.gs-image-box,
+div.gs-result .gs-image-box {
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+div.gs-image-box div.gs-image {
+  width: 100% !important;
+}
+
+/* Override any fixed-width inline styles Google injects */
+.gsc-imageResult[style],
+.gs-image-box[style],
+.gs-image[style] {
+  width: 100% !important;
 }
 
 /* --- Blog Content Styles --- */
