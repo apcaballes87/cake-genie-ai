@@ -85,7 +85,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
     const [selectedCategory, setSelectedCategory] = useState('All');
-    const [currentPromoIndex, setCurrentPromoIndex] = useState(0);
     const [imageIndex, setImageIndex] = useState(0);
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
 
@@ -190,104 +189,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
         { id: 6, name: "Vlog", color: "bg-orange-100" },
     ];
 
-    type Promo = {
-        id: number;
-        tag: string;
-        title: string;
-        buttonText: string;
-        gradient: string;
-        shadow: string;
-        icon: string | React.ReactNode;
-        imageUrl?: string;
-        action?: () => void;
-    };
-
-    const [touchStart, setTouchStart] = useState<number | null>(null);
-    const [touchEnd, setTouchEnd] = useState<number | null>(null);
-
-    // Minimum swipe distance (in px)
-    const minSwipeDistance = 50;
-
-    const onTouchStart = (e: React.TouchEvent) => {
-        setTouchEnd(null); // Reset touch end
-        setTouchStart(e.targetTouches[0].clientX);
-    };
-
-    const onTouchMove = (e: React.TouchEvent) => {
-        setTouchEnd(e.targetTouches[0].clientX);
-    };
-
-    const onTouchEnd = () => {
-        if (!touchStart || !touchEnd) return;
-        const distance = touchStart - touchEnd;
-        const isLeftSwipe = distance > minSwipeDistance;
-        const isRightSwipe = distance < -minSwipeDistance;
-
-        if (isLeftSwipe) {
-            handleNextPromo();
-        }
-        if (isRightSwipe) {
-            handlePrevPromo();
-        }
-    };
-
-    const handleApplyPromo = () => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('cart_discount_code', 'NEW20');
-            showSuccess('Discount code NEW20 applied!');
-        }
-    };
-
-    const PROMO_COUNT = 3; // Keep in sync with promos array length
-
-    const promos: Promo[] = [
-        {
-            id: 1,
-            tag: "PROMO",
-            title: "Get 20% OFF Custom designs for new users",
-            buttonText: "Get Discount Code",
-            gradient: "bg-gradient-to-r from-purple-500 to-pink-500",
-            shadow: "shadow-purple-200",
-            icon: "🎂",
-            action: handleApplyPromo
-        },
-        {
-            id: 4,
-            tag: "FEATURE",
-            title: "Have a cake photo? Get Price Now",
-            buttonText: "Upload Photo",
-            gradient: "bg-gradient-to-r from-pink-500 to-rose-500",
-            shadow: "shadow-pink-200",
-            icon: "📸",
-            action: () => setIsUploaderOpen(true)
-        },
-        {
-            id: 5,
-            tag: "PARTNER",
-            title: "Call for Bakeshops",
-            buttonText: "",
-            gradient: "bg-gray-100", // Fallback
-            shadow: "shadow-gray-200",
-            icon: null,
-            imageUrl: COMMON_ASSETS.callForBakeshops,
-            action: () => window.open('https://pro.genie.ph', '_blank')
-        }
-    ];
-
-    const handleNextPromo = useCallback(() => {
-        setCurrentPromoIndex((prev) => (prev + 1) % PROMO_COUNT);
-    }, []);
-
-    const handlePrevPromo = useCallback(() => {
-        setCurrentPromoIndex((prev) => (prev - 1 + PROMO_COUNT) % PROMO_COUNT);
-    }, []);
-
-    useEffect(() => {
-        const timer = setInterval(() => {
-            handleNextPromo();
-        }, 4000); // Auto-scroll every 4 seconds
-        return () => clearInterval(timer);
-    }, [handleNextPromo]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -502,94 +403,23 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
 
 
-                        {/* Hero Promo Slider (Adaptive Height) */}
-                        <div className="mb-8 group">
+                        {/* Hero Section */}
+                        <div className="mb-8">
                             <div
-                                className="relative overflow-hidden rounded-3xl shadow-xl shadow-purple-100/50 h-56 md:h-80 lg:h-96 touch-pan-y"
-                                onTouchStart={onTouchStart}
-                                onTouchMove={onTouchMove}
-                                onTouchEnd={onTouchEnd}
+                                onClick={() => setIsUploaderOpen(true)}
+                                onKeyDown={(e) => e.key === 'Enter' && setIsUploaderOpen(true)}
+                                role="button"
+                                tabIndex={0}
+                                aria-label="Upload your cake design"
+                                className="relative overflow-hidden rounded-3xl shadow-xl shadow-purple-100/50 h-56 md:h-72 lg:h-[21.6rem] cursor-pointer hover:shadow-2xl transition-all active:scale-[0.99]"
                             >
-                                <div
-                                    className="flex transition-transform duration-700 ease-[cubic-bezier(0.25,0.1,0.25,1)] h-full"
-                                    style={{ transform: `translateX(-${currentPromoIndex * 100}%)` }}
-                                >
-                                    {promos.map((promo) => (
-                                        <div
-                                            key={promo.id}
-                                            className={`w-full shrink-0 ${promo.imageUrl ? 'p-0' : 'p-6 md:p-12'} ${promo.gradient} text-white relative flex items-center h-full`}
-                                            onClick={() => promo.action && promo.action()}
-                                        >
-                                            {promo.imageUrl ? (
-                                                <LazyImage
-                                                    src={promo.imageUrl}
-                                                    alt={promo.title}
-                                                    className="w-full h-full object-cover cursor-pointer"
-                                                    priority={true}
-                                                    fill
-                                                />
-                                            ) : (
-                                                <>
-                                                    {/* Content */}
-                                                    <div className="relative z-10 w-2/3 md:w-1/2 flex flex-col items-start justify-center h-full">
-                                                        <span className="bg-white/20 px-3 py-1 rounded-lg text-[10px] md:text-xs font-bold backdrop-blur-md mb-4 inline-block border border-white/10 shadow-sm">
-                                                            {promo.tag}
-                                                        </span>
-                                                        <h2 className="text-[clamp(1.25rem,5.5vw,1.875rem)] md:text-2xl lg:text-3xl font-black leading-tight mb-4 md:mb-6 drop-shadow-sm line-clamp-3">{promo.title}</h2>
-                                                        <button
-                                                            className="bg-white text-gray-900 px-6 py-3 md:px-8 md:py-3.5 rounded-full text-xs md:text-sm font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all active:scale-95"
-                                                        >
-                                                            {promo.buttonText}
-                                                        </button>
-                                                    </div>
-                                                    {/* Decorative Icon */}
-                                                    <div className="absolute -right-4 md:right-8 lg:right-16 top-1/2 transform -translate-y-1/2 text-[9rem] md:text-[16rem] lg:text-[20rem] opacity-25 rotate-12 select-none pointer-events-none filter drop-shadow-lg transition-transform duration-700 group-hover:rotate-6 group-hover:scale-110">
-                                                        {promo.icon}
-                                                    </div>
-                                                    {/* Decorative Blobs */}
-                                                    <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
-                                                </>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Navigation Arrows */}
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handlePrevPromo();
-                                    }}
-                                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/30 hover:bg-white/50 backdrop-blur-md text-white p-2 rounded-full shadow-lg transition-all z-20 opacity-0 group-hover:opacity-100 hidden md:flex items-center justify-center"
-                                    aria-label="Previous Slide"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-                                </button>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleNextPromo();
-                                    }}
-                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/30 hover:bg-white/50 backdrop-blur-md text-white p-2 rounded-full shadow-lg transition-all z-20 opacity-0 group-hover:opacity-100 hidden md:flex items-center justify-center"
-                                    aria-label="Next Slide"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-                                </button>
-
-                                {/* Dots Indicator */}
-                                <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2 z-20">
-                                    {promos.map((_, index) => (
-                                        <button
-                                            key={index}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setCurrentPromoIndex(index);
-                                            }}
-                                            className={`h-1.5 md:h-2 rounded-full transition-all duration-300 backdrop-blur-sm shadow-sm ${index === currentPromoIndex ? 'w-6 md:w-8 bg-white' : 'w-2 bg-white/40 hover:bg-white/60'
-                                                }`}
-                                        />
-                                    ))}
-                                </div>
+                                <LazyImage
+                                    src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/geniehero-med.webp"
+                                    alt="Genie.ph Hero - Click to upload your design"
+                                    className="w-full h-full object-cover"
+                                    priority={true}
+                                    fill
+                                />
                             </div>
                         </div>
 
