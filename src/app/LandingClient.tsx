@@ -411,7 +411,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 role="button"
                                 tabIndex={0}
                                 aria-label="Upload your cake design"
-                                className="relative overflow-hidden rounded-3xl shadow-xl shadow-purple-100/50 h-56 md:h-72 lg:h-[21.6rem] cursor-pointer hover:shadow-2xl transition-all active:scale-[0.99]"
+                                className="relative overflow-hidden rounded-3xl shadow-xl shadow-purple-100/50 h-[12.6rem] md:h-72 lg:h-[21.6rem] cursor-pointer hover:shadow-2xl transition-all active:scale-[0.99]"
                             >
                                 <LazyImage
                                     src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/geniehero-med.webp"
