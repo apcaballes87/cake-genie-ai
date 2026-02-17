@@ -33,7 +33,7 @@ import { reportCustomization, uploadReportImage, getAnalysisByExactHash, getRela
 import ReportModal from '../../components/ReportModal';
 import ShareModal from '../../components/ShareModal';
 import { CartItemDetails } from '../../types';
-import CollapsibleFAQ from '@/components/CollapsibleFAQ';
+
 
 // Hooks
 import { useCakeCustomization } from '@/contexts/CustomizationContext';
@@ -3548,10 +3548,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 </div>
             )}
 
-            {/* FAQ Section */}
-            <div className="mb-12">
-                <CollapsibleFAQ />
-            </div>
+            {/* FAQ Section — now rendered as SSR content in SSRDesignContent for SEO */}
 
             <StickyAddToCartBar
                 price={finalPrice}

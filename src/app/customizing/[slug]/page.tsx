@@ -515,6 +515,12 @@ function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { question: 
         answer: `Yes, we offer free delivery for this ${keywords} ${cakeType.toLowerCase()} cake throughout Metro Cebu, including Cebu City, Mandaue, Mactan, Lapu-Lapu, and Talisay. We also serve select areas in Cavite. All cakes are delivered fresh by our partner bakers to ensure quality.`,
     });
 
+    // FAQ 5: Payment methods — static but important for conversions and trust
+    faqs.push({
+        question: 'What payment options are available?',
+        answer: 'We accept e-wallets (GCash and Maya), bank transfers (BDO, BPI, and Metrobank), and all major credit and debit cards processed securely via Xendit. You can choose your preferred payment method at checkout.',
+    });
+
     return faqs;
 }
 
@@ -762,18 +768,37 @@ function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceI
                 </section>
             )}
 
-            {/* Dynamic FAQ — unique questions & answers per cake design */}
+            {/* Combined FAQ — dynamic per-cake questions + general store info */}
             {dynamicFAQs.length > 0 && (
                 <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
-                    <h2 className="text-lg font-bold text-slate-800 mb-4">Frequently Asked Questions</h2>
-                    <dl className="space-y-4">
+                    <h2 className="text-xl font-bold text-slate-800 mb-4 text-center">Frequently Asked Questions</h2>
+                    <div className="space-y-3">
                         {dynamicFAQs.map((faq, i) => (
-                            <div key={i}>
-                                <dt className="text-sm font-semibold text-slate-800 mb-1">{faq.question}</dt>
-                                <dd className="text-sm text-slate-600 leading-relaxed">{faq.answer}</dd>
-                            </div>
+                            <details
+                                key={i}
+                                className="group bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-200 hover:shadow-md"
+                                {...(i === 0 ? { open: true } : {})}
+                            >
+                                <summary className="flex items-center justify-between p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                                    <span className="font-semibold text-slate-700 group-open:text-purple-900 text-sm">
+                                        {faq.question}
+                                    </span>
+                                    <svg
+                                        className="w-5 h-5 text-slate-400 transition-transform duration-300 group-open:rotate-180 shrink-0 ml-2"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        strokeWidth={2}
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </summary>
+                                <div className="px-4 pb-4 text-sm text-slate-600 leading-relaxed">
+                                    {faq.answer}
+                                </div>
+                            </details>
                         ))}
-                    </dl>
+                    </div>
                 </section>
             )}
         </div>
