@@ -238,6 +238,9 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                                         ref={inputRef}
                                         type="text"
                                         placeholder="Search for a building or street..."
+                                        autoComplete="off"
+                                        name="map-search-no-autofill"
+                                        aria-autocomplete="none"
                                         className="w-full px-4 py-3 bg-white rounded-full shadow-lg border border-slate-300 focus:ring-2 focus:ring-pink-500 focus:outline-none text-sm"
                                     />
                                 </div>
