@@ -9,6 +9,7 @@ import { getCakeBasePriceOptions, getRelatedProductsByKeywords } from '@/service
 import { CakeType, BasePriceInfo, HybridAnalysisResult, CakeInfoUI, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI } from '@/types'
 import { CustomizationProvider, CustomizationState } from '@/contexts/CustomizationContext'
 // FAQPageSchema deprecated (restricted to gov/healthcare Aug 2023) — using HTML accordions instead
+import { DesignAboutSection } from '@/components/DesignAboutSection'
 import { v4 as uuidv4 } from 'uuid'
 
 // Helper to fetch design by exact slug only
@@ -917,18 +918,11 @@ export default async function RecentSearchPage({ params }: Props) {
                         currentSlug={slug}
                         seoContentSlot={
                             generateDesignDetails(design, prices) ? (
-                                <div className="mb-3">
-                                    <h2 className="text-sm font-semibold text-slate-700 mb-2">About This {design.keywords || 'Custom'} Cake</h2>
-                                    <p className="text-sm text-slate-600 leading-relaxed">
-                                        {generateDesignDetails(design, prices)}
-                                    </p>
-                                    <p className="text-xs text-red-400 mt-4 flex items-center justify-center gap-1.5 text-center">
-                                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        Design inspiration shared by customer for pricing—final cake may vary slightly.
-                                    </p>
-                                </div>
+                                <DesignAboutSection
+                                    title={`About This ${design.keywords || 'Custom'} Cake`}
+                                    description={generateDesignDetails(design, prices) || ''}
+                                    showDisclaimer={true}
+                                />
                             ) : undefined
                         }
                     />
