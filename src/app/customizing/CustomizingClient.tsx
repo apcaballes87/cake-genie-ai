@@ -27,6 +27,7 @@ import { ColorPalette } from '../../components/ColorPalette';
 import { CakeMessagesOptions } from '../../components/CakeMessagesOptions';
 import { CakeToppersOptions } from '../../components/CakeToppersOptions';
 import { TopperCard } from '../../components/TopperCard';
+import { DesignAboutSection } from '@/components/DesignAboutSection';
 import StickyAddToCartBar from '../../components/StickyAddToCartBar';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
 import { reportCustomization, uploadReportImage, getAnalysisByExactHash, getRelatedProductsByKeywords } from '../../services/supabaseService';
@@ -2941,29 +2942,21 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 <>
                                     {/* Product Description */}
                                     {product && (product.long_description || product.short_description) && (
-                                        <div className="mb-3">
-                                            <h2 className="text-sm font-semibold text-slate-700 mb-2">About This Cake</h2>
-                                            <p className="text-sm text-slate-600 leading-relaxed">
-                                                {product.long_description || product.short_description}
-                                            </p>
-                                        </div>
+                                        <DesignAboutSection
+                                            title="About This Cake"
+                                            description={product.long_description || product.short_description || ''}
+                                            showDisclaimer={false}
+                                        />
                                     )}
 
                                     {/* Design Description */}
                                     {((recentSearchDesign && (recentSearchDesign.seo_description || recentSearchDesign.alt_text)) ||
                                         (analysisResult && (analysisResult.seo_description || analysisResult.alt_text))) && (
-                                            <div className="mb-3">
-                                                <h2 className="text-sm font-semibold text-slate-700 mb-2">About This Design</h2>
-                                                <p className="text-sm text-slate-600 leading-relaxed">
-                                                    {analysisResult?.seo_description || analysisResult?.alt_text || recentSearchDesign?.seo_description || recentSearchDesign?.alt_text}
-                                                </p>
-                                                <p className="text-xs text-red-400 mt-4 flex items-center justify-center gap-1.5 text-center">
-                                                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    Design inspiration shared by customer for pricing—final cake may vary slightly.
-                                                </p>
-                                            </div>
+                                            <DesignAboutSection
+                                                title="About This Design"
+                                                description={analysisResult?.seo_description || analysisResult?.alt_text || recentSearchDesign?.seo_description || recentSearchDesign?.alt_text || ''}
+                                                showDisclaimer={true}
+                                            />
                                         )}
 
                                     {product && product.tags && product.tags.length > 0 && (
