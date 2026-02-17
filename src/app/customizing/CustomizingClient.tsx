@@ -2056,7 +2056,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             </div>
         </div>
 
-        <div className="flex flex-col items-center gap-4 w-full max-w-7xl mx-auto pb-28 px-4">
+        <div className="flex flex-col items-center gap-4 w-full max-w-7xl mx-auto pb-10 px-4">
 
             {/* SEO Breadcrumbs - Visible for both Shop Product and SEO Landing Pages */}
             {((product && merchant) || (recentSearchDesign && recentSearchDesign.slug)) && (
@@ -3461,7 +3461,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
             {/* Related Designs Section */}
             {displayedRelatedDesigns && displayedRelatedDesigns.length > 0 && (
-                <div className="w-full pb-0 pt-2 mb-0">
+                <div className="w-full pb-0 pt-0 mb-0">
                     <h2 className="text-lg font-semibold text-slate-800 mb-4">What other designs are trending in Cebu?</h2>
                     <div className="flex flex-wrap justify-center gap-3">
                         {displayedRelatedDesigns.map((related, i) => (
@@ -3529,7 +3529,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                     {/* Show More Button */}
                     {hasMoreDesigns && (
-                        <div className="flex justify-center mt-2">
+                        <div className="flex justify-center mt-6">
                             <button
                                 onClick={handleLoadMoreDesigns}
                                 disabled={isLoadingMoreDesigns}
@@ -3552,44 +3552,42 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     )}
                 </div>
             )}
-
-            {/* FAQ Section — now rendered as SSR content in SSRDesignContent for SEO */}
-
-            <StickyAddToCartBar
-                price={finalPrice}
-                isLoading={isFetchingBasePrice}
-                isAdding={isAddingToCart}
-                error={basePriceError}
-                onAddToCartClick={onAddToCart}
-                onShareClick={onShare}
-                isSharing={isSharing}
-                canShare={!!analysisResult}
-                isAnalyzing={isAnalyzing}
-                cakeInfo={cakeInfo}
-                warningMessage={isSafetyFallback ? "AI editing disabled for adult-themed content. Your design changes will still be saved." : warningMessage}
-                warningDescription={warningDescription}
-                onWarningClick={warningMessage && !isSafetyFallback ? () => setActiveCustomization('toppers') : undefined}
-                availability={availabilityType}
-            />
-            <ReportModal
-                isOpen={isReportModalOpen}
-                onClose={() => setIsReportModalOpen(false)}
-                onSubmit={handleReport}
-                isSubmitting={isReporting}
-                editedImage={editedImage}
-                details={analysisResult ? buildCartItemDetails() : null}
-                cakeInfo={cakeInfo}
-            />
-            <ShareModal
-                isOpen={isShareModalOpen}
-                onClose={closeShareModal}
-                shareData={shareData}
-                onCreateLink={createShareLink}
-                isSaving={isSavingDesign}
-                finalPrice={finalPrice}
-                imageUrl={editedImage || originalImagePreview || ''}
-            />
         </div >
+
+        <StickyAddToCartBar
+            price={finalPrice}
+            isLoading={isFetchingBasePrice}
+            isAdding={isAddingToCart}
+            error={basePriceError}
+            onAddToCartClick={onAddToCart}
+            onShareClick={onShare}
+            isSharing={isSharing}
+            canShare={!!analysisResult}
+            isAnalyzing={isAnalyzing}
+            cakeInfo={cakeInfo}
+            warningMessage={isSafetyFallback ? "AI editing disabled for adult-themed content. Your design changes will still be saved." : warningMessage}
+            warningDescription={warningDescription}
+            onWarningClick={warningMessage && !isSafetyFallback ? () => setActiveCustomization('toppers') : undefined}
+            availability={availabilityType}
+        />
+        <ReportModal
+            isOpen={isReportModalOpen}
+            onClose={() => setIsReportModalOpen(false)}
+            onSubmit={handleReport}
+            isSubmitting={isReporting}
+            editedImage={editedImage}
+            details={analysisResult ? buildCartItemDetails() : null}
+            cakeInfo={cakeInfo}
+        />
+        <ShareModal
+            isOpen={isShareModalOpen}
+            onClose={closeShareModal}
+            shareData={shareData}
+            onCreateLink={createShareLink}
+            isSaving={isSavingDesign}
+            finalPrice={finalPrice}
+            imageUrl={editedImage || originalImagePreview || ''}
+        />
     </>);
 };
 
