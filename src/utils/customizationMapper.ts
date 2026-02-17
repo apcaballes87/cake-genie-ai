@@ -9,9 +9,12 @@ import {
     CakeType,
     CakeFlavor,
     IcingColorDetails,
+    BasePriceInfo,
 } from '@/types';
 import { DEFAULT_THICKNESS_MAP, DEFAULT_SIZE_MAP, DEFAULT_ICING_DESIGN } from '@/constants';
 import { CustomizationState } from '@/contexts/CustomizationContext';
+import { CakeGenieMerchantProduct } from '@/lib/database.types';
+import { AvailabilityType } from '@/lib/utils/availability';
 
 export function mapAnalysisToState(rawData: HybridAnalysisResult): CustomizationState {
     const state: CustomizationState = {};
@@ -123,4 +126,42 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
     // The consumer might generate one.
 
     return state;
+}
+
+/**
+ * Creates a clean default CustomizationState for a product.
+ * This is used when a product page doesn't have pre-computed AI analysis (no p_hash).
+ * It prevents localStorage fallback and state leakage between products.
+ * 
+ * @param product - The product to create default state for (optional, for future use)
+ * @param prices - Available price options (optional, for future use)
+ * @returns A clean CustomizationState with default values
+ */
+export function mapProductToDefaultState(
+    product?: CakeGenieMerchantProduct,
+    prices?: BasePriceInfo[]
+): CustomizationState {
+    // Default to '1 Tier' cake type
+    const defaultCakeType: CakeType = '1 Tier';
+
+    return {
+        cakeInfo: {
+            type: defaultCakeType,
+            thickness: DEFAULT_THICKNESS_MAP[defaultCakeType] || '3 in',
+            flavors: ['Chocolate Cake'],
+            size: DEFAULT_SIZE_MAP[defaultCakeType] || '6" Round'
+        },
+        mainToppers: [],
+        supportElements: [],
+        cakeMessages: [],
+        icingDesign: {
+            ...DEFAULT_ICING_DESIGN,
+            dripPrice: 100,
+            gumpasteBaseBoardPrice: 100
+        },
+        additionalInstructions: '',
+        analysisResult: null,
+        analysisId: null,
+        availability: 'normal' as AvailabilityType
+    };
 }

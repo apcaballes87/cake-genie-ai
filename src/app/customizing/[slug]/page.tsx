@@ -11,6 +11,7 @@ import { CustomizationProvider, CustomizationState } from '@/contexts/Customizat
 // FAQPageSchema deprecated (restricted to gov/healthcare Aug 2023) — using HTML accordions instead
 import { DesignAboutSection } from '@/components/DesignAboutSection'
 import { v4 as uuidv4 } from 'uuid'
+import { mapProductToDefaultState } from '@/utils/customizationMapper'
 
 // Helper to fetch design by exact slug only
 async function getDesign(supabase: any, slug: string) {
@@ -836,7 +837,8 @@ export default async function RecentSearchPage({ params }: Props) {
     // Prepare State for Hydration (SSR)
     const analysis: HybridAnalysisResult | null = design.analysis_json ? { ...design.analysis_json } : null;
 
-    let initialState: CustomizationState | undefined;
+    // Always provide initialData to prevent localStorage fallback and state leakage
+    let initialState: CustomizationState;
     if (analysis) {
         // Construct the initial state matching CustomizationContext structure
         const cakeType: CakeType = analysis.cakeType || '1 Tier';
@@ -893,6 +895,9 @@ export default async function RecentSearchPage({ params }: Props) {
             analysisId: design.slug, // Using slug or p_hash as ID
             availability: design.availability
         };
+    } else {
+        // No analysis available - use clean default state to prevent localStorage fallback
+        initialState = mapProductToDefaultState(undefined, prices);
     }
 
     return (

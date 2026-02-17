@@ -371,8 +371,9 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         setIsCustomizationDirty(false);
         setDirtyFields(new Set());
         setSEOMetadata(null);
-        // Clear the stored image ref when clearing customization
+        // Clear ALL localStorage data to prevent state leakage between products
         localStorage.removeItem('cakegenie_analysis');
+        localStorage.removeItem('cakegenie_customization');
     }, []);
 
     const handleApplyAnalysis = useCallback((rawData: HybridAnalysisResult, options?: { skipToast?: boolean }) => {
