@@ -1,7 +1,7 @@
 'use client';
 
 import React, { Dispatch, SetStateAction, useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import Link from 'next/link';
 import LazyImage from '@/components/LazyImage';
 import { v4 as uuidv4 } from 'uuid';
@@ -372,6 +372,8 @@ interface CustomizingClientProps {
 const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const params = useParams();
+    const slug = params?.slug || currentSlug;
 
     // --- Context Hooks ---
     const { user, isAuthenticated, signOut } = useAuth();

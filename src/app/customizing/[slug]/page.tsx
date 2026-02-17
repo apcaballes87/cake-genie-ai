@@ -761,9 +761,15 @@ function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceI
             {/* Design Details — unique prose paragraph per cake */}
             {designDetails && (
                 <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
-                    <h2 className="text-lg font-bold text-slate-800 mb-2">About This {keywords} Cake</h2>
+                    <h2 className="text-sm font-semibold text-slate-700 mb-2">About This {keywords} Cake</h2>
                     <p className="text-sm text-slate-600 leading-relaxed">
                         {designDetails}
+                    </p>
+                    <p className="text-xs text-red-400 mt-4 flex items-center justify-center gap-1.5 text-center">
+                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Design inspiration shared by customer for pricing—final cake may vary slightly.
                     </p>
                 </section>
             )}
