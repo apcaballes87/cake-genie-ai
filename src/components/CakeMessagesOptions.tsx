@@ -38,7 +38,9 @@ const MessageCard: React.FC<{
                     </div>
                 )}
                 <div className="flex-grow">
-                    <div className="text-xs font-medium text-slate-800">"{message.text}"</div>
+                    <div className={`text-xs font-medium ${message.text ? 'text-slate-800' : 'text-slate-400 italic'}`}>
+                        "{message.text || message.originalMessage?.text || 'New Message'}"
+                    </div>
                     <div className="text-[10px] text-slate-500 mt-0.5">{positionLabel}</div>
                 </div>
                 <PencilIcon className="w-4 h-4 text-slate-400" />
@@ -54,9 +56,9 @@ const MessageCard: React.FC<{
                             id={`msg-text-${message.id}`}
                             type="text"
                             value={message.text}
-                            onChange={(e) => updateCakeMessage(message.id, { text: e.target.value })}
+                            onChange={(e) => updateCakeMessage(message.id, { text: e.target.value, isPlaceholder: false })}
                             className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                            placeholder="Enter message text..."
+                            placeholder={message.originalMessage?.text || "Enter message text..."}
                         />
                     </div>
 

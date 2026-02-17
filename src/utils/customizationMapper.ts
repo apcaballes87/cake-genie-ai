@@ -93,10 +93,12 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
         ...msg,
         x: msg.x,
         y: msg.y,
+        text: '', // Start with empty text, use original as placeholder
         id: uuidv4(),
         isEnabled: true,
         price: 0,
-        originalMessage: { ...msg }
+        originalMessage: { ...msg },
+        isPlaceholder: true
     }));
 
     // 5. Icing Design
