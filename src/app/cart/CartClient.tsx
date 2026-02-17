@@ -1203,7 +1203,14 @@ function CartClient() {
                                                         <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm">
                                                             <p className="font-semibold text-slate-700">{selectedAddress.recipient_name}</p>
                                                             <p className="text-slate-500">{selectedAddress.recipient_phone}</p>
-                                                            <p className="text-slate-500 mt-1">{selectedAddress.street_address}</p>
+                                                            {selectedAddress.latitude && selectedAddress.longitude ? (
+                                                                <a href={`https://www.google.com/maps?q=${selectedAddress.latitude},${selectedAddress.longitude}`} target="_blank" rel="noopener noreferrer" className="flex items-start gap-1.5 mt-1 text-pink-600 hover:text-pink-700 hover:underline">
+                                                                    <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                                                                    <span>{selectedAddress.street_address}</span>
+                                                                </a>
+                                                            ) : (
+                                                                <p className="text-slate-500 mt-1">{selectedAddress.street_address}</p>
+                                                            )}
                                                             {selectedAddress.latitude && selectedAddress.longitude && (
                                                                 <StaticMap latitude={selectedAddress.latitude} longitude={selectedAddress.longitude} />
                                                             )}
@@ -1222,7 +1229,14 @@ function CartClient() {
                                                                 <span className="px-2 py-0.5 bg-slate-200 text-slate-600 text-[10px] font-bold uppercase rounded-full tracking-wider">Guest</span>
                                                             </div>
                                                             <p className="text-slate-500">{guestAddress.recipient_phone}</p>
-                                                            <p className="text-slate-500 mt-1">{guestAddress.street_address}</p>
+                                                            {guestAddress.latitude && guestAddress.longitude ? (
+                                                                <a href={`https://www.google.com/maps?q=${guestAddress.latitude},${guestAddress.longitude}`} target="_blank" rel="noopener noreferrer" className="flex items-start gap-1.5 mt-1 text-pink-600 hover:text-pink-700 hover:underline">
+                                                                    <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                                                                    <span>{guestAddress.street_address}</span>
+                                                                </a>
+                                                            ) : (
+                                                                <p className="text-slate-500 mt-1">{guestAddress.street_address}</p>
+                                                            )}
                                                             {guestAddress.city && <p className="text-slate-500">{guestAddress.city}</p>}
                                                         </div>
                                                         <button

@@ -17,10 +17,15 @@ declare const google: any;
 export const StaticMap: React.FC<{ latitude: number; longitude: number }> = ({ latitude, longitude }) => {
     if (!GOOGLE_MAPS_API_KEY || !latitude || !longitude) return null;
     const imageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=15&size=300x150&markers=color:0xf472b6%7C${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`;
+    const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
     return (
-        <div className="mt-4 rounded-lg overflow-hidden border border-slate-200">
+        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="block mt-4 rounded-lg overflow-hidden border border-slate-200 hover:border-pink-300 hover:shadow-md transition-all group">
             <LazyImage src={imageUrl} alt="Map location" width={300} height={150} className="w-full h-auto object-cover" />
-        </div>
+            <div className="flex items-center justify-center gap-1.5 py-1.5 bg-slate-50 group-hover:bg-pink-50 transition-colors">
+                <MapPin className="w-3 h-3 text-pink-500" />
+                <span className="text-xs font-medium text-pink-600">Open in Google Maps</span>
+            </div>
+        </a>
     );
 };
 
