@@ -177,6 +177,7 @@ export interface CakeMessageUI extends CakeMessage {
   price: number;
   originalMessage?: CakeMessage; // To track changes
   useDefaultColor?: boolean; // For Shopify flow
+  isPlaceholder?: boolean; // To mark initial analysis messages as placeholders
 }
 
 export interface IcingDesignUI extends IcingDesign {

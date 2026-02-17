@@ -1298,7 +1298,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 type: s.type,
                 size: s.size
             })),
-            cakeMessages: cakeMessages.filter((m: CakeMessageUI) => m.isEnabled).map((m: CakeMessageUI) => ({ text: m.text, color: hexToName(m.color) })),
+            cakeMessages: cakeMessages.filter((m: CakeMessageUI) => m.isEnabled && m.text && m.text.trim().length > 0).map((m: CakeMessageUI) => ({ text: m.text, color: hexToName(m.color) })),
             icingDesign: {
                 drip: icingDesign.drip, gumpasteBaseBoard: icingDesign.gumpasteBaseBoard,
                 colors: Object.entries(icingDesign.colors).reduce((acc: Record<string, string>, [key, value]) => {
@@ -1392,7 +1392,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         type: e.type,
                         coverage: e.size
                     })),
-                    cakeMessages: cakeMessages.filter(m => m.isEnabled).map(m => ({
+                    cakeMessages: cakeMessages.filter(m => m.isEnabled && m.text && m.text.trim().length > 0).map(m => ({
                         text: m.text,
                         color: m.color
                     })),
@@ -2026,8 +2026,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     return (<>
         <h1 className="sr-only">{seoMetadata?.seo_title || 'Customize Your Cake Design - Genie.ph'}</h1>
-        <div className="flex flex-col items-center gap-4 w-full max-w-7xl mx-auto pb-28 px-4"> {/* Added px-4 padding */}
-            <div className="w-full flex items-center gap-2 md:gap-4 pt-2"> {/* Reduced top padding */}
+        <div className="w-full max-w-7xl mx-auto px-4">
+            <div className="w-full flex items-center gap-2 md:gap-4 mb-4 pt-6">
                 <button onClick={onClose} className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label="Go back">
                     <BackIcon />
                 </button>
@@ -2050,6 +2050,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     )}
                 </button>
             </div>
+        </div>
+
+        <div className="flex flex-col items-center gap-4 w-full max-w-7xl mx-auto pb-28 px-4">
 
             {/* SEO Breadcrumbs - Visible for both Shop Product and SEO Landing Pages */}
             {((product && merchant) || (recentSearchDesign && recentSearchDesign.slug)) && (
