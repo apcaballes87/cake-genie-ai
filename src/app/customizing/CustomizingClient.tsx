@@ -367,9 +367,10 @@ interface CustomizingClientProps {
     }>;
     currentKeywords?: string | null;
     currentSlug?: string | null;
+    seoContentSlot?: React.ReactNode;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const params = useParams();
@@ -2926,52 +2927,61 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             </div>
 
             {/* Product/Design Description & Tags - Spans full width of the two-column layout */}
-            {((product && (product.long_description || product.short_description || (product.tags && product.tags.length > 0))) ||
+            {/* SEO Content Slot from SSR (if present) OR Client-side fallback (if no slug) */}
+            {(seoContentSlot || (!slug && ((product && (product.long_description || product.short_description || (product.tags && product.tags.length > 0))) ||
                 (recentSearchDesign && (recentSearchDesign.seo_description || recentSearchDesign.alt_text)) ||
-                (analysisResult && (analysisResult.seo_description || analysisResult.alt_text))) && (
+                (analysisResult && (analysisResult.seo_description || analysisResult.alt_text))))) && (
                     <div className="w-full mt-6">
                         <div className="bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
-                            {/* Product Description */}
-                            {product && (product.long_description || product.short_description) && (
-                                <div className="mb-3">
-                                    <h2 className="text-sm font-semibold text-slate-700 mb-2">About This Cake</h2>
-                                    <p className="text-sm text-slate-600 leading-relaxed">
-                                        {product.long_description || product.short_description}
-                                    </p>
-                                </div>
-                            )}
+                            {/* SSR Slot Injection */}
+                            {seoContentSlot}
 
-                            {/* Design Description */}
-                            {((recentSearchDesign && (recentSearchDesign.seo_description || recentSearchDesign.alt_text)) ||
-                                (analysisResult && (analysisResult.seo_description || analysisResult.alt_text))) && (
-                                    <div className="mb-3">
-                                        <h2 className="text-sm font-semibold text-slate-700 mb-2">About This Design</h2>
-                                        <p className="text-sm text-slate-600 leading-relaxed">
-                                            {analysisResult?.seo_description || analysisResult?.alt_text || recentSearchDesign?.seo_description || recentSearchDesign?.alt_text}
-                                        </p>
-                                        <p className="text-xs text-red-400 mt-4 flex items-center justify-center gap-1.5 text-center">
-                                            <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            Design inspiration shared by customer for pricing—final cake may vary slightly.
-                                        </p>
-                                    </div>
-                                )}
+                            {/* Client-side Fallback (Only if no SSR slot and no slug) */}
+                            {!seoContentSlot && !slug && (
+                                <>
+                                    {/* Product Description */}
+                                    {product && (product.long_description || product.short_description) && (
+                                        <div className="mb-3">
+                                            <h2 className="text-sm font-semibold text-slate-700 mb-2">About This Cake</h2>
+                                            <p className="text-sm text-slate-600 leading-relaxed">
+                                                {product.long_description || product.short_description}
+                                            </p>
+                                        </div>
+                                    )}
 
-                            {product && product.tags && product.tags.length > 0 && (
-                                <div>
-                                    <h3 className="text-xs font-medium text-slate-500 mb-2">Related Tags</h3>
-                                    <div className="flex flex-wrap gap-2">
-                                        {product.tags.map((tag, index) => (
-                                            <span
-                                                key={index}
-                                                className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full hover:bg-purple-100 hover:text-purple-700 transition-colors cursor-default"
-                                            >
-                                                {tag}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
+                                    {/* Design Description */}
+                                    {((recentSearchDesign && (recentSearchDesign.seo_description || recentSearchDesign.alt_text)) ||
+                                        (analysisResult && (analysisResult.seo_description || analysisResult.alt_text))) && (
+                                            <div className="mb-3">
+                                                <h2 className="text-sm font-semibold text-slate-700 mb-2">About This Design</h2>
+                                                <p className="text-sm text-slate-600 leading-relaxed">
+                                                    {analysisResult?.seo_description || analysisResult?.alt_text || recentSearchDesign?.seo_description || recentSearchDesign?.alt_text}
+                                                </p>
+                                                <p className="text-xs text-red-400 mt-4 flex items-center justify-center gap-1.5 text-center">
+                                                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    Design inspiration shared by customer for pricing—final cake may vary slightly.
+                                                </p>
+                                            </div>
+                                        )}
+
+                                    {product && product.tags && product.tags.length > 0 && (
+                                        <div>
+                                            <h3 className="text-xs font-medium text-slate-500 mb-2">Related Tags</h3>
+                                            <div className="flex flex-wrap gap-2">
+                                                {product.tags.map((tag, index) => (
+                                                    <span
+                                                        key={index}
+                                                        className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full hover:bg-purple-100 hover:text-purple-700 transition-colors cursor-default"
+                                                    >
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
