@@ -758,7 +758,7 @@ function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceI
     const keywords = design.keywords || 'Custom';
 
     return (
-        <div className="w-full max-w-4xl mx-auto px-4 pb-32 pt-20 space-y-6">
+        <div className="w-full max-w-4xl mx-auto px-4 pb-32 pt-6 space-y-6">
             {/* Design Details — moved to seoContentSlot passed to CustomizingClient */}
 
 
