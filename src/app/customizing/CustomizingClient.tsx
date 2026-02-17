@@ -3461,7 +3461,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
             {/* Related Designs Section */}
             {displayedRelatedDesigns && displayedRelatedDesigns.length > 0 && (
-                <div className="w-full py-2 mb-0">
+                <div className="w-full pb-0 pt-2 mb-0">
                     <h2 className="text-lg font-semibold text-slate-800 mb-4">What other designs are trending in Cebu?</h2>
                     <div className="flex flex-wrap justify-center gap-3">
                         {displayedRelatedDesigns.map((related, i) => (
@@ -3529,7 +3529,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                     {/* Show More Button */}
                     {hasMoreDesigns && (
-                        <div className="flex justify-center mt-6">
+                        <div className="flex justify-center mt-2">
                             <button
                                 onClick={handleLoadMoreDesigns}
                                 disabled={isLoadingMoreDesigns}
