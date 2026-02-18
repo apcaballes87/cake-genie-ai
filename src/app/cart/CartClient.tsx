@@ -7,7 +7,7 @@ import { useCart, useCartActions, readFromLocalStorage, batchSaveToLocalStorage,
 import { useAddresses, useAddAddress } from '@/hooks/useAddresses';
 import { showSuccess, showError, showInfo } from '@/lib/utils/toast';
 import { Loader2, CloseIcon, TrashIcon } from '@/components/icons';
-import { MapPin, Search, X, Users } from 'lucide-react';
+import { MapPin, Search, X, Users, ChevronDown, CalendarDays } from 'lucide-react';
 import { PaymentModeToggle } from '@/components/PaymentModeToggle';
 import { CartItem, CartItemDetails, CakeType } from '@/types';
 import { CakeGenieAddress } from '@/lib/database.types';
@@ -135,6 +135,39 @@ function CartClient() {
     const [isRedirecting, setIsRedirecting] = useState(false);
     const [partiallyBlockedSlots, setPartiallyBlockedSlots] = useState<BlockedDateInfo[]>([]);
     const [tooltip, setTooltip] = useState<{ date: string; reason: string; } | null>(null);
+
+    // Month picker state
+    const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number } | null>(null);
+    const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+    const monthPickerRef = useRef<HTMLDivElement>(null);
+
+    // Close month picker on outside click
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (monthPickerRef.current && !monthPickerRef.current.contains(e.target as Node)) {
+                setIsMonthPickerOpen(false);
+            }
+        };
+        if (isMonthPickerOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isMonthPickerOpen]);
+
+    // Generate list of available months (current + next 5 months)
+    const availableMonths = useMemo(() => {
+        const months: { year: number; month: number; label: string }[] = [];
+        const now = new Date();
+        for (let i = 0; i < 6; i++) {
+            const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+            months.push({
+                year: d.getFullYear(),
+                month: d.getMonth(),
+                label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+            });
+        }
+        return months;
+    }, []);
 
     // Guest Address State
     const [guestAddress, setGuestAddress] = useState<CakeGenieAddress | null>(() => {
@@ -382,25 +415,45 @@ function CartClient() {
 
     const availabilityWasOverridden = cartAvailability !== baseCartAvailability;
 
+    // Calculate how many days to fetch based on selected month
+    const fetchRange = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (!selectedMonth) {
+            // Default: 30 days from today
+            return { startDate: today, numDays: 30 };
+        }
+
+        // Selected month: fetch from today (or start of that month if in the future) to end of that month
+        const monthStart = new Date(selectedMonth.year, selectedMonth.month, 1);
+        const monthEnd = new Date(selectedMonth.year, selectedMonth.month + 1, 0); // last day of month
+        const effectiveStart = monthStart > today ? today : today;
+        const diffMs = monthEnd.getTime() - effectiveStart.getTime();
+        const numDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24)) + 1;
+
+        return { startDate: effectiveStart, numDays: Math.max(numDays, 30) };
+    }, [selectedMonth]);
+
     const { data: availableDates = [], isLoading: isLoadingDates } = useQuery<AvailableDate[]>({
-        queryKey: ['available-dates', availabilitySettings?.minimum_lead_time_days],
+        queryKey: ['available-dates', availabilitySettings?.minimum_lead_time_days, fetchRange.numDays],
         queryFn: () => {
-            const startDate = new Date(); // Always start from today
+            const startDate = fetchRange.startDate;
             const year = startDate.getFullYear();
             const month = String(startDate.getMonth() + 1).padStart(2, '0');
             const day = String(startDate.getDate()).padStart(2, '0');
-            return getAvailableDeliveryDates(`${year}-${month}-${day}`, 30);
+            return getAvailableDeliveryDates(`${year}-${month}-${day}`, fetchRange.numDays);
         },
         enabled: !isLoadingSettings, // Only run when settings are loaded
         staleTime: 5 * 60 * 1000, // 5 minutes
     });
 
     const { data: blockedDatesMap, isLoading: isLoadingBlockedDates } = useQuery({
-        queryKey: ['blocked-dates-range'],
+        queryKey: ['blocked-dates-range', fetchRange.numDays],
         queryFn: () => {
-            const startDate = new Date();
-            const endDate = new Date();
-            endDate.setDate(startDate.getDate() + 30);
+            const startDate = fetchRange.startDate;
+            const endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + fetchRange.numDays);
 
             const format = (d: Date) => d.toISOString().split('T')[0];
 
@@ -432,31 +485,47 @@ function CartClient() {
     const correctedDates = useMemo(() => {
         if (isLoadingDates || !availabilitySettings) return availableDates;
 
-        if (cartAvailability === 'normal') {
-            return availableDates;
-        }
+        let dates = availableDates;
 
-        const leadTimeDays = availabilitySettings.minimum_lead_time_days || 0;
-        if (leadTimeDays === 0) {
-            return availableDates;
-        }
+        if (cartAvailability !== 'normal') {
+            const leadTimeDays = availabilitySettings.minimum_lead_time_days || 0;
+            if (leadTimeDays > 0) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+                dates = availableDates.map(dateInfo => {
+                    const date = new Date(dateInfo.available_date + 'T00:00:00');
+                    const diffDays = Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-        return availableDates.map(dateInfo => {
-            const date = new Date(dateInfo.available_date + 'T00:00:00');
-            const diffDays = Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-            // For rush and same-day orders, we want to ensure dates within the standard lead time
-            // are available (unless explicitly blocked by 'blockedDatesMap' which is checked in getDateStatus).
-            // The backend might default these to unavailable based on standard lead times.
-            if (diffDays >= 0 && diffDays < leadTimeDays) {
-                return { ...dateInfo, is_rush_available: true, is_same_day_available: true };
+                    if (diffDays >= 0 && diffDays < leadTimeDays) {
+                        return { ...dateInfo, is_rush_available: true, is_same_day_available: true };
+                    }
+                    return dateInfo;
+                });
             }
-            return dateInfo;
-        });
+        }
+
+        return dates;
     }, [availableDates, isLoadingDates, cartAvailability, availabilitySettings]);
+
+    // Filter dates to display based on selected month
+    const displayedDates = useMemo(() => {
+        if (!selectedMonth) {
+            return correctedDates.slice(0, 14);
+        }
+
+        return correctedDates.filter(dateInfo => {
+            const d = new Date(dateInfo.available_date + 'T00:00:00');
+            return d.getMonth() === selectedMonth.month && d.getFullYear() === selectedMonth.year;
+        });
+    }, [correctedDates, selectedMonth]);
+
+    // Get the label for the current month picker button
+    const monthPickerLabel = useMemo(() => {
+        if (!selectedMonth) return null;
+        const d = new Date(selectedMonth.year, selectedMonth.month, 1);
+        return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    }, [selectedMonth]);
 
     const handleDateSelect = useCallback((date: string) => {
         setEventDate(date);
@@ -1072,13 +1141,64 @@ function CartClient() {
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-1 gap-4">
                                         <div>
-                                            <label htmlFor="eventDate" className="block text-sm font-medium text-slate-600 mb-1">Date of Event</label>
+                                            <div className="flex items-center gap-2 mb-1 relative z-10">
+                                                <label htmlFor="eventDate" className="block text-sm font-medium text-slate-600">Date of Event</label>
+                                                <div className="relative" ref={monthPickerRef}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsMonthPickerOpen(prev => !prev)}
+                                                        className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-pink-600 hover:text-pink-700 hover:bg-pink-50 rounded-md transition-colors"
+                                                        aria-label="Pick a month"
+                                                        aria-expanded={isMonthPickerOpen}
+                                                    >
+                                                        <CalendarDays className="w-3 h-3" />
+                                                        <span>{monthPickerLabel || 'Month'}</span>
+                                                        <ChevronDown className={`w-3 h-3 transition-transform ${isMonthPickerOpen ? 'rotate-180' : ''}`} />
+                                                    </button>
+                                                    {isMonthPickerOpen && (
+                                                        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 min-w-[180px] py-1 animate-fade-in-fast">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => { setSelectedMonth(null); setIsMonthPickerOpen(false); }}
+                                                                className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${!selectedMonth ? 'bg-pink-50 text-pink-700' : 'text-slate-700 hover:bg-slate-50'
+                                                                    }`}
+                                                            >
+                                                                Next 14 days
+                                                            </button>
+                                                            {availableMonths.map(m => {
+                                                                const isActive = selectedMonth?.year === m.year && selectedMonth?.month === m.month;
+                                                                return (
+                                                                    <button
+                                                                        key={`${m.year}-${m.month}`}
+                                                                        type="button"
+                                                                        onClick={() => { setSelectedMonth({ year: m.year, month: m.month }); setIsMonthPickerOpen(false); }}
+                                                                        className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${isActive ? 'bg-pink-50 text-pink-700' : 'text-slate-700 hover:bg-slate-50'
+                                                                            }`}
+                                                                    >
+                                                                        {m.label}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {selectedMonth && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedMonth(null)}
+                                                        className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                                                        aria-label="Clear month filter"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                )}
+                                            </div>
                                             {isLoadingDates || isLoadingBlockedDates ? (
                                                 <div className="h-16 flex items-center"><Loader2 className="animate-spin text-slate-400" /></div>
                                             ) : (
                                                 <div className="relative overflow-visible">
                                                     <div className="flex gap-2 overflow-x-auto pt-16 -mt-16 pb-2 -mb-2 scrollbar-hide" style={{ overflowY: 'visible' }}>
-                                                        {correctedDates.slice(0, 14).map((dateInfo, index) => {
+                                                        {displayedDates.map((dateInfo, index) => {
                                                             const { isDisabled, reason } = getDateStatus(dateInfo);
                                                             const isSelected = eventDate === dateInfo.available_date;
                                                             const dateObj = new Date(dateInfo.available_date + 'T00:00:00');
@@ -1086,7 +1206,7 @@ function CartClient() {
                                                             const month = dateObj.toLocaleDateString('en-US', { month: 'short' });
 
                                                             // Determine tooltip position based on index
-                                                            const totalDates = correctedDates.slice(0, 14).length;
+                                                            const totalDates = displayedDates.length;
                                                             let tooltipPositionClass = 'left-1/2 -translate-x-1/2'; // center (default)
                                                             let arrowPositionClass = 'left-1/2 -translate-x-1/2'; // center arrow
 
