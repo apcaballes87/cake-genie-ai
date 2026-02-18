@@ -1,10 +1,7 @@
 import { Metadata } from 'next'
 import { Suspense } from 'react'
-import Link from 'next/link'
 import CustomizingClient from './CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
-import { CustomizationProvider } from '@/contexts/CustomizationContext'
-import { mapProductToDefaultState } from '@/utils/customizationMapper'
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
@@ -35,19 +32,11 @@ export const metadata: Metadata = {
 }
 
 export default async function CustomizingPage() {
-    // Provide a clean default state to prevent localStorage fallback
-    const initialCustomizationState = mapProductToDefaultState();
-
     return (
         <>
-            {/* SSR content for Google — helpful context about the tool */}
-            {/* Header removed as requested */}
-
-            {/* Client-side customization tool */}
+            {/* Client-side customization tool — uses root-level CustomizationProvider from Providers.tsx */}
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
-                <CustomizationProvider initialData={initialCustomizationState}>
-                    <CustomizingClient />
-                </CustomizationProvider>
+                <CustomizingClient />
             </Suspense>
         </>
     )
