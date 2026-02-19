@@ -11,6 +11,44 @@ const OWN_SUPABASE_DOMAINS = [
 ];
 
 /**
+ * Applies Supabase native image transformations (resizing, format change)
+ * to URLs to save on next/image costs while delivering optimized assets.
+ */
+const getOptimizedSrc = (src: string | undefined, originalWidth?: number | `${number}`): string | undefined => {
+  if (!src || typeof src !== 'string') return src;
+
+  // Only rewrite our own Supabase domains
+  const isOwnSupabase = OWN_SUPABASE_DOMAINS.some(domain => src.includes(domain));
+  if (!isOwnSupabase) return src;
+
+  try {
+    const url = new URL(src);
+
+    // Check if it's pointing to the public object endpoint and hasn't been transformed yet
+    if (url.pathname.includes('/storage/v1/object/public/') && !url.pathname.includes('/render/image/public/')) {
+      // Change endpoint to use Supabase image transformation
+      url.pathname = url.pathname.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+
+      // Append width if provided, otherwise default to a reasonable max width
+      if (!url.searchParams.has('width')) {
+        // If fill is true (no width passed), default to a large width of 800
+        url.searchParams.set('width', originalWidth ? originalWidth.toString() : '800');
+      }
+      if (!url.searchParams.has('format')) {
+        url.searchParams.set('format', 'webp');
+      }
+      if (!url.searchParams.has('quality')) {
+        url.searchParams.set('quality', '80');
+      }
+      return url.toString();
+    }
+  } catch (e) {
+    // Ignore URL parsing errors, just return original
+  }
+  return src;
+};
+
+/**
  * Simple check: if the URL is NOT from our own Supabase storage, it's external
  * and should be unoptimized to avoid 400 errors from unreliable external servers.
  */
@@ -24,6 +62,7 @@ const shouldUseUnoptimized = (src: string | undefined): boolean => {
   const isOwnSupabase = OWN_SUPABASE_DOMAINS.some(domain => src.includes(domain));
 
   // If it IS our own Supabase, we prevent Next.js optimization to save costs/limits.
+  // (We use Supabase's native /render/image/public/ endpoint instead via getOptimizedSrc)
   if (isOwnSupabase) return true;
 
   // For other external domains, we skip optimization to avoid 400 errors and save on
@@ -101,7 +140,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
       )}
 
       <Image
-        src={src}
+        src={getOptimizedSrc(typeof src === 'string' ? src : undefined, width) || src}
         alt={alt}
         onLoad={handleLoad}
         onError={handleError}

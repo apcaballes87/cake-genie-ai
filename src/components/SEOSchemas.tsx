@@ -232,6 +232,7 @@ export function BlogPostingSchema({
     datePublished,
     dateModified,
     authorName,
+    authorUrl,
     image,
     description
 }: {
@@ -239,6 +240,7 @@ export function BlogPostingSchema({
     datePublished: string;
     dateModified?: string;
     authorName: string;
+    authorUrl?: string;
     image?: string;
     description: string;
 }) {
@@ -253,7 +255,8 @@ export function BlogPostingSchema({
         ...(dateModified && { dateModified }),
         author: {
             '@type': 'Organization', // Or Person, but for company blogs Organization is often used if author is the brand
-            name: sanitize(authorName)
+            name: sanitize(authorName),
+            ...(authorUrl && { url: sanitize(authorUrl) })
         },
         image: image ? [image] : [],
         description: sanitize(description),
@@ -276,7 +279,7 @@ export function BlogPostingSchema({
 }
 
 // JSON-LD Schema for Blog Listing
-export function BlogSchema({ posts }: { posts: { title: string; slug: string; date: string; excerpt: string; author: string }[] }) {
+export function BlogSchema({ posts }: { posts: { title: string; slug: string; date: string; excerpt: string; author: string; authorUrl?: string }[] }) {
     const schema = {
         '@context': 'https://schema.org',
         '@type': 'Blog',
@@ -298,7 +301,8 @@ export function BlogSchema({ posts }: { posts: { title: string; slug: string; da
             datePublished: post.date,
             author: {
                 '@type': 'Organization',
-                name: post.author
+                name: post.author,
+                ...(post.authorUrl && { url: post.authorUrl })
             },
             url: `https://genie.ph/blog/${post.slug}`,
             mainEntityOfPage: {
