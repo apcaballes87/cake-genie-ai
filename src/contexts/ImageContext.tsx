@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { toast as toastHot } from 'react-hot-toast'
-import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithCoordinates, enrichAnalysisWithRoboflow } from '@/services/geminiService'
+import { fileToBase64, validateCakeImage, analyzeCakeFeaturesOnly, enrichAnalysisWithCoordinates, enrichAnalysisWithRoboflow } from '@/services/geminiService'
 import { createClient } from '@/lib/supabase/client'
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization'
 import { showSuccess, showError, showLoading, showInfo } from '@/lib/utils/toast'
@@ -395,6 +395,34 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 console.warn('Image compression failed, proceeding with original:', compressionErr);
             }
             // --- END OF COMPRESSION LOGIC ---
+
+            // --- STEP 2.5: IMAGE VALIDATION GATE ---
+            // Reject invalid images before spending AI quota on analysis
+            try {
+                const classification = await validateCakeImage(
+                    compressedImageData.data,
+                    compressedImageData.mimeType
+                );
+
+                const rejectionMessages: Record<string, string> = {
+                    not_a_cake: "This image doesn't appear to be a cake. Please upload a cake image.",
+                    non_food: "This image doesn't appear to be a cake. Please upload a cake image.",
+                    multiple_cakes: "Please upload a single cake image. This image contains multiple cakes.",
+                    only_cupcakes: "We currently don't process cupcake-only images. Please upload a cake design.",
+                    complex_sculpture: "This cake design is too complex for online pricing. Please contact us for a custom quote.",
+                    large_wedding_cake: "Large wedding cakes require in-store consultation for accurate pricing.",
+                };
+
+                if (classification !== 'valid_single_cake') {
+                    const message = rejectionMessages[classification] ?? "This image is not suitable for processing. Please upload a valid cake image.";
+                    onError(new Error(message));
+                    return;
+                }
+            } catch (validationErr) {
+                // If validation itself fails, log and continue — don't block the user
+                console.warn('⚠️ Validation step failed, proceeding with analysis:', validationErr);
+            }
+            // --- END OF VALIDATION GATE ---
 
             // --- STEP 3: TWO-PHASE AI ANALYSIS ---
 
