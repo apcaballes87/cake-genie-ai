@@ -11,6 +11,7 @@ description: >
 ## What to Analyze
 
 ### On-Page SEO
+
 - Title tag: 50-60 characters, includes primary keyword, unique
 - Meta description: 150-160 characters, compelling, includes keyword
 - H1: exactly one, matches page intent, includes keyword
@@ -20,6 +21,7 @@ description: >
 - External links: to authoritative sources, reasonable count
 
 ### Content Quality
+
 - Word count vs page type minimums (see quality-gates.md)
 - Readability: Flesch Reading Ease score, grade level
 - Keyword density: natural (1-3%), semantic variations present
@@ -27,19 +29,25 @@ description: >
 - Content freshness: publication date, last updated date
 
 ### Technical Elements
+
 - Canonical tag: present, self-referencing or correct
 - Meta robots: index/follow unless intentionally blocked
 - Open Graph: og:title, og:description, og:image, og:url
 - Twitter Card: twitter:card, twitter:title, twitter:description
 - Hreflang: if multi-language, correct implementation
+- Favicon: present and linked properly
+- UI/UX Accessibility: legible font sizes (min 12px) and appropriate tap targets (min 48x48px)
+- Plugins: avoids deprecated plugins (Flash, Java, Silverlight)
 
 ### Schema Markup
+
 - Detect all types (JSON-LD preferred)
 - Validate required properties
 - Identify missing opportunities
 - NEVER recommend HowTo (deprecated) or FAQ (restricted to gov/health)
 
 ### Images
+
 - Alt text: present, descriptive, includes keywords where natural
 - File size: flag >200KB (warning), >500KB (critical)
 - Format: recommend WebP/AVIF over JPEG/PNG
@@ -47,6 +55,7 @@ description: >
 - Lazy loading: loading="lazy" on below-fold images
 
 ### Core Web Vitals (reference only — not measurable from HTML alone)
+
 - Flag potential LCP issues (huge hero images, render-blocking resources)
 - Flag potential INP issues (heavy JS, no async/defer)
 - Flag potential CLS issues (missing image dimensions, injected content)
@@ -54,6 +63,7 @@ description: >
 ## Output
 
 ### Page Score Card
+
 ```
 Overall Score: XX/100
 
@@ -65,10 +75,13 @@ Images:          XX/100  ████████░░
 ```
 
 ### Issues Found
+
 Organized by priority: Critical → High → Medium → Low
 
 ### Recommendations
+
 Specific, actionable improvements with expected impact
 
 ### Schema Suggestions
+
 Ready-to-use JSON-LD code for detected opportunities

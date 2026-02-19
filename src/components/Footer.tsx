@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Camera, Cake, Tag, CreditCard, Facebook, Instagram, MessageCircle, Youtube, Star, Check, Mail, Phone, ChevronUp } from 'lucide-react';
+import { Camera, Cake, Tag, CreditCard, Facebook, Instagram, MessageCircle, Youtube, Star, Check, Mail, Phone, ChevronUp, ShieldCheck, Lock } from 'lucide-react';
 
 export const Footer = () => {
     const router = useRouter();
@@ -158,7 +158,6 @@ export const Footer = () => {
                             </div>
                         </div>
 
-                        {/* Legal Links */}
                         <div className="flex items-center gap-6 mt-6 text-sm text-gray-500">
                             <Link href="/terms" className="hover:text-purple-600 transition-colors">
                                 Terms of Service
@@ -169,6 +168,18 @@ export const Footer = () => {
                             <Link href="/return-policy" className="hover:text-purple-600 transition-colors">
                                 Return Policy
                             </Link>
+                        </div>
+
+                        {/* Trust Badges */}
+                        <div className="flex flex-wrap items-center gap-4 mt-6">
+                            <div className="px-3 py-1.5 bg-purple-50 rounded-md text-xs font-semibold text-purple-700 flex items-center gap-1.5 border border-purple-100" aria-label="Department of Trade and Industry Registered">
+                                <ShieldCheck size={16} />
+                                DTI Registered
+                            </div>
+                            <div className="px-3 py-1.5 bg-green-50 rounded-md text-xs font-semibold text-green-700 flex items-center gap-1.5 border border-green-100" aria-label="Secure Checkout Process">
+                                <Lock size={16} />
+                                Secure Checkout
+                            </div>
                         </div>
                     </div>
 

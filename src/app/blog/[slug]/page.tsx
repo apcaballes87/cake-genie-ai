@@ -50,6 +50,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         headline={post.title}
         datePublished={post.date}
         authorName={post.author}
+        authorUrl={post.authorUrl}
         image={post.image}
         description={post.excerpt}
       />

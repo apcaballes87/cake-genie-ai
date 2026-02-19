@@ -4,6 +4,7 @@ export interface BlogPost {
   excerpt: string;
   date: string;
   author: string;
+  authorUrl?: string;
   content: string;
   image?: string;
 }
@@ -17,6 +18,7 @@ export const blogPosts: BlogPost[] = [
       'Planning to tie the knot in Metro Cebu? Before you start picking out flowers and venues, here\'s a complete step-by-step guide to getting your marriage license in Cebu City, Mandaue, Lapu-Lapu, and Talisay.',
     date: '2025-06-15',
     author: 'Genie.ph',
+    authorUrl: 'https://genie.ph/about',
     content: `Planning to tie the knot in Metro Cebu? Congratulations! Before you start picking out flowers and venues, there's one essential piece of paperwork you need to secure first — your **marriage license**.
 
 The process is largely the same across the Philippines (governed by the Family Code), but each city has its own local civil registrar office, seminars, fees, and small quirks. In this guide, we'll walk you through the step-by-step process for getting your marriage license in **Cebu City, Mandaue City, Lapu-Lapu City, and Talisay City** — so you know exactly what to expect no matter where in Metro Cebu you're filing.
@@ -339,6 +341,7 @@ The key is to start early, stay organized, and enjoy the process. After all, thi
       "Ordering a custom cake doesn't have to break the bank. At Genie.ph, we've built smart customization features that put you in control of both the design and the budget.",
     date: '2026-02-14',
     author: 'Genie.ph',
+    authorUrl: 'https://genie.ph/about',
     image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/blogs/blog2.webp',
     content: `Ordering a custom cake doesn't have to break the bank. At Genie.ph, we've built smart customization features that put you in control of both the design and the budget. Whether you're planning a debut, baptism, or birthday celebration, here's how to maximize value while still getting a beautiful, personalized cake.
 
