@@ -15,36 +15,8 @@ const OWN_SUPABASE_DOMAINS = [
  * to URLs to save on next/image costs while delivering optimized assets.
  */
 const getOptimizedSrc = (src: string | undefined, originalWidth?: number | `${number}`): string | undefined => {
-  if (!src || typeof src !== 'string') return src;
-
-  // Only rewrite our own Supabase domains
-  const isOwnSupabase = OWN_SUPABASE_DOMAINS.some(domain => src.includes(domain));
-  if (!isOwnSupabase) return src;
-
-  try {
-    const url = new URL(src);
-
-    // Check if it's pointing to the public object endpoint and hasn't been transformed yet
-    if (url.pathname.includes('/storage/v1/object/public/') && !url.pathname.includes('/render/image/public/')) {
-      // Change endpoint to use Supabase image transformation
-      url.pathname = url.pathname.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
-
-      // Append width if provided, otherwise default to a reasonable max width
-      if (!url.searchParams.has('width')) {
-        // If fill is true (no width passed), default to a large width of 800
-        url.searchParams.set('width', originalWidth ? originalWidth.toString() : '800');
-      }
-      if (!url.searchParams.has('format')) {
-        url.searchParams.set('format', 'webp');
-      }
-      if (!url.searchParams.has('quality')) {
-        url.searchParams.set('quality', '80');
-      }
-      return url.toString();
-    }
-  } catch (e) {
-    // Ignore URL parsing errors, just return original
-  }
+  // Hotfix: Supabase Image Transformation is returning 400 Bad Request (likely limit reached or not on Pro plan).
+  // Reverting to serving original images to unbreak the frontend.
   return src;
 };
 
