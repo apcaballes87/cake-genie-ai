@@ -12,7 +12,22 @@ import { getDesignAvailability } from '@/lib/utils/availability';
 import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI } from '@/types';
 import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers';
 
-const supabase: SupabaseClient = getSupabaseClient();
+// Lazy-initialised so this module can be imported at build time without
+// crashing when NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY
+// are not yet available (e.g. during Vercel's static page data collection).
+let _supabase: SupabaseClient | null = null;
+const getSupabase = (): SupabaseClient => {
+  if (!_supabase) {
+    _supabase = getSupabaseClient();
+  }
+  return _supabase;
+};
+// Keep a convenient alias used throughout this file
+const supabase = new Proxy({} as SupabaseClient, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getSupabase(), prop, receiver);
+  },
+});
 
 // Type for service responses
 export type SupabaseServiceResponse<T> = {
