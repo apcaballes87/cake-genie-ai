@@ -4,18 +4,18 @@ import Link from 'next/link';
 
 export const IntroContent = () => {
     return (
-        <section className="bg-white py-12 md:py-16">
+        <section className="py-6 md:py-8">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                <h2 className="text-[22px] md:text-[28px] font-bold text-gray-900 mb-4">
                     What is <span className="text-purple-600">Genie.ph</span>?
                 </h2>
-                <div className="prose prose-lg mx-auto text-gray-600 space-y-6 leading-relaxed">
+                <div className="prose prose-base md:prose-lg mx-auto text-gray-600 space-y-4 md:space-y-6 leading-relaxed">
                     <p>
                         <strong>Genie.ph is the premier online marketplace for custom cakes in Cebu, Philippines.</strong> We connect customers directly with the most talented local bakeshops and home bakers in the region. Whether you need a stunning wedding cake, a playful birthday cake, or a chic minimalist design, Genie.ph provides instant AI pricing and a secure way to order custom cakes online.
                     </p>
 
-                    <h3 className="text-2xl font-bold text-gray-800 mt-8 mb-4">Why Order Your Cake with Genie.ph?</h3>
-                    <ul className="text-left space-y-4 list-none pl-0">
+                    <h3 className="text-[18px] md:text-[21px] font-bold text-gray-800 mt-5 mb-2">Why Order Your Cake with Genie.ph?</h3>
+                    <ul className="text-left space-y-3 list-none pl-0">
                         <li className="flex items-start">
                             <span className="text-purple-500 mr-2 mt-1">✨</span>
                             <span><strong>Instant AI Pricing:</strong> Say goodbye to long waiting times for price quotes. With our innovative AI technology, you can simply upload a photo of your desired cake design, and we will provide you with an instant price estimate. It's fast, easy, and transparent.</span>
@@ -34,7 +34,7 @@ export const IntroContent = () => {
                         </li>
                     </ul>
 
-                    <h3 className="text-2xl font-bold text-gray-800 mt-8 mb-4">Celebrate Every Occasion</h3>
+                    <h3 className="text-[18px] md:text-[21px] font-bold text-gray-800 mt-6 mb-2">Celebrate Every Occasion</h3>
                     <p>
                         No celebration is complete without a cake. At Genie.ph, we cater to all occasions:
                     </p>
@@ -45,7 +45,7 @@ export const IntroContent = () => {
                         <Link href="/search?q=christening+cakes" className="bg-purple-50 py-2 px-4 rounded-lg hover:bg-purple-100 transition">Christening Cakes</Link>
                     </div>
 
-                    <p className="mt-8">
+                    <p className="mt-5">
                         Experience the convenience of ordering custom cakes online. Browse our designs or upload your own today and let Genie.ph make your celebration unforgettable.
                     </p>
                 </div>
