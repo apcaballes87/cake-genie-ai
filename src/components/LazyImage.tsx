@@ -34,6 +34,9 @@ const getOptimizedSrc = (src: string | undefined, originalWidth?: number | `${nu
         // If fill is true (no width passed), default to a large width of 800
         url.searchParams.set('width', originalWidth ? originalWidth.toString() : '800');
       }
+      if (!url.searchParams.has('resize')) {
+        url.searchParams.set('resize', 'contain');
+      }
       // Note: do NOT set format=webp. Supabase only accepts format=origin to opt-out,
       // and automatically converts to webp/avif if the Accept header allows it.
       if (!url.searchParams.has('quality')) {

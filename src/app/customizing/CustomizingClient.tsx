@@ -216,18 +216,18 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
     const icingColorsSame = topColor && sideColor && topColor.toUpperCase() === sideColor.toUpperCase();
 
     const tools = (icingColorsSame ? [
-        { id: 'drip', description: 'Drip', label: 'Drip', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'drip')} alt="Drip effect" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.drip },
-        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'borderTop')} alt="Top border" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.border_top },
-        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'borderBase')} alt="Base border" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
-        { id: 'icing', description: 'Body Icing', label: 'Body Icing', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'top', false)} alt="Icing color" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: !!(effectiveIcingDesign.colors?.top || effectiveIcingDesign.colors?.side) },
-        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'gumpasteBaseBoard')} alt="Gumpaste baseboard" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
+        { id: 'drip', description: 'Drip', label: 'Drip', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'drip')} alt="Drip effect" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.drip },
+        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'borderTop')} alt="Top border" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.border_top },
+        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'borderBase')} alt="Base border" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
+        { id: 'icing', description: 'Body Icing', label: 'Body Icing', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'top', false)} alt="Icing color" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: !!(effectiveIcingDesign.colors?.top || effectiveIcingDesign.colors?.side) },
+        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'gumpasteBaseBoard')} alt="Gumpaste baseboard" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
     ] : [
-        { id: 'drip', description: 'Drip', label: 'Drip', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'drip')} alt="Drip effect" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.drip },
-        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'borderTop')} alt="Top border" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.border_top },
-        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'borderBase')} alt="Base border" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
-        { id: 'top', description: 'Top Icing', label: 'Top Icing', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'top', true)} alt="Top icing" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: !!effectiveIcingDesign.colors?.top },
-        { id: 'side', description: 'Side Icing', label: 'Body Icing', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'side', false)} alt="Side icing" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: !!effectiveIcingDesign.colors?.side },
-        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'gumpasteBaseBoard')} alt="Gumpaste baseboard" width={48} height={48} imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
+        { id: 'drip', description: 'Drip', label: 'Drip', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'drip')} alt="Drip effect" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.drip },
+        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'borderTop')} alt="Top border" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.border_top },
+        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'borderBase')} alt="Base border" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
+        { id: 'top', description: 'Top Icing', label: 'Top Icing', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'top', true)} alt="Top icing" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: !!effectiveIcingDesign.colors?.top },
+        { id: 'side', description: 'Side Icing', label: 'Body Icing', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'side', false)} alt="Side icing" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: !!effectiveIcingDesign.colors?.side },
+        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'gumpasteBaseBoard')} alt="Gumpaste baseboard" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
     ]).filter(tool => {
         // Hide Top Icing tool when there's an edible photo on top (top will be covered)
         if (tool.id === 'top' && hasEdiblePhotoOnTop) {
@@ -288,7 +288,7 @@ const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icing
                             className={`relative ${buttonSizeClasses} p-2 rounded-full hover:bg-purple-100 transition-all ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500' : 'bg-white/80'} backdrop-blur-md ${tool.featureFlag ? 'border-2 border-purple-600' : 'border border-slate-200'} shadow-md ${tool.featureFlag ? '' : 'opacity-60'} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
                             disabled={tool.disabled}
                         >
-                            {React.cloneElement(tool.icon as React.ReactElement<any>, { className: 'w-full h-full object-contain' })}
+                            {React.cloneElement(tool.icon as React.ReactElement<any>, { className: 'w-full h-full flex items-center justify-center' })}
                             {tool.disabled && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
                                     <X className="w-6 h-6 text-white" />
@@ -2665,6 +2665,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                             alt="Icing"
                                                                             width={36}
                                                                             height={36}
+                                                                            containerClassName="w-full h-full flex items-center justify-center"
                                                                             imageClassName="w-full h-full object-contain"
                                                                         />
                                                                     </div>
@@ -2696,6 +2697,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                                 alt="Top Icing"
                                                                                 width={36}
                                                                                 height={36}
+                                                                                containerClassName="w-full h-full flex items-center justify-center"
                                                                                 imageClassName="w-full h-full object-contain"
                                                                             />
                                                                         </div>
@@ -2723,6 +2725,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                                 alt="Body Icing"
                                                                                 width={36}
                                                                                 height={36}
+                                                                                containerClassName="w-full h-full flex items-center justify-center"
                                                                                 imageClassName="w-full h-full object-contain"
                                                                             />
                                                                         </div>
@@ -2755,6 +2758,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                     alt="Drip"
                                                                     width={36}
                                                                     height={36}
+                                                                    containerClassName="w-full h-full flex items-center justify-center"
                                                                     imageClassName="w-full h-full object-contain"
                                                                 />
                                                             </div>
@@ -2784,6 +2788,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                     alt="Top Border"
                                                                     width={36}
                                                                     height={36}
+                                                                    containerClassName="w-full h-full flex items-center justify-center"
                                                                     imageClassName="w-full h-full object-contain"
                                                                 />
                                                             </div>
@@ -2813,6 +2818,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                     alt="Base Border"
                                                                     width={36}
                                                                     height={36}
+                                                                    containerClassName="w-full h-full flex items-center justify-center"
                                                                     imageClassName="w-full h-full object-contain"
                                                                 />
                                                             </div>
@@ -2842,6 +2848,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                     alt="Base Board"
                                                                     width={36}
                                                                     height={36}
+                                                                    containerClassName="w-full h-full flex items-center justify-center"
                                                                     imageClassName="w-full h-full object-contain"
                                                                 />
                                                             </div>
@@ -2867,6 +2874,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                             alt="Cake Toppers"
                                                             width={48}
                                                             height={48}
+                                                            containerClassName="w-full h-full flex items-center justify-center"
                                                             imageClassName="w-full h-full object-contain"
                                                         />
                                                     </div>

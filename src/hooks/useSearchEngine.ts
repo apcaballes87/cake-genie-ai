@@ -76,6 +76,7 @@ export const useSearchEngine = ({
   const [searchTrigger, setSearchTrigger] = useState(0); // Add trigger for forcing re-searches
   const cseElementRef = useRef<GoogleCSEElement | null>(null);
   const isProcessingUrlRef = useRef(false);
+  const hasExecutedRef = useRef(false);
 
   /**
    * Waits for Google CSE to load the high-resolution image in its modal/popup.
@@ -200,6 +201,25 @@ export const useSearchEngine = ({
 
   const handleImageFromUrl = useCallback(async (thumbnailUrl: string, clickedElement: HTMLElement) => {
     if (isProcessingUrlRef.current) return;
+
+    // Save current hash before navigation so we can restore pagination if they click 'Back'
+    let currentHash = window.location.hash;
+
+    // If Google didn't update the hash or the router dropped it, let's build it ourselves from the DOM
+    if (!currentHash || !currentHash.includes('.page=')) {
+      const activePageEl = document.querySelector('.gsc-cursor-current-page');
+      if (activePageEl && activePageEl.textContent) {
+        const pageNum = activePageEl.textContent;
+        // Construct the hash format that Google CSE expects
+        currentHash = `#image-search.q=${encodeURIComponent(searchQuery)}&image-search.page=${pageNum}`;
+      }
+    }
+
+    if (currentHash) {
+      sessionStorage.setItem('cse_return_hash', currentHash);
+      sessionStorage.setItem('cse_return_query', searchQuery);
+    }
+
     isProcessingUrlRef.current = true;
     setIsFetchingWebImage(true);
 
@@ -329,6 +349,8 @@ export const useSearchEngine = ({
     const searchQueryValue = typeof query === 'string' ? query.trim() : searchInput.trim();
     if (!searchQueryValue) return;
 
+    // Always trigger a new search, even if query string is identical
+
     // Only push if URL actually changes to avoid redundant history entries
     const currentParams = new URLSearchParams(searchParams.toString());
     if (currentParams.get('q') !== searchQueryValue) {
@@ -432,13 +454,42 @@ export const useSearchEngine = ({
             div: GOOGLE_SEARCH_CONTAINER_ID,
             tag: 'searchresults-only',
             gname: 'image-search',
-            attributes: { searchType: 'image', disableWebSearch: true }
+            attributes: {
+              searchType: 'image',
+              disableWebSearch: true,
+              enableHistory: true,
+              queryParameterName: 'cse_dummy_q' // Prevent CSE from reading our ?q= parameter
+            }
           });
           cseElementRef.current = element;
         }
 
         if (element) {
-          element.execute(searchQuery);
+          let hash = window.location.hash;
+
+          // Attempt to restore hash from sessionStorage if it was lost during Next.js routing
+          if (!hash) {
+            const savedHash = sessionStorage.getItem('cse_return_hash');
+            const savedQuery = sessionStorage.getItem('cse_return_query');
+            if (savedHash && savedQuery === searchQuery) {
+              window.location.hash = savedHash; // Update the URL so CSE can read it naturally
+              hash = savedHash;
+              // Clean up after restoring
+              sessionStorage.removeItem('cse_return_hash');
+              sessionStorage.removeItem('cse_return_query');
+            }
+          }
+
+          const href = window.location.href;
+          const isInitialLoad = !hasExecutedRef.current;
+          hasExecutedRef.current = true;
+          const hasHashState = hash.includes('.q=') || hash.includes('.page=');
+
+          if (isInitialLoad && hasHashState) {
+            setIsSearching(false); // Make sure to stop the loading spinner
+          } else {
+            element.execute(searchQuery);
+          }
         } else {
           // Retry if element isn't ready yet
           setTimeout(renderAndExecute, 100);
