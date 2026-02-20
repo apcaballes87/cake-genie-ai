@@ -5,20 +5,23 @@ import { CakeGenieMerchant } from '@/lib/database.types';
 
 // Static metadata for SEO
 export const metadata: Metadata = {
-    title: 'Shop Cakes from Partner Bakeshops | Genie.ph',
-    description: 'Discover amazing bakeshops and order custom cakes from verified partners across the Philippines. Find the perfect cake for any occasion.',
-    keywords: 'cake shop, bakery, custom cakes, Philippines bakeshops, order cakes online, Genie.ph',
+    title: 'Shop Custom Cakes from Cebu Bakeshops | Genie.ph',
+    description: 'Order custom cakes from verified bakeshops and homebakers in Cebu. Browse portfolios, compare pricing, and get your cake delivered across Metro Cebu.',
+    keywords: 'cake shop Cebu, bakery Cebu, custom cakes Cebu, order cakes online Philippines, Genie.ph',
+    alternates: {
+        canonical: 'https://genie.ph/shop',
+    },
     openGraph: {
-        title: 'Discover Partner Bakeshops | Genie.ph',
-        description: 'Find the perfect cake from our partner bakeries across the Philippines',
+        title: 'Shop Custom Cakes from Cebu Bakeshops | Genie.ph',
+        description: 'Browse and order custom cakes from verified bakeshops and homebakers in Cebu. Fast delivery across Metro Cebu.',
         type: 'website',
         siteName: 'Genie.ph',
         url: 'https://genie.ph/shop',
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'Discover Partner Bakeshops | Genie.ph',
-        description: 'Find the perfect cake from our partner bakeries across the Philippines',
+        title: 'Shop Custom Cakes from Cebu Bakeshops | Genie.ph',
+        description: 'Browse verified bakeshops in Cebu and order custom cakes online.',
     },
 };
 

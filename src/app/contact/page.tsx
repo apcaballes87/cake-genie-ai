@@ -2,8 +2,18 @@ import { Metadata } from 'next'
 import ContactClient from './ContactClient'
 
 export const metadata: Metadata = {
-    title: 'Contact Us | Genie.ph',
-    description: 'Get in touch with Genie.ph for custom cake orders in Cebu. Visit us at Skyview Park, Nivel Hills, Cebu City or call +63-908-940-8747.',
+    title: 'Contact Genie.ph | Custom Cake Marketplace in Cebu',
+    description: 'Get in touch with Genie.ph for custom cake enquiries in Cebu. Call +63-908-940-8747, chat live, or visit us at Skyview Park, Nivel Hills, Cebu City.',
+    alternates: {
+        canonical: 'https://genie.ph/contact',
+    },
+    openGraph: {
+        title: 'Contact Genie.ph | Custom Cakes in Cebu',
+        description: 'Call, chat, or visit our Cebu office. We help with custom cake orders, baker partnerships, and general enquiries.',
+        url: 'https://genie.ph/contact',
+        type: 'website',
+        siteName: 'Genie.ph',
+    },
 }
 
 function ContactPageSchema() {
