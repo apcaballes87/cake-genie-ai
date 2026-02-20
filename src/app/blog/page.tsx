@@ -5,14 +5,14 @@ import { ArrowLeft, Calendar, ChevronRight } from 'lucide-react';
 import { BlogSchema } from '@/components/SEOSchemas';
 
 export const metadata: Metadata = {
-  title: 'Cake Blog — Tips & Guides for Cebu | Genie.ph',
+  title: 'Custom Cake Ideas, Tips & Guides | Genie.ph Blog',
   description:
     'Read helpful guides, tips, and articles from Genie.ph — your online marketplace for custom cakes in Cebu.',
   alternates: {
     canonical: 'https://genie.ph/blog',
   },
   openGraph: {
-    title: 'Cake Blog — Tips & Guides for Cebu | Genie.ph',
+    title: 'Custom Cake Ideas, Tips & Guides | Genie.ph Blog',
     description:
       'Read helpful guides, tips, and articles from Genie.ph — your online marketplace for custom cakes in Cebu.',
     url: 'https://genie.ph/blog',

@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   // All other external domains are handled by LazyImage with unoptimized={true}.
   images: {
     formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 2592000,
     remotePatterns: [
       {
         protocol: 'https',
@@ -48,30 +49,30 @@ const nextConfig: NextConfig = {
         destination: '/shop/:merchantSlug/:productSlug',
         permanent: true,
       },
-      // Redirect old category slugs to collections pages (not /search which is blocked by robots.txt)
+      // Redirect old category slugs to real indexed category pages
       {
         source: '/customizing/birthday',
-        destination: '/collections/birthday',
+        destination: '/customizing/category/birthday-cakes',
         permanent: true,
       },
       {
         source: '/customizing/wedding',
-        destination: '/collections/wedding',
+        destination: '/customizing/category/wedding-cakes',
         permanent: true,
       },
       {
         source: '/customizing/graduation',
-        destination: '/collections/graduation',
+        destination: '/customizing/category/graduation-cakes',
         permanent: true,
       },
       {
         source: '/customizing/anniversary',
-        destination: '/collections/anniversary',
+        destination: '/customizing/category/anniversary-cakes',
         permanent: true,
       },
       {
         source: '/customizing/christening',
-        destination: '/collections/christening',
+        destination: '/customizing/category/christening-cakes',
         permanent: true,
       },
     ]

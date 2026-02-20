@@ -25,6 +25,9 @@ export async function generateMetadata({
   return {
     title: `${post.title} | Genie.ph Blog`,
     description: post.excerpt,
+    alternates: {
+      canonical: `https://genie.ph/blog/${post.slug}`,
+    },
     openGraph: {
       title: post.title,
       description: post.excerpt,
