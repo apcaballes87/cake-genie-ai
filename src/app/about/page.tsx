@@ -2,8 +2,18 @@ import { Metadata } from 'next'
 import AboutClient from './AboutClient'
 
 export const metadata: Metadata = {
-    title: 'About Us | Genie.ph',
-    description: 'Genie.ph is an AI-powered custom cake ordering platform in Cebu. We connect customers with artisans for instant pricing and design visualization.',
+    title: "About Genie.ph | The Philippines' First AI Custom Cake Marketplace",
+    description: "Genie.ph is the Philippines' first AI-powered marketplace for custom cakes, based in Cebu. We connect customers with top local bakers for instant pricing and visual customisation.",
+    alternates: {
+        canonical: 'https://genie.ph/about',
+    },
+    openGraph: {
+        title: "About Genie.ph | AI-Powered Custom Cake Marketplace in Cebu",
+        description: "The Philippines' first AI marketplace for custom cakes. Based in Cebu — connecting customers with vetted local bakers.",
+        url: 'https://genie.ph/about',
+        type: 'website',
+        siteName: 'Genie.ph',
+    },
 }
 
 export default function AboutPage() {

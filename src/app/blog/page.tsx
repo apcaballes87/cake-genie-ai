@@ -5,15 +5,19 @@ import { ArrowLeft, Calendar, ChevronRight } from 'lucide-react';
 import { BlogSchema } from '@/components/SEOSchemas';
 
 export const metadata: Metadata = {
-  title: 'Blog | Genie.ph',
+  title: 'Custom Cake Ideas, Tips & Guides | Genie.ph Blog',
   description:
-    'Read helpful guides, tips, and articles from Genie.ph — your online marketplace for custom cakes in Cebu.',
+    'Guides, tips, and inspiration for ordering custom cakes in Cebu — from birthday and bento cakes to weddings. Powered by Genie.ph, the AI cake marketplace.',
+  alternates: {
+    canonical: 'https://genie.ph/blog',
+  },
   openGraph: {
-    title: 'Blog | Genie.ph',
+    title: 'Custom Cake Ideas, Tips & Guides | Genie.ph Blog',
     description:
-      'Read helpful guides, tips, and articles from Genie.ph — your online marketplace for custom cakes in Cebu.',
+      'Guides, tips, and cake inspiration for celebrations in Cebu. Birthday cakes, bento cakes, wedding cakes and more.',
     url: 'https://genie.ph/blog',
     type: 'website',
+    siteName: 'Genie.ph',
   },
 };
 

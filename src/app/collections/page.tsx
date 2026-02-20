@@ -5,10 +5,17 @@ import CollectionsClient from './CollectionsClient'
 export const revalidate = 3600; // ISR: revalidate every hour
 
 export const metadata: Metadata = {
-    title: 'Cake Design Collections | Genie.ph',
-    description: 'Browse thousands of custom cake designs organized by category. From birthday cakes to weddings, find the perfect design and get instant AI pricing.',
+    title: 'Browse Custom Cake Designs by Category | Genie.ph',
+    description: 'Explore thousands of custom cake designs in Cebu — birthday cakes, bento cakes, wedding cakes and more. Find a design you love and get an instant AI price.',
     alternates: {
         canonical: 'https://genie.ph/collections',
+    },
+    openGraph: {
+        title: 'Browse Custom Cake Designs by Category | Genie.ph',
+        description: 'Thousands of custom cake designs from Cebu bakers. Find your perfect design and get an instant price.',
+        url: 'https://genie.ph/collections',
+        type: 'website',
+        siteName: 'Genie.ph',
     },
 }
 

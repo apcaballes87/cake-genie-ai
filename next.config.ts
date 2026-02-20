@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   // Only our own Supabase domains need optimization via next/image.
   // All other external domains are handled by LazyImage with unoptimized={true}.
   images: {
+    // Serve WebP and AVIF for supported browsers — reduces image payload 20-35%
+    formats: ['image/avif', 'image/webp'],
+    // Cache optimised images for 30 days (default is 60 s); reduces re-processing on CDN
+    minimumCacheTTL: 2592000,
     remotePatterns: [
       {
         protocol: 'https',
@@ -47,30 +51,33 @@ const nextConfig: NextConfig = {
         destination: '/shop/:merchantSlug/:productSlug',
         permanent: true,
       },
-      // Redirect old category slugs to search page
+      // Redirect old keyword shortcuts to indexed category pages.
+      // Previously pointed to /search?q=X which is disallowed in robots.txt —
+      // crawlers would follow the 301 then hit a blocked URL, wasting all link equity.
+      // Now points to /customizing/category/[slug] which IS indexed and has real content.
       {
         source: '/customizing/birthday',
-        destination: '/search?q=birthday',
+        destination: '/customizing/category/birthday-cakes',
         permanent: true,
       },
       {
         source: '/customizing/wedding',
-        destination: '/search?q=wedding',
+        destination: '/customizing/category/wedding-cakes',
         permanent: true,
       },
       {
         source: '/customizing/graduation',
-        destination: '/search?q=graduation',
+        destination: '/customizing/category/graduation-cakes',
         permanent: true,
       },
       {
         source: '/customizing/anniversary',
-        destination: '/search?q=anniversary',
+        destination: '/customizing/category/anniversary-cakes',
         permanent: true,
       },
       {
         source: '/customizing/christening',
-        destination: '/search?q=christening',
+        destination: '/customizing/category/christening-cakes',
         permanent: true,
       },
     ]

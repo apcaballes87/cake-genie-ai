@@ -158,17 +158,31 @@ export const Footer = () => {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-6 mt-6 text-sm text-gray-500">
-                            <Link href="/terms" className="hover:text-purple-600 transition-colors">
-                                Terms of Service
-                            </Link>
-                            <Link href="/privacy" className="hover:text-purple-600 transition-colors">
-                                Privacy Policy
-                            </Link>
-                            <Link href="/return-policy" className="hover:text-purple-600 transition-colors">
-                                Return Policy
-                            </Link>
-                        </div>
+                        {/* Site navigation links — crawlable by search engines */}
+                        <nav aria-label="Site links" className="mt-6">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-sm text-gray-600 mb-4">
+                                <Link href="/shop" className="hover:text-purple-600 transition-colors">Shop Cakes</Link>
+                                <Link href="/collections" className="hover:text-purple-600 transition-colors">Browse Designs</Link>
+                                <Link href="/cake-price-calculator" className="hover:text-purple-600 transition-colors">Price Calculator</Link>
+                                <Link href="/how-to-order" className="hover:text-purple-600 transition-colors">How to Order</Link>
+                                <Link href="/faq" className="hover:text-purple-600 transition-colors">FAQ</Link>
+                                <Link href="/blog" className="hover:text-purple-600 transition-colors">Blog</Link>
+                                <Link href="/compare" className="hover:text-purple-600 transition-colors">Compare</Link>
+                                <Link href="/about" className="hover:text-purple-600 transition-colors">About Us</Link>
+                                <Link href="/contact" className="hover:text-purple-600 transition-colors">Contact</Link>
+                            </div>
+                            <div className="flex items-center gap-6 text-sm text-gray-500">
+                                <Link href="/terms" className="hover:text-purple-600 transition-colors">
+                                    Terms of Service
+                                </Link>
+                                <Link href="/privacy" className="hover:text-purple-600 transition-colors">
+                                    Privacy Policy
+                                </Link>
+                                <Link href="/return-policy" className="hover:text-purple-600 transition-colors">
+                                    Return Policy
+                                </Link>
+                            </div>
+                        </nav>
 
                         {/* Trust Badges */}
                         <div className="flex flex-wrap items-center gap-4 mt-6">
