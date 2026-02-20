@@ -7,6 +7,9 @@ export const metadata: Metadata = {
     title: 'Cake Price Calculator | Instant Custom Cake Pricing',
     description: 'Upload your cake design and get an instant price quote. Our AI-powered calculator analyzes your design and provides accurate pricing for custom cakes in Cebu and Cavite.',
     keywords: 'cake price calculator, custom cake pricing, cake quote, Cebu cakes, Cavite cakes, instant cake price',
+    alternates: {
+        canonical: 'https://genie.ph/cake-price-calculator',
+    },
     openGraph: {
         title: 'Cake Price Calculator | Get Instant Custom Cake Quotes',
         description: 'Skip the back-and-forth! Upload a cake photo and see the price instantly. Available for delivery in Cebu City and Cavite.',

@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   // Only our own Supabase domains need optimization via next/image.
   // All other external domains are handled by LazyImage with unoptimized={true}.
   images: {
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'https',
@@ -47,30 +48,30 @@ const nextConfig: NextConfig = {
         destination: '/shop/:merchantSlug/:productSlug',
         permanent: true,
       },
-      // Redirect old category slugs to search page
+      // Redirect old category slugs to collections pages (not /search which is blocked by robots.txt)
       {
         source: '/customizing/birthday',
-        destination: '/search?q=birthday',
+        destination: '/collections/birthday',
         permanent: true,
       },
       {
         source: '/customizing/wedding',
-        destination: '/search?q=wedding',
+        destination: '/collections/wedding',
         permanent: true,
       },
       {
         source: '/customizing/graduation',
-        destination: '/search?q=graduation',
+        destination: '/collections/graduation',
         permanent: true,
       },
       {
         source: '/customizing/anniversary',
-        destination: '/search?q=anniversary',
+        destination: '/collections/anniversary',
         permanent: true,
       },
       {
         source: '/customizing/christening',
-        destination: '/search?q=christening',
+        destination: '/collections/christening',
         permanent: true,
       },
     ]
