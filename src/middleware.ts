@@ -44,7 +44,7 @@ export async function middleware(request: NextRequest) {
 
     // CSP and Security Headers
     // Using protocol-based CSP to avoid header length limits while maintaining security
-    const cspHeader = `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.googletagmanager.com https://*.clarity.ms https://*.bing.com https://*.tawk.to https://*.google.com http://*.google.com https://*.googleapis.com https://*.adtrafficquality.google https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.tawk.to https://*.google.com; img-src 'self' data: blob: https: http://*.google.com; connect-src 'self' https: wss:; font-src 'self' data: https:; frame-src 'self' https:; worker-src 'self' blob:;`
+    const cspHeader = `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.googletagmanager.com https://*.clarity.ms https://*.bing.com https://*.tawk.to https://*.google.com http://*.google.com https://*.googleapis.com https://*.gstatic.com https://*.adtrafficquality.google https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.tawk.to https://*.google.com; img-src 'self' data: blob: https: http://*.google.com; connect-src 'self' https: wss:; font-src 'self' data: https:; frame-src 'self' https:; worker-src 'self' blob:;`
 
     supabaseResponse.headers.set('Content-Security-Policy', cspHeader)
     supabaseResponse.headers.set('X-Frame-Options', 'SAMEORIGIN')

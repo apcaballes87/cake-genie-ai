@@ -1570,6 +1570,29 @@ export async function getPopularKeywords(): Promise<string[]> {
 }
 
 /**
+ * Logs a search keyword to track popular searches and clicks.
+ * @param term The search query keyword
+ * @param actionType Whether the user typed it out or clicked a suggestion
+ */
+export async function logSearchAnalytics(term: string, actionType: 'typed' | 'clicked'): Promise<void> {
+  try {
+    // Only track meaningful keywords
+    if (!term || term.trim().length < 3) return;
+
+    // Call the RPC in the background without awaiting it 
+    // so we don't slow down the user's redirect
+    supabase.rpc('log_search_keyword', {
+      p_search_term: term,
+      p_action_type: actionType
+    }).then(({ error }) => {
+      if (error) console.error("Error logging search:", error);
+    });
+  } catch (err) {
+    console.warn("Failed to log search analytics", err);
+  }
+}
+
+/**
  * Fetches all necessary data for the cart page in parallel.
  * @param userId - The UUID of the logged-in user.
  * @param sessionId - The session ID for a guest user.

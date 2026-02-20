@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SearchIcon, CameraIcon, Loader2 } from './icons';
 import { CAKE_SEARCH_KEYWORDS } from '@/constants/searchKeywords';
-import { getSuggestedKeywords, getPopularKeywords } from '@/services/supabaseService';
+import { getSuggestedKeywords, getPopularKeywords, logSearchAnalytics } from '@/services/supabaseService';
 
 interface SearchAutocompleteProps {
   onSearch: (query: string) => void;
@@ -100,6 +100,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
         // Search the current input text explicitly
         const currentQuery = query.trim();
         if (currentQuery) {
+          logSearchAnalytics(currentQuery, 'typed');
           onSearch(currentQuery);
           setShowSuggestions(false);
         }
@@ -130,12 +131,14 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   const handleSelectSuggestion = (suggestion: string) => {
     // Directly trigger search, which will update the input value via parent
     setShowSuggestions(false);
+    logSearchAnalytics(suggestion, 'clicked');
     onSearch(suggestion);
   };
 
   const handleSearch = () => {
     const currentQuery = query.trim();
     if (currentQuery) {
+      logSearchAnalytics(currentQuery, 'typed');
       onSearch(currentQuery);
       setShowSuggestions(false);
     }
