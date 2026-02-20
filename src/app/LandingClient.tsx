@@ -404,17 +404,17 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
 
                         {/* Hero Section */}
-                        <div className="mb-8">
+                        <div className="mb-4">
                             <div
                                 onClick={() => setIsUploaderOpen(true)}
                                 onKeyDown={(e) => e.key === 'Enter' && setIsUploaderOpen(true)}
                                 role="button"
                                 tabIndex={0}
                                 aria-label="Upload your cake design"
-                                className="relative overflow-hidden rounded-3xl shadow-xl shadow-purple-100/50 h-[12.6rem] md:h-72 lg:h-[21.6rem] cursor-pointer hover:shadow-2xl transition-all active:scale-[0.99]"
+                                className="relative overflow-hidden rounded-3xl shadow-xl shadow-purple-100/50 h-[clamp(10.08rem,44.8vw+0.84rem,12.6rem)] md:h-72 lg:h-[21.6rem] cursor-pointer hover:shadow-2xl transition-all active:scale-[0.99]"
                             >
                                 <LazyImage
-                                    src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/geniehero-med.webp"
+                                    src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/render/image/public/landingpage/geniehero-med.webp?width=1200&quality=80"
                                     alt="Genie.ph Hero - Click to upload your design"
                                     className="w-full h-full object-cover"
                                     priority={true}
@@ -424,8 +424,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         </div>
 
                         {/* Mobile Categories (Horizontal Scroll) - Placed above Available Cakes */}
-                        <h2 className="text-xl font-bold text-gray-900 mb-4 md:hidden">Shop by Occasion</h2>
-                        <div className="md:hidden flex gap-2 mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4">
+                        <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 mb-3 md:hidden">Shop by Occasion</h2>
+                        <div className="md:hidden flex gap-2 mb-4 overflow-x-auto scrollbar-hide -mx-4 px-4">
                             {categoriesList.map((cat) => (
                                 <Link
                                     key={cat.id}
@@ -441,8 +441,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         </div>
 
                         {/* --- CAKES AVAILABLE TODAY --- */}
-                        <div className="mb-8">
-                            <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">Shop Cakes Available Today</h2>
+                        <div className="mb-4">
+                            <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 mb-3">Shop Cakes Available Today</h2>
                             <div className="flex overflow-x-auto gap-3 pb-4 md:grid md:grid-cols-4 md:gap-6 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
                                 {quickLinks.map((link) => {
                                     const currentImageUrl = link.imageUrls[imageIndex % link.imageUrls.length];
@@ -477,10 +477,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         {children}
 
                         {/* --- BLOG SECTION: LATEST TRENDS --- */}
-                        <div className="mt-10">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-xl md:text-2xl font-bold text-gray-900">What are the latest custom cake trends in Cebu?</h2>
-                                <Link href="/blog" className="text-sm font-semibold text-purple-600 hover:text-purple-800 transition-colors">
+                        <div className="mt-5">
+                            <div className="flex items-center justify-between mb-3">
+                                <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 leading-tight">What are the latest custom cake trends in Cebu?</h2>
+                                <Link href="/blog" className="group flex items-center gap-1 md:gap-2 text-purple-600 font-semibold hover:text-purple-700 transition-colors text-[13px] md:text-base shrink-0">
                                     View all
                                 </Link>
                             </div>
@@ -503,7 +503,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         </div>
 
                         {/* --- POPULAR DESIGNS SECTION --- */}
-                        <div className="mt-16">
+                        <div className="mt-8">
                             <PopularDesigns designs={popularDesigns} />
                         </div>
                     </div>
