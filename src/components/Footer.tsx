@@ -158,7 +158,22 @@ export const Footer = () => {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-6 mt-6 text-sm text-gray-500">
+                        <nav className="mb-6" aria-label="Footer navigation">
+                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Explore</h4>
+                            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600">
+                                <Link href="/customizing" className="hover:text-purple-600 transition-colors">Customize a Cake</Link>
+                                <Link href="/shop" className="hover:text-purple-600 transition-colors">Shop</Link>
+                                <Link href="/collections" className="hover:text-purple-600 transition-colors">Collections</Link>
+                                <Link href="/blog" className="hover:text-purple-600 transition-colors">Blog</Link>
+                                <Link href="/about" className="hover:text-purple-600 transition-colors">About</Link>
+                                <Link href="/contact" className="hover:text-purple-600 transition-colors">Contact</Link>
+                                <Link href="/faq" className="hover:text-purple-600 transition-colors">FAQ</Link>
+                                <Link href="/how-to-order" className="hover:text-purple-600 transition-colors">How to Order</Link>
+                                <Link href="/compare" className="hover:text-purple-600 transition-colors">Compare</Link>
+                            </div>
+                        </nav>
+
+                        <div className="flex items-center gap-6 text-sm text-gray-500">
                             <Link href="/terms" className="hover:text-purple-600 transition-colors">
                                 Terms of Service
                             </Link>

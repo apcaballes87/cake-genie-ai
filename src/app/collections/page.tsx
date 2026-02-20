@@ -5,7 +5,7 @@ import CollectionsClient from './CollectionsClient'
 export const revalidate = 3600; // ISR: revalidate every hour
 
 export const metadata: Metadata = {
-    title: 'Cake Design Collections in Cebu | Genie.ph',
+    title: 'Browse Custom Cake Designs by Category | Genie.ph',
     description: 'Browse thousands of custom cake designs organized by category. From birthday cakes to weddings, find the perfect design and get instant AI pricing.',
     alternates: {
         canonical: 'https://genie.ph/collections',
