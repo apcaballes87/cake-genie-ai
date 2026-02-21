@@ -170,6 +170,7 @@ export const Footer = () => {
                                 <Link href="/faq" className="hover:text-purple-600 transition-colors">FAQ</Link>
                                 <Link href="/how-to-order" className="hover:text-purple-600 transition-colors">How to Order</Link>
                                 <Link href="/compare" className="hover:text-purple-600 transition-colors">Compare</Link>
+                                <Link href="/sitemap-html" className="hover:text-purple-600 transition-colors">HTML Sitemap</Link>
                             </div>
                         </nav>
 
