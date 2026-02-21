@@ -38,7 +38,10 @@ export async function generateMetadata(
     const design = await getDesign(supabase, slug)
 
     if (!design) {
-        return { title: 'Design Not Found' }
+        return {
+            title: 'Design Not Found',
+            description: 'The requested custom cake design could not be found in our catalogue.',
+        }
     }
 
     const priceDisplay = design.price ? ` | Php ${Math.round(design.price).toLocaleString()}` : ''
