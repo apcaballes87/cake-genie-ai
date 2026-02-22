@@ -471,9 +471,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, []);
 
     const { isShareModalOpen, shareData, isSavingDesign, handleShare, createShareLink, closeShareModal } = useDesignSharing({
-        editedImage, originalImagePreview, cakeInfo, basePrice, finalPrice, mainToppers,
-        supportElements, icingDesign, analysisResult, HEX_TO_COLOR_NAME_MAP: HEX_TO_COLOR_NAME_MAP_SHARING,
-        cakeMessages, additionalInstructions
+        slug: (persistedSlug || slug || seoMetadata?.slug) as string || null,
+        originalImageUrl: seoMetadata?.original_image_url || null,
     });
 
     // --- SEO ---
@@ -3593,10 +3592,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             isOpen={isShareModalOpen}
             onClose={closeShareModal}
             shareData={shareData}
-            onCreateLink={createShareLink}
-            isSaving={isSavingDesign}
-            finalPrice={finalPrice}
-            imageUrl={editedImage || originalImagePreview || ''}
         />
     </>);
 };

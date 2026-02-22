@@ -84,6 +84,7 @@ export interface ShareDesignData {
   eventTime?: string;
   recipientName?: string;
   customization_details: CartItemDetails;
+  originalSlug?: string;
 }
 
 export interface BillContribution {
@@ -124,29 +125,26 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
     }
 
     const designId = uuidv4();
-    const urlSlug = generateUrlSlug(data.title, designId);
+    // Use the original page slug if available, otherwise generate a fallback
+    const effectiveSlug = data.originalSlug || generateUrlSlug(data.title, designId);
 
     // Upload image to storage if it's a data URI
     let imageUrl = data.customizedImageUrl;
     if (data.customizedImageUrl.startsWith('data:')) {
-
       imageUrl = await uploadImageToStorage(data.customizedImageUrl, designId);
-
     }
 
     // Upload original image if it's a data URI
     let originalImageUrl = data.originalImageUrl;
     if (originalImageUrl && originalImageUrl.startsWith('data:')) {
-
       originalImageUrl = await uploadImageToStorage(originalImageUrl, `${designId}-original`);
-
     }
 
     const { error } = await supabase
       .from('cakegenie_shared_designs')
       .insert({
         design_id: designId,
-        url_slug: urlSlug,
+        url_slug: effectiveSlug,
         customized_image_url: imageUrl,
         original_image_url: originalImageUrl,
         cake_type: data.cakeType,
@@ -172,7 +170,7 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
         event_date: data.eventDate || null,
         event_time: data.eventTime || null,
         recipient_name: data.recipientName || null,
-        auto_order_enabled: data.billSharingEnabled || false, // Enable auto-order when bill sharing is enabled
+        auto_order_enabled: data.billSharingEnabled || false,
         customization_details: data.customization_details,
       });
 
@@ -182,8 +180,8 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
     }
 
     const clientDomain = window.location.origin;
-    const shareUrl = `${clientDomain}/designs/${urlSlug}`;
-    const botShareUrl = `https://genie.ph/designs/${urlSlug}`;
+    const shareUrl = `${clientDomain}/customizing/${effectiveSlug}`;
+    const botShareUrl = `https://genie.ph/customizing/${effectiveSlug}`;
 
     showSuccess('Share link created!');
 
@@ -191,7 +189,7 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
       designId: designId,
       shareUrl,
       botShareUrl,
-      urlSlug
+      urlSlug: effectiveSlug
     };
   } catch (error) {
     console.error('Error saving design:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
