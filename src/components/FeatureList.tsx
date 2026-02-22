@@ -57,6 +57,7 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
     '1 Tier': '1 Tier (Soft icing)', '2 Tier': '2 Tier (Soft icing)', '3 Tier': '3 Tier (Soft icing)',
     '1 Tier Fondant': '1 Tier Fondant', '2 Tier Fondant': '2 Tier Fondant', '3 Tier Fondant': '3 Tier Fondant',
     'Square': 'Square', 'Rectangle': 'Rectangle', 'Bento': 'Bento',
+    'Square Fondant': 'Square Fondant', 'Rectangle Fondant': 'Rectangle Fondant',
 };
 
 const Section: React.FC<{ title: string; children: React.ReactNode; defaultOpen?: boolean; count?: number; analysisText?: string }> = ({ title, children, defaultOpen = true, count, analysisText }) => {
