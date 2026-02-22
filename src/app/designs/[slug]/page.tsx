@@ -215,6 +215,7 @@ export default async function SharedDesignPage({ params }: Props) {
                         <LazyImage
                             src={design.customized_image_url}
                             alt={design.alt_text || design.title || 'Custom cake design'}
+                            title={design.title || design.alt_text || 'Custom cake design'}
                             priority={true}
                             fill
                             className="rounded-xl shadow-lg border border-slate-200"

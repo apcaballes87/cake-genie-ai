@@ -204,8 +204,14 @@ export async function POST(req: NextRequest) {
                 },
                 keyword: { type: Type.STRING },
                 alt_text: { type: Type.STRING },
-                seo_title: { type: Type.STRING },
-                seo_description: { type: Type.STRING },
+                seo_title: {
+                    type: Type.STRING,
+                    description: "SEO optimized title for the cake product."
+                },
+                seo_description: {
+                    type: Type.STRING,
+                    description: "Meta description for search engines, exactly 5 to 6 sentences. Requirements: 1) Start with the cake type and occasion. 2) Include descriptive features (tiers, decorations, color, toppers). 3) Include icing or design techniques. 4) Include the message on the cake. 5) Include potential outcome or who it is for (what makes this specific design special). 6) End with action phrase mentioning Genie.ph and a natural mention of the location Cebu City, Mandaue, Lapu-lapu City, or Talisay Cebu."
+                },
                 rejection: {
                     type: Type.OBJECT,
                     properties: {

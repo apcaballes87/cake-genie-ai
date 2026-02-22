@@ -2178,6 +2178,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     <LazyImage
                                         src={product?.image_url || recentSearchDesign?.original_image_url || ''}
                                         alt={product?.alt_text || recentSearchDesign?.alt_text || product?.title || recentSearchDesign?.keywords || 'Cake Design'}
+                                        title={product?.title || recentSearchDesign?.seo_title || recentSearchDesign?.keywords || 'Cake Design'}
                                         fill
                                         sizes="(max-width: 768px) 100vw, 50vw"
                                         imageClassName="object-contain rounded-lg"
@@ -2208,6 +2209,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             key={activeTab}
                                             src={activeTab === 'customized' ? (editedImage || originalImagePreview) : originalImagePreview}
                                             alt={product?.alt_text || (product ? `${product.title} - Custom cake${merchant ? ` from ${merchant.business_name}` : ''}` : (activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake"))}
+                                            title={product?.title || recentSearchDesign?.seo_title || recentSearchDesign?.keywords || (activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake")}
                                             fill
                                             sizes="(max-width: 768px) 100vw, 50vw"
                                             imageClassName="object-contain rounded-lg"

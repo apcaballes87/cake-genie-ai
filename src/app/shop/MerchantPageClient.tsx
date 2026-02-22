@@ -244,6 +244,7 @@ export function MerchantPageClient({ slug }: MerchantPageClientProps) {
                                         <LazyImage
                                             src={product.image_url || '/placeholder-cake.png'}
                                             alt={product.alt_text || product.title}
+                                            title={product.title || product.alt_text || 'Custom Cake Design'}
                                             fill
                                             className="group-hover:scale-110 transition-transform duration-500"
                                             imageClassName="object-cover"

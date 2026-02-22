@@ -584,6 +584,7 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
                         <img
                             src={design.original_image_url}
                             alt={altText}
+                            title={title}
                             className="w-full h-full object-contain"
                             loading="eager"
                             fetchPriority="high"
