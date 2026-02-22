@@ -13,15 +13,51 @@ import { DesignAboutSection } from '@/components/DesignAboutSection'
 import { v4 as uuidv4 } from 'uuid'
 import { mapProductToDefaultState } from '@/utils/customizationMapper'
 
-// Helper to fetch design by exact slug only
+// Helper to fetch design by exact slug
 async function getDesign(supabase: any, slug: string) {
-    const { data } = await supabase
+    const { data: cacheData } = await supabase
         .from('cakegenie_analysis_cache')
         .select('*')
         .eq('slug', slug)
         .single()
 
-    return data
+    if (cacheData) return cacheData;
+
+    // Check shared designs by slug
+    const { data: sharedData } = await supabase
+        .from('cakegenie_shared_designs')
+        .select('*')
+        .eq('url_slug', slug)
+        .single()
+
+    if (sharedData) {
+        // Parse customization_details if it's a string
+        let details = sharedData.customization_details;
+        if (typeof details === 'string') {
+            try {
+                details = JSON.parse(details);
+            } catch (e) {
+                console.error('Failed to parse customization details', e);
+            }
+        }
+
+        return {
+            isSharedDesign: true,
+            slug: sharedData.url_slug,
+            keywords: sharedData.title || sharedData.cake_type || 'Custom',
+            seo_title: sharedData.title,
+            seo_description: sharedData.description,
+            alt_text: sharedData.alt_text,
+            original_image_url: sharedData.original_image_url || sharedData.customized_image_url,
+            customized_image_url: sharedData.customized_image_url,
+            price: sharedData.base_price,
+            availability: sharedData.availability_type,
+            analysis_json: details?.analysisResult || null,
+            customization_details: details
+        }
+    }
+
+    return null
 }
 
 type Props = {
@@ -843,7 +879,11 @@ export default async function RecentSearchPage({ params }: Props) {
 
     // Always provide initialData to prevent localStorage fallback and state leakage
     let initialState: CustomizationState;
-    if (analysis) {
+    if (design.isSharedDesign && design.customization_details) {
+        initialState = typeof design.customization_details === 'string'
+            ? JSON.parse(design.customization_details as string)
+            : design.customization_details;
+    } else if (analysis) {
         // Construct the initial state matching CustomizationContext structure
         const cakeType: CakeType = analysis.cakeType || '1 Tier';
         // Note: Default thickness/size maps might be needed if not in analysis

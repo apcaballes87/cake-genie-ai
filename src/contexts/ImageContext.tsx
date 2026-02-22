@@ -11,6 +11,7 @@ import { HybridAnalysisResult, CacheSEOMetadata } from '@/types'
 import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService'
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils'
 import { COMMON_ASSETS } from '@/constants'
+import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers'
 
 /**
  * Generates a perceptual hash (pHash) for an image.
@@ -235,6 +236,10 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
     ) => {
         setIsLoading(true); // For file processing
         setError(null);
+        // Clear stale slug and seoMetadata from any previous upload
+        // so the share button won't show an old link
+        setCurrentSlugState(null);
+        setSeoMetadata(null);
         try {
             const imageData = await fileToBase64(file);
             const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
@@ -260,6 +265,12 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 console.log('✅ Using cached analysis result');
                 const cachedAnalysis = cacheHit.analysisResult;
                 setSeoMetadata(cacheHit.seoMetadata);
+
+                // Set slug from cache so share button has access to it
+                if (cacheHit.seoMetadata.slug) {
+                    setCurrentSlugState(cacheHit.seoMetadata.slug);
+                }
+
                 onSuccess(cachedAnalysis);
 
                 // Check if cached result has bbox data
@@ -435,6 +446,16 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 );
 
                 onSuccess(fastResult); // User can now see features and price immediately!
+
+                // Generate slug immediately so share button works right away
+                const icingColor = fastResult.icing_design?.colors?.top || fastResult.icing_design?.colors?.side || null;
+                const generatedSlug = generateCakeAnalysisSlug({
+                    keyword: fastResult.keyword,
+                    icingColor,
+                    cakeType: fastResult.cakeType,
+                    pHash,
+                });
+                setCurrentSlugState(generatedSlug);
 
                 // PHASE 2: Background coordinate enrichment with Roboflow + Florence-2
                 // (Falls back to Gemini if Roboflow fails or is disabled)
