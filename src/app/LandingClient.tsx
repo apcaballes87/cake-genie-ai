@@ -455,6 +455,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                             <LazyImage
                                                 src={currentImageUrl}
                                                 alt={link.name}
+                                                title={link.name}
                                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                                 priority={true}
                                                 fill

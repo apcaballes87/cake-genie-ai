@@ -77,6 +77,7 @@ interface LazyImageProps extends Omit<ImageProps, 'onLoad' | 'onError'> {
   placeholderClassName?: string;
   containerClassName?: string;
   imageClassName?: string;
+  title?: string;
   onLoad?: (event: React.SyntheticEvent<HTMLImageElement>) => void; // Update to match native event if needed, but next/image onLoad is slightly different
   onError?: (event: React.SyntheticEvent<HTMLImageElement>) => void;
 }
@@ -88,6 +89,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   placeholderClassName,
   containerClassName,
   imageClassName,
+  title,
   onLoad,
   onError,
   priority = false,
@@ -144,6 +146,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
       <Image
         src={getOptimizedSrc(typeof src === 'string' ? src : undefined, width) || src}
         alt={alt}
+        title={title}
         onLoad={handleLoad}
         onError={handleError}
         priority={priority}

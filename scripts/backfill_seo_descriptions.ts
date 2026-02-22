@@ -63,9 +63,18 @@ const TEXT_GENERATION_PROMPT = `You are an expert copywriter and SEO specialist 
 const textGenerationSchema = {
     type: Type.OBJECT,
     properties: {
-        title: { type: Type.STRING },
-        description: { type: Type.STRING },
-        altText: { type: Type.STRING },
+        title: {
+            type: Type.STRING,
+            description: "Structure: '[Theme] Themed [Size] [Type] Cake'. Prioritize the Theme first. Include Size. Max 60 characters."
+        },
+        description: {
+            type: Type.STRING,
+            description: "Enticing, descriptive, and professional. Describe the design clearly (base color, main toppers, key details). End with a subtle Call to Action. Length: 1-2 sentences."
+        },
+        altText: {
+            type: Type.STRING,
+            description: "Literal, descriptive summary of the visual image. Example: 'A [color] [type] cake featuring [main elements] and [decorations].' No fluff."
+        },
     },
     required: ['title', 'description', 'altText'],
 };
