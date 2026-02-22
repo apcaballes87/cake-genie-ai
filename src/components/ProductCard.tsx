@@ -151,30 +151,17 @@ export const ProductCard = ({
     // Title Logic
     const title = (() => {
         const t = keywords ? keywords.split(',')[0] : 'Custom Cake';
-        return t.trim().toLowerCase().endsWith('cake') ? t : `${t} Cake`;
+        const formatted = t.trim().toLowerCase().endsWith('cake') ? t.trim() : `${t.trim()} Cake`;
+        return formatted
+            .toLowerCase()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     })();
 
     // Core Card Content inside the clickable area
     const CardContent = (
         <>
-            <div className="relative aspect-square mb-3 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-                <LazyImage
-                    src={original_image_url}
-                    alt={title}
-                    title={title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    priority={priority}
-                    fill
-                />
-
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
-
-                {/* Availability Badge */}
-                <span className={`absolute bottom-3 left-3 backdrop-blur-md text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold shadow-sm z-10 flex items-center gap-1 ${availConfig.className}`}>
-                    {availConfig.icon} {availConfig.label}
-                </span>
-            </div>
-
             <div className="relative aspect-square mb-3 rounded-xl overflow-hidden bg-gray-100 shrink-0">
                 <LazyImage
                     src={original_image_url}
