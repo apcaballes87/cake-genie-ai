@@ -878,7 +878,9 @@ export default async function RecentSearchPage({ params }: Props) {
         const cakeMessages = (analysis.cake_messages || []).map((m: any) => ({
             ...m,
             id: m.id || uuidv4(),
+            text: '', // Start with empty text to act as a placeholder
             isEnabled: true,
+            isPlaceholder: true,
             originalMessage: { ...m }
         }));
 
