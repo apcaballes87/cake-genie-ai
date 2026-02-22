@@ -1,7 +1,7 @@
 // types.ts
 
 // --- Base Types from Gemini Analysis ---
-export type CakeType = '1 Tier' | '2 Tier' | '3 Tier' | '1 Tier Fondant' | '2 Tier Fondant' | '3 Tier Fondant' | 'Square' | 'Rectangle' | 'Bento';
+export type CakeType = '1 Tier' | '2 Tier' | '3 Tier' | '1 Tier Fondant' | '2 Tier Fondant' | '3 Tier Fondant' | 'Square' | 'Rectangle' | 'Bento' | 'Square Fondant' | 'Rectangle Fondant';
 export type CakeThickness = '2 in' | '3 in' | '4 in' | '5 in' | '6 in';
 export type CakeSize = string; // e.g., '6" Round', '6"/8" Round'
 export type CakeFlavor = 'Chocolate Cake' | 'Ube Cake' | 'Vanilla Cake' | 'Mocha Cake';

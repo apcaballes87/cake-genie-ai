@@ -27,6 +27,8 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
     'Square': 'Square',
     'Rectangle': 'Rectangle',
     'Bento': 'Bento',
+    'Square Fondant': 'Square Fondant',
+    'Rectangle Fondant': 'Rectangle Fondant',
 };
 
 const pricingKeys = {
