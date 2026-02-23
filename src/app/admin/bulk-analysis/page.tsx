@@ -174,7 +174,7 @@ export default function BulkAnalysisAdminPage() {
 
             try {
                 // 1. Fetch image via proxy and get Base64
-                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(linkImage)}`;
+                const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(linkImage)}`;
                 const response = await fetch(proxyUrl);
                 if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
 
