@@ -11,6 +11,367 @@ export interface BlogPost {
 
 export const blogPosts: BlogPost[] = [
   {
+    slug: 'jollibee-vs-mcdonalds-kids-party-packages-2026',
+    title: 'Jollibee vs McDonald\'s Kids Party Packages 2026: Complete Comparison Guide',
+    excerpt: 'Planning your child\'s birthday party? Here\'s a complete comparison of Jollibee and McDonald\'s party packages in the Philippines for 2026—including prices, inclusions, booking steps, and pros and cons vs home parties.',
+    date: '2026-02-23',
+    author: 'Genie.ph',
+    authorUrl: 'https://genie.ph/about',
+    content: `Your kid's birthday is coming up and you're torn between Jollibee and McDonald's for the venue. Both are Filipino childhood staples. Both have party packages. Both will make your child happy. But which one gives you better value?
+
+I've broken down everything you need to know about both party packages—prices, what's included, how to book, and whether these fast-food parties actually make sense compared to hosting at home.
+
+---
+
+## Quick Answer: Which Should You Pick?
+
+**Go with Jollibee if:** Your child loves Chickenjoy and Jolly Spaghetti, you want that classic Filipino party vibe, or you're on a tighter budget.
+
+**Go with McDonald's if:** Your kid prefers chicken nuggets and fries, you want more theme options (like Minions or Barbie), or you're planning a smaller gathering.
+
+**Skip both and host at home if:** You want complete control over food, decorations, and schedule, you have 40+ guests, or you're planning something beyond a standard kids' party.
+
+Now let's get into the details.
+
+---
+
+## Jollibee Party Packages 2026
+
+### Package Options and Prices
+
+Jollibee offers three main party packages. Prices may vary slightly by branch, but here are the standard rates:
+
+| Package | Price | Good For |
+|---------|-------|----------|
+| **Package A** | ₱6,500 | 15-20 guests |
+| **Package B** | ₱8,500 | 25-30 guests |
+| **Package C** | ₱11,000 | 35-40 guests |
+
+**What's included in all packages:**
+
+- Jollibee meals (Chickenjoy, spaghetti, burger, fries, drink)
+- Party hats and loot bags
+- Balloons and basic decorations
+- Party host
+- Games and prizes
+- Birthday cake (Jollibee-themed)
+- 2-hour venue use
+
+**Add-ons available:**
+
+- Additional food: ₱80-150 per item
+- Extra loot bags: ₱50-80 each
+- Character appearance (Jollibee mascot): ₱2,500
+- Photo booth: ₱1,500-2,500
+- Additional game prizes: ₱200-500
+
+### How to Book a Jollibee Party
+
+**Step 1: Choose your branch**
+
+Not all Jollibee branches have party facilities. Call ahead or visit the branch to confirm they accept party bookings. Major branches in Metro Cebu with party rooms include:
+
+- Jollibee Ayala Center Cebu
+- Jollibee SM City Cebu
+- Jollibee Robinsons Cyberscape
+- Jollibee Gaisano Mall Cebu
+- Jollibee Parkmall
+
+**Step 2: Reserve your slot**
+
+Visit the branch at least **2-3 weeks before** your target date. Fill out the party reservation form with:
+
+- Preferred date and time
+- Expected number of guests
+- Package choice
+- Theme preference (if any)
+- Contact details
+
+**Step 3: Pay the reservation fee**
+
+A **₱2,000 down payment** is required to secure your slot. This is deductible from your total bill. Pay at the counter or via bank deposit (ask for the branch's account details).
+
+**Step 4: Confirm guest count**
+
+Finalize your guest count **3 days before** the party. You can adjust your package or add food accordingly.
+
+**Step 5: Show up and celebrate**
+
+Arrive 30 minutes early. Bring your own candles, invitation cards (if you made any), and any additional decorations you want. The party host will handle the program.
+
+### Jollibee Party Contact Numbers
+
+- **Jollibee Party Hotline:** (02) 8-7000-700
+- **Customer Service:** 8-987-7777
+- **Facebook:** facebook.com/JollibeePhilippines
+- **Website:** jollibee.com.ph
+
+For branch-specific inquiries, call the branch directly. Most Jollibee branches in malls have landlines listed on mall directories.
+
+---
+
+## McDonald's Party Packages 2026
+
+### Package Options and Prices
+
+McDonald's calls their parties "McDo Kiddie Party" and offers these packages:
+
+| Package | Price | Good For |
+|---------|-------|----------|
+| **Package A** | ₱5,500 | 10-15 guests |
+| **Package B** | ₱7,500 | 20-25 guests |
+| **Package C** | ₱10,000 | 30-35 guests |
+
+**What's included in all packages:**
+
+- McDonald's meals (Chicken McDo, spaghetti, burger, fries, drink)
+- Party hats and activity sheets
+- Balloons and table setup
+- Party host
+- Games and prizes
+- Birthday cake (McDonald's-themed)
+- 2-hour venue use
+
+**Add-ons available:**
+
+- Happy Meal toys: ₱50 each
+- Additional food: ₱70-130 per item
+- Extra loot bags: ₱60-90 each
+- Character appearance (Ronald McDonald): ₱2,000 (availability varies)
+- Photo booth: ₱1,500-2,000
+
+### McDonald's Party Themes
+
+McDonald's has more licensed theme options:
+
+- Minions
+- Barbie
+- Hot Wheels
+- Hello Kitty
+- DC Superheroes
+- Standard McDonald's theme
+
+Themes affect the design of party hats, loot bags, and decorations. Some themes cost an additional ₱500-1,000.
+
+### How to Book a McDonald's Party
+
+**Step 1: Find a branch with party facilities**
+
+Not all McDonald's branches host parties. In Metro Cebu, branches with party rooms include:
+
+- McDonald's Ayala Center Cebu
+- McDonald's SM City Cebu
+- McDonald's Robinsons Galleria
+- McDonald's IT Park
+- McDonald's Mabolo
+
+**Step 2: Inquire and reserve**
+
+Visit the branch **2-3 weeks in advance**. Ask for the party coordinator and fill out the reservation form.
+
+**Step 3: Pay the reservation fee**
+
+McDonald's requires a **₱1,500-2,000 down payment** (varies by branch). Keep your official receipt.
+
+**Step 4: Choose your theme and finalize details**
+
+Pick your theme, confirm the guest count, and add any extras at least **3 days before** the party.
+
+**Step 5: Party day**
+
+Arrive early. The party host will guide the program. McDonald's parties tend to be more structured with set game schedules.
+
+### McDonald's Party Contact Numbers
+
+- **McDonald's Hotline:** 8-623-36
+- **Customer Care:** 8-8888-6236
+- **Facebook:** facebook.com/McDo.ph
+- **Website:** mcdonalds.com.ph
+
+---
+
+## Head-to-Head Comparison
+
+| Feature | Jollibee | McDonald's |
+|---------|----------|------------|
+| **Starting price** | ₱6,500 | ₱5,500 |
+| **Food style** | Filipino (Chickenjoy, spaghetti) | American (Chicken McDo, fries) |
+| **Theme options** | Limited (mostly Jollibee) | More licensed themes |
+| **Mascot appearance** | Jollibee (₱2,500) | Ronald McDonald (₱2,000, limited) |
+| **Cake included** | Yes | Yes |
+| **Party duration** | 2 hours | 2 hours |
+| **Reservation fee** | ₱2,000 | ₱1,500-2,000 |
+| **Booking lead time** | 2-3 weeks | 2-3 weeks |
+
+### Food Comparison
+
+**Jollibee serves:**
+- Chickenjoy (fried chicken)
+- Jolly Spaghetti (sweet Filipino-style)
+- Burger Steak
+- French Fries
+- Peach Mango Pie
+
+**McDonald's serves:**
+- Chicken McDo (fried chicken)
+- McSpaghetti (less sweet, more tomato-y)
+- Cheeseburger
+- French Fries
+- Apple Pie
+
+**Honest take:** Filipino kids generally prefer Jollibee's spaghetti (it's sweeter and has more hotdog slices). McDonald's fries are crispier. Chickenjoy and Chicken McDo are both solid—kids will eat either happily.
+
+---
+
+## Fast-Food Party vs Home Party: Pros and Cons
+
+### Fast-Food Party Advantages
+
+**Less stress.** You show up, they handle everything. No cooking, no decorating, no running games yourself.
+
+**Fixed budget.** You know exactly how much you're spending. No surprise costs.
+
+**Built-in entertainment.** Party hosts, games, and prizes are included. Kids stay occupied.
+
+**No cleanup.** When the party's over, you just leave. Someone else mops the floor.
+
+**Air-conditioned venue.** No worrying about weather or mosquitoes.
+
+### Fast-Food Party Disadvantages
+
+**Limited time.** You get 2 hours. That's it. If you want more time, you pay extra or book another slot.
+
+**Limited guests.** Packages cap at 35-40 guests. If you have a big Filipino family, you'll exceed that quickly.
+
+**Limited food choices.** You're eating fast food. No lechon, no pancit, no home-cooked dishes.
+
+**Limited customization.** You can't bring your own decorations, caterers, or entertainment (clowns, magicians).
+
+**Shared space.** Even with a party room, you're in a fast-food restaurant. Other customers are around.
+
+### Home Party Advantages
+
+**Unlimited guests.** Invite the whole barangay if you want.
+
+**Your food choices.** Lechon, pancit, lumpia, cake from your favorite bakeshop, homemade dishes.
+
+**Your schedule.** Start at 2 PM, end at 8 PM. No time limit.
+
+**Full customization.** Hire a clown, set up a bouncy castle, decorate however you want.
+
+**Privacy.** Your home, your rules.
+
+### Home Party Disadvantages
+
+**More work.** You're cooking, decorating, hosting, and cleaning up.
+
+**Higher cost potential.** Food, decorations, entertainment, cake, drinks—it adds up fast.
+
+**Weather dependent.** If you don't have covered space, rain ruins everything.
+
+**Post-party cleanup.** Someone has to wash dishes and take out trash.
+
+---
+
+## Cost Comparison: Real Numbers
+
+Let's say you're planning a party for **30 guests**.
+
+### Jollibee Package C (35-40 pax): ₱11,000
+
+- Food, cake, decorations, host, games: included
+- Add mascot: +₱2,500
+- Add photo booth: +₱2,000
+- **Total: ₱15,500**
+
+### McDonald's Package C (30-35 pax): ₱10,000
+
+- Food, cake, decorations, host, games: included
+- Add theme: +₱500
+- Add photo booth: +₱1,500
+- **Total: ₱12,000**
+
+### Home Party (30 pax): ₱12,000-20,000
+
+- Lechon (small): ₱3,500
+- Pancit (2 bilao): ₱800
+- Spaghetti (homemade): ₱1,500
+- Drinks and ice: ₱1,000
+- Cake (custom): ₱2,000-4,000
+- Decorations: ₱1,500-3,000
+- Loot bags (30 pcs): ₱1,500-2,000
+- Host or entertainer: ₱2,000-5,000
+- **Total: ₱13,800-21,800**
+
+**Winner on cost:** McDonald's is cheapest, followed by Jollibee. Home parties can be cheaper if you skip the entertainer and make everything yourself—but that's more work.
+
+---
+
+## When to Choose Each Option
+
+### Choose Jollibee if:
+
+- Your child loves Chickenjoy and Jolly Spaghetti
+- You want the classic Filipino birthday experience
+- You're on a budget but want a complete party
+- Your guest count is 15-40
+- You want the Jollibee mascot appearance
+
+### Choose McDonald's if:
+
+- Your child prefers nuggets and fries
+- You want a specific licensed theme (Minions, Barbie)
+- You're planning a smaller party (10-25 guests)
+- You want the cheapest package option
+- Your kid likes McDonald's cake better
+
+### Choose home party if:
+
+- You're expecting 40+ guests
+- You want specific food (lechon, pancit, etc.)
+- You want to hire your own entertainer
+- You have the time and energy to prepare
+- You want the party to last more than 2 hours
+
+---
+
+## Booking Tips
+
+1. **Book early.** Party slots fill up fast, especially during birthday season (April-May, December). Reserve at least 3 weeks in advance.
+
+2. **Visit the branch.** Don't just call. Go there, see the party room, and talk to the coordinator. Photos online can be misleading.
+
+3. **Ask about weekday discounts.** Some branches offer lower rates for Monday-Thursday parties.
+
+4. **Check the cake.** Both Jollibee and McDonald's cakes are basic. If you want a custom cake, ask if you can bring your own (some branches allow this).
+
+5. **Confirm everything in writing.** Get a printed confirmation of your booking, package, and add-ons. Take a photo of it.
+
+6. **Bring extra food budget.** Kids eat less than adults, but parents often stay and eat. You might need extra food.
+
+7. **Prepare tips.** Party hosts and crew appreciate tips. Budget ₱200-500 for the host and ₱100-200 for the crew.
+
+---
+
+## Final Verdict
+
+Both Jollibee and McDonald's deliver solid kids' party experiences. You won't go wrong with either. The real decision comes down to:
+
+- **Food preference:** Chickenjoy vs Chicken McDo, sweet spaghetti vs tomato spaghetti
+- **Theme:** Jollibee mascot vs licensed characters
+- **Budget:** McDonald's is slightly cheaper
+
+For most Filipino families, Jollibee wins on nostalgia and food familiarity. But if your kid is obsessed with Minions or Barbie, McDonald's has better theme options.
+
+And if you're planning something bigger—like a first birthday with 100 guests or a joint celebration with cousins—a home party (or a rented venue with catering) makes more sense.
+
+---
+
+*Need a custom cake for your child's party? Visit [Genie.ph](https://genie.ph) to design and order a personalized cake that matches your theme. Upload any design, customize to your budget, and get instant pricing.*
+
+*Disclaimer: Prices and packages are based on information available as of February 2026. Branches may have different rates and availability. Always confirm directly with your chosen branch before booking.*`,
+  },
+  {
     slug: 'how-to-get-marriage-license-metro-cebu',
     title:
       'How to Get a Marriage License in Metro Cebu: A Complete Guide for Cebu City, Mandaue, Lapu-Lapu & Talisay (2025)',
