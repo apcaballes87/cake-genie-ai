@@ -37,6 +37,8 @@ Now let's get into the details.
 
 ## Jollibee Party Packages 2026
 
+<img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/blogs/jolibeeparty2026.jpg" alt="Jollibee Party Package" class="w-full md:w-3/4 h-auto rounded-xl my-6 shadow-md border border-purple-100" />
+
 ### Package Options and Prices
 
 Jollibee offers three main party packages. Prices may vary slightly by branch, but here are the standard rates:
@@ -111,6 +113,8 @@ For branch-specific inquiries, call the branch directly. Most Jollibee branches 
 ---
 
 ## McDonald's Party Packages 2026
+
+<img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/blogs/mcdoparty2026.jpg" alt="McDonald's Party Package" class="w-full md:w-3/4 h-auto rounded-xl my-6 shadow-md border border-purple-100" />
 
 ### Package Options and Prices
 
