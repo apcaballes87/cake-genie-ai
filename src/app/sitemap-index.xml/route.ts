@@ -33,13 +33,15 @@ export async function GET() {
         .single();
     const designsLastMod = latestDesign?.created_at ? new Date(latestDesign.created_at).toISOString() : today;
 
-    const { data: latestCustomized } = await supabase
+    const { data: latestCustomized, count: customCount } = await supabase
         .from('cakegenie_analysis_cache')
-        .select('created_at')
+        .select('created_at', { count: 'exact' })
         .order('created_at', { ascending: false })
+        .not('slug', 'is', null)
         .limit(1)
         .single();
     const customizedLastMod = latestCustomized?.created_at ? new Date(latestCustomized.created_at).toISOString() : today;
+    const customChunks = Math.ceil((customCount || 0) / 2000) || 1;
 
     const blogPosts = getAllBlogPosts();
     const latestBlogDate = blogPosts.length > 0
@@ -52,9 +54,12 @@ export async function GET() {
         { name: 'sitemap-products.xml', lastmod: productsLastMod },
         { name: 'sitemap-blog.xml', lastmod: latestBlogDate },
         { name: 'sitemap-categories.xml', lastmod: today }, // Built from dynamic recent search data
-        { name: 'sitemap-designs.xml', lastmod: designsLastMod },
-        { name: 'sitemap-customized-cakes.xml', lastmod: customizedLastMod }
+        { name: 'sitemap-designs.xml', lastmod: designsLastMod }
     ];
+
+    for (let i = 0; i < customChunks; i++) {
+        sitemaps.push({ name: `sitemap-customized-cakes-${i}.xml`, lastmod: customizedLastMod });
+    }
 
     const baseUrl = 'https://genie.ph';
 
