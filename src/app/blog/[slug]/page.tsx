@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar } from 'lucide-react';
 import { BlogContent } from './BlogContent';
 import { BlogPostingSchema } from '@/components/SEOSchemas';
 import { getRelatedProductsByKeywords } from '@/services/supabaseService';
+import { RelatedProductsSection } from '@/components/blog/RelatedProductsSection';
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
@@ -116,40 +117,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
         {/* Related Designs Section */}
         {relatedDesigns && relatedDesigns.length > 0 && (
-          <div className="mt-12 space-y-4 pt-8 border-t border-purple-100">
-            <h2 className="text-2xl font-bold text-gray-900">Relevant Cake Designs</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {relatedDesigns.map((related, i) => (
-                <Link
-                  key={related.slug || i}
-                  href={`/customizing/${related.slug}`}
-                  className="group block overflow-hidden rounded-xl border border-purple-100 bg-white hover:border-pink-300 hover:shadow-md transition-all"
-                  aria-label={`View ${related.keywords || 'custom'} cake design`}
-                >
-                  {related.original_image_url && (
-                    <div className="aspect-square bg-slate-50 overflow-hidden relative">
-                      <img
-                        src={related.original_image_url}
-                        alt={related.alt_text || `${related.keywords || 'Custom'} cake design`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                      />
-                    </div>
-                  )}
-                  <div className="p-3">
-                    <p className="text-sm font-semibold text-gray-800 line-clamp-2 leading-tight">
-                      {related.keywords || 'Custom Cake'}
-                    </p>
-                    {related.price && (
-                      <p className="text-sm text-pink-600 font-bold mt-1">
-                        ₱{Math.round(related.price).toLocaleString()}
-                      </p>
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
+          <RelatedProductsSection
+            initialProducts={relatedDesigns}
+            keyword={post.keywords || post.title}
+            slug={slug}
+          />
         )}
       </article>
     </div>
