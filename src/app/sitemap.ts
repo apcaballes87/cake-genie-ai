@@ -167,7 +167,7 @@ export default async function sitemap({ id }: { id: number }): Promise<MetadataR
         }))
     }
 
-    // Chunk 6: Recent Searches
+    // Chunk 6: Customized Cake Analysis (/customizing/[slug])
     if (sitemapId === 6) {
         const { data: recentSearches } = await supabase
             .from('cakegenie_analysis_cache')

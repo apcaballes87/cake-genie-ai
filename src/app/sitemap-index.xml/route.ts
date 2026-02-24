@@ -33,6 +33,14 @@ export async function GET() {
         .single();
     const designsLastMod = latestDesign?.created_at ? new Date(latestDesign.created_at).toISOString() : today;
 
+    const { data: latestCustomized } = await supabase
+        .from('cakegenie_analysis_cache')
+        .select('created_at')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+    const customizedLastMod = latestCustomized?.created_at ? new Date(latestCustomized.created_at).toISOString() : today;
+
     const blogPosts = getAllBlogPosts();
     const latestBlogDate = blogPosts.length > 0
         ? new Date(Math.max(...blogPosts.map(post => new Date(post.date).getTime()))).toISOString()
@@ -44,7 +52,8 @@ export async function GET() {
         { name: 'sitemap-products.xml', lastmod: productsLastMod },
         { name: 'sitemap-blog.xml', lastmod: latestBlogDate },
         { name: 'sitemap-categories.xml', lastmod: today }, // Built from dynamic recent search data
-        { name: 'sitemap-designs.xml', lastmod: designsLastMod }
+        { name: 'sitemap-designs.xml', lastmod: designsLastMod },
+        { name: 'sitemap-customized-cakes.xml', lastmod: customizedLastMod }
     ];
 
     const baseUrl = 'https://genie.ph';
