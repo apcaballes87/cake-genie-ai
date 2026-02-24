@@ -2,6 +2,9 @@ import { MetadataRoute } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getAllBlogPosts } from '@/data/blogPosts'
 
+// Cache the sitemaps for 24 hours to prevent Googlebot timeouts on cold starts
+export const revalidate = 86400;
+
 /**
  * Sanitize URL for XML sitemap
  * - For Supabase storage URLs: strips query params (they're just auth tokens)
