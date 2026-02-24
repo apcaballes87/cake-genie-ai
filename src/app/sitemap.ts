@@ -53,7 +53,7 @@ export async function generateSitemaps(): Promise<Array<{ id: number | string }>
                 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
                 'Prefer': 'count=exact'
             },
-            cache: 'no-store' // Avoid caching the count so it's fresh when Next.js runs ISR
+            next: { revalidate: 86400 }
         });
 
         const countHeader = res.headers.get('content-range'); // e.g., "0-0/1095"
