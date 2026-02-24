@@ -42,7 +42,7 @@ const sanitizeUrl = (url: string | null | undefined): string => {
 
 // Generate sitemap IDs.
 export async function generateSitemaps(): Promise<Array<{ id: number | string }>> {
-    const ids: Array<{ id: number | string }> = [{ id: 0 }, { id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }];
+    const ids: Array<{ id: number | string }> = [{ id: 0 }, { id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }];
 
     try {
         // Fetch total customized cakes count directly to avoid strict cookie requirements at build time
@@ -71,6 +71,34 @@ export async function generateSitemaps(): Promise<Array<{ id: number | string }>
     } catch (error) {
         console.error('Error fetching sitemap chunks for customized cakes:', error);
         ids.push({ id: 'customized-cakes-0' }); // Fallback
+    }
+
+    try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/cakegenie_shared_designs?select=id`, {
+            method: 'HEAD',
+            headers: {
+                'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+                'Prefer': 'count=exact'
+            },
+            next: { revalidate: 86400 } // Avoid dynamic server usage bailout, matches ISR
+        });
+
+        const countHeader = res.headers.get('content-range'); // e.g., "0-0/4095"
+        let totalDesigns = 0;
+        if (countHeader) {
+            totalDesigns = parseInt(countHeader.split('/')[1], 10) || 0;
+        }
+
+        const CHUNK_SIZE = 2000;
+        const chunks = Math.ceil(totalDesigns / CHUNK_SIZE) || 1;
+
+        for (let i = 0; i < chunks; i++) {
+            ids.push({ id: `designs-${i}` });
+        }
+    } catch (error) {
+        console.error('Error fetching sitemap chunks for shared designs:', error);
+        ids.push({ id: 'designs-0' }); // Fallback
     }
 
     return ids;
@@ -112,6 +140,27 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
                 images: sanitizeUrl(cake.original_image_url) ? [sanitizeUrl(cake.original_image_url)] : [],
             }));
         }
+
+        if (idStr.startsWith('designs-')) {
+            const page = parseInt(idStr.split('-').pop() || '0', 10);
+            const CHUNK_SIZE = 2000;
+            const offset = page * CHUNK_SIZE;
+
+            const { data: designs } = await supabase
+                .from('cakegenie_shared_designs')
+                .select('url_slug, created_at, customized_image_url')
+                .order('created_at', { ascending: false })
+                .range(offset, offset + CHUNK_SIZE - 1);
+
+            return (designs || []).map((design: any) => ({
+                url: `${baseUrl}/designs/${design.url_slug}`,
+                lastModified: new Date(design.created_at),
+                changeFrequency: 'weekly' as const,
+                priority: 0.7,
+                images: sanitizeUrl(design.customized_image_url) ? [sanitizeUrl(design.customized_image_url)] : [],
+            }));
+        }
+
         return [];
     }
 
@@ -217,23 +266,6 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
                 changeFrequency: 'weekly' as const,
                 priority: 0.8,
             }))
-    }
-
-    // Chunk 5: Shared Designs
-    if (sitemapId === 5) {
-        const { data: designs } = await supabase
-            .from('cakegenie_shared_designs')
-            .select('url_slug, created_at, customized_image_url')
-            .order('created_at', { ascending: false })
-            .limit(5000)
-
-        return (designs || []).map((design) => ({
-            url: `${baseUrl}/designs/${design.url_slug}`,
-            lastModified: new Date(design.created_at),
-            changeFrequency: 'weekly' as const,
-            priority: 0.7,
-            images: sanitizeUrl(design.customized_image_url) ? [sanitizeUrl(design.customized_image_url)] : [],
-        }))
     }
 
     // Fallback

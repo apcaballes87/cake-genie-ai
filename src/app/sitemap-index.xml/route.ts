@@ -31,13 +31,14 @@ export async function GET() {
         .single();
     const productsLastMod = latestProduct?.updated_at ? new Date(latestProduct.updated_at).toISOString() : today;
 
-    const { data: latestDesign } = await supabase
+    const { data: latestDesign, count: designCount } = await supabase
         .from('cakegenie_shared_designs')
-        .select('created_at')
+        .select('created_at', { count: 'exact' })
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
     const designsLastMod = latestDesign?.created_at ? new Date(latestDesign.created_at).toISOString() : today;
+    const designChunks = Math.ceil((designCount || 0) / 2000) || 1;
 
     const { data: latestCustomized, count: customCount } = await supabase
         .from('cakegenie_analysis_cache')
@@ -59,9 +60,12 @@ export async function GET() {
         { name: 'sitemap-bakeries.xml', lastmod: bakeriesLastMod },
         { name: 'sitemap-products.xml', lastmod: productsLastMod },
         { name: 'sitemap-blog.xml', lastmod: latestBlogDate },
-        { name: 'sitemap-categories.xml', lastmod: today }, // Built from dynamic recent search data
-        { name: 'sitemap-designs.xml', lastmod: designsLastMod }
+        { name: 'sitemap-categories.xml', lastmod: today } // Built from dynamic recent search data
     ];
+
+    for (let i = 0; i < designChunks; i++) {
+        sitemaps.push({ name: `sitemap-designs-${i}.xml`, lastmod: designsLastMod });
+    }
 
     for (let i = 0; i < customChunks; i++) {
         sitemaps.push({ name: `sitemap-customized-cakes-${i}.xml`, lastmod: customizedLastMod });
