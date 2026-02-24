@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import { getAllBlogPosts } from '@/data/blogPosts'
 
 // Cache the sitemaps for 24 hours to prevent Googlebot timeouts on cold starts
@@ -78,7 +78,10 @@ export async function generateSitemaps(): Promise<Array<{ id: number | string }>
 
 export default async function sitemap({ id }: { id: any }): Promise<MetadataRoute.Sitemap> {
     const baseUrl = 'https://genie.ph'
-    const supabase = await createClient()
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
 
     // Next.js 15 breaking change runtime parameter parsing (either Promise or Primitive)
     const resolvedId = typeof id === 'object' && id !== null && 'then' in (id as any) ? await (id as any) : id;

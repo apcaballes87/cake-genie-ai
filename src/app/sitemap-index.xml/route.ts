@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 import { getAllBlogPosts } from '@/data/blogPosts';
 
+// Cache the sitemap index for 24 hours to prevent Googlebot timeouts
+export const revalidate = 86400;
+
 export async function GET() {
-    const supabase = await createClient();
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
     const today = new Date().toISOString();
 
     // Fetch latest updated dates to give Googlebot accurate `<lastmod>` per sitemap
