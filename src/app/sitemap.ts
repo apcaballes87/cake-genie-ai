@@ -12,7 +12,7 @@ export const revalidate = 86400;
  * - Properly encodes ampersands for XML safety
  */
 const sanitizeUrl = (url: string | null | undefined): string => {
-    if (!url) return ''
+    if (!url || url.startsWith('data:')) return ''
     try {
         const parsed = new URL(url)
 
