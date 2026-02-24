@@ -1,0 +1,17 @@
+Goal: Migrate existing Cake Genie image filenames in Supabase Storage from generic UUIDs to SEO-friendly, descriptive keyword titles (e.g., "78a9-45f1-b99.jpg" -> "two-tier-wedding-cake-cebu.jpg").
+
+Context: 
+Right now, the images for cake designs are stored in the `cakegenie` Supabase Storage bucket using UUID strings as filenames. This hurts Image SEO, as Google relies heavily on the physical file URL for ranking signals. 
+
+Tasks for the Developer:
+1. Write a server-side Node script (or Next.js API route / Server Action) to iterate over all entries in the `designs` table.
+2. For each design, read its `original_image_url`.
+3. Generate a slugified, SEO-friendly filename using the design's `keywords` and `title` (e.g., "1-tier-fondant-spiderman-cake.jpg").
+4. Use the Supabase Storage API (`supabase.storage.from('cakegenie').copy(...)` or download/re-upload) to duplicate the original UUID image into a new file with the SEO-friendly name.
+5. Update the `designs` table so that `original_image_url` points to the new, nicely-named public URL.
+6. (Optional) Delete the old UUID-named file from the bucket to save space.
+7. Ensure the logic handles filename collisions gracefully (e.g., appending a short ID hash at the end if the name already exists).
+
+Constraints:
+- Do not break existing production URLs while the migration happens.
+- Make sure the script handles rate limits if there are thousands of designs.

@@ -2,6 +2,7 @@ import { Metadata, ResolvingMetadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import CustomizingClient from '../CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
@@ -10,6 +11,7 @@ import { CakeType, BasePriceInfo, HybridAnalysisResult, CakeInfoUI, MainTopperUI
 import { CustomizationProvider, CustomizationState } from '@/contexts/CustomizationContext'
 // FAQPageSchema deprecated (restricted to gov/healthcare Aug 2023) — using HTML accordions instead
 import { DesignAboutSection } from '@/components/DesignAboutSection'
+import supabaseLoader from '@/utils/supabase-image-loader'
 import { v4 as uuidv4 } from 'uuid'
 import { mapProductToDefaultState } from '@/utils/customizationMapper'
 
@@ -162,7 +164,8 @@ export async function generateMetadata(
 
 // JSON-LD Schema for SEO - Enhanced for Google Image Thumbnails
 function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[] }) {
-    const sanitize = (str: string | null | undefined) => str ? str.replace(/<\/script/g, '<\\/script') : '';
+    // Escaping done via string replace in dangerouslySetInnerHTML
+    const sanitize = (str: string | null | undefined) => str ? str : '';
 
     const keywords = design.keywords || 'Custom';
     const title = design.seo_title || `${keywords} Cake`;
@@ -174,15 +177,16 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         '@type': 'ImageObject',
         url: imageUrl,
         contentUrl: imageUrl,
-        width: 1200,
-        height: 1200,
         name: sanitize(design.alt_text || title || 'Custom Cake Design'),
         caption: sanitize(design.seo_description || `Custom ${keywords} cake design`),
         creditText: 'Genie.ph',
         creator: {
             '@type': 'Organization',
             name: 'Genie.ph'
-        }
+        },
+        license: 'https://genie.ph/terms',
+        acquireLicensePage: 'https://genie.ph/customizing',
+        copyrightNotice: '© ' + new Date().getFullYear() + ' Genie.ph'
     } : null;
 
     // Standard Shipping Details (Free Delivery)
@@ -297,7 +301,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         sku: productMpn,
         mpn: productMpn,
         description: sanitize(design.seo_description || `Custom ${keywords} cake design`),
-        image: imageUrl || undefined,
+        image: imageObject || (imageUrl || undefined),
         brand: {
             '@type': 'Brand',
             name: 'Genie.ph'
@@ -318,7 +322,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
     // Uses @id reference to link to the Product schema instead of creating a duplicate
     const webPageSchema = {
         '@context': 'https://schema.org',
-        '@type': 'WebPage',
+        '@type': 'ItemPage',
         name: sanitize(title),
         description: sanitize(design.seo_description || `Custom ${keywords} cake design`),
         url: pageUrl,
@@ -359,15 +363,15 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema).replace(/</g, '\\u003c') }}
             />
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema) }}
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema).replace(/</g, '\\u003c') }}
             />
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema).replace(/</g, '\\u003c') }}
             />
         </>
     );
@@ -616,15 +620,18 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
             >
                 {/* Hero Image Section */}
                 {design.original_image_url && (
-                    <figure className="relative w-full aspect-square bg-slate-100">
-                        <img
+                    <figure className="relative w-full aspect-square bg-slate-100 overflow-hidden">
+                        <Image
+                            loader={supabaseLoader}
                             src={design.original_image_url}
                             alt={altText}
                             title={title}
-                            className="w-full h-full object-contain"
-                            loading="eager"
-                            fetchPriority="high"
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            className="object-contain"
+                            priority
                         />
+                        <figcaption className="sr-only">{altText}</figcaption>
                     </figure>
                 )}
 
@@ -748,12 +755,14 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
                                         tabIndex={0}
                                     >
                                         {related.original_image_url && (
-                                            <div className="aspect-square bg-slate-100 overflow-hidden">
-                                                <img
+                                            <div className="relative aspect-square bg-slate-100 overflow-hidden">
+                                                <Image
+                                                    loader={supabaseLoader}
                                                     src={related.original_image_url}
                                                     alt={related.alt_text || `${related.keywords || 'Custom'} cake design`}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                                    loading="lazy"
+                                                    className="object-cover group-hover:scale-105 transition-transform duration-200"
+                                                    fill
+                                                    sizes="(max-width: 768px) 50vw, 33vw"
                                                 />
                                             </div>
                                         )}
