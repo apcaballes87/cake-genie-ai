@@ -36,6 +36,22 @@ const nextConfig: NextConfig = {
   // Sitemap is now served by Next.js via src/app/sitemap.ts
   // The old Supabase Edge Function (generate-sitemap) is no longer used
 
+  async rewrites() {
+    return [
+      {
+        source: '/sitemap.xml',
+        destination: '/sitemap-index.xml',
+      },
+      { source: '/sitemap-core.xml', destination: '/sitemap/0.xml' },
+      { source: '/sitemap-bakeries.xml', destination: '/sitemap/1.xml' },
+      { source: '/sitemap-products.xml', destination: '/sitemap/2.xml' },
+      { source: '/sitemap-blog.xml', destination: '/sitemap/3.xml' },
+      { source: '/sitemap-categories.xml', destination: '/sitemap/4.xml' },
+      { source: '/sitemap-designs.xml', destination: '/sitemap/5.xml' },
+      { source: '/sitemap-searches.xml', destination: '/sitemap/6.xml' },
+    ];
+  },
+
   async redirects() {
     return [
       // Redirect old /merchant/ URLs to /shop/
