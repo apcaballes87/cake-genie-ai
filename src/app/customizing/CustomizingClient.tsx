@@ -2027,9 +2027,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setActiveTab('customized');
     };
 
+    const showStickyBar = finalPrice !== null || !!basePriceError || isAnalyzing || !!warningMessage || isSafetyFallback;
+
     return (<>
         <h1 className="sr-only">{seoMetadata?.seo_title || 'Customize Your Cake Design - Genie.ph'}</h1>
-        <div className="w-full max-w-7xl mx-auto px-4">
+        <div className={`w-full max-w-7xl mx-auto px-4 transition-all duration-300 ${showStickyBar ? 'pb-40' : 'pb-8'}`}>
             <div className="w-full flex items-center gap-2 md:gap-4 mb-4 pt-6">
                 <button onClick={onClose} className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label="Go back">
                     <BackIcon />
