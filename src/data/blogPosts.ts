@@ -11,6 +11,487 @@ export interface BlogPost {
 
 export const blogPosts: BlogPost[] = [
   {
+    slug: 'baptismal-guide-metro-cebu-2026',
+    title: 'Complete Baptismal Guide in Metro Cebu: Churches, Requirements & Step-by-Step Process (2026)',
+    excerpt: 'Planning your child\'s baptism in Cebu? This comprehensive guide covers all the churches in Metro Cebu that offer baptismal services, what documents you need, step-by-step process, and important tips for a smooth ceremony.',
+    date: '2026-02-24',
+    author: 'Genie.ph',
+    authorUrl: 'https://genie.ph/about',
+    content: `Getting your child baptized is one of the most important milestones in any Filipino family. In Cebu, where Catholic traditions run deep, baptism (or "binyag") is often celebrated with family gatherings, gifts, and a feast. But before the celebration begins, there's paperwork to complete and processes to follow.
+
+This guide walks you through everything you need to know about getting your child baptized in Metro Cebu — from which churches to approach, what documents to prepare, the step-by-step process, and tips to make the day smoother.
+
+---
+
+## Quick Answer: What Do You Need?
+
+**Essential documents:**
+- PSA Birth Certificate of the child
+- Marriage Certificate of parents (if married in church)
+- IDs of parents and godparents
+
+**Key steps:**
+1. Choose your church and schedule an appointment
+2. Submit requirements and attend the baptismal seminar
+3. Pay the baptismal fee
+4. Attend the baptism ceremony
+
+**Typical cost:** ₱500 – ₱3,000 (varies by church)
+
+Now let's get into the details.
+
+---
+
+## Churches in Metro Cebu That Offer Baptism
+
+Here's a comprehensive list of Catholic churches in Metro Cebu that perform baptisms. We've included addresses and contact information where available.
+
+### CEBU CITY
+
+#### Basilica Minore del Santo Niño
+
+**Address:** Plaza Independencia, Cebu City
+
+**Contact:** (032) 261-0803
+
+The oldest Christian church in the Philippines, the Basilica del Santo Niño is a popular choice for baptisms, especially for families with deep Cebuano roots. The church conducts baptisms regularly, but expect crowds — this is one of the most visited churches in Cebu.
+
+> **Tip:** Book at least 2-3 months in advance, especially if you want a specific date or time.
+
+---
+
+#### Metropolitan Cathedral (Cebu Cathedral)
+
+**Address:** Colon Street, Cebu City
+
+**Contact:** (032) 254-0670
+
+As the seat of the Archdiocese of Cebu, the Metropolitan Cathedral offers baptismal services with a more formal process. Both the cathedral and its affiliated parishes handle baptism requests.
+
+---
+
+#### San Jose Parish (Carbon Church)
+
+**Address:** M. J. Cuenco Avenue, Cebu City
+
+**Contact:** (032) 261-3947
+
+Located in the heart of Carbon Market, San Jose Parish is one of the busiest parishes in Cebu City. They handle a high volume of baptisms, so arrive early for scheduling.
+
+---
+
+#### Sacred Heart Church
+
+**Address:** Gen. Maxilom Avenue, Cebu City
+
+**Contact:** (032) 253-5452
+
+This parish is known for its welcoming community and organized baptismal process. They typically require parents to attend a pre-baptismal seminar.
+
+---
+
+#### Divine Mercy Shrine
+
+**Address:** J. Panamericana Street, Banilad, Cebu City
+
+**Contact:** (032) 238-1888
+
+A newer church that has become popular for its modern facilities and peaceful atmosphere. The Divine Mercy Shrine conducts baptisms by appointment.
+
+---
+
+#### St. Francis of Assisi Parish (Guadalupe)
+
+**Address:** Guadalupe, Cebu City
+
+**Contact:** (032) 272-0604
+
+This parish serves the large Guadalupe area and has a well-organized baptismal process. They typically schedule baptisms on Saturdays.
+
+---
+
+#### St. Joseph Parish (Mabolo)
+
+**Address:** Mabolo, Cebu City
+
+**Contact:** (032) 232-5881
+
+A mid-sized parish in the Mabolo area, St. Joseph Parish offers baptismal services with reasonable scheduling flexibility.
+
+---
+
+#### Our Lady of the Rule Parish (Bulacao)
+
+**Address:** Bulacao, Cebu City
+
+**Contact:** (032) 268-4572
+
+This parish serves the southern part of Cebu City and is known for its community-oriented approach.
+
+---
+
+### MANDAUE CITY
+
+#### St. Joseph Parish (Mandaue Church)
+
+**Address:** A.C. Cortes Avenue, Mandaue City
+
+**Contact:** (032) 346-0356
+
+The main Catholic church in Mandaue City, St. Joseph Parish handles baptisms for residents of Mandaue and nearby areas. The parish has a structured process including pre-baptismal seminars.
+
+---
+
+#### St. Therese of the Child Jesus Parish
+
+**Address:** Casuntingan, Mandaue City
+
+**Contact:** (032) 346-7852
+
+This parish in Casuntingan offers baptismal services with a more personalized approach due to its relatively smaller congregation.
+
+---
+
+### LAPU-LAPU CITY (MACTAN)
+
+#### Mactan Parish (St. Augustine Church)
+
+**Address:** Mactan, Lapu-Lapu City
+
+**Contact:** (032) 341-0032
+
+One of the oldest parishes in the area, Mactan Parish serves the spiritual needs of Lapu-Lapu City residents. They conduct baptisms regularly, especially on Saturdays.
+
+---
+
+#### St. Ferdinand Parish (Lapu-Lapu City Church)
+
+**Address:** Pusok, Lapu-Lapu City
+
+**Contact:** (032) 341-0659
+
+This parish serves the Pusok area and handles baptism requests for residents of Lapu-Lapu City.
+
+---
+
+### TALISAY CITY
+
+#### St. Teresa of Avila Parish
+
+**Address:** Talisay City, Cebu
+
+**Contact:** (032) 490-2015
+
+The main Catholic parish in Talisay City, St. Teresa of Avila offers baptismal services for residents of Talisay and surrounding areas.
+
+---
+
+## Baptismal Requirements: What You Need to Prepare
+
+The requirements for baptism in Metro Cebu are relatively consistent across Catholic churches, though some parishes may have additional requests. Here's the complete list:
+
+### For the Child
+
+1. **PSA Birth Certificate** — The most important document. You can order this online via [PSAHelpline.ph](https://psahelpline.ph) or visit the PSA office in Cebu City (Gaisano Capital South Building, Colon Street). Bring the original and 2-3 photocopies.
+
+2. **Baptismal Name** — Decide on your child's baptismal name. This can be their given name or a saint's name. Many Filipino families use both — their legal name plus a saint's name as a middle name.
+
+### For the Parents
+
+1. **Marriage Certificate** — If you were married in a church, bring the Marriage Certificate. If married civilly only, some churches may require additional documents or a notation in the baptismal record.
+
+2. **Valid IDs** — At least one valid government-issued ID (passport, driver's license, UMID, PhilID, voter's ID).
+
+3. **Parish Clearance** — If you're not a registered parishioner of the church where you want the baptism, you may need a clearance from your local parish.
+
+### For the Godparents (Ninong and Ninang)
+
+Godparents play an important role in Catholic baptism — they're responsible for helping raise the child in the faith if the parents are unable to do so.
+
+**Requirements for godparents:**
+
+1. **Must be Catholic** — At least one godparent must be a baptized Catholic. Most churches require at least one Catholic godparent.
+
+2. **Must be Confirmed** — Godparents must have received the Sacrament of Confirmation.
+
+3. **Must be at least 18 years old** — This is a standard requirement.
+
+4. **Must provide IDs** — Godparents must present valid IDs on the day of baptism.
+
+5. **Must attend the baptism** — At least one godparent must be physically present during the ceremony.
+
+> **Important:** If your chosen godparent is not Catholic (e.g., Protestant or non-Christian), they can serve as a "Christian witness" instead. They won't have the same responsibilities as Catholic godparents but can participate in the ceremony.
+
+**How many godparents do you need?**
+
+Most churches require at least one godparent (either male or female). Many Filipino families choose two — one Ninong (godfather) and one Ninang (godmother). Some families go with more, but note that all godparents must meet the requirements above.
+
+### Additional Requirements (If Applicable)
+
+- **For previously baptized children:** If your child was baptized in another church or country, bring the previous baptismal certificate.
+
+- **For converts:** If either parent is converting to Catholicism, some churches may have additional requirements.
+
+---
+
+## Step-by-Step Baptismal Process in Metro Cebu
+
+Here's what to expect when getting your child baptized in Cebu:
+
+### Step 1: Choose Your Church
+
+Decide where you want to hold the baptism. Consider:
+
+- Your parish (where you're registered)
+- A church with sentimental value (where family members were baptized)
+- Convenience (near your home or accessible location)
+
+> **Note:** If you choose a church where you're not a registered parishioner, you may need to get a transfer letter or clearance from your local parish.
+
+### Step 2: Schedule an Appointment
+
+Call or visit the parish office to schedule the baptism. Here's what to ask:
+
+- Available dates and times
+- Requirements needed
+- Baptismal fee
+- Whether a pre-baptismal seminar is required
+
+**How far in advance should you book?**
+
+- At least **1 month** in advance for regular scheduling
+- **2-3 months** in advance for popular churches (Basilica, Cathedral)
+- **6 months** in advance if you have a specific date in mind (like a birthday weekend)
+
+### Step 3: Attend the Pre-Baptismal Seminar
+
+Many churches in Metro Cebu require parents (and sometimes godparents) to attend a pre-baptismal seminar. This is usually a 1-2 hour session covering:
+
+- The meaning and importance of baptism
+- The role of parents and godparents
+- Basic Catholic teachings
+
+Some churches hold these seminars on specific dates, while others offer online options. Check with your chosen parish.
+
+### Step 4: Submit Requirements
+
+Gather all required documents and submit them to the parish office. This typically includes:
+
+- PSA Birth Certificate (original + photocopies)
+- Marriage Certificate (original + photocopies)
+- IDs of parents and godparents
+- Completed baptismal application form
+
+The parish office will review your documents and schedule the baptism date.
+
+### Step 5: Pay the Baptismal Fee
+
+Baptismal fees in Metro Cebu typically range from **₱500 to ₱3,000**, depending on the church and what's included. This usually covers:
+
+- Administrative costs
+- Certificate issuance
+- Candle (some churches provide this)
+
+Payment is usually made at the parish office before the baptism day.
+
+### Step 6: Attend the Baptism Ceremony
+
+On the day of the baptism:
+
+1. Arrive at least 30 minutes early
+2. Bring all original documents
+3. Dress the child in white (traditional)
+4. Godparents should dress appropriately (more on this below)
+
+The baptism ceremony typically lasts 30-60 minutes and includes:
+
+- Welcome and registration
+- Word service (readings, homily)
+- Blessing of the water
+- The actual baptism (immersion or pouring of water)
+- Anointing with chrism oil
+- Lighting of the baptismal candle
+- Presentation of the baptismal certificate
+
+---
+
+## What to Bring on Baptism Day
+
+### For the Child
+
+- **White baptismal gown or outfit** — Traditional white symbolizes purity. Many families rent or buy this, but some churches provide a simple white shirt.
+
+- **White diaper** — Under the gown
+
+- **Swaddle or blanket** — For after the ceremony
+
+- **Change of clothes** — In case of accidents
+
+### For the Parents
+
+- **Baptismal certificate** — Provided by the church after the ceremony
+
+- **Cash** — For offerings, tips, or additional copies
+
+### For the Godparents
+
+- **Gift** — Traditionally, godparents give a gift to the baptized child. Common gifts include:
+  - Baptismal candle
+  - Gold jewelry (often a gold cross or bracelet)
+  - Clothing
+  - Savings bond or money
+
+- **Personal envelope** — Some families prepare a small token of appreciation for the priest
+
+---
+
+## Baptismal Dress Code
+
+### For the Baby
+
+- **White is traditional** — A white gown, onesie, or outfit
+- **Avoid dark colors** — White photographs better
+- **Simple is better** — Avoid elaborate outfits that are difficult to put on
+
+### For Godparents
+
+- **Modest and respectful** — No shorts, sleeveless tops, or revealing clothing
+- **Business casual or semi-formal** — Many godparents choose to wear:
+  - For women: Dress, blouse with skirt/pants, or formal top
+  - For men: Long pants with a polo or button-down shirt
+
+> **Tip:** Avoid white if you're the godparent — the child should be the center of attention in white!
+
+### For Parents
+
+- **Comfortable and modest** — You'll be holding the child and moving around
+- **Avoid white** — Let the child shine
+
+---
+
+## Typical Baptismal Fees in Metro Cebu
+
+| Church Type | Fee Range | What's Usually Included |
+|-------------|-----------|------------------------|
+| Parish Churches | ₱500 – ₱1,500 | Certificate, candle |
+| Larger Churches | ₱1,000 – ₱2,500 | Certificate, candle, seminar |
+| Cathedrals/Basilica | ₱1,500 – ₱3,000 | Certificate, candle, formal ceremony |
+
+**Additional costs to budget for:**
+
+- Seminar fee (if not included): ₱200 – ₱500
+- Additional certificate copies: ₱50 – ₱100 each
+- Offering/envelope for priest: ₱200 – ₱500 (optional but customary)
+- Tips for church staff: ₱100 – ₱200
+
+---
+
+## Important Tips for a Smooth Baptism
+
+### 1. Book Early
+
+Popular churches fill up fast, especially:
+- December (Christmas season)
+- March-May (first birthday season)
+- June-August (summer break)
+
+### 2. Verify All Requirements Before Visiting the Church
+
+Call ahead and confirm what documents they need. Some churches have specific requirements that differ from the general list.
+
+### 3. Bring Extra Photocopies
+
+Always bring 2-3 photocopies of every document. You'll need them for multiple steps.
+
+### 4. Check Godparent Availability Early
+
+Confirm with your chosen godparents that they're available on your target date. At least one godparent must be present.
+
+### 5. Plan for the Weather
+
+If your church has an outdoor area or you're traveling to Cebu for the baptism, check the weather forecast. Have a backup plan for rain.
+
+### 6. Organize a Backup Plan for the Child
+
+Babies can be fussy. Have a parent or helper ready to step out if the child gets upset during the ceremony.
+
+### 7. Arrange for Photography
+
+Designate a family member or hire a photographer. Check with the church if they have any photography restrictions.
+
+### 8. Plan the Reception
+
+Many families host a simple reception after the baptism — usually a lunch or dinner with close family. If you're ordering a cake, consider a baptismal-themed design or a simple white cake with crosses.
+
+---
+
+## Godparent Responsibilities: What They Should Know
+
+Being a godparent is an honor — but it also comes with responsibilities:
+
+1. **Spiritual Guidance** — Help the child grow in faith (in the future, as they get older)
+
+2. **Prayer Support** — Pray for the child's spiritual development
+
+3. **Example** — Live a life that reflects Catholic values
+
+4. **Support in Times of Need** — Be willing to assist if the parents are unable to care for the child
+
+> **Note:** In modern practice, the godparent's role is often symbolic rather than legally binding, but it's still a meaningful commitment.
+
+---
+
+## Frequently Asked Questions
+
+### Can I get my child baptized if we're not married in church?
+
+Yes. Many churches will baptize children of parents who are only civilly married. However, some may require you to sign a declaration or attend a seminar about church marriage. Check with your chosen parish.
+
+### Can a non-Catholic serve as a godparent?
+
+No, not as a Catholic godparent. However, they can serve as a "Christian witness" alongside a Catholic godparent.
+
+### How old should my child be for baptism?
+
+There's no strict age limit. In the Philippines, it's common to baptize infants (0-1 year old), but older children can also be baptized. The process is the same regardless of age.
+
+### Can I have the baptism at a different church from where I live?
+
+Yes, but you may need a clearance or transfer letter from your local parish. This is called a "dimissorial letter."
+
+### What if my child's godparent can't make it?
+
+At least one godparent must be present. If your chosen godparent can't attend, you can designate an alternate, but you'll need to inform the church beforehand.
+
+### How long does the baptism take?
+
+The ceremony typically lasts 30-60 minutes, depending on the church and whether there are multiple children being baptized.
+
+### Can I video record the baptism?
+
+Most churches allow video recording and photography, but check with the parish first. Some may have restrictions or designated areas for photographers.
+
+---
+
+## Final Thoughts
+
+Getting your child baptized in Metro Cebu is a meaningful tradition that involves both spiritual preparation and practical logistics. The key is to start early, gather all required documents, and choose a church that works for your family.
+
+Remember:
+
+- **Start the process at least 1-2 months before** your target date
+- **Double-check requirements** with your chosen church — they can change
+- **Prepare for the day** — dress appropriately, bring everything you need, and enjoy the moment
+
+Baptism is the beginning of your child's spiritual journey, and while the paperwork can feel overwhelming, it's all part of welcoming your little one into the faith.
+
+---
+
+*Disclaimer: This guide is based on publicly available information and general practices as of 2026. Requirements, fees, and processes may vary by church and may change over time. Always verify the latest requirements directly with your chosen parish before proceeding.*
+
+*Need a custom cake for your child's baptism reception? Visit [Genie.ph](https://genie.ph) to design and order a personalized baptismal cake. Upload your design, customize to your budget, and get instant pricing.*`
+  },
+  {
     slug: 'jollibee-vs-mcdonalds-kids-party-packages-2026',
     title: 'Jollibee vs McDonald\'s Kids Party Packages 2026: Complete Comparison Guide',
     excerpt: 'Planning your child\'s birthday party? Here\'s a complete comparison of Jollibee and McDonald\'s party packages in the Philippines for 2026—including prices, inclusions, booking steps, and pros and cons vs home parties.',
