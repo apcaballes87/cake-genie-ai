@@ -21,9 +21,16 @@ function toTitleCase(str: string): string {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { keyword } = await params;
-    const displayName = toTitleCase(decodeKeyword(keyword));
+    const decodedKeyword = decodeKeyword(keyword);
+    const displayName = toTitleCase(decodedKeyword);
     const title = `${displayName} Cake Designs in Cebu`;
     const description = `Browse ${displayName.toLowerCase()} cake designs with instant AI pricing. Order custom ${displayName.toLowerCase()} cakes from trusted bakers in Cebu. Upload your own design or choose from our collection.`;
+
+    // Fetch at least 1 design for OG Image
+    const { data: limitDesigns } = await getDesignsByKeyword(decodedKeyword, 1);
+    const ogImage = limitDesigns && limitDesigns.length > 0 && limitDesigns[0].original_image_url
+        ? limitDesigns[0].original_image_url
+        : 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta-GENIE.jpg';
 
     return {
         title,
@@ -33,6 +40,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             description,
             type: 'website',
             url: `https://genie.ph/customizing/category/${keyword}`,
+            images: [{
+                url: ogImage,
+                width: 1200,
+                height: 1200,
+                alt: `${displayName} cake design`
+            }]
         },
         alternates: {
             canonical: `https://genie.ph/customizing/category/${keyword}`,

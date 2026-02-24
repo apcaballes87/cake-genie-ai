@@ -47,7 +47,6 @@ import { useDesignUpdate } from '@/hooks/useDesignUpdate';
 import { useDesignSharing } from '@/hooks/useDesignSharing';
 import { useAvailabilitySettings } from '@/hooks/useAvailabilitySettings';
 import { useSearchEngine } from '@/hooks/useSearchEngine';
-import { useSEO, generateCakeStructuredData } from '@/hooks/useSEO';
 import { AppState } from '@/hooks/useAppNavigation';
 import { toast } from 'react-hot-toast';
 
@@ -474,29 +473,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         slug: (persistedSlug || slug || seoMetadata?.slug) as string || null,
         originalImageUrl: seoMetadata?.original_image_url || null,
     });
-
-    // --- SEO ---
-    const seoConfig = useMemo(() => {
-        const title = seoMetadata?.seo_title || 'Customize Your Cake | Genie.ph';
-        const description = seoMetadata?.seo_description || 'Customize your cake design with AI-powered suggestions. Get instant pricing at Genie.ph.';
-        const image = seoMetadata?.original_image_url || 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg';
-        const keywords = seoMetadata?.keywords || 'custom cake, cake design, AI cake, Cebu bakery';
-        const url = seoMetadata?.slug ? `https://genie.ph/designs/${seoMetadata.slug}` : 'https://genie.ph/customizing';
-        const structuredData = (seoMetadata?.seo_title && cakeInfo)
-            ? generateCakeStructuredData({
-                title: seoMetadata.seo_title,
-                description,
-                image,
-                price: finalPrice || seoMetadata.price || 0,
-                url,
-                cakeType: cakeInfo.type,
-                cakeSize: cakeInfo.size,
-                availability: baseAvailability || seoMetadata.availability || 'normal',
-            })
-            : undefined;
-        return { title, description, image, keywords, url, type: 'product' as const, structuredData };
-    }, [seoMetadata, cakeInfo, finalPrice, baseAvailability]);
-    useSEO(seoConfig);
 
     // --- Derived State ---
     const isLoading = useMemo(() => isImageManagementLoading || isUpdatingDesign, [isImageManagementLoading, isUpdatingDesign]);
