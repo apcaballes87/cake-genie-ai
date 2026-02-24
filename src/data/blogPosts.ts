@@ -7,6 +7,7 @@ export interface BlogPost {
   authorUrl?: string;
   content: string;
   image?: string;
+  keywords?: string;
 }
 
 export const blogPosts: BlogPost[] = [
@@ -14,6 +15,7 @@ export const blogPosts: BlogPost[] = [
     slug: 'baptismal-guide-metro-cebu-2026',
     title: 'Complete Baptismal Guide in Metro Cebu: Churches, Requirements & Step-by-Step Process (2026)',
     excerpt: 'Planning your child\'s baptism in Cebu? This comprehensive guide covers all the churches in Metro Cebu that offer baptismal services, what documents you need, step-by-step process, and important tips for a smooth ceremony.',
+    keywords: 'baptism',
     date: '2026-02-24',
     author: 'Genie.ph',
     authorUrl: 'https://genie.ph/about',
@@ -495,6 +497,7 @@ Baptism is the beginning of your child's spiritual journey, and while the paperw
     slug: 'jollibee-vs-mcdonalds-kids-party-packages-2026',
     title: 'Jollibee vs McDonald\'s Kids Party Packages 2026: Complete Comparison Guide',
     excerpt: 'Planning your child\'s birthday party? Here\'s a complete comparison of Jollibee and McDonald\'s party packages in the Philippines for 2026—including prices, inclusions, booking steps, and pros and cons vs home parties.',
+    keywords: 'birthday',
     date: '2026-02-23',
     author: 'Genie.ph',
     authorUrl: 'https://genie.ph/about',
@@ -862,6 +865,7 @@ And if you're planning something bigger—like a first birthday with 100 guests 
       'How to Get a Marriage License in Metro Cebu: A Complete Guide for Cebu City, Mandaue, Lapu-Lapu & Talisay (2025)',
     excerpt:
       'Planning to tie the knot in Metro Cebu? Before you start picking out flowers and venues, here\'s a complete step-by-step guide to getting your marriage license in Cebu City, Mandaue, Lapu-Lapu, and Talisay.',
+    keywords: 'wedding',
     date: '2025-06-15',
     author: 'Genie.ph',
     authorUrl: 'https://genie.ph/about',
@@ -1185,6 +1189,7 @@ The key is to start early, stay organized, and enjoy the process. After all, thi
     title: 'How to Get the Best Value When Ordering Your Custom Cake from Genie.ph',
     excerpt:
       "Ordering a custom cake doesn't have to break the bank. At Genie.ph, we've built smart customization features that put you in control of both the design and the budget.",
+    keywords: 'custom',
     date: '2026-02-14',
     author: 'Genie.ph',
     authorUrl: 'https://genie.ph/about',
