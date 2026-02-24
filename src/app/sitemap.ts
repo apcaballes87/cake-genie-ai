@@ -46,7 +46,13 @@ export default async function sitemap({ id }: { id: number }): Promise<MetadataR
     const baseUrl = 'https://genie.ph'
     const supabase = await createClient()
 
-    if (id === 0) {
+    // Next.js 15 breaking change: Dynamic params are now async promises. 
+    // However, if we type it as `Promise<number>`, the static build AST analyzer crashes.
+    // So we keep the TS type as `number`, but secretly await it at runtime if it's a Promise.
+    const resolvedId = typeof id === 'object' && id !== null && 'then' in (id as any) ? await (id as any) : id;
+    const sitemapId = Number(resolvedId);
+
+    if (sitemapId === 0) {
         // Chunk 0: Static Routes, Merchants, Products, Blog, and Category Aggregations
         const staticRoutes = [
             '',
@@ -141,7 +147,7 @@ export default async function sitemap({ id }: { id: number }): Promise<MetadataR
         return [...staticRoutes, ...merchantRoutes, ...productRoutes, ...blogRoutes, ...categoryRoutes]
     }
 
-    if (id === 1) {
+    if (sitemapId === 1) {
         // Chunk 1: Shared Designs
         const { data: designs } = await supabase
             .from('cakegenie_shared_designs')
@@ -160,7 +166,7 @@ export default async function sitemap({ id }: { id: number }): Promise<MetadataR
         return designRoutes;
     }
 
-    if (id === 2) {
+    if (sitemapId === 2) {
         // Chunk 2: Recent Searches
         const { data: recentSearches } = await supabase
             .from('cakegenie_analysis_cache')
