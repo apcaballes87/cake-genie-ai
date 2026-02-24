@@ -10,7 +10,7 @@ import AnimatedBlobs from '@/components/UI/AnimatedBlobs'
 import TawkToChat from '@/components/TawkToChat'
 import ErrorLogger from '@/components/ErrorLogger'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'], display: 'optional' })
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://genie.ph'),
@@ -128,8 +128,8 @@ export default function RootLayout({
             })(window, document, "clarity", "script", "te894qldzn");
           `}
         </Script>
-        <Script src="https://www.googletagmanager.com/gtag/js?id=G-C28QNPRWFK" strategy="afterInteractive" />
-        <Script id="google-analytics" strategy="afterInteractive">
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-C28QNPRWFK" strategy="lazyOnload" />
+        <Script id="google-analytics" strategy="lazyOnload">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}

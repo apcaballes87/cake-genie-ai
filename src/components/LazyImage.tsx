@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import Image, { ImageProps } from 'next/image';
-import { Skeleton } from './LoadingSkeletons';
 import { ImageOff } from 'lucide-react';
 
 // Our own Supabase storage domains that are safe for next/image optimization.
@@ -133,9 +132,6 @@ export const LazyImage: React.FC<LazyImageProps> = ({
 
   return (
     <div className={`${positionClass} overflow-hidden ${containerClassName || ''} ${placeholderClassName || ''} ${className || ''}`}>
-      {!isLoaded && !hasError && (
-        <Skeleton className="absolute inset-0 w-full h-full z-10" />
-      )}
 
       {hasError && (
         <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-slate-100 text-slate-300 z-10">
@@ -154,7 +150,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         width={!isFilling ? width : undefined}
         height={!isFilling ? height : undefined}
         sizes={props.sizes || "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"}
-        className={`transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'} ${isFilling ? 'object-cover' : ''} ${imageClassName || ''}`}
+        className={`transition-opacity ${priority ? 'duration-0' : 'duration-200'} ${isLoaded || priority ? 'opacity-100' : 'opacity-0'} ${isFilling ? 'object-cover' : ''} ${imageClassName || ''}`}
         unoptimized={useUnoptimized}
         {...props}
       />
