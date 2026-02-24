@@ -68,6 +68,7 @@ export default async function sitemap({ id }: { id: number }): Promise<MetadataR
             '/return-policy',
             '/terms',
             '/privacy',
+            '/sitemap-html',
             '/compare',
             '/compare/genie-ph-vs-traditional-bakeries',
             '/compare/genie-ph-vs-social-media-ordering',
