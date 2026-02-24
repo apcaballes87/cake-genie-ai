@@ -48,7 +48,6 @@ const nextConfig: NextConfig = {
       { source: '/sitemap-blog.xml', destination: '/sitemap/3.xml' },
       { source: '/sitemap-categories.xml', destination: '/sitemap/4.xml' },
       { source: '/sitemap-designs.xml', destination: '/sitemap/5.xml' },
-      { source: '/sitemap-searches.xml', destination: '/sitemap/6.xml' },
     ];
   },
 
