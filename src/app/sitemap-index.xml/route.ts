@@ -38,7 +38,7 @@ export async function GET() {
         .limit(1)
         .single();
     const designsLastMod = latestDesign?.created_at ? new Date(latestDesign.created_at).toISOString() : today;
-    const designChunks = Math.ceil((designCount || 0) / 2000) || 1;
+    const designChunks = Math.ceil((designCount || 0) / 1000) || 1;
 
     const { data: latestCustomized, count: customCount } = await supabase
         .from('cakegenie_analysis_cache')
@@ -48,7 +48,7 @@ export async function GET() {
         .limit(1)
         .single();
     const customizedLastMod = latestCustomized?.created_at ? new Date(latestCustomized.created_at).toISOString() : today;
-    const customChunks = Math.ceil((customCount || 0) / 2000) || 1;
+    const customChunks = Math.ceil((customCount || 0) / 1000) || 1;
 
     const blogPosts = getAllBlogPosts();
     const latestBlogDate = blogPosts.length > 0
