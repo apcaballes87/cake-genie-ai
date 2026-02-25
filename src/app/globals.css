@@ -338,7 +338,7 @@
 }
 
 /* Override Google's inline table layout */
-.gsc-imageResult > div,
+.gsc-imageResult>div,
 .gsc-imageResult .gs-result,
 .gsc-imageResult .gs-image-box {
   width: 100% !important;
@@ -380,8 +380,8 @@
 
 /* Override Google's table-based layout that forces fixed widths */
 .gsc-table-result,
-.gsc-table-result > tbody,
-.gsc-table-result > tbody > tr {
+.gsc-table-result>tbody,
+.gsc-table-result>tbody>tr {
   display: block !important;
   width: 100% !important;
 }
@@ -535,6 +535,7 @@ div.gs-image-box div.gs-image {
 .blog-content tr:hover td {
   background-color: #faf5ff;
 }
+
 /* Hide SSR content once client is hydrated to avoid duplication */
 .hydrated #ssr-content {
   display: none;
