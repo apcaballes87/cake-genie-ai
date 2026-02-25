@@ -62,7 +62,7 @@ export async function generateSitemaps(): Promise<Array<{ id: number | string }>
             totalCakes = parseInt(countHeader.split('/')[1], 10) || 0;
         }
 
-        const CHUNK_SIZE = 2000;
+        const CHUNK_SIZE = 1000;
         const chunks = Math.ceil(totalCakes / CHUNK_SIZE) || 1;
 
         for (let i = 0; i < chunks; i++) {
@@ -90,7 +90,7 @@ export async function generateSitemaps(): Promise<Array<{ id: number | string }>
             totalDesigns = parseInt(countHeader.split('/')[1], 10) || 0;
         }
 
-        const CHUNK_SIZE = 2000;
+        const CHUNK_SIZE = 1000;
         const chunks = Math.ceil(totalDesigns / CHUNK_SIZE) || 1;
 
         for (let i = 0; i < chunks; i++) {
@@ -122,7 +122,7 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
         const idStr = String(resolvedId);
         if (idStr.startsWith('customized-cakes-')) {
             const page = parseInt(idStr.split('-').pop() || '0', 10);
-            const CHUNK_SIZE = 2000;
+            const CHUNK_SIZE = 1000;
             const offset = page * CHUNK_SIZE;
 
             const { data: customizedCakes } = await supabase
@@ -143,7 +143,7 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
 
         if (idStr.startsWith('designs-')) {
             const page = parseInt(idStr.split('-').pop() || '0', 10);
-            const CHUNK_SIZE = 2000;
+            const CHUNK_SIZE = 1000;
             const offset = page * CHUNK_SIZE;
 
             const { data: designs } = await supabase
