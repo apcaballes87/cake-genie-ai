@@ -11,7 +11,7 @@ import { CakeType, BasePriceInfo, HybridAnalysisResult, CakeInfoUI, MainTopperUI
 import { CustomizationProvider, CustomizationState } from '@/contexts/CustomizationContext'
 // FAQPageSchema deprecated (restricted to gov/healthcare Aug 2023) — using HTML accordions instead
 import { DesignAboutSection } from '@/components/DesignAboutSection'
-import supabaseLoader from '@/utils/supabase-image-loader'
+import LazyImage from '@/components/LazyImage'
 import { v4 as uuidv4 } from 'uuid'
 import { mapProductToDefaultState } from '@/utils/customizationMapper'
 
@@ -102,7 +102,7 @@ export async function generateMetadata(
             const colors = Object.values(analysis.icing_design.colors)
                 .filter(c => typeof c === 'string')
                 .join(', ')
-            if (colors) features.push(`${analysis.icing_design.base.replace('_', ' ')}: ${colors}`)
+            if (colors) features.push(`${(typeof analysis.icing_design.base === 'string' ? analysis.icing_design.base : 'icing').replace(/_/g, ' ')}: ${colors}`)
         }
 
         // Toppers
@@ -621,8 +621,7 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
                 {/* Hero Image Section */}
                 {design.original_image_url && (
                     <figure className="relative w-full aspect-square bg-slate-100 overflow-hidden">
-                        <Image
-                            loader={supabaseLoader}
+                        <LazyImage
                             src={design.original_image_url}
                             alt={altText}
                             title={title}
@@ -756,8 +755,7 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
                                     >
                                         {related.original_image_url && (
                                             <div className="relative aspect-square bg-slate-100 overflow-hidden">
-                                                <Image
-                                                    loader={supabaseLoader}
+                                                <LazyImage
                                                     src={related.original_image_url}
                                                     alt={related.alt_text || `${related.keywords || 'Custom'} cake design`}
                                                     className="object-cover group-hover:scale-105 transition-transform duration-200"
