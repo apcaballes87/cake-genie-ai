@@ -483,7 +483,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                                     <div className="relative z-30 px-5 text-left w-full sm:w-[85%]">
                                         <p className="text-[1.75rem] xs:text-[2rem] sm:text-[2.2rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight drop-shadow-sm">
-                                            From Upload to<br />Checkout in Seconds.
+                                            Upload any Cake Design,<br />Get the Price in Seconds
                                         </p>
                                         <p className="mt-2 text-[0.78rem] xs:text-[0.85rem] text-[#6d3fc7] font-medium leading-snug drop-shadow-sm">
                                             The fastest way to buy customized cakes.<br />Personalize your order in a few clicks.
@@ -517,7 +517,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-transparent pointer-events-none -mr-32" />
                                     <div className="relative z-10">
                                         <p className="text-[2.5rem] lg:text-[3.5rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight drop-shadow-sm">
-                                            From Upload to<br />Checkout in Seconds.
+                                            Upload and Cake Design,<br />Get the Price in Seconds
                                         </p>
                                         <p className="mt-3 mb-8 text-[0.95rem] lg:text-[1.1rem] text-[#6d3fc7] font-medium leading-snug">
                                             The fastest way to buy customized cakes.<br />Personalize your order in a few clicks.
@@ -577,9 +577,13 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 />
                                 <div className="absolute inset-0 bg-white/20"></div>
                             </div>
-
-                            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-4 md:pt-6 md:pb-[42px]">
-                                <h2 className="text-[24px] md:text-3xl font-bold text-center text-purple-950 mb-3 drop-shadow-sm">How it Works</h2>
+                            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-4 md:pt-8 md:pb-[42px]">
+                                <div className="text-center mb-4 md:mb-6">
+                                    <p className="text-[12px] md:text-[14px] font-bold text-purple-800 uppercase tracking-widest mb-1 opacity-90">
+                                        Skip the endless &quot;HM?&quot; and &quot;PM for price&quot;
+                                    </p>
+                                    <h2 className="text-[24px] md:text-3xl font-bold text-purple-950 drop-shadow-sm">How it Works</h2>
+                                </div>
                                 <div className="flex gap-2 md:grid md:grid-cols-4 md:gap-6 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 pb-1 md:pb-0">
                                     {/* Card 1 */}
                                     <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-[0.75rem] md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
