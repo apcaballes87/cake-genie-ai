@@ -586,8 +586,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         <div className="mb-2 md:mb-4 text-purple-800">
                                             <UploadCloud className="w-6 h-6 sm:w-8 sm:h-8 md:w-11 md:h-11" strokeWidth={1.5} />
                                         </div>
-                                        <h3 className="text-[10px] sm:text-[13px] leading-[1.2] md:text-xl font-bold text-purple-950 mb-1 md:mb-2">1. Upload<br className="md:hidden" /> or Browse</h3>
-                                        <p className="text-purple-800 text-[8px] sm:text-[11px] leading-tight md:text-base">Any Cake Design<br className="md:hidden" /></p>
+                                        <h3 className="text-[11px] sm:text-[14px] leading-[1.2] md:text-[21px] font-bold text-purple-950 mb-1 md:mb-2">1. Upload<br className="md:hidden" /> or Browse</h3>
+                                        <p className="text-purple-800 text-[9px] sm:text-[12px] leading-tight md:text-[17px]">Any Cake Design<br className="md:hidden" /></p>
                                     </div>
 
                                     {/* Card 2 */}
@@ -596,8 +596,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                             <Tag className="absolute left-0 top-0 opacity-80 w-3.5 h-3.5 sm:w-5 sm:h-5 md:w-8 md:h-8" strokeWidth={1.5} />
                                             <Calculator className="absolute right-0 bottom-0 bg-purple-50/60 rounded rotate-12 w-5 h-5 sm:w-7 sm:h-7 md:w-9 md:h-9 shadow-sm" strokeWidth={1.5} />
                                         </div>
-                                        <h3 className="text-[10px] sm:text-[13px] leading-[1.2] md:text-xl font-bold text-purple-950 mb-1 md:mb-2">2. Get Instant<br className="md:hidden" /> Quote</h3>
-                                        <p className="text-purple-800 text-[8px] sm:text-[11px] leading-tight md:text-base">Prices in seconds<br className="md:hidden" /></p>
+                                        <h3 className="text-[11px] sm:text-[14px] leading-[1.2] md:text-[21px] font-bold text-purple-950 mb-1 md:mb-2">2. Get Instant<br className="md:hidden" /> Quote</h3>
+                                        <p className="text-purple-800 text-[9px] sm:text-[12px] leading-tight md:text-[17px]">Prices in seconds<br className="md:hidden" /></p>
                                     </div>
 
                                     {/* Card 3 - NEW */}
@@ -605,8 +605,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         <div className="mb-2 md:mb-4 text-purple-800">
                                             <Cake className="w-6 h-6 sm:w-8 sm:h-8 md:w-11 md:h-11" strokeWidth={1.5} />
                                         </div>
-                                        <h3 className="text-[10px] sm:text-[13px] leading-[1.2] md:text-xl font-bold text-purple-950 mb-1 md:mb-2">3. Customize<br className="md:hidden" /> Your Cake</h3>
-                                        <p className="text-purple-800 text-[8px] sm:text-[11px] leading-tight md:text-base">Size, color &amp; toppers<br className="md:hidden" /></p>
+                                        <h3 className="text-[11px] sm:text-[14px] leading-[1.2] md:text-[21px] font-bold text-purple-950 mb-1 md:mb-2">3. Customize<br className="md:hidden" /> Your Cake</h3>
+                                        <p className="text-purple-800 text-[9px] sm:text-[12px] leading-tight md:text-[17px]">Size, color &amp; toppers<br className="md:hidden" /></p>
                                     </div>
 
                                     {/* Card 4 */}
@@ -614,8 +614,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         <div className="mb-2 md:mb-4 text-purple-800">
                                             <ShoppingBag className="w-6 h-6 sm:w-8 sm:h-8 md:w-11 md:h-11" strokeWidth={1.5} />
                                         </div>
-                                        <h3 className="text-[10px] sm:text-[13px] leading-[1.2] md:text-xl font-bold text-purple-950 mb-1 md:mb-2">4. Add to Cart<br className="md:hidden" /></h3>
-                                        <p className="text-purple-800 text-[8px] sm:text-[11px] leading-tight md:text-base">Convenient Payment Options<br className="md:hidden" /></p>
+                                        <h3 className="text-[11px] sm:text-[14px] leading-[1.2] md:text-[21px] font-bold text-purple-950 mb-1 md:mb-2">4. Add to Cart<br className="md:hidden" /></h3>
+                                        <p className="text-purple-800 text-[9px] sm:text-[12px] leading-tight md:text-[17px]">Convenient Payment Options<br className="md:hidden" /></p>
                                     </div>
                                 </div>
                             </div>
