@@ -373,18 +373,27 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                     </div>
 
-                    {/* Desktop Header: Logo left, Search center, Icons right */}
+                    {/* Desktop Header: Menu + Logo left, Search center, Icons right */}
                     <div className="hidden md:flex w-full items-center gap-4 mb-4 pt-6">
-                        {/* Left: Logo */}
-                        <Link href="/" className="shrink-0">
-                            <img
-                                src={COMMON_ASSETS.logo}
-                                alt="Genie Logo"
-                                width={180}
-                                height={48}
-                                className="h-12 w-auto object-contain"
-                            />
-                        </Link>
+                        {/* Left: Menu icon + Logo */}
+                        <div className="flex items-center gap-2 shrink-0">
+                            <button
+                                onClick={() => setIsMenuOpen(true)}
+                                className="p-2 text-slate-600 hover:text-purple-700 transition-colors"
+                                aria-label="Open menu"
+                            >
+                                <Menu size={24} />
+                            </button>
+                            <Link href="/">
+                                <img
+                                    src={COMMON_ASSETS.logo}
+                                    alt="Genie Logo"
+                                    width={180}
+                                    height={48}
+                                    className="h-12 w-auto object-contain"
+                                />
+                            </Link>
+                        </div>
 
                         {/* Center: Search Bar */}
                         <div className="flex-1 flex justify-center">
@@ -473,9 +482,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     <div className="absolute inset-y-0 left-0 w-3/4 max-w-[280px] bg-linear-to-r from-white via-white/80 to-transparent z-20 pointer-events-none" />
 
                                     <div className="relative z-30 px-5 text-left w-full sm:w-[85%]">
-                                        <h1 className="text-[2.1rem] xs:text-[2.35rem] sm:text-[2.6rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight drop-shadow-sm">
-                                            Made by Magic,<br />Designed by You.
-                                        </h1>
+                                        <p className="text-[1.75rem] xs:text-[2rem] sm:text-[2.2rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight drop-shadow-sm">
+                                            From Upload to<br />Checkout in Seconds.
+                                        </p>
+                                        <p className="mt-2 text-[0.78rem] xs:text-[0.85rem] text-[#6d3fc7] font-medium leading-snug drop-shadow-sm">
+                                            The fastest way to buy customized cakes.<br />Personalize your order in a few clicks.
+                                        </p>
                                     </div>
                                 </div>
 
@@ -504,9 +516,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 <div className="flex-1 px-8 lg:px-14 z-20 flex flex-col justify-center h-full max-w-[55%] relative">
                                     <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-transparent pointer-events-none -mr-32" />
                                     <div className="relative z-10">
-                                        <h1 className="text-[2.5rem] lg:text-[3.5rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight mb-8 drop-shadow-sm">
-                                            Made by Magic,<br />Designed by You.
-                                        </h1>
+                                        <p className="text-[2.5rem] lg:text-[3.5rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight drop-shadow-sm">
+                                            From Upload to<br />Checkout in Seconds.
+                                        </p>
+                                        <p className="mt-3 mb-8 text-[0.95rem] lg:text-[1.1rem] text-[#6d3fc7] font-medium leading-snug">
+                                            The fastest way to buy customized cakes.<br />Personalize your order in a few clicks.
+                                        </p>
                                         <div className="flex flex-row gap-3 lg:gap-4 items-center flex-nowrap shrink-0">
                                             <button
                                                 className="flex items-center justify-center gap-2 bg-[#9b80e3] hover:bg-[#8669cc] text-white px-5 py-3 lg:px-7 lg:py-3.5 rounded-[0.875rem] font-semibold transition-all shadow-md active:scale-[0.98] text-sm lg:text-base whitespace-nowrap shrink-0"
@@ -611,7 +626,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         {/* --- CAKES AVAILABLE TODAY --- */}
                         <div className="mb-4">
                             <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 mb-3">Shop Cake Designs Available for Rush Orders</h2>
-                            <div className="flex overflow-x-auto gap-3 pb-4 md:grid min-[490px]:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 md:gap-6 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+                            <div className="flex overflow-x-auto gap-3 pb-4 md:grid min-[490px]:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 md:gap-6 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
                                 {quickLinks.map((link, cardIndex) => {
                                     const activeIndex = rushImageIndexes[cardIndex] ?? 0;
                                     return (
@@ -647,6 +662,11 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                         {/* --- FEATURED COLLECTIONS SECTION --- */}
                         <FeaturedCollections categories={categories} />
+
+                        {/* --- POPULAR DESIGNS SECTION --- */}
+                        <div className="mt-6 md:mt-8">
+                            <PopularDesigns designs={popularDesigns} />
+                        </div>
 
                         {/* --- SHOP BY OCCASION (SEO Links) - REMOVED AS REQUESTED --- */}
 
@@ -697,10 +717,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             </div>
                         </div>
 
-                        {/* --- POPULAR DESIGNS SECTION --- */}
-                        <div className="mt-6 md:mt-8">
-                            <PopularDesigns designs={popularDesigns} />
-                        </div>
+
                     </div>
                 </div>
             </main>
@@ -765,7 +782,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
             {/* --- MOBILE SIDE MENU DRAWER --- */}
             {/* Backdrop */}
             <div
-                className={`fixed inset-0 z-50 transition-opacity duration-300 md:hidden ${isMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                className={`fixed inset-0 z-50 transition-opacity duration-300 ${isMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
                 onClick={() => setIsMenuOpen(false)}
                 aria-hidden="true"
                 style={{ background: 'rgba(0,0,0,0.45)' }}
@@ -773,7 +790,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
             {/* Drawer Panel */}
             <aside
-                className={`fixed top-0 left-0 z-50 h-full w-72 bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-out md:hidden ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`fixed top-0 left-0 z-50 h-full w-72 bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
                 aria-label="Side navigation"
             >
                 {/* Drawer Header */}

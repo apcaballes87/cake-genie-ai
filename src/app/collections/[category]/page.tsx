@@ -1,6 +1,6 @@
 import { Metadata, ResolvingMetadata } from 'next'
 import { notFound } from 'next/navigation'
-import { getDesignsByKeyword } from '@/services/supabaseService'
+import { getDesignsByKeyword, getCollectionBySlug } from '@/services/supabaseService'
 import CategoryClient from './CategoryClient'
 
 export const revalidate = 3600; // ISR: revalidate every hour
@@ -15,21 +15,33 @@ export async function generateMetadata(
 ): Promise<Metadata> {
     const { category } = await params
 
-    // Convert slug back to readable title (e.g., "birthday-cakes" -> "Birthday Cakes")
-    const title = category
-        .split('-')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ')
+    // Try to find the exact collection
+    const { data: collection } = await getCollectionBySlug(category);
+
+    let title = collection?.name;
+    let desc = collection?.description;
+
+    if (!title) {
+        // Fallback for random slugs
+        title = category
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ')
+    }
+
+    if (!desc) {
+        desc = `Browse our collection of ${title.toLowerCase()} designs. Get instant AI pricing for any of these custom cakes from trusted local bakers.`
+    }
 
     return {
         title: `${title} Cake Ideas & Designs | Genie.ph`,
-        description: `Browse our collection of ${title.toLowerCase()} designs. Get instant AI pricing for any of these custom cakes from trusted local bakers.`,
+        description: desc,
         alternates: {
             canonical: `https://genie.ph/collections/${category}`,
         },
         openGraph: {
             title: `${title} Cake Designs`,
-            description: `Browse ${title.toLowerCase()} and get instant pricing.`,
+            description: desc,
             url: `https://genie.ph/collections/${category}`,
             type: 'website',
         },
@@ -39,11 +51,18 @@ export async function generateMetadata(
 export default async function CategoryPage({ params }: Props) {
     const { category } = await params
 
-    // Convert slug to keyword for search
-    const readableTitle = category.split('-').join(' ');
-    const keyword = readableTitle;
+    // 1. Get the official collection details if it exists
+    const { data: collection } = await getCollectionBySlug(category);
 
-    const { data: designs } = await getDesignsByKeyword(keyword, 30);
+    let readableTitle = collection?.name;
+    let description = collection?.description || null;
+
+    if (!readableTitle) {
+        readableTitle = category.split('-').join(' ');
+    }
+
+    // 2. Fetch designs using the slug (the service will resolve tags if it's a collection)
+    const { data: designs } = await getDesignsByKeyword(category, 30);
 
     if (!designs || designs.length === 0) {
         return notFound();
@@ -52,9 +71,10 @@ export default async function CategoryPage({ params }: Props) {
     return (
         <CategoryClient
             designs={designs}
-            keyword={keyword}
+            keyword={category} // Service expects the slug or keyword
             readableTitle={readableTitle}
             category={category}
+            description={description}
         />
     )
 }

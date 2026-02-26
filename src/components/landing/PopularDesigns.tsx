@@ -28,7 +28,7 @@ export const PopularDesigns = ({ designs }: PopularDesignsProps) => {
                 <Link href="/customizing" className="text-purple-600 text-sm font-bold hover:underline hidden md:block">View All</Link>
             </div>
 
-            <div className="columns-2 min-[490px]:columns-4 md:columns-5 lg:columns-6 xl:columns-8 gap-4 md:gap-5 lg:gap-6 space-y-4 md:space-y-5 lg:space-y-6">
+            <div className="columns-2 min-[490px]:columns-3 md:columns-5 lg:columns-6 xl:columns-8 gap-4 md:gap-5 lg:gap-6 space-y-4 md:space-y-5 lg:space-y-6">
                 {designs.map((design) => (
                     <Link
                         key={design.slug}
@@ -52,9 +52,9 @@ export const PopularDesigns = ({ designs }: PopularDesignsProps) => {
                             {design.availability && (
                                 <div className="absolute top-2.5 left-2.5 z-10">
                                     <span className={`backdrop-blur-sm text-[10px] md:text-xs font-extrabold px-2.5 py-1 rounded-full shadow-sm ${design.availability === 'rush'
-                                        ? 'bg-green-100/95 text-green-800'
+                                        ? 'bg-green-600/95 text-white'
                                         : design.availability === 'same-day'
-                                            ? 'bg-blue-100/95 text-blue-800'
+                                            ? 'bg-blue-600/95 text-white'
                                             : 'bg-white/95 text-gray-800'
                                         }`}>
                                         {design.availability === 'same-day' ? 'Same Day' : design.availability === 'rush' ? 'Rush' : 'Pre-order'}

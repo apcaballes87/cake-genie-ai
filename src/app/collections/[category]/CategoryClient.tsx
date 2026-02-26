@@ -30,13 +30,15 @@ interface CategoryClientProps {
     keyword: string;
     readableTitle: string;
     category: string;
+    description?: string | null;
 }
 
 const CategoryClient: React.FC<CategoryClientProps> = ({
     designs,
     keyword,
     readableTitle,
-    category
+    category,
+    description
 }) => {
     const router = useRouter();
     const { itemCount } = useCart();
@@ -119,9 +121,15 @@ const CategoryClient: React.FC<CategoryClientProps> = ({
                             <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text capitalize">
                                 {readableTitle} Designs
                             </h1>
-                            <p className="text-slate-500 font-medium mt-1">
-                                Found {designs.length} {readableTitle} ideas. Click any design to customize it and get a price.
-                            </p>
+                            {description ? (
+                                <p className="text-slate-600 font-medium mt-2 leading-relaxed">
+                                    {description}
+                                </p>
+                            ) : (
+                                <p className="text-slate-500 font-medium mt-1">
+                                    Found {designs.length} {readableTitle} ideas. Click any design to customize it and get a price.
+                                </p>
+                            )}
                         </div>
                     </div>
 

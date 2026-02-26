@@ -298,7 +298,7 @@
 
 @media (min-width: 490px) {
   .gsc-expansionArea {
-    columns: 4 !important;
+    columns: 3 !important;
   }
 }
 

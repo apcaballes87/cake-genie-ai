@@ -179,10 +179,10 @@ export const ProductCard = ({
                 {/* Availability Badge at Top Left */}
                 <div className="absolute top-2.5 left-2.5 z-10">
                     <span className={`backdrop-blur-sm text-[10px] md:text-xs font-extrabold px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap ${avail === 'rush'
-                            ? 'bg-green-100/95 text-green-800'
-                            : avail === 'same-day'
-                                ? 'bg-blue-100/95 text-blue-800'
-                                : 'bg-white/95 text-gray-800'
+                        ? 'bg-green-600/95 text-white'
+                        : avail === 'same-day'
+                            ? 'bg-blue-600/95 text-white'
+                            : 'bg-white/95 text-gray-800'
                         }`}>
                         {avail === 'same-day' ? 'Same Day' : avail === 'rush' ? 'Rush' : 'Pre-order'}
                     </span>
