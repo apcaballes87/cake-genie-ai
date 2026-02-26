@@ -8,10 +8,10 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'Genie.ph | Online Marketplace for Custom Cakes in Cebu!',
-  description: 'Upload any cake design, customize with AI and get instant pricing from the best cakeshops and homebakers here in Cebu.',
+  description: 'Upload any cake design, customize with AI and get instant pricing from the best cakeshops and homebakers in Cebu. Order your custom cake online today!',
   openGraph: {
     title: 'Genie.ph | Online Marketplace for Custom Cakes in Cebu!',
-    description: 'Upload any cake design, customize with AI and get instant pricing from the best cakeshops and homebakers here in Cebu.',
+    description: 'Upload any cake design, customize with AI and get instant pricing from the best cakeshops and homebakers in Cebu. Order your custom cake online today!',
     images: ['https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg'],
     url: 'https://genie.ph/',
     type: 'website',

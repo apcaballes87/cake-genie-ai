@@ -101,8 +101,34 @@ const faqs = [
     },
 ]
 
+function FAQSchema() {
+    const schema = {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqs.flatMap(section =>
+            section.questions.map(faq => ({
+                '@type': 'Question',
+                name: faq.q,
+                acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: faq.a,
+                },
+            }))
+        ),
+    };
+
+    return (
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+    );
+}
+
 export default function FAQPage() {
     return (
+        <>
+        <FAQSchema />
         <main className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100">
             <div className="container mx-auto px-4 py-12 max-w-4xl">
                 <header className="text-center mb-12">
@@ -178,5 +204,6 @@ export default function FAQPage() {
                 </nav>
             </div>
         </main>
+        </>
     )
 }
