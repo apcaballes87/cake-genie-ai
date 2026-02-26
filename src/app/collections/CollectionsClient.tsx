@@ -14,7 +14,9 @@ import { useCakeCustomization } from '@/contexts/CustomizationContext';
 
 interface Category {
     slug: string;
-    keyword: string;
+    keyword: string; // The backend maps name -> keyword for compatibility, but let's use name if available
+    name?: string;
+    description?: string;
     sample_image: string;
     count: number;
 }
@@ -156,21 +158,27 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                                     <Link
                                         key={cat.slug}
                                         href={`/collections/${cat.slug}`}
-                                        className="group bg-white rounded-xl shadow-sm hover:shadow-md border border-gray-100 overflow-hidden transition-all duration-300 hover:-translate-y-1"
+                                        className="group bg-white rounded-xl shadow-sm hover:shadow-md border border-gray-100 overflow-hidden transition-all duration-300 hover:-translate-y-1 flex flex-col"
                                     >
                                         <div className="relative aspect-4/3 bg-gray-100">
                                             <Image
                                                 src={cat.sample_image}
-                                                alt={`${cat.keyword} cake designs`}
+                                                alt={`${cat.keyword || cat.name} cake designs`}
                                                 fill
                                                 sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
                                                 className="object-cover group-hover:scale-105 transition-transform duration-500"
                                                 unoptimized
                                             />
-                                            <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
-                                            <div className="absolute bottom-0 left-0 right-0 p-2.5">
-                                                <p className="text-white text-sm font-bold leading-tight capitalize">{cat.keyword}</p>
-                                                <p className="text-white/80 text-xs">{cat.count} designs</p>
+                                            <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent" />
+                                            <div className="absolute bottom-0 left-0 right-0 p-3">
+                                                <p className="text-white text-sm font-bold leading-tight capitalize drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
+                                                    {cat.keyword || cat.name}
+                                                </p>
+                                                {cat.count > 0 && (
+                                                    <p className="text-white/90 text-xs font-medium drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] mt-0.5">
+                                                        {cat.count} designs
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                     </Link>

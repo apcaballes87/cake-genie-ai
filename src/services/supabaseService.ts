@@ -538,91 +538,67 @@ export async function getPopularDesigns(limit: number = 20): Promise<SupabaseSer
 }
 
 /**
- * Fetches distinct keyword categories with counts for the category index page.
+ * Fetches design categories from the cakegenie_collections table.
  */
-export async function getDesignCategories(): Promise<SupabaseServiceResponse<{ keyword: string; slug: string; count: number; sample_image: string }[]>> {
+export async function getDesignCategories(): Promise<SupabaseServiceResponse<{ keyword: string; slug: string; count: number; sample_image: string, description?: string }[]>> {
   try {
-    // Use raw SQL via RPC or just fetch all keywords and aggregate client-side
-    const { data, error } = await supabase
-      .from('cakegenie_analysis_cache')
-      .select('keywords, original_image_url')
-      .not('original_image_url', 'is', null)
-      .neq('original_image_url', '')
-      .not('slug', 'is', null)
-      .neq('keywords', '');
+    const { data: collections, error: collectionsError } = await supabase
+      .from('cakegenie_collections')
+      .select('name, slug, tags, sample_image, description')
+      .order('name', { ascending: true }); // Or order by hits
 
-    if (error) {
-      console.error('Error fetching design categories:', error);
-      return { data: null, error };
+    if (collectionsError) {
+      console.error('Error fetching design categories from collections:', collectionsError);
+      return { data: null, error: collectionsError };
     }
 
-    // 1. First, identify "candidate" categories based on exact matches to avoid spammy tags
-    //    We only want to show a category if at least one item was explicitly tagged with it (or enough items)
-    const exactCounts = new Map<string, number>();
-    const displayForms = new Map<string, string>();
-    const allItems = data || [];
+    if (!collections || collections.length === 0) {
+      return { data: [], error: null };
+    }
 
-    for (const item of allItems) {
-      const rawKw = (item.keywords || '').trim();
-      if (!rawKw) continue;
+    // We still need to calculate item counts and find sample images if missing
+    const categoriesPromises = collections.map(async (collection) => {
+      let sampleImage = collection.sample_image;
+      let count = 0;
 
-      const normalizedKw = rawKw.toLowerCase();
-      exactCounts.set(normalizedKw, (exactCounts.get(normalizedKw) || 0) + 1);
+      // If collection has tags, use them to find matching items and a sample image
+      if (collection.tags && collection.tags.length > 0) {
+        // Create an OR filter for all tags
+        const orFilters = collection.tags.map((tag: string) => `keywords.ilike.%${tag}%`).join(',');
 
-      // Save a display form. Prefer the one with more capital letters (simple heuristic for "Demon Slayer" vs "demon slayer")
-      const currentDisplay = displayForms.get(normalizedKw);
-      if (!currentDisplay) {
-        displayForms.set(normalizedKw, rawKw);
-      } else {
-        // If the new one has more uppercase letters, use it? Or just if it's not all lowercase?
-        // Let's just pick the one that has uppercase letters if the current one doesn't.
-        if (rawKw !== normalizedKw && currentDisplay === normalizedKw) {
-          displayForms.set(normalizedKw, rawKw);
+        let query = supabase
+          .from('cakegenie_analysis_cache')
+          .select('original_image_url', { count: 'exact' }) // Fetch minimal data just for image and count
+          .not('original_image_url', 'is', null)
+          .neq('original_image_url', '')
+          .or(orFilters)
+          .limit(1); // Only need 1 for sample image
+
+        const { data: items, count: actualCount, error: itemsError } = await query;
+
+        if (!itemsError) {
+          count = actualCount || 0;
+          if (!sampleImage && items && items.length > 0) {
+            sampleImage = items[0].original_image_url;
+          }
         }
       }
-    }
-
-    // Filter to get our list of displayable categories (e.g. must have >= 3 exact matches originally, or just exist)
-    // We use the normalized keys here.
-    let candidateKeywords = Array.from(exactCounts.entries())
-      .filter(([, count]) => count >= 3)
-      .map(([keyword]) => keyword);
-
-    // 2. Recalculate counts using "includes" logic (mimicking the %keyword% search)
-    //    and find the sample image (preferring exact match items)
-    const categories = candidateKeywords.map(normalizedKw => {
-      // Recover the display form
-      const displayKeyword = displayForms.get(normalizedKw) || normalizedKw;
-
-      // Find all items that would show up in the search for this keyword
-      const matchingItems = allItems.filter(item =>
-        (item.keywords || '').toLowerCase().includes(normalizedKw)
-      );
-
-      // Total count on the card
-      const count = matchingItems.length;
-
-      // Find best sample image:
-      // 1. Prefer ones hosted on our Supabase (reliable)
-      // 2. Prefer exact match keyword
-      // 3. Fallback to first available
-      const supabaseItems = matchingItems.filter(item =>
-        (item.original_image_url || '').includes('.supabase.co')
-      );
-
-      const candidates = supabaseItems.length > 0 ? supabaseItems : matchingItems;
-      const exactMatchItem = candidates.find(item => (item.keywords || '').toLowerCase() === normalizedKw);
-      const sample_image = exactMatchItem ? exactMatchItem.original_image_url : candidates[0]?.original_image_url;
 
       return {
-        keyword: displayKeyword,
-        slug: normalizedKw.replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-'),
-        count,
-        sample_image,
+        keyword: collection.name,
+        slug: collection.slug,
+        count: count,
+        sample_image: sampleImage || 'https://images.unsplash.com/photo-1542826438-bd32f43d626f?q=80&w=600&auto=format&fit=crop', // Fallback
+        description: collection.description || undefined
       };
-    }).sort((a, b) => b.count - a.count);
+    });
 
-    return { data: categories, error: null };
+    const resolvedCategories = await Promise.all(categoriesPromises);
+
+    // Filter out empty ones if desired, or sort them
+    const sortedCategories = resolvedCategories.sort((a, b) => b.count - a.count);
+
+    return { data: sortedCategories, error: null };
   } catch (err) {
     console.error('Exception fetching design categories:', err);
     return { data: null, error: err as Error };
@@ -658,28 +634,66 @@ export async function getAllRecentDesigns(limit: number = 24, offset: number = 0
 }
 
 /**
- * Fetches designs matching a keyword category.
+ * Gets a specific collection by its slug.
  */
-export async function getDesignsByKeyword(keyword: string, limit: number = 50, offset: number = 0): Promise<SupabaseServiceResponse<any[]>> {
+export async function getCollectionBySlug(slug: string): Promise<SupabaseServiceResponse<any>> {
   try {
+    const { data, error } = await supabase
+      .from('cakegenie_collections')
+      .select('*')
+      .eq('slug', slug)
+      .single();
+
+    if (error) {
+      console.error('Error fetching collection by slug:', error);
+      return { data: null, error };
+    }
+
+    return { data, error: null };
+  } catch (err) {
+    console.error('Exception fetching collection by slug:', err);
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches designs matching a specific keyword or category slug.
+ * If finding a collection by slug fails, it falls back to a basic keyword search.
+ */
+export async function getDesignsByKeyword(keywordOrSlug: string, limit: number = 50, offset: number = 0): Promise<SupabaseServiceResponse<any[]>> {
+  try {
+    let orFilters = `keywords.ilike.%${keywordOrSlug}%`;
+
+    // Try to see if this is a collection slug first
+    const { data: collection } = await supabase
+      .from('cakegenie_collections')
+      .select('tags')
+      .eq('slug', keywordOrSlug)
+      .single();
+
+    // If we found a collection and it has tags, use those tags as OR conditions
+    if (collection && collection.tags && collection.tags.length > 0) {
+      orFilters = collection.tags.map((tag: string) => `keywords.ilike.%${tag}%`).join(',');
+    }
+
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
       .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
-      .ilike('keywords', `%${keyword}%`)
+      .or(orFilters)
       .order('usage_count', { ascending: false })
       .limit(limit)
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error('Error fetching designs by keyword:', error);
+      console.error('Error fetching designs by keyword/slug:', error);
       return { data: null, error };
     }
 
     return { data: data || [], error: null };
   } catch (err) {
-    console.error('Exception fetching designs by keyword:', err);
+    console.error('Exception fetching designs by keyword/slug:', err);
     return { data: null, error: err as Error };
   }
 }

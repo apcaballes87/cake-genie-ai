@@ -66,7 +66,7 @@ export const RecommendedProductsGrid = ({ initialProducts }: RecommendedProducts
             </div>
 
             {/* Product Grid */}
-            <div className="columns-2 min-[490px]:columns-4 md:columns-4 lg:columns-5 xl:columns-6 gap-4 md:gap-5 lg:gap-6 space-y-4 md:space-y-5 lg:space-y-6 mb-8 md:mb-10">
+            <div className="columns-2 min-[490px]:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-4 md:gap-5 lg:gap-6 space-y-4 md:space-y-5 lg:space-y-6 mb-8 md:mb-10">
                 {products.length > 0 ? (
                     <>
                         {products.map((item, index) => (
