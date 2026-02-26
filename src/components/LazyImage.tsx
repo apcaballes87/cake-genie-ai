@@ -127,7 +127,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   // If fill is true, the wrapper should be absolute to mimic next/image behavior
   // properly within a relative container.
   // We also default to fill if no dimensions are provided to prevent next/image runtime errors.
-  const isFilling = fill || (!width && !height);
+  const isFilling = fill || (width === undefined && height === undefined);
   const positionClass = isFilling ? 'absolute inset-0 w-full h-full' : 'relative';
 
   return (

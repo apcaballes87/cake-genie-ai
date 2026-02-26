@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 export const IntroContent = () => {
     return (
-        <section className="py-6 md:py-8">
+        <section className="py-4 md:py-6">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <h2 className="text-[22px] md:text-[28px] font-bold text-gray-900 mb-4">
                     What is <span className="text-purple-600">Genie.ph</span>?

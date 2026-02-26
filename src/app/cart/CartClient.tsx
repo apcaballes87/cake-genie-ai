@@ -61,6 +61,7 @@ function CartClient() {
 
     const [guestEmail, setGuestEmail] = useState(() => readFromLocalStorage('cart_guest_email') || '');
     const [isGuestLoading, setIsGuestLoading] = useState(false);
+    const [fulfillmentType, setFulfillmentType] = useState<'delivery' | 'pickup'>('delivery');
 
     const handleGuestCheckout = async () => {
         setIsGuestLoading(true);
@@ -364,6 +365,9 @@ function CartClient() {
 
     // Calculate dynamic delivery fee based on city
     const deliveryFee = useMemo(() => {
+        // No delivery fee for pickup orders
+        if (fulfillmentType === 'pickup') return 0;
+
         // 1. Check pending address data (live updates while typing/selecting)
         if (isAddingAddress && pendingAddressData?.city) {
             return getDeliveryFeeByCity(pendingAddressData.city);
@@ -385,7 +389,7 @@ function CartClient() {
         }
 
         return 0;
-    }, [selectedAddress, guestAddress, derivedCity, pendingAddressData, isAddingAddress]);
+    }, [fulfillmentType, selectedAddress, guestAddress, derivedCity, pendingAddressData, isAddingAddress]);
 
     const discountAmount = appliedDiscount?.discountAmount || 0;
     const total = subtotal + deliveryFee - discountAmount;
@@ -686,13 +690,19 @@ function CartClient() {
         if (!eventDate) missing.push('Date of Event');
         if (!eventTime) missing.push('Time of Event');
 
-        if (isAnonymous && !guestEmail) missing.push('Email Address');
+        // Address is only required for delivery orders
+        if (fulfillmentType === 'delivery') {
+            if (isAnonymous && !guestEmail) missing.push('Email Address');
 
-        if (isAddingAddress || (isAnonymous && !guestAddress)) {
-            if (!isPendingAddressValid) missing.push('Delivery Address');
+            if (isAddingAddress || (isAnonymous && !guestAddress)) {
+                if (!isPendingAddressValid) missing.push('Delivery Address');
+            } else {
+                if (!isAnonymous && !selectedAddress) missing.push('Delivery Address');
+                if (isAnonymous && !guestAddress) missing.push('Delivery Address');
+            }
         } else {
-            if (!isAnonymous && !selectedAddress) missing.push('Delivery Address');
-            if (isAnonymous && !guestAddress) missing.push('Delivery Address');
+            // For pickup, still require email for anonymous users (for order receipt)
+            if (isAnonymous && !guestEmail) missing.push('Email Address');
         }
 
         return missing;
@@ -1280,19 +1290,79 @@ function CartClient() {
                                     {cartAvailability === 'same-day' && <p className="text-xs text-slate-500 -mt-2">Your cart contains items available for same-day delivery (3-hour lead time).</p>}
                                     {cartAvailability === 'rush' && <p className="text-xs text-slate-500 -mt-2">All items in your cart are available for rush delivery (30-min lead time).</p>}
 
+                                    {/* Fulfillment Type Toggle */}
+                                    <div className="flex rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                                        <button
+                                            type="button"
+                                            id="fulfillment-delivery"
+                                            aria-label="Select delivery"
+                                            onClick={() => setFulfillmentType('delivery')}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-all duration-200 ${fulfillmentType === 'delivery'
+                                                ? 'bg-linear-to-r from-pink-500 to-purple-600 text-white shadow-inner'
+                                                : 'bg-white text-slate-600 hover:bg-slate-50'
+                                                }`}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" rx="1" /><path d="M16 8h4l3 5v3h-7V8z" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></svg>
+                                            Delivery
+                                        </button>
+                                        <div className="w-px bg-slate-200" />
+                                        <button
+                                            type="button"
+                                            id="fulfillment-pickup"
+                                            aria-label="Select pick-up"
+                                            onClick={() => setFulfillmentType('pickup')}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-all duration-200 ${fulfillmentType === 'pickup'
+                                                ? 'bg-linear-to-r from-pink-500 to-purple-600 text-white shadow-inner'
+                                                : 'bg-white text-slate-600 hover:bg-slate-50'
+                                                }`}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                                            Pick-Up
+                                        </button>
+                                    </div>
 
-                                    {isAddressesLoading ? (
-                                        <div className="flex justify-center items-center h-24"><Loader2 className="w-6 h-6 animate-spin text-purple-500" /></div>
-                                    ) : isAuthenticated ? (
-                                        <>
-                                            {/* Guest Email Input */}
-                                            {user?.is_anonymous && (
-                                                <div className="mb-6 p-4 bg-pink-50 border border-pink-100 rounded-lg animate-fade-in">
+                                    {fulfillmentType === 'pickup' ? (
+                                        /* ---- PICK-UP UI ---- */
+                                        <div className="space-y-3 animate-fade-in">
+                                            <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl">
+                                                <div className="flex items-start gap-3 mb-3">
+                                                    <MapPin className="w-5 h-5 text-purple-500 mt-0.5 shrink-0" />
+                                                    <div>
+                                                        <p className="text-sm font-bold text-purple-800">Cakes and Memories Bakeshop – Treehouse</p>
+                                                        <p className="text-xs text-purple-600 mt-0.5">Pick up your order directly from our store.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="rounded-xl overflow-hidden border border-purple-200 shadow-sm">
+                                                    <iframe
+                                                        title="Cakes and Memories Treehouse location"
+                                                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3925.012!2d123.8929501!3d10.3124792!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33a999df1bf0044f%3A0x5dfb51cb83a184c6!2sCakes%20and%20Memories%20Bakeshop%20-%20Treehouse!5e0!3m2!1sen!2sph!4v1708950000000!5m2!1sen!2sph"
+                                                        width="100%"
+                                                        height="220"
+                                                        style={{ border: 0 }}
+                                                        allowFullScreen
+                                                        loading="lazy"
+                                                        referrerPolicy="no-referrer-when-downgrade"
+                                                    />
+                                                </div>
+                                                <a
+                                                    href="https://www.google.com/maps/place/Cakes+and+Memories+Bakeshop+-+Treehouse/@10.3124792,123.8929501,17z"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-purple-600 hover:text-purple-800 hover:underline transition-colors"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+                                                    Open in Google Maps
+                                                </a>
+                                            </div>
+
+                                            {/* Guest Email for pickup (still need receipt) */}
+                                            {isAuthenticated && user?.is_anonymous && (
+                                                <div className="p-4 bg-pink-50 border border-pink-100 rounded-lg animate-fade-in">
                                                     <h3 className="text-sm font-bold text-pink-800 mb-3">Guest Contact Info</h3>
                                                     <div>
-                                                        <label htmlFor="guestEmail" className="block text-sm font-medium text-slate-600 mb-1">Email Address <span className="text-red-500">*</span></label>
+                                                        <label htmlFor="guestEmailPickup" className="block text-sm font-medium text-slate-600 mb-1">Email Address <span className="text-red-500">*</span></label>
                                                         <input
-                                                            id="guestEmail"
+                                                            id="guestEmailPickup"
                                                             type="email"
                                                             value={guestEmail}
                                                             onChange={(e) => setGuestEmail(e.target.value)}
@@ -1300,140 +1370,203 @@ function CartClient() {
                                                             placeholder="For order updates and receipt"
                                                             required
                                                         />
-                                                        <p className="text-xs text-slate-500 mt-1">We'll send your receipt and order status here.</p>
+                                                        <p className="text-xs text-slate-500 mt-1">We&apos;ll send your receipt and order status here.</p>
                                                     </div>
                                                 </div>
                                             )}
 
-                                            {/* Saved Addresses (Only for registered users) */}
-                                            {!user?.is_anonymous && savedAddresses.length > 0 && !isAddingAddress && (
-                                                <div className="space-y-2">
-                                                    <div>
-                                                        <label htmlFor="addressSelect" className="block text-sm font-medium text-slate-600 mb-1">Delivery Address</label>
-                                                        <select id="addressSelect" value={selectedAddressId} onChange={(e) => setSelectedAddressId(e.target.value)} className={inputStyle}>
-                                                            <option value="" disabled>-- Select a saved address --</option>
-                                                            {savedAddresses.map(addr => (
-                                                                <option key={addr.address_id} value={addr.address_id}>
-                                                                    {addr.address_label ? `${addr.address_label} (${addr.street_address})` : addr.street_address}
-                                                                </option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                    {selectedAddress && (
-                                                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm">
-                                                            <p className="font-semibold text-slate-700">{selectedAddress.recipient_name}</p>
-                                                            <p className="text-slate-500">{selectedAddress.recipient_phone}</p>
-                                                            {selectedAddress.latitude && selectedAddress.longitude ? (
-                                                                <a href={`https://www.google.com/maps?q=${selectedAddress.latitude},${selectedAddress.longitude}`} target="_blank" rel="noopener noreferrer" className="flex items-start gap-1.5 mt-1 text-pink-600 hover:text-pink-700 hover:underline">
-                                                                    <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                                                                    <span>{selectedAddress.street_address}</span>
-                                                                </a>
-                                                            ) : (
-                                                                <p className="text-slate-500 mt-1">{selectedAddress.street_address}</p>
-                                                            )}
-                                                            {selectedAddress.latitude && selectedAddress.longitude && (
-                                                                <StaticMap latitude={selectedAddress.latitude} longitude={selectedAddress.longitude} />
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {/* Guest Address Display */}
-                                            {isAnonymous && guestAddress && !isAddingAddress && (
-                                                <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm relative group">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <div>
-                                                            <div className="flex items-center gap-2">
-                                                                <p className="font-semibold text-slate-700">{guestAddress.recipient_name}</p>
-                                                                <span className="px-2 py-0.5 bg-slate-200 text-slate-600 text-[10px] font-bold uppercase rounded-full tracking-wider">Guest</span>
-                                                            </div>
-                                                            <p className="text-slate-500">{guestAddress.recipient_phone}</p>
-                                                            {guestAddress.latitude && guestAddress.longitude ? (
-                                                                <a href={`https://www.google.com/maps?q=${guestAddress.latitude},${guestAddress.longitude}`} target="_blank" rel="noopener noreferrer" className="flex items-start gap-1.5 mt-1 text-pink-600 hover:text-pink-700 hover:underline">
-                                                                    <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                                                                    <span>{guestAddress.street_address}</span>
-                                                                </a>
-                                                            ) : (
-                                                                <p className="text-slate-500 mt-1">{guestAddress.street_address}</p>
-                                                            )}
-                                                            {guestAddress.city && <p className="text-slate-500">{guestAddress.city}</p>}
-                                                        </div>
+                                            {!isAuthenticated && (
+                                                <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 space-y-6">
+                                                    <div className="text-center space-y-3">
+                                                        <h3 className="font-semibold text-slate-800">Have an account?</h3>
+                                                        <p className="text-sm text-slate-600">Sign in to access your saved order history.</p>
                                                         <button
-                                                            onClick={() => setIsAddingAddress(true)}
-                                                            className="text-pink-600 text-xs font-bold hover:underline uppercase tracking-wide"
+                                                            onClick={() => router.push('/login')}
+                                                            className="w-full bg-white border border-slate-300 text-slate-700 font-semibold py-2.5 px-6 rounded-lg shadow-sm hover:bg-slate-50 hover:shadow transition-all text-sm"
                                                         >
-                                                            Edit
+                                                            Sign In / Create Account
                                                         </button>
                                                     </div>
-                                                    {guestAddress.latitude && guestAddress.longitude && (
-                                                        <StaticMap latitude={guestAddress.latitude} longitude={guestAddress.longitude} />
-                                                    )}
+                                                    <div className="relative flex items-center py-2">
+                                                        <div className="grow border-t border-slate-300"></div>
+                                                        <span className="shrink-0 mx-4 text-slate-400 text-xs font-medium uppercase tracking-wider">Or continue as guest</span>
+                                                        <div className="grow border-t border-slate-300"></div>
+                                                    </div>
+                                                    <div className="text-center space-y-3">
+                                                        <button
+                                                            onClick={handleGuestCheckout}
+                                                            disabled={isGuestLoading}
+                                                            className="w-full bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all text-sm disabled:opacity-70 disabled:hover:scale-100 flex justify-center items-center"
+                                                        >
+                                                            {isGuestLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Setting up guest session...</> : 'Continue as Guest'}
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             )}
 
-                                            {/* Address Form or Add Button */}
-                                            {(isAddingAddress || (user?.is_anonymous && !guestAddress)) && user ? (
-                                                <div className="mt-4">
-                                                    <AddressForm
-                                                        userId={user.id}
-                                                        onSuccess={isAnonymous ? handleGuestAddressSuccess : handleNewAddressSuccess}
-                                                        onCancel={() => !user.is_anonymous && setIsAddingAddress(false)}
-                                                        isGuest={isAnonymous}
-                                                        hideActions={true}
-                                                        onFormChange={handleFormChange}
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <div className="mt-2">
-                                                    <button type="button" onClick={() => setIsAddingAddress(true)} className="w-full text-center text-sm font-semibold text-pink-600 hover:text-pink-700 py-2 rounded-lg hover:bg-pink-50 transition-colors">
-                                                        + Add a New Address
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 space-y-6">
-                                            <div className="text-center space-y-3">
-                                                <h3 className="font-semibold text-slate-800">Have an account?</h3>
-                                                <p className="text-sm text-slate-600">Sign in to access your saved addresses and loyalty points.</p>
-                                                <button
-                                                    onClick={() => router.push('/login')}
-                                                    className="w-full bg-white border border-slate-300 text-slate-700 font-semibold py-2.5 px-6 rounded-lg shadow-sm hover:bg-slate-50 hover:shadow transition-all text-sm"
-                                                >
-                                                    Sign In / Create Account
-                                                </button>
-                                            </div>
-
-                                            <div className="relative flex items-center py-2">
-                                                <div className="grow border-t border-slate-300"></div>
-                                                <span className="shrink-0 mx-4 text-slate-400 text-xs font-medium uppercase tracking-wider">Or continue as guest</span>
-                                                <div className="grow border-t border-slate-300"></div>
-                                            </div>
-
-                                            <div className="text-center space-y-3">
-                                                <h3 className="font-semibold text-slate-800">New to Cake Genie?</h3>
-                                                <p className="text-sm text-slate-600">You can checkout without creating an account.</p>
-                                                <button
-                                                    onClick={handleGuestCheckout}
-                                                    disabled={isGuestLoading}
-                                                    className="w-full bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all text-sm disabled:opacity-70 disabled:hover:scale-100 flex justify-center items-center"
-                                                >
-                                                    {isGuestLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Setting up guest session...</> : 'Continue as Guest'}
-                                                </button>
+                                            <div>
+                                                <label htmlFor="pickupNotes" className="block text-sm font-medium text-slate-600 mb-1">Pick-Up Notes (Optional)</label>
+                                                <textarea id="pickupNotes" value={deliveryInstructions} onChange={(e) => setDeliveryInstructions(e.target.value)} className={inputStyle} placeholder="e.g., I'll be coming at 2pm, any special requests" rows={2}></textarea>
                                             </div>
                                         </div>
-                                    )}
+                                    ) : (
+                                        /* ---- DELIVERY UI (existing) ---- */
+                                        <>
+                                            {isAddressesLoading ? (
+                                                <div className="flex justify-center items-center h-24"><Loader2 className="w-6 h-6 animate-spin text-purple-500" /></div>
+                                            ) : isAuthenticated ? (
+                                                <>
+                                                    {/* Guest Email Input */}
+                                                    {user?.is_anonymous && (
+                                                        <div className="mb-6 p-4 bg-pink-50 border border-pink-100 rounded-lg animate-fade-in">
+                                                            <h3 className="text-sm font-bold text-pink-800 mb-3">Guest Contact Info</h3>
+                                                            <div>
+                                                                <label htmlFor="guestEmail" className="block text-sm font-medium text-slate-600 mb-1">Email Address <span className="text-red-500">*</span></label>
+                                                                <input
+                                                                    id="guestEmail"
+                                                                    type="email"
+                                                                    value={guestEmail}
+                                                                    onChange={(e) => setGuestEmail(e.target.value)}
+                                                                    className={inputStyle}
+                                                                    placeholder="For order updates and receipt"
+                                                                    required
+                                                                />
+                                                                <p className="text-xs text-slate-500 mt-1">We&apos;ll send your receipt and order status here.</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
 
-                                    <div>
-                                        <label htmlFor="deliveryInstructions" className="block text-sm font-medium text-slate-600 mb-1">Delivery Instructions (Optional)</label>
-                                        <textarea id="deliveryInstructions" value={deliveryInstructions} onChange={(e) => setDeliveryInstructions(e.target.value)} className={inputStyle} placeholder="e.g., landmark, contact person" rows={2}></textarea>
-                                    </div>
+                                                    {/* Saved Addresses (Only for registered users) */}
+                                                    {!user?.is_anonymous && savedAddresses.length > 0 && !isAddingAddress && (
+                                                        <div className="space-y-2">
+                                                            <div>
+                                                                <label htmlFor="addressSelect" className="block text-sm font-medium text-slate-600 mb-1">Delivery Address</label>
+                                                                <select id="addressSelect" value={selectedAddressId} onChange={(e) => setSelectedAddressId(e.target.value)} className={inputStyle}>
+                                                                    <option value="" disabled>-- Select a saved address --</option>
+                                                                    {savedAddresses.map(addr => (
+                                                                        <option key={addr.address_id} value={addr.address_id}>
+                                                                            {addr.address_label ? `${addr.address_label} (${addr.street_address})` : addr.street_address}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                            {selectedAddress && (
+                                                                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm">
+                                                                    <p className="font-semibold text-slate-700">{selectedAddress.recipient_name}</p>
+                                                                    <p className="text-slate-500">{selectedAddress.recipient_phone}</p>
+                                                                    {selectedAddress.latitude && selectedAddress.longitude ? (
+                                                                        <a href={`https://www.google.com/maps?q=${selectedAddress.latitude},${selectedAddress.longitude}`} target="_blank" rel="noopener noreferrer" className="flex items-start gap-1.5 mt-1 text-pink-600 hover:text-pink-700 hover:underline">
+                                                                            <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                                                            <span>{selectedAddress.street_address}</span>
+                                                                        </a>
+                                                                    ) : (
+                                                                        <p className="text-slate-500 mt-1">{selectedAddress.street_address}</p>
+                                                                    )}
+                                                                    {selectedAddress.latitude && selectedAddress.longitude && (
+                                                                        <StaticMap latitude={selectedAddress.latitude} longitude={selectedAddress.longitude} />
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Guest Address Display */}
+                                                    {isAnonymous && guestAddress && !isAddingAddress && (
+                                                        <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm relative group">
+                                                            <div className="flex justify-between items-start mb-2">
+                                                                <div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <p className="font-semibold text-slate-700">{guestAddress.recipient_name}</p>
+                                                                        <span className="px-2 py-0.5 bg-slate-200 text-slate-600 text-[10px] font-bold uppercase rounded-full tracking-wider">Guest</span>
+                                                                    </div>
+                                                                    <p className="text-slate-500">{guestAddress.recipient_phone}</p>
+                                                                    {guestAddress.latitude && guestAddress.longitude ? (
+                                                                        <a href={`https://www.google.com/maps?q=${guestAddress.latitude},${guestAddress.longitude}`} target="_blank" rel="noopener noreferrer" className="flex items-start gap-1.5 mt-1 text-pink-600 hover:text-pink-700 hover:underline">
+                                                                            <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                                                            <span>{guestAddress.street_address}</span>
+                                                                        </a>
+                                                                    ) : (
+                                                                        <p className="text-slate-500 mt-1">{guestAddress.street_address}</p>
+                                                                    )}
+                                                                    {guestAddress.city && <p className="text-slate-500">{guestAddress.city}</p>}
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => setIsAddingAddress(true)}
+                                                                    className="text-pink-600 text-xs font-bold hover:underline uppercase tracking-wide"
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                            </div>
+                                                            {guestAddress.latitude && guestAddress.longitude && (
+                                                                <StaticMap latitude={guestAddress.latitude} longitude={guestAddress.longitude} />
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Address Form or Add Button */}
+                                                    {(isAddingAddress || (user?.is_anonymous && !guestAddress)) && user ? (
+                                                        <div className="mt-4">
+                                                            <AddressForm
+                                                                userId={user.id}
+                                                                onSuccess={isAnonymous ? handleGuestAddressSuccess : handleNewAddressSuccess}
+                                                                onCancel={() => !user.is_anonymous && setIsAddingAddress(false)}
+                                                                isGuest={isAnonymous}
+                                                                hideActions={true}
+                                                                onFormChange={handleFormChange}
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="mt-2">
+                                                            <button type="button" onClick={() => setIsAddingAddress(true)} className="w-full text-center text-sm font-semibold text-pink-600 hover:text-pink-700 py-2 rounded-lg hover:bg-pink-50 transition-colors">
+                                                                + Add a New Address
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 space-y-6">
+                                                    <div className="text-center space-y-3">
+                                                        <h3 className="font-semibold text-slate-800">Have an account?</h3>
+                                                        <p className="text-sm text-slate-600">Sign in to access your saved addresses and loyalty points.</p>
+                                                        <button
+                                                            onClick={() => router.push('/login')}
+                                                            className="w-full bg-white border border-slate-300 text-slate-700 font-semibold py-2.5 px-6 rounded-lg shadow-sm hover:bg-slate-50 hover:shadow transition-all text-sm"
+                                                        >
+                                                            Sign In / Create Account
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="relative flex items-center py-2">
+                                                        <div className="grow border-t border-slate-300"></div>
+                                                        <span className="shrink-0 mx-4 text-slate-400 text-xs font-medium uppercase tracking-wider">Or continue as guest</span>
+                                                        <div className="grow border-t border-slate-300"></div>
+                                                    </div>
+
+                                                    <div className="text-center space-y-3">
+                                                        <h3 className="font-semibold text-slate-800">New to Cake Genie?</h3>
+                                                        <p className="text-sm text-slate-600">You can checkout without creating an account.</p>
+                                                        <button
+                                                            onClick={handleGuestCheckout}
+                                                            disabled={isGuestLoading}
+                                                            className="w-full bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all text-sm disabled:opacity-70 disabled:hover:scale-100 flex justify-center items-center"
+                                                        >
+                                                            {isGuestLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Setting up guest session...</> : 'Continue as Guest'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div>
+                                                <label htmlFor="deliveryInstructions" className="block text-sm font-medium text-slate-600 mb-1">Delivery Instructions (Optional)</label>
+                                                <textarea id="deliveryInstructions" value={deliveryInstructions} onChange={(e) => setDeliveryInstructions(e.target.value)} className={inputStyle} placeholder="e.g., landmark, contact person" rows={2}></textarea>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
 
                                 <div className="pt-4 pb-4 border-t border-slate-200 space-y-4">
                                     {/* Discount Code Section */}
-                                    <div className="border-t border-gray-200 pt-4 mt-4">
+                                    <div>
                                         <h3 className="text-sm font-semibold text-gray-700 mb-3">
                                             Have a Discount Code?
                                         </h3>
@@ -1505,8 +1638,8 @@ function CartClient() {
                                         </div>
 
                                         <div className="flex justify-between text-sm text-gray-600">
-                                            <span>Delivery Fee:</span>
-                                            <span>₱{deliveryFee.toFixed(2)}</span>
+                                            <span>{fulfillmentType === 'pickup' ? 'Pick-Up Fee:' : 'Delivery Fee:'}</span>
+                                            <span>{fulfillmentType === 'pickup' ? 'Free' : `₱${deliveryFee.toFixed(2)}`}</span>
                                         </div>
 
                                         {appliedDiscount && (
@@ -1531,9 +1664,16 @@ function CartClient() {
                                         </div>
                                     </div>
 
-                                    <p className="text-xs text-center text-slate-500 pt-1">
-                                        For the safety of your cake, all deliveries are made via <strong>Lalamove Car</strong> to ensure it arrives in perfect condition.
-                                    </p>
+                                    {fulfillmentType === 'delivery' && (
+                                        <p className="text-xs text-center text-slate-500 pt-1">
+                                            For the safety of your cake, all deliveries are made via <strong>Lalamove Car</strong> to ensure it arrives in perfect condition.
+                                        </p>
+                                    )}
+                                    {fulfillmentType === 'pickup' && (
+                                        <p className="text-xs text-center text-slate-500 pt-1">
+                                            Pick-up is available at <strong>Cakes and Memories Bakeshop – Treehouse</strong>. Please come within the selected time slot.
+                                        </p>
+                                    )}
 
                                     {getMissingRequirements().length > 0 && (
                                         <div className="text-center p-2 mb-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium animate-fade-in">

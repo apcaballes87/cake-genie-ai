@@ -7,7 +7,8 @@ export interface PopularDesign {
     keywords: string;
     original_image_url: string;
     price: number;
-    alt_text: string;
+    alt_text?: string;
+    availability?: string;
 }
 
 interface PopularDesignsProps {
@@ -18,8 +19,8 @@ export const PopularDesigns = ({ designs }: PopularDesignsProps) => {
     if (!designs || designs.length === 0) return null;
 
     return (
-        <section className="py-8">
-            <div className="flex justify-between items-end mb-6">
+        <section className="py-4 md:py-6">
+            <div className="flex justify-between items-end mb-4 md:mb-6">
                 <div>
                     <h2 className="text-xl md:text-2xl font-bold text-gray-900">Popular Cake Designs</h2>
                     <p className="text-gray-500 text-sm md:text-base">Trending designs loved by our community</p>
@@ -27,45 +28,67 @@ export const PopularDesigns = ({ designs }: PopularDesignsProps) => {
                 <Link href="/customizing" className="text-purple-600 text-sm font-bold hover:underline hidden md:block">View All</Link>
             </div>
 
-            <div className="grid grid-cols-2 min-[490px]:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5 lg:gap-6">
+            <div className="columns-2 min-[490px]:columns-3 md:columns-3 lg:columns-4 gap-4 md:gap-5 lg:gap-6 space-y-4 md:space-y-5 lg:space-y-6">
                 {designs.map((design) => (
                     <Link
                         key={design.slug}
                         href={`/customizing/${design.slug}`}
-                        className="bg-white p-3 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-100 transition-all duration-300 group block relative"
+                        className="group relative cursor-pointer flex flex-col h-full break-inside-avoid"
                     >
-                        <div className="relative aspect-square mb-3 rounded-xl overflow-hidden bg-gray-100">
+                        <div className="relative mb-1.5 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
                             <LazyImage
                                 src={design.original_image_url}
                                 alt={design.alt_text || `${design.keywords} cake design`}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                fill
+                                width={0}
+                                height={0}
+                                sizes="(max-width: 490px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                                style={{ width: '100%', height: 'auto' }}
+                                className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
                             />
 
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
 
-                            {/* Heart Button - Visual only for now as it links to detail page */}
-                            <div className="absolute top-3 right-3 w-8 h-8 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-all z-10 bg-white/90 text-gray-600 hover:bg-red-50 hover:text-red-500">
+                            {/* Availability Badge */}
+                            {design.availability && (
+                                <div className="absolute top-2.5 left-2.5 z-10">
+                                    <span className={`backdrop-blur-sm text-[10px] md:text-xs font-extrabold px-2.5 py-1 rounded-full shadow-sm ${design.availability === 'rush'
+                                            ? 'bg-green-100/95 text-green-800'
+                                            : design.availability === 'same-day'
+                                                ? 'bg-blue-100/95 text-blue-800'
+                                                : 'bg-white/95 text-gray-800'
+                                        }`}>
+                                        {design.availability === 'same-day' ? 'Same Day' : design.availability === 'rush' ? 'Rush' : 'Pre-order'}
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Heart Button */}
+                            <div className="absolute top-2.5 right-2.5 w-8 h-8 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm z-10 bg-white/90 text-gray-400 hover:text-red-500 transition-colors">
                                 <Heart size={16} />
+                            </div>
+
+                            {/* Price and Rating Overlays */}
+                            <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-end z-10 pointer-events-none">
+                                <div className="bg-white/95 backdrop-blur-sm text-gray-900 font-extrabold text-[11px] md:text-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-auto">
+                                    ₱{design.price.toLocaleString()}
+                                </div>
+                                <div className="bg-white/95 backdrop-blur-sm flex items-center gap-1 font-bold text-gray-900 text-xs md:text-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-auto">
+                                    <Star size={12} className="text-orange-500" fill="currentColor" />
+                                    <span>4.9</span>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="px-1">
+                        <div className="px-0 pb-1 pt-0.5 flex flex-col flex-1">
                             <h3 className="font-bold text-gray-900 text-sm md:text-base leading-tight mb-1 line-clamp-2 group-hover:text-purple-600 transition-colors">
                                 {(() => {
                                     const title = design.keywords.split(',')[0].trim();
                                     return title.toLowerCase().endsWith('cake') ? title : `${title} Cake`;
                                 })()}
                             </h3>
-                            <p className="text-xs text-gray-500 flex items-center gap-1">
-                                <Cake size={12} /> Custom Design
+                            <p className="text-xs text-gray-500 mb-1">
+                                Custom Design
                             </p>
-                            <div className="flex justify-between items-end border-t border-gray-50 pt-3 mt-3">
-                                <span className="font-black text-gray-900 text-base md:text-lg">₱{design.price.toLocaleString()}</span>
-                                <div className="flex items-center gap-1 text-xs font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-lg">
-                                    <Star size={12} fill="currentColor" /> 5.0
-                                </div>
-                            </div>
                         </div>
                     </Link>
                 ))}

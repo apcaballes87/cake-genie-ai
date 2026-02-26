@@ -57,7 +57,7 @@ export const RecommendedProductsGrid = ({ initialProducts }: RecommendedProducts
     return (
         <>
             {/* Section Header */}
-            <div className="flex justify-between items-end mb-6">
+            <div className="flex justify-between items-end mb-4 md:mb-6">
                 <div>
                     <h2 className="text-xl md:text-2xl font-bold text-gray-900">Recent searches by users</h2>
                     <p className="text-gray-500 text-sm md:text-base">Get the price in 15 seconds!</p>
@@ -66,7 +66,7 @@ export const RecommendedProductsGrid = ({ initialProducts }: RecommendedProducts
             </div>
 
             {/* Product Grid */}
-            <div className="grid grid-cols-2 min-[490px]:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5 lg:gap-6 mb-12">
+            <div className="columns-2 min-[490px]:columns-3 md:columns-3 lg:columns-4 gap-4 md:gap-5 lg:gap-6 space-y-4 md:space-y-5 lg:space-y-6 mb-8 md:mb-10">
                 {products.length > 0 ? (
                     <>
                         {products.map((item, index) => (
