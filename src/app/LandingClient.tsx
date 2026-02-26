@@ -42,7 +42,10 @@ import {
     Mail,
     Phone,
     Twitter,
-    Upload
+    Upload,
+    UploadCloud,
+    Calculator,
+    Menu
 } from 'lucide-react';
 
 const quickLinks = [
@@ -95,9 +98,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
     const [selectedCategory, setSelectedCategory] = useState('All');
-    const [imageIndex, setImageIndex] = useState(0);
+    const [rushImageIndexes, setRushImageIndexes] = useState<number[]>(quickLinks.map(() => 0));
     const [heroImageIndex, setHeroImageIndex] = useState(0);
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
 
     // Context hooks
@@ -202,16 +206,23 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            setImageIndex(prevIndex => prevIndex + 1);
-        }, 2000);
+        const intervals = quickLinks.map((link, cardIndex) => {
+            // Stagger each card's interval slightly so they don't all change at once
+            return setInterval(() => {
+                setRushImageIndexes(prev => {
+                    const next = [...prev];
+                    next[cardIndex] = (next[cardIndex] + 1) % link.imageUrls.length;
+                    return next;
+                });
+            }, 4000 + cardIndex * 600);
+        });
 
         const heroInterval = setInterval(() => {
             setHeroImageIndex(prevIndex => (prevIndex + 1) % heroImages.length);
         }, 1000);
 
         return () => {
-            clearInterval(interval);
+            intervals.forEach(clearInterval);
             clearInterval(heroInterval);
         };
     }, []);
@@ -278,62 +289,119 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
             {/* --- ANIMATED HEADER --- */}
             <nav className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm' : 'bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
-                    <div className="w-full flex items-center justify-between gap-2 md:gap-4 mb-4 pt-6 relative">
+                    {/* Mobile Header — both layouts always in the DOM, cross-fading via opacity */}
+                    <div className="md:hidden relative w-full mb-4" style={{ height: '88px' /* pt-6 (24px) + logo h-16 (64px) */ }}>
 
-                        {/* Logo - fades out on scroll on mobile, always visible on desktop */}
-                        <Link
-                            href="/"
-                            className={`absolute left-0 transition-all duration-500 ease-out ${isFullyScrolled ? 'pointer-events-none' : 'pointer-events-auto'} md:static md:pointer-events-auto md:opacity-100! md:transform-none! md:mr-8`}
-                            style={{
-                                opacity: logoOpacity,
-                                transform: `scale(${0.9 + logoOpacity * 0.1})`,
-                                transformOrigin: 'left center'
-                            }}
-                        >
-                            <img
-                                src={COMMON_ASSETS.logo}
-                                alt="Genie Logo"
-                                width={180}
-                                height={64}
-                                className="h-16 md:h-12 w-auto object-contain"
-                            />
-                        </Link>
-
-                        {/* Search Icon/Bar - expands on scroll on mobile, always visible on desktop */}
+                        {/* Layer 1: Not-scrolled — [menu | logo | icons], fades OUT on scroll */}
                         <div
-                            className="flex-1 transition-all duration-500 ease-out md:max-w-2xl! md:opacity-100! md:mx-auto overflow-visible py-1"
-                            style={{
-                                maxWidth: isFullyScrolled ? '100%' : '0px',
-                                opacity: searchBarOpacity
-                            }}
+                            className="absolute inset-0 grid grid-cols-[1fr_auto_1fr] items-center pt-6 transition-opacity duration-300"
+                            style={{ opacity: logoOpacity, pointerEvents: isFullyScrolled ? 'none' : 'auto' }}
                         >
-                            <SearchAutocomplete
-                                onSearch={handleSearch}
-                                onUploadClick={() => setIsUploaderOpen(true)}
-                                placeholder="Search for custom cakes..."
-                                value={searchQuery}
-                                onChange={setSearchQuery}
-                                className="w-full"
-                                inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
-                            />
-                        </div>
-
-                        {/* Right side icons - always visible */}
-                        <div className="flex items-center gap-2 shrink-0 ml-auto">
-                            {/* Search Icon - visible when not scrolled (Mobile Only) */}
-                            {!isFullyScrolled && (
+                            <div className="flex items-center">
                                 <button
-                                    onClick={() => {
-                                        window.scrollTo({ top: scrollThreshold + 10, behavior: 'smooth' });
-                                    }}
-                                    className="p-2 text-slate-600 hover:text-purple-700 transition-all shrink-0 md:hidden"
+                                    onClick={() => setIsMenuOpen(true)}
+                                    className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                    aria-label="Open menu"
+                                >
+                                    <Menu size={24} />
+                                </button>
+                            </div>
+
+                            <Link href="/">
+                                <img
+                                    src={COMMON_ASSETS.logo}
+                                    alt="Genie Logo"
+                                    width={180}
+                                    height={64}
+                                    className="h-16 w-auto object-contain"
+                                />
+                            </Link>
+
+                            <div className="flex items-center gap-1 justify-end">
+                                <button
+                                    onClick={() => window.scrollTo({ top: scrollThreshold + 10, behavior: 'smooth' })}
+                                    className="p-2 text-slate-600 hover:text-purple-700 transition-all shrink-0"
                                     aria-label="Search"
                                 >
                                     <Search size={24} />
                                 </button>
-                            )}
+                                <button
+                                    onClick={() => router.push('/cart')}
+                                    className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                    aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
+                                >
+                                    <ShoppingBag size={24} />
+                                    {isMounted && itemCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
+                                            {itemCount}
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
 
-                            {/* Profile Icon (Desktop Only - hidden on mobile since bottom nav has profile) */}
+                        {/* Layer 2: Scrolled — [search bar | cart], fades IN on scroll */}
+                        <div
+                            className="absolute inset-0 flex items-center gap-2 pt-6 transition-opacity duration-300"
+                            style={{ opacity: searchBarOpacity, pointerEvents: isFullyScrolled ? 'auto' : 'none' }}
+                        >
+                            <div className="flex-1 min-w-0">
+                                <SearchAutocomplete
+                                    onSearch={handleSearch}
+                                    onUploadClick={() => setIsUploaderOpen(true)}
+                                    placeholder="Search for custom cakes..."
+                                    value={searchQuery}
+                                    onChange={setSearchQuery}
+                                    className="w-full"
+                                    inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                                />
+                            </div>
+                            <button
+                                onClick={() => router.push('/cart')}
+                                className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
+                            >
+                                <ShoppingBag size={24} />
+                                {isMounted && itemCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
+                                        {itemCount}
+                                    </span>
+                                )}
+                            </button>
+                        </div>
+
+                    </div>
+
+                    {/* Desktop Header: Logo left, Search center, Icons right */}
+                    <div className="hidden md:flex w-full items-center gap-4 mb-4 pt-6">
+                        {/* Left: Logo */}
+                        <Link href="/" className="shrink-0">
+                            <img
+                                src={COMMON_ASSETS.logo}
+                                alt="Genie Logo"
+                                width={180}
+                                height={48}
+                                className="h-12 w-auto object-contain"
+                            />
+                        </Link>
+
+                        {/* Center: Search Bar */}
+                        <div className="flex-1 flex justify-center">
+                            <div className="w-full max-w-md lg:max-w-lg">
+                                <SearchAutocomplete
+                                    onSearch={handleSearch}
+                                    onUploadClick={() => setIsUploaderOpen(true)}
+                                    placeholder="Search for custom cakes..."
+                                    value={searchQuery}
+                                    onChange={setSearchQuery}
+                                    className="w-full"
+                                    inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Right: Account + Cart */}
+                        <div className="flex items-center gap-1 shrink-0">
                             <button
                                 onClick={() => {
                                     if (isAuthenticated && !user?.is_anonymous) {
@@ -342,13 +410,11 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         router.push('/login');
                                     }
                                 }}
-                                className="hidden md:block p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                 aria-label="Account"
                             >
                                 <User size={24} />
                             </button>
-
-                            {/* Cart Icon */}
                             <button
                                 onClick={() => router.push('/cart')}
                                 className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
@@ -367,55 +433,14 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
             </nav>
 
             {/* --- MAIN CONTENT AREA --- */}
-            <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+            <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4">
                 <h1 className="sr-only">Genie.ph | Best Custom Cakes in Cebu & Online Cake Delivery</h1>
 
 
 
 
-                <div className="flex flex-col md:flex-row gap-8">
+                <div className="flex flex-col md:flex-row gap-4 md:gap-6">
 
-                    {/* Sidebar (Desktop Only) */}
-                    <aside className="hidden md:block w-64 shrink-0">
-                        <div className="sticky top-24 space-y-8">
-                            {/* Categories Sidebar */}
-                            <div>
-                                <h3 className="font-bold text-gray-900 mb-4 text-lg">Shop by Occasion</h3>
-                                <div className="space-y-1">
-                                    {categoriesList.map((cat) => (
-                                        <Link
-                                            key={cat.id}
-                                            href={`/search?q=${encodeURIComponent(cat.name)}`}
-                                            className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all block ${selectedCategory === cat.id
-                                                ? 'bg-purple-50 text-purple-700 font-bold shadow-sm'
-                                                : 'text-gray-500 hover:bg-purple-50 hover:text-purple-700'
-                                                }`}
-                                        >
-                                            <div className="flex justify-between items-center">
-                                                {cat.name}
-                                                {selectedCategory === cat.id && <div className="w-1.5 h-1.5 rounded-full bg-purple-600"></div>}
-                                            </div>
-                                        </Link>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Desktop Promo Widget */}
-                            <div className={`${brandGradient} rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group`}>
-                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
-                                    <Camera size={80} fill="currentColor" />
-                                </div>
-                                <h3 className="font-bold text-lg mb-2 relative z-10">Have a cake photo?</h3>
-                                <p className="text-sm opacity-90 mb-4 relative z-10 leading-relaxed">Upload any screenshot and get an instant price quote in seconds.</p>
-                                <button
-                                    onClick={() => setIsUploaderOpen(true)}
-                                    className="w-full bg-white text-purple-600 py-2.5 rounded-xl text-sm font-bold hover:bg-purple-50 transition shadow-sm relative z-10"
-                                >
-                                    Get Price Now
-                                </button>
-                            </div>
-                        </div>
-                    </aside>
 
                     {/* Main Feed */}
                     <div className="flex-1 min-w-0"> {/* min-w-0 prevents flex child from overflowing */}
@@ -423,9 +448,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
 
                         {/* Hero Section */}
-                        <div className="mb-4 space-y-4">
+                        <div className="mb-2 md:mb-4 space-y-4">
                             {/* Mobile Hero */}
-                            <div className="sm:hidden flex flex-col gap-5 text-center px-4 pt-2 pb-6">
+                            <div className="sm:hidden flex flex-col gap-3 text-center pt-2 pb-2">
                                 {/* Rotating Image Banner with Text Overlay */}
                                 <div className="relative w-full rounded-2xl overflow-hidden shadow-sm aspect-[3/2] bg-white flex flex-col justify-center">
                                     {heroImages.map((src, index) => (
@@ -444,17 +469,17 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     ))}
 
                                     {/* Responsive Text Overlay */}
-                                    <div className="absolute inset-y-0 left-0 w-3/4 max-w-[280px] bg-gradient-to-r from-white via-white/80 to-transparent z-20 pointer-events-none" />
+                                    <div className="absolute inset-y-0 left-0 w-3/4 max-w-[280px] bg-linear-to-r from-white via-white/80 to-transparent z-20 pointer-events-none" />
 
-                                    <div className="relative z-30 px-5 text-left w-[85%]">
-                                        <h1 className="text-[1.6rem] xs:text-[1.8rem] sm:text-[2rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight drop-shadow-sm">
-                                            Designed by You,<br />Made by Magic.
+                                    <div className="relative z-30 px-5 text-left w-full sm:w-[85%]">
+                                        <h1 className="text-[2.1rem] xs:text-[2.35rem] sm:text-[2.6rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight drop-shadow-sm">
+                                            Made by Magic,<br />Designed by You.
                                         </h1>
                                     </div>
                                 </div>
 
                                 {/* Buttons Below */}
-                                <div className="flex flex-row items-center gap-2 xs:gap-3 w-full max-w-[360px] mx-auto mt-2">
+                                <div className="flex flex-row items-center gap-2 xs:gap-3 w-full max-w-[360px] mx-auto">
                                     <button
                                         className="flex-1 flex items-center justify-center gap-1.5 w-full bg-[#9b80e3] hover:bg-[#8669cc] text-white py-3.5 px-2 rounded-[0.875rem] font-semibold transition-all shadow-md active:scale-[0.98] text-[14px] xs:text-[15px] whitespace-nowrap"
                                         onClick={() => setIsUploaderOpen(true)}
@@ -463,7 +488,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         <span>Upload<span className="hidden min-[350px]:inline"> a Design</span></span>
                                     </button>
                                     <Link
-                                        href="/search"
+                                        href="/collections"
                                         className="flex-1 flex items-center justify-center gap-1.5 w-full bg-white hover:bg-purple-50 text-[#9b80e3] border border-[#d8cbf9] py-3.5 px-2 rounded-[0.875rem] font-semibold transition-all active:scale-[0.98] text-[14px] xs:text-[15px] whitespace-nowrap"
                                     >
                                         <Search size={18} className="shrink-0" />
@@ -479,7 +504,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-transparent pointer-events-none -mr-32" />
                                     <div className="relative z-10">
                                         <h1 className="text-[2.5rem] lg:text-[3.5rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight mb-8 drop-shadow-sm">
-                                            Designed by You,<br />Made by Magic.
+                                            Made by Magic,<br />Designed by You.
                                         </h1>
                                         <div className="flex flex-row gap-3 lg:gap-4 items-center flex-nowrap shrink-0">
                                             <button
@@ -490,7 +515,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                                 Upload a Design
                                             </button>
                                             <Link
-                                                href="/search"
+                                                href="/collections"
                                                 className="flex items-center justify-center bg-[#fcfcff] hover:bg-purple-50 text-[#9b80e3] border border-[#d8cbf9] px-5 py-3 lg:px-7 lg:py-3.5 rounded-[0.875rem] font-semibold transition-all active:scale-[0.98] text-sm lg:text-base whitespace-nowrap shrink-0"
                                             >
                                                 Browse Designs
@@ -524,8 +549,64 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             </div>
                         </div>
 
+                        {/* --- HOW IT WORKS SECTION --- */}
+                        <div className="mt-2 md:mt-8 mb-3 w-screen relative left-[50%] right-[50%] -ml-[50vw] -mr-[50vw]">
+                            <div className="absolute inset-0 z-0">
+                                <LazyImage
+                                    src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/how-it-works-bg.webp"
+                                    alt="How it Works Background"
+                                    className="w-full h-full object-cover opacity-90"
+                                    fill
+                                    priority
+                                />
+                                <div className="absolute inset-0 bg-white/20"></div>
+                            </div>
+
+                            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-4 md:pt-6 md:pb-[42px]">
+                                <h2 className="text-[24px] md:text-3xl font-bold text-center text-purple-950 mb-3 drop-shadow-sm">How it Works</h2>
+                                <div className="flex gap-2 md:grid md:grid-cols-4 md:gap-6 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 pb-1 md:pb-0">
+                                    {/* Card 1 */}
+                                    <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-[0.75rem] md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
+                                        <div className="mb-2 md:mb-4 text-purple-800">
+                                            <UploadCloud className="w-6 h-6 sm:w-8 sm:h-8 md:w-11 md:h-11" strokeWidth={1.5} />
+                                        </div>
+                                        <h3 className="text-[10px] sm:text-[13px] leading-[1.2] md:text-xl font-bold text-purple-950 mb-1 md:mb-2">1. Upload<br className="md:hidden" /> or Browse</h3>
+                                        <p className="text-purple-800 text-[8px] sm:text-[11px] leading-tight md:text-base">Any Cake Design<br className="md:hidden" /></p>
+                                    </div>
+
+                                    {/* Card 2 */}
+                                    <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-[0.75rem] md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
+                                        <div className="mb-2 md:mb-4 text-purple-800 flex items-center justify-center relative w-[28px] h-[24px] sm:w-[40px] sm:h-[36px] md:w-[56px] md:h-[46px]">
+                                            <Tag className="absolute left-0 top-0 opacity-80 w-3.5 h-3.5 sm:w-5 sm:h-5 md:w-8 md:h-8" strokeWidth={1.5} />
+                                            <Calculator className="absolute right-0 bottom-0 bg-purple-50/60 rounded rotate-12 w-5 h-5 sm:w-7 sm:h-7 md:w-9 md:h-9 shadow-sm" strokeWidth={1.5} />
+                                        </div>
+                                        <h3 className="text-[10px] sm:text-[13px] leading-[1.2] md:text-xl font-bold text-purple-950 mb-1 md:mb-2">2. Get Instant<br className="md:hidden" /> Quote</h3>
+                                        <p className="text-purple-800 text-[8px] sm:text-[11px] leading-tight md:text-base">Prices in seconds<br className="md:hidden" /></p>
+                                    </div>
+
+                                    {/* Card 3 - NEW */}
+                                    <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-[0.75rem] md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
+                                        <div className="mb-2 md:mb-4 text-purple-800">
+                                            <Cake className="w-6 h-6 sm:w-8 sm:h-8 md:w-11 md:h-11" strokeWidth={1.5} />
+                                        </div>
+                                        <h3 className="text-[10px] sm:text-[13px] leading-[1.2] md:text-xl font-bold text-purple-950 mb-1 md:mb-2">3. Customize<br className="md:hidden" /> Your Cake</h3>
+                                        <p className="text-purple-800 text-[8px] sm:text-[11px] leading-tight md:text-base">Size, color &amp; toppers<br className="md:hidden" /></p>
+                                    </div>
+
+                                    {/* Card 4 */}
+                                    <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-[0.75rem] md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
+                                        <div className="mb-2 md:mb-4 text-purple-800">
+                                            <ShoppingBag className="w-6 h-6 sm:w-8 sm:h-8 md:w-11 md:h-11" strokeWidth={1.5} />
+                                        </div>
+                                        <h3 className="text-[10px] sm:text-[13px] leading-[1.2] md:text-xl font-bold text-purple-950 mb-1 md:mb-2">4. Add to Cart<br className="md:hidden" /></h3>
+                                        <p className="text-purple-800 text-[8px] sm:text-[11px] leading-tight md:text-base">Convenient Payment Options<br className="md:hidden" /></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Mobile Categories (Horizontal Scroll) - Placed above Available Cakes */}
-                        <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 mb-3 md:hidden">Shop by Occasion</h2>
+                        <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 mt-[6px] mb-3 md:hidden">Shop by Occasion</h2>
                         <div className="md:hidden flex gap-2 mb-4 overflow-x-auto scrollbar-hide -mx-4 px-4">
                             {categoriesList.map((cat) => (
                                 <Link
@@ -543,25 +624,33 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                         {/* --- CAKES AVAILABLE TODAY --- */}
                         <div className="mb-4">
-                            <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 mb-3">Shop Cakes Available Today</h2>
+                            <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 mb-3">Shop Cake Designs Available for Rush Orders</h2>
                             <div className="flex overflow-x-auto gap-3 pb-4 md:grid md:grid-cols-4 md:gap-6 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
-                                {quickLinks.map((link) => {
-                                    const currentImageUrl = link.imageUrls[imageIndex % link.imageUrls.length];
+                                {quickLinks.map((link, cardIndex) => {
+                                    const activeIndex = rushImageIndexes[cardIndex] ?? 0;
                                     return (
                                         <Link
                                             key={link.name}
                                             href={`/search?q=${encodeURIComponent(link.searchTerm)}`}
                                             className="group relative overflow-hidden rounded-2xl aspect-square shadow-sm hover:shadow-lg transition-all duration-300 min-w-[30%] md:min-w-0 block"
                                         >
-                                            <LazyImage
-                                                src={currentImageUrl}
-                                                alt={link.name}
-                                                title={link.name}
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                priority={true}
-                                                fill
-                                            />
-                                            <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent flex items-end p-3 md:p-4">
+                                            {link.imageUrls.map((imgUrl, imgIndex) => (
+                                                <div
+                                                    key={imgUrl}
+                                                    className={`absolute inset-0 transition-opacity duration-1500 ease-in-out ${imgIndex === activeIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                                                        }`}
+                                                >
+                                                    <LazyImage
+                                                        src={imgUrl}
+                                                        alt={link.name}
+                                                        title={link.name}
+                                                        className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-500`}
+                                                        priority={imgIndex === 0}
+                                                        fill
+                                                    />
+                                                </div>
+                                            ))}
+                                            <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent flex items-end p-3 md:p-4 z-20">
                                                 <span className="text-white font-bold text-xs md:text-base leading-tight">{link.name}</span>
                                             </div>
                                         </Link>
@@ -579,7 +668,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         {children}
 
                         {/* --- BLOG SECTION: LATEST TRENDS --- */}
-                        <div className="mt-5">
+                        <div className="mt-6 md:mt-8">
                             <div className="flex items-center justify-between mb-3">
                                 <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 leading-tight">What are the latest custom cake trends in Cebu?</h2>
                                 <Link href="/blog" className="group flex items-center gap-1 md:gap-2 text-purple-600 font-semibold hover:text-purple-700 transition-colors text-[13px] md:text-base shrink-0">
@@ -587,25 +676,43 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 </Link>
                             </div>
                             <div className="space-y-4">
-                                {getAllBlogPosts().map((post) => (
-                                    <Link
-                                        key={post.slug}
-                                        href={`/blog/${post.slug}`}
-                                        className="block bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-purple-100 hover:shadow-md hover:border-purple-200 transition-all group"
-                                    >
-                                        <h3 className="text-base md:text-lg font-bold text-gray-900 mb-2 group-hover:text-purple-700 transition-colors leading-snug">
-                                            {post.title}
-                                        </h3>
-                                        <p className="text-gray-500 text-sm leading-relaxed line-clamp-2">
-                                            {post.excerpt}
-                                        </p>
-                                    </Link>
-                                ))}
+                                {[...getAllBlogPosts()]
+                                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                    .slice(0, 3)
+                                    .map((post) => {
+                                        const imageUrl = post.image || post.content.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1] || post.content.match(/!\[.*?\]\((.*?)\)/i)?.[1];
+                                        return (
+                                            <Link
+                                                key={post.slug}
+                                                href={`/blog/${post.slug}`}
+                                                className="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-purple-100 hover:shadow-md hover:border-purple-200 transition-all group flex gap-4 items-center justify-between"
+                                            >
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="text-base md:text-lg font-bold text-gray-900 mb-2 group-hover:text-purple-700 transition-colors leading-snug">
+                                                        {post.title}
+                                                    </h3>
+                                                    <p className="text-gray-500 text-sm leading-relaxed line-clamp-2">
+                                                        {post.excerpt}
+                                                    </p>
+                                                </div>
+                                                {imageUrl && (
+                                                    <div className="shrink-0 w-20 h-20 md:w-28 md:h-28 rounded-xl overflow-hidden shadow-sm relative">
+                                                        <LazyImage
+                                                            src={imageUrl}
+                                                            alt={post.title}
+                                                            fill
+                                                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </Link>
+                                        );
+                                    })}
                             </div>
                         </div>
 
                         {/* --- POPULAR DESIGNS SECTION --- */}
-                        <div className="mt-8">
+                        <div className="mt-6 md:mt-8">
                             <PopularDesigns designs={popularDesigns} />
                         </div>
                     </div>
@@ -668,6 +775,71 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                     setIsUploaderOpen(false);
                 }}
             />
+
+            {/* --- MOBILE SIDE MENU DRAWER --- */}
+            {/* Backdrop */}
+            <div
+                className={`fixed inset-0 z-50 transition-opacity duration-300 md:hidden ${isMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                onClick={() => setIsMenuOpen(false)}
+                aria-hidden="true"
+                style={{ background: 'rgba(0,0,0,0.45)' }}
+            />
+
+            {/* Drawer Panel */}
+            <aside
+                className={`fixed top-0 left-0 z-50 h-full w-72 bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-out md:hidden ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                aria-label="Side navigation"
+            >
+                {/* Drawer Header */}
+                <div className="flex items-center justify-between px-5 pt-6 pb-4 border-b border-purple-50">
+                    <img
+                        src={COMMON_ASSETS.logo}
+                        alt="Genie Logo"
+                        width={140}
+                        height={50}
+                        className="h-12 w-auto object-contain"
+                    />
+                    <button
+                        onClick={() => setIsMenuOpen(false)}
+                        className="p-2 rounded-full text-slate-500 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+                        aria-label="Close menu"
+                    >
+                        {/* X icon */}
+                        <svg xmlns="http://www.w3.org/2000/svg" width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                </div>
+
+                {/* Nav Links */}
+                <nav className="flex-1 overflow-y-auto py-4 px-3">
+                    {[
+                        { label: 'Shop by Occasion', href: '/search?q=occasion', emoji: '🎂' },
+                        { label: 'How to Order', href: '/how-to-order', emoji: '📋' },
+                        { label: 'Payment Options', href: '/payment-options', emoji: '💳' },
+                        { label: 'Delivery Rates', href: '/delivery-rates', emoji: '🚚' },
+                        { label: 'Partner Bakeshops', href: '/merchants', emoji: '🏪' },
+                        { label: 'About Us', href: '/about', emoji: 'ℹ️' },
+                        { label: 'Contact', href: '/contact', emoji: '📞' },
+                    ].map((item) => (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setIsMenuOpen(false)}
+                            className="flex items-center gap-3.5 px-3 py-3.5 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors font-medium text-[15px] group"
+                        >
+                            <span className="text-xl w-7 text-center leading-none">{item.emoji}</span>
+                            <span className="group-hover:translate-x-0.5 transition-transform duration-150">{item.label}</span>
+                        </Link>
+                    ))}
+                </nav>
+
+                {/* Drawer Footer */}
+                <div className="px-5 py-5 border-t border-purple-50">
+                    <p className="text-xs text-gray-400 text-center">© {new Date().getFullYear()} Genie.ph — Your Cake Wish, Granted.</p>
+                </div>
+            </aside>
         </div >
     );
 };

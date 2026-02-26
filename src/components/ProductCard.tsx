@@ -162,46 +162,56 @@ export const ProductCard = ({
     // Core Card Content inside the clickable area
     const CardContent = (
         <>
-            <div className="relative aspect-square mb-3 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+            <div className="relative mb-1.5 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
                 <LazyImage
                     src={original_image_url}
                     alt={title}
                     title={title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    width={0}
+                    height={0}
+                    style={{ width: '100%', height: 'auto' }}
+                    className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-500"
                     priority={priority}
-                    fill
                 />
 
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
 
-                {/* Availability Badge */}
-                <span className={`absolute bottom-3 left-3 backdrop-blur-md text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold shadow-sm z-10 flex items-center gap-1 ${availConfig.className}`}>
-                    {availConfig.icon} {availConfig.label}
-                </span>
-            </div>
-
-            <div className="px-1 flex flex-col grow justify-between">
-                <div>
-                    <h3 className="font-bold text-gray-900 text-sm md:text-base leading-tight mb-1 line-clamp-2 group-hover:text-purple-600 transition-colors">
-                        {title}
-                    </h3>
-                    <p className="text-xs text-gray-500 flex items-center gap-1 mb-0">
-                        <Cake size={12} /> {analysis_json?.cakeType || 'Custom Design'}
-                    </p>
-                </div>
-                <div className="flex justify-between items-end border-t border-gray-50 pt-2 mt-auto">
-                    <span className={`font-black text-gray-900 ${price ? 'text-base md:text-lg' : 'text-[10px] leading-tight uppercase'}`}>
-                        {price ? `₱${price.toLocaleString()}` : 'Price on Request'}
+                {/* Availability Badge at Top Left */}
+                <div className="absolute top-2.5 left-2.5 z-10">
+                    <span className={`backdrop-blur-sm text-[10px] md:text-xs font-extrabold px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap ${avail === 'rush'
+                            ? 'bg-green-100/95 text-green-800'
+                            : avail === 'same-day'
+                                ? 'bg-blue-100/95 text-blue-800'
+                                : 'bg-white/95 text-gray-800'
+                        }`}>
+                        {avail === 'same-day' ? 'Same Day' : avail === 'rush' ? 'Rush' : 'Pre-order'}
                     </span>
-                    <div className="flex items-center gap-1 text-xs font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-lg">
-                        <Star size={12} fill="currentColor" /> 5.0
+                </div>
+
+                {/* Price and Rating Overlays at Bottom */}
+                <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-end z-10 pointer-events-none">
+                    <div className="bg-white/95 backdrop-blur-sm text-gray-900 font-extrabold text-[11px] md:text-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-auto">
+                        {price ? `₱${price.toLocaleString()}` : 'Req. Price'}
+                    </div>
+                    <div className="bg-white/95 backdrop-blur-sm flex items-center gap-1 font-bold text-gray-900 text-xs md:text-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-auto">
+                        <Star size={12} className="text-orange-500" fill="currentColor" />
+                        <span>4.9</span>
                     </div>
                 </div>
+            </div>
+
+            <div className="px-1 pb-1 pt-0.5 flex flex-col flex-1">
+                <h3 className="font-bold text-gray-900 text-sm md:text-base leading-tight mb-1 line-clamp-2 group-hover:text-purple-600 transition-colors">
+                    {title}
+                </h3>
+                <p className="text-xs text-gray-500 mb-1">
+                    {analysis_json?.cakeType || 'Custom Design'}
+                </p>
             </div>
         </>
     );
 
-    const containerClasses = "bg-white p-3 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-pink-300 border border-gray-100 transition-all duration-300 group h-full flex flex-col relative";
+    const containerClasses = "group cursor-pointer flex flex-col h-full relative break-inside-avoid";
 
     return (
         <div className={containerClasses}>
@@ -218,9 +228,9 @@ export const ProductCard = ({
             {/* Absolute positioning of the save button outside of the Link/div to keep HTML valid */}
             <button
                 onClick={handleSaveClick}
-                className={`save-heart-button absolute top-6 right-6 w-8 h-8 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-all z-20 ${isDesignSaved(p_hash)
+                className={`save-heart-button absolute top-2.5 right-2.5 w-8 h-8 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm z-20 transition-colors ${isDesignSaved(p_hash)
                     ? 'bg-red-500 text-white'
-                    : 'bg-white/90 text-gray-600 hover:bg-red-50 hover:text-red-500'
+                    : 'bg-white/90 text-gray-400 hover:text-red-500'
                     }`}
                 aria-label={isDesignSaved(p_hash) ? 'Remove from saved' : 'Save design'}
                 tabIndex={0}

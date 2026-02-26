@@ -3450,35 +3450,32 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             {displayedRelatedDesigns && displayedRelatedDesigns.length > 0 && (
                 <div className="w-full pb-0 pt-0 mb-0">
                     <h2 className="text-lg font-semibold text-slate-800 mb-4">What other designs are trending in Cebu?</h2>
-                    <div className="flex flex-wrap justify-center gap-3">
+                    <div className="columns-2 sm:columns-3 lg:columns-6 gap-3 space-y-3">
                         {displayedRelatedDesigns.map((related, i) => (
                             <Link
                                 key={`${related.slug}-${i}`}
                                 href={`/customizing/${related.slug}`}
-                                className="w-[calc(50%-6px)] sm:w-[calc(33.333%-8px)] lg:w-[calc(16.667%-10px)] bg-white p-3 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-100 transition-all duration-300 group cursor-pointer h-full flex flex-col"
+                                className="group cursor-pointer flex flex-col h-full relative break-inside-avoid"
                                 aria-label={`View ${related.keywords || 'custom'} cake design`}
                                 tabIndex={0}
                             >
-                                <div className="relative aspect-square mb-3 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                                <div className="relative mb-1.5 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
                                     {related.original_image_url && (
                                         <LazyImage
                                             src={related.original_image_url}
                                             alt={related.alt_text || `${related.keywords || 'Custom'} cake design`}
-                                            fill
+                                            width={0}
+                                            height={0}
+                                            style={{ width: '100%', height: 'auto' }}
+                                            className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
                                             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-                                            imageClassName="object-cover group-hover:scale-110 transition-transform duration-500"
                                             unoptimized
                                         />
                                     )}
                                     {/* Overlay Gradient on Hover */}
                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
 
-                                    {/* Heart Button (decorative) */}
-                                    <div className="absolute top-3 right-3 w-8 h-8 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm bg-white/90 text-gray-600 z-10">
-                                        <Heart size={16} />
-                                    </div>
-
-                                    {/* Availability Badge */}
+                                    {/* Availability Badge at Top Left */}
                                     {(() => {
                                         const avail = related.availability || 'normal';
                                         const config = avail === 'rush'
@@ -3487,28 +3484,38 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                 ? { label: 'Same Day', icon: <Clock size={10} />, className: 'bg-blue-500/90 text-white' }
                                                 : { label: 'Pre-order', icon: <CalendarDays size={10} />, className: 'bg-purple-500/90 text-white' };
                                         return (
-                                            <span className={`absolute bottom-3 left-3 backdrop-blur-md text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold shadow-sm z-10 flex items-center gap-1 ${config.className}`}>
-                                                {config.icon} {config.label}
-                                            </span>
+                                            <div className="absolute top-2.5 left-2.5 z-10">
+                                                <span className={`backdrop-blur-md text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold shadow-sm flex items-center gap-1 ${config.className}`}>
+                                                    {config.icon} {config.label}
+                                                </span>
+                                            </div>
                                         );
                                     })()}
+
+                                    {/* Heart Button at Top Right */}
+                                    <div className="absolute top-2.5 right-2.5 w-8 h-8 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm bg-white/90 text-gray-400 hover:text-red-500 z-10 transition-colors">
+                                        <Heart size={16} />
+                                    </div>
+
+                                    {/* Price and Rating Overlays at Bottom */}
+                                    <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-end z-10 pointer-events-none">
+                                        <div className="bg-white/95 backdrop-blur-sm text-gray-900 font-extrabold text-[11px] md:text-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-auto">
+                                            ₱{related.price ? Math.round(related.price).toLocaleString() : '999'}
+                                        </div>
+                                        <div className="bg-white/95 backdrop-blur-sm flex items-center gap-1 font-bold text-gray-900 text-xs md:text-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-auto">
+                                            <Star size={12} className="text-orange-500" fill="currentColor" />
+                                            <span>5.0</span>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div className="px-1 flex flex-col flex-1">
+                                <div className="px-0 pb-1 pt-0.5 flex flex-col flex-1">
                                     <h3 className="font-bold text-gray-900 text-sm leading-tight mb-1 line-clamp-2 group-hover:text-purple-600 transition-colors capitalize">
                                         {related.keywords || 'Custom Cake'}
                                     </h3>
                                     <p className="text-xs text-gray-500 flex items-center gap-1 mb-auto">
                                         <Cake size={12} /> 1 Tier
                                     </p>
-                                    <div className="flex justify-between items-end border-t border-gray-50 pt-3 mt-3">
-                                        <span className="font-black text-gray-900 text-base">
-                                            ₱{related.price ? Math.round(related.price).toLocaleString() : '999'}
-                                        </span>
-                                        <div className="flex items-center gap-1 text-xs font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-lg">
-                                            <Star size={12} fill="currentColor" /> 5.0
-                                        </div>
-                                    </div>
                                 </div>
                             </Link>
                         ))}

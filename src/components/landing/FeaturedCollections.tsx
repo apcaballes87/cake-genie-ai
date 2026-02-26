@@ -44,7 +44,7 @@ export const FeaturedCollections: React.FC<FeaturedCollectionsProps> = ({ catego
     const displayCategories = categories.slice(0, 10);
 
     return (
-        <section className="mb-8">
+        <section className="mb-6 md:mb-8">
             <div className="flex justify-between items-center mb-4 gap-2">
                 <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 leading-tight">
                     Find the Perfect Cake by Theme

@@ -189,7 +189,7 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-2 min-[490px]:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+                            <div className="columns-2 min-[490px]:columns-3 md:columns-3 lg:columns-4 gap-4 md:gap-5 space-y-4 md:space-y-5">
                                 {recentDesigns.map((design) => (
                                     <ProductCard
                                         key={design.slug}

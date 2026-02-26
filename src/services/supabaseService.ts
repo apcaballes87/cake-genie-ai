@@ -517,7 +517,7 @@ export async function getPopularDesigns(limit: number = 20): Promise<SupabaseSer
   try {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, price, alt_text')
+      .select('slug, keywords, original_image_url, price, alt_text, availability')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .not('price', 'is', null)
