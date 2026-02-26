@@ -102,6 +102,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     const [heroImageIndex, setHeroImageIndex] = useState(0);
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isOccasionOpen, setIsOccasionOpen] = useState(false);
 
 
     // Context hooks
@@ -605,27 +606,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             </div>
                         </div>
 
-                        {/* Mobile Categories (Horizontal Scroll) - Placed above Available Cakes */}
-                        <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 mt-[6px] mb-3 md:hidden">Shop by Occasion</h2>
-                        <div className="md:hidden flex gap-2 mb-4 overflow-x-auto scrollbar-hide -mx-4 px-4">
-                            {categoriesList.map((cat) => (
-                                <Link
-                                    key={cat.id}
-                                    href={`/search?q=${encodeURIComponent(cat.name)}`}
-                                    className={`px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all inline-block ${selectedCategory === cat.id
-                                        ? 'bg-purple-600 text-white shadow-lg'
-                                        : 'bg-white border border-gray-100 text-gray-500 hover:border-purple-200 hover:text-purple-600'
-                                        }`}
-                                >
-                                    {cat.name}
-                                </Link>
-                            ))}
-                        </div>
+                        {/* Mobile Categories removed — moved to side drawer */}
 
                         {/* --- CAKES AVAILABLE TODAY --- */}
                         <div className="mb-4">
                             <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 mb-3">Shop Cake Designs Available for Rush Orders</h2>
-                            <div className="flex overflow-x-auto gap-3 pb-4 md:grid md:grid-cols-4 md:gap-6 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+                            <div className="flex overflow-x-auto gap-3 pb-4 md:grid min-[490px]:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 md:gap-6 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
                                 {quickLinks.map((link, cardIndex) => {
                                     const activeIndex = rushImageIndexes[cardIndex] ?? 0;
                                     return (
@@ -814,8 +800,55 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                 {/* Nav Links */}
                 <nav className="flex-1 overflow-y-auto py-4 px-3">
+
+                    {/* Shop by Occasion — collapsible accordion */}
+                    <div>
+                        <button
+                            onClick={() => setIsOccasionOpen(prev => !prev)}
+                            className="w-full flex items-center gap-3.5 px-3 py-3.5 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors font-medium text-[15px]"
+                            aria-expanded={isOccasionOpen}
+                        >
+                            <span className="text-xl w-7 text-center leading-none">🎂</span>
+                            <span className="flex-1 text-left">Shop by Occasion</span>
+                            {/* Chevron icon rotates when open */}
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width={16} height={16}
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={2.5}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className={`transition-transform duration-300 ${isOccasionOpen ? 'rotate-180' : 'rotate-0'}`}
+                            >
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </button>
+
+                        {/* Collapsible list of occasions */}
+                        <div
+                            className="overflow-hidden transition-all duration-300 ease-in-out"
+                            style={{ maxHeight: isOccasionOpen ? `${categoriesList.length * 52}px` : '0px' }}
+                        >
+                            <div className="pl-10 pb-1 flex flex-col gap-0.5">
+                                {categoriesList.map((cat) => (
+                                    <Link
+                                        key={cat.id}
+                                        href={`/search?q=${encodeURIComponent(cat.name)}`}
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition-colors text-[14px] font-medium"
+                                    >
+                                        <span className="w-1.5 h-1.5 rounded-full bg-purple-300 shrink-0" />
+                                        {cat.name}
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Other nav links */}
                     {[
-                        { label: 'Shop by Occasion', href: '/search?q=occasion', emoji: '🎂' },
                         { label: 'How to Order', href: '/how-to-order', emoji: '📋' },
                         { label: 'Payment Options', href: '/payment-options', emoji: '💳' },
                         { label: 'Delivery Rates', href: '/delivery-rates', emoji: '🚚' },

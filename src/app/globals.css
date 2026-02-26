@@ -298,26 +298,26 @@
 
 @media (min-width: 490px) {
   .gsc-expansionArea {
-    columns: 3 !important;
+    columns: 4 !important;
   }
 }
 
 @media (min-width: 768px) {
   .gsc-expansionArea {
-    columns: 4 !important;
+    columns: 5 !important;
     column-gap: 12px !important;
   }
 }
 
 @media (min-width: 1024px) {
   .gsc-expansionArea {
-    columns: 5 !important;
+    columns: 6 !important;
   }
 }
 
 @media (min-width: 1280px) {
   .gsc-expansionArea {
-    columns: 6 !important;
+    columns: 8 !important;
   }
 }
 
