@@ -20,7 +20,7 @@ export const Footer = () => {
             {/* Top Section: Feature Cards */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-                    <div className="bg-white p-4 md:p-6 rounded-2xl text-center hover:shadow-lg transition duration-300 border border-purple-100">
+                    <article className="bg-white p-4 md:p-6 rounded-2xl text-center hover:shadow-lg transition duration-300 border border-purple-100">
                         <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 text-purple-600">
                             <Camera size={24} />
                         </div>
@@ -29,9 +29,9 @@ export const Footer = () => {
                         <button onClick={() => router.push('/customizing')} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-full text-sm font-bold transition shadow-sm">
                             Upload here
                         </button>
-                    </div>
+                    </article>
 
-                    <div className="bg-white p-4 md:p-6 rounded-2xl text-center hover:shadow-lg transition duration-300 border border-purple-100">
+                    <article className="bg-white p-4 md:p-6 rounded-2xl text-center hover:shadow-lg transition duration-300 border border-purple-100">
                         <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4 text-pink-600">
                             <Cake size={24} />
                         </div>
@@ -40,9 +40,9 @@ export const Footer = () => {
                         <button onClick={() => router.push('/about')} className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2 rounded-full text-sm font-bold transition shadow-sm">
                             About Us
                         </button>
-                    </div>
+                    </article>
 
-                    <div className="bg-white p-4 md:p-6 rounded-2xl text-center hover:shadow-lg transition duration-300 border border-purple-100">
+                    <article className="bg-white p-4 md:p-6 rounded-2xl text-center hover:shadow-lg transition duration-300 border border-purple-100">
                         <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 text-purple-600">
                             <Tag size={24} />
                         </div>
@@ -51,9 +51,9 @@ export const Footer = () => {
                         <button onClick={() => router.push('/how-to-order')} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-full text-sm font-bold transition shadow-sm">
                             How to order
                         </button>
-                    </div>
+                    </article>
 
-                    <div className="bg-white p-4 md:p-6 rounded-2xl text-center hover:shadow-lg transition duration-300 border border-purple-100">
+                    <article className="bg-white p-4 md:p-6 rounded-2xl text-center hover:shadow-lg transition duration-300 border border-purple-100">
                         <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4 text-pink-600">
                             <CreditCard size={24} />
                         </div>
@@ -62,7 +62,7 @@ export const Footer = () => {
                         <button className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2 rounded-full text-sm font-bold transition shadow-sm">
                             Payments
                         </button>
-                    </div>
+                    </article>
                 </div>
             </div>
 
@@ -165,7 +165,7 @@ export const Footer = () => {
                         </div>
 
                         {/* Col 2: Explore */}
-                        <div>
+                        <nav aria-label="Explore links">
                             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Explore</h4>
                             <ul className="space-y-2.5 text-sm text-gray-600">
                                 <li><Link href="/customizing" className="hover:text-purple-600 transition-colors">Customize a Cake</Link></li>
@@ -176,10 +176,10 @@ export const Footer = () => {
                                 <li><Link href="/compare" className="hover:text-purple-600 transition-colors">Compare</Link></li>
                                 <li><Link href="/sitemap-html" className="hover:text-purple-600 transition-colors">HTML Sitemap</Link></li>
                             </ul>
-                        </div>
+                        </nav>
 
                         {/* Col 3: Help */}
-                        <div>
+                        <nav aria-label="Help links">
                             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Help</h4>
                             <ul className="space-y-2.5 text-sm text-gray-600">
                                 <li><Link href="/contact" className="hover:text-purple-600 transition-colors">Contact Us</Link></li>
@@ -190,7 +190,7 @@ export const Footer = () => {
                                 <li><Link href="/privacy" className="hover:text-purple-600 transition-colors">Privacy Policy</Link></li>
                                 <li><Link href="/return-policy" className="hover:text-purple-600 transition-colors">Return Policy</Link></li>
                             </ul>
-                        </div>
+                        </nav>
 
                     </div>
 

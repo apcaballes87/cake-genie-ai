@@ -82,38 +82,41 @@ export async function generateMetadata(
         }
     }
 
+    const tags = design.tags || [];
+    const tagsPrefix = tags.length > 0 ? tags.slice(0, 2).map((t: string) => t.charAt(0).toUpperCase() + t.slice(1)).join(' ') + ' ' : '';
     const priceDisplay = design.price ? ` | Php ${Math.round(design.price).toLocaleString()}` : ''
     // Strip existing "| Genie.ph" suffix — the root layout template already appends it
     const baseSeoTitle = design.seo_title?.replace(/\s*\|\s*Genie\.ph\s*$/i, '') || ''
     const title = baseSeoTitle
         ? `${baseSeoTitle}${priceDisplay}`
-        : `${design.keywords || 'Custom'} Cake Designs & Photos${priceDisplay}`
+        : `${tagsPrefix}${design.keywords || 'Custom'} Cake Designs & Photos${priceDisplay}`
 
     // Richer Fallback Description Logic
-    let description = design.seo_description || `Customize this ${design.keywords || 'custom'} cake design on Genie.ph. Get instant pricing from local bakers in Cebu and Cavite. ${design.alt_text || ''}`
+    let description = design.seo_description || `Customize this ${tagsPrefix}${design.keywords || 'custom'} cake design on Genie.ph. Get instant pricing from local bakers in Cebu and Cavite. ${design.alt_text || ''}`
 
     if (!description && design.analysis_json) {
         // Construct description from analysis features for legacy records
         const analysis = design.analysis_json
         const features = []
+        if (tags.length > 0) features.push(`Perfect for: ${tags.join(', ')}`)
 
         // Colors
         if (analysis.icing_design?.colors) {
             const colors = Object.values(analysis.icing_design.colors)
                 .filter(c => typeof c === 'string')
                 .join(', ')
-            if (colors) features.push(`${(typeof analysis.icing_design.base === 'string' ? analysis.icing_design.base : 'icing').replace(/_/g, ' ')}: ${colors}`)
+            if (colors) features.push(`${(typeof analysis.icing_design.base === 'string' ? analysis.icing_design.base : 'icing').replace(/_/g, ' ')} in ${colors}`)
         }
 
         // Toppers
         if (analysis.main_toppers?.length > 0) {
             const topNames = analysis.main_toppers.slice(0, 3).map((t: any) => t.description || t.type).join(', ')
-            features.push(`Toppers: ${topNames}`)
+            features.push(`Decorated with ${topNames}`)
         }
 
-        description = `Customize this ${design.keywords || 'custom'} cake design. ${features.join('. ')}. Starting at ₱${design.price?.toLocaleString() || '0'}.`
+        description = `Customize this ${tagsPrefix}${design.keywords || 'custom'} cake design. ${features.join('. ')}. Starting at ₱${design.price?.toLocaleString() || '0'}.`
     } else if (!description) {
-        description = `Get instant pricing for this ${design.keywords || 'custom'} cake design. Starting at ₱${design.price?.toLocaleString() || '0'}.`
+        description = `Get instant pricing for this ${tagsPrefix}${design.keywords || 'custom'} cake design. Starting at ₱${design.price?.toLocaleString() || '0'}.`
     }
 
     const canonicalUrl = `https://genie.ph/customizing/${slug}`
@@ -167,8 +170,9 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
     // Escaping done via string replace in dangerouslySetInnerHTML
     const sanitize = (str: string | null | undefined) => str ? str : '';
 
+    const tags = design.tags || [];
     const keywords = design.keywords || 'Custom';
-    const title = design.seo_title || `${keywords} Cake`;
+    const title = design.seo_title || `${tags.length > 0 ? tags[0] + ' ' : ''}${keywords} Cake`;
     const imageUrl = design.original_image_url;
     const pageUrl = `https://genie.ph/customizing/${design.slug || ''}`;
 
@@ -412,6 +416,7 @@ function generateDesignDetails(design: any, prices?: BasePriceInfo[]): string {
     const supportElements = analysis.support_elements || [];
     const cakeMessages = analysis.cake_messages || [];
     const availability = design.availability || 'normal';
+    const tags = design.tags || [];
 
     const sentences: string[] = [];
 
@@ -420,9 +425,16 @@ function generateDesignDetails(design: any, prices?: BasePriceInfo[]): string {
     const topColor = hexToName(icingDesign.colors?.top || '');
     const sideColor = hexToName(icingDesign.colors?.side || '');
     const colorDesc = topColor && sideColor && topColor !== sideColor
-        ? `a ${topColor} top and ${sideColor} sides`
-        : topColor ? `a ${topColor} base` : 'a custom color palette';
-    sentences.push(`This ${keywords} cake is a ${cakeType.toLowerCase()} design with ${icingBase} featuring ${colorDesc}.`);
+        ? `with a ${topColor} top and ${sideColor} sides`
+        : topColor ? `in ${topColor}` : 'with a custom color palette';
+
+    if (tags.length >= 2) {
+        sentences.push(`Designed specifically for ${tags[0]} or ${tags[1]} events, this ${keywords} cake is a stunning ${cakeType.toLowerCase()} piece finished with ${icingBase} ${colorDesc}.`);
+    } else if (tags.length === 1) {
+        sentences.push(`A popular choice for ${tags[0]} celebrations, this ${cakeType.toLowerCase()} ${keywords} cake features ${icingBase} ${colorDesc}.`);
+    } else {
+        sentences.push(`This ${keywords} cake is a ${cakeType.toLowerCase()} design with ${icingBase} featuring ${colorDesc}.`);
+    }
 
     // Sentence 2: Describe the main toppers (the hero elements)
     if (mainToppers.length > 0) {
@@ -804,11 +816,53 @@ function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceI
     const designDetails = generateDesignDetails(design, prices);
     const dynamicFAQs = generateDynamicFAQ(design, prices);
     const keywords = design.keywords || 'Custom';
+    const tags = design.tags || [];
+    const analysis = design.analysis_json || {};
 
     return (
         <div className="w-full max-w-4xl mx-auto px-4 pb-32 pt-8 space-y-6">
             {/* Design Details — moved to seoContentSlot passed to CustomizingClient */}
 
+            {/* Structured Specifications Table for SEO */}
+            <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
+                <h2 className="text-xl font-bold text-slate-800 mb-4 text-center">Design Specifications</h2>
+                <div className="overflow-hidden rounded-xl border border-slate-200">
+                    <table className="min-w-full text-sm text-left">
+                        <tbody className="divide-y divide-slate-200">
+                            {tags.length > 0 && (
+                                <tr className="bg-slate-50">
+                                    <th className="px-4 py-3 font-semibold text-slate-700 w-1/3">Target Occasions</th>
+                                    <td className="px-4 py-3 text-slate-600">{tags.join(', ')}</td>
+                                </tr>
+                            )}
+                            <tr className="bg-white">
+                                <th className="px-4 py-3 font-semibold text-slate-700 w-1/3">Cake Style</th>
+                                <td className="px-4 py-3 text-slate-600">{analysis.cakeType || 'Custom'} {keywords}</td>
+                            </tr>
+                            <tr className="bg-slate-50">
+                                <th className="px-4 py-3 font-semibold text-slate-700 w-1/3">Icing Finish</th>
+                                <td className="px-4 py-3 text-slate-600">{analysis.icing_design?.base?.replace(/_/g, ' ') || 'Standard Icing'}</td>
+                            </tr>
+                            {analysis.main_toppers?.length > 0 && (
+                                <tr className="bg-white">
+                                    <th className="px-4 py-3 font-semibold text-slate-700 w-1/3">Primary Features</th>
+                                    <td className="px-4 py-3 text-slate-600">
+                                        {analysis.main_toppers.map((t: any) => t.description || t.type).join(', ')}
+                                    </td>
+                                </tr>
+                            )}
+                            {analysis.support_elements?.length > 0 && (
+                                <tr className="bg-slate-50">
+                                    <th className="px-4 py-3 font-semibold text-slate-700 w-1/3">Decorations</th>
+                                    <td className="px-4 py-3 text-slate-600">
+                                        {analysis.support_elements.map((s: any) => s.description || s.type).join(', ')}
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
             {/* Combined FAQ — dynamic per-cake questions + general store info */}
             {dynamicFAQs.length > 0 && (
