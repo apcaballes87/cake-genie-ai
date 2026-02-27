@@ -27,7 +27,7 @@ function parseMarkdownToHtml(markdown: string): string {
   // Images
   html = html.replace(
     /!\[([^\]]*)\]\(([^)]+)\)/g,
-    '<img src="$2" alt="$1" width="800" height="600" class="w-full h-auto rounded-xl my-8 shadow-md border border-purple-100" loading="lazy" />'
+    '<img src="$2" alt="$1" class="w-full h-auto rounded-xl my-8 shadow-md border border-purple-100" loading="lazy" />'
   );
 
   // Links
