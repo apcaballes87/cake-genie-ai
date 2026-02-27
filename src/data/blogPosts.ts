@@ -862,11 +862,11 @@ And if you're planning something bigger—like a first birthday with 100 guests 
   {
     slug: 'how-to-get-marriage-license-metro-cebu',
     title:
-      'How to Get a Marriage License in Metro Cebu: A Complete Guide for Cebu City, Mandaue, Lapu-Lapu & Talisay (2025)',
+      'How to Get a Marriage License in Metro Cebu: A Complete Guide for Cebu City, Mandaue, Lapu-Lapu & Talisay (2026)',
     excerpt:
       'Planning to tie the knot in Metro Cebu? Before you start picking out flowers and venues, here\'s a complete step-by-step guide to getting your marriage license in Cebu City, Mandaue, Lapu-Lapu, and Talisay.',
     keywords: 'wedding',
-    date: '2025-06-15',
+    date: '2026-02-27',
     author: 'Genie.ph',
     authorUrl: 'https://genie.ph/about',
     content: `Planning to tie the knot in Metro Cebu? Congratulations! Before you start picking out flowers and venues, there's one essential piece of paperwork you need to secure first — your **marriage license**.
@@ -1180,7 +1180,7 @@ The key is to start early, stay organized, and enjoy the process. After all, thi
 
 ---
 
-*Disclaimer: This guide is based on publicly available information and research as of 2025. Requirements, fees, and processes may change. Always verify the latest requirements directly with your Local Civil Registrar's office before proceeding.*
+*Disclaimer: This guide is based on publicly available information and research as of 2026. Requirements, fees, and processes may change. Always verify the latest requirements directly with your Local Civil Registrar's office before proceeding.*
 
 *Sources: Philippine Family Code (E.O. 209), R.A. 10354 (Responsible Parenthood & Reproductive Health Act), R.A. 11596 (Prohibition of Child Marriage), Local Civil Registrar offices of Cebu City, Mandaue City, Lapu-Lapu City, and Talisay City, PSAHelpline.ph*`,
   },

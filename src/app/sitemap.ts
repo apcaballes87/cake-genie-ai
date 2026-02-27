@@ -191,7 +191,7 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
             '/compare/custom-cake-pricing-cebu',
         ].map((route) => ({
             url: `${baseUrl}${route}`,
-            lastModified: new Date(),
+            lastModified: new Date('2026-02-27'),
             changeFrequency: 'daily' as const,
             priority: 1,
         }))

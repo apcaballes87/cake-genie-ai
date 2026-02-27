@@ -31,12 +31,6 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  alternates: {
-    canonical: '/',
-    languages: {
-      'en-PH': '/',
-    },
-  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -68,11 +62,27 @@ export const metadata: Metadata = {
 function OrganizationSchema() {
   const schema = {
     '@context': 'https://schema.org',
-    '@type': 'Organization',
+    '@type': 'LocalBusiness',
+    '@id': 'https://genie.ph/#localbusiness',
     name: 'Genie.ph',
     url: 'https://genie.ph',
     logo: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp',
+    image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg',
     description: 'The first AI-powered marketplace for custom cakes in the Philippines. Based in Cebu.',
+    telephone: '+63-908-940-8747',
+    email: 'hello@genie.ph',
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: 'Skyview Park, Nivel Hills',
+      addressLocality: 'Cebu City',
+      addressRegion: 'Cebu',
+      addressCountry: 'PH'
+    },
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: 10.3157,
+      longitude: 123.8854
+    },
     sameAs: [
       'https://web.facebook.com/geniephilippines',
       'https://www.instagram.com/genie.ph/',
@@ -89,7 +99,8 @@ function OrganizationSchema() {
       contactType: 'customer service',
       areaServed: 'PH',
       availableLanguage: ['English', 'Filipino']
-    }
+    },
+    priceRange: '₱₱'
   };
 
   return (
