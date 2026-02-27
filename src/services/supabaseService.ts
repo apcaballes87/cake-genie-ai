@@ -1,6 +1,7 @@
 // services/supabaseService.ts
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback, AvailabilitySettings, CartItem, CacheSEOMetadata } from '@/types';
+import { createClient } from '@supabase/supabase-js';
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem, OrderContribution, CakeGenieSavedItem, CustomizationDetails, CakeGenieMerchant, CakeGenieMerchantProduct, MerchantStaff, MerchantPayout, MerchantDashboardStats, MerchantStaffRole } from '@/lib/database.types';
@@ -12,7 +13,16 @@ import { getDesignAvailability } from '@/lib/utils/availability';
 import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI } from '@/types';
 import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers';
 
+// The default client (uses @supabase/ssr browser client)
 const supabase: SupabaseClient = getSupabaseClient();
+
+// A completely public, cookie-less client for concurrent SSR queries
+// This prevents Next.js 15's cookies() Map.set / WeakRef.deref stack overflows.
+export const publicSupabaseClient = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  { auth: { persistSession: false } }
+);
 
 // Type for service responses
 export type SupabaseServiceResponse<T> = {
@@ -474,7 +484,8 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
  * Fetches recommended products from the analysis cache.
  * Returns items that have an original_image_url and a price.
  */
-export async function getRecommendedProducts(limit: number = 8, offset: number = 0): Promise<SupabaseServiceResponse<any[]>> {
+export async function getRecommendedProducts(limit: number = 8, offset: number = 0, customClient?: SupabaseClient): Promise<SupabaseServiceResponse<any[]>> {
+  const client = customClient || (typeof window === 'undefined' ? publicSupabaseClient : supabase);
   try {
     // If offset is 0, we can fetch extra and shuffle to give a "random" start daily
     // But for pagination consistency, we should probably stick to a stable sort order (e.g., created_at)
@@ -482,7 +493,7 @@ export async function getRecommendedProducts(limit: number = 8, offset: number =
     // subsequent pages are just the next items in standard order.
     // However, simplest robust approach for "Load More" is just strict time-based pagination.
 
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('cakegenie_analysis_cache')
       .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability')
       .not('original_image_url', 'is', null)
@@ -513,9 +524,10 @@ export async function getRecommendedProducts(limit: number = 8, offset: number =
  * Fetches the most popular designs by usage_count for SSR homepage section.
  * Returns designs with real <Link> tags for Google crawlability.
  */
-export async function getPopularDesigns(limit: number = 20): Promise<SupabaseServiceResponse<any[]>> {
+export async function getPopularDesigns(limit: number = 20, customClient?: SupabaseClient): Promise<SupabaseServiceResponse<any[]>> {
+  const client = customClient || (typeof window === 'undefined' ? publicSupabaseClient : supabase);
   try {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('cakegenie_analysis_cache')
       .select('slug, keywords, original_image_url, price, alt_text, availability')
       .not('original_image_url', 'is', null)
@@ -538,14 +550,35 @@ export async function getPopularDesigns(limit: number = 20): Promise<SupabaseSer
 }
 
 /**
+ * Builds a Supabase OR-filter string that matches products across
+ * keywords (text), alt_text (text), slug (text), and tags (array)
+ * for each collection tag. This allows a product to appear in any
+ * collection where at least one field matches any of its tags.
+ */
+const buildCollectionOrFilter = (collectionTags: string[]): string => {
+  const filters: string[] = [];
+  for (const tag of collectionTags) {
+    const escaped = tag.replace(/[%_]/g, ''); // strip SQL wildcards
+    if (!escaped) continue;
+    filters.push(`keywords.ilike.%${escaped}%`);
+    filters.push(`alt_text.ilike.%${escaped}%`);
+    filters.push(`slug.ilike.%${escaped}%`);
+    // Array containment: product.tags @> {tag}
+    filters.push(`tags.cs.{"${escaped}"}`);
+  }
+  return filters.join(',');
+};
+
+/**
  * Fetches design categories from the cakegenie_collections table.
  */
-export async function getDesignCategories(): Promise<SupabaseServiceResponse<{ keyword: string; slug: string; count: number; sample_image: string, description?: string }[]>> {
+export async function getDesignCategories(customClient?: SupabaseClient): Promise<SupabaseServiceResponse<{ keyword: string; slug: string; count: number; sample_image: string, description?: string }[]>> {
+  const client = customClient || (typeof window === 'undefined' ? publicSupabaseClient : supabase);
   try {
-    const { data: collections, error: collectionsError } = await supabase
+    const { data: collections, error: collectionsError } = await client
       .from('cakegenie_collections')
-      .select('name, slug, tags, sample_image, description')
-      .order('name', { ascending: true }); // Or order by hits
+      .select('name, slug, tags, sample_image, description, item_count')
+      .order('name', { ascending: true });
 
     if (collectionsError) {
       console.error('Error fetching design categories from collections:', collectionsError);
@@ -556,47 +589,18 @@ export async function getDesignCategories(): Promise<SupabaseServiceResponse<{ k
       return { data: [], error: null };
     }
 
-    // We still need to calculate item counts and find sample images if missing
-    const categoriesPromises = collections.map(async (collection) => {
-      let sampleImage = collection.sample_image;
-      let count = 0;
+    // Return categories using the pre-calculated item_count from the DB table.
+    // This avoids heavy dynamic ILIKE queries that caused V8 call stack size exceeded errors.
+    const resolvedCategories = collections.map((collection: any) => ({
+      keyword: collection.name,
+      slug: collection.slug,
+      count: collection.item_count || 0,
+      sample_image: collection.sample_image || 'https://images.unsplash.com/photo-1542826438-bd32f43d626f?q=80&w=600&auto=format&fit=crop',
+      description: collection.description || undefined
+    }));
 
-      // If collection has tags, use them to find matching items and a sample image
-      if (collection.tags && collection.tags.length > 0) {
-        // Create an OR filter for all tags
-        const orFilters = collection.tags.map((tag: string) => `keywords.ilike.%${tag}%`).join(',');
-
-        let query = supabase
-          .from('cakegenie_analysis_cache')
-          .select('original_image_url', { count: 'exact' }) // Fetch minimal data just for image and count
-          .not('original_image_url', 'is', null)
-          .neq('original_image_url', '')
-          .or(orFilters)
-          .limit(1); // Only need 1 for sample image
-
-        const { data: items, count: actualCount, error: itemsError } = await query;
-
-        if (!itemsError) {
-          count = actualCount || 0;
-          if (!sampleImage && items && items.length > 0) {
-            sampleImage = items[0].original_image_url;
-          }
-        }
-      }
-
-      return {
-        keyword: collection.name,
-        slug: collection.slug,
-        count: count,
-        sample_image: sampleImage || 'https://images.unsplash.com/photo-1542826438-bd32f43d626f?q=80&w=600&auto=format&fit=crop', // Fallback
-        description: collection.description || undefined
-      };
-    });
-
-    const resolvedCategories = await Promise.all(categoriesPromises);
-
-    // Filter out empty ones if desired, or sort them
-    const sortedCategories = resolvedCategories.sort((a, b) => b.count - a.count);
+    // Optionally sort them alphabetically since we don't have real counts
+    const sortedCategories = resolvedCategories;
 
     return { data: sortedCategories, error: null };
   } catch (err) {
@@ -658,11 +662,13 @@ export async function getCollectionBySlug(slug: string): Promise<SupabaseService
 
 /**
  * Fetches designs matching a specific keyword or category slug.
- * If finding a collection by slug fails, it falls back to a basic keyword search.
+ * Matches against product keywords, alt_text, slug, and tags array.
+ * If the slug maps to a collection, its tags are used for wide matching.
  */
 export async function getDesignsByKeyword(keywordOrSlug: string, limit: number = 50, offset: number = 0): Promise<SupabaseServiceResponse<any[]>> {
   try {
-    let orFilters = `keywords.ilike.%${keywordOrSlug}%`;
+    // Fallback: simple keyword match
+    let orFilters = buildCollectionOrFilter([keywordOrSlug]);
 
     // Try to see if this is a collection slug first
     const { data: collection } = await supabase
@@ -671,9 +677,9 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
       .eq('slug', keywordOrSlug)
       .single();
 
-    // If we found a collection and it has tags, use those tags as OR conditions
+    // If we found a collection and it has tags, use wide matching
     if (collection && collection.tags && collection.tags.length > 0) {
-      orFilters = collection.tags.map((tag: string) => `keywords.ilike.%${tag}%`).join(',');
+      orFilters = buildCollectionOrFilter(collection.tags);
     }
 
     const { data, error } = await supabase
