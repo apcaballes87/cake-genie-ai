@@ -42,7 +42,7 @@ export const PopularDesigns = ({ designs }: PopularDesignsProps) => {
                                 width={0}
                                 height={0}
                                 sizes="(max-width: 490px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                                style={{ width: '100%', height: 'auto' }}
+                                style={{ width: '100%', height: 'auto', aspectRatio: '3/4' }}
                                 className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
                             />
 
