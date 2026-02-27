@@ -25,7 +25,7 @@ export async function generateMetadata({
   if (!post) return { title: 'Post Not Found | Genie.ph' };
 
   return {
-    title: `${post.title} | Genie.ph Blog`,
+    title: post.title,
     description: post.excerpt,
     alternates: {
       canonical: `https://genie.ph/blog/${post.slug}`,
