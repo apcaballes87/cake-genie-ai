@@ -36,6 +36,20 @@ const nextConfig: NextConfig = {
   // Sitemap is now served by Next.js via src/app/sitemap.ts
   // The old Supabase Edge Function (generate-sitemap) is no longer used
 
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+        ],
+      },
+    ];
+  },
+
   async rewrites() {
     return [
       {

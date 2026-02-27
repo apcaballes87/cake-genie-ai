@@ -123,13 +123,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
         clearCustomization
     } = useCakeCustomization();
 
-    // Note: Merchants and products are now rendered via server components passed as children
-
-
-    // Brand Colors
-    const brandGradient = "bg-gradient-to-r from-purple-500 to-pink-500";
-    const textGradient = "bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600";
-
     const categoriesList = [
         { id: 'Birthdays', name: 'Birthdays' },
         { id: 'Anniversaries', name: 'Anniversaries' },
@@ -138,73 +131,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
         { id: 'Wedding', name: 'Wedding' },
         { id: 'Baptismal', name: 'Baptismal' },
     ];
-
-    const products = [
-        {
-            id: 1,
-            title: "Korean Vintage Heart",
-            price: 1200,
-            image: "https://images.unsplash.com/photo-1619980387586-4d054df5f037?q=80&w=600&auto=format&fit=crop",
-            rating: 4.9,
-            baker: "Cakes by Sarah",
-            tag: "Trending"
-        },
-        {
-            id: 2,
-            title: "Minimalist Calendar",
-            price: 850,
-            image: "https://images.unsplash.com/photo-1626803775151-61d756612fcd?q=80&w=600&auto=format&fit=crop",
-            rating: 4.8,
-            baker: "Sweet Tooth",
-            tag: "Best Seller"
-        },
-        {
-            id: 3,
-            title: "Custom Photo Cake",
-            price: 1500,
-            image: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?q=80&w=600&auto=format&fit=crop",
-            rating: 4.7,
-            baker: "PrintEdible",
-            tag: null
-        },
-        {
-            id: 4,
-            title: "Bento Lunchbox Set",
-            price: 450,
-            image: "https://images.unsplash.com/photo-1558301211-0d8c8ddee6ec?q=80&w=600&auto=format&fit=crop",
-            rating: 5.0,
-            baker: "Tiny Treats",
-            tag: "Express"
-        },
-        {
-            id: 5,
-            title: "2-Tier Floral Garden",
-            price: 3500,
-            image: "https://images.unsplash.com/photo-1535254973040-607b474cb50d?q=80&w=600&auto=format&fit=crop",
-            rating: 5.0,
-            baker: "Elegant Tiers",
-            tag: "Pre-order"
-        },
-        {
-            id: 6,
-            title: "Assorted Cupcakes (12pc)",
-            price: 950,
-            image: "https://images.unsplash.com/photo-1599785209707-33348076838b?q=80&w=600&auto=format&fit=crop",
-            rating: 4.6,
-            baker: "Cupcake Central",
-            tag: null
-        }
-    ];
-
-    const stories = [
-        { id: 1, name: "New In", color: "bg-purple-100" },
-        { id: 2, name: "Promos", color: "bg-pink-100" },
-        { id: 3, name: "Guides", color: "bg-blue-100" },
-        { id: 4, name: "Reviews", color: "bg-yellow-100" },
-        { id: 5, name: "Events", color: "bg-green-100" },
-        { id: 6, name: "Vlog", color: "bg-orange-100" },
-    ];
-
 
     useEffect(() => {
         const intervals = quickLinks.map((link, cardIndex) => {

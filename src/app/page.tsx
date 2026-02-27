@@ -8,10 +8,10 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'Genie.ph | Online Marketplace for Custom Cakes in Cebu!',
-  description: 'Upload any cake design, customize with AI and get instant pricing from the best cakeshops and homebakers here in Cebu.',
+  description: 'Upload any cake design, customize with AI, and get instant pricing from top cakeshops and homebakers in Cebu. Order your perfect custom cake online today!',
   openGraph: {
     title: 'Genie.ph | Online Marketplace for Custom Cakes in Cebu!',
-    description: 'Upload any cake design, customize with AI and get instant pricing from the best cakeshops and homebakers here in Cebu.',
+    description: 'Upload any cake design, customize with AI, and get instant pricing from top cakeshops and homebakers in Cebu. Order your perfect custom cake online today!',
     images: ['https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg'],
     url: 'https://genie.ph/',
     type: 'website',
@@ -20,6 +20,53 @@ export const metadata: Metadata = {
     canonical: 'https://genie.ph',
   },
 };
+
+function HomepageFAQSchema() {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'How does Genie.ph work?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Upload any cake design photo, customize it with our AI-powered editor, and get instant pricing from the best local cakeshops and homebakers in Cebu. Order online in minutes with secure payment via GCash, Maya, or card.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How much do custom cakes cost on Genie.ph?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Prices start as low as ₱350 for bento cakes. Standard round cakes start from ₱800 and up depending on size, design complexity, and the baker you choose. Use our free Cake Price Calculator for an instant AI estimate.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Does Genie.ph deliver in Cebu?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Yes! Genie.ph delivers throughout Metro Cebu including Cebu City, Mandaue, Lapu-Lapu (Mactan), Talisay, and select surrounding areas. Delivery coverage depends on your chosen baker.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Can I upload my own cake design photo?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Absolutely! Upload any cake photo or inspiration image and our AI analyzes it, breaks it into customizable components — icing style, toppers, colors, and messages — then generates accurate pricing from vetted local bakers.',
+        },
+      },
+    ],
+  };
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
+}
 
 function WebSiteSchema() {
   const schema = {
@@ -95,6 +142,7 @@ export default async function Home() {
 
   return (
     <>
+      <HomepageFAQSchema />
       <WebSiteSchema />
       <LandingClient popularDesigns={popularDesigns} categories={categories}>
         {/* Server-rendered sections for LCP optimization */}
