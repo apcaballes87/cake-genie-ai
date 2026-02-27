@@ -169,7 +169,7 @@ export const ProductCard = ({
                     title={title}
                     width={0}
                     height={0}
-                    style={{ width: '100%', height: 'auto', aspectRatio: '3/4' }}
+                    style={{ width: '100%', height: 'auto' }}
                     className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-500"
                     priority={priority}
                 />

@@ -1659,7 +1659,7 @@ function CartClient() {
                                         <h3 className="text-sm font-semibold text-gray-500 mb-3 text-center">We Accept</h3>
                                         <div className="flex flex-wrap gap-2 items-center justify-center">
                                             {paymentMethods.map(method => (
-                                                <img key={method.name} src={method.logoUrl} alt={method.name} title={method.name} width={64} height={40} className="h-10 w-16 object-contain rounded-md bg-white p-1 border border-slate-200 shadow-sm" />
+                                                <img key={method.name} src={method.logoUrl} alt={method.name} title={method.name} className="h-10 w-16 object-contain rounded-md bg-white p-1 border border-slate-200 shadow-sm" />
                                             ))}
                                         </div>
                                     </div>
