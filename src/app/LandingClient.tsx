@@ -389,7 +389,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     {/* Desktop gradient fade behind text */}
                                     <div className="hidden sm:block absolute inset-0 bg-gradient-to-r from-white via-white/95 to-transparent pointer-events-none -mr-32" />
                                     <div className="relative z-10">
-                                        <p className="text-[1.75rem] xs:text-[2rem] sm:text-[2.5rem] lg:text-[3.5rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight drop-shadow-sm">
+                                        <p className="text-[1.75rem] xs:text-[2rem] sm:text-[2.5rem] lg:text-[3rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight drop-shadow-sm">
                                             Upload any Cake Design,<br />Get the Price in Seconds
                                         </p>
                                         <p className="mt-2 sm:mt-3 sm:mb-8 text-[0.78rem] xs:text-[0.85rem] sm:text-[0.95rem] lg:text-[1.1rem] text-[#6d3fc7] font-medium leading-snug drop-shadow-sm sm:drop-shadow-none">
