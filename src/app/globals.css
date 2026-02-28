@@ -288,53 +288,45 @@
   width: 100% !important;
 }
 
-/* Masonry / staggered grid using CSS columns */
+/* Row-by-row grid layout */
 .gsc-expansionArea {
   width: 100% !important;
-  display: block !important;
-  columns: 2 !important;
-  column-gap: 10px !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 10px !important;
+  align-items: start !important;
 }
 
 @media (min-width: 490px) {
   .gsc-expansionArea {
-    columns: 3 !important;
+    grid-template-columns: repeat(3, 1fr) !important;
   }
 }
 
 @media (min-width: 768px) {
   .gsc-expansionArea {
-    columns: 5 !important;
-    column-gap: 12px !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 12px !important;
   }
 }
 
 @media (min-width: 1024px) {
   .gsc-expansionArea {
-    columns: 6 !important;
+    grid-template-columns: repeat(6, 1fr) !important;
   }
 }
 
 @media (min-width: 1280px) {
   .gsc-expansionArea {
-    columns: 8 !important;
+    grid-template-columns: repeat(8, 1fr) !important;
   }
 }
 
-/* Each image result is a masonry item — prevent column breaks inside */
+/* Grid item wrapper */
 .gsc-imageResult {
   width: 100% !important;
-  float: none !important;
-  display: inline-block !important;
-  break-inside: avoid !important;
-  margin: 0 0 10px 0 !important;
+  margin: 0 !important;
   padding: 0 !important;
-}
-
-@media (min-width: 768px) {
-  .gsc-imageResult {
-    margin: 0 0 12px 0 !important;
-  }
 }
 
 /* Override Google's inline table layout */
