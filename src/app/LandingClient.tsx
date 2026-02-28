@@ -380,48 +380,11 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
 
                         {/* --- HERO SECTION --- */}
-                        <section aria-label="Hero" className="mb-2 md:mb-4">
-                            {/* Unified Hero — responsive mobile/desktop */}
-                            <div className="relative overflow-hidden rounded-2xl sm:rounded-[2rem] bg-white aspect-[3/2] sm:aspect-auto sm:h-72 lg:h-[26rem] flex flex-col sm:flex-row items-center shadow-sm">
-
-                                {/* Left: Text + CTAs */}
-                                <div className="relative z-20 flex-1 px-5 sm:px-8 lg:px-14 py-4 sm:py-0 flex flex-col justify-center text-left sm:max-w-[55%] sm:h-full">
-                                    {/* Desktop gradient fade behind text */}
-                                    <div className="hidden sm:block absolute inset-0 bg-gradient-to-r from-white via-white/95 to-transparent pointer-events-none -mr-32" />
-                                    <div className="relative z-10">
-                                        <p className="text-[1.75rem] xs:text-[2rem] sm:text-[2.5rem] lg:text-[3rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight drop-shadow-sm">
-                                            Upload any Cake Design,<br />Get the Price in Seconds
-                                        </p>
-                                        <p className="mt-2 sm:mt-3 sm:mb-8 text-[0.78rem] xs:text-[0.85rem] sm:text-[0.95rem] lg:text-[1.1rem] text-[#6d3fc7] font-medium leading-snug drop-shadow-sm sm:drop-shadow-none">
-                                            The fastest way to buy customized cakes.<br />Personalize your order in a few clicks.
-                                        </p>
-                                        {/* CTA Buttons */}
-                                        <div className="flex flex-row items-center gap-2 xs:gap-3 sm:gap-3 lg:gap-4 mt-3 sm:mt-0 w-full max-w-[360px] sm:max-w-none">
-                                            <button
-                                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 bg-[#9b80e3] hover:bg-[#8669cc] text-white py-3.5 px-2 sm:px-5 sm:py-3 lg:px-7 lg:py-3.5 rounded-[0.875rem] font-semibold transition-all shadow-md active:scale-[0.98] text-[14px] xs:text-[15px] sm:text-sm lg:text-base whitespace-nowrap"
-                                                onClick={() => setIsUploaderOpen(true)}
-                                                aria-label="Upload a cake design"
-                                            >
-                                                <Upload size={18} className="shrink-0 lg:w-5 lg:h-5" />
-                                                <span>Upload<span className="hidden min-[350px]:inline"> a Design</span></span>
-                                            </button>
-                                            <Link
-                                                href="/collections"
-                                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-white sm:bg-[#fcfcff] hover:bg-purple-50 text-[#9b80e3] border border-[#d8cbf9] py-3.5 px-2 sm:px-5 sm:py-3 lg:px-7 lg:py-3.5 rounded-[0.875rem] font-semibold transition-all active:scale-[0.98] text-[14px] xs:text-[15px] sm:text-sm lg:text-base whitespace-nowrap"
-                                                aria-label="Browse cake designs"
-                                            >
-                                                <Search size={18} className="shrink-0 sm:hidden" />
-                                                <span>Browse<span className="hidden min-[350px]:inline"> Designs</span></span>
-                                            </Link>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Background: Rotating Hero Images */}
-                                <div className="absolute inset-0 z-0">
-                                    {/* Left-edge gradient — narrower on mobile, wider on desktop */}
-                                    <div className="absolute inset-y-0 left-0 w-3/4 max-w-[280px] sm:max-w-none sm:w-[50%] bg-gradient-to-r from-white via-white/80 to-transparent z-20 pointer-events-none" />
-
+                        <section aria-label="Hero" className="mb-2 md:mb-4 space-y-4">
+                            {/* Mobile Hero */}
+                            <div className="sm:hidden flex flex-col gap-3 text-center pt-2 pb-2">
+                                {/* Rotating Image Banner with Text Overlay */}
+                                <div className="relative w-full rounded-2xl overflow-hidden shadow-sm aspect-[3/2] bg-white flex flex-col justify-center">
                                     {heroImages.map((src, index) => (
                                         <div
                                             key={src}
@@ -429,13 +392,98 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         >
                                             <LazyImage
                                                 src={src}
-                                                alt={`Featured custom cake design ${index + 1}`}
-                                                className="w-full h-full object-cover sm:object-[center_right]"
+                                                alt={`Custom Cake Mobile ${index + 1}`}
+                                                className="w-full h-full object-cover"
                                                 priority={index === 0}
                                                 fill
                                             />
                                         </div>
                                     ))}
+
+                                    {/* Responsive Text Overlay */}
+                                    <div className="absolute inset-y-0 left-0 w-3/4 max-w-[280px] bg-gradient-to-r from-white via-white/80 to-transparent z-20 pointer-events-none" />
+
+                                    <div className="relative z-30 px-5 text-left w-full sm:w-[85%]">
+                                        <p className="text-[1.75rem] xs:text-[2rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight drop-shadow-sm">
+                                            Upload any Cake Design,<br />Get the Price in Seconds
+                                        </p>
+                                        <p className="mt-2 text-[0.78rem] xs:text-[0.85rem] text-[#6d3fc7] font-medium leading-snug drop-shadow-sm">
+                                            The fastest way to buy customized cakes.<br />Personalize your order in a few clicks.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Buttons Below */}
+                                <div className="flex flex-row items-center gap-2 xs:gap-3 w-full max-w-[360px] mx-auto">
+                                    <button
+                                        className="flex-1 flex items-center justify-center gap-1.5 w-full bg-[#9b80e3] hover:bg-[#8669cc] text-white py-3.5 px-2 rounded-[0.875rem] font-semibold transition-all shadow-md active:scale-[0.98] text-[14px] xs:text-[15px] whitespace-nowrap"
+                                        onClick={() => setIsUploaderOpen(true)}
+                                    >
+                                        <Upload size={18} className="shrink-0" />
+                                        <span>Upload<span className="hidden min-[350px]:inline"> a Design</span></span>
+                                    </button>
+                                    <Link
+                                        href="/collections"
+                                        className="flex-1 flex items-center justify-center gap-1.5 w-full bg-white hover:bg-purple-50 text-[#9b80e3] border border-[#d8cbf9] py-3.5 px-2 rounded-[0.875rem] font-semibold transition-all active:scale-[0.98] text-[14px] xs:text-[15px] whitespace-nowrap"
+                                    >
+                                        <Search size={18} className="shrink-0" />
+                                        <span>Browse<span className="hidden min-[350px]:inline"> Designs</span></span>
+                                    </Link>
+                                </div>
+                            </div>
+
+                            {/* Desktop/Tablet Hero */}
+                            <div className="hidden sm:flex relative overflow-hidden rounded-[2rem] bg-white h-72 lg:h-[26rem] items-center shadow-sm">
+                                {/* Left Side: Text and Buttons */}
+                                <div className="flex-1 px-8 lg:px-14 z-20 flex flex-col justify-center h-full max-w-[55%] relative">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-transparent pointer-events-none -mr-32" />
+                                    <div className="relative z-10">
+                                        <p className="text-[2.5rem] lg:text-[3rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight drop-shadow-sm">
+                                            Upload any Cake Design,<br />Get the Price in Seconds
+                                        </p>
+                                        <p className="mt-3 mb-8 text-[0.95rem] lg:text-[1.1rem] text-[#6d3fc7] font-medium leading-snug">
+                                            The fastest way to buy customized cakes.<br />Personalize your order in a few clicks.
+                                        </p>
+                                        <div className="flex flex-row gap-3 lg:gap-4 items-center flex-nowrap shrink-0">
+                                            <button
+                                                className="flex items-center justify-center gap-2 bg-[#9b80e3] hover:bg-[#8669cc] text-white px-5 py-3 lg:px-7 lg:py-3.5 rounded-[0.875rem] font-semibold transition-all shadow-md active:scale-[0.98] text-sm lg:text-base whitespace-nowrap shrink-0"
+                                                onClick={() => setIsUploaderOpen(true)}
+                                            >
+                                                <Upload size={18} className="shrink-0 lg:w-5 lg:h-5" />
+                                                Upload a Design
+                                            </button>
+                                            <Link
+                                                href="/collections"
+                                                className="flex items-center justify-center gap-2 bg-[#fcfcff] hover:bg-purple-50 text-[#9b80e3] border border-[#d8cbf9] px-5 py-3 lg:px-7 lg:py-3.5 rounded-[0.875rem] font-semibold transition-all active:scale-[0.98] text-sm lg:text-base whitespace-nowrap shrink-0"
+                                            >
+                                                <Search size={18} className="shrink-0" />
+                                                Browse Designs
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Background Rotating Image covering full area */}
+                                <div className="absolute inset-0 z-0">
+                                    <div className="relative w-full h-full">
+                                        {/* Soft gradient fade on the left edge of the image to blend it with the white text area */}
+                                        <div className="absolute inset-y-0 left-0 w-[50%] bg-gradient-to-r from-white via-white/80 to-transparent z-20 pointer-events-none" />
+
+                                        {heroImages.map((src, index) => (
+                                            <div
+                                                key={src}
+                                                className={`absolute inset-0 transition-opacity duration-1000 ${index === heroImageIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                                            >
+                                                <LazyImage
+                                                    src={src}
+                                                    alt={`Featured Custom Cake ${index + 1}`}
+                                                    className="w-full h-full object-cover object-[center_right]"
+                                                    priority={index === 0}
+                                                    fill
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </section>

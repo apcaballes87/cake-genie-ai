@@ -12,6 +12,153 @@ export interface BlogPost {
 
 export const blogPosts: BlogPost[] = [
   {
+    slug: 'katseye-cake-guide-kpop-fans-2026',
+    title: 'Katseye Cake Guide: The Ultimate K-Pop Inspired Cake Designs for Fans (2026)',
+    excerpt: 'Discover stunning Katseye-themed cake designs that celebrate your favorite global girl group. Learn about Katseye\'s incredible journey, why Gen Z loves them, and get inspiration for your next fan event or birthday celebration.',
+    keywords: 'katseye, kpop, cake design, fandom, birthday cake',
+    date: '2026-02-28',
+    author: 'Genie.ph',
+    authorUrl: 'https://genie.ph/about',
+    content: `Katseye is a girl group worth knowing if you're into K-pop—or even if you're just paying attention to what Gen Z is listening to. They formed through The Debut: Dream Academy, a reality show run by HYBE (the company behind BTS) and Sublime, an American record label. The show traveled from Los Angeles to Seoul, hunting for talent across continents.
+
+They're not your typical K-pop group. The six members come from everywhere: Yoon Seoul from South Korea, Lara who's Filipino-American, Megan and Daniela from the US (Mexican-American specifically), Sophia who's Swiss-Filipino, and Manon who's Danish-Ghanaian. That mix alone sets them apart.
+
+They debuted on August 28, 2024 with a single called "Debut." The music blends pop, R&B, and that signature K-pop polish. It's different. It's global.
+
+---
+
+## Why Gen Z Is Obsessed with Katseye
+
+Here's the thing about Katseye: they feel different from most K-pop groups. Here's why that matters to Gen Z fans:
+
+**They look like their audience.** The group has members from Korea, the US, Switzerland, Denmark, and the Philippines. For a generation that's multicultural and connected globally, seeing themselves represented in their favorite artists hits different.
+
+**The content feels real.** Unlike traditional K-pop where the image is carefully controlled, Katseye posts vlogs, candid moments, and stuff that feels less produced. Fans sense that authenticity.
+
+**They speak multiple languages in their music.** English, Korean, sometimes Spanish. Fans don't have to wait for translations or feel locked out. That's a big deal for international listeners.
+
+**The lyrics are about confidence and going for it.** Songs like "Debut" and "Touch" push self-expression. It's messaging that resonates with a generation navigating identity and ambition.
+
+**They get social media.** TikTok, Instagram, YouTube—Katseye's team knows how to create content that spreads. Dance challenges, behind-the-scenes clips, viral moments. The fanbase stays engaged because there's always something new.
+
+The official fan name is "Luvs." That's worth knowing if you want to sound like you know what's up.
+
+---
+
+## Katseye's Music So Far
+
+Here's what they've released since debuting:
+
+**2024 - The Debut Era**
+
+- "Debut" – The song that started it all
+- "Touch" – Their follow-up that showed their range
+
+**2025 - Building Momentum**
+
+- "Social Club (BFF)" – A fun track about friendship, very shareable
+- "Better)" – A ballad that showed they could do emotional
+- "CC" – An all-English single that went viral on TikTok
+
+They've landed on Billboard charts, sold out shows, and picked up brand deals. Not bad for a group that's barely two years old.
+
+---
+
+## Katseye Cake Ideas: Designs for Every Fan
+
+Now for the fun part—cake designs. Whether you're biasing Yoon Seoul, Lara, Megan, Daniela, Sophia, or Manon, there's a Katseye-themed cake idea here for you.
+
+### Katseye Logo Cake
+
+Keep it clean. White cake, black Katseye logo, silver or white frosting accents. Simple, recognizable, works for any Katseye celebration.
+
+### Member Spotlight Cakes
+
+Make it about your bias:
+
+**Yoon Seoul** – Soft pink and rose gold. Add a small crown since she's the leader, maybe some musical notes in the design.
+
+**Lara** – Silver and sparkle, or go with Filipino flag colors (blue, red, yellow). Her vocal range deserves a cake that pops.
+
+**Megan** – Bold. Red and black. She's the lead rapper, so the design should feel fierce.
+
+**Daniela** – Warm tones, sunset gradients, maybe some flowers or butterflies.
+
+**Sophia** – Swiss red with white, or elegant purple. Flowing ribbons work well for the main dancer.
+
+**Manon** – Danish blue or Ghanaian-inspired colors. Something regal.
+
+### Group Photo Cake
+
+Get an edible print of a Katseye promotional photo or concert shot. Put it on the cake as a centerpiece. Works great for fan meetups or release parties.
+
+### Song-Specific Cakes
+
+Match the vibe to the track:
+
+- **"Debut"** – Black and white, dramatic, silver accents
+- **"Touch"** – Soft gradients, hearts
+- **"Social Club"** – Bright colors, friendship themes
+- **"CC"** – Bold red, camera and film reel motifs
+
+### Concert-Themed Cakes
+
+Recreate the live show experience: stage-shaped cakes, edible light sticks, ticket designs, or glow stick effects with LED candles.
+
+---
+
+## Cake Gallery
+
+Here's a quick reference for Katseye-inspired designs:
+
+| Design | What It Looks Like | Good For |
+|--------|-------------------|----------|
+| Logo Cake | White cake with black logo, silver details | Group anniversary |
+| Member Portrait | Hand-painted edible portrait of one member | Birthdays |
+| Debut Era Throwback | Black and white, bold "Debut" text | Fan milestones |
+| Social Club Party | Colorful, friendship themes | Meetups |
+| Concert Lights | Dark cake with edible "lights" | Post-concert celebrations |
+| Rainbow Gradient | All colors representing the group's diversity | Unity celebrations |
+
+---
+
+## How to Order Your Katseye Cake
+
+Ready to make it happen? Here's how to get a Katseye-themed cake from Genie.ph:
+
+1. **Pick your size** – 6", 8", or 10" depending on how many people you're feeding
+2. **Choose flavor** – Chocolate, vanilla, red velvet, or mocha
+3. **Upload your idea** – Reference images, screenshots from MVs, member photos, whatever you have
+4. **Tell us details** – Which members, what colors, any specific songs to reference
+5. **Customize** – Adjust the design, icing type, and decorations
+6. **See the price** – It shows up instantly. Tweak until it fits your budget
+7. **Order** – Track it in real-time, get it delivered fresh
+
+---
+
+## Tips for a Great Katseye Cake
+
+- Start with reference images. Official photos, MV screenshots, fan edits—anything that shows what you want
+- Pick one or two members max unless it's a group celebration
+- Match your colors to the member's vibe or the song you're celebrating
+- Add a cake topper: a mini light stick, the group logo, or even a photo of your bias
+- Coordinate with your party theme if you're going all out
+
+---
+
+## For the Luvs
+
+Katseye fans are some of the most dedicated in K-pop right now. Whether you're celebrating a comeback, a member's birthday, a concert you just attended, or just want to show some love, the right cake makes it better.
+
+Go design that cake. Your bias would approve.
+
+---
+
+*Order your Katseye-themed cake at [Genie.ph](https://genie.ph). Upload your design idea and our bakers will make it happen.*
+
+*Made a Katseye cake? Tag us @genieph—we want to see it.*`,
+  },
+  {
     slug: 'baptismal-guide-metro-cebu-2026',
     title: 'Complete Baptismal Guide in Metro Cebu: Churches, Requirements & Step-by-Step Process (2026)',
     excerpt: 'Planning your child\'s baptism in Cebu? This comprehensive guide covers all the churches in Metro Cebu that offer baptismal services, what documents you need, step-by-step process, and important tips for a smooth ceremony.',

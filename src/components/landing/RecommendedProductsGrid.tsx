@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { getRecommendedProducts } from '@/services/supabaseService';
 import { ProductCard } from '@/components/ProductCard';
+import Masonry from 'react-masonry-css';
 
 interface RecommendedProduct {
     p_hash: string;
@@ -66,26 +67,38 @@ export const RecommendedProductsGrid = ({ initialProducts }: RecommendedProducts
             </div>
 
             {/* Product Grid */}
-            <div className="columns-2 min-[490px]:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-4 md:gap-5 lg:gap-6 space-y-4 md:space-y-5 lg:space-y-6 mb-8 md:mb-10">
+            <div className="mb-8 md:mb-10">
                 {products.length > 0 ? (
-                    <>
+                    <Masonry
+                        breakpointCols={{
+                            default: 6,
+                            1280: 5,
+                            1024: 4,
+                            768: 3,
+                            490: 2,
+                            0: 2
+                        }}
+                        className="flex w-auto -ml-4 md:-ml-5 lg:-ml-6"
+                        columnClassName="pl-4 md:pl-5 lg:pl-6 bg-clip-padding"
+                    >
                         {products.map((item, index) => (
-                            <ProductCard
-                                key={`${item.p_hash}-${index}`}
-                                p_hash={item.p_hash}
-                                original_image_url={item.original_image_url}
-                                price={item.price}
-                                keywords={item.keywords}
-                                slug={item.slug}
-                                availability={item.availability}
-                                analysis_json={item.analysis_json}
-                                priority={index < 4}
-                            />
+                            <div key={`${item.p_hash}-${index}`} className="mb-4 md:mb-5 lg:mb-6">
+                                <ProductCard
+                                    p_hash={item.p_hash}
+                                    original_image_url={item.original_image_url}
+                                    price={item.price}
+                                    keywords={item.keywords}
+                                    slug={item.slug}
+                                    availability={item.availability}
+                                    analysis_json={item.analysis_json}
+                                    priority={index < 4}
+                                />
+                            </div>
                         ))}
                         {/* Loading More Skeleton */}
                         {isLoadingMore && (
                             Array.from({ length: 4 }).map((_, i) => (
-                                <div key={`loading-more-${i}`} className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 animate-pulse">
+                                <div key={`loading-more-${i}`} className="mb-4 md:mb-5 lg:mb-6 bg-white p-3 rounded-2xl shadow-sm border border-gray-100 animate-pulse">
                                     <div className="aspect-square mb-3 rounded-xl bg-gray-200"></div>
                                     <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
                                     <div className="h-3 bg-gray-200 rounded w-1/2 mb-3"></div>
@@ -96,9 +109,9 @@ export const RecommendedProductsGrid = ({ initialProducts }: RecommendedProducts
                                 </div>
                             ))
                         )}
-                    </>
+                    </Masonry>
                 ) : (
-                    <div className="col-span-full text-center py-10 text-gray-500">
+                    <div className="text-center py-10 text-gray-500">
                         No recommended cakes found at the moment.
                     </div>
                 )}
