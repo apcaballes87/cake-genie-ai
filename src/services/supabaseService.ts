@@ -576,9 +576,7 @@ export async function getDesignCategories(customClient?: SupabaseClient): Promis
   const client = customClient || (typeof window === 'undefined' ? publicSupabaseClient : supabase);
   try {
     const { data: collections, error: collectionsError } = await client
-      .from('cakegenie_collections')
-      .select('name, slug, tags, sample_image, description, item_count')
-      .order('name', { ascending: true });
+      .rpc('get_design_categories_with_latest_image');
 
     if (collectionsError) {
       console.error('Error fetching design categories from collections:', collectionsError);
