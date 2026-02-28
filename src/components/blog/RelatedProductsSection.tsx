@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ProductCard } from '@/components/ProductCard';
 import { getRelatedProductsByKeywords } from '@/services/supabaseService';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -9,17 +9,37 @@ interface RelatedProductsProps {
     initialProducts: any[];
     keyword: string;
     slug: string;
+    /** Optional contextual sentence that bridges the blog content to the designs grid */
+    intro?: string;
 }
 
 export const RelatedProductsSection: React.FC<RelatedProductsProps> = ({
     initialProducts,
     keyword,
-    slug
+    slug,
+    intro,
 }) => {
     const [products, setProducts] = useState<any[]>(initialProducts);
     const [offset, setOffset] = useState(4);
     const [hasMore, setHasMore] = useState(initialProducts.length >= 4);
     const [isLoading, setIsLoading] = useState(false);
+    const [isVisible, setIsVisible] = useState(false);
+    const sectionRef = useRef<HTMLDivElement>(null);
+
+    // Fade-in when section scrolls into view
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsVisible(true);
+                    observer.disconnect();
+                }
+            },
+            { threshold: 0.05 }
+        );
+        if (sectionRef.current) observer.observe(sectionRef.current);
+        return () => observer.disconnect();
+    }, []);
 
     const loadMore = async () => {
         if (isLoading || !hasMore) return;
@@ -50,16 +70,31 @@ export const RelatedProductsSection: React.FC<RelatedProductsProps> = ({
     }
 
     return (
-        <div className="mt-12 space-y-4 pt-8 border-t border-purple-100">
-            <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">Relevant Cake Designs</h2>
-                {hasMore && (
-                    <a
-                        href={`/collections?search=${encodeURIComponent(keyword)}`}
-                        className="text-sm text-purple-600 hover:text-purple-800 font-semibold"
-                    >
-                        View all
-                    </a>
+        <div
+            ref={sectionRef}
+            className={`mt-12 pt-10 border-t border-purple-100 transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                }`}
+        >
+            {/* Contextual header */}
+            <div className="mb-6 space-y-2">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                        <span>🎂</span>
+                        <span>Relevant Cake Designs</span>
+                    </h2>
+                    {hasMore && (
+                        <a
+                            href={`/collections?search=${encodeURIComponent(keyword)}`}
+                            className="text-sm text-purple-600 hover:text-purple-800 font-semibold shrink-0"
+                        >
+                            View all
+                        </a>
+                    )}
+                </div>
+                {intro && (
+                    <p className="text-gray-500 text-sm leading-relaxed max-w-2xl">
+                        {intro}
+                    </p>
                 )}
             </div>
 

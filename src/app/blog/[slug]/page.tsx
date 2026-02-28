@@ -121,6 +121,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             initialProducts={relatedDesigns}
             keyword={post.keywords || post.title}
             slug={slug}
+            intro={post.relatedCakesIntro}
           />
         )}
       </article>
