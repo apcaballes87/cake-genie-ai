@@ -705,8 +705,8 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
 }
 
 /**
- * Fetches related products based on keywords from the current design.
- * Matches cakes that share similar keywords using ILIKE.
+ * Fetches related products based on keywords from the current blog post or design.
+ * Matches across keywords, alt_text, and slug columns using ILIKE for broad recall.
  * Falls back to recent products if no keyword matches found.
  */
 export async function getRelatedProductsByKeywords(
@@ -715,33 +715,37 @@ export async function getRelatedProductsByKeywords(
   limit: number = 6,
   offset: number = 0
 ): Promise<SupabaseServiceResponse<any[]>> {
+  const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
   try {
-    // Split keywords into individual words for matching
+    // Split keywords into individual terms for matching
     const keywordList = keywords
-      ? keywords.toLowerCase().split(/[\s,]+/).filter(k => k.length > 2)
+      ? keywords.toLowerCase().split(/[\s,]+/).filter(k => k.length > 1)
       : [];
 
-    let query = supabase
+    let query = client
       .from('cakegenie_analysis_cache')
       .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability')
       .not('original_image_url', 'is', null)
       .not('price', 'is', null)
       .neq('original_image_url', '');
 
-    // Exclude the current design
+    // Exclude the current design/post slug
     if (excludeSlug) {
       query = query.neq('slug', excludeSlug);
     }
 
-    // If we have keywords, search for matches using OR conditions
+    // If we have keywords, search across keywords, alt_text, and slug for better recall
     if (keywordList.length > 0) {
-      // Build OR filter for keyword matching (match any keyword)
-      const orFilters = keywordList.map(k => `keywords.ilike.%${k}%`).join(',');
+      const orFilters = keywordList.flatMap(k => [
+        `keywords.ilike.%${k}%`,
+        `alt_text.ilike.%${k}%`,
+        `slug.ilike.%${k}%`,
+      ]).join(',');
       query = query.or(orFilters);
     }
 
     const { data, error } = await query
-      .order('created_at', { ascending: false })
+      .order('usage_count', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) {
@@ -762,6 +766,7 @@ export async function getRelatedProductsByKeywords(
     return { data: null, error: err as Error };
   }
 }
+
 
 /**
  * Type for recent search design data returned by getAnalysisBySlug
