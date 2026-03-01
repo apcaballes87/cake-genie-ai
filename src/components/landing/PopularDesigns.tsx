@@ -33,11 +33,11 @@ export const PopularDesigns = ({ designs }: PopularDesignsProps) => {
 
             <Masonry
                 breakpointCols={{
-                    default: 8,
-                    1280: 6,
-                    1024: 5,
-                    768: 4,
-                    490: 3,
+                    default: 6,
+                    1280: 5,
+                    1024: 4,
+                    768: 3,
+                    490: 2,
                     0: 2
                 }}
                 className="flex w-auto -ml-4 md:-ml-5 lg:-ml-6"
@@ -55,7 +55,7 @@ export const PopularDesigns = ({ designs }: PopularDesignsProps) => {
                                     alt={design.alt_text || `${design.keywords} cake design`}
                                     width={0}
                                     height={0}
-                                    sizes="(max-width: 490px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                                    sizes="(max-width: 490px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 17vw"
                                     style={{ width: '100%', height: 'auto' }}
                                     className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
                                 />

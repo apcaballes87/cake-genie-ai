@@ -76,7 +76,7 @@ export function ShopClient({ merchants }: ShopClientProps) {
                         </p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
                         {filteredMerchants.map((merchant) => (
                             <Link
                                 key={merchant.merchant_id}
