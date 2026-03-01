@@ -13,7 +13,7 @@ export const MerchantShowcase = ({ merchants }: MerchantShowcaseProps) => {
                 <h2 className="text-xl md:text-2xl font-bold text-gray-900">Our Partner Shops</h2>
                 <Link
                     href="/search?q=shops"
-                    className="text-purple-600 text-sm font-bold hover:underline"
+                    className="px-5 py-2.5 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all"
                 >
                     View All
                 </Link>

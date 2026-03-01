@@ -673,11 +673,11 @@ export default function OrdersClient() {
                     <button
                         onClick={handleLoadMore}
                         disabled={isFetching}
-                        className="flex items-center justify-center mx-auto bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-75"
+                        className="px-8 py-3 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
                     >
                         {isFetching ? (
                             <>
-                                <Loader2 className="animate-spin mr-2 w-4 h-4" />
+                                <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
                                 Loading...
                             </>
                         ) : (

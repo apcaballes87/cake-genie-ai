@@ -74,7 +74,7 @@ export default async function SitemapHtmlPage() {
                 <section className="pt-8 border-t border-slate-200">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-2xl font-bold text-slate-800">Popular Cake Designs</h2>
-                        <Link href="/customizing" className="text-sm font-semibold text-purple-600 hover:text-purple-800">
+                        <Link href="/customizing" className="px-5 py-2.5 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all">
                             View All →
                         </Link>
                     </div>

@@ -63,7 +63,11 @@ export const RecommendedProductsGrid = ({ initialProducts }: RecommendedProducts
                     <h2 className="text-xl md:text-2xl font-bold text-gray-900">Recent searches by users</h2>
                     <p className="text-gray-500 text-sm md:text-base">Get the price in 15 seconds!</p>
                 </div>
-                <button className="text-purple-600 text-sm font-bold hover:underline hidden md:block">View All</button>
+                <button
+                    className="px-8 py-3 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+                >
+                    View All
+                </button>
             </div>
 
             {/* Product Grid */}
@@ -123,9 +127,16 @@ export const RecommendedProductsGrid = ({ initialProducts }: RecommendedProducts
                     <button
                         onClick={handleLoadMore}
                         disabled={isLoadingMore}
-                        className="border border-gray-300 bg-white px-8 py-3 rounded-full text-sm font-bold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-8 py-3 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
                     >
-                        {isLoadingMore ? 'Loading...' : 'Load More'}
+                        {isLoadingMore ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                                Loading...
+                            </>
+                        ) : (
+                            'Load More'
+                        )}
                     </button>
                 ) : (
                     <div className="text-gray-400 text-xs">End of results</div>
