@@ -553,7 +553,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         {/* --- CAKES AVAILABLE TODAY --- */}
                         <section aria-label="Rush order cakes" className="mb-4">
                             <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 mb-3">Shop Cake Designs Available for Rush Orders</h2>
-                            <div className="flex overflow-x-auto gap-3 pb-4 md:grid min-[490px]:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 md:gap-6 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+                            <div className="flex overflow-x-auto gap-3 pb-4 md:grid grid-cols-2 min-[490px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 md:gap-6 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
                                 {quickLinks.map((link, cardIndex) => {
                                     const activeIndex = rushImageIndexes[cardIndex] ?? 0;
                                     return (

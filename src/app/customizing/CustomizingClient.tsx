@@ -3385,7 +3385,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             {displayedRelatedDesigns && displayedRelatedDesigns.length > 0 && (
                 <div className="w-full pb-0 pt-0 mb-0 mt-0">
                     <h2 className="text-lg font-semibold text-slate-800 mb-4">What other designs are trending in Cebu?</h2>
-                    <div className="columns-2 sm:columns-3 lg:columns-6 gap-3 space-y-3">
+                    <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-3 space-y-3">
                         {displayedRelatedDesigns.map((related, i) => (
                             <Link
                                 key={`${related.slug}-${i}`}

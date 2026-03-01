@@ -174,7 +174,7 @@ const SavedClient: React.FC = () => {
                     </div>
                 ) : (
                     // Saved Items Grid
-                    <div className="columns-2 min-[490px]:columns-3 md:columns-3 lg:columns-4 xl:columns-5 gap-4 md:gap-5 lg:gap-6 space-y-4 md:space-y-5 lg:space-y-6">
+                    <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4 md:gap-5 lg:gap-6 space-y-4 md:space-y-5 lg:space-y-6">
                         {savedItems.map((item) => (
                             <div
                                 key={item.saved_item_id}
