@@ -7,6 +7,7 @@ import LazyImage from '@/components/LazyImage';
 import { v4 as uuidv4 } from 'uuid';
 import { findClosestColor } from '@/utils/colorUtils';
 import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Heart, Cake, Star, Zap, Clock, CalendarDays } from 'lucide-react';
+import Masonry from 'react-masonry-css';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
 import { CustomizationTabs } from '@/components/CustomizationTabs';
 import { CustomizationBottomSheet } from '../../components/CustomizationBottomSheet';
@@ -3385,12 +3386,23 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             {displayedRelatedDesigns && displayedRelatedDesigns.length > 0 && (
                 <div className="w-full pb-0 pt-0 mb-0 mt-0">
                     <h2 className="text-lg font-semibold text-slate-800 mb-4">What other designs are trending in Cebu?</h2>
-                    <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-3 space-y-3">
+                    <Masonry
+                        breakpointCols={{
+                            default: 6,
+                            1536: 6,
+                            1280: 5,
+                            1024: 4,
+                            768: 3,
+                            0: 2
+                        }}
+                        className="flex w-auto -ml-3"
+                        columnClassName="pl-3 bg-clip-padding"
+                    >
                         {displayedRelatedDesigns.map((related, i) => (
                             <Link
                                 key={`${related.slug}-${i}`}
                                 href={`/customizing/${related.slug}`}
-                                className="group cursor-pointer flex flex-col h-full relative break-inside-avoid"
+                                className="group cursor-pointer flex flex-col h-full relative mb-3"
                                 aria-label={`View ${related.keywords || 'custom'} cake design`}
                                 tabIndex={0}
                             >
@@ -3454,7 +3466,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 </div>
                             </Link>
                         ))}
-                    </div>
+                    </Masonry>
 
                     {/* Show More Button */}
                     {hasMoreDesigns && (
