@@ -15,7 +15,7 @@ import { SegmentationBottomSheet } from '../../components/SegmentationBottomShee
 import { BoundingBoxOverlay } from '../../components/BoundingBoxOverlay';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { CustomizationSkeleton, CustomizationTabsSkeleton, ChosenOptionsSkeleton } from '../../components/LoadingSkeletons';
-import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, BackIcon, ReportIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon, SideIcingGuideIcon, TopIcingGuideIcon, TopBorderGuideIcon, BaseBorderGuideIcon, BaseBoardGuideIcon, TrashIcon } from '../../components/icons';
+import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, BackIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon, SideIcingGuideIcon, TopIcingGuideIcon, TopBorderGuideIcon, BaseBorderGuideIcon, BaseBoardGuideIcon, TrashIcon } from '../../components/icons';
 import { ShoppingBag } from 'lucide-react';
 import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType, AvailabilitySettings, IcingColorDetails, AnalysisItem, ClusteredMarker, CartItem } from '../../types';
 import { CakeGenieCartItem, CakeGenieMerchant, CakeGenieMerchantProduct } from '../../lib/database.types';
@@ -30,8 +30,7 @@ import { TopperCard } from '../../components/TopperCard';
 import { DesignAboutSection } from '@/components/DesignAboutSection';
 import StickyAddToCartBar from '../../components/StickyAddToCartBar';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
-import { reportCustomization, uploadReportImage, getAnalysisByExactHash, getRelatedProductsByKeywords } from '../../services/supabaseService';
-import ReportModal from '../../components/ReportModal';
+import { getAnalysisByExactHash, getRelatedProductsByKeywords } from '../../services/supabaseService';
 import ShareModal from '../../components/ShareModal';
 import { CartItemDetails } from '../../types';
 
@@ -409,12 +408,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     // --- Local State ---
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
-    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
     const [pendingCartItems, setPendingCartItems] = useState<CartItem[]>([]);
     const [isAddingToCart, setIsAddingToCart] = useState(false);
-    const [isReporting, setIsReporting] = useState(false);
-    const [reportStatus, setReportStatus] = useState<'success' | 'error' | null>(null);
     const [isPreparingSharedDesign, setIsPreparingSharedDesign] = useState(false);
     const [previousAnalysisSnapshot, setPreviousAnalysisSnapshot] = useState<HybridAnalysisResult | null>(null);
     const [searchInput, setSearchInput] = useState('');
@@ -1200,7 +1196,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
     const onSignOut = () => signOut();
-    const onOpenReportModal = () => setIsReportModalOpen(true);
+
     const onUpdateDesign = handleUpdateDesign;
     const onSave = handleSave;
     const isSaving = false;
@@ -1289,48 +1285,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         };
     }, [cakeInfo, icingDesign, mainToppers, supportElements, cakeMessages, additionalInstructions, HEX_TO_COLOR_NAME_MAP_SHARING]);
 
-    const handleReport = useCallback(async (userFeedback: string) => {
-        if (!editedImage || !lastGenerationInfoRef.current) {
-            showError("Missing critical data for report.");
-            return;
-        }
 
-        const originalToUpload = previousImageData || sourceImageData;
-        if (!originalToUpload?.data) {
-            showError("Missing original image for report.");
-            return;
-        }
-
-        setIsReporting(true); setReportStatus(null);
-        try {
-            const { prompt, systemInstruction } = lastGenerationInfoRef.current;
-            const fullPrompt = `--- SYSTEM PROMPT ---\n${systemInstruction}\n\n--- USER PROMPT ---\n${prompt}\n`;
-
-            showInfo("Uploading images...");
-            const [originalImageUrl, customizedImageUrl] = await Promise.all([
-                uploadReportImage(originalToUpload.data, 'original'),
-                uploadReportImage(editedImage, 'customized')
-            ]);
-
-            await reportCustomization({
-                original_image: originalImageUrl,
-                customized_image: customizedImageUrl,
-                prompt_sent_gemini: fullPrompt.trim(),
-                maintoppers: JSON.stringify(mainToppers.filter(t => t.isEnabled)),
-                supportelements: JSON.stringify(supportElements.filter(s => s.isEnabled)),
-                cakemessages: JSON.stringify(cakeMessages.filter(m => m.isEnabled)),
-                icingdesign: JSON.stringify(icingDesign),
-                addon_price: addOnPricing?.addOnPrice ?? 0,
-                user_report: userFeedback.trim() || undefined,
-            });
-            setReportStatus('success'); showSuccess("Report submitted. Thank you!"); setIsReportModalOpen(false);
-        } catch (err) {
-            setReportStatus('error'); showError("Failed to submit report.");
-        } finally {
-            setIsReporting(false);
-            setTimeout(() => setReportStatus(null), 5000);
-        }
-    }, [editedImage, previousImageData, sourceImageData, lastGenerationInfoRef, mainToppers, supportElements, cakeMessages, icingDesign, addOnPricing]);
 
     const onAddToCart = async () => {
         if (!finalPrice || !cakeInfo) return;
@@ -2085,24 +2040,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 </div>
             )}
 
-            <button
-                onClick={onOpenReportModal}
-                disabled={!editedImage || isLoading || isReporting}
-                className="w-full text-center bg-yellow-100 border border-yellow-200 text-yellow-800 text-sm font-semibold px-4 py-2 rounded-xl shadow-sm transition-colors hover:bg-yellow-200 disabled:bg-yellow-100/50 disabled:text-yellow-600 disabled:cursor-not-allowed disabled:hover:bg-yellow-100"
-            >
-                BETA TEST: Features are experimental. Click here to report any issues.
-            </button>
-            {isReporting && reportStatus === null && (
-                <div className="w-full flex items-center justify-center text-sm font-semibold p-2 rounded-xl animate-fade-in bg-blue-100 text-blue-700">
-                    <Loader2 className="animate-spin mr-2 w-4 h-4" />
-                    Submitting your report... Thank you!
-                </div>
-            )}
-            {reportStatus && (
-                <div className={`w-full text-center text-sm font-semibold p-2 rounded-xl animate-fade-in ${reportStatus === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                    {reportStatus === 'success' ? 'Report submitted successfully. Thank you for your feedback!' : 'Failed to submit report. Please try again.'}
-                </div>
-            )}
+
 
             {/* Two-column layout for desktop/tablet landscape */}
             <div className="w-full flex flex-col md:flex-row gap-4 md:gap-8">
@@ -2889,10 +2827,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                                 {/* Action Buttons */}
                                 <div className="w-full flex items-center justify-end gap-4 pt-2 mt-4 border-t border-slate-200/50">
-                                    <button onClick={onOpenReportModal} disabled={!editedImage || isLoading || isReporting} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Report an issue with this image">
-                                        <ReportIcon />
-                                        <span className="ml-2">{isReporting ? 'Submitting...' : 'Report Issue'}</span>
-                                    </button>
+
                                     <button onClick={onSave} disabled={!editedImage || isLoading || isSaving} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label={isSaving ? "Saving image" : "Save customized image"}>
                                         {isSaving ? (
                                             <>
@@ -3564,15 +3499,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             onWarningClick={warningMessage && !isSafetyFallback ? () => setActiveCustomization('toppers') : undefined}
             availability={availabilityType}
         />
-        <ReportModal
-            isOpen={isReportModalOpen}
-            onClose={() => setIsReportModalOpen(false)}
-            onSubmit={handleReport}
-            isSubmitting={isReporting}
-            editedImage={editedImage}
-            details={analysisResult ? buildCartItemDetails() : null}
-            cakeInfo={cakeInfo}
-        />
+
         <ShareModal
             isOpen={isShareModalOpen}
             onClose={closeShareModal}
