@@ -13,7 +13,7 @@
  * Valid sizes for pricing rules
  * These MUST match the database pricing_rules.size column values
  */
-export const VALID_SIZES = ['tiny', 'small', 'medium', 'large'] as const;
+export const VALID_SIZES = ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] as const;
 export type ValidSize = typeof VALID_SIZES[number];
 
 /**
