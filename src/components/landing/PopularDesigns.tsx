@@ -28,7 +28,7 @@ export const PopularDesigns = ({ designs }: PopularDesignsProps) => {
                     <h2 className="text-xl md:text-2xl font-bold text-gray-900">Popular Cake Designs</h2>
                     <p className="text-gray-500 text-sm md:text-base">Trending designs loved by our community</p>
                 </div>
-                <Link href="/customizing" className="text-purple-600 text-sm font-bold hover:underline hidden md:block">View All</Link>
+                <Link href="/customizing" className="px-5 py-2.5 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all hidden md:block">View All</Link>
             </div>
 
             <Masonry
@@ -112,7 +112,7 @@ export const PopularDesigns = ({ designs }: PopularDesignsProps) => {
             <div className="text-center mt-8 md:hidden">
                 <Link
                     href="/customizing"
-                    className="inline-block border border-purple-300 text-purple-600 px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-purple-50 transition-colors"
+                    className="px-8 py-3 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all inline-flex items-center gap-2"
                 >
                     View All Designs
                 </Link>
