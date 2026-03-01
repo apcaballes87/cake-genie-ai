@@ -1,9 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import LazyImage from '@/components/LazyImage';
 import { Heart, Cake, Star, Zap, Clock, CalendarDays } from 'lucide-react';
 import Masonry from 'react-masonry-css';
+import { getPopularDesigns } from '@/services/supabaseService';
+import { createClient } from '@/lib/supabase/client';
 
 export interface PopularDesign {
     slug: string;
@@ -18,7 +21,43 @@ interface PopularDesignsProps {
     designs: PopularDesign[];
 }
 
-export const PopularDesigns = ({ designs }: PopularDesignsProps) => {
+export const PopularDesigns = ({ designs: initialDesigns }: PopularDesignsProps) => {
+    const [designs, setDesigns] = useState<PopularDesign[]>(initialDesigns || []);
+    const [isLoading, setIsLoading] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [displayCount, setDisplayCount] = useState(6);
+
+    // Create client-side supabase client
+    const [supabase] = useState(() => createClient());
+
+    const loadMore = async () => {
+        if (isLoading || !hasMore) return;
+
+        setIsLoading(true);
+        try {
+            const nextCount = displayCount + 6;
+            const { data, error } = await getPopularDesigns(nextCount, supabase);
+
+            if (error) {
+                console.error('Error loading more designs:', error);
+            } else if (data && data.length > 0) {
+                setDesigns(data);
+                setDisplayCount(nextCount);
+
+                // If we got fewer than we asked for, there are no more
+                if (data.length < nextCount) {
+                    setHasMore(false);
+                }
+            } else {
+                setHasMore(false);
+            }
+        } catch (err) {
+            console.error('Error loading more designs:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     if (!designs || designs.length === 0) return null;
 
     return (
@@ -28,7 +67,6 @@ export const PopularDesigns = ({ designs }: PopularDesignsProps) => {
                     <h2 className="text-xl md:text-2xl font-bold text-gray-900">Popular Cake Designs</h2>
                     <p className="text-gray-500 text-sm md:text-base">Trending designs loved by our community</p>
                 </div>
-                <Link href="/customizing" className="px-5 py-2.5 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all hidden md:block">View All</Link>
             </div>
 
             <Masonry
@@ -43,7 +81,7 @@ export const PopularDesigns = ({ designs }: PopularDesignsProps) => {
                 className="flex w-auto -ml-4 md:-ml-5 lg:-ml-6"
                 columnClassName="pl-4 md:pl-5 lg:pl-6 bg-clip-padding"
             >
-                {designs.map((design) => (
+                {designs.slice(0, displayCount).map((design) => (
                     <div key={design.slug} className="mb-4 md:mb-5 lg:mb-6">
                         <Link
                             href={`/customizing/${design.slug}`}
@@ -109,14 +147,29 @@ export const PopularDesigns = ({ designs }: PopularDesignsProps) => {
                 ))}
             </Masonry>
 
-            <div className="text-center mt-8 md:hidden">
-                <Link
-                    href="/customizing"
-                    className="px-8 py-3 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all inline-flex items-center gap-2"
-                >
-                    View All Designs
-                </Link>
-            </div>
+            {/* Load More Button */}
+            {hasMore ? (
+                <div className="mt-12 text-center">
+                    <button
+                        onClick={loadMore}
+                        disabled={isLoading}
+                        className="px-8 py-3 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+                    >
+                        {isLoading ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                                Loading...
+                            </>
+                        ) : (
+                            'Load More'
+                        )}
+                    </button>
+                </div>
+            ) : designs.length > 0 ? (
+                <div className="mt-12 text-center text-slate-500">
+                    <p>You've seen all the popular designs!</p>
+                </div>
+            ) : null}
         </section>
     );
 };

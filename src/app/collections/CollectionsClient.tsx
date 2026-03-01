@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, ShoppingBag } from 'lucide-react';
+import Masonry from 'react-masonry-css';
 import { ProductCard } from '@/components/ProductCard';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import MobileBottomNav from '@/components/MobileBottomNav';
@@ -197,20 +198,32 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                                 </p>
                             </div>
 
-                            <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4 md:gap-5 space-y-4 md:space-y-5">
+                            <Masonry
+                                breakpointCols={{
+                                    default: 6,
+                                    1536: 6,
+                                    1280: 5,
+                                    1024: 4,
+                                    768: 3,
+                                    0: 2
+                                }}
+                                className="flex w-auto -ml-4"
+                                columnClassName="pl-4 bg-clip-padding"
+                            >
                                 {recentDesigns.map((design) => (
-                                    <ProductCard
-                                        key={design.slug}
-                                        p_hash={design.p_hash}
-                                        original_image_url={design.original_image_url}
-                                        price={design.price}
-                                        keywords={Array.isArray(design.keywords) ? design.keywords.join(', ') : design.keywords}
-                                        slug={design.slug}
-                                        availability={design.availability ?? undefined}
-                                        analysis_json={design.analysis_json}
-                                    />
+                                    <div key={design.slug} className="mb-4">
+                                        <ProductCard
+                                            p_hash={design.p_hash}
+                                            original_image_url={design.original_image_url}
+                                            price={design.price}
+                                            keywords={Array.isArray(design.keywords) ? design.keywords.join(', ') : design.keywords}
+                                            slug={design.slug}
+                                            availability={design.availability ?? undefined}
+                                            analysis_json={design.analysis_json}
+                                        />
+                                    </div>
                                 ))}
-                            </div>
+                            </Masonry>
                         </section>
                     )}
                 </div>

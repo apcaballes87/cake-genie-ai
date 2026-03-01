@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { ProductCard } from '@/components/ProductCard';
+import Masonry from 'react-masonry-css';
 import { GoogleSearchSection } from './GoogleSearchSection';
 import { fetchMoreDesigns } from '@/app/collections/actions';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -50,20 +51,32 @@ export const DesignGridWithLoadMore: React.FC<DesignGridWithLoadMoreProps> = ({ 
     return (
         <div>
             {/* Designs Grid */}
-            <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4 md:gap-5 space-y-4 md:space-y-5">
+            <Masonry
+                breakpointCols={{
+                    default: 6,
+                    1536: 6,
+                    1280: 5,
+                    1024: 4,
+                    768: 3,
+                    0: 2
+                }}
+                className="flex w-auto -ml-4"
+                columnClassName="pl-4 bg-clip-padding"
+            >
                 {designs.map((design: any) => (
-                    <ProductCard
-                        key={`${design.slug}-${design.p_hash}`} // Ensure uniqueness if duplicates occur
-                        p_hash={design.p_hash}
-                        original_image_url={design.original_image_url}
-                        price={design.price}
-                        keywords={design.keywords}
-                        slug={design.slug}
-                        availability={design.availability}
-                        analysis_json={design.analysis_json}
-                    />
+                    <div key={`${design.slug}-${design.p_hash}`} className="mb-4">
+                        <ProductCard
+                            p_hash={design.p_hash}
+                            original_image_url={design.original_image_url}
+                            price={design.price}
+                            keywords={design.keywords}
+                            slug={design.slug}
+                            availability={design.availability}
+                            analysis_json={design.analysis_json}
+                        />
+                    </div>
                 ))}
-            </div>
+            </Masonry>
 
             {/* Load More Button */}
             {hasMore ? (
