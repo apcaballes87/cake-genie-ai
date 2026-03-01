@@ -820,7 +820,7 @@ function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceI
     const analysis = design.analysis_json || {};
 
     return (
-        <div className="w-full max-w-4xl mx-auto px-4 pb-32 pt-8 space-y-6">
+        <div className="w-full max-w-4xl mx-auto px-4 pb-28 pt-2 space-y-4">
             {/* Design Details — moved to seoContentSlot passed to CustomizingClient */}
 
             {/* Structured Specifications Table for SEO */}
@@ -831,30 +831,30 @@ function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceI
                         <tbody className="divide-y divide-slate-200">
                             {tags.length > 0 && (
                                 <tr className="bg-slate-50">
-                                    <th className="px-4 py-3 font-semibold text-slate-700 w-1/3">Target Occasions</th>
-                                    <td className="px-4 py-3 text-slate-600">{tags.join(', ')}</td>
+                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Target Occasions</th>
+                                    <td className="px-4 py-2 text-slate-600">{tags.join(', ')}</td>
                                 </tr>
                             )}
                             <tr className="bg-white">
-                                <th className="px-4 py-3 font-semibold text-slate-700 w-1/3">Cake Style</th>
-                                <td className="px-4 py-3 text-slate-600">{analysis.cakeType || 'Custom'} {keywords}</td>
+                                <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Cake Style</th>
+                                <td className="px-4 py-2 text-slate-600">{analysis.cakeType || 'Custom'} {keywords}</td>
                             </tr>
                             <tr className="bg-slate-50">
-                                <th className="px-4 py-3 font-semibold text-slate-700 w-1/3">Icing Finish</th>
-                                <td className="px-4 py-3 text-slate-600">{analysis.icing_design?.base?.replace(/_/g, ' ') || 'Standard Icing'}</td>
+                                <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Icing Finish</th>
+                                <td className="px-4 py-2 text-slate-600">{analysis.icing_design?.base?.replace(/_/g, ' ') || 'Standard Icing'}</td>
                             </tr>
                             {analysis.main_toppers?.length > 0 && (
                                 <tr className="bg-white">
-                                    <th className="px-4 py-3 font-semibold text-slate-700 w-1/3">Primary Features</th>
-                                    <td className="px-4 py-3 text-slate-600">
+                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Primary Features</th>
+                                    <td className="px-4 py-2 text-slate-600">
                                         {analysis.main_toppers.map((t: any) => t.description || t.type).join(', ')}
                                     </td>
                                 </tr>
                             )}
                             {analysis.support_elements?.length > 0 && (
                                 <tr className="bg-slate-50">
-                                    <th className="px-4 py-3 font-semibold text-slate-700 w-1/3">Decorations</th>
-                                    <td className="px-4 py-3 text-slate-600">
+                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Decorations</th>
+                                    <td className="px-4 py-2 text-slate-600">
                                         {analysis.support_elements.map((s: any) => s.description || s.type).join(', ')}
                                     </td>
                                 </tr>

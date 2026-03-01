@@ -2033,7 +2033,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             </div>
         </div>
 
-        <div className={`flex flex-col items-center gap-4 w-full max-w-7xl mx-auto px-4 transition-all duration-300 ${showStickyBar ? 'pb-40' : 'pb-10'}`}>
+        <div className={`flex flex-col items-center gap-6 w-full max-w-7xl mx-auto px-4 transition-all duration-300 ${showStickyBar ? 'pb-8' : 'pb-10'}`}>
 
             {/* SEO Breadcrumbs - Visible for both Shop Product and SEO Landing Pages */}
             {((product && merchant) || (recentSearchDesign && recentSearchDesign.slug)) && (
@@ -2105,7 +2105,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             )}
 
             {/* Two-column layout for desktop/tablet landscape */}
-            <div className="w-full flex flex-col md:flex-row gap-4">
+            <div className="w-full flex flex-col md:flex-row gap-4 md:gap-8">
                 {/* LEFT COLUMN: Image and Update Design */}
                 <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
                     <div ref={mainImageContainerRef} className="w-full bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 flex flex-col">
@@ -2919,7 +2919,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             {(seoContentSlot || (!slug && ((product && (product.long_description || product.short_description || (product.tags && product.tags.length > 0))) ||
                 (recentSearchDesign && (recentSearchDesign.seo_description || recentSearchDesign.alt_text)) ||
                 (analysisResult && (analysisResult.seo_description || analysisResult.alt_text))))) && (
-                    <div className="w-full mt-6">
+                    <div className="w-full mt-0">
                         <div className="bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
                             {/* SSR Slot Injection */}
                             {seoContentSlot}
@@ -3448,7 +3448,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
             {/* Related Designs Section */}
             {displayedRelatedDesigns && displayedRelatedDesigns.length > 0 && (
-                <div className="w-full pb-0 pt-0 mb-0">
+                <div className="w-full pb-0 pt-0 mb-0 mt-0">
                     <h2 className="text-lg font-semibold text-slate-800 mb-4">What other designs are trending in Cebu?</h2>
                     <div className="columns-2 sm:columns-3 lg:columns-6 gap-3 space-y-3">
                         {displayedRelatedDesigns.map((related, i) => (
@@ -3523,7 +3523,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                     {/* Show More Button */}
                     {hasMoreDesigns && (
-                        <div className="flex justify-center mt-6">
+                        <div className="flex justify-center mt-4">
                             <button
                                 onClick={handleLoadMoreDesigns}
                                 disabled={isLoadingMoreDesigns}
