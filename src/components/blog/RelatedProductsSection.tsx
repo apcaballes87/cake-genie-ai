@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ProductCard } from '@/components/ProductCard';
+import Masonry from 'react-masonry-css';
 import { getRelatedProductsByKeywords } from '@/services/supabaseService';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
@@ -98,20 +99,32 @@ export const RelatedProductsSection: React.FC<RelatedProductsProps> = ({
                 )}
             </div>
 
-            <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4 md:gap-5 space-y-4 md:space-y-5">
+            <Masonry
+                breakpointCols={{
+                    default: 6,
+                    1536: 6,
+                    1280: 5,
+                    1024: 4,
+                    768: 3,
+                    0: 2
+                }}
+                className="flex w-auto -ml-4"
+                columnClassName="pl-4 bg-clip-padding"
+            >
                 {products.map((product, index) => (
-                    <ProductCard
-                        key={`${product.slug || product.p_hash}-${index}`}
-                        p_hash={product.p_hash}
-                        original_image_url={product.original_image_url}
-                        price={product.price}
-                        keywords={product.keywords}
-                        slug={product.slug}
-                        availability={product.availability}
-                        analysis_json={product.analysis_json}
-                    />
+                    <div key={`${product.slug || product.p_hash}-${index}`} className="mb-4">
+                        <ProductCard
+                            p_hash={product.p_hash}
+                            original_image_url={product.original_image_url}
+                            price={product.price}
+                            keywords={product.keywords}
+                            slug={product.slug}
+                            availability={product.availability}
+                            analysis_json={product.analysis_json}
+                        />
+                    </div>
                 ))}
-            </div>
+            </Masonry>
 
             {/* Load More Button */}
             {hasMore && (
