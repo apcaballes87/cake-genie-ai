@@ -3393,6 +3393,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             1280: 5,
                             1024: 4,
                             768: 3,
+                            490: 2,
                             0: 2
                         }}
                         className="flex w-auto -ml-3"
