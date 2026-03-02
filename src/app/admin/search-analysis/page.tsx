@@ -83,6 +83,7 @@ export default function SearchAnalysisAdminPage() {
     const isStoppedRef = useRef(false);
     const cseElementRef = useRef<any>(null);
     const imageQueueRef = useRef<string[]>([]);
+    const thumbnailMapRef = useRef<Map<string, string>>(new Map()); // Maps original URL to gstatic thumbnail
     const processedUrlsRef = useRef<Set<string>>(new Set());
     const containerObserverRef = useRef<MutationObserver | null>(null);
     const logsEndRef = useRef<HTMLDivElement>(null);
@@ -395,14 +396,44 @@ export default function SearchAnalysisAdminPage() {
         if (!container) return;
 
         const collectImages = () => {
-            // Collect ALL image URLs - we'll try original first, fallback to gstatic during processing
+            // First, collect gstatic thumbnail URLs and map them to potential original URLs
+            container.querySelectorAll('a[href*="gstatic.com"]').forEach((link) => {
+                const gstaticUrl = (link as HTMLAnchorElement).href;
+                if (gstaticUrl && !processedUrlsRef.current.has(gstaticUrl) && !imageQueueRef.current.includes(gstaticUrl)) {
+                    imageQueueRef.current.push(gstaticUrl);
+                    processedUrlsRef.current.add(gstaticUrl);
+                    setProgress(prev => ({ ...prev, total: prev.total + 1 }));
+                    addLog(`Found thumbnail: ${gstaticUrl.substring(0, 50)}...`);
+                }
+            });
+
+            // Also check for gstatic in img src
+            container.querySelectorAll('.gs-image-box img, .gs-imageResult img, .gsc-imageResult img').forEach((img) => {
+                const url = (img as HTMLImageElement).src;
+                if (url?.startsWith('http') && url.includes('gstatic.com')) {
+                    if (!processedUrlsRef.current.has(url) && !imageQueueRef.current.includes(url)) {
+                        imageQueueRef.current.push(url);
+                        processedUrlsRef.current.add(url);
+                        setProgress(prev => ({ ...prev, total: prev.total + 1 }));
+                        addLog(`Found thumbnail: ${url.substring(0, 50)}...`);
+                    }
+                }
+            });
+
+            // Then collect all other image URLs (original URLs)
             container.querySelectorAll('.gs-image-box img, .gs-imageResult img, .gsc-imageResult img').forEach((img) => {
                 const url = (img as HTMLImageElement).src;
                 if (url?.startsWith('http') && !processedUrlsRef.current.has(url) && !imageQueueRef.current.includes(url)) {
-                    imageQueueRef.current.push(url);
-                    processedUrlsRef.current.add(url);
-                    setProgress(prev => ({ ...prev, total: prev.total + 1 }));
-                    addLog(`Found image: ${url.substring(0, 50)}...`);
+                    // Skip gstatic - already collected above
+                    if (url.includes('gstatic.com')) return;
+
+                    // Store this URL - we'll check for its thumbnail during processing
+                    if (!processedUrlsRef.current.has(url)) {
+                        imageQueueRef.current.push(url);
+                        processedUrlsRef.current.add(url);
+                        setProgress(prev => ({ ...prev, total: prev.total + 1 }));
+                        addLog(`Found image: ${url.substring(0, 50)}...`);
+                    }
                 }
             });
         };
