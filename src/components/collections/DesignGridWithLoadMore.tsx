@@ -58,6 +58,7 @@ export const DesignGridWithLoadMore: React.FC<DesignGridWithLoadMoreProps> = ({ 
                     1280: 5,
                     1024: 4,
                     768: 3,
+                    490: 2,
                     0: 2
                 }}
                 className="flex w-auto -ml-4"

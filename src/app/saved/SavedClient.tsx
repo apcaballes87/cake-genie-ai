@@ -3,6 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Heart, Trash2, ShoppingCart, Sparkles, Cake, Star } from 'lucide-react';
+import Masonry from 'react-masonry-css';
 import LazyImage from '@/components/LazyImage';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import { useSavedItems } from '@/contexts/SavedItemsContext';
@@ -174,12 +175,23 @@ const SavedClient: React.FC = () => {
                     </div>
                 ) : (
                     // Saved Items Grid
-                    <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4 md:gap-5 lg:gap-6 space-y-4 md:space-y-5 lg:space-y-6">
+                    <Masonry
+                        breakpointCols={{
+                            default: 6,
+                            1536: 6,
+                            1280: 5,
+                            1024: 4,
+                            768: 3,
+                            0: 2
+                        }}
+                        className="flex w-auto -ml-4"
+                        columnClassName="pl-4 bg-clip-padding"
+                    >
                         {savedItems.map((item) => (
                             <div
                                 key={item.saved_item_id}
                                 onClick={() => handleCustomize(item)}
-                                className="group cursor-pointer flex flex-col h-full relative break-inside-avoid"
+                                className="group cursor-pointer flex flex-col h-full relative mb-4"
                             >
                                 <div className="relative mb-1.5 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
                                     <LazyImage
@@ -238,7 +250,7 @@ const SavedClient: React.FC = () => {
                                 </div>
                             </div>
                         ))}
-                    </div>
+                    </Masonry>
 
                 )}
             </div>

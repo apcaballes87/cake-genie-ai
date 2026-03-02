@@ -6,7 +6,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import { ImageUploader } from '@/components/ImageUploader';
 import { MapPin, Phone, Star, ShoppingBag, BadgeCheck, Loader2, Heart, Cake } from 'lucide-react';
-import { getMerchantBySlug, getMerchantProductsWithCache } from '@/services/supabaseService';
+import { ProductCard } from '@/components/ProductCard';
+import Masonry from 'react-masonry-css';
+import { getMerchantBySlug, getMerchantProductsWithCache, getRelatedProductsByKeywords } from '@/services/supabaseService';
 import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.types';
 import { HybridAnalysisResult } from '@/types';
 import LazyImage from '@/components/LazyImage';
@@ -233,12 +235,23 @@ export function MerchantPageClient({ slug }: MerchantPageClientProps) {
                             <p className="text-slate-600">No products available yet.</p>
                         </div>
                     ) : (
-                        <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4 md:gap-5 lg:gap-6 space-y-4 md:space-y-5 lg:space-y-6">
+                        <Masonry
+                            breakpointCols={{
+                                default: 6,
+                                1536: 6,
+                                1280: 5,
+                                1024: 4,
+                                768: 3,
+                                0: 2
+                            }}
+                            className="flex w-auto -ml-4"
+                            columnClassName="pl-4 bg-clip-padding"
+                        >
                             {products.map((product) => (
                                 <div
                                     key={product.product_id}
                                     onClick={() => handleProductClick(product)}
-                                    className="group cursor-pointer flex flex-col h-full relative break-inside-avoid"
+                                    className="group cursor-pointer flex flex-col h-full relative mb-4"
                                 >
                                     <div className="relative mb-1.5 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
                                         <LazyImage
@@ -295,18 +308,16 @@ export function MerchantPageClient({ slug }: MerchantPageClientProps) {
                                     </div>
                                 </div>
                             ))}
-                        </div>
+                        </Masonry>
                     )}
                 </section>
-
             </main>
 
-            {/* Image Uploader Modal */}
             <ImageUploader
                 isOpen={isUploadOpen}
                 onClose={() => setIsUploadOpen(false)}
                 onImageSelect={handleImageSelect}
             />
-        </div >
+        </div>
     );
 }
