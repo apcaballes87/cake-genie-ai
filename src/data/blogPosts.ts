@@ -1502,6 +1502,71 @@ Because celebrating life's special moments shouldn't mean choosing between the c
 
 *Have questions about customizing your cake? Our support team is ready to help you maximize value while creating something beautiful. Chat with us directly on the Genie.ph platform.*`,
   },
+  {
+    slug: 'genie-ph-idiscount-partnership-20-percent-off',
+    title: 'Genie PH x IDiscount Philippines: Students Get 20% Off Custom Cakes!',
+    excerpt: 'Big news! IDiscount Philippines users now get 20% off custom cakes at Genie.ph. Here is how Filipino students can save on their celebration cakes.',
+    keywords: 'IDiscount Philippines, student discount, custom cake, Genie PH, birthday cake, graduation cake, Philippines',
+    relatedCakesIntro: 'Planning a celebration? Browse these custom cake designs — all customizable and priced instantly.',
+    date: '2026-03-03',
+    author: 'Genie.ph',
+    authorUrl: 'https://genie.ph/about',
+    image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/blogs/idiscount-partners-genie.jpg',
+    content: `Okay, real talk - student life is expensive. Between projects, exams, and trying to have some fun, your wallet takes a beating. So we have been thinking about how to make celebrating a little easier on the budget.
+
+That is why we are excited to tell you about something new.
+
+---
+
+## Meet IDiscount Philippines
+
+If you have not checked out IDiscount yet, they are basically the discount app every student in the Philippines should have on their phone. They partner with businesses all over the country - food, fashion, tech, entertainment, travel - you name it. Got a student ID? Chances are you can save on the things you actually need.
+
+The app is simple: download, verify you are a student, and boom - discounts. No more asking around or hoping someone knows a promo code. It is all right there.
+
+---
+
+## The Good News
+
+Here is the part you have been waiting for.
+
+**Genie PH is now partnered with IDiscount Philippines.**
+
+All IDiscount users? You now get **20% off** on custom cakes at Genie.ph.
+
+Birthday cake for your barkada? 20% off. Graduation cake to celebrate surviving your thesis? 20% off. Debut cake? 20% off. Just because you survived finals and want to treat yourself? Also 20% off.
+
+---
+
+## How to Get Your Discount
+
+Here is what to do:
+
+1. Make sure you have the IDiscount app (or sign up if you have not yet)
+2. Open the app and go to Featured Businesses
+3. Look for Genie PH
+4. Grab your exclusive discount code
+
+Heads up - the discount code is currently hiding in the emails of IDiscount first 100 users. So if you are one of the early adopters, check your inbox! For everyone else, more codes are coming soon as the partnership expands.
+
+---
+
+## Why This Matters
+
+We know student budgets are tight. Celebrations should not feel like a luxury - they should be fun. Whether you are turning 18, walking across that stage, or just want a really good cake for your gig, we think you deserve something that makes the moment special.
+
+That is the whole point of this partnership. More wishes. More savings. More reasons to celebrate.
+
+---
+
+## Ready to Order?
+
+Head over to [Genie.ph](https://genie.ph), upload your dream cake design, and start customizing. Your 20% discount will be applied when you checkout.
+
+Questions? Our team is ready to help you create something amazing without breaking the bank.
+
+*Happy celebrating, Philippines!*`
+  }
 ];
 
 export function getBlogPostBySlug(slug: string): BlogPost | undefined {
