@@ -213,55 +213,14 @@ export default function SearchAnalysisAdminPage() {
             const imageUrl = queue[i];
             processedUrlsRef.current.add(imageUrl);
 
-            // Highlight current image in CSE grid
+            addLog(`[${i + 1}/${queue.length}] Processing: ${imageUrl}`);
             highlightCurrentImage(imageUrl, true);
-            addLog(`[${i + 1}/${queue.length}] Processing image...`);
 
             try {
-                // 1. Try the original URL first (including Facebook URLs)
-                const imageToFetch = imageUrl;
-
-                // Fetch via proxy
-                const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageToFetch)}`;
+                // Fetch the gstatic thumbnail URL directly
+                const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
                 const response = await fetch(proxyUrl);
-
-                // If original URL fails, try gstatic thumbnail as fallback
-                if (!response.ok || response.status !== 200) {
-                    const thumbnailUrl = getGstaticThumbnail();
-                    if (thumbnailUrl) {
-                        addLog(`[${i + 1}/${queue.length}] Main URL failed, trying thumbnail...`);
-                        const retryUrl = `/api/proxy-image?url=${encodeURIComponent(thumbnailUrl)}`;
-                        const retryResponse = await fetch(retryUrl);
-                        if (!retryResponse.ok) throw new Error(`Proxy error: ${retryResponse.status}`);
-                        const retryBlob = await retryResponse.blob();
-                        if (!retryBlob.type.startsWith('image/')) throw new Error('Not an image');
-                        const file = new File([retryBlob], 'search-image.webp', { type: retryBlob.type });
-                        const imageData = await fileToBase64(file);
-                        const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
-                        const pHash = await generatePerceptualHash(imageSrc);
-                        const cached = await findSimilarAnalysisByHash(pHash, imageUrl);
-                        if (cached) {
-                            addLog(`[${i + 1}/${queue.length}] Already in cache — skipped.`);
-                            skipped++;
-                        } else {
-                            const aiResponse = await fetch('/api/ai/analyze', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ imageData: imageData.data, mimeType: imageData.mimeType })
-                            });
-                            if (!aiResponse.ok) throw new Error(`AI error: ${await aiResponse.text()}`);
-                            const analysisResult = await aiResponse.json();
-                            await cacheAnalysisResult(pHash, analysisResult, imageUrl);
-                            addLog(`[${i + 1}/${queue.length}] Cached successfully (thumbnail).`);
-                            done++;
-                        }
-                        await delay(1500);
-                        highlightCurrentImage(imageUrl, false);
-                        setProgress({ current: i + 1, total: queue.length });
-                        continue;
-                    }
-                    throw new Error(`Proxy error: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`Proxy error: ${response.status}`);
 
                 const blob = await response.blob();
                 if (!blob.type.startsWith('image/')) throw new Error('Not an image');
@@ -396,44 +355,15 @@ export default function SearchAnalysisAdminPage() {
         if (!container) return;
 
         const collectImages = () => {
-            // First, collect gstatic thumbnail URLs and map them to potential original URLs
-            container.querySelectorAll('a[href*="gstatic.com"]').forEach((link) => {
-                const gstaticUrl = (link as HTMLAnchorElement).href;
-                if (gstaticUrl && !processedUrlsRef.current.has(gstaticUrl) && !imageQueueRef.current.includes(gstaticUrl)) {
-                    imageQueueRef.current.push(gstaticUrl);
-                    processedUrlsRef.current.add(gstaticUrl);
-                    setProgress(prev => ({ ...prev, total: prev.total + 1 }));
-                    addLog(`Found thumbnail: ${gstaticUrl.substring(0, 50)}...`);
-                }
-            });
-
-            // Also check for gstatic in img src
-            container.querySelectorAll('.gs-image-box img, .gs-imageResult img, .gsc-imageResult img').forEach((img) => {
-                const url = (img as HTMLImageElement).src;
-                if (url?.startsWith('http') && url.includes('gstatic.com')) {
-                    if (!processedUrlsRef.current.has(url) && !imageQueueRef.current.includes(url)) {
-                        imageQueueRef.current.push(url);
-                        processedUrlsRef.current.add(url);
-                        setProgress(prev => ({ ...prev, total: prev.total + 1 }));
-                        addLog(`Found thumbnail: ${url.substring(0, 50)}...`);
-                    }
-                }
-            });
-
-            // Then collect all other image URLs (original URLs)
+            // Collect gstatic thumbnail URLs from img src (these ARE the actual image URLs)
+            // Skip anchor links - they point to pages, not images
             container.querySelectorAll('.gs-image-box img, .gs-imageResult img, .gsc-imageResult img').forEach((img) => {
                 const url = (img as HTMLImageElement).src;
                 if (url?.startsWith('http') && !processedUrlsRef.current.has(url) && !imageQueueRef.current.includes(url)) {
-                    // Skip gstatic - already collected above
-                    if (url.includes('gstatic.com')) return;
-
-                    // Store this URL - we'll check for its thumbnail during processing
-                    if (!processedUrlsRef.current.has(url)) {
-                        imageQueueRef.current.push(url);
-                        processedUrlsRef.current.add(url);
-                        setProgress(prev => ({ ...prev, total: prev.total + 1 }));
-                        addLog(`Found image: ${url.substring(0, 50)}...`);
-                    }
+                    imageQueueRef.current.push(url);
+                    processedUrlsRef.current.add(url);
+                    setProgress(prev => ({ ...prev, total: prev.total + 1 }));
+                    addLog(`Found image: ${url}`);
                 }
             });
         };

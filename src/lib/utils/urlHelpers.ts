@@ -27,23 +27,86 @@ export function generateUrlSlug(parts: string | (string | null | undefined)[], s
  * Maps hex color codes to human-readable color names.
  * Uses the same palette defined in the AI system instruction.
  */
-const HEX_TO_NAME: Record<string, string> = {
-  '#EF4444': 'red', '#FCA5A5': 'light red', '#F97316': 'orange',
-  '#EAB308': 'yellow', '#16A34A': 'green', '#4ADE80': 'light green',
-  '#14B8A6': 'teal', '#3B82F6': 'blue', '#93C5FD': 'light blue',
-  '#8B5CF6': 'purple', '#C4B5FD': 'light purple', '#EC4899': 'pink',
-  '#FBCFE8': 'light pink', '#78350F': 'brown', '#B45309': 'light brown',
-  '#64748B': 'gray', '#FFFFFF': 'white', '#000000': 'black',
-};
+const SIMPLE_COLORS = [
+  { name: 'red', hex: 'ff0000' },
+  { name: 'orange', hex: 'ffa500' },
+  { name: 'yellow', hex: 'ffff00' },
+  { name: 'green', hex: '008000' },
+  { name: 'blue', hex: '0000ff' },
+  { name: 'purple', hex: '800080' },
+  { name: 'pink', hex: 'ffc0cb' },
+  { name: 'brown', hex: 'a52a2a' },
+  { name: 'black', hex: '000000' },
+  { name: 'white', hex: 'ffffff' },
+  { name: 'gray', hex: '808080' },
+  { name: 'gold', hex: 'ffd700' },
+  { name: 'silver', hex: 'c0c0c0' },
+  { name: 'navy', hex: '000080' },
+  { name: 'teal', hex: '008080' },
+  { name: 'maroon', hex: '800000' },
+  { name: 'olive', hex: '808000' },
+  { name: 'lime', hex: '00ff00' },
+  { name: 'aqua', hex: '00ffff' },
+  { name: 'fuchsia', hex: 'ff00ff' },
+  { name: 'sky-blue', hex: '87ceeb' },
+  { name: 'ivory', hex: 'fffff0' },
+  { name: 'light-pink', hex: 'ffb6c1' },
+  { name: 'lavender', hex: 'e6e6fa' },
+  { name: 'peach', hex: 'ffdab9' },
+  { name: 'mint', hex: '98ff98' },
+  { name: 'coral', hex: 'ff7f50' },
+];
+
+function hexToRgb(hex: string) {
+  const bigint = parseInt(hex, 16);
+  return {
+    r: (bigint >> 16) & 255,
+    g: (bigint >> 8) & 255,
+    b: bigint & 255
+  };
+}
+
+function getColorDistance(hex1: string, hex2: string) {
+  const rgb1 = hexToRgb(hex1);
+  const rgb2 = hexToRgb(hex2);
+  return Math.sqrt(
+    Math.pow(rgb1.r - rgb2.r, 2) +
+    Math.pow(rgb1.g - rgb2.g, 2) +
+    Math.pow(rgb1.b - rgb2.b, 2)
+  );
+}
 
 /**
- * Converts a hex color code to a human-readable color name.
- * If the hex is not in the mapping, returns the original value.
+ * Converts a hex color code to the nearest human-readable color name.
+ * If the value is not a hex string, it returns the original value.
  */
 function hexToName(hex: string): string {
   if (!hex) return '';
-  const upper = hex.toUpperCase();
-  return HEX_TO_NAME[upper] || hex;
+
+  // Clean the input, remove '#' if it exists
+  const cleanHex = hex.replace(/^#/, '').toLowerCase();
+
+  // Verify it's structurally a hex code (3 or 6 chars)
+  if (!/^[0-9a-f]{3}$/i.test(cleanHex) && !/^[0-9a-f]{6}$/i.test(cleanHex)) {
+    return hex;
+  }
+
+  // Expand 3-char hex to 6-char
+  const expandedHex = cleanHex.length === 3
+    ? cleanHex.split('').map(c => c + c).join('')
+    : cleanHex;
+
+  let nearest = '';
+  let minDistance = Infinity;
+  for (const color of SIMPLE_COLORS) {
+    const d = getColorDistance(expandedHex, color.hex);
+    if (d < minDistance) {
+      minDistance = d;
+      nearest = color.name;
+    }
+  }
+
+  return nearest;
 }
 
 /**
@@ -88,7 +151,12 @@ export function generateCakeAnalysisSlug(params: {
   const type = cakeType || '';
   const hashSuffix = pHash ? pHash.substring(0, 4) : '';
 
-  return generateUrlSlug([kw, color, type], hashSuffix);
+  let slug = generateUrlSlug([kw, color, type], hashSuffix ? `cake-${hashSuffix}` : 'cake');
+
+  // prevent 'cake-cake' since some names may naturally end with '-cake'
+  slug = slug.replace(/-cake-cake-/g, '-cake-');
+
+  return slug;
 }
 
 export function isValidRedirect(path: string | null): boolean {
