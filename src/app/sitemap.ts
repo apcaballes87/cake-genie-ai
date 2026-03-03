@@ -246,14 +246,36 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
 
     // Chunk 4: Popular Search Categories
     if (sitemapId === 4) {
-        const { data: recentSearchesFull } = await supabase
-            .from('cakegenie_analysis_cache')
-            .select('keywords')
-            .not('slug', 'is', null)
-            .limit(5000)
+        let allKeywords: any[] = [];
+        let hasMore = true;
+        let offset = 0;
+        const limit = 1000;
+
+        while (hasMore) {
+            const { data: recentSearchesFull, error } = await supabase
+                .from('cakegenie_analysis_cache')
+                .select('keywords')
+                .not('slug', 'is', null)
+                .range(offset, offset + limit - 1);
+
+            if (error) {
+                console.error('Error fetching keywords for sitemap:', error);
+                break;
+            }
+
+            if (recentSearchesFull && recentSearchesFull.length > 0) {
+                allKeywords = [...allKeywords, ...recentSearchesFull];
+                offset += limit;
+
+                // If we got exactly the limit, there might be more
+                hasMore = recentSearchesFull.length === limit;
+            } else {
+                hasMore = false;
+            }
+        }
 
         const keywordMap = new Map<string, number>()
-        for (const search of (recentSearchesFull || [])) {
+        for (const search of allKeywords) {
             const kw = (search.keywords || '').trim()
             if (!kw) continue
             keywordMap.set(kw, (keywordMap.get(kw) || 0) + 1)
