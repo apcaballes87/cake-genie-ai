@@ -181,40 +181,27 @@ export const useImageManagement = () => {
             // --- STEP 2: COMPRESS IMAGE FOR AI & STORAGE (ONLY ON CACHE MISS) ---
             let uploadedImageUrl = options?.imageUrl; // Use existing URL if from web search
             let compressedImageData = imageData; // Default to original
+            let finalImageBlobToCache: Blob | undefined;
 
             try {
                 // Compress image for both AI analysis and storage. 1024x1024 is optimal for Gemini.
                 const imageBlob = dataURItoBlob(imageSrc);
                 const fileToUpload = new File([imageBlob], file.name, { type: file.type });
+                finalImageBlobToCache = fileToUpload; // default
 
                 const compressedFile = await compressImage(fileToUpload, {
                     maxSizeMB: 0.5,
                     maxWidthOrHeight: 1024,
                     fileType: 'image/webp',
                 });
+                finalImageBlobToCache = compressedFile;
 
                 // Convert compressed file to base64 for AI
                 compressedImageData = await fileToBase64(compressedFile);
 
+                // Image upload to Supabase is now deferred until after AI analysis completes
+                // so we can use the generated SEO-friendly slug as the filename.
 
-                // Upload compressed file to storage
-                if (!uploadedImageUrl) {
-                    const fileName = `analysis-cache/${uuidv4()}.webp`;
-                    const { error: uploadError } = await supabase.storage
-                        .from('cakegenie')
-                        .upload(fileName, compressedFile, {
-                            contentType: 'image/webp',
-                            upsert: false,
-                        });
-
-                    if (uploadError) {
-                        console.warn('Failed to upload image for caching, proceeding without URL.', uploadError.message);
-                    } else {
-                        const { data: { publicUrl } } = supabase.storage.from('cakegenie').getPublicUrl(fileName);
-                        uploadedImageUrl = publicUrl;
-
-                    }
-                }
             } catch (compressionErr) {
                 console.warn('Image compression failed, proceeding with original:', compressionErr);
             }
@@ -244,14 +231,14 @@ export const useImageManagement = () => {
                         options.onCoordinatesEnriched(enrichedResult);
                     }
 
-                    // Cache the fully enriched result
-                    cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl);
+                    // Cache the fully enriched result, passing the blob to upload it with the generated slug
+                    cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache);
 
                     console.log('✨ Coordinate enrichment complete');
                 }).catch(enrichmentError => {
                     console.warn('⚠️ Coordinate enrichment failed, but features are still available:', enrichmentError);
-                    // Still cache the fast result even if enrichment fails
-                    cacheAnalysisResult(pHash, fastResult, uploadedImageUrl);
+                    // Still cache the fast result even if enrichment fails, passing the blob
+                    cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache);
                 });
 
             } catch (error) {

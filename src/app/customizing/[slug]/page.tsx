@@ -146,8 +146,6 @@ export async function generateMetadata(
             images: design.original_image_url ? [
                 {
                     url: design.original_image_url,
-                    width: 1200,
-                    height: 630,
                     alt: design.alt_text || design.keywords || 'Custom cake design',
                 },
             ] : [],
@@ -641,6 +639,7 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-contain"
                             priority
+                            itemProp="image"
                         />
                         <figcaption className="sr-only">{altText}</figcaption>
                     </figure>

@@ -394,12 +394,45 @@ export async function getAnalysisByExactHash(pHash: string): Promise<HybridAnaly
 }
 
 /**
+ * Converts an image Blob to a WebP Blob using the browser's Canvas API.
+ * This should only be called on the client side.
+ */
+export async function convertToWebP(blob: Blob): Promise<Blob> {
+  if (typeof window === 'undefined') return blob; // Fallback if server-side
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob((webpBlob) => {
+        if (webpBlob) {
+          resolve(webpBlob);
+        } else {
+          reject(new Error('Canvas to WebP conversion failed'));
+        }
+      }, 'image/webp', 0.85); // 0.85 quality
+    };
+    img.onerror = () => reject(new Error('Failed to load image for WebP conversion'));
+    img.src = URL.createObjectURL(blob);
+  });
+}
+
+/**
  * Saves a new AI analysis result to the cache table. This is a fire-and-forget operation.
  * @param pHash The perceptual hash of the image.
  * @param analysisResult The JSON result from the AI analysis.
  * @param imageUrl The public URL of the original image being cached.
+ * @param imageBlob Optional Blob of the processed image to be converted and uploaded to Supabase.
  */
-export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysisResult, imageUrl?: string): void {
+export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysisResult, imageUrl?: string, imageBlob?: Blob): void {
   // FIX: Converted to an async IIFE to use try/catch for error handling,
   // as the Supabase query builder is a 'thenable' but may not have a .catch method.
   (async () => {
@@ -431,6 +464,38 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
       const seoTitle = analysisResult.seo_title || `${keywords || 'Custom'} Cake | Genie.ph`;
       const seoDescription = analysisResult.seo_description || `Get instant pricing for this ${keywords || 'custom'} cake design. Customize and order at Genie.ph. Starting at ₱${totalPrice.toLocaleString()}.`;
 
+      let finalImageUrl = imageUrl;
+
+      // If we have a blob, convert to WebP and upload to Supabase storage
+      if (imageBlob) {
+        try {
+          console.log('🖼️ Converting image to WebP and uploading to Supabase...');
+          const webpBlob = await convertToWebP(imageBlob);
+          const fileName = `${slug}.webp`;
+          const filePath = `analysis-cache/${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('cakegenie')
+            .upload(filePath, webpBlob, {
+              contentType: 'image/webp',
+              upsert: true,
+            });
+
+          if (uploadError) {
+            console.error('❌ Failed to upload image to Supabase storage:', uploadError);
+          } else {
+            const { data: { publicUrl } } = supabase.storage
+              .from('cakegenie')
+              .getPublicUrl(filePath);
+
+            finalImageUrl = publicUrl;
+            console.log('✅ Image uploaded successfully to:', finalImageUrl);
+          }
+        } catch (uploadErr) {
+          console.error('❌ Error during image upload process:', uploadErr);
+        }
+      }
+
       // Calculate availability from the analysis result
       const mainToppers = (analysisResult.main_toppers || []).map(t => ({ type: t.type, description: t.description || '' }));
       const supportElements = (analysisResult.support_elements || []).map(s => ({ type: s.type, description: s.description || '' }));
@@ -449,7 +514,7 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
         .upsert({
           p_hash: pHash,
           analysis_json: analysisResult,
-          original_image_url: imageUrl,
+          original_image_url: finalImageUrl,
           price: totalPrice,
           keywords: keywords,
           slug: slug,
@@ -459,7 +524,7 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
           availability: availability,
         }, {
           onConflict: 'p_hash',
-          ignoreDuplicates: true // Don't update if already exists, just skip
+          ignoreDuplicates: false // We set to false because we want to update with the new persistent image URL if it was already cached without one
         });
 
 
