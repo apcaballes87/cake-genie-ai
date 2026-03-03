@@ -251,7 +251,7 @@ export function MerchantPageClient({ slug }: MerchantPageClientProps) {
                                 <div
                                     key={product.product_id}
                                     onClick={() => handleProductClick(product)}
-                                    className="group cursor-pointer flex flex-col h-full relative mb-4"
+                                    className="group cursor-pointer flex flex-col relative mb-4"
                                 >
                                     <div className="relative mb-1.5 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
                                         <LazyImage

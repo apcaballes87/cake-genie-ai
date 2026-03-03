@@ -3403,7 +3403,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             <Link
                                 key={`${related.slug}-${i}`}
                                 href={`/customizing/${related.slug}`}
-                                className="group cursor-pointer flex flex-col h-full relative mb-3"
+                                className="group cursor-pointer flex flex-col relative mb-3"
                                 aria-label={`View ${related.keywords || 'custom'} cake design`}
                                 tabIndex={0}
                             >
