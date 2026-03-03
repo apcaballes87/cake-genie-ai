@@ -56,8 +56,6 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
                 {
                     url: product.image_url,
                     alt: imageAlt,
-                    width: 1200,
-                    height: 630,
                 }
             ] : [],
             siteName: 'Genie.ph',
@@ -149,6 +147,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                         className="w-full max-w-md h-auto rounded-xl shadow-md"
                         loading="eager" // Force early load for LCP
                         {...({ fetchPriority: "high" } as any)} // Hint for LCP
+                        itemProp="image"
                     />
                 </div>
 

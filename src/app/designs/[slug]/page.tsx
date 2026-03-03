@@ -73,8 +73,6 @@ export async function generateMetadata(
             images: [
                 {
                     url: design.customized_image_url,
-                    width: 1200,
-                    height: 630,
                     alt: design.alt_text || design.title || 'Custom cake design',
                 },
             ],
@@ -220,6 +218,7 @@ export default async function SharedDesignPage({ params }: Props) {
                             fill
                             className="rounded-xl shadow-lg border border-slate-200"
                             imageClassName="object-cover"
+                            itemProp="image"
                         />
                         <div className="absolute top-3 right-3 flex gap-2 z-10">
                             <SharedDesignCopyButton />
