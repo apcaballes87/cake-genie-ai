@@ -384,7 +384,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             {/* Mobile Hero */}
                             <div className="sm:hidden flex flex-col gap-3 text-center pt-2 pb-2">
                                 {/* Rotating Image Banner with Text Overlay */}
-                                <div className="relative w-full rounded-2xl overflow-hidden shadow-sm aspect-[3/2] bg-white flex flex-col justify-center">
+                                <div className="relative w-full rounded-2xl overflow-hidden shadow-sm aspect-3/2 bg-white flex flex-col justify-center">
                                     {heroImages.map((src, index) => (
                                         <div
                                             key={src}
@@ -401,7 +401,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     ))}
 
                                     {/* Responsive Text Overlay */}
-                                    <div className="absolute inset-y-0 left-0 w-3/4 max-w-[280px] bg-gradient-to-r from-white via-white/80 to-transparent z-20 pointer-events-none" />
+                                    <div className="absolute inset-y-0 left-0 w-3/4 max-w-[280px] bg-linear-to-r from-white via-white/80 to-transparent z-20 pointer-events-none" />
 
                                     <div className="relative z-30 px-5 text-left w-full sm:w-[85%]">
                                         <p className="text-[1.75rem] xs:text-[2rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight drop-shadow-sm">
@@ -433,10 +433,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             </div>
 
                             {/* Desktop/Tablet Hero */}
-                            <div className="hidden sm:flex relative overflow-hidden rounded-[2rem] bg-white h-72 lg:h-[26rem] items-center shadow-sm">
+                            <div className="hidden sm:flex relative overflow-hidden rounded-4xl bg-white h-72 lg:h-104 items-center shadow-sm">
                                 {/* Left Side: Text and Buttons */}
                                 <div className="flex-1 px-8 lg:px-14 z-20 flex flex-col justify-center h-full max-w-[55%] relative">
-                                    <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-transparent pointer-events-none -mr-32" />
+                                    <div className="absolute inset-0 bg-linear-to-r from-white via-white/95 to-transparent pointer-events-none -mr-32" />
                                     <div className="relative z-10">
                                         <p className="text-[2.5rem] lg:text-[3rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight drop-shadow-sm">
                                             Upload any Cake Design,<br />Get the Price in Seconds
@@ -467,7 +467,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 <div className="absolute inset-0 z-0">
                                     <div className="relative w-full h-full">
                                         {/* Soft gradient fade on the left edge of the image to blend it with the white text area */}
-                                        <div className="absolute inset-y-0 left-0 w-[50%] bg-gradient-to-r from-white via-white/80 to-transparent z-20 pointer-events-none" />
+                                        <div className="absolute inset-y-0 left-0 w-[50%] bg-linear-to-r from-white via-white/80 to-transparent z-20 pointer-events-none" />
 
                                         {heroImages.map((src, index) => (
                                             <div
@@ -509,7 +509,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 </div>
                                 <div className="flex gap-2 md:grid md:grid-cols-4 md:gap-6 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 pb-1 md:pb-0">
                                     {/* Card 1 */}
-                                    <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-[0.75rem] md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
+                                    <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-xl md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
                                         <div className="mb-2 md:mb-4 text-purple-800">
                                             <UploadCloud className="w-6 h-6 sm:w-8 sm:h-8 md:w-11 md:h-11" strokeWidth={1.5} />
                                         </div>
@@ -518,7 +518,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     </div>
 
                                     {/* Card 2 */}
-                                    <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-[0.75rem] md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
+                                    <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-xl md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
                                         <div className="mb-2 md:mb-4 text-purple-800 flex items-center justify-center relative w-[28px] h-[24px] sm:w-[40px] sm:h-[36px] md:w-[56px] md:h-[46px]">
                                             <Tag className="absolute left-0 top-0 opacity-80 w-3.5 h-3.5 sm:w-5 sm:h-5 md:w-8 md:h-8" strokeWidth={1.5} />
                                             <Calculator className="absolute right-0 bottom-0 bg-purple-50/60 rounded rotate-12 w-5 h-5 sm:w-7 sm:h-7 md:w-9 md:h-9 shadow-sm" strokeWidth={1.5} />
@@ -528,7 +528,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     </div>
 
                                     {/* Card 3 - NEW */}
-                                    <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-[0.75rem] md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
+                                    <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-xl md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
                                         <div className="mb-2 md:mb-4 text-purple-800">
                                             <Cake className="w-6 h-6 sm:w-8 sm:h-8 md:w-11 md:h-11" strokeWidth={1.5} />
                                         </div>
@@ -537,7 +537,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     </div>
 
                                     {/* Card 4 */}
-                                    <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-[0.75rem] md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
+                                    <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-xl md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
                                         <div className="mb-2 md:mb-4 text-purple-800">
                                             <ShoppingBag className="w-6 h-6 sm:w-8 sm:h-8 md:w-11 md:h-11" strokeWidth={1.5} />
                                         </div>

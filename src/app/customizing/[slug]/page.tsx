@@ -831,12 +831,6 @@ function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceI
                 <div className="overflow-hidden rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm text-left">
                         <tbody className="divide-y divide-slate-200">
-                            {tags.length > 0 && (
-                                <tr className="bg-slate-50">
-                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Target Occasions</th>
-                                    <td className="px-4 py-2 text-slate-600">{tags.join(', ')}</td>
-                                </tr>
-                            )}
                             <tr className="bg-white">
                                 <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Cake Style</th>
                                 <td className="px-4 py-2 text-slate-600">{analysis.cakeType || 'Custom'} {keywords}</td>
@@ -859,6 +853,12 @@ function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceI
                                     <td className="px-4 py-2 text-slate-600">
                                         {analysis.support_elements.map((s: any) => s.description || s.type).join(', ')}
                                     </td>
+                                </tr>
+                            )}
+                            {tags.length > 0 && (
+                                <tr className="bg-white">
+                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">TAGS</th>
+                                    <td className="px-4 py-2 text-slate-600">{tags.join(', ')}</td>
                                 </tr>
                             )}
                         </tbody>
