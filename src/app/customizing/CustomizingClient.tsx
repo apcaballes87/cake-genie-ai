@@ -5,7 +5,7 @@ import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import Link from 'next/link';
 import LazyImage from '@/components/LazyImage';
 import { v4 as uuidv4 } from 'uuid';
-import { findClosestColor } from '@/utils/colorUtils';
+import { findClosestColor, hexToColorNameProse } from '@/utils/colorUtils';
 import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Heart, Cake, Star, Zap, Clock, CalendarDays } from 'lucide-react';
 import Masonry from 'react-masonry-css';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
@@ -459,12 +459,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         },
     });
 
-    const HEX_TO_COLOR_NAME_MAP_SHARING = useMemo(() => {
-        return COLORS.reduce((acc, color) => {
-            acc[color.hex.toLowerCase()] = color.name;
-            return acc;
-        }, {} as Record<string, string>);
-    }, []);
 
     const { isShareModalOpen, shareData, isSavingDesign, handleShare, createShareLink, closeShareModal } = useDesignSharing({
         slug: (persistedSlug || slug || seoMetadata?.slug) as string || null,
@@ -1261,7 +1255,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     const buildCartItemDetails = useCallback((): CartItemDetails => {
         if (!cakeInfo || !icingDesign) throw new Error("Missing data for cart item.");
-        const hexToName = (hex: string) => HEX_TO_COLOR_NAME_MAP_SHARING[hex.toLowerCase()] || hex;
+        const hexToName = hexToColorNameProse;
         return {
             flavors: cakeInfo.flavors,
             mainToppers: mainToppers.filter((t: MainTopperUI) => t.isEnabled).map((t: MainTopperUI) => ({
@@ -1284,7 +1278,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             },
             additionalInstructions: additionalInstructions.trim(),
         };
-    }, [cakeInfo, icingDesign, mainToppers, supportElements, cakeMessages, additionalInstructions, HEX_TO_COLOR_NAME_MAP_SHARING]);
+    }, [cakeInfo, icingDesign, mainToppers, supportElements, cakeMessages, additionalInstructions]);
 
 
 
