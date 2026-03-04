@@ -607,7 +607,7 @@ export default function SearchAnalysisAdminPage() {
                     div: CSE_CONTAINER_ID,
                     tag: 'searchresults-only',
                     gname: 'admin-image-search',
-                    attributes: { searchType: 'image', disableWebSearch: true }
+                    attributes: { searchType: 'image', disableWebSearch: true, imageSearchLayout: 'popup' }
                 });
             }
 
@@ -826,7 +826,7 @@ export default function SearchAnalysisAdminPage() {
                         </div>
 
                         {/* Google CSE Results */}
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-h-[700px] overflow-hidden">
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-h-[700px]">
                             <div id={CSE_CONTAINER_ID} className="min-h-[600px] p-4"></div>
                         </div>
                     </div>
