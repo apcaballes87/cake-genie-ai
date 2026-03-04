@@ -8,6 +8,7 @@ export interface BlogPost {
   content: string;
   image?: string;
   keywords?: string;
+  cakeSearchKeywords?: string;
   /** Short sentence that bridges the blog content to the related cake designs grid */
   relatedCakesIntro?: string;
 }
@@ -18,6 +19,7 @@ export const blogPosts: BlogPost[] = [
     title: 'Event Hosts & MCs in Metro Cebu: Birthday, Wedding & Party Masters of Ceremony (2026)',
     excerpt: 'Looking for a reliable MC or host for your birthday, wedding, or special event in Cebu? This directory lists experienced event hosts across Metro Cebu with contact details, social media, and real reviews from past clients.',
     keywords: 'event host, MC, master of ceremony, birthday host, wedding MC, party host, Cebu, Metro Cebu, event planner',
+    cakeSearchKeywords: 'wedding, birthday',
     relatedCakesIntro: 'Planning a celebration? Browse these custom cake designs — all customizable and priced instantly.',
     date: '2026-03-01',
     author: 'Genie.ph',
@@ -29,6 +31,7 @@ export const blogPosts: BlogPost[] = [
     title: 'Katseye Cake Guide: The Ultimate K-Pop Inspired Cake Designs for Fans (2026)',
     excerpt: 'Discover stunning Katseye-themed cake designs that celebrate your favorite global girl group. Learn about Katseye\'s incredible journey, why Gen Z loves them, and get inspiration for your next fan event or birthday celebration.',
     keywords: 'katseye, kpop, kpop cake, birthday cake, fandom cake, fan cake, character cake',
+    cakeSearchKeywords: 'katseye, kpop',
     relatedCakesIntro: 'Ready to order your Katseye-inspired cake? Here are some K-pop and birthday cake designs our bakers have made that might spark your idea.',
     date: '2026-02-28',
     author: 'Genie.ph',
@@ -177,6 +180,7 @@ Go design that cake. Your bias would approve.
     title: 'Complete Baptismal Guide in Metro Cebu: Churches, Requirements & Step-by-Step Process (2026)',
     excerpt: 'Planning your child\'s baptism in Cebu? This comprehensive guide covers all the churches in Metro Cebu that offer baptismal services, what documents you need, step-by-step process, and important tips for a smooth ceremony.',
     keywords: 'baptism, baptismal, christening, binyag, baby shower',
+    cakeSearchKeywords: 'baptism, christening, binyag',
     relatedCakesIntro: 'Planning the reception after the ceremony? Browse these baptismal and christening cake designs — all customizable and priced instantly.',
     date: '2026-02-24',
     author: 'Genie.ph',
@@ -660,6 +664,7 @@ Baptism is the beginning of your child's spiritual journey, and while the paperw
     title: 'Jollibee vs McDonald\'s Kids Party Packages 2026: Complete Comparison Guide',
     excerpt: 'Planning your child\'s birthday party? Here\'s a complete comparison of Jollibee and McDonald\'s party packages in the Philippines for 2026—including prices, inclusions, booking steps, and pros and cons vs home parties.',
     keywords: 'birthday, kids birthday, birthday cake, children party, party cake',
+    cakeSearchKeywords: 'jollibee, mcdonalds, birthday',
     relatedCakesIntro: "Whether you're going Jollibee, McDonald's, or home party — you'll still need a great birthday cake. Here are some designs to get you started.",
     date: '2026-02-23',
     author: 'Genie.ph',
@@ -1029,6 +1034,7 @@ And if you're planning something bigger—like a first birthday with 100 guests 
     excerpt:
       'Planning to tie the knot in Metro Cebu? Before you start picking out flowers and venues, here\'s a complete step-by-step guide to getting your marriage license in Cebu City, Mandaue, Lapu-Lapu, and Talisay.',
     keywords: 'wedding, wedding cake, bridal, bride, anniversary cake',
+    cakeSearchKeywords: 'wedding, anniversary',
     relatedCakesIntro: 'Now that the paperwork is sorted, here\'s the fun part — picking your wedding cake. Browse designs below and customize yours in seconds.',
     date: '2026-02-27',
     author: 'Genie.ph',
@@ -1354,6 +1360,7 @@ The key is to start early, stay organized, and enjoy the process. After all, thi
     excerpt:
       "Ordering a custom cake doesn't have to break the bank. At Genie.ph, we've built smart customization features that put you in control of both the design and the budget.",
     keywords: 'custom cake, personalized cake, custom design, cake topper, fondant cake',
+    cakeSearchKeywords: 'custom, money, birthday',
     relatedCakesIntro: 'Looking for inspiration? Here are some custom cake designs our customers have ordered — each one was priced and customized in minutes.',
     date: '2026-02-14',
     author: 'Genie.ph',
@@ -1507,6 +1514,7 @@ Because celebrating life's special moments shouldn't mean choosing between the c
     title: 'Genie PH x IDiscount Philippines: Students Get 20% Off Custom Cakes!',
     excerpt: 'Big news! IDiscount Philippines users now get 20% off custom cakes at Genie.ph. Here is how Filipino students can save on their celebration cakes.',
     keywords: 'IDiscount Philippines, student discount, custom cake, Genie PH, birthday cake, graduation cake, Philippines',
+    cakeSearchKeywords: 'graduation, birthday',
     relatedCakesIntro: 'Planning a celebration? Browse these custom cake designs — all customizable and priced instantly.',
     date: '2026-03-03',
     author: 'Genie.ph',

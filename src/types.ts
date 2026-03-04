@@ -10,7 +10,7 @@ export type MainTopperType = 'edible_3d_complex' | 'edible_3d_ordinary' | 'print
 export type SupportElementType = 'edible_3d_support' | 'edible_2d_support' | 'chocolates' | 'sprinkles' | 'support_printout' | 'isomalt' | 'dragees' | 'edible_flowers' | 'edible_photo_side' | 'icing_doodle' | 'icing_palette_knife' | 'icing_brush_stroke' | 'icing_splatter' | 'icing_minimalist_spread' | 'plastic_ball_regular' | 'plastic_ball_disco' | 'plastic_ball' | 'macarons' | 'meringue' | 'gumpaste_bundle' | 'candy' | 'gumpaste_panel' | 'icing_decorations' | 'gumpaste_creations';
 export type CakeMessageType = 'gumpaste_letters' | 'icing_script' | 'printout' | 'cardstock';
 
-export type Size = 'small' | 'medium' | 'large' | 'tiny' | 'mixed';
+export type Size = 'small' | 'medium' | 'large' | 'tiny' | 'xsmall' | 'xlarge' | 'mixed';
 
 export interface Color {
   name: string;
@@ -256,7 +256,7 @@ export interface PricingRule {
   item_key: string;
   item_type: string;
   classification: string | null;  // 'hero', 'support', 'special', 'message', 'icing'
-  size: 'large' | 'medium' | 'small' | 'tiny' | null;
+  size: 'large' | 'medium' | 'small' | 'tiny' | 'xsmall' | 'xlarge' | null;
   description: string;
   price: number;
   category: 'main_topper' | 'support_element' | 'special' | 'message' | 'icing_feature' | null;

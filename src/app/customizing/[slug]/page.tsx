@@ -1,5 +1,5 @@
 import { Metadata, ResolvingMetadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -14,6 +14,7 @@ import { DesignAboutSection } from '@/components/DesignAboutSection'
 import LazyImage from '@/components/LazyImage'
 import { v4 as uuidv4 } from 'uuid'
 import { mapProductToDefaultState } from '@/utils/customizationMapper'
+import { upgradeLegacySlug } from '@/lib/utils/urlHelpers'
 
 // Helper to fetch design by exact slug
 async function getDesign(supabase: any, slug: string) {
@@ -24,6 +25,20 @@ async function getDesign(supabase: any, slug: string) {
         .single()
 
     if (cacheData) return cacheData;
+
+    // Check if it's a legacy slug that needs a 301 redirect to the modern format
+    const upgradedSlug = upgradeLegacySlug(slug);
+    if (upgradedSlug !== slug) {
+        const { data: upgradedData } = await supabase
+            .from('cakegenie_analysis_cache')
+            .select('*')
+            .eq('slug', upgradedSlug)
+            .single();
+
+        if (upgradedData) {
+            permanentRedirect(`/customizing/${upgradedSlug}`);
+        }
+    }
 
     // Check shared designs by slug
     const { data: sharedData } = await supabase

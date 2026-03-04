@@ -159,6 +159,37 @@ export function generateCakeAnalysisSlug(params: {
   return slug;
 }
 
+/**
+ * Upgrades a legacy slug (which might contain hex colors or lack '-cake')
+ * to the modern format used in the database.
+ */
+export function upgradeLegacySlug(slug: string): string {
+  if (!slug) return slug;
+
+  let parts = slug.split('-');
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (part.length === 6 && /^[a-f0-9]{6}$/.test(part)) {
+      parts[i] = hexToName(part);
+    }
+  }
+
+  let newSlug = parts.join('-');
+
+  const lastPartMatches = newSlug.match(/-([a-f0-9]{4,16})$/);
+  if (lastPartMatches) {
+    const hash = lastPartMatches[1];
+    if (!newSlug.endsWith(`-cake-${hash}`)) {
+      newSlug = newSlug.replace(new RegExp(`-${hash}$`), `-cake-${hash}`);
+    }
+  }
+
+  newSlug = newSlug.replace(/-cake-cake-/g, '-cake-');
+
+  return newSlug;
+}
+
 export function isValidRedirect(path: string | null): boolean {
   return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//');
 }

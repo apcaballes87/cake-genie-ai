@@ -8,43 +8,53 @@ import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, AddOnPric
 // --- Helper Functions ---
 
 function getEdible3DComplexPrice(size: Size): number {
+    if (size === 'xlarge') return 800;
     if (size === 'large') return 600;
     if (size === 'medium') return 400;
     if (size === 'small') return 200;
+    if (size === 'xsmall') return 150;
     if (size === 'tiny') return 100;
     return 0;
 }
 
 function getEdible3DOrdinaryPrice(size: Size): number {
+    if (size === 'xlarge') return 400;
     if (size === 'large') return 200;
     if (size === 'medium') return 100;
     if (size === 'small') return 50;
+    if (size === 'xsmall') return 35;
     if (size === 'tiny') return 20;
     return 0;
 }
 
 function getSupportGumpastePrice(size: Size): number { // This is now for edible_3d_support
+    if (size === 'xlarge') return 400;
     if (size === 'large') return 300;
     if (size === 'medium') return 200;
     if (size === 'small') return 100;
+    if (size === 'xsmall') return 75;
     if (size === 'tiny') return 50;
     return 0;
 }
 
 // NEW function for edible_2d_support
 function getEdible2DSupportPrice(size: Size): number {
+    if (size === 'xlarge') return 200;
     if (size === 'large') return 150;
     if (size === 'medium') return 100;
     if (size === 'small') return 50;
+    if (size === 'xsmall') return 35;
     if (size === 'tiny') return 20;
     return 0;
 }
 
 
 function getEdibleFlowerPrice(size: Size): number {
+    if (size === 'xlarge') return 400;
     if (size === 'large') return 300;
     if (size === 'medium') return 200;
     if (size === 'small') return 100;
+    if (size === 'xsmall') return 75;
     if (size === 'tiny') return 50;
     return 0;
 }
@@ -139,9 +149,11 @@ export const calculatePrice = (
                         // Price normal balls at 20 pesos per piece (based on Pricing Rules Table Rule ID 97)
                         let qty = topper.quantity || 0;
                         if (qty === 0 && topper.size) {
-                            if (topper.size === 'large') qty = 12;
+                            if (topper.size === 'xlarge') qty = 24;
+                            else if (topper.size === 'large') qty = 12;
                             else if (topper.size === 'medium') qty = 8;
                             else if (topper.size === 'small') qty = 4;
+                            else if (topper.size === 'xsmall') qty = 2;
                             else qty = 1;
                         }
                         qty = Math.max(1, qty);
@@ -153,17 +165,19 @@ export const calculatePrice = (
                 break;
             case 'toy':
                 // High-Detail Toys pricing based on size
-                if (topper.size === 'large') price = 200;
+                if (topper.size === 'xlarge') price = 300;
+                else if (topper.size === 'large') price = 200;
                 else if (topper.size === 'medium') price = 150;
-                else price = 100; // 'small' or 'partial'
+                else price = 100; // 'small', 'xsmall', 'tiny' or 'partial'
                 price *= topper.quantity;
                 nonGumpasteTotal += price;
                 break;
             case 'figurine':
                 // Simpler Figurines pricing based on size
-                if (topper.size === 'large') price = 90;
+                if (topper.size === 'xlarge') price = 120;
+                else if (topper.size === 'large') price = 90;
                 else if (topper.size === 'medium') price = 70;
-                else price = 50; // 'small' or 'partial'
+                else price = 50; // 'small', 'xsmall', 'tiny' or 'partial'
                 price *= topper.quantity;
                 nonGumpasteTotal += price;
                 break;
@@ -176,9 +190,10 @@ export const calculatePrice = (
                 break;
             case 'cardstock':
                 // Cardstock pricing based on size
-                if (topper.size === 'large') price = 100;
+                if (topper.size === 'xlarge') price = 150;
+                else if (topper.size === 'large') price = 100;
                 else if (topper.size === 'medium') price = 60;
-                else price = 25; // 'small' or 'partial'
+                else price = 25; // 'small', 'xsmall', 'tiny' or 'partial'
                 price *= topper.quantity;
                 nonGumpasteTotal += price;
                 break;
@@ -252,9 +267,10 @@ export const calculatePrice = (
                 else if (element.subtype === 'oreo') chocoPrice = 20;
                 else if (element.subtype === 'kisses') chocoPrice = 15;
                 // Size-based fallback if generic
+                else if (element.size === 'xlarge') chocoPrice = 300;
                 else if (element.size === 'large') chocoPrice = 200;
                 else if (element.size === 'medium') chocoPrice = 100;
-                else chocoPrice = 50; // common/small default
+                else chocoPrice = 50; // common/small/xsmall/tiny default
 
                 // Multiply by quantity (mandatory counting in prompt v3.7)
                 price = chocoPrice * (element.quantity || 1);
@@ -269,18 +285,20 @@ export const calculatePrice = (
 
             case 'sprinkles':
             case 'dragees':
-                if (element.size === 'large') price = 100;
+                if (element.size === 'xlarge') price = 200;
+                else if (element.size === 'large') price = 100;
                 else if (element.size === 'medium') price = 50;
-                else price = 25; // small/tiny
+                else price = 25; // small/xsmall/tiny
                 supportGumpasteRawTotal += price;
                 break;
 
             case 'gumpaste_panel':
             case 'gumpaste_creations':
                 // Size-based estimation for coverage
-                if (element.size === 'large') price = 200;
+                if (element.size === 'xlarge') price = 400;
+                else if (element.size === 'large') price = 200;
                 else if (element.size === 'medium') price = 100;
-                else price = 50; // small/tiny
+                else price = 50; // small/xsmall/tiny
                 supportGumpasteRawTotal += price;
                 break;
 
@@ -296,10 +314,13 @@ export const calculatePrice = (
                 break;
 
             case 'edible_photo_side':
-                if (element.size === 'large') price = 300;
+                if (element.size === 'xlarge') price = 400;
+                else if (element.size === 'large') price = 300;
                 else if (element.size === 'medium') price = 200;
                 else if (element.size === 'small') price = 100;
+                else if (element.size === 'xsmall') price = 75;
                 else if (element.size === 'tiny') price = 50;
+                else price = 50;
                 nonGumpasteTotal += price;
                 break;
 
@@ -323,9 +344,10 @@ export const calculatePrice = (
 
             case 'gumpaste_bundle':
                 let bundlePrice = 0;
-                if (element.size === 'large') bundlePrice = 300;
+                if (element.size === 'xlarge') bundlePrice = 400;
+                else if (element.size === 'large') bundlePrice = 300;
                 else if (element.size === 'medium') bundlePrice = 200;
-                else bundlePrice = 100; // small/default
+                else bundlePrice = 100; // small/xsmall/tiny/default
 
                 price = bundlePrice * (element.quantity || 1);
                 supportGumpasteRawTotal += price; // Eligible for allowance
@@ -336,9 +358,11 @@ export const calculatePrice = (
                 let pbQty = element.quantity || 0;
                 if (pbQty === 0 && element.size) {
                     // Fallback map for coverage -> quantity
-                    if (element.size === 'large') pbQty = 12;
+                    if (element.size === 'xlarge') pbQty = 24;
+                    else if (element.size === 'large') pbQty = 12;
                     else if (element.size === 'medium') pbQty = 8;
                     else if (element.size === 'small') pbQty = 4;
+                    else if (element.size === 'xsmall') pbQty = 2;
                     else pbQty = 1; // tiny
                 }
                 pbQty = Math.max(1, pbQty);
@@ -360,9 +384,11 @@ export const calculatePrice = (
                 } else {
                     let qty = element.quantity || 0;
                     if (qty === 0 && element.size) {
-                        if (element.size === 'large') qty = 12;
+                        if (element.size === 'xlarge') qty = 24;
+                        else if (element.size === 'large') qty = 12;
                         else if (element.size === 'medium') qty = 8;
                         else if (element.size === 'small') qty = 4;
+                        else if (element.size === 'xsmall') qty = 2;
                         else qty = 1;
                     }
                     qty = Math.max(1, qty);

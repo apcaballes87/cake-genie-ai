@@ -52,7 +52,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   // Fetch related products for the bottom of the page
   let relatedDesigns: any[] = [];
   try {
-    const { data } = await getRelatedProductsByKeywords(post.keywords || post.title, slug, 4, 0);
+    const { data } = await getRelatedProductsByKeywords(post.cakeSearchKeywords || post.keywords || post.title, slug, 4, 0);
     relatedDesigns = data || [];
   } catch (e) {
     console.error('Error fetching related designs:', e);
@@ -119,7 +119,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         {relatedDesigns && relatedDesigns.length > 0 && (
           <RelatedProductsSection
             initialProducts={relatedDesigns}
-            keyword={post.keywords || post.title}
+            keyword={post.cakeSearchKeywords || post.keywords || post.title}
             slug={slug}
             intro={post.relatedCakesIntro}
           />
