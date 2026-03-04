@@ -664,7 +664,7 @@ Baptism is the beginning of your child's spiritual journey, and while the paperw
     title: 'Jollibee vs McDonald\'s Kids Party Packages 2026: Complete Comparison Guide',
     excerpt: 'Planning your child\'s birthday party? Here\'s a complete comparison of Jollibee and McDonald\'s party packages in the Philippines for 2026—including prices, inclusions, booking steps, and pros and cons vs home parties.',
     keywords: 'birthday, kids birthday, birthday cake, children party, party cake',
-    cakeSearchKeywords: 'jollibee, mcdonalds, birthday',
+    cakeSearchKeywords: 'jollibee, mcdonalds',
     relatedCakesIntro: "Whether you're going Jollibee, McDonald's, or home party — you'll still need a great birthday cake. Here are some designs to get you started.",
     date: '2026-02-23',
     author: 'Genie.ph',

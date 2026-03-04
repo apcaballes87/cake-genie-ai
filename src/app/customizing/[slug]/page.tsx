@@ -15,6 +15,7 @@ import LazyImage from '@/components/LazyImage'
 import { v4 as uuidv4 } from 'uuid'
 import { mapProductToDefaultState } from '@/utils/customizationMapper'
 import { upgradeLegacySlug } from '@/lib/utils/urlHelpers'
+import { hexToColorNameProse } from '@/utils/colorUtils'
 
 // Helper to fetch design by exact slug
 async function getDesign(supabase: any, slug: string) {
@@ -399,22 +400,9 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
 
 /**
  * Maps hex color codes to human-readable color names for prose generation.
- * Uses the same palette defined in the AI system instruction.
+ * (Removed and replaced by hexToColorNameProse from @/utils/colorUtils)
  */
-const HEX_TO_NAME: Record<string, string> = {
-    '#EF4444': 'red', '#FCA5A5': 'light red', '#F97316': 'orange',
-    '#EAB308': 'yellow', '#16A34A': 'green', '#4ADE80': 'light green',
-    '#14B8A6': 'teal', '#3B82F6': 'blue', '#93C5FD': 'light blue',
-    '#8B5CF6': 'purple', '#C4B5FD': 'light purple', '#EC4899': 'pink',
-    '#FBCFE8': 'light pink', '#78350F': 'brown', '#B45309': 'light brown',
-    '#64748B': 'gray', '#FFFFFF': 'white', '#000000': 'black',
-};
 
-function hexToName(hex: string): string {
-    if (!hex) return '';
-    const upper = hex.toUpperCase();
-    return HEX_TO_NAME[upper] || hex;
-}
 
 /**
  * Generates a unique prose paragraph describing the cake design from its analysis data.
@@ -435,8 +423,8 @@ function generateDesignDetails(design: any, prices?: BasePriceInfo[]): string {
 
     // Sentence 1: Introduce the cake with its type and icing base
     const icingBase = icingDesign.base?.replace(/[-_]/g, ' ') || 'soft icing';
-    const topColor = hexToName(icingDesign.colors?.top || '');
-    const sideColor = hexToName(icingDesign.colors?.side || '');
+    const topColor = hexToColorNameProse(icingDesign.colors?.top || '');
+    const sideColor = hexToColorNameProse(icingDesign.colors?.side || '');
     const colorDesc = topColor && sideColor && topColor !== sideColor
         ? `with a ${topColor} top and ${sideColor} sides`
         : topColor ? `in ${topColor}` : 'with a custom color palette';
