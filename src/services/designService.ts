@@ -412,8 +412,20 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     }
 
     // 7. Additional Instructions
+    // Check if this is a user chat request — if so, place it first with high priority
     if (additionalInstructions.trim()) {
-        changes.push(`- **Special Instructions:** ${additionalInstructions.trim()}`);
+        const userRequestMatch = additionalInstructions.match(/\[USER REQUEST\]:\s*(.*)/);
+        if (userRequestMatch) {
+            // User chat request — insert at the TOP as highest priority
+            changes.unshift(`- **⚡ PRIMARY USER REQUEST (HIGHEST PRIORITY):** ${userRequestMatch[1].trim()}. This is the user's direct request and MUST be applied to the image.`);
+            // Also add any remaining non-request instructions
+            const remaining = additionalInstructions.replace(/\[USER REQUEST\]:\s*.*/, '').trim();
+            if (remaining) {
+                changes.push(`- **Special Instructions:** ${remaining}`);
+            }
+        } else {
+            changes.push(`- **Special Instructions:** ${additionalInstructions.trim()}`);
+        }
     }
 
     // Assemble the final prompt
@@ -469,12 +481,6 @@ export async function updateDesign({
         throw new Error("Missing required data to update design.");
     }
 
-    // 2. Check for forbidden keywords
-    const forbiddenKeywords = ['add', 'extra', 'another', 'include', 'new topper', 'new figure', 'create', 'put a new'];
-    if (forbiddenKeywords.some(keyword => additionalInstructions.toLowerCase().includes(keyword))) {
-        throw new Error("Instructions cannot add new items. Please use it only to clarify changes like color or position.");
-    }
-
     // 3. Build the prompt
     const analysisForPrompt = analysisResult || {
         main_toppers: [],
@@ -515,7 +521,9 @@ export async function updateDesign({
             're-sculpt', 'replace its image', 'bento box presentation',
             'change the text', 'erase the text', 'add new text', 'regarding the message',
             // CRITICAL: 'preserve' is used when adding gumpaste base board - this is NOT a color-only change
-            'preserve any existing decorations'
+            'preserve any existing decorations',
+            // CRITICAL: User chat requests must always be treated as generative changes
+            'primary user request'
         ];
         return !changes.some(change =>
             designChangeKeywords.some(keyword => change.toLowerCase().includes(keyword))
@@ -534,7 +542,8 @@ export async function updateDesign({
     if (useInpaintingStyle && !isThreeTierReconstruction) {
         const colorKeywords = ['re-hue', 'recolor', 'color shade', 'color to'];
         const colorChanges = changesList.filter(change =>
-            colorKeywords.some(keyword => change.toLowerCase().includes(keyword))
+            colorKeywords.some(keyword => change.toLowerCase().includes(keyword)) ||
+            change.toLowerCase().includes('primary user request') // Always preserve user chat requests
         );
 
         if (colorChanges.length > 0) {

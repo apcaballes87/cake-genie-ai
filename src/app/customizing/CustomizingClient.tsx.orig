@@ -9,13 +9,13 @@ import { findClosestColor, hexToColorNameProse } from '@/utils/colorUtils';
 import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Heart, Cake, Star, Zap, Clock, CalendarDays } from 'lucide-react';
 import Masonry from 'react-masonry-css';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
-
+import { CustomizationTabs } from '@/components/CustomizationTabs';
 import { CustomizationBottomSheet } from '../../components/CustomizationBottomSheet';
 import { SegmentationOverlay } from '../../components/SegmentationOverlay';
 import { SegmentationBottomSheet } from '../../components/SegmentationBottomSheet';
 import { BoundingBoxOverlay } from '../../components/BoundingBoxOverlay';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { CustomizationSkeleton, ChosenOptionsSkeleton } from '../../components/LoadingSkeletons';
+import { CustomizationSkeleton, CustomizationTabsSkeleton, ChosenOptionsSkeleton } from '../../components/LoadingSkeletons';
 import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, BackIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon, SideIcingGuideIcon, TopIcingGuideIcon, TopBorderGuideIcon, BaseBorderGuideIcon, BaseBoardGuideIcon, TrashIcon } from '../../components/icons';
 import { ShoppingBag } from 'lucide-react';
 import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType, AvailabilitySettings, IcingColorDetails, AnalysisItem, ClusteredMarker, CartItem } from '../../types';
@@ -1278,7 +1278,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     const onSignOut = () => signOut();
 
-    const onUpdateDesign = handleUpdateDesign;
+    const onUpdateDesign = () => handleUpdateDesign();
     const onSave = handleSave;
     const isSaving = false;
 
@@ -2441,7 +2441,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 {/* Small Apply button in lower right corner - only show when there are changes */}
                                 {(hasIcingChanges || isUpdatingDesign) && (
                                     <button
-                                        onClick={() => onUpdateDesign()}
+                                        onClick={onUpdateDesign}
                                         disabled={isUpdatingDesign || !originalImageData}
                                         className="absolute bottom-4 right-4 bg-purple-600 text-purple-50 font-semibold py-1.5 px-3.5 rounded-lg shadow-md hover:shadow-lg hover:bg-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center gap-1.5 text-sm"
                                         title="Apply icing color changes"
@@ -2495,6 +2495,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 {/* Use granular skeletons to maintain layout structure */}
                                 <div className="w-full">
 
+                                    <CustomizationTabs
+                                        activeTab={activeCustomization}
+                                        onTabClick={(id) => {
+                                            setActiveCustomization(id === activeCustomization ? null : id);
+                                            setSelectedItem(null);
+                                        }}
+                                    />
                                 </div>
                                 <div className="mt-6">
                                     <ChosenOptionsSkeleton />
@@ -2510,7 +2517,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             </div>
                         ) : (cakeInfo || analysisError) ? (
                             <div className="">
-                                {/* Customization Tabs - Top of cake options */}
 
 
                                 {/* Chosen Options Preview - Clickable to edit */}
@@ -2521,7 +2527,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             {/* Cake Type */}
                                             <button
                                                 onClick={() => setActiveCustomization('options')}
-                                                className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                className="group flex flex-col items-center gap-1 min-w-[56px]"
                                             >
                                                 <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-white ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                                     <LazyImage
@@ -2540,7 +2546,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             {/* Size */}
                                             <button
                                                 onClick={() => setActiveCustomization('options')}
-                                                className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                className="group flex flex-col items-center gap-1 min-w-[56px]"
                                             >
                                                 <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-white ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                                     <LazyImage
@@ -2574,7 +2580,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             {/* Thickness */}
                                             <button
                                                 onClick={() => setActiveCustomization('options')}
-                                                className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                className="group flex flex-col items-center gap-1 min-w-[56px]"
                                             >
                                                 <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-white ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                                     <LazyImage
@@ -2595,7 +2601,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                 <button
                                                     key={i}
                                                     onClick={() => setActiveCustomization('options')}
-                                                    className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                    className="group flex flex-col items-center gap-1 min-w-[56px]"
                                                 >
                                                     <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-white ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                                         <LazyImage
@@ -2633,19 +2639,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                             cakeType: cakeInfo?.type || '1 Tier'
                                                                         });
                                                                     }}
-                                                                    className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                                    className="group flex flex-col items-center gap-1 min-w-[56px]"
                                                                 >
-                                                                    <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-icing' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                                                    <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-white p-2 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-icing' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                                                         <LazyImage
                                                                             src={getIcingImage(icingDesign as IcingDesignUI, 'top', false)}
                                                                             alt="Icing"
-                                                                            width={36}
-                                                                            height={36}
+                                                                            width={32}
+                                                                            height={32}
                                                                             containerClassName="w-full h-full flex items-center justify-center"
                                                                             imageClassName="w-full h-full object-contain"
                                                                         />
                                                                     </div>
-                                                                    <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                                    <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">
                                                                         Body Icing
                                                                     </span>
                                                                 </button>
@@ -2665,19 +2671,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                                 cakeType: cakeInfo?.type || '1 Tier'
                                                                             });
                                                                         }}
-                                                                        className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                                        className="group flex flex-col items-center gap-1 min-w-[56px]"
                                                                     >
-                                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-top' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                                                        <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-white p-2 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-top' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                                                             <LazyImage
                                                                                 src={getIcingImage(icingDesign as IcingDesignUI, 'top', true)}
                                                                                 alt="Top Icing"
-                                                                                width={36}
-                                                                                height={36}
+                                                                                width={32}
+                                                                                height={32}
                                                                                 containerClassName="w-full h-full flex items-center justify-center"
                                                                                 imageClassName="w-full h-full object-contain"
                                                                             />
                                                                         </div>
-                                                                        <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                                        <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">
                                                                             Top Icing
                                                                         </span>
                                                                     </button>
@@ -2693,20 +2699,20 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                                 cakeType: cakeInfo?.type || '1 Tier'
                                                                             });
                                                                         }}
-                                                                        className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                                        className="group flex flex-col items-center gap-1 min-w-[56px]"
                                                                     >
-                                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-side' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                                                        <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-white p-2 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-side' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                                                             <LazyImage
                                                                                 src={getIcingImage(icingDesign as IcingDesignUI, 'side', false)}
                                                                                 alt="Body Icing"
-                                                                                width={36}
-                                                                                height={36}
+                                                                                width={32}
+                                                                                height={32}
                                                                                 containerClassName="w-full h-full flex items-center justify-center"
                                                                                 imageClassName="w-full h-full object-contain"
                                                                             />
                                                                         </div>
-                                                                        <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
-                                                                            Body Icing
+                                                                        <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">
+                                                                            Side Icing
                                                                         </span>
                                                                     </button>
                                                                 )}
@@ -2726,20 +2732,20 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                     cakeType: cakeInfo?.type || '1 Tier'
                                                                 });
                                                             }}
-                                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                            className="group flex flex-col items-center gap-1 min-w-[56px]"
                                                         >
-                                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-drip' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                                            <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-white p-2 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-drip' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                                                 <LazyImage
                                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'drip')}
                                                                     alt="Drip"
-                                                                    width={36}
-                                                                    height={36}
+                                                                    width={32}
+                                                                    height={32}
                                                                     containerClassName="w-full h-full flex items-center justify-center"
                                                                     imageClassName="w-full h-full object-contain"
                                                                 />
                                                             </div>
-                                                            <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
-                                                                Drip
+                                                            <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">
+                                                                Drip Design
                                                             </span>
                                                         </button>
                                                     )}
@@ -2756,19 +2762,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                     cakeType: cakeInfo?.type || '1 Tier'
                                                                 });
                                                             }}
-                                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                            className="group flex flex-col items-center gap-1 min-w-[56px]"
                                                         >
-                                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderTop' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                                            <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-white p-2 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderTop' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                                                 <LazyImage
                                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'borderTop')}
                                                                     alt="Top Border"
-                                                                    width={36}
-                                                                    height={36}
+                                                                    width={32}
+                                                                    height={32}
                                                                     containerClassName="w-full h-full flex items-center justify-center"
                                                                     imageClassName="w-full h-full object-contain"
                                                                 />
                                                             </div>
-                                                            <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                            <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">
                                                                 Top Border
                                                             </span>
                                                         </button>
@@ -2786,19 +2792,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                     cakeType: cakeInfo?.type || '1 Tier'
                                                                 });
                                                             }}
-                                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                            className="group flex flex-col items-center gap-1 min-w-[56px]"
                                                         >
-                                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderBase' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                                            <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-white p-2 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderBase' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                                                 <LazyImage
                                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'borderBase')}
                                                                     alt="Base Border"
-                                                                    width={36}
-                                                                    height={36}
+                                                                    width={32}
+                                                                    height={32}
                                                                     containerClassName="w-full h-full flex items-center justify-center"
                                                                     imageClassName="w-full h-full object-contain"
                                                                 />
                                                             </div>
-                                                            <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                            <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">
                                                                 Base Border
                                                             </span>
                                                         </button>
@@ -2816,19 +2822,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                     cakeType: cakeInfo?.type || '1 Tier'
                                                                 });
                                                             }}
-                                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                            className="group flex flex-col items-center gap-1 min-w-[56px]"
                                                         >
-                                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-gumpasteBaseBoard' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                                            <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-white p-2 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-gumpasteBaseBoard' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                                                 <LazyImage
                                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'gumpasteBaseBoard')}
                                                                     alt="Base Board"
-                                                                    width={36}
-                                                                    height={36}
+                                                                    width={32}
+                                                                    height={32}
                                                                     containerClassName="w-full h-full flex items-center justify-center"
                                                                     imageClassName="w-full h-full object-contain"
                                                                 />
                                                             </div>
-                                                            <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
+                                                            <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">
                                                                 Base Board
                                                             </span>
                                                         </button>
@@ -2840,16 +2846,16 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             {(mainToppers.some(t => t.isEnabled) || supportElements.some(s => s.isEnabled)) && (
                                                 <button
                                                     onClick={() => setActiveCustomization('toppers')}
-                                                    className="group flex flex-col items-center gap-1 min-w-[60px]"
+                                                    className="group flex flex-col items-center gap-1 min-w-[56px]"
                                                     aria-label="Edit Cake Toppers"
                                                     tabIndex={0}
                                                 >
-                                                    <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-1 shadow-sm flex items-center justify-center ${activeCustomization === 'toppers' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                                    <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-white p-1 shadow-sm flex items-center justify-center ${activeCustomization === 'toppers' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                                         <LazyImage
                                                             src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/topper.webp"
                                                             alt="Cake Toppers"
-                                                            width={48}
-                                                            height={48}
+                                                            width={40}
+                                                            height={40}
                                                             containerClassName="w-full h-full flex items-center justify-center"
                                                             imageClassName="w-full h-full object-contain"
                                                         />
@@ -2952,26 +2958,33 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     </div>
                                 )}
 
+
                                 {/* FeatureList removed as its parts are now broken out */}
                                 {/* Previously FeatureList was here */}
 
                                 {/* Action Buttons */}
-                                <div className="w-full flex items-center justify-end gap-4 pt-2 mt-4 border-t border-slate-200/50">
-
-                                    <button onClick={onSave} disabled={!editedImage || isLoading || isSaving} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label={isSaving ? "Saving image" : "Save customized image"}>
+                                <div className="w-full flex items-center justify-center gap-3 mt-5 mb-1">
+                                    <button
+                                        onClick={onSave}
+                                        disabled={!editedImage || isLoading || isSaving}
+                                        className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-100 hover:bg-purple-100 text-slate-500 hover:text-purple-600 text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                        aria-label={isSaving ? "Saving image" : "Save customized image"}
+                                    >
                                         {isSaving ? (
-                                            <>
-                                                <Loader2 className="w-5 h-5 animate-spin" />
-                                                <span className="ml-2">Saving...</span>
-                                            </>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
                                         ) : (
-                                            <>
-                                                <SaveIcon />
-                                                <span className="ml-2">Save</span>
-                                            </>
+                                            <SaveIcon />
                                         )}
+                                        <span>{isSaving ? 'Saving...' : 'Save'}</span>
                                     </button>
-                                    <button onClick={onClearAll} className="flex items-center justify-center text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-4 rounded-lg transition-colors" aria-label="Reset everything"><ResetIcon /><span className="ml-2">Reset Everything</span></button>
+                                    <button
+                                        onClick={onClearAll}
+                                        className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-400 text-sm font-medium transition-all"
+                                        aria-label="Reset design"
+                                    >
+                                        <ResetIcon />
+                                        <span>Reset Design</span>
+                                    </button>
                                 </div>
                             </div>
                         ) : <div className="text-center p-8 text-slate-500"><p>Upload an image to get started.</p></div>}

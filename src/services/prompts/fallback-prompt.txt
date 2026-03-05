@@ -398,7 +398,7 @@ Identify the 3 to 5 most prominent colors in the cake and its decorations.
 
 ## COLOR PALETTE (USE EXACT HEX)  
 
-`#FFFFFF` (White), `#F5E6D3` (Cream), `#FFB3D9` (Light Pink), `#FF69B4` (Pink), `#FF1493` (Rose), `#FF0000` (Red), `#FFA500` (Orange), `#FFD700` (Yellow/Gold), `#90EE90` (Light Green), `#008000` (Green), `#98FF98` (Mint), `#008080` (Teal), `#87CEEB` (Light Blue), `#0000FF` (Blue), `#000080` (Navy), `#800080` (Purple), `#E6E6FA` (Lavender), `#8B4513` (Brown), `#000000` (Black), `#808080` (Gray), `#C0C0C0` (Silver)
+`#FFFFFF` (White), `#000000` (Black), `#FFD700` (Gold), `#C0C0C0` (Silver), `#87CEEB` (Light Blue), `#FFC0CB` (Pink), `#FFB6C1` (Light Pink), `#FF69B4` (Hot Pink), `#FF0000` (Red), `#8B0000` (Dark Red), `#FFA500` (Orange), `#FFFF00` (Yellow), `#FFFFE0` (Light Yellow), `#008000` (Green), `#90EE90` (Light Green), `#008080` (Teal), `#0000FF` (Blue), `#000080` (Navy), `#800080` (Purple), `#E6E6FA` (Lavender), `#8B4513` (Brown), `#D2B48C` (Tan), `#F5F5DC` (Beige), `#FFDAB9` (Peach), `#FF7F50` (Coral), `#98FF98` (Mint), `#B76E79` (Rose Gold), `#F7E7CE` (Champagne), `#FFFFF0` (Ivory)
 
 ---
 

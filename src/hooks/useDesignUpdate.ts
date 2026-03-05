@@ -54,7 +54,7 @@ export const useDesignUpdate = ({
     const lastGenerationInfoRef = useRef<{ prompt: string; systemInstruction: string; } | null>(null);
     const [isSafetyFallback, setIsSafetyFallback] = useState(false);
 
-    const handleUpdateDesign = useCallback(async () => {
+    const handleUpdateDesign = useCallback(async (overrideInstruction?: string) => {
         // Analytics: Track when a user completes a customization by updating the design
         if (typeof gtag === 'function') {
             gtag('event', 'update_design', {
@@ -75,6 +75,10 @@ export const useDesignUpdate = ({
         setIsSafetyFallback(false);
 
         try {
+            const combinedInstructions = overrideInstruction
+                ? (additionalInstructions ? `${additionalInstructions}. ${overrideInstruction}` : overrideInstruction)
+                : additionalInstructions;
+
             const { image: editedImageResult, prompt, systemInstruction } = await updateDesign({
                 originalImageData,
                 analysisResult,
@@ -83,7 +87,7 @@ export const useDesignUpdate = ({
                 supportElements,
                 cakeMessages,
                 icingDesign,
-                additionalInstructions,
+                additionalInstructions: combinedInstructions,
                 threeTierReferenceImage,
                 promptGenerator, // ADDED: Pass the generator to the service
             });

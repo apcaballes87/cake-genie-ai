@@ -15,6 +15,8 @@ export interface PopularDesign {
     price: number;
     alt_text?: string;
     availability?: string;
+    image_width?: number | null;
+    image_height?: number | null;
 }
 
 interface PopularDesignsProps {
@@ -88,15 +90,20 @@ export const PopularDesigns = ({ designs: initialDesigns }: PopularDesignsProps)
                             className="group relative cursor-pointer flex flex-col h-full"
                         >
                             <div className="relative mb-1.5 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
-                                <LazyImage
-                                    src={design.original_image_url}
-                                    alt={design.alt_text || `${design.keywords} cake design`}
-                                    width={0}
-                                    height={0}
-                                    sizes="(max-width: 490px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 17vw"
-                                    style={{ width: '100%', height: 'auto' }}
-                                    className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
-                                />
+                                <div
+                                    className={`relative w-full ${design.image_width && design.image_height ? '' : 'aspect-4/5'}`}
+                                    style={design.image_width && design.image_height
+                                        ? { aspectRatio: `${design.image_width} / ${design.image_height}` }
+                                        : undefined}
+                                >
+                                    <LazyImage
+                                        src={design.original_image_url}
+                                        alt={design.alt_text || `${design.keywords} cake design`}
+                                        fill
+                                        sizes="(max-width: 490px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 17vw"
+                                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                    />
+                                </div>
 
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
 

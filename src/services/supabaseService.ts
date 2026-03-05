@@ -12,6 +12,7 @@ import { roundDownToNearest99 } from '@/lib/utils/pricing';
 import { getDesignAvailability } from '@/lib/utils/availability';
 import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI } from '@/types';
 import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers';
+import { generateTagsForAnalysis } from '@/utils/tagUtils';
 
 // The default client (uses @supabase/ssr browser client)
 const supabase: SupabaseClient = getSupabaseClient();
@@ -465,6 +466,34 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
       const seoDescription = analysisResult.seo_description || `Get instant pricing for this ${keywords || 'custom'} cake design. Customize and order at Genie.ph. Starting at ₱${totalPrice.toLocaleString()}.`;
 
       let finalImageUrl = imageUrl;
+      let imageDimensions: { image_width: number | null; image_height: number | null } = {
+        image_width: null,
+        image_height: null,
+      };
+
+      // Measure image dimensions from blob (client-side only) for CLS prevention
+      const blobToMeasure = imageBlob;
+      if (blobToMeasure && typeof window !== 'undefined') {
+        try {
+          const dims = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+            const img = new window.Image();
+            const objectUrl = URL.createObjectURL(blobToMeasure);
+            img.onload = () => {
+              URL.revokeObjectURL(objectUrl);
+              resolve({ w: img.naturalWidth, h: img.naturalHeight });
+            };
+            img.onerror = () => {
+              URL.revokeObjectURL(objectUrl);
+              reject(new Error('Image dimension measurement failed'));
+            };
+            img.src = objectUrl;
+          });
+          imageDimensions = { image_width: dims.w, image_height: dims.h };
+          console.log(`📐 Image dimensions: ${dims.w}×${dims.h}`);
+        } catch (dimErr) {
+          console.warn('⚠️ Could not measure image dimensions:', dimErr);
+        }
+      }
 
       // If we have a blob, convert to WebP and upload to Supabase storage
       if (imageBlob) {
@@ -509,6 +538,9 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
         supportElements,
       });
 
+      // Generate tags
+      const tags = generateTagsForAnalysis(analysisResult, keywords, seoTitle, altText);
+
       const { error } = await supabase
         .from('cakegenie_analysis_cache')
         .upsert({
@@ -522,6 +554,8 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
           seo_title: seoTitle,
           seo_description: seoDescription,
           availability: availability,
+          tags: tags,
+          ...imageDimensions,
         }, {
           onConflict: 'p_hash',
           ignoreDuplicates: false // We set to false because we want to update with the new persistent image URL if it was already cached without one
@@ -560,7 +594,7 @@ export async function getRecommendedProducts(limit: number = 8, offset: number =
 
     const { data, error } = await client
       .from('cakegenie_analysis_cache')
-      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability')
+      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height')
       .not('original_image_url', 'is', null)
       .not('price', 'is', null)
       // Filter out duplicate/placeholder images if needed, or strict 'not null' is enough
@@ -594,7 +628,7 @@ export async function getPopularDesigns(limit: number = 20, customClient?: Supab
   try {
     const { data, error } = await client
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, price, alt_text, availability')
+      .select('slug, keywords, original_image_url, price, alt_text, availability, image_width, image_height')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .not('price', 'is', null)
@@ -682,7 +716,7 @@ export async function getAllRecentDesigns(limit: number = 24, offset: number = 0
   try {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, price, alt_text, created_at, p_hash, availability, analysis_json')
+      .select('slug, keywords, original_image_url, price, alt_text, created_at, p_hash, availability, analysis_json, image_width, image_height')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .not('price', 'is', null)
@@ -749,7 +783,7 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
 
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json')
+      .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json, image_width, image_height')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .or(orFilters)
@@ -789,7 +823,7 @@ export async function getRelatedProductsByKeywords(
 
     let query = client
       .from('cakegenie_analysis_cache')
-      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability')
+      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height')
       .not('original_image_url', 'is', null)
       .not('price', 'is', null)
       .neq('original_image_url', '');

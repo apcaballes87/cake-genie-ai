@@ -27,6 +27,8 @@ export interface ProductCardProps {
         [key: string]: unknown;
     };
     priority?: boolean;
+    image_width?: number | null;
+    image_height?: number | null;
 }
 
 export const ProductCard = ({
@@ -37,7 +39,9 @@ export const ProductCard = ({
     slug,
     availability,
     analysis_json,
-    priority = false
+    priority = false,
+    image_width,
+    image_height,
 }: ProductCardProps) => {
     const router = useRouter();
     const { user, isAuthenticated } = useAuth();
@@ -163,39 +167,44 @@ export const ProductCard = ({
     const CardContent = (
         <>
             <div className="relative mb-1.5 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
-                <LazyImage
-                    src={original_image_url}
-                    alt={title}
-                    title={title}
-                    width={0}
-                    height={0}
-                    style={{ width: '100%', height: 'auto' }}
-                    className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-500"
-                    priority={priority}
-                />
+                <div
+                    className={`relative w-full ${image_width && image_height ? '' : 'aspect-4/5'}`}
+                    style={image_width && image_height
+                        ? { aspectRatio: `${image_width} / ${image_height}` }
+                        : undefined}
+                >
+                    <LazyImage
+                        src={original_image_url}
+                        alt={title}
+                        title={title}
+                        fill
+                        className="object-cover group-hover:scale-110 transition-transform duration-500"
+                        priority={priority}
+                    />
 
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
 
-                {/* Availability Badge at Top Left */}
-                <div className="absolute top-2.5 left-2.5 z-10">
-                    <span className={`backdrop-blur-sm text-[10px] md:text-xs font-extrabold px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap ${avail === 'rush'
-                        ? 'bg-green-600/95 text-white'
-                        : avail === 'same-day'
-                            ? 'bg-blue-600/95 text-white'
-                            : 'bg-white/95 text-gray-800'
-                        }`}>
-                        {avail === 'same-day' ? 'Same Day' : avail === 'rush' ? 'Rush' : 'Pre-order'}
-                    </span>
-                </div>
-
-                {/* Price and Rating Overlays at Bottom */}
-                <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-end z-10 pointer-events-none">
-                    <div className="bg-white/95 backdrop-blur-sm text-gray-900 font-extrabold text-[11px] md:text-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-auto">
-                        {price ? `₱${price.toLocaleString()}` : 'Req. Price'}
+                    {/* Availability Badge at Top Left */}
+                    <div className="absolute top-2.5 left-2.5 z-10">
+                        <span className={`backdrop-blur-sm text-[10px] md:text-xs font-extrabold px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap ${avail === 'rush'
+                            ? 'bg-green-600/95 text-white'
+                            : avail === 'same-day'
+                                ? 'bg-blue-600/95 text-white'
+                                : 'bg-white/95 text-gray-800'
+                            }`}>
+                            {avail === 'same-day' ? 'Same Day' : avail === 'rush' ? 'Rush' : 'Pre-order'}
+                        </span>
                     </div>
-                    <div className="bg-white/95 backdrop-blur-sm flex items-center gap-1 font-bold text-gray-900 text-xs md:text-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-auto">
-                        <Star size={12} className="text-orange-500" fill="currentColor" />
-                        <span>4.9</span>
+
+                    {/* Price and Rating Overlays at Bottom */}
+                    <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-end z-10 pointer-events-none">
+                        <div className="bg-white/95 backdrop-blur-sm text-gray-900 font-extrabold text-[11px] md:text-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-auto">
+                            {price ? `₱${price.toLocaleString()}` : 'Req. Price'}
+                        </div>
+                        <div className="bg-white/95 backdrop-blur-sm flex items-center gap-1 font-bold text-gray-900 text-xs md:text-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-auto">
+                            <Star size={12} className="text-orange-500" fill="currentColor" />
+                            <span>4.9</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -210,6 +219,7 @@ export const ProductCard = ({
             </div>
         </>
     );
+
 
     const containerClasses = "group cursor-pointer flex flex-col h-full relative break-inside-avoid";
 

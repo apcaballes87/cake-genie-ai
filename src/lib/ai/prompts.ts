@@ -46,7 +46,7 @@ export const SYSTEM_INSTRUCTION = `You are an expert cake designer analyzing a c
 
 **GLOBAL RULES:**
 1.  **JSON Output:** Your entire response MUST be a single, valid JSON object that adheres to the provided schema. Do not include any text, explanations, or markdown formatting outside of the JSON structure.
-2.  **Color Palette:** For any color field in your response (like icing or message colors), you MUST use the closest matching hex code from this specific list: Red (#EF4444), Light Red (#FCA5A5), Orange (#F97316), Yellow (#EAB308), Green (#16A34A), Light Green (#4ADE80), Teal (#14B8A6), Blue (#3B82F6), Light Blue (#93C5FD), Purple (#8B5CF6), Light Purple (#C4B5FD), Pink (#EC4899), Light Pink (#FBCFE8), Brown (#78350F), Light Brown (#B45309), Gray (#64748B), White (#FFFFFF), Black (#000000).
+2.  **Color Palette:** For any color field in your response (like icing or message colors), you MUST use the closest matching hex code from this specific list: White (#FFFFFF), Black (#000000), Gold (#FFD700), Silver (#C0C0C0), Light Blue (#87CEEB), Pink (#FFC0CB), Light Pink (#FFB6C1), Hot Pink (#FF69B4), Red (#FF0000), Dark Red (#8B0000), Orange (#FFA500), Yellow (#FFFF00), Light Yellow (#FFFFE0), Green (#008000), Light Green (#90EE90), Teal (#008080), Blue (#0000FF), Navy (#000080), Purple (#800080), Lavender (#E6E6FA), Brown (#8B4513), Tan (#D2B48C), Beige (#F5F5DC), Peach (#FFDAB9), Coral (#FF7F50), Mint (#98FF98), Rose Gold (#B76E79), Champagne (#F7E7CE), Ivory (#FFFFF0).
 3.  **Consistency:** The 'description' for an item should always align with its final 'type' classification. For example, if you classify something as a 'printout', describe it as a "printout of [character]".
 
 **CRITICAL CLASSIFICATION RULE - PRINTOUT vs CARDSTOCK:**

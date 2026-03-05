@@ -58,6 +58,8 @@ interface CustomizationContextType {
     clearCustomization: () => void;
     initializeDefaultState: () => void;
     syncAnalysisResultWithCurrentState: () => void;
+    getSyncedAnalysisResult: () => HybridAnalysisResult | null;
+    clearDirtyState: () => void;
     seoMetadata: CacheSEOMetadata | null;
     setSEOMetadata: (metadata: CacheSEOMetadata | null) => void;
 }
@@ -392,6 +394,11 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
 
         const newState = mapAnalysisToState(rawData);
 
+        console.log('🔍 [DEBUG APPLY] Step 4 - rawData.cake_messages (AI JSON):', JSON.stringify(rawData.cake_messages, null, 2));
+        console.log('🔍 [DEBUG APPLY] Step 4 - newState.cakeMessages (after mapper):', JSON.stringify(newState.cakeMessages, null, 2));
+        console.log('🔍 [DEBUG APPLY] Step 4 - dirtyFields:', Array.from(dirtyFields));
+        console.log('🔍 [DEBUG APPLY] Step 4 - dirtyFields.has(cakeMessages):', dirtyFields.has('cakeMessages'));
+
         if (!dirtyFields.has('cakeInfo') && newState.cakeInfo) {
             setCakeInfo(newState.cakeInfo);
         }
@@ -412,7 +419,10 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         }
 
         if (!dirtyFields.has('cakeMessages') && newState.cakeMessages) {
+            console.log('🔍 [DEBUG APPLY] Step 5 - APPLYING new cakeMessages to state:', JSON.stringify(newState.cakeMessages, null, 2));
             setCakeMessages(newState.cakeMessages);
+        } else {
+            console.log('🔍 [DEBUG APPLY] Step 5 - SKIPPED cakeMessages because dirtyFields blocks it');
         }
 
         setIcingDesign(prev => {
@@ -460,11 +470,15 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
 
     useEffect(() => {
         if (pendingAnalysisData) {
+            console.log('🔍 [DEBUG PENDING] Step 3.5 - pendingAnalysisData effect fired');
+            console.log('🔍 [DEBUG PENDING] Step 3.5 - pendingAnalysisData.cake_messages:', JSON.stringify(pendingAnalysisData.cake_messages, null, 2));
+            console.log('🔍 [DEBUG PENDING] Step 3.5 - current dirtyFields:', Array.from(dirtyFields));
+
             // Check if this is a coordinate-only update by comparing with current analysisResult
             const isCoordinateUpdate = analysisResult &&
-                analysisResult.main_toppers.length === pendingAnalysisData.main_toppers.length &&
-                analysisResult.support_elements.length === pendingAnalysisData.support_elements.length &&
-                analysisResult.cake_messages.length === pendingAnalysisData.cake_messages.length;
+                (analysisResult.main_toppers?.length ?? 0) === (pendingAnalysisData.main_toppers?.length ?? 0) &&
+                (analysisResult.support_elements?.length ?? 0) === (pendingAnalysisData.support_elements?.length ?? 0) &&
+                (analysisResult.cake_messages?.length ?? 0) === (pendingAnalysisData.cake_messages?.length ?? 0);
 
             handleApplyAnalysis(pendingAnalysisData, { skipToast: !!isCoordinateUpdate });
             setPendingAnalysisData(null); // Clear after applying to prevent re-runs
@@ -585,6 +599,65 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         setDirtyFields(new Set());
     }, [analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo]);
 
+    const getSyncedAnalysisResult = useCallback((): HybridAnalysisResult | null => {
+        if (!analysisResult) return null;
+
+        const syncedMainToppers = mainToppers.map(t => ({
+            ...t,
+            original_type: t.type,
+            original_color: t.color,
+            original_colors: t.colors,
+        }));
+
+        const syncedSupportElements = supportElements.map(s => ({
+            ...s,
+            original_type: s.type,
+            original_color: s.color,
+            original_colors: s.colors,
+        }));
+
+        const syncedCakeMessages = cakeMessages.map(m => ({
+            type: m.type,
+            text: m.text || m.originalMessage?.text || '',
+            position: m.position,
+            color: m.color,
+            x: m.x,
+            y: m.y,
+        }));
+
+        const syncedIcingDesign = icingDesign ? {
+            base: icingDesign.base,
+            color_type: icingDesign.color_type,
+            colors: {
+                top: icingDesign.colors.top || '#FFFFFF',
+                side: icingDesign.colors.side || '#FFFFFF',
+                drip: icingDesign.colors.drip || '#FFFFFF',
+                borderTop: icingDesign.colors.borderTop || '#FFFFFF',
+                borderBase: icingDesign.colors.borderBase || '#FFFFFF',
+                gumpasteBaseBoardColor: icingDesign.colors.gumpasteBaseBoardColor || '#FFFFFF'
+            },
+            border_top: icingDesign.border_top,
+            border_base: icingDesign.border_base,
+            drip: icingDesign.drip,
+            gumpasteBaseBoard: icingDesign.gumpasteBaseBoard,
+        } : analysisResult.icing_design;
+
+        return {
+            ...analysisResult,
+            main_toppers: syncedMainToppers,
+            support_elements: syncedSupportElements,
+            cake_messages: syncedCakeMessages,
+            icing_design: syncedIcingDesign,
+            cakeType: cakeInfo?.type || analysisResult.cakeType,
+            cakeThickness: cakeInfo?.thickness || analysisResult.cakeThickness,
+        };
+    }, [analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo]);
+
+    const clearDirtyState = useCallback(() => {
+        setIsCustomizationDirty(false);
+        setDirtyFields(new Set());
+    }, []);
+
     const value = {
         cakeInfo,
         mainToppers,
@@ -620,6 +693,8 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         clearCustomization,
         initializeDefaultState,
         syncAnalysisResultWithCurrentState,
+        getSyncedAnalysisResult,
+        clearDirtyState,
         seoMetadata,
         setSEOMetadata,
     };

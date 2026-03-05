@@ -26,29 +26,50 @@ const MessageCard: React.FC<{
     const positionLabel = message.position === 'top' ? 'Cake Top Side' : message.position === 'side' ? 'Cake Front Side' : 'Base Board';
 
     return (
-        <div className="w-full bg-white rounded-lg border border-slate-200 overflow-hidden">
-            {/* Header - Collapsible */}
-            <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full flex items-center gap-3 p-2 text-left hover:bg-slate-50 transition-colors"
-            >
-                {marker && (
-                    <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-slate-200 text-slate-600 text-[10px] font-bold rounded-full">
-                        {marker}
-                    </div>
-                )}
-                <div className="flex-grow">
-                    <div className={`text-xs font-medium ${message.text ? 'text-slate-800' : 'text-slate-400 italic'}`}>
-                        "{message.text || message.originalMessage?.text || 'New Message'}"
-                    </div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">{positionLabel}</div>
+        <div className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0 flex items-center gap-2">
+                <div className="text-[10px] font-bold text-purple-600 uppercase shrink-0 whitespace-nowrap">
+                    {message.position === 'top' ? 'CAKE TOP' : message.position === 'side' ? 'CAKE FRONT' : 'BASE BOARD'}
                 </div>
-                <PencilIcon className="w-4 h-4 text-slate-400" />
-            </button>
+                <div className="text-sm font-medium text-slate-800 truncate">
+                    {message.text || 'No text'}
+                </div>
+            </div>
 
-            {/* Expanded Content - Message Customization */}
+            <div className="flex items-center gap-2 shrink-0">
+                <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="text-xs text-purple-600 font-medium hover:text-purple-700 whitespace-nowrap"
+                >
+                    Edit Message
+                </button>
+                <div
+                    className="w-4 h-4 rounded-full border border-slate-300 pointer-events-none"
+                    style={{ backgroundColor: message.color || '#000000' }}
+                    title={message.color}
+                />
+                <button
+                    onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this message?')) {
+                            removeCakeMessage(message.id);
+                        }
+                    }}
+                    className="text-slate-400 hover:text-red-500 transition-colors ml-1"
+                    aria-label="Delete message"
+                >
+                    <TrashIcon className="w-4 h-4" />
+                </button>
+            </div>
+
+            {/* Expanded Content - Overlay/Absolute or inline underneath for editing */}
             {isExpanded && (
-                <div className="px-2 pb-2 space-y-3 border-t border-slate-100">
+                <div className="absolute left-0 right-0 mt-10 z-10 bg-white shadow-lg border border-slate-200 rounded-lg p-3 space-y-3 mx-4">
+                    <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-semibold text-slate-700">Edit Message</span>
+                        <button onClick={() => setIsExpanded(false)} className="text-slate-400 hover:text-slate-600">
+                            ✕
+                        </button>
+                    </div>
                     {/* Text Input */}
                     <div>
                         <label htmlFor={`msg-text-${message.id}`} className="block text-[10px] font-medium text-slate-600 mb-1">Message Text</label>
@@ -70,33 +91,6 @@ const MessageCard: React.FC<{
                             onColorChange={(hex) => updateCakeMessage(message.id, { color: hex })}
                         />
                     </div>
-
-                    {/* Toggle Enable/Disable */}
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                        <label className="text-xs font-medium text-slate-700">Show Message</label>
-                        <button
-                            type="button"
-                            onClick={() => updateCakeMessage(message.id, { isEnabled: !message.isEnabled })}
-                            className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${message.isEnabled ? 'bg-purple-600' : 'bg-slate-300'}`}
-                            aria-pressed={message.isEnabled}
-                        >
-                            <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${message.isEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                        </button>
-                    </div>
-
-                    {/* Delete Button */}
-                    <button
-                        type="button"
-                        onClick={() => {
-                            if (window.confirm('Are you sure you want to delete this message?')) {
-                                removeCakeMessage(message.id);
-                            }
-                        }}
-                        className="w-full flex items-center justify-center gap-2 px-2 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                    >
-                        <TrashIcon className="w-4 h-4" />
-                        Delete Message
-                    </button>
                 </div>
             )}
         </div>
@@ -134,35 +128,37 @@ export const CakeMessagesOptions: React.FC<CakeMessagesOptionsProps> = ({
             ))}
 
             {/* Add Message buttons for missing positions */}
-            {missingTopMessage && (
-                <button
-                    type="button"
-                    onClick={() => addCakeMessage('top')}
-                    className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
-                >
-                    <span className="text-base">+</span> Add Message (Cake Top Side)
-                </button>
-            )}
+            <div className="flex flex-wrap gap-2 pt-1">
+                {missingTopMessage && (
+                    <button
+                        type="button"
+                        onClick={() => addCakeMessage('top')}
+                        className="text-[11px] font-medium text-purple-600 hover:text-purple-700 flex items-center gap-1"
+                    >
+                        <span>+ Add message</span> <span className="text-slate-400">(Top)</span>
+                    </button>
+                )}
 
-            {missingSideMessage && (
-                <button
-                    type="button"
-                    onClick={() => addCakeMessage('side')}
-                    className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
-                >
-                    <span className="text-base">+</span> Add Message (Cake Front Side)
-                </button>
-            )}
+                {missingSideMessage && (
+                    <button
+                        type="button"
+                        onClick={() => addCakeMessage('side')}
+                        className="text-[11px] font-medium text-purple-600 hover:text-purple-700 flex items-center gap-1"
+                    >
+                        <span>+ Add message</span> <span className="text-slate-400">(Front)</span>
+                    </button>
+                )}
 
-            {missingBaseBoardMessage && (
-                <button
-                    type="button"
-                    onClick={() => addCakeMessage('base_board')}
-                    className="w-full text-left bg-white border border-dashed border-slate-300 text-slate-600 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-colors text-xs flex items-center gap-2"
-                >
-                    <span className="text-base">+</span> Add Message (Base Board)
-                </button>
-            )}
+                {missingBaseBoardMessage && (
+                    <button
+                        type="button"
+                        onClick={() => addCakeMessage('base_board')}
+                        className="text-[11px] font-medium text-purple-600 hover:text-purple-700 flex items-center gap-1"
+                    >
+                        <span>+ Add message</span> <span className="text-slate-400">(Board)</span>
+                    </button>
+                )}
+            </div>
 
             {cakeMessages.length === 0 && missingTopMessage && missingSideMessage && missingBaseBoardMessage && (
                 <p className="text-xs text-slate-500 text-center py-2">No messages detected.</p>
