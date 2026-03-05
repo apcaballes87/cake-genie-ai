@@ -34,6 +34,8 @@ interface Design {
         icing_design?: string;
         [key: string]: unknown;
     };
+    image_width?: number | null;
+    image_height?: number | null;
 }
 
 interface CollectionsClientProps {
@@ -220,6 +222,8 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                                             slug={design.slug}
                                             availability={design.availability ?? undefined}
                                             analysis_json={design.analysis_json}
+                                            image_width={design.image_width}
+                                            image_height={design.image_height}
                                         />
                                     </div>
                                 ))}

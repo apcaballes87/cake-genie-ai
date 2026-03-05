@@ -17,6 +17,8 @@ interface RecommendedProduct {
         icing_design?: string;
         [key: string]: unknown;
     };
+    image_width?: number | null;
+    image_height?: number | null;
 }
 
 interface RecommendedProductsGridProps {
@@ -91,6 +93,8 @@ export const RecommendedProductsGrid = ({ initialProducts }: RecommendedProducts
                                     availability={item.availability}
                                     analysis_json={item.analysis_json}
                                     priority={index < 4}
+                                    image_width={item.image_width}
+                                    image_height={item.image_height}
                                 />
                             </div>
                         ))}

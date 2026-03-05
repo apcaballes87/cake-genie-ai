@@ -23,6 +23,8 @@ interface Design {
         icing_design?: string;
         [key: string]: unknown;
     };
+    image_width?: number | null;
+    image_height?: number | null;
 }
 
 interface CategoryClientProps {

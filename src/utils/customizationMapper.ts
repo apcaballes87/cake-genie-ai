@@ -92,17 +92,19 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
     });
 
     // 4. Cake Messages
+    console.log('🔍 [DEBUG MAPPER] rawData.cake_messages input:', JSON.stringify(rawData.cake_messages, null, 2));
     state.cakeMessages = (rawData.cake_messages || []).map((msg): CakeMessageUI => ({
         ...msg,
         x: msg.x,
         y: msg.y,
-        text: '', // Start with empty text, use original as placeholder
+        text: msg.text || '', // Assign text properly instead of leaving it as an empty placeholder
         id: uuidv4(),
         isEnabled: true,
         price: 0,
         originalMessage: { ...msg },
-        isPlaceholder: true
+        isPlaceholder: false // Do not mark as placeholder so it renders fully in UI
     }));
+    console.log('🔍 [DEBUG MAPPER] mapped cakeMessages output:', JSON.stringify(state.cakeMessages, null, 2));
 
     // 5. Icing Design
     const analysisIcing = rawData.icing_design;

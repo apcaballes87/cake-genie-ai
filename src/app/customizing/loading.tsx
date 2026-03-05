@@ -1,5 +1,5 @@
-import { CustomizationSkeleton } from '@/components/LoadingSkeletons';
+import { CustomizingPageSkeleton } from '@/components/LoadingSkeletons';
 
 export default function Loading() {
-    return <CustomizationSkeleton />;
+    return <CustomizingPageSkeleton />;
 }

@@ -249,92 +249,136 @@ export const CustomizationSkeleton: React.FC = React.memo(() => (
 ));
 CustomizationSkeleton.displayName = 'CustomizationSkeleton';
 
+// Footer: Sticky Add to Cart Bar Skeleton
+export const StickyAddToCartBarSkeleton: React.FC = React.memo(() => (
+  <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-lg p-3 shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] border-t border-slate-200">
+    <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
+      <div className="min-w-[100px] flex flex-col gap-1">
+        <Skeleton className="h-6 w-20" /> {/* Price */}
+        <Skeleton className="h-3 w-12" /> {/* Label */}
+      </div>
+      <div className="flex flex-1 gap-3">
+        <Skeleton className="flex-1 h-12 rounded-xl" /> {/* Share Button */}
+        <Skeleton className="flex-1 h-12 rounded-xl" /> {/* Add to Cart Button */}
+      </div>
+    </div>
+  </div>
+));
+StickyAddToCartBarSkeleton.displayName = 'StickyAddToCartBarSkeleton';
+
 // Full Page Skeleton for Customizing Page
 export const CustomizingPageSkeleton: React.FC = React.memo(() => (
-  <div className="flex flex-col items-center gap-4 w-full max-w-7xl mx-auto pb-28 px-4 animate-pulse">
-
-    {/* Header: Back Button + Search + Cart */}
-    <div className="w-full flex items-center gap-2 md:gap-4 pt-6">
-      <Skeleton className="w-10 h-10 rounded-full shrink-0" /> {/* Back Button */}
-      <div className="relative grow">
-        <Skeleton className="w-full h-12 rounded-full" /> {/* Search Input */}
+  <div className="w-full min-h-screen bg-slate-50/30">
+    {/* Header Section */}
+    <div className="w-full max-w-7xl mx-auto px-4">
+      <div className="w-full flex items-center gap-2 md:gap-4 mb-4 pt-6">
+        <Skeleton className="w-10 h-10 rounded-full shrink-0" /> {/* Back Button */}
+        <div className="relative grow">
+          <Skeleton className="w-full h-12 rounded-full" /> {/* Search Input */}
+        </div>
+        <Skeleton className="w-10 h-10 rounded-full shrink-0" /> {/* Cart Icon */}
       </div>
-      <Skeleton className="w-10 h-10 rounded-full shrink-0" /> {/* Cart Icon */}
     </div>
 
-    {/* Breadcrumbs */}
-    <div className="w-full flex gap-2">
-      <Skeleton className="h-4 w-16" />
-      <Skeleton className="h-4 w-4" />
-      <Skeleton className="h-4 w-24" />
-      <Skeleton className="h-4 w-4" />
-      <Skeleton className="h-4 w-32" />
-    </div>
+    <div className="flex flex-col items-center gap-6 w-full max-w-7xl mx-auto px-4 pb-32">
+      {/* Breadcrumbs */}
+      <div className="w-full flex items-center gap-2">
+        <Skeleton className="h-3 w-12" />
+        <span className="text-slate-200">/</span>
+        <Skeleton className="h-3 w-20" />
+        <span className="text-slate-200">/</span>
+        <Skeleton className="h-3 w-24" />
+      </div>
 
-    {/* Title & Tag */}
-    <div className="w-full space-y-2">
-      <Skeleton className="h-8 w-3/4 md:w-1/3 rounded-lg" />
-      <Skeleton className="h-5 w-24 rounded-full" />
-    </div>
+      {/* Title & Tag */}
+      <div className="w-full space-y-2">
+        <Skeleton className="h-8 w-3/4 md:w-1/3 rounded-lg" /> {/* Title */}
+        <Skeleton className="h-5 w-24 rounded-full" /> {/* Category Badge */}
+      </div>
 
-    {/* Beta Banner */}
-    <Skeleton className="w-full h-10 rounded-xl" />
+      {/* Main Two-Column Layout */}
+      <div className="w-full flex flex-col md:flex-row gap-4 md:gap-8">
 
-    {/* Main Two-Column Layout */}
-    <div className="w-full flex flex-col md:flex-row gap-4">
+        {/* LEFT COLUMN: Image & Preview */}
+        <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
+          <div className="w-full bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 flex flex-col min-h-[450px]">
+            {/* Tab Toggle */}
+            <div className="p-2 shrink-0">
+              <div className="bg-slate-100 p-1 rounded-lg flex space-x-1">
+                <div className="w-1/2 h-9 bg-white rounded shadow-sm" />
+                <div className="w-1/2 h-9" />
+              </div>
+            </div>
 
-      {/* LEFT COLUMN: Image & Preview */}
-      <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
-        <div className="w-full bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-2 min-h-[400px] flex flex-col">
-          {/* Tab Toggle */}
-          <div className="bg-slate-100 p-1 rounded-lg flex space-x-1 mb-2">
-            <div className="w-1/2 h-8 bg-white rounded shadow-sm" />
-            <div className="w-1/2 h-8" />
+            {/* Image Area */}
+            <div className="p-2 pt-0 grow">
+              <div className="w-full aspect-square bg-slate-200/50 rounded-xl relative flex items-center justify-center overflow-hidden">
+                <div className="w-10 h-10 rounded-full border-4 border-slate-300 border-t-slate-400 animate-spin" />
+
+                {/* Save Button Overlay */}
+                <div className="absolute top-3 left-3">
+                  <Skeleton className="h-7 w-16 rounded-full" />
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
 
-          {/* Image Area */}
-          <div className="grow bg-slate-200/50 rounded-xl w-full aspect-square relative flex items-center justify-center">
-            <div className="w-8 h-8 rounded-full border-4 border-slate-300 border-t-slate-500 animate-spin" />
+        {/* RIGHT COLUMN: Controls */}
+        <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
+          <div className="w-full bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200 space-y-8">
+            {/* Customization Navigation (Tabs) */}
+            <div className="space-y-4">
+              <div className="flex justify-center">
+                <Skeleton className="h-4 w-40" />
+              </div>
+              <CustomizationTabsSkeleton />
+            </div>
+
+            {/* Choice Preview (Chosen Options) */}
+            <div className="space-y-3">
+              <ChosenOptionsSkeleton />
+            </div>
+
+            {/* AI Control / Quick Actions */}
+            <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-200/60 space-y-3">
+              <div className="flex items-center gap-2">
+                <Skeleton className="w-8 h-8 rounded-full" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+              <Skeleton className="h-20 w-full rounded-xl" />
+              <div className="flex justify-between items-center">
+                <Skeleton className="h-3 w-40" />
+                <Skeleton className="h-8 w-24 rounded-full" />
+              </div>
+            </div>
+
+            {/* Bottom Actions for Desktop */}
+            <div className="hidden md:flex items-center justify-end gap-3 pt-6 border-t border-slate-100">
+              <Skeleton className="h-10 w-28 rounded-xl" />
+              <Skeleton className="h-10 w-28 rounded-xl" />
+            </div>
           </div>
-
-          {/* Bottom Right Small Button */}
-          <div className="absolute bottom-4 right-4 h-8 w-24 bg-slate-200 rounded-lg" />
         </div>
       </div>
 
-      {/* RIGHT COLUMN: Controls */}
-      <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
-        <div className="w-full bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200 space-y-6">
-
-          {/* Tabs Title */}
-          <div className="flex justify-center">
-            <Skeleton className="h-4 w-48 mb-2" />
-          </div>
-
-          {/* Customization Tabs (Circles) */}
-          <CustomizationTabsSkeleton />
-
-          {/* Chosen Options (Squares) */}
-          <ChosenOptionsSkeleton />
-
-          {/* Additional Instructions / Text Area */}
-          <div className="bg-slate-50 rounded-lg p-3 space-y-2 border border-slate-200">
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-3 w-64" />
-          </div>
-
-          {/* Bottom Action Buttons */}
-          <div className="w-full flex items-center justify-end gap-2 pt-4 mt-2 border-t border-slate-200/50">
-            <Skeleton className="h-9 w-28 rounded-lg" /> {/* Report */}
-            <Skeleton className="h-9 w-24 rounded-lg" /> {/* Save */}
-            <Skeleton className="h-9 w-32 rounded-lg" /> {/* Reset */}
-          </div>
-
+      {/* Trending / Related Designs Grid */}
+      <div className="w-full mt-8 space-y-6">
+        <Skeleton className="h-6 w-64" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="aspect-square rounded-2xl w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+          ))}
         </div>
       </div>
-
     </div>
+
+    {/* Sticky Bottom Bar */}
+    <StickyAddToCartBarSkeleton />
   </div>
 ));
 CustomizingPageSkeleton.displayName = 'CustomizingPageSkeleton';
