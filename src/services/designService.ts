@@ -372,11 +372,12 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             const uiMsg = correspondingUIMsg;
             const changesInMessage = [];
 
-            const textChanged = uiMsg.text !== uiMsg.originalMessage!.text;
+            const effectiveText = (uiMsg.text || "").trim() === "" ? uiMsg.originalMessage!.text : uiMsg.text;
+            const textChanged = effectiveText !== uiMsg.originalMessage!.text;
             const colorChanged = uiMsg.color.toLowerCase() !== uiMsg.originalMessage!.color.toLowerCase();
 
             if (textChanged) {
-                changesInMessage.push(`change the text from "${uiMsg.originalMessage!.text}" to "${uiMsg.text}"`);
+                changesInMessage.push(`change the text from "${uiMsg.originalMessage!.text}" to "${effectiveText}"`);
             }
             if (colorChanged) {
                 changesInMessage.push(`change the color to ${colorName(uiMsg.color)}`);

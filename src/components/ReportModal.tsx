@@ -65,7 +65,15 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, onSubmit, is
                     <div>
                         <p className="text-sm font-semibold text-slate-700 mb-2">Generated Image</p>
                         {editedImage ? (
-                            <LazyImage src={editedImage} alt="Customized Cake" className="w-full h-auto object-contain rounded-lg border border-slate-200" />
+                            <div className="relative w-full aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                                <LazyImage
+                                    src={editedImage}
+                                    alt="Customized Cake"
+                                    fill
+                                    imageClassName="object-contain"
+                                    unoptimized
+                                />
+                            </div>
                         ) : (
                             <div className="aspect-square bg-slate-100 flex items-center justify-center rounded-lg">
                                 <span className="text-slate-400 text-sm">No image generated</span>
