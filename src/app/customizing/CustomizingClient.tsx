@@ -2523,12 +2523,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                 onClick={() => setActiveCustomization('options')}
                                                 className="group flex flex-col items-center gap-1 min-w-[60px]"
                                             >
-                                                <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-white ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
+                                                <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                                     <LazyImage
                                                         src={CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
                                                         alt={cakeInfo.type}
                                                         fill
-                                                        sizes="48px"
+                                                        sizes="56px"
                                                         imageClassName="object-contain"
                                                     />
                                                 </div>
@@ -2542,12 +2542,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                 onClick={() => setActiveCustomization('options')}
                                                 className="group flex flex-col items-center gap-1 min-w-[60px]"
                                             >
-                                                <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-white ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
+                                                <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                                     <LazyImage
                                                         src={CAKE_SIZE_THUMBNAILS[cakeInfo.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
                                                         alt={cakeInfo.size}
                                                         fill
-                                                        sizes="48px"
+                                                        sizes="56px"
                                                         imageClassName="object-contain"
                                                     />
                                                     <div className="absolute inset-x-0 top-0 pt-3 text-black text-[9px] font-bold text-center leading-tight">
@@ -2576,12 +2576,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                 onClick={() => setActiveCustomization('options')}
                                                 className="group flex flex-col items-center gap-1 min-w-[60px]"
                                             >
-                                                <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-white ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
+                                                <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                                     <LazyImage
                                                         src={CAKE_THICKNESS_THUMBNAILS[cakeInfo.thickness]}
                                                         alt={cakeInfo.thickness}
                                                         fill
-                                                        sizes="48px"
+                                                        sizes="56px"
                                                         imageClassName="object-contain"
                                                     />
                                                 </div>
@@ -2597,12 +2597,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                     onClick={() => setActiveCustomization('options')}
                                                     className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                 >
-                                                    <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-white ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
+                                                    <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                                         <LazyImage
                                                             src={FLAVOR_THUMBNAILS[flavor]}
                                                             alt={flavor}
                                                             fill
-                                                            sizes="48px"
+                                                            sizes="56px"
                                                             imageClassName="object-contain"
                                                         />
                                                     </div>
