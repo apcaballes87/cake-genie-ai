@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
                             text: { type: Type.STRING },
                             type: { type: Type.STRING },
                             color: { type: Type.STRING },
-                            position: { type: Type.STRING },
+                            position: { type: Type.STRING, description: "Must be exactly 'top', 'side' (for front), or 'base_board'." },
                         },
                         required: ['text', 'type', 'color', 'position'],
                     },
@@ -111,32 +111,40 @@ export async function POST(req: NextRequest) {
 You are given the CURRENT cake design analysis JSON. Return a NEW, COMPLETE cake design analysis JSON that reflects the user's requested changes.
 
 ABSOLUTELY CRITICAL: You MUST return the COMPLETE JSON with ALL fields from the input. Do NOT omit any fields.
-If the user only asks to change one thing (like a message color), you still MUST return every single field that was in the input (cakeType, cakeThickness, main_toppers, support_elements, cake_messages, icing_design, keyword, etc). 
+If the user only asks to change one thing (like a message color), you still MUST return every single field that was in the input (cakeType, cakeThickness, main_toppers, support_elements, cake_messages, icing_design, keyword, etc).
 Omitting a field will DELETE that data. Every field from the input MUST appear in your output.
 
-CRITICAL RULES FOR "colors" OBJECT:
-- The "colors" object under "icing_design" maps the design element to its color.
-- Valid keys are: top, side, drip, borderTop, borderBase, gumpasteBaseBoardColor.
-- When adding or changing a design element (like a drip or border), you MUST include its color in the "colors" object.
+--- UI MAPPING & INSTRUCTIONS ---
+COLORS:
+You must strictly use these HEX codes for colors whenever possible to match our UI palette:
+White: #FFFFFF, Black: #000000, Gold: #FFD700, Silver: #C0C0C0, Light Blue: #87CEEB, Pink: #FFC0CB, Light Pink: #FFB6C1, Hot Pink: #FF69B4, Red: #FF0000, Dark Red: #8B0000, Orange: #FFA500, Yellow: #FFFF00, Light Yellow: #FFFFE0, Green: #008000, Light Green: #90EE90, Teal: #008080, Blue: #0000FF, Navy: #000080, Purple: #800080, Lavender: #E6E6FA, Brown: #8B4513, Tan: #D2B48C, Beige: #F5F5DC, Peach: #FFDAB9, Coral: #FF7F50, Mint: #98FF98, Rose Gold: #B76E79, Champagne: #F7E7CE, Ivory: #FFFFF0.
+If a user asks for a vague color like "mint green" or "dark blue", pick the closest hex from this list (e.g. Mint: #98FF98, Navy: #000080). Do not use color words like "blue".
+
+CAKE MESSAGES:
+- Text: Managed in "cake_messages" array. To "change the message to X", FIND the existing object and CHANGE its "text".
+- Color: Change the "color" property to the HEX code.
+- Position: Valid values are exactly "top", "side", or "base_board".
+  - If user says "front", "front side", or "face": set position to "side".
+  - If user says "bottom", "board", or "base": set position to "base_board".
+  - If user says "top": set position to "top".
+
+ICING DESIGN & EFFECTS:
+- "colors" object under "icing_design" maps design elements to colors. Valid keys: top, side, drip, borderTop, borderBase, gumpasteBaseBoardColor.
+- Drip: If user asks for a drip (e.g., "add gold drip"), set icing_design.drip = true AND icing_design.colors.drip = "#FFD700". To remove, set drip = false.
+- Borders: "Top border" -> border_top = true & colors.borderTop. "Bottom border" -> border_base = true & colors.borderBase.
+- Base Board: "Base board" -> gumpasteBaseBoard = true & colors.gumpasteBaseBoardColor.
+- Cake Color: "make the cake [color]" -> change colors.side and colors.top to the matching HEX code.
 
 CRITICAL RULES:
-1. All colors must be valid CSS HEX codes (e.g., #0000FF for blue). Do not use color words like "blue".
+1. All colors must be valid CSS HEX codes.
 2. Set booleans strictly to true or false.
 3. NEVER add "drip", "border", or "board" to support_elements. They MUST ONLY BE CONFIGURED inside the icing_design object.
-
-SPECIFIC BEHAVIORS:
-- MESSAGES: If the user asks to "change the message to X", do NOT remove the existing message object from the cake_messages array. Instead, FIND the existing message object and CHANGE its "text" property to X. Only remove the message object if the user explicitly asks to "remove the message" or "delete the message".
-- MESSAGE COLOR: If the user asks to "change the message color to X", FIND the existing message object in cake_messages and change its "color" property to the HEX code. Keep the "text" and all other properties the same.
-- ICING EFFECTS (drip, borders, base board): If the user asks to add an effect and specifies a color (e.g., "add a blue drip"), you MUST do BOTH inside icing_design:
-  a. Set the corresponding boolean flag to true (e.g., icing_design.drip = true).
-  b. Add or update the corresponding key in icing_design.colors with the correct HEX code (e.g., "drip": "#0000FF").
+4. Do NOT remove any existing message or element unless explicitly asked to "remove" or "delete" it.
 
 EXAMPLES:
-- Prompt: "remove the drip" -> Action: set icing_design.drip to false. Return ALL other fields unchanged.
-- Prompt: "make the cake green" -> Action: change colors in icing_design.colors to #00FF00. Return ALL other fields unchanged.
-- Prompt: "change message color to red" -> Action: find the message in cake_messages and set its "color" to "#FF0000". Keep text and other fields the same.
-- Prompt: "change message to Happy Anniversary" -> Action: find the existing item in cake_messages and change its "text" field. DO NOT delete the item.
-- Prompt: "add a red drip" -> Action: set icing_design.drip = true AND set icing_design.colors.drip = "#FF0000". Return ALL other fields unchanged.
+- Prompt: "add message Happy Birthday in front side" -> Action: add to cake_messages { text: "Happy Birthday", position: "side", type: "icing_script", color: "#000000" }.
+- Prompt: "make the cake mint green" -> Action: set icing_design.colors.top and side to "#98FF98". Return ALL other fields unchanged.
+- Prompt: "add a gold drip" -> Action: set icing_design.drip = true AND icing_design.colors.drip = "#FFD700". Return ALL other fields unchanged.
 
 Return the FULL, COMPLETE updated JSON with every field from the input included.`;
 
