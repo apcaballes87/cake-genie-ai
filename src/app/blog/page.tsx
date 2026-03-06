@@ -4,6 +4,8 @@ import { getAllBlogs } from '@/services/supabaseService';
 import { ArrowLeft, Calendar, ChevronRight } from 'lucide-react';
 import { BlogSchema } from '@/components/SEOSchemas';
 
+export const revalidate = 3600; // Rebuild cache every 1 hour
+
 export const metadata: Metadata = {
   title: 'Custom Cake Ideas, Tips & Guides | Genie.ph Blog',
   description:

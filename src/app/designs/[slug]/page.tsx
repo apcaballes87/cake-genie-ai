@@ -89,6 +89,9 @@ export async function generateMetadata(
             'image_src': design.customized_image_url,
             // PageMap DataObject for Google thumbnail
             'pagemap': `<DataObject type="thumbnail"><Attribute name="src">${design.customized_image_url}</Attribute></DataObject>`,
+            'og:type': 'product',
+            'product:price:amount': design.final_price?.toString() || '',
+            'product:price:currency': 'PHP',
         },
     }
 }
