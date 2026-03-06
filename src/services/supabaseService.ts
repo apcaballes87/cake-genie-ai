@@ -2778,3 +2778,102 @@ export async function getCartItemsWithMerchant(
     return { data: null, error: err as Error };
   }
 }
+
+// ============================================
+// Blog Functions
+// ============================================
+
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  date: string;
+  author: string;
+  author_url?: string;
+  image?: string;
+  keywords?: string;
+  cake_search_keywords?: string;
+  related_cakes_intro?: string;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Fetches all published blog posts, sorted by date descending
+ */
+export async function getAllBlogs(): Promise<SupabaseServiceResponse<BlogPost[]>> {
+  const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
+  try {
+    const { data, error } = await client
+      .from('blogs')
+      .select('*')
+      .eq('is_published', true)
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching all blogs:', error);
+      return { data: null, error };
+    }
+
+    return { data: data || [], error: null };
+  } catch (err) {
+    console.error('Exception fetching all blogs:', err);
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches a single blog post by slug
+ */
+export async function getBlogBySlug(slug: string): Promise<SupabaseServiceResponse<BlogPost | null>> {
+  const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
+  try {
+    const { data, error } = await client
+      .from('blogs')
+      .select('*')
+      .eq('slug', slug)
+      .eq('is_published', true)
+      .limit(1)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows returned
+        return { data: null, error: null };
+      }
+      console.error('Error fetching blog by slug:', error);
+      return { data: null, error };
+    }
+
+    return { data: data, error: null };
+  } catch (err) {
+    console.error('Exception fetching blog by slug:', err);
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches blog post slugs for static generation
+ */
+export async function getAllBlogSlugs(): Promise<SupabaseServiceResponse<{ slug: string }[]>> {
+  const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
+  try {
+    const { data, error } = await client
+      .from('blogs')
+      .select('slug')
+      .eq('is_published', true);
+
+    if (error) {
+      console.error('Error fetching blog slugs:', error);
+      return { data: null, error };
+    }
+
+    return { data: data || [], error: null };
+  } catch (err) {
+    console.error('Exception fetching blog slugs:', err);
+    return { data: null, error: err as Error };
+  }
+}

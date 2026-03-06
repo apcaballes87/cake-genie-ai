@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getBlogPostBySlug, getAllBlogPosts } from '@/data/blogPosts';
+import { getBlogBySlug, getAllBlogSlugs } from '@/services/supabaseService';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { BlogContent } from './BlogContent';
 import { BlogPostingSchema } from '@/components/SEOSchemas';
@@ -13,16 +13,24 @@ interface BlogPostPageProps {
 }
 
 export async function generateStaticParams() {
-  const posts = getAllBlogPosts();
-  return posts.map((post) => ({ slug: post.slug }));
+  const { data: slugs } = await getAllBlogSlugs();
+
+  if (!slugs) {
+    return [];
+  }
+
+  return slugs.map((item) => ({ slug: item.slug }));
 }
 
 export async function generateMetadata({
   params,
 }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = getBlogPostBySlug(slug);
-  if (!post) return { title: 'Post Not Found | Genie.ph' };
+  const { data: post } = await getBlogBySlug(slug);
+
+  if (!post) {
+    return { title: 'Post Not Found | Genie.ph' };
+  }
 
   return {
     title: post.title,
@@ -43,7 +51,7 @@ export async function generateMetadata({
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
-  const post = getBlogPostBySlug(slug);
+  const { data: post } = await getBlogBySlug(slug);
 
   if (!post) {
     notFound();
@@ -52,7 +60,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   // Fetch related products for the bottom of the page
   let relatedDesigns: any[] = [];
   try {
-    const { data } = await getRelatedProductsByKeywords(post.cakeSearchKeywords || post.keywords || post.title, slug, 4, 0);
+    const { data } = await getRelatedProductsByKeywords(
+      post.cake_search_keywords || post.keywords || post.title,
+      slug,
+      4,
+      0
+    );
     relatedDesigns = data || [];
   } catch (e) {
     console.error('Error fetching related designs:', e);
@@ -64,7 +77,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         headline={post.title}
         datePublished={post.date}
         authorName={post.author}
-        authorUrl={post.authorUrl}
+        authorUrl={post.author_url}
         image={post.image}
         description={post.excerpt}
       />
@@ -119,9 +132,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         {relatedDesigns && relatedDesigns.length > 0 && (
           <RelatedProductsSection
             initialProducts={relatedDesigns}
-            keyword={post.cakeSearchKeywords || post.keywords || post.title}
+            keyword={post.cake_search_keywords || post.keywords || post.title}
             slug={slug}
-            intro={post.relatedCakesIntro}
+            intro={post.related_cakes_intro}
           />
         )}
       </article>
