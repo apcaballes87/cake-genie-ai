@@ -823,7 +823,16 @@ function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceI
 
     return (
         <div className="w-full max-w-4xl mx-auto px-4 pb-28 pt-2 space-y-4">
-            {/* Design Details — moved to seoContentSlot passed to CustomizingClient */}
+            {/* Design Details - now rendered in SSR for SEO */}
+            {designDetails && (
+                <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
+                    <DesignAboutSection
+                        title={`About This ${keywords || 'Custom'} Cake`}
+                        description={designDetails}
+                        showDisclaimer={true}
+                    />
+                </section>
+            )}
 
             {/* Structured Specifications Table for SEO */}
             <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
@@ -1030,15 +1039,6 @@ export default async function RecentSearchPage({ params }: Props) {
                         relatedDesigns={relatedDesigns}
                         currentKeywords={design.keywords}
                         currentSlug={slug}
-                        seoContentSlot={
-                            generateDesignDetails(design, prices) ? (
-                                <DesignAboutSection
-                                    title={`About This ${design.keywords || 'Custom'} Cake`}
-                                    description={generateDesignDetails(design, prices) || ''}
-                                    showDisclaimer={true}
-                                />
-                            ) : undefined
-                        }
                     />
                 </CustomizationProvider>
             </Suspense>

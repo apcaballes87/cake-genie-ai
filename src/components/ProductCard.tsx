@@ -13,6 +13,7 @@ import { showLoading, showError } from '@/lib/utils/toast';
 import { toast } from 'react-hot-toast';
 import { HybridAnalysisResult } from '@/types';
 import { CustomizationDetails } from '@/lib/database.types';
+import { formatStartingPrice } from '@/lib/utils/currency';
 
 export interface ProductCardProps {
     p_hash: string;
@@ -178,7 +179,8 @@ export const ProductCard = ({
                         alt={title}
                         title={title}
                         fill
-                        className="object-cover group-hover:scale-110 transition-transform duration-500"
+                        sizes="(max-width: 490px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 17vw"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
                         priority={priority}
                         loading={priority ? "eager" : "lazy"}
                     />
@@ -207,12 +209,12 @@ export const ProductCard = ({
                 </div>
             </div>
 
-            <div className="px-1 pb-1 pt-0.5 flex flex-col flex-1">
+            <div className="px-0 pb-1 pt-0.5 flex flex-col flex-1">
                 <h3 className="font-bold text-gray-900 text-sm md:text-base leading-tight mb-1 line-clamp-2 group-hover:text-purple-600 transition-colors">
                     {title}
                 </h3>
                 <p className="text-xs text-gray-500 mb-1">
-                    Starts at ₱1,599
+                    {formatStartingPrice(price)}
                 </p>
             </div>
         </>
