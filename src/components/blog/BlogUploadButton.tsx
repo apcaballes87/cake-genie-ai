@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { Upload, Loader2 } from 'lucide-react';
-import { showError } from '@/lib/utils/toast';
+import { showError, showLoading } from '@/lib/utils/toast';
+import { ImageUploader } from '@/components/ImageUploader';
 
 const BUCKET_NAME = 'uploadopenai';
-const IMG_MAX_LONG_EDGE = 1800;
 
 interface BlogUploadButtonProps {
     className?: string;
@@ -20,22 +20,13 @@ interface BlogUploadButtonProps {
 export function BlogUploadButton({ className = '' }: BlogUploadButtonProps) {
     const router = useRouter();
     const supabase = getSupabaseClient();
+    const [isUploaderOpen, setIsUploaderOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
-    const [status, setStatus] = useState('');
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-            showError('Please select an image file');
-            return;
-        }
-
+    const handleImageSelect = async (file: File) => {
+        setIsUploaderOpen(false);
         setIsUploading(true);
-        setStatus('Uploading your design...');
+        showLoading('Uploading your design...');
 
         try {
             // Generate unique filename
@@ -58,8 +49,6 @@ export function BlogUploadButton({ className = '' }: BlogUploadButtonProps) {
 
             const publicUrl = urlData.publicUrl;
 
-            setStatus('Redirecting to customization...');
-
             // Redirect to customizing page with the uploaded image
             const encodedUrl = encodeURIComponent(publicUrl);
             router.push(`/customizing?ref=${encodedUrl}&source=blog`);
@@ -67,46 +56,36 @@ export function BlogUploadButton({ className = '' }: BlogUploadButtonProps) {
         } catch (err) {
             console.error('Upload failed:', err);
             showError('Failed to upload. Please try again.');
+        } finally {
             setIsUploading(false);
-            setStatus('');
         }
     };
 
-    const handleClick = () => {
-        fileInputRef.current?.click();
-    };
-
     return (
-        <div className={className}>
-            <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-            />
-
+        <div className={`flex justify-center ${className}`}>
             <button
-                onClick={handleClick}
+                onClick={() => setIsUploaderOpen(true)}
                 disabled={isUploading}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="flex items-center justify-center gap-2 bg-[#9b80e3] hover:bg-[#8669cc] text-white px-5 py-3 lg:px-7 lg:py-3.5 rounded-[0.875rem] font-bold transition-all shadow-md active:scale-[0.98] text-sm lg:text-base whitespace-nowrap shrink-0 disabled:opacity-70 disabled:cursor-not-allowed"
             >
                 {isUploading ? (
                     <>
-                        <Loader2 size={20} className="animate-spin" />
-                        {status || 'Uploading...'}
+                        <Loader2 size={18} className="animate-spin shrink-0 lg:w-5 lg:h-5" />
+                        <span>Uploading...</span>
                     </>
                 ) : (
                     <>
-                        <Upload size={20} />
-                        Upload Your Design & Get Price in Seconds
+                        <Upload size={18} className="shrink-0 lg:w-5 lg:h-5" />
+                        <span>Upload Your Design & Get Price in Seconds</span>
                     </>
                 )}
             </button>
 
-            {status && !isUploading && (
-                <p className="mt-2 text-sm text-gray-600">{status}</p>
-            )}
+            <ImageUploader
+                isOpen={isUploaderOpen}
+                onClose={() => setIsUploaderOpen(false)}
+                onImageSelect={handleImageSelect}
+            />
         </div>
     );
 }

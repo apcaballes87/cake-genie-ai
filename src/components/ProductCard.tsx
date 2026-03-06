@@ -196,16 +196,13 @@ export const ProductCard = ({
                         </span>
                     </div>
 
-                    {/* Price and Rating Overlays at Bottom */}
-                    <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-end z-10 pointer-events-none">
-                        <div className="bg-white/95 backdrop-blur-sm text-gray-900 font-extrabold text-[11px] md:text-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-auto">
-                            {price ? `₱${price.toLocaleString()}` : 'Req. Price'}
-                        </div>
+                    {/* Price and Rating Overlays at Bottom - Hidden */}
+                    {/* <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-end z-10 pointer-events-none">
                         <div className="bg-white/95 backdrop-blur-sm flex items-center gap-1 font-bold text-gray-900 text-xs md:text-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-auto">
                             <Star size={12} className="text-orange-500" fill="currentColor" />
                             <span>4.9</span>
                         </div>
-                    </div>
+                    </div> */}
                 </div>
             </div>
 
@@ -214,7 +211,7 @@ export const ProductCard = ({
                     {title}
                 </h3>
                 <p className="text-xs text-gray-500 mb-1">
-                    {analysis_json?.cakeType || 'Custom Design'}
+                    Starts at ₱1,599
                 </p>
             </div>
         </>

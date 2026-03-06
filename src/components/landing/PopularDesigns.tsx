@@ -126,16 +126,13 @@ export const PopularDesigns = ({ designs: initialDesigns }: PopularDesignsProps)
                                     <Heart size={16} />
                                 </div>
 
-                                {/* Price and Rating Overlays */}
-                                <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-end z-10 pointer-events-none">
-                                    <div className="bg-white/95 backdrop-blur-sm text-gray-900 font-extrabold text-[11px] md:text-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-auto">
-                                        ₱{design.price.toLocaleString()}
-                                    </div>
+                                {/* Price and Rating Overlays - Hidden */}
+                                {/* <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-end z-10 pointer-events-none">
                                     <div className="bg-white/95 backdrop-blur-sm flex items-center gap-1 font-bold text-gray-900 text-xs md:text-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-auto">
                                         <Star size={12} className="text-orange-500" fill="currentColor" />
                                         <span>4.9</span>
                                     </div>
-                                </div>
+                                </div> */}
                             </div>
 
                             <div className="px-0 pb-1 pt-0.5 flex flex-col flex-1">
@@ -146,7 +143,7 @@ export const PopularDesigns = ({ designs: initialDesigns }: PopularDesignsProps)
                                     })()}
                                 </h3>
                                 <p className="text-xs text-gray-500 mb-1">
-                                    Custom Design
+                                    Starts at ₱1,599
                                 </p>
                             </div>
                         </Link>
