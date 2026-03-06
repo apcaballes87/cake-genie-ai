@@ -588,7 +588,7 @@ function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { question: 
  * This content is shown on initial page load before client hydration.
  * Once CustomizingClient hydrates, it takes over the interactive display.
  */
-function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; prices?: BasePriceInfo[]; relatedDesigns?: any[] }) {
+function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { design: any; prices?: BasePriceInfo[]; relatedDesigns?: any[]; captionText?: string }) {
     const keywords = design.keywords || 'Custom';
     const analysis = design.analysis_json || {};
 
@@ -633,7 +633,7 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
             >
                 {/* Hero Image Section */}
                 {design.original_image_url && (
-                    <figure className="relative w-full aspect-square bg-slate-100 overflow-hidden">
+                    <figure className="relative w-full aspect-square bg-slate-100">
                         <LazyImage
                             src={design.original_image_url}
                             alt={altText}
@@ -644,7 +644,9 @@ function SSRCakeDetails({ design, prices, relatedDesigns }: { design: any; price
                             priority
                             itemProp="image"
                         />
-                        <figcaption className="sr-only">{altText}</figcaption>
+                        <figcaption className="absolute bottom-0 left-0 right-0 text-xs text-slate-500 p-3 text-center bg-white/50 backdrop-blur-sm">
+                            {captionText}
+                        </figcaption>
                     </figure>
                 )}
 
@@ -946,6 +948,12 @@ export default async function RecentSearchPage({ params }: Props) {
         console.error('Error fetching related designs:', e);
     }
 
+    // Generate unique caption for image SEO from the first 1-2 sentences of design details
+    const detailsText = generateDesignDetails(design, prices);
+    const captionSentences = detailsText.split('. ').slice(0, 2);
+    let captionText = captionSentences.join('. ');
+    if (captionText && !captionText.endsWith('.')) captionText += '.';
+
     // Prepare State for Hydration (SSR)
     const analysis: HybridAnalysisResult | null = design.analysis_json ? { ...design.analysis_json } : null;
 
@@ -1029,6 +1037,7 @@ export default async function RecentSearchPage({ params }: Props) {
                 design={design}
                 prices={prices}
                 relatedDesigns={relatedDesigns}
+                captionText={captionText}
             />
 
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
@@ -1039,6 +1048,7 @@ export default async function RecentSearchPage({ params }: Props) {
                         relatedDesigns={relatedDesigns}
                         currentKeywords={design.keywords}
                         currentSlug={slug}
+                        initialCaption={captionText}
                     />
                 </CustomizationProvider>
             </Suspense>

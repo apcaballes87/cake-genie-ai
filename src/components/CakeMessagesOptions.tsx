@@ -13,6 +13,7 @@ interface CakeMessagesOptionsProps {
     addCakeMessage: (position: 'top' | 'side' | 'base_board') => void;
     updateCakeMessage: (id: string, updates: Partial<CakeMessageUI>) => void;
     removeCakeMessage: (id: string) => void;
+    selectedMessageId?: string;
 }
 
 const MessageCard: React.FC<{
@@ -20,8 +21,26 @@ const MessageCard: React.FC<{
     marker?: string;
     updateCakeMessage: (id: string, updates: Partial<CakeMessageUI>) => void;
     removeCakeMessage: (id: string) => void;
-}> = React.memo(({ message, marker, updateCakeMessage, removeCakeMessage }) => {
+    isSelected?: boolean;
+}> = React.memo(({ message, marker, updateCakeMessage, removeCakeMessage, isSelected }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const textInputRef = React.useRef<HTMLInputElement>(null);
+
+    // Auto-expand when selected and auto-focus the text input
+    React.useEffect(() => {
+        if (isSelected && !isExpanded) {
+            setIsExpanded(true);
+        }
+    }, [isSelected]);
+
+    React.useEffect(() => {
+        if (isExpanded && isSelected && textInputRef.current) {
+            // Small delay to ensure the input is rendered
+            setTimeout(() => {
+                textInputRef.current?.focus();
+            }, 100);
+        }
+    }, [isExpanded, isSelected]);
 
     const positionLabel = message.position === 'top' ? 'Cake Top Side' : message.position === 'side' ? 'Cake Front Side' : 'Base Board';
 
@@ -75,6 +94,7 @@ const MessageCard: React.FC<{
                         <label htmlFor={`msg-text-${message.id}`} className="block text-[10px] font-medium text-slate-600 mb-1">Message Text</label>
                         <input
                             id={`msg-text-${message.id}`}
+                            ref={textInputRef}
                             type="text"
                             value={message.text}
                             onChange={(e) => updateCakeMessage(message.id, { text: e.target.value, isPlaceholder: false })}
@@ -104,7 +124,8 @@ export const CakeMessagesOptions: React.FC<CakeMessagesOptionsProps> = ({
     onItemClick,
     addCakeMessage,
     updateCakeMessage,
-    removeCakeMessage
+    removeCakeMessage,
+    selectedMessageId
 }) => {
     // Determine which message positions are missing
     const existingPositions = useMemo(() => {
@@ -124,41 +145,44 @@ export const CakeMessagesOptions: React.FC<CakeMessagesOptionsProps> = ({
                     marker={markerMap.get(message.id)}
                     updateCakeMessage={updateCakeMessage}
                     removeCakeMessage={removeCakeMessage}
+                    isSelected={selectedMessageId === message.id}
                 />
             ))}
 
-            {/* Add Message buttons for missing positions */}
-            <div className="flex flex-wrap gap-2 pt-1">
-                {missingTopMessage && (
-                    <button
-                        type="button"
-                        onClick={() => addCakeMessage('top')}
-                        className="text-[11px] font-medium text-purple-600 hover:text-purple-700 flex items-center gap-1"
-                    >
-                        <span>+ Add message</span> <span className="text-slate-400">(Top)</span>
-                    </button>
-                )}
+            {/* Add Message buttons for missing positions - only show when no specific message is selected */}
+            {!selectedMessageId && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                    {missingTopMessage && (
+                        <button
+                            type="button"
+                            onClick={() => addCakeMessage('top')}
+                            className="text-[11px] font-medium text-purple-600 hover:text-purple-700 flex items-center gap-1"
+                        >
+                            <span>+ Add message</span> <span className="text-slate-400">(Top)</span>
+                        </button>
+                    )}
 
-                {missingSideMessage && (
-                    <button
-                        type="button"
-                        onClick={() => addCakeMessage('side')}
-                        className="text-[11px] font-medium text-purple-600 hover:text-purple-700 flex items-center gap-1"
-                    >
-                        <span>+ Add message</span> <span className="text-slate-400">(Front)</span>
-                    </button>
-                )}
+                    {missingSideMessage && (
+                        <button
+                            type="button"
+                            onClick={() => addCakeMessage('side')}
+                            className="text-[11px] font-medium text-purple-600 hover:text-purple-700 flex items-center gap-1"
+                        >
+                            <span>+ Add message</span> <span className="text-slate-400">(Front)</span>
+                        </button>
+                    )}
 
-                {missingBaseBoardMessage && (
-                    <button
-                        type="button"
-                        onClick={() => addCakeMessage('base_board')}
-                        className="text-[11px] font-medium text-purple-600 hover:text-purple-700 flex items-center gap-1"
-                    >
-                        <span>+ Add message</span> <span className="text-slate-400">(Board)</span>
-                    </button>
-                )}
-            </div>
+                    {missingBaseBoardMessage && (
+                        <button
+                            type="button"
+                            onClick={() => addCakeMessage('base_board')}
+                            className="text-[11px] font-medium text-purple-600 hover:text-purple-700 flex items-center gap-1"
+                        >
+                            <span>+ Add message</span> <span className="text-slate-400">(Board)</span>
+                        </button>
+                    )}
+                </div>
+            )}
 
             {cakeMessages.length === 0 && missingTopMessage && missingSideMessage && missingBaseBoardMessage && (
                 <p className="text-xs text-slate-500 text-center py-2">No messages detected.</p>
