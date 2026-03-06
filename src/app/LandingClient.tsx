@@ -12,6 +12,7 @@ import { useImageManagement } from '@/contexts/ImageContext';
 import { useCakeCustomization } from '@/contexts/CustomizationContext';
 import { ImageUploader } from '@/components/ImageUploader';
 import { showError, showSuccess, showLoading } from '@/lib/utils/toast';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import { toast } from 'react-hot-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -163,31 +164,43 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     };
 
     const handleAppImageUpload = useCallback((file: File) => {
-        clearImages();
-        clearCustomization();
-        setIsAnalyzing(true);
-        setAnalysisError(null);
-        initializeDefaultState();
-        router.push('/customizing');
+        // Upload to Supabase first, then redirect (same approach as BlogUploadButton)
+        const uploadToSupabase = async () => {
+            const supabase = getSupabaseClient();
+            const ext = file.name.split('.').pop() || 'jpg';
+            const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
 
-        hookImageUpload(
-            file,
-            (result) => {
-                setPendingAnalysisData(result);
-                setIsAnalyzing(false);
-            },
-            (error) => {
-                let errorMessage = error.message;
-                if (error.message.startsWith('AI_REJECTION:')) {
-                    errorMessage = error.message.replace('AI_REJECTION: ', '');
-                }
-                // Keep the prefix for state logic, but show clean message to user
-                setAnalysisError(error.message);
-                showError(errorMessage);
-                setIsAnalyzing(false);
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('uploadopenai')
+                .upload(filename, file);
+
+            if (uploadError) {
+                console.error('Upload failed:', uploadError);
+                showError('Failed to upload. Please try again.');
+                return null;
             }
-        );
-    }, [clearImages, clearCustomization, setIsAnalyzing, setAnalysisError, initializeDefaultState, router, hookImageUpload, setPendingAnalysisData]);
+
+            const { data: urlData } = supabase.storage
+                .from('uploadopenai')
+                .getPublicUrl(uploadData.path);
+
+            return urlData.publicUrl;
+        };
+
+        const processUpload = async () => {
+            showLoading('Uploading your design...');
+
+            const publicUrl = await uploadToSupabase();
+
+            if (publicUrl) {
+                // Redirect to customizing with the uploaded image URL
+                const encodedUrl = encodeURIComponent(publicUrl);
+                router.push(`/customizing?ref=${encodedUrl}&source=landing`);
+            }
+        };
+
+        processUpload();
+    }, [router]);
 
 
 
