@@ -100,6 +100,25 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
     const [availability, setAvailability] = useState<AvailabilityType>(initialData?.availability || 'rush');
     const [seoMetadata, setSEOMetadata] = useState<CacheSEOMetadata | null>(null);
 
+    // --- State Ref for Async Operations ---
+    const latestStateRef = React.useRef({
+        cakeInfo,
+        mainToppers,
+        supportElements,
+        cakeMessages,
+        icingDesign
+    });
+
+    useEffect(() => {
+        latestStateRef.current = {
+            cakeInfo,
+            mainToppers,
+            supportElements,
+            cakeMessages,
+            icingDesign
+        };
+    }, [cakeInfo, mainToppers, supportElements, cakeMessages, icingDesign]);
+
     // --- Persistence Logic ---
     useEffect(() => {
         // Load state from localStorage on mount
@@ -511,14 +530,13 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
 
     // Function to sync analysisResult with current state (used after successful design update)
     const syncAnalysisResultWithCurrentState = useCallback(() => {
-        if (!analysisResult) return;
-
-        // Update the analysisResult to reflect the current applied state
         setAnalysisResult(prev => {
             if (!prev) return prev;
 
+            const current = latestStateRef.current;
+
             // Sync main toppers: update original_* fields to match current state
-            const syncedMainToppers = mainToppers.map(t => ({
+            const syncedMainToppers = current.mainToppers.map(t => ({
                 ...t,
                 original_type: t.type,
                 original_color: t.color,
@@ -526,7 +544,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
             }));
 
             // Sync support elements: update original_* fields to match current state
-            const syncedSupportElements = supportElements.map(s => ({
+            const syncedSupportElements = current.supportElements.map(s => ({
                 ...s,
                 original_type: s.type,
                 original_color: s.color,
@@ -535,7 +553,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
 
             // Sync cake messages: extract only the base CakeMessage properties
             // This ensures we don't pollute the analysis result with UI-only properties
-            const syncedCakeMessages = cakeMessages.map(m => ({
+            const syncedCakeMessages = current.cakeMessages.map(m => ({
                 type: m.type,
                 text: m.text,
                 position: m.position,
@@ -546,14 +564,14 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
 
             // Sync icing design: extract only the base IcingDesign properties
             // This ensures we don't pollute the analysis result with UI-only properties (dripPrice, gumpasteBaseBoardPrice)
-            const syncedIcingDesign = icingDesign ? {
-                base: icingDesign.base,
-                color_type: icingDesign.color_type,
-                colors: icingDesign.colors,
-                border_top: icingDesign.border_top,
-                border_base: icingDesign.border_base,
-                drip: icingDesign.drip,
-                gumpasteBaseBoard: icingDesign.gumpasteBaseBoard,
+            const syncedIcingDesign = current.icingDesign ? {
+                base: current.icingDesign.base,
+                color_type: current.icingDesign.color_type,
+                colors: current.icingDesign.colors,
+                border_top: current.icingDesign.border_top,
+                border_base: current.icingDesign.border_base,
+                drip: current.icingDesign.drip,
+                gumpasteBaseBoard: current.icingDesign.gumpasteBaseBoard,
             } : prev.icing_design;
 
             return {
@@ -562,12 +580,11 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
                 support_elements: syncedSupportElements,
                 cake_messages: syncedCakeMessages,
                 icing_design: syncedIcingDesign,
-                cakeType: cakeInfo?.type || prev.cakeType,
-                cakeThickness: cakeInfo?.thickness || prev.cakeThickness,
+                cakeType: current.cakeInfo?.type || prev.cakeType,
+                cakeThickness: current.cakeInfo?.thickness || prev.cakeThickness,
             };
         });
 
-        // Update the UI state objects to also reset their original_* fields
         setMainToppers(prev => prev.map(t => ({
             ...t,
             original_type: t.type,
@@ -582,7 +599,6 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
             original_colors: s.colors,
         })));
 
-        // Update cake messages to reset their originalMessage to current state
         setCakeMessages(prev => prev.map(m => ({
             ...m,
             originalMessage: {
@@ -597,26 +613,28 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
 
         setIsCustomizationDirty(false);
         setDirtyFields(new Set());
-    }, [analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo]);
+    }, []);
 
     const getSyncedAnalysisResult = useCallback((): HybridAnalysisResult | null => {
         if (!analysisResult) return null;
 
-        const syncedMainToppers = mainToppers.map(t => ({
+        const current = latestStateRef.current;
+
+        const syncedMainToppers = current.mainToppers.map(t => ({
             ...t,
             original_type: t.type,
             original_color: t.color,
             original_colors: t.colors,
         }));
 
-        const syncedSupportElements = supportElements.map(s => ({
+        const syncedSupportElements = current.supportElements.map(s => ({
             ...s,
             original_type: s.type,
             original_color: s.color,
             original_colors: s.colors,
         }));
 
-        const syncedCakeMessages = cakeMessages.map(m => ({
+        const syncedCakeMessages = current.cakeMessages.map(m => ({
             type: m.type,
             text: m.text || m.originalMessage?.text || '',
             position: m.position,
@@ -625,21 +643,21 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
             y: m.y,
         }));
 
-        const syncedIcingDesign = icingDesign ? {
-            base: icingDesign.base,
-            color_type: icingDesign.color_type,
+        const syncedIcingDesign = current.icingDesign ? {
+            base: current.icingDesign.base,
+            color_type: current.icingDesign.color_type,
             colors: {
-                top: icingDesign.colors.top || '#FFFFFF',
-                side: icingDesign.colors.side || '#FFFFFF',
-                drip: icingDesign.colors.drip || '#FFFFFF',
-                borderTop: icingDesign.colors.borderTop || '#FFFFFF',
-                borderBase: icingDesign.colors.borderBase || '#FFFFFF',
-                gumpasteBaseBoardColor: icingDesign.colors.gumpasteBaseBoardColor || '#FFFFFF'
+                top: current.icingDesign.colors.top || '#FFFFFF',
+                side: current.icingDesign.colors.side || '#FFFFFF',
+                drip: current.icingDesign.colors.drip || '#FFFFFF',
+                borderTop: current.icingDesign.colors.borderTop || '#FFFFFF',
+                borderBase: current.icingDesign.colors.borderBase || '#FFFFFF',
+                gumpasteBaseBoardColor: current.icingDesign.colors.gumpasteBaseBoardColor || '#FFFFFF'
             },
-            border_top: icingDesign.border_top,
-            border_base: icingDesign.border_base,
-            drip: icingDesign.drip,
-            gumpasteBaseBoard: icingDesign.gumpasteBaseBoard,
+            border_top: current.icingDesign.border_top,
+            border_base: current.icingDesign.border_base,
+            drip: current.icingDesign.drip,
+            gumpasteBaseBoard: current.icingDesign.gumpasteBaseBoard,
         } : analysisResult.icing_design;
 
         return {
@@ -648,10 +666,10 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
             support_elements: syncedSupportElements,
             cake_messages: syncedCakeMessages,
             icing_design: syncedIcingDesign,
-            cakeType: cakeInfo?.type || analysisResult.cakeType,
-            cakeThickness: cakeInfo?.thickness || analysisResult.cakeThickness,
+            cakeType: current.cakeInfo?.type || analysisResult.cakeType,
+            cakeThickness: current.cakeInfo?.thickness || analysisResult.cakeThickness,
         };
-    }, [analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo]);
+    }, [analysisResult]);
 
     const clearDirtyState = useCallback(() => {
         setIsCustomizationDirty(false);

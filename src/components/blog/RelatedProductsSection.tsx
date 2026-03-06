@@ -5,6 +5,7 @@ import { ProductCard } from '@/components/ProductCard';
 import Masonry from 'react-masonry-css';
 import { getRelatedProductsByKeywords } from '@/services/supabaseService';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { BlogUploadButton } from './BlogUploadButton';
 
 interface RelatedProductsProps {
     initialProducts: any[];
@@ -97,6 +98,16 @@ export const RelatedProductsSection: React.FC<RelatedProductsProps> = ({
                         {intro}
                     </p>
                 )}
+            </div>
+
+            {/* Upload Button Section */}
+            <div className="mb-8 p-6 bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl border border-purple-100">
+                <div className="text-center">
+                    <p className="text-gray-700 mb-4 font-medium">
+                        Have a different cake design in mind? Upload a photo and we'll give you a price estimate in seconds!
+                    </p>
+                    <BlogUploadButton />
+                </div>
             </div>
 
             <Masonry

@@ -279,6 +279,7 @@ export default function SearchAnalysisAdminPage() {
         let done = 0;
         let errors = 0;
         let skipped = 0;
+        let previousOriginalUrl: string | null = null;
 
         let i = 0;
         while (i < imageQueueRef.current.length) {
@@ -316,13 +317,15 @@ export default function SearchAnalysisAdminPage() {
                     const wrapperElement = imgElement.closest('.gsc-imageResult, .gs-imageResult');
 
                     // Dispatch a single click event to the most appropriate interactive element
-                    const target = (linkElement || wrapperElement || imgElement) as HTMLElement;
-                    if (target) {
+                    const clickTarget = (linkElement || wrapperElement || imgElement) as HTMLElement;
+                    if (clickTarget) {
                         try {
-                            target.focus?.();
-                            target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                            clickTarget.focus?.();
+                            clickTarget.click();
                         } catch (e) {
-                            // ignore individual target errors
+                            try {
+                                clickTarget.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                            } catch (err) { }
                         }
                     }
 
@@ -330,36 +333,79 @@ export default function SearchAnalysisAdminPage() {
                     let originalUrl: string | null = null;
                     let waitCycles = 0;
 
-                    while (waitCycles < 12) { // Poll up to 3 seconds
+                    while (waitCycles <= 12) { // Poll up to 3 seconds
                         await delay(250);
-                        const previewImages = Array.from(document.querySelectorAll('img.gsc-image-preview, img.gs-image-preview'));
-                        if (previewImages.length > 0) {
-                            originalUrl = (previewImages[0] as HTMLImageElement).src;
-                            break;
+
+                        // 1. Check known modal image classes (must be visible)
+                        const previewImages = Array.from(document.querySelectorAll('img.gsc-image-preview, img.gs-image-preview, img.gsc-preview-image, img.gs-preview-image')).filter(img => img.getBoundingClientRect().width > 0);
+                        if (previewImages.length > 0 && (previewImages[0] as HTMLImageElement).src) {
+                            const foundSrc = (previewImages[0] as HTMLImageElement).src;
+                            if (foundSrc !== previousOriginalUrl) {
+                                originalUrl = foundSrc;
+                                break;
+                            }
+                        }
+
+                        // 2. Alternatively, look for the modal wrapper and find non-thumbnail image inside (must be visible)
+                        const overlays = Array.from(document.querySelectorAll('.gsc-results-wrapper-overlay, .gsc-modal-background-image')).filter(el => el.getBoundingClientRect().width > 0);
+                        if (overlays.length > 0) {
+                            const modalRoot = overlays[0].closest('.gsc-results-wrapper') || overlays[0].parentElement;
+                            if (modalRoot) {
+                                const modalImages = Array.from(modalRoot.querySelectorAll('img')).filter(img =>
+                                    img.src &&
+                                    img.src.startsWith('http') &&
+                                    !img.src.includes('clear.png') &&
+                                    !img.src.includes('cleardot.gif') &&
+                                    !img.src.includes('encrypted-tbn') &&
+                                    img.getBoundingClientRect().width > 0
+                                );
+
+                                if (modalImages.length > 0) {
+                                    // Take the first valid high-res image
+                                    const foundSrc = modalImages[0].src;
+                                    if (foundSrc !== previousOriginalUrl) {
+                                        originalUrl = foundSrc;
+                                        break;
+                                    }
+                                }
+                            }
                         }
                         waitCycles++;
                     }
 
-                    // Fallback: look for a large non-gstatic image
+                    // Fallback: look for ANY large non-thumbnail image that appeared and is visible
                     if (!originalUrl) {
                         const possibleImages = Array.from(document.querySelectorAll('img')).filter(img =>
                             img.src &&
                             img.src.startsWith('http') &&
-                            !img.src.includes('gstatic.com') &&
-                            img.getBoundingClientRect().width > 200
+                            !img.src.includes('encrypted-tbn') &&
+                            !img.src.includes('cleardot.gif') &&
+                            !img.src.includes('clear.png') &&
+                            img.getBoundingClientRect().width > 0 &&
+                            (img.getBoundingClientRect().width > 150 || img.naturalWidth > 150)
                         );
                         if (possibleImages.length > 0) {
                             // Find the largest one
-                            const largestImg = possibleImages.reduce((prev, current) => {
-                                const prevArea = prev.getBoundingClientRect().width * prev.getBoundingClientRect().height;
-                                const currArea = current.getBoundingClientRect().width * current.getBoundingClientRect().height;
-                                return (currArea > prevArea) ? current : prev;
-                            });
-                            originalUrl = largestImg.src;
+                            let largestImg = possibleImages[0];
+                            let maxArea = 0;
+                            for (const img of possibleImages) {
+                                const area = Math.max(img.getBoundingClientRect().width * img.getBoundingClientRect().height, img.naturalWidth * img.naturalHeight);
+                                if (area > maxArea) {
+                                    maxArea = area;
+                                    largestImg = img;
+                                }
+                            }
+                            if (largestImg.src !== previousOriginalUrl) {
+                                originalUrl = largestImg.src;
+                            }
                         }
                     }
 
                     if (originalUrl) {
+                        if (originalUrl !== previousOriginalUrl) {
+                            previousOriginalUrl = originalUrl;
+                        }
+
                         if (originalUrl.includes('fbcdn.net') || originalUrl.includes('facebook.com')) {
                             addLog(`[${i + 1}/${currentQueueLength}] Facebook URL detected, using gstatic.`);
                         } else {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getAllBlogPosts } from '@/data/blogPosts';
+import { getAllBlogs } from '@/services/supabaseService';
 
 // Cache the sitemap index for 24 hours to prevent Googlebot timeouts
 export const revalidate = 86400;
@@ -50,9 +50,11 @@ export async function GET() {
     const customizedLastMod = latestCustomized?.created_at ? new Date(latestCustomized.created_at).toISOString() : today;
     const customChunks = Math.ceil((customCount || 0) / 1000) || 1;
 
-    const blogPosts = getAllBlogPosts();
-    const latestBlogDate = blogPosts.length > 0
-        ? new Date(Math.max(...blogPosts.map(post => new Date(post.date).getTime()))).toISOString()
+    // Fetch blog posts from Supabase
+    const { data: blogPosts } = await getAllBlogs();
+    const posts = blogPosts || [];
+    const latestBlogDate = posts.length > 0
+        ? new Date(Math.max(...posts.map(post => new Date(post.date).getTime()))).toISOString()
         : today;
 
     const sitemaps = [

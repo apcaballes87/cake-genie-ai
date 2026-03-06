@@ -2938,7 +2938,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                 e.stopPropagation();
                                                                 removeCakeMessage(msg.id);
                                                             }}
-                                                            className="text-slate-300 hover:text-red-400 transition-colors p-0.5 opacity-0 group-hover:opacity-100 shrink-0"
+                                                            className="text-slate-400 hover:text-red-400 transition-colors p-0.5 shrink-0"
                                                             aria-label="Delete message"
                                                         >
                                                             <TrashIcon className="w-3.5 h-3.5" />
