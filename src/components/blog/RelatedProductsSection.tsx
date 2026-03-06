@@ -22,8 +22,8 @@ export const RelatedProductsSection: React.FC<RelatedProductsProps> = ({
     intro,
 }) => {
     const [products, setProducts] = useState<any[]>(initialProducts);
-    const [offset, setOffset] = useState(4);
-    const [hasMore, setHasMore] = useState(initialProducts.length >= 4);
+    const [offset, setOffset] = useState(8);
+    const [hasMore, setHasMore] = useState(initialProducts.length >= 8);
     const [isLoading, setIsLoading] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
     const sectionRef = useRef<HTMLDivElement>(null);
@@ -48,15 +48,15 @@ export const RelatedProductsSection: React.FC<RelatedProductsProps> = ({
         setIsLoading(true);
 
         try {
-            const { data } = await getRelatedProductsByKeywords(keyword, slug, 4, offset);
+            const { data } = await getRelatedProductsByKeywords(keyword, slug, 8, offset);
             const newProducts = data || [];
 
             if (newProducts.length === 0) {
                 setHasMore(false);
             } else {
                 setProducts(prev => [...prev, ...newProducts]);
-                setOffset(prev => prev + 4);
-                if (newProducts.length < 4) {
+                setOffset(prev => prev + 8);
+                if (newProducts.length < 8) {
                     setHasMore(false);
                 }
             }
