@@ -72,90 +72,92 @@ export const RelatedProductsSection: React.FC<RelatedProductsProps> = ({
     }
 
     return (
-        <div
-            ref={sectionRef}
-            className={`mt-12 pt-10 border-t border-purple-100 transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-                }`}
-        >
-            {/* Contextual header */}
-            <div className="mb-6 space-y-2">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        <span>🎂</span>
-                        <span>Relevant Cake Designs</span>
-                    </h2>
-                    {hasMore && (
-                        <a
-                            href={`/collections?search=${encodeURIComponent(keyword)}`}
-                            className="text-sm text-purple-600 hover:text-purple-800 font-semibold shrink-0"
-                        >
-                            View all
-                        </a>
-                    )}
-                </div>
-                {intro && (
-                    <p className="text-gray-500 text-sm leading-relaxed max-w-2xl">
-                        {intro}
-                    </p>
-                )}
-            </div>
-
+        <div ref={sectionRef} className="mt-16">
             {/* Upload Button Section */}
-            <div className="mb-8 p-6 bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl border border-purple-100">
-                <div className="text-center">
-                    <p className="text-gray-700 mb-4 font-medium">
+            <div className="mb-12 p-8 bg-linear-to-br from-pink-50 via-purple-50 to-indigo-50 rounded-3xl border border-purple-100 shadow-sm">
+                <div className="text-center max-w-2xl mx-auto">
+                    <p className="text-gray-700 mb-6 font-medium text-lg leading-relaxed">
                         Have a different cake design in mind? Upload a photo and we'll give you a price estimate in seconds!
                     </p>
                     <BlogUploadButton />
                 </div>
             </div>
 
-            <Masonry
-                breakpointCols={{
-                    default: 6,
-                    1536: 6,
-                    1280: 5,
-                    1024: 4,
-                    768: 3,
-                    0: 2
-                }}
-                className="flex w-auto -ml-4"
-                columnClassName="pl-4 bg-clip-padding"
+            <div
+                className={`pt-12 border-t border-purple-100 transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                    }`}
             >
-                {products.map((product, index) => (
-                    <div key={`${product.slug || product.p_hash}-${index}`} className="mb-4">
-                        <ProductCard
-                            p_hash={product.p_hash}
-                            original_image_url={product.original_image_url}
-                            price={product.price}
-                            keywords={product.keywords}
-                            slug={product.slug}
-                            availability={product.availability}
-                            analysis_json={product.analysis_json}
-                        />
-                    </div>
-                ))}
-            </Masonry>
 
-            {/* Load More Button */}
-            {hasMore && (
-                <div className="mt-8 text-center">
-                    <button
-                        onClick={loadMore}
-                        disabled={isLoading}
-                        className="px-8 py-3 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
-                    >
-                        {isLoading ? (
-                            <>
-                                <LoadingSpinner />
-                                Loading...
-                            </>
-                        ) : (
-                            'Show More'
+                {/* Contextual header */}
+                <div className="mb-6 space-y-2">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                            <span>🎂</span>
+                            <span>Relevant Cake Designs</span>
+                        </h2>
+                        {hasMore && (
+                            <a
+                                href={`/collections?search=${encodeURIComponent(keyword)}`}
+                                className="text-sm text-purple-600 hover:text-purple-800 font-semibold shrink-0"
+                            >
+                                View all
+                            </a>
                         )}
-                    </button>
+                    </div>
+                    {intro && (
+                        <p className="text-gray-500 text-sm leading-relaxed max-w-2xl">
+                            {intro}
+                        </p>
+                    )}
                 </div>
-            )}
+
+                <Masonry
+                    breakpointCols={{
+                        default: 6,
+                        1536: 6,
+                        1280: 5,
+                        1024: 4,
+                        768: 3,
+                        0: 2
+                    }}
+                    className="flex w-auto -ml-4"
+                    columnClassName="pl-4 bg-clip-padding"
+                >
+                    {products.map((product, index) => (
+                        <div key={`${product.slug || product.p_hash}-${index}`} className="mb-4">
+                            <ProductCard
+                                p_hash={product.p_hash}
+                                original_image_url={product.original_image_url}
+                                price={product.price}
+                                keywords={product.keywords}
+                                slug={product.slug}
+                                availability={product.availability}
+                                analysis_json={product.analysis_json}
+                            />
+                        </div>
+                    ))}
+                </Masonry>
+
+                {/* Load More Button */}
+                {hasMore && (
+                    <div className="mt-8 text-center">
+                        <button
+                            onClick={loadMore}
+                            disabled={isLoading}
+                            className="px-8 py-3 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+                        >
+                            {isLoading ? (
+                                <>
+                                    <LoadingSpinner />
+                                    Loading...
+                                </>
+                            ) : (
+                                'Show More'
+                            )}
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
