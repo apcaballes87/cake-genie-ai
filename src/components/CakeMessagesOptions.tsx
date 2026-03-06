@@ -45,71 +45,83 @@ const MessageCard: React.FC<{
     const positionLabel = message.position === 'top' ? 'Cake Top Side' : message.position === 'side' ? 'Cake Front Side' : 'Base Board';
 
     return (
-        <div className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 flex items-center justify-between gap-3">
-            <div className="flex-1 min-w-0 flex items-center gap-2">
-                <div className="text-[10px] font-bold text-purple-600 uppercase shrink-0 whitespace-nowrap">
-                    {message.position === 'top' ? 'CAKE TOP' : message.position === 'side' ? 'CAKE FRONT' : 'BASE BOARD'}
-                </div>
-                <div className="text-sm font-medium text-slate-800 truncate">
-                    {message.text || 'No text'}
-                </div>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-                <button
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-xs text-purple-600 font-medium hover:text-purple-700 whitespace-nowrap"
-                >
-                    Edit Message
-                </button>
-                <div
-                    className="w-4 h-4 rounded-full border border-slate-300 pointer-events-none"
-                    style={{ backgroundColor: message.color || '#000000' }}
-                    title={message.color}
-                />
-                <button
-                    onClick={() => {
-                        if (window.confirm('Are you sure you want to delete this message?')) {
-                            removeCakeMessage(message.id);
-                        }
-                    }}
-                    className="text-slate-400 hover:text-red-500 transition-colors ml-1"
-                    aria-label="Delete message"
-                >
-                    <TrashIcon className="w-4 h-4" />
-                </button>
-            </div>
-
-            {/* Expanded Content - Overlay/Absolute or inline underneath for editing */}
-            {isExpanded && (
-                <div className="absolute left-0 right-0 mt-10 z-10 bg-white shadow-lg border border-slate-200 rounded-lg p-3 space-y-3 mx-4">
-                    <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs font-semibold text-slate-700">Edit Message</span>
-                        <button onClick={() => setIsExpanded(false)} className="text-slate-400 hover:text-slate-600">
-                            ✕
-                        </button>
+        <div className="flex flex-col gap-2 relative">
+            {/* Main Message Card */}
+            <div
+                className={`w-full bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between gap-3 transition-all ${isSelected ? 'ring-2 ring-purple-100 border-purple-200' : ''}`}
+            >
+                <div className="flex-1 min-w-0 flex flex-col">
+                    <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-0.5">
+                        {message.position === 'top' ? 'CAKE TOP' : message.position === 'side' ? 'CAKE FRONT' : 'BASE BOARD'}
                     </div>
+                    <div className="text-sm font-semibold text-slate-800 truncate">
+                        {message.text || <span className="text-slate-400 italic font-normal">No text added</span>}
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                    <button
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isExpanded
+                                ? 'bg-purple-100 text-purple-700'
+                                : 'text-purple-600 hover:bg-purple-50'
+                            }`}
+                    >
+                        {isExpanded ? 'Done' : 'Edit'}
+                    </button>
+                    <div
+                        className="w-5 h-5 rounded-full border-2 border-white shadow-sm ring-1 ring-slate-200"
+                        style={{ backgroundColor: message.color || '#000000' }}
+                        title={message.color}
+                    />
+                    <button
+                        onClick={() => {
+                            if (window.confirm('Delete this message?')) {
+                                removeCakeMessage(message.id);
+                            }
+                        }}
+                        className="text-slate-300 hover:text-red-500 transition-colors"
+                        aria-label="Delete message"
+                    >
+                        <TrashIcon className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Inline Edit Panel (Accordion style) */}
+            {isExpanded && (
+                <div className="w-full bg-white border border-slate-100 rounded-xl p-4 space-y-4 shadow-sm animate-in slide-in-from-top-2 duration-200 z-10">
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-50">
+                        <span className="text-xs font-bold text-slate-800">Customize Message</span>
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                            <PencilIcon className="w-3 h-3" />
+                            Editing
+                        </div>
+                    </div>
+
                     {/* Text Input */}
                     <div>
-                        <label htmlFor={`msg-text-${message.id}`} className="block text-[10px] font-medium text-slate-600 mb-1">Message Text</label>
+                        <label htmlFor={`msg-text-${message.id}`} className="block text-[10px] font-bold text-slate-500 uppercase tracking-tight mb-1.5 ml-1">Message Content</label>
                         <input
                             id={`msg-text-${message.id}`}
                             ref={textInputRef}
                             type="text"
                             value={message.text}
                             onChange={(e) => updateCakeMessage(message.id, { text: e.target.value, isPlaceholder: false })}
-                            className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                            placeholder={message.originalMessage?.text || "Enter message text..."}
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all outline-none bg-slate-50/50"
+                            placeholder={message.originalMessage?.text || "What should it say?"}
                         />
                     </div>
 
                     {/* Color Picker */}
                     <div>
-                        <label className="block text-[10px] font-medium text-slate-600 mb-1">Text Color</label>
-                        <ColorPalette
-                            selectedColor={message.color}
-                            onColorChange={(hex) => updateCakeMessage(message.id, { color: hex })}
-                        />
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-tight mb-2 ml-1">Text Color</label>
+                        <div className="bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
+                            <ColorPalette
+                                selectedColor={message.color}
+                                onColorChange={(hex) => updateCakeMessage(message.id, { color: hex })}
+                            />
+                        </div>
                     </div>
                 </div>
             )}

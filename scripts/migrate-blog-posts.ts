@@ -1,4 +1,4 @@
-ssa/**
+/**
  * Blog Migration Script
  * Run with: npx tsx scripts/migrate-blog-posts.ts
  * 
