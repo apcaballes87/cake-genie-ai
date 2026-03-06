@@ -11,6 +11,7 @@ import Masonry from 'react-masonry-css';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
 
 import { CustomizationBottomSheet } from '../../components/CustomizationBottomSheet';
+import { ProductCard } from '@/components/ProductCard';
 import { SegmentationOverlay } from '../../components/SegmentationOverlay';
 import { SegmentationBottomSheet } from '../../components/SegmentationBottomSheet';
 import { BoundingBoxOverlay } from '../../components/BoundingBoxOverlay';
@@ -3580,72 +3581,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         columnClassName="pl-3 bg-clip-padding"
                     >
                         {displayedRelatedDesigns.map((related, i) => (
-                            <Link
-                                key={`${related.slug}-${i}`}
-                                href={`/customizing/${related.slug}`}
-                                className="group cursor-pointer flex flex-col relative mb-3"
-                                aria-label={`View ${related.keywords || 'custom'} cake design`}
-                                tabIndex={0}
-                            >
-                                <div className="relative mb-1.5 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
-                                    {related.original_image_url && (
-                                        <LazyImage
-                                            src={related.original_image_url}
-                                            alt={related.alt_text || `${related.keywords || 'Custom'} cake design`}
-                                            width={0}
-                                            height={0}
-                                            style={{ width: '100%', height: 'auto' }}
-                                            className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
-                                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-                                            unoptimized
-                                        />
-                                    )}
-                                    {/* Overlay Gradient on Hover */}
-                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
-
-                                    {/* Availability Badge at Top Left */}
-                                    {(() => {
-                                        const avail = related.availability || 'normal';
-                                        const config = avail === 'rush'
-                                            ? { label: 'Rush Order', icon: <Zap size={10} />, className: 'bg-emerald-500/90 text-white' }
-                                            : avail === 'same-day'
-                                                ? { label: 'Same Day', icon: <Clock size={10} />, className: 'bg-blue-500/90 text-white' }
-                                                : { label: 'Pre-order', icon: <CalendarDays size={10} />, className: 'bg-purple-500/90 text-white' };
-                                        return (
-                                            <div className="absolute top-2.5 left-2.5 z-10">
-                                                <span className={`backdrop-blur-md text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold shadow-sm flex items-center gap-1 ${config.className}`}>
-                                                    {config.icon} {config.label}
-                                                </span>
-                                            </div>
-                                        );
-                                    })()}
-
-                                    {/* Heart Button at Top Right */}
-                                    <div className="absolute top-2.5 right-2.5 w-8 h-8 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm bg-white/90 text-gray-400 hover:text-red-500 z-10 transition-colors">
-                                        <Heart size={16} />
-                                    </div>
-
-                                    {/* Price and Rating Overlays at Bottom */}
-                                    <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-end z-10 pointer-events-none">
-                                        <div className="bg-white/95 backdrop-blur-sm text-gray-900 font-extrabold text-[11px] md:text-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-auto">
-                                            ₱{related.price ? Math.round(related.price).toLocaleString() : '999'}
-                                        </div>
-                                        <div className="bg-white/95 backdrop-blur-sm flex items-center gap-1 font-bold text-gray-900 text-xs md:text-sm px-2.5 py-1 rounded-full shadow-sm pointer-events-auto">
-                                            <Star size={12} className="text-orange-500" fill="currentColor" />
-                                            <span>5.0</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="px-0 pb-1 pt-0.5 flex flex-col flex-1">
-                                    <h3 className="font-bold text-gray-900 text-sm leading-tight mb-1 line-clamp-2 group-hover:text-purple-600 transition-colors capitalize">
-                                        {related.keywords || 'Custom Cake'}
-                                    </h3>
-                                    <p className="text-xs text-gray-500 flex items-center gap-1 mb-auto">
-                                        <Cake size={12} /> 1 Tier
-                                    </p>
-                                </div>
-                            </Link>
+                            <div key={`${related.slug}-${i}`} className="mb-3">
+                                <ProductCard {...related} />
+                            </div>
                         ))}
                     </Masonry>
 

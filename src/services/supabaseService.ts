@@ -628,7 +628,7 @@ export async function getPopularDesigns(limit: number = 20, customClient?: Supab
   try {
     const { data, error } = await client
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, price, alt_text, availability, image_width, image_height')
+      .select('p_hash, slug, keywords, original_image_url, price, alt_text, availability, image_width, image_height')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .not('price', 'is', null)
