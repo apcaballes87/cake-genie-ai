@@ -42,6 +42,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             url: `https://genie.ph/customizing/category/${keyword}`,
             images: [{
                 url: ogImage,
+                width: 800,
+                height: 800,
                 alt: `${displayName} cake design`
             }]
         },

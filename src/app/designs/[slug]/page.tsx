@@ -73,6 +73,8 @@ export async function generateMetadata(
             images: [
                 {
                     url: design.customized_image_url,
+                    width: 800,
+                    height: 800,
                     alt: design.alt_text || design.title || 'Custom cake design',
                 },
             ],
