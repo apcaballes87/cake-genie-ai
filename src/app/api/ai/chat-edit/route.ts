@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Type } from "@google/genai";
 import { getAI } from '@/lib/ai/client';
+import { createClient } from '@/lib/supabase/client';
+import { getDynamicTypeEnums } from '@/lib/ai/utils';
 
 export const maxDuration = 60;
 
@@ -16,6 +18,9 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        const supabase = createClient();
+        const typeEnums = await getDynamicTypeEnums(supabase);
+
         const aiClient = getAI();
 
         const hybridAnalysisResponseSchema = {
@@ -30,11 +35,14 @@ export async function POST(req: NextRequest) {
                         properties: {
                             x: { type: Type.NUMBER },
                             y: { type: Type.NUMBER },
-                            type: { type: Type.STRING },
+                            type: {
+                                type: Type.STRING,
+                                enum: typeEnums.mainTopperTypes
+                            },
                             material: { type: Type.STRING },
                             group_id: { type: Type.STRING },
-                            classification: { type: Type.STRING },
-                            size: { type: Type.STRING },
+                            classification: { type: Type.STRING, enum: ['hero', 'support'] },
+                            size: { type: Type.STRING, enum: ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] },
                             quantity: { type: Type.INTEGER },
                             digits: { type: Type.INTEGER },
                             description: { type: Type.STRING },
@@ -49,12 +57,15 @@ export async function POST(req: NextRequest) {
                         properties: {
                             x: { type: Type.NUMBER },
                             y: { type: Type.NUMBER },
-                            type: { type: Type.STRING },
+                            type: {
+                                type: Type.STRING,
+                                enum: typeEnums.supportElementTypes
+                            },
                             material: { type: Type.STRING },
                             group_id: { type: Type.STRING },
                             color: { type: Type.STRING },
                             colors: { type: Type.ARRAY, items: { type: Type.STRING } },
-                            size: { type: Type.STRING },
+                            size: { type: Type.STRING, enum: ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] },
                             quantity: { type: Type.INTEGER },
                             description: { type: Type.STRING },
                         },
@@ -113,6 +124,22 @@ You are given the CURRENT cake design analysis JSON. Return a NEW, COMPLETE cake
 ABSOLUTELY CRITICAL: You MUST return the COMPLETE JSON with ALL fields from the input. Do NOT omit any fields.
 If the user only asks to change one thing (like a message color), you still MUST return every single field that was in the input (cakeType, cakeThickness, main_toppers, support_elements, cake_messages, icing_design, keyword, etc).
 Omitting a field will DELETE that data. Every field from the input MUST appear in your output.
+
+--- TOPPER & ELEMENT TYPES ---
+You MUST strictly follow these classifications for any new or modified items. Do NOT use generic types like "topper".
+
+Valid Main Topper Types:
+${typeEnums.mainTopperTypes.join(', ')}
+
+Valid Support Element Types:
+${typeEnums.supportElementTypes.join(', ')}
+
+CLASSIFICATION RULES:
+1. "printout": Use for toppers with printed graphics, photos, character images (My Melody, Disney, etc), or multi-color printed text.
+2. "cardstock": Use ONLY for solid single-color metallic or glitter toppers without printed graphics.
+3. "edible_photo_top": Use for photos printed on edible icing/sugar sheets placed on top.
+4. "toy" / "figurine": Use for non-edible physical objects.
+5. "edible_3d_ordinary" / "edible_3d_complex": Use for gumpaste/fondant hand-made shapes. This includes object-based toppers like animals (e.g., bear, lion), sculpted characters, or intricate hand-molded items. If a user asks for an "animal topper", it MUST be classified as "edible_3d_complex".
 
 --- UI MAPPING & INSTRUCTIONS ---
 COLORS:

@@ -41,7 +41,7 @@ export const PopularDesigns = ({ designs: initialDesigns }: PopularDesignsProps)
         setIsLoading(true);
         try {
             const nextCount = displayCount + 6;
-            const { data, error } = await getPopularDesigns(nextCount, supabase);
+            const { data, error } = await getPopularDesigns(nextCount, { keyword: 'minimalist', availability: ['rush', 'same-day'] }, supabase);
 
             if (error) {
                 console.error('Error loading more designs:', error);
@@ -69,8 +69,8 @@ export const PopularDesigns = ({ designs: initialDesigns }: PopularDesignsProps)
         <section className="py-4 md:py-6">
             <div className="flex justify-between items-end mb-4 md:mb-6">
                 <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">Popular Cake Designs</h2>
-                    <p className="text-gray-500 text-sm md:text-base">Trending designs loved by our community</p>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">Minimalist Cakes for Rush Order</h2>
+                    <p className="text-gray-500 text-sm md:text-base">Simple yet elegant designs available for same-day or rush delivery</p>
                 </div>
             </div>
 
@@ -87,7 +87,7 @@ export const PopularDesigns = ({ designs: initialDesigns }: PopularDesignsProps)
                 columnClassName="pl-4 md:pl-5 lg:pl-6 bg-clip-padding"
             >
                 {designs.slice(0, displayCount).map((design) => (
-                    <div key={design.slug} className="mb-4 md:mb-5 lg:mb-6">
+                    <div key={design.slug} className="mb-2 md:mb-3">
                         <ProductCard {...design} />
                     </div>
                 ))}
@@ -95,7 +95,7 @@ export const PopularDesigns = ({ designs: initialDesigns }: PopularDesignsProps)
 
             {/* Load More Button */}
             {hasMore ? (
-                <div className="mt-12 text-center">
+                <div className="mt-1 text-center">
                     <button
                         onClick={loadMore}
                         disabled={isLoading}
@@ -112,7 +112,7 @@ export const PopularDesigns = ({ designs: initialDesigns }: PopularDesignsProps)
                     </button>
                 </div>
             ) : designs.length > 0 ? (
-                <div className="mt-12 text-center text-slate-500">
+                <div className="mt-5 text-center text-slate-500">
                     <p>You've seen all the popular designs!</p>
                 </div>
             ) : null}

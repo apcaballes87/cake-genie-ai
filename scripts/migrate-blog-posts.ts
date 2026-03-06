@@ -7,6 +7,12 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { blogPosts, BlogPost } from '../src/data/blogPosts';
+import * as dotenv from 'dotenv';
+import path from 'path';
+
+// Load environmental variables from .env or .env.local
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 // Supabase credentials from environment
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
