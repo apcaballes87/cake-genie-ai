@@ -36,7 +36,7 @@ That’s exactly why we created this guide. Whether you're in Cebu City, Mandaue
 
 ---
 
-## What to Look For When Ordering Custom Cakes in Cebu (H2)
+## What to Look For When Ordering Custom Cakes in Cebu
 
 Before you hit "send" on that message, here are the non-negotiables you should check for when looking for the **best cake shop in Cebu**.
 
@@ -59,7 +59,7 @@ It’s not just about the "Instagrammable" look. It has to be *lami kaayo* (trul
 
 ---
 
-## Top Ways to Order Custom Cakes in Cebu (H2)
+## Top Ways to Order Custom Cakes in Cebu
 
 You have a few options when it's time to make your **cake order Cebu**. Here’s how they stack up in 2026:
 
@@ -82,7 +82,7 @@ Perfect for cravings or standard round cakes from Leona’s or 10 Dove Street. B
 
 ---
 
-## Custom Cake Pricing in Cebu (H2)
+## Custom Cake Pricing in Cebu
 
 How much should you actually pay? Here’s a detailed breakdown of 2026 prices for **custom cakes Cebu City** and beyond:
 
@@ -103,7 +103,7 @@ How much should you actually pay? Here’s a detailed breakdown of 2026 prices f
 
 ---
 
-## Popular Custom Cake Designs in Cebu Right Now (H2)
+## Popular Custom Cake Designs in Cebu Right Now
 
 If you're looking for inspiration for your next **personalized cake Cebu**, here is what's trending in local parties:
 
@@ -127,7 +127,7 @@ Perfect for when you want a very specific image—like a family portrait or a mo
 
 ---
 
-## Matching Your Cake to the Venue in Cebu (H2)
+## Matching Your Cake to the Venue in Cebu
 
 Cebu has some of the most beautiful party venues, and your cake should match the vibe. 
 
@@ -137,7 +137,7 @@ Cebu has some of the most beautiful party venues, and your cake should match the
 
 ---
 
-## Best Flavor Pairings for Cebuano Palates (H2)
+## Best Flavor Pairings for Cebuano Palates
 
 We Cebuanos love our sweets, but we also appreciate balance. Here are some of the most requested internal flavors for a **cake order Cebu**:
 
@@ -148,7 +148,7 @@ We Cebuanos love our sweets, but we also appreciate balance. Here are some of th
 
 ---
 
-## Tips for a Stress-Free Cake Pickup or Delivery (H2)
+## Tips for a Stress-Free Cake Pickup or Delivery
 
 If you've spent ₱3,000 on a **custom cake Cebu**, you want it to arrive in one piece. Here’s how:
 
@@ -159,7 +159,7 @@ If you've spent ₱3,000 on a **custom cake Cebu**, you want it to arrive in one
 
 ---
 
-## How to Order on Genie.ph — Step by Step (H2)
+## How to Order on Genie.ph — Step by Step
 
 Ready to see how easy it is to get your **best cake shop Cebu** quality delivered? Follow these steps:
 
@@ -183,7 +183,7 @@ Once the order is confirmed, our partners at **Cakes and Memories** get to work.
 
 ---
 
-## Delivery Areas in Cebu (H2)
+## Delivery Areas in Cebu
 
 The biggest fear when ordering a **custom cake Cebu** is the transport. We’ve solved that. We deliver across the entire metro area.
 
@@ -201,7 +201,7 @@ If you’d rather pick it up yourself, you can visit the physical branch at:
 
 ---
 
-## FAQ: Frequently Asked Questions (H2)
+## FAQ: Frequently Asked Questions
 
 ### How much is a custom cake in Cebu?
 For a standard birthday cake (6-inch round), expect to pay between ₱700 and ₱1,200. If you want a bento cake, those are around ₱350–₱600. Detailed fondant cakes start at ₱1,500. Use **Genie.ph** to get an exact quote for your design.
