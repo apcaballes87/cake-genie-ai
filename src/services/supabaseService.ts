@@ -583,22 +583,30 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
  * Fetches recommended products from the analysis cache.
  * Returns items that have an original_image_url and a price.
  */
-export async function getRecommendedProducts(limit: number = 8, offset: number = 0, customClient?: SupabaseClient): Promise<SupabaseServiceResponse<any[]>> {
+export async function getRecommendedProducts(
+  limit: number = 8,
+  offset: number = 0,
+  options?: { keyword?: string; availability?: string[] },
+  customClient?: SupabaseClient
+): Promise<SupabaseServiceResponse<any[]>> {
   const client = customClient || (typeof window === 'undefined' ? publicSupabaseClient : supabase);
   try {
-    // If offset is 0, we can fetch extra and shuffle to give a "random" start daily
-    // But for pagination consistency, we should probably stick to a stable sort order (e.g., created_at)
-    // To mix both worlds: First page (offset 0) could be the latest items shuffled,
-    // subsequent pages are just the next items in standard order.
-    // However, simplest robust approach for "Load More" is just strict time-based pagination.
-
-    const { data, error } = await client
+    let query = client
       .from('cakegenie_analysis_cache')
       .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height')
       .not('original_image_url', 'is', null)
       .not('price', 'is', null)
-      // Filter out duplicate/placeholder images if needed, or strict 'not null' is enough
-      .neq('original_image_url', '')
+      .neq('original_image_url', '');
+
+    if (options?.keyword) {
+      query = query.ilike('keywords', `%${options.keyword}%`);
+    }
+
+    if (options?.availability && options.availability.length > 0) {
+      query = query.in('availability', options.availability);
+    }
+
+    const { data, error } = await query
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -623,16 +631,30 @@ export async function getRecommendedProducts(limit: number = 8, offset: number =
  * Fetches the most popular designs by usage_count for SSR homepage section.
  * Returns designs with real <Link> tags for Google crawlability.
  */
-export async function getPopularDesigns(limit: number = 20, customClient?: SupabaseClient): Promise<SupabaseServiceResponse<any[]>> {
+export async function getPopularDesigns(
+  limit: number = 20,
+  options?: { keyword?: string; availability?: string[] },
+  customClient?: SupabaseClient
+): Promise<SupabaseServiceResponse<any[]>> {
   const client = customClient || (typeof window === 'undefined' ? publicSupabaseClient : supabase);
   try {
-    const { data, error } = await client
+    let query = client
       .from('cakegenie_analysis_cache')
       .select('p_hash, slug, keywords, original_image_url, price, alt_text, availability, image_width, image_height')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .not('price', 'is', null)
-      .neq('keywords', '')
+      .neq('keywords', '');
+
+    if (options?.keyword) {
+      query = query.ilike('keywords', `%${options.keyword}%`);
+    }
+
+    if (options?.availability && options.availability.length > 0) {
+      query = query.in('availability', options.availability);
+    }
+
+    const { data, error } = await query
       .order('usage_count', { ascending: false })
       .limit(limit);
 

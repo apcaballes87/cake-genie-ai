@@ -68,7 +68,7 @@ export const RecommendedProductsGrid = ({ initialProducts }: RecommendedProducts
             </div>
 
             {/* Product Grid */}
-            <div className="mb-8 md:mb-10">
+            <div className="mb-0">
                 {products.length > 0 ? (
                     <Masonry
                         breakpointCols={{
@@ -83,7 +83,7 @@ export const RecommendedProductsGrid = ({ initialProducts }: RecommendedProducts
                         columnClassName="pl-4 md:pl-5 lg:pl-6 bg-clip-padding"
                     >
                         {products.map((item, index) => (
-                            <div key={`${item.p_hash}-${index}`} className="mb-4 md:mb-5 lg:mb-6">
+                            <div key={`${item.p_hash}-${index}`} className="mb-2 md:mb-3">
                                 <ProductCard
                                     p_hash={item.p_hash}
                                     original_image_url={item.original_image_url}
@@ -121,7 +121,7 @@ export const RecommendedProductsGrid = ({ initialProducts }: RecommendedProducts
             </div>
 
             {/* Load More Button */}
-            <div className="text-center pb-10">
+            <div className="text-center mt-1 pb-10">
                 {hasMore ? (
                     <button
                         onClick={handleLoadMore}

@@ -133,7 +133,7 @@ function WebSiteSchema() {
 export default async function Home() {
     const [recommendedProductsRes, popularDesignsRes, categoriesRes] = await Promise.all([
         getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err })),
-        getPopularDesigns(6).catch(err => ({ data: [], error: err })),
+        getPopularDesigns(6, { keyword: 'minimalist', availability: ['rush', 'same-day'] }).catch(err => ({ data: [], error: err })),
         getDesignCategories().catch(err => ({ data: [], error: err })),
     ]);
 

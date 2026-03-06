@@ -3101,9 +3101,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 )}
 
 
-            {/* FloatingResultPanel - Only show for non-icing items */}
+            {/* FloatingResultPanel - Only show for non-icing and non-message items */}
             {
-                selectedItem && !('itemCategory' in selectedItem && selectedItem.itemCategory === 'icing') && (
+                selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory !== 'icing' && selectedItem.itemCategory !== 'message' && (
                     <FloatingResultPanel
                         selectedItem={selectedItem}
                         onClose={() => setSelectedItem(null)}
@@ -3509,6 +3509,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         updateCakeMessage={updateCakeMessage}
                         removeCakeMessage={removeCakeMessage}
                         selectedMessageId={selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'message' ? selectedItem.id : undefined}
+                        cakeType={cakeInfo?.type}
                     />
                 </div>
 
