@@ -353,20 +353,23 @@ interface RecentSearchDesignProp {
     created_at: string;
 }
 
+export interface RelatedDesign {
+    p_hash: string;
+    slug: string | null;
+    original_image_url: string;
+    keywords?: string | null;
+    alt_text?: string | null;
+    price?: number | null;
+    availability?: string | null;
+}
+
 interface CustomizingClientProps {
     product?: CakeGenieMerchantProduct;
     merchant?: CakeGenieMerchant;
     recentSearchDesign?: RecentSearchDesignProp;
     productDetails?: React.ReactNode;
     initialPrices?: BasePriceInfo[];
-    relatedDesigns?: Array<{
-        slug: string;
-        original_image_url: string;
-        keywords: string | null;
-        alt_text: string | null;
-        price: number | null;
-        availability?: string;
-    }>;
+    relatedDesigns?: RelatedDesign[];
     currentKeywords?: string | null;
     currentSlug?: string | null;
     seoContentSlot?: React.ReactNode;
@@ -426,7 +429,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [isAiProcessing, setIsAiProcessing] = useState(false);
 
     // Related Designs Pagination State
-    const [displayedRelatedDesigns, setDisplayedRelatedDesigns] = useState(relatedDesigns || []);
+    const [displayedRelatedDesigns, setDisplayedRelatedDesigns] = useState<RelatedDesign[]>(relatedDesigns || []);
     const [isLoadingMoreDesigns, setIsLoadingMoreDesigns] = useState(false);
     const [hasMoreDesigns, setHasMoreDesigns] = useState(true);
 
