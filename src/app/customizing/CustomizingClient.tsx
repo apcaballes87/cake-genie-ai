@@ -373,9 +373,10 @@ interface CustomizingClientProps {
     currentKeywords?: string | null;
     currentSlug?: string | null;
     seoContentSlot?: React.ReactNode;
+    initialCaption?: string;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, initialCaption }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const params = useParams();
@@ -1924,6 +1925,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
         // Close any open modals
         setActiveCustomization(null);
+        setSelectedItem(null);
 
         // Call the original undo handler
         onUndo();
@@ -2223,16 +2225,23 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                                 {/* SSR / Initial Load Fallback Image using Props */}
                                 {!originalImagePreview && (product?.image_url || recentSearchDesign?.original_image_url) && (
-                                    <LazyImage
-                                        src={product?.image_url || recentSearchDesign?.original_image_url || ''}
-                                        alt={product?.alt_text || recentSearchDesign?.alt_text || product?.title || recentSearchDesign?.keywords || 'Cake Design'}
-                                        title={product?.title || recentSearchDesign?.seo_title || recentSearchDesign?.keywords || 'Cake Design'}
-                                        fill
-                                        sizes="(max-width: 768px) 100vw, 50vw"
-                                        imageClassName="object-contain rounded-lg"
-                                        priority
-                                        unoptimized
-                                    />
+                                    <figure className="absolute inset-0 w-full h-full">
+                                        <LazyImage
+                                            src={product?.image_url || recentSearchDesign?.original_image_url || ''}
+                                            alt={product?.alt_text || recentSearchDesign?.alt_text || product?.title || recentSearchDesign?.keywords || 'Cake Design'}
+                                            title={product?.title || recentSearchDesign?.seo_title || recentSearchDesign?.keywords || 'Cake Design'}
+                                            fill
+                                            sizes="(max-width: 768px) 100vw, 50vw"
+                                            imageClassName="object-contain rounded-lg"
+                                            priority
+                                            unoptimized
+                                        />
+                                        {initialCaption && (
+                                            <figcaption className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
+                                                {initialCaption}
+                                            </figcaption>
+                                        )}
+                                    </figure>
                                 )}
 
                                 {(originalImagePreview) && (
@@ -2420,6 +2429,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                             return;
                                                         } else if (singleItem.itemCategory === 'message') {
                                                             setActiveCustomization('messages');
+                                                            setSelectedItem(singleItem);
                                                             return;
                                                         }
                                                     }
@@ -2925,7 +2935,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                     <div
                                                         key={msg.id || idx}
                                                         className={`flex items-center gap-2 py-2 px-3 rounded-xl bg-slate-50/80 hover:bg-slate-100/80 transition-colors cursor-pointer group ${!msg.isEnabled ? 'opacity-40' : ''}`}
-                                                        onClick={() => setActiveCustomization('messages')}
+                                                        onClick={() => {
+                                                            setSelectedItem({ ...msg, itemCategory: 'message' });
+                                                            setActiveCustomization('messages');
+                                                        }}
                                                     >
                                                         <span className="text-[9px] font-bold text-purple-500 uppercase tracking-wider shrink-0">
                                                             {msg.position === 'top' ? 'TOP' : msg.position === 'side' ? 'FRONT' : 'BASE'}
@@ -3198,7 +3211,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
             <CustomizationBottomSheet
                 isOpen={activeCustomization !== null}
-                onClose={() => setActiveCustomization(null)}
+                onClose={() => {
+                    setActiveCustomization(null);
+                    setSelectedItem(null);
+                }}
                 title={
                     activeCustomization === 'options' ? 'Cake Options' :
                         activeCustomization === 'icing' ? 'Icing Colors' :
@@ -3249,6 +3265,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 onClick={() => {
                                     onUpdateDesign();
                                     setActiveCustomization(null);
+                                    setSelectedItem(null);
                                 }}
                                 disabled={isUpdatingDesign}
                                 className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -3491,6 +3508,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         addCakeMessage={addCakeMessage}
                         updateCakeMessage={updateCakeMessage}
                         removeCakeMessage={removeCakeMessage}
+                        selectedMessageId={selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'message' ? selectedItem.id : undefined}
                     />
                 </div>
 
