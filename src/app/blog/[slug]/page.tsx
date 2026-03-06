@@ -44,7 +44,7 @@ export async function generateMetadata({
       url: `https://genie.ph/blog/${post.slug}`,
       type: 'article',
       publishedTime: post.date,
-      images: post.image ? [post.image] : [],
+      images: post.image ? [{ url: post.image, width: 1200, height: 630, alt: post.title }] : [],
     },
   };
 }

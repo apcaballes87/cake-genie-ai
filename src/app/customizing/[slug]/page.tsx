@@ -162,6 +162,8 @@ export async function generateMetadata(
             images: design.original_image_url ? [
                 {
                     url: design.original_image_url,
+                    width: 800,
+                    height: 800,
                     alt: design.alt_text || design.keywords || 'Custom cake design',
                 },
             ] : [],

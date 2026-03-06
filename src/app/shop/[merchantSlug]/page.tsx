@@ -32,11 +32,15 @@ export async function generateMetadata({ params }: MerchantPageProps): Promise<M
             images: merchant.cover_image_url ? [
                 {
                     url: merchant.cover_image_url,
+                    width: 1200,
+                    height: 630,
                     alt: `${merchant.business_name} cover image`,
                 }
             ] : merchant.profile_image_url ? [
                 {
                     url: merchant.profile_image_url,
+                    width: 800,
+                    height: 800,
                     alt: merchant.business_name,
                 }
             ] : [],
