@@ -180,6 +180,7 @@ export const ProductCard = ({
                         fill
                         className="object-cover group-hover:scale-110 transition-transform duration-500"
                         priority={priority}
+                        loading={priority ? "eager" : "lazy"}
                     />
 
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>

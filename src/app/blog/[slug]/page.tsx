@@ -63,7 +63,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     const { data } = await getRelatedProductsByKeywords(
       post.cake_search_keywords || post.keywords || post.title,
       slug,
-      4,
+      8,
       0
     );
     relatedDesigns = data || [];

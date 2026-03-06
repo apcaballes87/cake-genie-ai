@@ -657,13 +657,20 @@ export async function getPopularDesigns(limit: number = 20, customClient?: Supab
 const buildCollectionOrFilter = (collectionTags: string[]): string => {
   const filters: string[] = [];
   for (const tag of collectionTags) {
-    const escaped = tag.replace(/[%_]/g, ''); // strip SQL wildcards
-    if (!escaped) continue;
-    filters.push(`keywords.ilike.%${escaped}%`);
-    filters.push(`alt_text.ilike.%${escaped}%`);
-    filters.push(`slug.ilike.%${escaped}%`);
-    // Array containment: product.tags @> {tag}
-    filters.push(`tags.cs.{"${escaped}"}`);
+    const cleanTag = tag.trim().toLowerCase();
+    if (!cleanTag) continue;
+
+    // 1. Match the exact tag (handles multi-word keywords)
+    filters.push(`tags.cs.{"${cleanTag}"}`);
+
+    // 2. If it's a phrase, also match if ALL individual words are present.
+    // This allows a collection tag "Airplanes Cake" to match a design 
+    // whose title was tokenized into ["airplanes", "cake"].
+    const words = cleanTag.split(/\s+/).filter(w => w.length > 2);
+    if (words.length > 1) {
+      // product.tags @> {word1, word2}
+      filters.push(`tags.cs.{${words.map(w => `"${w}"`).join(',')}}`);
+    }
   }
   return filters.join(',');
 };
