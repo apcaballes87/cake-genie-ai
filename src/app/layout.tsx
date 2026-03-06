@@ -47,6 +47,9 @@ export const metadata: Metadata = {
       },
     ],
   },
+  alternates: {
+    canonical: 'https://genie.ph',
+  },
   twitter: {
     card: 'summary_large_image',
     title: 'Genie.ph | Online Marketplace for Custom Cakes',

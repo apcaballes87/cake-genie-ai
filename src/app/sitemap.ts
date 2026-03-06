@@ -42,7 +42,7 @@ const sanitizeUrl = (url: string | null | undefined): string => {
 
 // Generate sitemap IDs.
 export async function generateSitemaps(): Promise<Array<{ id: number | string }>> {
-    const ids: Array<{ id: number | string }> = [{ id: 0 }, { id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }];
+    const ids: Array<{ id: number | string }> = [{ id: 0 }, { id: 1 }, { id: 2 }, { id: 3 }];
 
     try {
         // Fetch total customized cakes count directly to avoid strict cookie requirements at build time
@@ -243,52 +243,6 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
             changeFrequency: 'weekly' as const,
             priority: 0.8,
         }))
-    }
-
-    // Chunk 4: Popular Search Categories
-    if (sitemapId === 4) {
-        let allKeywords: any[] = [];
-        let hasMore = true;
-        let offset = 0;
-        const limit = 1000;
-
-        while (hasMore) {
-            const { data: recentSearchesFull, error } = await supabase
-                .from('cakegenie_analysis_cache')
-                .select('keywords')
-                .not('slug', 'is', null)
-                .range(offset, offset + limit - 1);
-
-            if (error) {
-                console.error('Error fetching keywords for sitemap:', error);
-                break;
-            }
-
-            if (recentSearchesFull && recentSearchesFull.length > 0) {
-                allKeywords = [...allKeywords, ...recentSearchesFull];
-                offset += limit;
-
-                // If we got exactly the limit, there might be more
-                hasMore = recentSearchesFull.length === limit;
-            } else {
-                hasMore = false;
-            }
-        }
-
-        const keywordMap = new Map<string, number>()
-        for (const search of allKeywords) {
-            const kw = (search.keywords || '').trim()
-            if (!kw) continue
-            keywordMap.set(kw, (keywordMap.get(kw) || 0) + 1)
-        }
-        return Array.from(keywordMap.entries())
-            .filter(([, count]) => count >= 3)
-            .map(([keyword]) => ({
-                url: `${baseUrl}/customizing/category/${keyword.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-')}`,
-                lastModified: new Date(),
-                changeFrequency: 'weekly' as const,
-                priority: 0.8,
-            }))
     }
 
     // Fallback

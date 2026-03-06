@@ -18,6 +18,11 @@ export function ProductSchema({ product, merchant, prices, ratingValue, reviewCo
 
     let offers;
 
+    // Calculate priceValidUntil as 1 year from now (clearer approach)
+    const nextYear = new Date();
+    nextYear.setFullYear(nextYear.getFullYear() + 1);
+    const priceValidUntil = nextYear.toISOString().split('T')[0];
+
     if (prices && prices.length > 0) {
         // Find min and max prices
         const sortedPrices = [...prices].sort((a, b) => a.price - b.price);
@@ -32,6 +37,7 @@ export function ProductSchema({ product, merchant, prices, ratingValue, reviewCo
             offerCount: prices.length,
             availability: availability,
             itemCondition: 'https://schema.org/NewCondition',
+            priceValidUntil: priceValidUntil,
             seller: {
                 '@type': 'Organization',
                 name: sanitize(merchant.business_name),
@@ -46,7 +52,7 @@ export function ProductSchema({ product, merchant, prices, ratingValue, reviewCo
             priceCurrency: 'PHP',
             availability: availability,
             itemCondition: 'https://schema.org/NewCondition',
-            priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+            priceValidUntil: priceValidUntil,
             seller: {
                 '@type': 'Organization',
                 name: sanitize(merchant.business_name),

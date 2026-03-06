@@ -175,6 +175,9 @@ export async function generateMetadata(
         },
         other: {
             thumbnail: design.original_image_url || '',
+            'og:type': 'product',
+            'product:price:amount': design.price?.toString() || '',
+            'product:price:currency': 'PHP',
         },
     }
 }
