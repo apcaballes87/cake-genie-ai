@@ -19,14 +19,14 @@ export interface ProductCardProps {
     p_hash: string;
     original_image_url: string;
     price?: number | null;
-    keywords?: string;
-    slug?: string;
-    availability?: string;
+    keywords?: string | null;
+    slug?: string | null;
+    availability?: string | null;
     analysis_json?: {
         cakeType?: string;
         icing_design?: string;
         [key: string]: unknown;
-    };
+    } | null;
     priority?: boolean;
     image_width?: number | null;
     image_height?: number | null;
