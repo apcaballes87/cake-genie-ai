@@ -119,8 +119,14 @@ export const TopperCard: React.FC<{
                         {descriptionString}
                         {((item as MainTopperUI).quantity || 0) > 1 && ` × ${(item as MainTopperUI).quantity}`}
                     </div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">
-                        <span className="capitalize">{materialLabel || item.type.replace(/_/g, ' ')}</span> • {item.size}
+                    <div className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                        <span className="capitalize">{materialLabel || item.type.replace(/_/g, ' ')}</span>
+                        {item.size && (
+                            <>
+                                <span className="text-slate-300 select-none">•</span>
+                                <span className="capitalize">{item.size}</span>
+                            </>
+                        )}
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
