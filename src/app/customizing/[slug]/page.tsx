@@ -162,8 +162,8 @@ export async function generateMetadata(
             images: design.original_image_url ? [
                 {
                     url: design.original_image_url,
-                    width: 800,
-                    height: 800,
+                    width: 1200,
+                    height: 630,
                     alt: design.alt_text || design.keywords || 'Custom cake design',
                 },
             ] : [],
@@ -173,7 +173,14 @@ export async function generateMetadata(
             card: 'summary_large_image',
             title,
             description,
-            images: design.original_image_url ? [design.original_image_url] : [],
+            images: design.original_image_url ? [
+                {
+                    url: design.original_image_url,
+                    width: 1200,
+                    height: 630,
+                    alt: design.alt_text || design.keywords || 'Custom cake design',
+                }
+            ] : [],
         },
         other: {
             thumbnail: design.original_image_url || '',

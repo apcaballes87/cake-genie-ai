@@ -32,7 +32,7 @@ import { TopperCard } from '../../components/TopperCard';
 import { DesignAboutSection } from '@/components/DesignAboutSection';
 import StickyAddToCartBar from '../../components/StickyAddToCartBar';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
-import { reportCustomization, uploadReportImage, getAnalysisByExactHash, getRelatedProductsByKeywords } from '../../services/supabaseService';
+import { reportCustomization, uploadReportImage, getAnalysisByExactHash, getRelatedProductsByKeywords, getCollectionsForDesign } from '../../services/supabaseService';
 import ReportModal from '../../components/ReportModal';
 import ShareModal from '../../components/ShareModal';
 import { CartItemDetails } from '../../types';
@@ -433,6 +433,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [displayedRelatedDesigns, setDisplayedRelatedDesigns] = useState<RelatedDesign[]>(relatedDesigns || []);
     const [isLoadingMoreDesigns, setIsLoadingMoreDesigns] = useState(false);
     const [hasMoreDesigns, setHasMoreDesigns] = useState(true);
+    const [relatedCollections, setRelatedCollections] = useState<any[]>([]);
+    const [isLoadingCollections, setIsLoadingCollections] = useState(false);
 
     // --- Refs ---
     const accountMenuRef = useRef<HTMLDivElement>(null);
@@ -569,6 +571,29 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
         fetchRelated();
     }, [analysisResult, currentSlug, displayedRelatedDesigns.length]);
+
+    // Auto-load related collections when analysis is complete
+    useEffect(() => {
+        if (!analysisResult) return;
+
+        const fetchCollections = async () => {
+            setIsLoadingCollections(true);
+            try {
+                const tags = analysisResult.tags || [];
+                const keyword = analysisResult.keyword || '';
+                const { data } = await getCollectionsForDesign(tags, keyword);
+                if (data) {
+                    setRelatedCollections(data);
+                }
+            } catch (error) {
+                console.error('Error fetching related collections:', error);
+            } finally {
+                setIsLoadingCollections(false);
+            }
+        };
+
+        fetchCollections();
+    }, [analysisResult]);
 
     // --- AI Chat Customization Handler ---
     const handleChatSubmit = async (e?: React.FormEvent) => {
@@ -3585,9 +3610,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
 
+
             {/* Related Designs Section */}
             {displayedRelatedDesigns && displayedRelatedDesigns.length > 0 && (
-                <div className="w-full pb-0 pt-0 mb-0 mt-0">
+                <div className="w-full pb-8 pt-0 mb-0 mt-0">
                     <h2 className="text-lg font-semibold text-slate-800 mb-4">What other designs are trending in Cebu?</h2>
                     <Masonry
                         breakpointCols={{
@@ -3629,6 +3655,50 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             </button>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Related Collections Section */}
+            {relatedCollections.length > 0 && (
+                <div className="w-full pb-8 pt-8 border-t border-slate-100">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                <Star className="w-5 h-5 text-purple-500 fill-purple-500" />
+                                Explore Related Collections
+                            </h2>
+                            <p className="text-sm text-slate-500">Discover more designs in these curated categories</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {relatedCollections.map((collection) => (
+                            <Link
+                                key={collection.slug}
+                                href={`/collections/${collection.slug}`}
+                                className="group relative overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-200/60"
+                            >
+                                <div className="aspect-4/5 relative overflow-hidden">
+                                    <LazyImage
+                                        src={collection.sample_image || '/placeholder-cake.webp'}
+                                        alt={collection.name}
+                                        fill
+                                        containerClassName="absolute inset-0"
+                                        imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
+                                    />
+                                    <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+
+                                    <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-1 group-hover:translate-y-0 transition-transform duration-500">
+                                        <h3 className="text-white font-bold text-sm md:text-base leading-tight drop-shadow-sm">{collection.name}</h3>
+                                        <div className="flex items-center gap-1.5 mt-1 opacity-90">
+                                            <span className="text-[10px] md:text-xs text-white/90 font-medium bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-full">
+                                                {collection.item_count || 0} Designs
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
                 </div>
             )}
         </div >

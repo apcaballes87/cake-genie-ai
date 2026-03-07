@@ -833,6 +833,55 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
 }
 
 /**
+ * Fetches collections that are related to a design's tags or keywords.
+ */
+export async function getCollectionsForDesign(tags: string[] | null, keywords?: string | null): Promise<SupabaseServiceResponse<any[]>> {
+  const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
+  try {
+    // 1. Fetch all collections
+    const { data: collections, error: collectionsError } = await client
+      .from('cakegenie_collections')
+      .select('name, slug, tags, sample_image, description, item_count')
+      .order('name', { ascending: true });
+
+    if (collectionsError) {
+      console.error('Error fetching collections for design matching:', collectionsError);
+      return { data: null, error: collectionsError };
+    }
+
+    if (!collections || collections.length === 0) {
+      return { data: [], error: null };
+    }
+
+    // 2. Filter collections that match design tags or keywords
+    const designTags = new Set((tags || []).map(t => t.toLowerCase().trim()));
+    const designKeywords = (keywords || '').toLowerCase().split(/[\s,]+/).filter(k => k.length > 2);
+
+    // Add keywords to the matching set
+    designKeywords.forEach(k => designTags.add(k));
+
+    const matchedCollections = collections.filter((collection: any) => {
+      const collectionName = collection.name.toLowerCase();
+      const collectionTags = (collection.tags || []).map((t: string) => t.toLowerCase().trim());
+
+      // Match if any design tag is in collection tags
+      const tagMatch = collectionTags.some((t: string) => designTags.has(t));
+
+      // Match if collection name is in design keywords or tags
+      const nameMatch = Array.from(designTags).some(t => collectionName.includes(t));
+
+      return tagMatch || nameMatch;
+    });
+
+    return { data: matchedCollections, error: null };
+  } catch (err) {
+    console.error('Exception fetching collections for design:', err);
+    return { data: null, error: err as Error };
+  }
+}
+
+
+/**
  * Fetches related products based on keywords from the current blog post or design.
  * Matches across keywords, alt_text, and slug columns using ILIKE for broad recall.
  * Falls back to recent products if no keyword matches found.

@@ -17,9 +17,15 @@ export const initDB = (): Promise<IDBDatabase> => {
 
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-        request.onerror = (event) => {
-            console.error('IndexedDB error:', event);
-            reject('Error opening database');
+        request.onerror = (event: Event) => {
+            const error = (event.target as IDBOpenDBRequest).error;
+            console.error('❌ IndexedDB open error:', {
+                name: error?.name,
+                message: error?.message,
+                code: error?.code,
+                event
+            });
+            reject(error?.message || 'Error opening database');
         };
 
         request.onsuccess = (event) => {

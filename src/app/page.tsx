@@ -25,6 +25,17 @@ export const metadata: Metadata = {
     alternates: {
         canonical: 'https://genie.ph',
     },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'Genie.ph | Online Marketplace for Custom Cakes in Cebu!',
+        description: 'Upload any cake design, customize with AI, and get instant pricing from top cakeshops and homebakers in Cebu.',
+        images: [{
+            url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg',
+            width: 1200,
+            height: 630,
+            alt: 'Genie.ph | Online Marketplace for Custom Cakes in Cebu',
+        }],
+    },
 };
 
 function HomepageFAQSchema() {

@@ -136,6 +136,7 @@ export interface HybridAnalysisResult {
   alt_text?: string;
   seo_title?: string;
   seo_description?: string;
+  tags?: string[] | null;
 }
 
 export interface CacheSEOMetadata {

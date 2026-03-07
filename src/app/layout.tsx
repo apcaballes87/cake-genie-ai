@@ -54,7 +54,14 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Genie.ph | Online Marketplace for Custom Cakes',
     description: 'Upload design, get pricing, order custom cakes online.',
-    images: ['https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg'],
+    images: [
+      {
+        url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Genie.ph | Online Marketplace for Custom Cakes',
+      },
+    ],
   },
   icons: {
     icon: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp',
