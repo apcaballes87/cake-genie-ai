@@ -635,11 +635,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, [analysisResult]);
 
     // --- AI Chat Customization Handler ---
-    const handleChatSubmit = async (e?: React.FormEvent) => {
-        if (e) e.preventDefault();
-        if (!chatInput.trim() || !analysisResult || isAiProcessing || isUpdatingDesign) return;
+    const submitAiChatPrompt = useCallback(async (prompt: string) => {
+        const currentPrompt = prompt.trim();
+        if (!currentPrompt || !analysisResult || isAiProcessing || isUpdatingDesign) return;
 
-        const currentPrompt = chatInput.trim();
         setIsAiProcessing(true);
         setChatInput('');
 
@@ -714,7 +713,20 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         } finally {
             setIsAiProcessing(false);
         }
-    };
+    }, [
+        analysisResult,
+        clearDirtyState,
+        getSyncedAnalysisResult,
+        handleUpdateDesign,
+        isAiProcessing,
+        isUpdatingDesign,
+        setPendingAnalysisData,
+    ]);
+
+    const handleChatSubmit = useCallback(async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        await submitAiChatPrompt(chatInput);
+    }, [chatInput, submitAiChatPrompt]);
 
     const handleAiPromptSuggestionSelect = useCallback((suggestion: string) => {
         const parsedTemplate = parseAiChatPromptTemplate(suggestion);
@@ -757,7 +769,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         });
     }, [selectedAiPromptTemplate]);
 
-    const handleAiPromptTemplateColorChange = useCallback((colorHex: string) => {
+    const handleAiPromptTemplateColorChange = useCallback(async (colorHex: string) => {
         if (!selectedAiPromptTemplate) return;
 
         const selectedColorName = COLORS.find(color => color.hex.toLowerCase() === colorHex.toLowerCase())?.name
@@ -767,14 +779,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setSelectedAiPromptColor(colorHex);
         setShowAiPromptColorPicker(false);
         setSelectedAiPromptTemplate(null);
-        setChatInput(nextPrompt);
+        setShowAiPromptSuggestions(false);
+        setSelectedAiPromptIndex(-1);
 
-        requestAnimationFrame(() => {
-            aiChatInputRef.current?.focus();
-            const cursorPosition = nextPrompt.length;
-            aiChatInputRef.current?.setSelectionRange(cursorPosition, cursorPosition);
-        });
-    }, [selectedAiPromptTemplate]);
+        await submitAiChatPrompt(nextPrompt);
+    }, [selectedAiPromptTemplate, submitAiChatPrompt]);
 
     const handleAiPromptInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Escape') {
