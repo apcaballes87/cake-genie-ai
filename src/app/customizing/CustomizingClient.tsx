@@ -51,6 +51,8 @@ import { useAvailabilitySettings } from '@/hooks/useAvailabilitySettings';
 import { useSearchEngine } from '@/hooks/useSearchEngine';
 import { AppState } from '@/hooks/useAppNavigation';
 import { toast } from 'react-hot-toast';
+import { buildAiChatPromptSuggestions, shouldShowAiPromptSuggestion } from '@/utils/aiPromptSuggestions';
+import { fillAiChatPromptTemplate, parseAiChatPromptTemplate, ParsedAiChatPromptTemplate } from '@/utils/aiChatPromptComposer';
 
 interface AvailabilityInfo {
     type: AvailabilityType;
@@ -428,6 +430,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [searchInput, setSearchInput] = useState('');
     const [chatInput, setChatInput] = useState('');
     const [isAiProcessing, setIsAiProcessing] = useState(false);
+    const [showAiPromptSuggestions, setShowAiPromptSuggestions] = useState(false);
+    const [selectedAiPromptIndex, setSelectedAiPromptIndex] = useState(-1);
+    const [selectedAiPromptTemplate, setSelectedAiPromptTemplate] = useState<ParsedAiChatPromptTemplate | null>(null);
+    const [selectedAiPromptColor, setSelectedAiPromptColor] = useState('');
+    const [showAiPromptColorPicker, setShowAiPromptColorPicker] = useState(false);
 
     // Related Designs Pagination State
     const [displayedRelatedDesigns, setDisplayedRelatedDesigns] = useState<RelatedDesign[]>(relatedDesigns || []);
@@ -440,6 +447,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const accountMenuRef = useRef<HTMLDivElement>(null);
     const mainImageContainerRef = useRef<HTMLDivElement>(null);
     const isLoadingDesignRef = useRef(false); // Guard against duplicate analysis calls
+    const aiChatContainerRef = useRef<HTMLFormElement>(null);
+    const aiChatInputRef = useRef<HTMLInputElement>(null);
 
     // --- Hooks ---
     const { addOnPricing, itemPrices, basePriceOptions: hookBasePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice } = usePricing({
@@ -451,6 +460,36 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         if (hookBasePriceOptions && hookBasePriceOptions.length > 0) return hookBasePriceOptions;
         return initialPrices || [];
     }, [hookBasePriceOptions, initialPrices]);
+
+    const aiChatSuggestionAnalysis = useMemo(() => {
+        // Prefer the current synced customization state, but fall back to the original design image analysis_json.
+        return getSyncedAnalysisResult()
+            || analysisResult
+            || (recentSearchDesign?.analysis_json as HybridAnalysisResult | null | undefined)
+            || null;
+    }, [analysisResult, getSyncedAnalysisResult, recentSearchDesign?.analysis_json]);
+
+    const aiChatPromptSuggestions = useMemo(
+        () => buildAiChatPromptSuggestions(aiChatSuggestionAnalysis, { cakeInfo, basePriceOptions }),
+        [aiChatSuggestionAnalysis, basePriceOptions, cakeInfo]
+    );
+
+    const aiChatPromptSuggestionItems = useMemo(() => (
+        aiChatPromptSuggestions.map(suggestion => ({
+            suggestion,
+            template: parseAiChatPromptTemplate(suggestion),
+        }))
+    ), [aiChatPromptSuggestions]);
+
+    const filteredAiChatPromptSuggestions = useMemo(() => {
+        const normalizedQuery = chatInput.trim().toLowerCase();
+        return aiChatPromptSuggestionItems.filter(({ suggestion, template }) => (
+            shouldShowAiPromptSuggestion(suggestion, normalizedQuery)
+            && (!normalizedQuery || `${suggestion} ${template?.placeholderLabel ?? ''}`
+                .toLowerCase()
+                .includes(normalizedQuery))
+        ));
+    }, [aiChatPromptSuggestionItems, chatInput]);
 
     const {
         isLoading: isUpdatingDesign, error: designUpdateError, lastGenerationInfoRef, handleUpdateDesign, setError: setDesignUpdateError, isSafetyFallback
@@ -677,6 +716,95 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         }
     };
 
+    const handleAiPromptSuggestionSelect = useCallback((suggestion: string) => {
+        const parsedTemplate = parseAiChatPromptTemplate(suggestion);
+
+        if (parsedTemplate) {
+            setSelectedAiPromptTemplate(parsedTemplate);
+            setSelectedAiPromptColor('');
+            setShowAiPromptColorPicker(false);
+            setChatInput('');
+            setShowAiPromptSuggestions(false);
+            setSelectedAiPromptIndex(-1);
+            return;
+        }
+
+        setSelectedAiPromptTemplate(null);
+        setSelectedAiPromptColor('');
+        setShowAiPromptColorPicker(false);
+        setChatInput(suggestion);
+        setShowAiPromptSuggestions(false);
+        setSelectedAiPromptIndex(-1);
+
+        requestAnimationFrame(() => {
+            aiChatInputRef.current?.focus();
+            const cursorPosition = suggestion.length;
+            aiChatInputRef.current?.setSelectionRange(cursorPosition, cursorPosition);
+        });
+    }, []);
+
+    const handleAiPromptTemplateClear = useCallback(() => {
+        const template = selectedAiPromptTemplate?.template ?? '';
+        setSelectedAiPromptTemplate(null);
+        setSelectedAiPromptColor('');
+        setShowAiPromptColorPicker(false);
+        setChatInput(template);
+
+        requestAnimationFrame(() => {
+            aiChatInputRef.current?.focus();
+            const cursorPosition = template.length;
+            aiChatInputRef.current?.setSelectionRange(cursorPosition, cursorPosition);
+        });
+    }, [selectedAiPromptTemplate]);
+
+    const handleAiPromptTemplateColorChange = useCallback((colorHex: string) => {
+        if (!selectedAiPromptTemplate) return;
+
+        const selectedColorName = COLORS.find(color => color.hex.toLowerCase() === colorHex.toLowerCase())?.name
+            ?? hexToColorNameProse(colorHex);
+        const nextPrompt = fillAiChatPromptTemplate(selectedAiPromptTemplate, selectedColorName);
+
+        setSelectedAiPromptColor(colorHex);
+        setShowAiPromptColorPicker(false);
+        setSelectedAiPromptTemplate(null);
+        setChatInput(nextPrompt);
+
+        requestAnimationFrame(() => {
+            aiChatInputRef.current?.focus();
+            const cursorPosition = nextPrompt.length;
+            aiChatInputRef.current?.setSelectionRange(cursorPosition, cursorPosition);
+        });
+    }, [selectedAiPromptTemplate]);
+
+    const handleAiPromptInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Escape') {
+            setShowAiPromptSuggestions(false);
+            setSelectedAiPromptIndex(-1);
+            return;
+        }
+
+        if (!showAiPromptSuggestions || filteredAiChatPromptSuggestions.length === 0) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSelectedAiPromptIndex(prev => (
+                prev < filteredAiChatPromptSuggestions.length - 1 ? prev + 1 : filteredAiChatPromptSuggestions.length - 1
+            ));
+            return;
+        }
+
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSelectedAiPromptIndex(prev => (prev > 0 ? prev - 1 : 0));
+            return;
+        }
+
+        if (e.key === 'Enter' && selectedAiPromptIndex >= 0) {
+            e.preventDefault();
+            handleAiPromptSuggestionSelect(filteredAiChatPromptSuggestions[selectedAiPromptIndex].suggestion);
+        }
+    }, [filteredAiChatPromptSuggestions, handleAiPromptSuggestionSelect, selectedAiPromptIndex, showAiPromptSuggestions]);
+
     // --- Effects ---
     // Hide SSR content once client hydrates - enables progressive enhancement
     useEffect(() => {
@@ -684,6 +812,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         return () => {
             document.body.classList.remove('hydrated');
         };
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (aiChatContainerRef.current && !aiChatContainerRef.current.contains(event.target as Node)) {
+                setShowAiPromptSuggestions(false);
+                setSelectedAiPromptIndex(-1);
+                setShowAiPromptColorPicker(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     // Handle product prop loading (from SEO-friendly routes like /shop/[merchant]/[product]/customize)
@@ -1580,8 +1721,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
         // Check if any message properties changed
         return cakeMessages.some(currentMsg => {
-            const originalMsg = analysisResult.cake_messages?.find((m: any) => m.id === currentMsg.id);
-            if (!originalMsg) return true; // New message
+            // Robust matching: Try ID first, then fallback to position since we typically have 1 message per position
+            const originalMsg = analysisResult.cake_messages?.find((m: any) =>
+                (m.id && m.id === currentMsg.id) || (!m.id && m.position === currentMsg.position)
+            );
+
+            if (!originalMsg) return true; // New message at a new position
 
             return (
                 currentMsg.text !== originalMsg.text ||
@@ -2079,7 +2224,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, [rawMarkers, getMarkerPosition, containerDimensions, originalImageDimensions]);
 
 
-    const addCakeMessage = useCallback((position: 'top' | 'side' | 'base_board') => {
+    const addCakeMessage = useCallback((position: 'top' | 'side' | 'base_board', text?: string, color?: string) => {
         let coords: { x?: number, y?: number } = {};
 
         // Get default coordinates based on position
@@ -2097,9 +2242,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         const newMessage: CakeMessageUI = {
             id: crypto.randomUUID(),
             type: 'gumpaste_letters',
-            text: 'Your Text Here',
+            text: text || 'Your Text Here',
             position: position,
-            color: '#000000',
+            color: color || '#000000',
             isEnabled: true,
             price: 0,
             x: coords.x,
@@ -2600,6 +2745,120 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 {/* Customization Tabs - Top of cake options */}
 
 
+                                {cakeInfo && !isAnalyzing && !isRejectionError && (
+                                    <div className="w-full mt-2 mb-6 px-2">
+                                        <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">AI Customization Chat</h3>
+                                        <form onSubmit={handleChatSubmit} className="relative" ref={aiChatContainerRef}>
+                                            {selectedAiPromptTemplate ? (
+                                                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-12 shadow-sm">
+                                                    <div className="flex items-start gap-2 text-sm leading-6 text-slate-700">
+                                                        <span className="min-w-0 flex-1 wrap-break-word">
+                                                            {selectedAiPromptTemplate.prefix}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowAiPromptColorPicker(prev => !prev)}
+                                                                className="mx-1 inline-flex rounded-full bg-purple-50 px-2.5 py-0.5 font-bold text-purple-700 underline decoration-purple-300 underline-offset-2 transition hover:bg-purple-100"
+                                                            >
+                                                                {selectedAiPromptTemplate.placeholderLabel}
+                                                            </button>
+                                                            {selectedAiPromptTemplate.suffix}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleAiPromptTemplateClear}
+                                                            className="shrink-0 rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                                                            aria-label="Edit prompt as text"
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                    {showAiPromptColorPicker && (
+                                                        <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                                                            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                                                                Choose {selectedAiPromptTemplate.placeholderLabel}
+                                                            </div>
+                                                            <ColorPalette
+                                                                selectedColor={selectedAiPromptColor}
+                                                                onColorChange={handleAiPromptTemplateColorChange}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <input
+                                                    ref={aiChatInputRef}
+                                                    type="text"
+                                                    value={chatInput}
+                                                    onChange={(e) => {
+                                                        setSelectedAiPromptTemplate(null);
+                                                        setSelectedAiPromptColor('');
+                                                        setShowAiPromptColorPicker(false);
+                                                        setChatInput(e.target.value);
+                                                        setShowAiPromptSuggestions(aiChatPromptSuggestions.length > 0);
+                                                        setSelectedAiPromptIndex(-1);
+                                                    }}
+                                                    onFocus={() => {
+                                                        if (aiChatPromptSuggestions.length > 0) {
+                                                            setShowAiPromptSuggestions(true);
+                                                        }
+                                                    }}
+                                                    onClick={() => {
+                                                        if (aiChatPromptSuggestions.length > 0) {
+                                                            setShowAiPromptSuggestions(true);
+                                                        }
+                                                    }}
+                                                    onKeyDown={handleAiPromptInputKeyDown}
+                                                    placeholder="✨ Describe changes... Ex: Change icing color to blue"
+                                                    disabled={isAiProcessing || isUpdatingDesign}
+                                                    className="w-full pl-4 pr-12 py-3 bg-white border border-slate-200 rounded-2xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
+                                                />
+                                            )}
+                                            {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isUpdatingDesign && (
+                                                <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                                                    <div className="max-h-72 overflow-y-auto py-1">
+                                                        {filteredAiChatPromptSuggestions.map(({ suggestion, template }, index) => (
+                                                            <button
+                                                                key={suggestion}
+                                                                type="button"
+                                                                onMouseDown={(event) => event.preventDefault()}
+                                                                onClick={() => handleAiPromptSuggestionSelect(suggestion)}
+                                                                className={`block w-full px-3 py-2 text-left text-sm transition-colors ${selectedAiPromptIndex === index ? 'bg-purple-50 text-purple-700' : 'text-slate-700 hover:bg-slate-50'}`}
+                                                            >
+                                                                {template ? (
+                                                                    <span className="wrap-break-word">
+                                                                        {template.prefix}
+                                                                        <span className="mx-1 inline-flex rounded-full bg-purple-50 px-2 py-0.5 font-bold text-purple-700">
+                                                                            {template.placeholderLabel}
+                                                                        </span>
+                                                                        {template.suffix}
+                                                                    </span>
+                                                                ) : suggestion}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <button
+                                                type="submit"
+                                                disabled={!chatInput.trim() || isAiProcessing || isUpdatingDesign || !!selectedAiPromptTemplate}
+                                                className="absolute right-1.5 top-1.5 bottom-1.5 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white px-2.5 rounded-xl transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                                                aria-label="Submit AI Edit"
+                                            >
+                                                {isAiProcessing ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                                )}
+                                            </button>
+                                        </form>
+                                        {isAiProcessing && (
+                                            <p className="text-[10px] text-purple-500 font-medium mt-1.5 animate-pulse flex items-center gap-1 px-1">
+                                                <Loader2 className="w-3 h-3 animate-spin" /> Redesigning your cake...
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
                                 {/* Chosen Options Preview - Clickable to edit */}
                                 {cakeInfo && !isAnalyzing && !isRejectionError && (
                                     <div className="mt-3 px-2">
@@ -2987,60 +3246,32 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         </button>
                                                     </div>
                                                 ))}
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setActiveCustomization('messages');
-                                                    }}
-                                                    className="text-xs font-medium text-purple-500 hover:text-purple-700 transition-colors py-1.5 text-left px-3"
-                                                >
-                                                    + Add message
-                                                </button>
+                                                <div className="flex justify-center mt-1">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveCustomization('messages');
+                                                        }}
+                                                        className="text-xs font-semibold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2 px-4 rounded-full shadow-sm"
+                                                    >
+                                                        + Add message
+                                                    </button>
+                                                </div>
                                             </div>
                                         ) : (
-                                            <button
-                                                className="w-full text-center py-3 text-slate-400 text-xs hover:text-purple-500 rounded-xl transition-colors hover:bg-slate-50"
-                                                onClick={() => setActiveCustomization('messages')}
-                                            >
-                                                + Add a cake message
-                                            </button>
+                                            <div className="flex justify-center mt-1">
+                                                <button
+                                                    className="text-xs font-semibold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2 px-4 rounded-full shadow-sm"
+                                                    onClick={() => setActiveCustomization('messages')}
+                                                >
+                                                    + Add a cake message
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 )}
 
-                                {/* Chat Interface for AI Customization - Moved below Cake Messages Preview */}
-                                {!isAnalyzing && !isRejectionError && (
-                                    <div className="w-full mt-5 mb-4 px-2">
-                                        <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">AI Customization Chat</h3>
-                                        <form onSubmit={handleChatSubmit} className="relative">
-                                            <input
-                                                type="text"
-                                                value={chatInput}
-                                                onChange={(e) => setChatInput(e.target.value)}
-                                                placeholder="✨ Describe changes... Ex: Change icing color to blue"
-                                                disabled={isAiProcessing || isUpdatingDesign}
-                                                className="w-full pl-4 pr-12 py-3 bg-white border border-slate-200 rounded-2xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
-                                            />
-                                            <button
-                                                type="submit"
-                                                disabled={!chatInput.trim() || isAiProcessing || isUpdatingDesign}
-                                                className="absolute right-1.5 top-1.5 bottom-1.5 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white px-2.5 rounded-xl transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-                                                aria-label="Submit AI Edit"
-                                            >
-                                                {isAiProcessing ? (
-                                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                                ) : (
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                                                )}
-                                            </button>
-                                        </form>
-                                        {isAiProcessing && (
-                                            <p className="text-[10px] text-purple-500 font-medium mt-1.5 animate-pulse flex items-center gap-1 px-1">
-                                                <Loader2 className="w-3 h-3 animate-spin" /> Redesigning your cake...
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
+
 
                                 {/* FeatureList removed as its parts are now broken out */}
                                 {/* Previously FeatureList was here */}
@@ -3237,6 +3468,22 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             <CustomizationBottomSheet
                 isOpen={activeCustomization !== null}
                 onClose={() => {
+                    // Revert cake messages if closing without applying
+                    if (activeCustomization === 'messages' && !isUpdatingDesign) {
+                        const originalMessages = analysisResult?.cake_messages?.map((m: any, index: number) => ({
+                            id: `msg-${index}`,
+                            type: m.type,
+                            text: m.text,
+                            position: m.position,
+                            color: m.color,
+                            x: m.x,
+                            y: m.y,
+                            isEnabled: true,
+                            price: 0,
+                            originalMessage: m
+                        })) || [];
+                        onCakeMessageChange(originalMessages as CakeMessageUI[]);
+                    }
                     setActiveCustomization(null);
                     setSelectedItem(null);
                 }}
@@ -3308,6 +3555,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 )}
                             </button>
                         ) : null
+
                     ) : activeCustomization === 'toppers' ? (
                         (hasToppersChanges || isUpdatingDesign) ? (
                             <button
