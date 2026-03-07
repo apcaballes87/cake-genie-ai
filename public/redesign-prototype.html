@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Genie.ph — Customization Page Redesign Prototype</title>
+<style>
+  /* ─── Reset & Base ─────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f7ff; color: #1e1b2e; min-height: 100vh; }
+
+  /* ─── Tokens ────────────────────────────────── */
+  :root {
+    --purple-50:  #faf5ff;
+    --purple-100: #f3e8ff;
+    --purple-200: #e9d5ff;
+    --purple-500: #a855f7;
+    --purple-600: #9333ea;
+    --purple-700: #7e22ce;
+    --pink-500:   #ec4899;
+    --amber-50:   #fffbeb;
+    --amber-200:  #fde68a;
+    --amber-700:  #b45309;
+    --green-100:  #dcfce7;
+    --green-600:  #16a34a;
+    --green-800:  #166534;
+    --blue-100:   #dbeafe;
+    --blue-800:   #1e40af;
+    --red-50:     #fff1f2;
+    --red-500:    #ef4444;
+    --slate-50:   #f8fafc;
+    --slate-100:  #f1f5f9;
+    --slate-200:  #e2e8f0;
+    --slate-300:  #cbd5e1;
+    --slate-400:  #94a3b8;
+    --slate-500:  #64748b;
+    --slate-600:  #475569;
+    --slate-700:  #334155;
+    --slate-800:  #1e293b;
+    --radius-sm:  8px;
+    --radius-md:  12px;
+    --radius-lg:  16px;
+    --radius-xl:  20px;
+    --shadow-card: 0 1px 4px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.07);
+    --shadow-sticky: 0 -4px 24px rgba(0,0,0,.10);
+  }
+
+  /* ─── Nav / Topbar ──────────────────────────── */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(255,255,255,.85);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--slate-200);
+    padding: 10px 20px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .topbar-btn {
+    width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--slate-200);
+    background: white; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--slate-600); flex-shrink: 0;
+    transition: background .15s, color .15s;
+  }
+  .topbar-btn:hover { background: var(--purple-50); color: var(--purple-600); }
+  .search-wrap { flex: 1; position: relative; }
+  .search-wrap input {
+    width: 100%; border: 1px solid var(--slate-200); border-radius: 99px;
+    padding: 9px 16px 9px 40px; font-size: 13px; background: var(--slate-50);
+    color: var(--slate-800); outline: none; transition: border .15s, box-shadow .15s;
+  }
+  .search-wrap input:focus { border-color: var(--purple-500); box-shadow: 0 0 0 3px rgba(168,85,247,.12); }
+  .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--slate-400); }
+  .cart-btn { position: relative; }
+  .cart-badge {
+    position: absolute; top: -4px; right: -4px;
+    background: var(--pink-500); color: #fff;
+    font-size: 10px; font-weight: 700; border-radius: 99px;
+    padding: 1px 5px; min-width: 18px; text-align: center;
+  }
+
+  /* ─── Breadcrumb ────────────────────────────── */
+  .breadcrumb { font-size: 11px; color: var(--slate-400); display: flex; gap: 4px; align-items: center; padding: 10px 20px 0; flex-wrap: wrap; }
+  .breadcrumb a { color: var(--slate-500); text-decoration: none; }
+  .breadcrumb a:hover { color: var(--purple-600); }
+  .breadcrumb .sep { color: var(--slate-300); }
+  .breadcrumb .current { color: var(--slate-700); font-weight: 600; }
+
+  /* ─── Page Layout ───────────────────────────── */
+  .page-layout {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 20px;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 16px 20px 120px;
+  }
+  @media (max-width: 768px) {
+    .page-layout { grid-template-columns: 1fr; padding: 12px 14px 120px; }
+  }
+
+  /* ─── Left Column ───────────────────────────── */
+  .left-col { display: flex; flex-direction: column; gap: 14px; }
+
+  /* Product Title */
+  .product-title { font-size: 20px; font-weight: 800; color: var(--slate-800); line-height: 1.25; }
+  .product-tag {
+    display: inline-block; margin-top: 6px;
+    background: var(--purple-100); color: var(--purple-700);
+    font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px;
+  }
+
+  /* Image Card */
+  .image-card {
+    background: white; border-radius: var(--radius-xl);
+    border: 1px solid var(--slate-200); box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+  .image-tabs {
+    display: flex; gap: 4px; padding: 10px 10px 0;
+    background: white; border-bottom: 1px solid var(--slate-100);
+  }
+  .image-tab {
+    flex: 1; padding: 8px; border-radius: var(--radius-sm);
+    font-size: 12px; font-weight: 600; border: none; cursor: pointer;
+    transition: all .15s; color: var(--slate-500); background: transparent;
+  }
+  .image-tab.active { background: var(--purple-600); color: white; }
+  .image-tab:not(.active):hover { background: var(--slate-100); }
+  .image-area {
+    position: relative; aspect-ratio: 1; background: var(--slate-50);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .image-placeholder {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    color: var(--slate-300); font-size: 13px; font-weight: 500;
+  }
+  .image-placeholder svg { width: 48px; height: 48px; }
+  .cake-img {
+    width: 100%; height: 100%; object-fit: cover;
+    font-size: 13px; color: var(--slate-400); text-align: center;
+  }
+  /* Markers */
+  .marker { position: absolute; width: 24px; height: 24px; cursor: pointer; }
+  .marker-dot {
+    width: 24px; height: 24px; background: var(--purple-600); color: white;
+    border: 2px solid white; border-radius: 50%;
+    font-size: 10px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(147,51,234,.45);
+    transition: transform .15s;
+  }
+  .marker:hover .marker-dot { transform: scale(1.2); }
+  .marker-tooltip {
+    position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
+    background: var(--slate-800); color: white; font-size: 11px; font-weight: 500;
+    padding: 4px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none;
+    opacity: 0;
+  }
+  .marker:hover .marker-tooltip { opacity: 1; }
+
+  /* Image action strip */
+  .image-actions {
+    padding: 10px 12px; display: flex; gap: 8px; align-items: center;
+    background: var(--slate-50); border-top: 1px solid var(--slate-100);
+  }
+  .img-action-btn {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600; color: var(--slate-500);
+    background: white; border: 1px solid var(--slate-200);
+    border-radius: 99px; padding: 5px 12px; cursor: pointer; transition: all .15s;
+  }
+  .img-action-btn:hover { border-color: var(--purple-300); color: var(--purple-700); background: var(--purple-50); }
+  .img-action-btn.danger:hover { border-color: var(--red-500); color: var(--red-500); }
+  .img-action-btn svg { width: 13px; height: 13px; }
+  .spacer { flex: 1; }
+
+  /* Availability Card */
+  .avail-card {
+    border-radius: var(--radius-lg); padding: 12px 14px;
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid;
+  }
+  .avail-card.rush { background: var(--green-100); border-color: #bbf7d0; }
+  .avail-card.same-day { background: var(--blue-100); border-color: #bfdbfe; }
+  .avail-card .avail-icon { font-size: 20px; }
+  .avail-label { font-size: 12px; font-weight: 800; }
+  .avail-sub { font-size: 11px; font-weight: 500; opacity: .75; margin-top: 1px; }
+  .avail-card.rush .avail-label, .avail-card.rush .avail-sub { color: var(--green-800); }
+  .avail-card.same-day .avail-label, .avail-card.same-day .avail-sub { color: var(--blue-800); }
+
+  /* Related Designs */
+  .section-title { font-size: 13px; font-weight: 700; color: var(--slate-700); margin-bottom: 10px; }
+  .related-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .related-thumb {
+    aspect-ratio: 1; border-radius: var(--radius-md); overflow: hidden;
+    background: var(--slate-100); cursor: pointer;
+    border: 2px solid transparent; transition: border .15s;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--slate-400);
+  }
+  .related-thumb:hover { border-color: var(--purple-400); }
+
+  /* ─── Right Column ──────────────────────────── */
+  .right-col { display: flex; flex-direction: column; gap: 14px; }
+
+  /* ── Step Card ── */
+  .step-card {
+    background: white; border-radius: var(--radius-xl);
+    border: 1px solid var(--slate-200); box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+  .step-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px; cursor: pointer; user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background .12s;
+  }
+  .step-header:hover { background: var(--slate-50); }
+  .step-header.open { border-bottom-color: var(--slate-100); background: var(--purple-50); }
+  .step-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    font-size: 11px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-num.done { background: var(--green-600); color: white; }
+  .step-num.active { background: var(--purple-600); color: white; }
+  .step-num.idle { background: var(--slate-100); color: var(--slate-400); }
+  .step-info { flex: 1; }
+  .step-name { font-size: 13px; font-weight: 700; color: var(--slate-800); }
+  .step-summary { font-size: 11px; color: var(--slate-400); margin-top: 1px; }
+  .step-summary.filled { color: var(--purple-600); font-weight: 600; }
+  .step-chevron { color: var(--slate-400); transition: transform .2s; }
+  .step-header.open .step-chevron { transform: rotate(180deg); }
+  .step-body { display: none; padding: 14px 16px; }
+  .step-body.open { display: block; }
+
+  /* ── Option Rows (inside steps) ── */
+  .option-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .option-label { font-size: 11px; font-weight: 700; color: var(--slate-500); letter-spacing: .06em; text-transform: uppercase; }
+  .option-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    padding: 6px 14px; border-radius: 99px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    border: 1.5px solid var(--slate-200); background: white; color: var(--slate-600);
+    transition: all .15s; white-space: nowrap;
+  }
+  .chip:hover { border-color: var(--purple-300); color: var(--purple-700); background: var(--purple-50); }
+  .chip.selected { border-color: var(--purple-500); background: var(--purple-600); color: white; }
+  .chip.small { font-size: 11px; padding: 4px 10px; }
+
+  /* Color swatches */
+  .color-swatches { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .swatch {
+    width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+    border: 2px solid transparent; transition: transform .12s, border-color .12s;
+    flex-shrink: 0;
+  }
+  .swatch:hover { transform: scale(1.15); }
+  .swatch.selected { border-color: var(--purple-600); box-shadow: 0 0 0 2px white, 0 0 0 4px var(--purple-500); }
+  .swatch-add {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 2px dashed var(--slate-300); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--slate-400); font-size: 16px;
+    transition: all .12s;
+  }
+  .swatch-add:hover { border-color: var(--purple-400); color: var(--purple-500); }
+
+  /* Topper cards */
+  .topper-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .topper-card {
+    border: 1.5px solid var(--slate-200); border-radius: var(--radius-md);
+    padding: 10px; display: flex; gap: 10px; align-items: center;
+    cursor: pointer; transition: all .15s; background: white;
+  }
+  .topper-card.on { border-color: var(--purple-400); background: var(--purple-50); }
+  .topper-card:hover { border-color: var(--purple-300); }
+  .topper-thumb {
+    width: 40px; height: 40px; border-radius: var(--radius-sm);
+    background: var(--slate-100); flex-shrink: 0; display: flex;
+    align-items: center; justify-content: center; font-size: 18px;
+  }
+  .topper-name { font-size: 12px; font-weight: 600; color: var(--slate-700); }
+  .topper-price { font-size: 11px; color: var(--slate-400); margin-top: 1px; }
+  .topper-toggle {
+    margin-left: auto; width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid var(--slate-300); background: white;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .topper-card.on .topper-toggle { background: var(--purple-600); border-color: var(--purple-600); }
+
+  /* Message rows */
+  .msg-row {
+    display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+    border-radius: var(--radius-md); background: var(--slate-50);
+    border: 1.5px solid var(--slate-200); margin-bottom: 6px; cursor: pointer;
+    transition: border .12s;
+  }
+  .msg-row:hover { border-color: var(--purple-300); }
+  .msg-pos { font-size: 9px; font-weight: 800; color: var(--purple-500); text-transform: uppercase; letter-spacing: .08em; width: 32px; flex-shrink: 0; }
+  .msg-text { font-size: 13px; font-weight: 500; color: var(--slate-700); flex: 1; }
+  .msg-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .msg-del { background: none; border: none; cursor: pointer; color: var(--slate-300); padding: 2px; border-radius: 4px; transition: color .12s; }
+  .msg-del:hover { color: var(--red-500); }
+  .add-msg-btn {
+    width: 100%; padding: 9px; border-radius: var(--radius-md);
+    border: 1.5px dashed var(--slate-200); background: none;
+    font-size: 12px; font-weight: 600; color: var(--purple-600);
+    cursor: pointer; transition: all .15s; margin-top: 4px;
+  }
+  .add-msg-btn:hover { background: var(--purple-50); border-color: var(--purple-300); }
+
+  /* AI Chat */
+  .ai-chat-wrap { position: relative; }
+  .ai-input {
+    width: 100%; padding: 11px 48px 11px 14px;
+    border: 1.5px solid var(--slate-200); border-radius: var(--radius-lg);
+    font-size: 13px; color: var(--slate-800); background: var(--slate-50);
+    outline: none; transition: border .15s, box-shadow .15s;
+  }
+  .ai-input:focus { border-color: var(--purple-500); background: white; box-shadow: 0 0 0 3px rgba(168,85,247,.1); }
+  .ai-send {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    width: 32px; height: 32px; border-radius: var(--radius-sm);
+    background: var(--purple-600); border: none; color: white;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background .12s;
+  }
+  .ai-send:hover { background: var(--purple-700); }
+  .ai-suggestion-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 600; color: var(--purple-700);
+    background: var(--purple-100); border-radius: 99px;
+    padding: 4px 10px; cursor: pointer; transition: background .12s; margin: 3px 3px 0 0;
+  }
+  .ai-suggestion-pill:hover { background: var(--purple-200); }
+
+  /* Quantity + Instructions */
+  .qty-row { display: flex; align-items: center; gap: 12px; }
+  .qty-label { font-size: 12px; font-weight: 700; color: var(--slate-600); }
+  .qty-ctrl { display: flex; align-items: center; gap: 0; border: 1.5px solid var(--slate-200); border-radius: var(--radius-sm); overflow: hidden; }
+  .qty-btn {
+    width: 34px; height: 34px; border: none; background: var(--slate-50);
+    font-size: 18px; font-weight: 600; cursor: pointer; color: var(--slate-600);
+    display: flex; align-items: center; justify-content: center; transition: background .12s;
+  }
+  .qty-btn:hover { background: var(--purple-50); color: var(--purple-600); }
+  .qty-val { width: 38px; text-align: center; font-size: 14px; font-weight: 700; color: var(--slate-800); background: white; border: none; outline: none; }
+  .instr-textarea {
+    width: 100%; padding: 10px 12px; border-radius: var(--radius-md);
+    border: 1.5px solid var(--slate-200); font-size: 12px; color: var(--slate-700);
+    background: var(--slate-50); outline: none; resize: none; font-family: inherit;
+    transition: border .15s;
+  }
+  .instr-textarea:focus { border-color: var(--purple-400); background: white; }
+
+  /* Apply CTA in step */
+  .step-apply-btn {
+    width: 100%; margin-top: 12px; padding: 11px;
+    border-radius: var(--radius-lg); border: none;
+    background: linear-gradient(135deg, var(--pink-500), var(--purple-600));
+    color: white; font-size: 13px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: opacity .15s, box-shadow .15s;
+    box-shadow: 0 4px 12px rgba(147,51,234,.3);
+  }
+  .step-apply-btn:hover { opacity: .9; box-shadow: 0 6px 20px rgba(147,51,234,.4); }
+  .step-apply-btn.secondary {
+    background: var(--purple-600); box-shadow: none;
+  }
+
+  /* Tip banner */
+  .tip-banner {
+    display: flex; gap: 8px; align-items: flex-start;
+    background: var(--amber-50); border: 1px solid var(--amber-200);
+    border-radius: var(--radius-md); padding: 10px 12px;
+    font-size: 12px; color: var(--amber-700);
+  }
+  .tip-banner b { color: #92400e; }
+
+  /* Warning inline */
+  .warning-row {
+    display: flex; gap: 8px; align-items: center;
+    background: #fff1f2; border: 1px solid #fecdd3;
+    border-radius: var(--radius-md); padding: 9px 12px;
+    font-size: 12px; color: #be123c; font-weight: 600;
+  }
+
+  /* ─── Sticky Bar ────────────────────────────── */
+  .sticky-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 60;
+  }
+  .avail-strip {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    font-size: 12px; font-weight: 700; padding: 7px;
+    border-top: 1px solid;
+  }
+  .avail-strip.rush { background: var(--green-100); color: var(--green-800); border-color: #bbf7d0; }
+  .avail-strip.same-day { background: var(--blue-100); color: var(--blue-800); border-color: #bfdbfe; }
+  .sticky-main {
+    background: rgba(255,255,255,.9); backdrop-filter: blur(16px);
+    border-top: 1px solid var(--slate-200);
+    box-shadow: var(--shadow-sticky);
+    padding: 12px 20px;
+    display: flex; align-items: center; gap: 12px;
+    max-width: 100%;
+  }
+  .price-block { min-width: 90px; }
+  .price-label { font-size: 10px; font-weight: 600; color: var(--slate-400); text-transform: uppercase; letter-spacing: .06em; }
+  .price-value { font-size: 22px; font-weight: 800; color: var(--slate-800); line-height: 1.1; }
+  .price-sub { font-size: 11px; color: var(--slate-400); }
+  .sticky-actions { display: flex; gap: 8px; flex: 1; }
+  .share-btn {
+    flex: 0 0 auto; padding: 0 16px; height: 48px; border-radius: var(--radius-lg);
+    border: 1.5px solid var(--slate-200); background: white; color: var(--slate-600);
+    font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;
+    transition: all .15s;
+  }
+  .share-btn:hover { border-color: var(--purple-300); color: var(--purple-600); background: var(--purple-50); }
+  .cart-btn-main {
+    flex: 1; height: 48px; border-radius: var(--radius-lg); border: none;
+    background: linear-gradient(135deg, var(--pink-500), var(--purple-600));
+    color: white; font-size: 14px; font-weight: 800; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 4px 16px rgba(147,51,234,.35);
+    transition: opacity .15s, box-shadow .15s;
+  }
+  .cart-btn-main:hover { opacity: .92; box-shadow: 0 6px 24px rgba(147,51,234,.45); }
+
+  /* ─── Add-to-Cart Confirmation Drawer ───────── */
+  .confirm-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 70;
+    display: none; align-items: flex-end; justify-content: center;
+  }
+  .confirm-overlay.show { display: flex; }
+  .confirm-drawer {
+    background: white; border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: 20px; width: 100%; max-width: 540px;
+    box-shadow: 0 -8px 40px rgba(0,0,0,.15);
+    animation: slideUp .3s cubic-bezier(.32,.72,0,1);
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .drawer-handle { width: 36px; height: 4px; background: var(--slate-200); border-radius: 99px; margin: 0 auto 16px; }
+  .drawer-title { font-size: 16px; font-weight: 800; color: var(--slate-800); margin-bottom: 14px; }
+  .summary-row { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--slate-100); font-size: 13px; color: var(--slate-700); }
+  .summary-row:last-of-type { border-bottom: none; }
+  .summary-key { color: var(--slate-400); font-size: 12px; }
+  .summary-val { font-weight: 600; }
+  .summary-total { font-size: 16px; font-weight: 800; color: var(--slate-800); }
+  .drawer-btns { display: flex; gap: 10px; margin-top: 16px; }
+  .drawer-continue { flex: 1; padding: 13px; border-radius: var(--radius-lg); border: 1.5px solid var(--slate-200); background: white; font-size: 13px; font-weight: 700; color: var(--slate-600); cursor: pointer; transition: all .15s; }
+  .drawer-continue:hover { border-color: var(--purple-300); color: var(--purple-600); background: var(--purple-50); }
+  .drawer-go { flex: 1; padding: 13px; border-radius: var(--radius-lg); border: none; background: linear-gradient(135deg, var(--pink-500), var(--purple-600)); color: white; font-size: 13px; font-weight: 800; cursor: pointer; }
+
+  /* ─── Utility ───────────────────────────────── */
+  svg { pointer-events: none; }
+  .hidden { display: none !important; }
+  .divider { height: 1px; background: var(--slate-100); margin: 12px 0; }
+
+  /* ─── Mobile tweaks ─────────────────────────── */
+  @media (max-width: 768px) {
+    .topbar { padding: 8px 14px; }
+    .sticky-main { padding: 10px 14px; }
+    .price-value { font-size: 18px; }
+    .cart-btn-main { font-size: 13px; }
+  }
+
+  /* Annotation badge */
+  .annotation {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #fef3c7; border: 1px solid #fde68a; color: #92400e;
+    font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
+    vertical-align: middle; margin-left: 6px;
+  }
+  .annotation.green { background: #dcfce7; border-color: #bbf7d0; color: #166534; }
+  .annotation.red { background: #fee2e2; border-color: #fecaca; color: #991b1b; }
+
+  /* Desktop: sticky left column */
+  @media (min-width: 769px) {
+    .left-col { position: sticky; top: 60px; align-self: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─────────────────────────────────────────────────────────────
+     TOP BAR
+───────────────────────────────────────────────────────────────── -->
+<nav class="topbar">
+  <button class="topbar-btn" title="Go back" onclick="history.back()">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+  </button>
+  <div class="search-wrap">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input placeholder="Search for other cake designs…" />
+  </div>
+  <button class="topbar-btn cart-btn" title="View cart" onclick="openConfirm()">
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    <span class="cart-badge">2</span>
+  </button>
+</nav>
+
+<!-- ─────────────────────────────────────────────────────────────
+     BREADCRUMB
+───────────────────────────────────────────────────────────────── -->
+<div class="breadcrumb">
+  <a href="#">Home</a>
+  <span class="sep">/</span>
+  <a href="#">Customizing</a>
+  <span class="sep">/</span>
+  <span class="current">Elegant Pink Princess Birthday Cake</span>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     TWO-COLUMN LAYOUT
+───────────────────────────────────────────────────────────────── -->
+<div class="page-layout">
+
+  <!-- ══════════════ LEFT COLUMN ══════════════ -->
+  <div class="left-col">
+
+    <!-- Product Title -->
+    <div>
+      <h1 class="product-title">Elegant Pink Princess Birthday Cake</h1>
+      <span class="product-tag">Birthday Cakes</span>
+    </div>
+
+    <!-- Availability Card -->
+    <div class="avail-card rush">
+      <div class="avail-icon">⚡</div>
+      <div>
+        <div class="avail-label">Rush Order Available</div>
+        <div class="avail-sub">Ready in as fast as 30 minutes</div>
+      </div>
+    </div>
+
+    <!-- Image Card -->
+    <div class="image-card">
+      <!-- Tab switcher - only shown when customized image exists -->
+      <div class="image-tabs">
+        <button class="image-tab active" onclick="switchTab(this, 'original')">Original</button>
+        <button class="image-tab" onclick="switchTab(this, 'customized')">Customized ✨</button>
+      </div>
+
+      <!-- Analysis progress bar -->
+      <div style="padding: 8px 10px 0; background: white;">
+        <div style="height: 4px; border-radius: 99px; background: var(--slate-100); overflow: hidden;">
+          <div style="height: 100%; width: 70%; background: linear-gradient(90deg, var(--pink-500), var(--purple-600)); border-radius: 99px;"></div>
+        </div>
+        <p style="font-size: 11px; color: var(--slate-400); margin-top: 5px; font-weight: 500;">Analyzing design elements… you can start customizing below.</p>
+      </div>
+
+      <!-- Image Area with markers -->
+      <div class="image-area" style="aspect-ratio: 4/5;">
+        <!-- Simulated cake image via gradient placeholder -->
+        <div style="position:absolute;inset:0; background: linear-gradient(160deg, #fce7f3 0%, #f3e8ff 40%, #ede9fe 100%); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px; color: var(--slate-400);">
+          <div style="font-size: 80px; line-height:1;">🎂</div>
+          <span style="font-size: 12px; font-weight: 600; color: var(--slate-500);">Elegant Pink Princess Birthday Cake</span>
+          <span style="font-size: 11px; color: var(--slate-400);">Design preview loads here</span>
+        </div>
+
+        <!-- AI Analysis Markers -->
+        <div class="marker" style="top: 22%; left: 55%;">
+          <div class="marker-dot">A</div>
+          <span class="marker-tooltip">Princess Crown Topper</span>
+        </div>
+        <div class="marker" style="top: 48%; left: 30%;">
+          <div class="marker-dot">B</div>
+          <span class="marker-tooltip">Happy Birthday — Pink</span>
+        </div>
+        <div class="marker" style="top: 65%; left: 62%;">
+          <div class="marker-dot">C</div>
+          <span class="marker-tooltip">Pearl Border (Base)</span>
+        </div>
+
+        <!-- Save bookmark -->
+        <button onclick="toggleSave(this)" style="position:absolute; top:12px; left:12px; background: white; border: 1.5px solid var(--slate-200); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .15s; box-shadow: 0 2px 8px rgba(0,0,0,.08);" title="Save design">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </button>
+      </div>
+
+      <!-- Image Bottom Action Strip -->
+      <div class="image-actions">
+        <button class="img-action-btn">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>
+          Undo
+        </button>
+        <button class="img-action-btn">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Share
+        </button>
+        <div class="spacer"></div>
+        <button class="img-action-btn" title="Save design image">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Image
+        </button>
+        <button class="img-action-btn danger" onclick="confirmReset()" title="Reset everything">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>
+          Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- Related Designs -->
+    <div>
+      <p class="section-title">Similar Designs You Might Like</p>
+      <div class="related-grid">
+        <div class="related-thumb" style="background: linear-gradient(135deg, #fce7f3, #f3e8ff);">🎂</div>
+        <div class="related-thumb" style="background: linear-gradient(135deg, #ede9fe, #dbeafe);">🎀</div>
+        <div class="related-thumb" style="background: linear-gradient(135deg, #dcfce7, #f0fdf4);">🌸</div>
+      </div>
+    </div>
+
+  </div><!-- /left-col -->
+
+
+  <!-- ══════════════ RIGHT COLUMN ══════════════ -->
+  <div class="right-col">
+
+    <!-- ❶ AI Chat — at the top for fast power-user access -->
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num active">✨</div>
+        <div class="step-info">
+          <div class="step-name">AI Customization Chat</div>
+          <div class="step-summary filled">Describe any change in plain English</div>
+        </div>
+        <svg class="step-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="step-body open">
+        <div class="ai-chat-wrap">
+          <input class="ai-input" placeholder="✨ Describe changes… e.g. Change icing to lavender" />
+          <button class="ai-send">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+        <div style="margin-top: 8px;">
+          <p style="font-size: 11px; color: var(--slate-400); margin-bottom: 5px; font-weight: 600;">Suggested edits:</p>
+          <span class="ai-suggestion-pill">✦ Change icing to <b>rose pink</b></span>
+          <span class="ai-suggestion-pill">✦ Add a drip effect</span>
+          <span class="ai-suggestion-pill">✦ Replace crown with flowers</span>
+          <span class="ai-suggestion-pill">✦ Make it lavender theme</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ❷ STEP 1 — Cake Options -->
+    <div class="step-card">
+      <div class="step-header open" onclick="toggleStep(this)">
+        <div class="step-num done">✓</div>
+        <div class="step-info">
+          <div class="step-name">Step 1 — Cake Specs</div>
+          <div class="step-summary filled">1-Tier · 6" · Standard · Chocolate</div>
+        </div>
+        <svg class="step-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="step-body open">
+
+        <div class="option-row">
+          <div class="option-label">Cake Type</div>
+          <div class="option-chips">
+            <button class="chip selected">1 Tier</button>
+            <button class="chip" onclick="selectChip(this)">2 Tier</button>
+            <button class="chip" onclick="selectChip(this)">3 Tier</button>
+            <button class="chip" onclick="selectChip(this)">Bento</button>
+          </div>
+        </div>
+
+        <div class="option-row">
+          <div class="option-label">Size</div>
+          <div class="option-chips">
+            <button class="chip small" onclick="selectChip(this)">4"</button>
+            <button class="chip small selected">6"</button>
+            <button class="chip small" onclick="selectChip(this)">8"</button>
+            <button class="chip small" onclick="selectChip(this)">10"</button>
+            <button class="chip small" onclick="selectChip(this)">12"</button>
+          </div>
+        </div>
+
+        <div class="option-row">
+          <div class="option-label">Height</div>
+          <div class="option-chips">
+            <button class="chip selected">Standard (4 in)</button>
+            <button class="chip" onclick="selectChip(this)">Tall (5 in)</button>
+          </div>
+        </div>
+
+        <div class="option-row" style="margin-bottom:0;">
+          <div class="option-label">Flavor</div>
+          <div class="option-chips">
+            <button class="chip selected">Chocolate</button>
+            <button class="chip" onclick="selectChip(this)">Vanilla</button>
+            <button class="chip" onclick="selectChip(this)">Red Velvet</button>
+            <button class="chip" onclick="selectChip(this)">Ube</button>
+            <button class="chip" onclick="selectChip(this)">Matcha</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ❸ STEP 2 — Icing Colors -->
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num active">2</div>
+        <div class="step-info">
+          <div class="step-name">Step 2 — Icing Colors</div>
+          <div class="step-summary">Top &amp; Sides · Drip · Borders</div>
+        </div>
+        <svg class="step-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="step-body">
+
+        <div class="option-row">
+          <div class="option-label">Top &amp; Body Icing</div>
+          <div class="color-swatches">
+            <div class="swatch selected" style="background:#f9a8d4;" title="Pink"></div>
+            <div class="swatch" style="background:#c4b5fd;" title="Lavender" onclick="selectSwatch(this)"></div>
+            <div class="swatch" style="background:#93c5fd;" title="Sky Blue" onclick="selectSwatch(this)"></div>
+            <div class="swatch" style="background:#6ee7b7;" title="Mint" onclick="selectSwatch(this)"></div>
+            <div class="swatch" style="background:#fde68a;" title="Lemon" onclick="selectSwatch(this)"></div>
+            <div class="swatch" style="background:#ffffff;border:1.5px solid #e2e8f0;" title="White" onclick="selectSwatch(this)"></div>
+            <div class="swatch" style="background:#374151;" title="Dark" onclick="selectSwatch(this)"></div>
+            <div class="swatch-add" title="Custom color">+</div>
+          </div>
+        </div>
+
+        <div class="option-row">
+          <div class="option-label">Drip Effect <span style="color: var(--slate-300); font-weight:500;">optional</span></div>
+          <div class="color-swatches">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--slate-600);cursor:pointer;">
+              <input type="checkbox" style="accent-color: var(--purple-600); width:15px;height:15px;" /> Add drip
+            </label>
+          </div>
+        </div>
+
+        <div class="option-row">
+          <div class="option-label">Top Border <span style="color: var(--slate-300); font-weight:500;">optional</span></div>
+          <div class="option-chips">
+            <button class="chip small selected">None</button>
+            <button class="chip small" onclick="selectChip(this)">Rosettes</button>
+            <button class="chip small" onclick="selectChip(this)">Shell</button>
+            <button class="chip small" onclick="selectChip(this)">Pearls</button>
+          </div>
+        </div>
+
+        <div class="option-row" style="margin-bottom:0;">
+          <div class="option-label">Base Border</div>
+          <div class="option-chips">
+            <button class="chip small" onclick="selectChip(this)">None</button>
+            <button class="chip small selected">Pearls</button>
+            <button class="chip small" onclick="selectChip(this)">Shell</button>
+            <button class="chip small" onclick="selectChip(this)">Rosettes</button>
+          </div>
+        </div>
+
+        <button class="step-apply-btn secondary" onclick="applyChanges()">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Apply Icing Changes (Regenerate Image)
+        </button>
+
+      </div>
+    </div>
+
+    <!-- ❹ STEP 3 — Toppers -->
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num done">✓</div>
+        <div class="step-info">
+          <div class="step-name">Step 3 — Toppers &amp; Decorations</div>
+          <div class="step-summary filled">Princess Crown · Sugar Flowers</div>
+        </div>
+        <svg class="step-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="step-body">
+
+        <!-- Contextual tip — only shown if a toy topper is active -->
+        <div class="tip-banner" style="margin-bottom: 12px;">
+          <span>💡</span>
+          <div><b>Save money:</b> Switch toy toppers to edible or printed toppers — these cost less and are always available.</div>
+        </div>
+
+        <!-- Topper Warning -->
+        <div class="warning-row" style="margin-bottom: 12px;">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Toy topper subject to availability — confirm with baker.
+        </div>
+
+        <div class="topper-grid">
+          <div class="topper-card on" onclick="toggleTopper(this)">
+            <div class="topper-thumb">👑</div>
+            <div>
+              <div class="topper-name">Princess Crown</div>
+              <div class="topper-price">+₱120</div>
+            </div>
+            <div class="topper-toggle">
+              <svg width="10" height="10" fill="white" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+          </div>
+          <div class="topper-card" onclick="toggleTopper(this)">
+            <div class="topper-thumb">🌸</div>
+            <div>
+              <div class="topper-name">Sugar Flowers</div>
+              <div class="topper-price">+₱80</div>
+            </div>
+            <div class="topper-toggle"></div>
+          </div>
+          <div class="topper-card on" onclick="toggleTopper(this)">
+            <div class="topper-thumb">🎀</div>
+            <div>
+              <div class="topper-name">Bow Gumpaste</div>
+              <div class="topper-price">Included</div>
+            </div>
+            <div class="topper-toggle">
+              <svg width="10" height="10" fill="white" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+          </div>
+          <div class="topper-card" onclick="toggleTopper(this)">
+            <div class="topper-thumb" style="font-size:14px; font-weight:700; color: var(--slate-400);">🖼️</div>
+            <div>
+              <div class="topper-name">Edible Photo</div>
+              <div class="topper-price">+₱150</div>
+            </div>
+            <div class="topper-toggle"></div>
+          </div>
+        </div>
+
+        <button class="step-apply-btn secondary" style="margin-top: 12px;" onclick="applyChanges()">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Apply Topper Changes (Regenerate Image)
+        </button>
+
+      </div>
+    </div>
+
+    <!-- ❺ STEP 4 — Messages -->
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num active">4</div>
+        <div class="step-info">
+          <div class="step-name">Step 4 — Cake Messages</div>
+          <div class="step-summary">What should we write on your cake?</div>
+        </div>
+        <svg class="step-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="step-body">
+
+        <div class="msg-row">
+          <span class="msg-pos">Top</span>
+          <span class="msg-text">Happy Birthday Sarah! 🎉</span>
+          <div class="msg-dot" style="background: #ec4899;"></div>
+          <button class="msg-del" onclick="deleteMsg(this)">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>
+        </div>
+
+        <button class="add-msg-btn" onclick="addMsg()">+ Add another message</button>
+
+        <!-- Inline text editor revealed after add -->
+        <div id="msg-editor" class="hidden" style="margin-top: 10px; padding: 12px; background: var(--purple-50); border: 1.5px solid var(--purple-200); border-radius: var(--radius-md);">
+          <div class="option-label" style="margin-bottom: 6px;">Position</div>
+          <div class="option-chips" style="margin-bottom: 10px;">
+            <button class="chip small selected" onclick="selectChip(this)">Top</button>
+            <button class="chip small" onclick="selectChip(this)">Front</button>
+            <button class="chip small" onclick="selectChip(this)">Base Board</button>
+          </div>
+          <div class="option-label" style="margin-bottom: 6px;">Message Text</div>
+          <input style="width:100%; padding: 8px 12px; border: 1.5px solid var(--purple-200); border-radius: var(--radius-sm); font-size: 13px; outline:none; margin-bottom: 10px;" placeholder="e.g. Happy Birthday!" />
+          <div class="option-label" style="margin-bottom: 6px;">Text Color</div>
+          <div class="color-swatches" style="margin-bottom: 12px;">
+            <div class="swatch selected" style="background:#1e293b;" title="Black"></div>
+            <div class="swatch" style="background:#f9a8d4;" title="Pink" onclick="selectSwatch(this)"></div>
+            <div class="swatch" style="background:#c4b5fd;" title="Lavender" onclick="selectSwatch(this)"></div>
+            <div class="swatch" style="background:#fde68a;" title="Gold" onclick="selectSwatch(this)"></div>
+            <div class="swatch" style="background:#ffffff;border:1.5px solid #e2e8f0;" title="White" onclick="selectSwatch(this)"></div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button onclick="cancelMsg()" style="flex:1; padding: 8px; border-radius: var(--radius-sm); border: 1.5px solid var(--slate-200); background:white; font-size:12px; font-weight:600; color:var(--slate-500); cursor:pointer;">Cancel</button>
+            <button onclick="saveMsg()" style="flex:1; padding: 8px; border-radius: var(--radius-sm); border:none; background: var(--purple-600); color:white; font-size:12px; font-weight:700; cursor:pointer;">Save Message</button>
+          </div>
+        </div>
+
+        <button class="step-apply-btn secondary" style="margin-top: 10px;" onclick="applyChanges()">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Apply Messages (Regenerate Image)
+        </button>
+
+      </div>
+    </div>
+
+    <!-- ❻ STEP 5 — Quantity + Instructions -->
+    <div class="step-card">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num idle">5</div>
+        <div class="step-info">
+          <div class="step-name">Step 5 — Quantity &amp; Notes</div>
+          <div class="step-summary">Qty: 1 · No special instructions</div>
+        </div>
+        <svg class="step-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="step-body">
+
+        <div class="qty-row" style="margin-bottom: 14px;">
+          <span class="qty-label">Quantity</span>
+          <div class="qty-ctrl">
+            <button class="qty-btn" onclick="changeQty(-1)">−</button>
+            <input class="qty-val" id="qty" value="1" readonly />
+            <button class="qty-btn" onclick="changeQty(1)">+</button>
+          </div>
+        </div>
+
+        <div class="option-label" style="margin-bottom: 6px;">Special Instructions <span style="color:var(--slate-300);font-weight:500;">(optional)</span></div>
+        <textarea class="instr-textarea" rows="3" placeholder="e.g. No nuts, allergen-free, pick-up by 3PM…"></textarea>
+
+      </div>
+    </div>
+
+  </div><!-- /right-col -->
+
+</div><!-- /page-layout -->
+
+
+<!-- ─────────────────────────────────────────────────────────────
+     STICKY ADD TO CART BAR
+───────────────────────────────────────────────────────────────── -->
+<div class="sticky-bar">
+  <!-- Availability strip -->
+  <div class="avail-strip rush">
+    <span>⚡</span>
+    <span>Rush Order Available — Ready in 30 mins</span>
+  </div>
+  <!-- Main bar -->
+  <div class="sticky-main">
+    <div class="price-block">
+      <div class="price-label">Total Price</div>
+      <div class="price-value">₱850</div>
+      <div class="price-sub">6" · Standard · 1 Tier</div>
+    </div>
+    <div class="sticky-actions">
+      <button class="share-btn">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Share
+      </button>
+      <button class="cart-btn-main" onclick="openConfirm()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        Add to Cart
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ─────────────────────────────────────────────────────────────
+     ADD-TO-CART CONFIRMATION DRAWER  (NEW — addresses Red Flag #8)
+───────────────────────────────────────────────────────────────── -->
+<div class="confirm-overlay" id="confirmOverlay" onclick="closeConfirm(event)">
+  <div class="confirm-drawer" onclick="event.stopPropagation()">
+    <div class="drawer-handle"></div>
+    <div class="drawer-title">Review Your Order</div>
+
+    <div class="summary-row">
+      <span class="summary-key">Cake</span>
+      <span class="summary-val">Elegant Pink Princess Birthday Cake</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-key">Size &amp; Type</span>
+      <span class="summary-val">6" · 1 Tier · Standard Height</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-key">Flavor</span>
+      <span class="summary-val">Chocolate</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-key">Icing</span>
+      <span class="summary-val">Pink · Pearl borders</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-key">Toppers</span>
+      <span class="summary-val">Princess Crown, Bow Gumpaste</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-key">Message</span>
+      <span class="summary-val">"Happy Birthday Sarah! 🎉"</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-key">Quantity</span>
+      <span class="summary-val">1</span>
+    </div>
+    <div class="summary-row" style="border-bottom: none; margin-top: 6px;">
+      <span class="summary-key" style="font-weight: 700; color: var(--slate-700);">Total</span>
+      <span class="summary-val summary-total">₱850</span>
+    </div>
+
+    <div class="drawer-btns">
+      <button class="drawer-continue" onclick="closeConfirm()">Continue Editing</button>
+      <button class="drawer-go" onclick="goToCart()">✓ Confirm &amp; Go to Cart</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ─────────────────────────────────────────────────────────────
+     RESET CONFIRMATION MODAL  (NEW — addresses Red Flag #4)
+───────────────────────────────────────────────────────────────── -->
+<div class="confirm-overlay" id="resetOverlay" onclick="document.getElementById('resetOverlay').classList.remove('show')">
+  <div class="confirm-drawer" onclick="event.stopPropagation()" style="max-width: 380px;">
+    <div class="drawer-handle"></div>
+    <div class="drawer-title" style="color: var(--red-500);">⚠️ Reset Everything?</div>
+    <p style="font-size: 13px; color: var(--slate-600); margin-bottom: 16px; line-height: 1.5;">This will remove all your customizations and return you to the home page. This cannot be undone.</p>
+    <div class="drawer-btns">
+      <button class="drawer-continue" onclick="document.getElementById('resetOverlay').classList.remove('show')">Cancel — Keep My Design</button>
+      <button class="drawer-go" style="background: var(--red-500); flex: 0 0 auto; padding: 13px 20px;" onclick="window.location='/'">Yes, Reset</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ─────────────────────────────────────────────────────────────
+     JS — Interactions
+───────────────────────────────────────────────────────────────── -->
+<script>
+  // Step accordion
+  function toggleStep(header) {
+    const body = header.nextElementSibling;
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    header.classList.toggle('open', !isOpen);
+  }
+
+  // Chip selection within a group
+  function selectChip(btn) {
+    const siblings = btn.parentElement.querySelectorAll('.chip');
+    siblings.forEach(s => s.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+
+  // Color swatch selection within a group
+  function selectSwatch(el) {
+    const siblings = el.parentElement.querySelectorAll('.swatch');
+    siblings.forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  // Topper toggle
+  function toggleTopper(card) {
+    card.classList.toggle('on');
+    const dot = card.querySelector('.topper-toggle');
+    if (card.classList.contains('on')) {
+      dot.innerHTML = '<svg width="10" height="10" fill="white" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+    } else {
+      dot.innerHTML = '';
+    }
+  }
+
+  // Tab switching
+  function switchTab(btn, tab) {
+    btn.parentElement.querySelectorAll('.image-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  // Save button
+  function toggleSave(btn) {
+    btn.style.background = btn.style.background === 'rgb(249, 168, 212)' ? 'white' : '#f9a8d4';
+  }
+
+  // Add to cart flow
+  function openConfirm() {
+    document.getElementById('confirmOverlay').classList.add('show');
+  }
+  function closeConfirm(e) {
+    document.getElementById('confirmOverlay').classList.remove('show');
+  }
+  function goToCart() {
+    alert('✓ Added to cart! Redirecting to cart…\n\n(In the real app this redirects to /cart)');
+    closeConfirm();
+  }
+
+  // Reset with confirmation
+  function confirmReset() {
+    document.getElementById('resetOverlay').classList.add('show');
+  }
+
+  // Quantity
+  function changeQty(delta) {
+    const el = document.getElementById('qty');
+    const v = parseInt(el.value) + delta;
+    if (v >= 1 && v <= 20) el.value = v;
+  }
+
+  // Message editor
+  function addMsg() {
+    document.getElementById('msg-editor').classList.remove('hidden');
+  }
+  function cancelMsg() {
+    document.getElementById('msg-editor').classList.add('hidden');
+  }
+  function saveMsg() {
+    document.getElementById('msg-editor').classList.add('hidden');
+    alert('Message saved! (In the real app the step body updates with the new message)');
+  }
+  function deleteMsg(btn) {
+    if (confirm('Remove this message from your cake?')) {
+      btn.closest('.msg-row').remove();
+    }
+  }
+
+  // Apply changes feedback
+  function applyChanges() {
+    alert('✨ Regenerating your cake design…\n\n(In the real app this calls the AI image generation API)');
+  }
+</script>
+</body>
+</html>
