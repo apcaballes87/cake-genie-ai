@@ -676,24 +676,46 @@ export async function getPopularDesigns(
  * for each collection tag. This allows a product to appear in any
  * collection where at least one field matches any of its tags.
  */
-const buildCollectionOrFilter = (collectionTags: string[]): string => {
+/**
+ * Strips " Cakes", " Cake", " Themed", etc. from a collection name to get at the core keyword.
+ */
+const cleanCollectionName = (name: string): string => {
+  return name
+    .replace(/(?:\s+Cakes?|\s+Themed|\s+Design|\s+Collections?)$/i, '')
+    .trim();
+};
+
+/**
+ * Builds a Supabase OR-filter string that matches products against
+ * the core keyword derived from the collection name.
+ */
+const buildCollectionOrFilter = (collectionName: string, collectionTags: string[] = []): string => {
+  const keyword = cleanCollectionName(collectionName);
+  const cleanKeyword = keyword.toLowerCase();
+
+  if (!cleanKeyword) return 'id.eq.-1'; // Should not happen with valid names
+
   const filters: string[] = [];
+
+  // 1. Exact match in tags array
+  filters.push(`tags.cs.{"${cleanKeyword}"}`);
+
+  // 2. Keyword match in keywords field (text search)
+  filters.push(`keywords.ilike.%${cleanKeyword}%`);
+
+  // 3. Slug match
+  const slugKeyword = cleanKeyword.replace(/\s+/g, '-');
+  filters.push(`slug.ilike.%${slugKeyword}%`);
+
+  // 4. (Optional) If we still want some tags but only very specific ones (length > 1 word)
   for (const tag of collectionTags) {
     const cleanTag = tag.trim().toLowerCase();
-    if (!cleanTag) continue;
+    if (cleanTag === cleanKeyword || cleanTag.split(/\s+/).length < 2) continue;
 
-    // 1. Match the exact tag (handles multi-word keywords)
+    // Only add multi-word tags from the collection's tag list for precision
     filters.push(`tags.cs.{"${cleanTag}"}`);
-
-    // 2. If it's a phrase, also match if ALL individual words are present.
-    // This allows a collection tag "Airplanes Cake" to match a design 
-    // whose title was tokenized into ["airplanes", "cake"].
-    const words = cleanTag.split(/\s+/).filter(w => w.length > 2);
-    if (words.length > 1) {
-      // product.tags @> {word1, word2}
-      filters.push(`tags.cs.{${words.map(w => `"${w}"`).join(',')}}`);
-    }
   }
+
   return filters.join(',');
 };
 
@@ -796,18 +818,18 @@ export async function getCollectionBySlug(slug: string): Promise<SupabaseService
 export async function getDesignsByKeyword(keywordOrSlug: string, limit: number = 50, offset: number = 0): Promise<SupabaseServiceResponse<any[]>> {
   try {
     // Fallback: simple keyword match
-    let orFilters = buildCollectionOrFilter([keywordOrSlug]);
+    let orFilters = buildCollectionOrFilter(keywordOrSlug);
 
     // Try to see if this is a collection slug first
     const { data: collection } = await supabase
       .from('cakegenie_collections')
-      .select('tags')
+      .select('name, tags')
       .eq('slug', keywordOrSlug)
       .single();
 
-    // If we found a collection and it has tags, use wide matching
-    if (collection && collection.tags && collection.tags.length > 0) {
-      orFilters = buildCollectionOrFilter(collection.tags);
+    // If we found a collection, use its name for primary matching
+    if (collection) {
+      orFilters = buildCollectionOrFilter(collection.name, collection.tags || []);
     }
 
     const { data, error } = await supabase
