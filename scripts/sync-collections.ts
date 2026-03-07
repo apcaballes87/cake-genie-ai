@@ -16,25 +16,43 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
- * Builds a Supabase OR-filter string that matches products across
- * the tags array for each collection tag.
+ * Strips " Cakes", " Cake", " Themed", etc. from a collection name to get at the core keyword.
  */
-const buildCollectionOrFilter = (collectionTags: string[]): string => {
+const cleanCollectionName = (name: string): string => {
+    return name
+        .replace(/(?:\s+Cakes?|\s+Themed|\s+Design|\s+Collections?)$/i, '')
+        .trim();
+};
+
+/**
+ * Builds a Supabase OR-filter string that matches products against
+ * the core keyword derived from the collection name.
+ */
+const buildCollectionOrFilter = (collectionName: string, collectionTags: string[] = []): string => {
+    const keyword = cleanCollectionName(collectionName);
+    const cleanKeyword = keyword.toLowerCase();
+
+    if (!cleanKeyword) return 'id.eq.-1';
+
     const filters: string[] = [];
+
+    // 1. Exact match in tags array
+    filters.push(`tags.cs.{"${cleanKeyword}"}`);
+
+    // 2. Keyword match in keywords field (text search)
+    filters.push(`keywords.ilike.%${cleanKeyword}%`);
+
+    // 3. Slug match
+    const slugKeyword = cleanKeyword.replace(/\s+/g, '-');
+    filters.push(`slug.ilike.%${slugKeyword}%`);
+
+    // 4. (Optional) Multi-word tags from the collection
     for (const tag of collectionTags) {
         const cleanTag = tag.trim().toLowerCase();
-        if (!cleanTag) continue;
-
-        // 1. Match the exact tag (handles multi-word keywords)
-        // tags.cs.{"clean tag"} matches if "clean tag" is in the tags array
+        if (cleanTag === cleanKeyword || cleanTag.split(/\s+/).length < 2) continue;
         filters.push(`tags.cs.{"${cleanTag}"}`);
-
-        // 2. If it's a phrase, also match if ALL individual words are present.
-        const words = cleanTag.split(/\s+/).filter(w => w.length > 2);
-        if (words.length > 1) {
-            filters.push(`tags.cs.{${words.map(w => `"${w}"`).join(',')}}`);
-        }
     }
+
     return filters.join(',');
 };
 
@@ -67,7 +85,7 @@ async function main() {
             continue;
         }
 
-        const orFilters = buildCollectionOrFilter(collectionTags);
+        const orFilters = buildCollectionOrFilter(collection.name, collectionTags);
 
         // 2. Count matching designs
         const { count, error: countError } = await supabase
