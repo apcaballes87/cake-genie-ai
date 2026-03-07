@@ -50,8 +50,21 @@ export async function generateMetadata({ params }: MerchantPageProps): Promise<M
             card: 'summary_large_image',
             title: merchant.business_name,
             description,
-            images: merchant.cover_image_url ? [merchant.cover_image_url] :
-                merchant.profile_image_url ? [merchant.profile_image_url] : [],
+            images: merchant.cover_image_url ? [
+                {
+                    url: merchant.cover_image_url,
+                    width: 1200,
+                    height: 630,
+                    alt: `${merchant.business_name} cover image`,
+                }
+            ] : merchant.profile_image_url ? [
+                {
+                    url: merchant.profile_image_url,
+                    width: 800,
+                    height: 800,
+                    alt: merchant.business_name,
+                }
+            ] : [],
         },
         alternates: {
             canonical: `https://genie.ph/shop/${merchantSlug}`,

@@ -73,8 +73,8 @@ export async function generateMetadata(
             images: [
                 {
                     url: design.customized_image_url,
-                    width: 800,
-                    height: 800,
+                    width: 1200,
+                    height: 630,
                     alt: design.alt_text || design.title || 'Custom cake design',
                 },
             ],
@@ -84,7 +84,14 @@ export async function generateMetadata(
             card: 'summary_large_image',
             title,
             description,
-            images: [design.customized_image_url],
+            images: [
+                {
+                    url: design.customized_image_url,
+                    width: 1200,
+                    height: 630,
+                    alt: design.alt_text || design.title || 'Custom cake design',
+                }
+            ],
         },
         other: {
             thumbnail: design.customized_image_url,

@@ -17,11 +17,23 @@ export const metadata: Metadata = {
         type: 'website',
         siteName: 'Genie.ph',
         url: 'https://genie.ph/shop',
+        images: [{
+            url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg',
+            width: 1200,
+            height: 630,
+            alt: 'Shop Custom Cakes from Cebu Bakeshops | Genie.ph',
+        }],
     },
     twitter: {
         card: 'summary_large_image',
         title: 'Shop Custom Cakes from Cebu Bakeshops | Genie.ph',
         description: 'Find the perfect cake from our partner bakeries in Cebu',
+        images: [{
+            url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg',
+            width: 1200,
+            height: 630,
+            alt: 'Shop Custom Cakes from Cebu Bakeshops | Genie.ph',
+        }],
     },
 };
 

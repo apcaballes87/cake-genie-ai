@@ -55,8 +55,8 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
             images: product.image_url ? [
                 {
                     url: product.image_url,
-                    width: 800,
-                    height: 800,
+                    width: 1200,
+                    height: 630,
                     alt: imageAlt,
                 }
             ] : [],
@@ -66,7 +66,14 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
             card: 'summary_large_image',
             title: product.og_title || product.title,
             description,
-            images: product.image_url ? [product.image_url] : [],
+            images: product.image_url ? [
+                {
+                    url: product.image_url,
+                    width: 1200,
+                    height: 630,
+                    alt: imageAlt,
+                }
+            ] : [],
         },
         ...(product.image_url && {
             other: {

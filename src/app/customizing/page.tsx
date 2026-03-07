@@ -24,7 +24,12 @@ export const metadata: Metadata = {
         card: 'summary_large_image',
         title: 'Cake Designs & Customization | Genie.ph',
         description: 'Browse 1,000+ cake designs by category or upload your own. Get instant AI pricing from trusted bakers in Cebu.',
-        images: ['https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta-GENIE.jpg'],
+        images: [{
+            url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta-GENIE.jpg',
+            width: 1200,
+            height: 630,
+            alt: 'Genie.ph Cake Customizer',
+        }],
     },
     alternates: {
         canonical: 'https://genie.ph/customizing',
