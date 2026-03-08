@@ -3024,7 +3024,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             }}
                                             className="group flex flex-col items-center gap-1 min-w-[60px]"
                                         >
-                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-drip' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-drip' ? 'ring-2 ring-purple-500 bg-purple-50' : icingDesign.drip ? 'ring-2 ring-purple-500' : ''}`}>
                                                 <LazyImage
                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'drip')}
                                                     alt="Drip"
@@ -3052,7 +3052,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             }}
                                             className="group flex flex-col items-center gap-1 min-w-[60px]"
                                         >
-                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderTop' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderTop' ? 'ring-2 ring-purple-500 bg-purple-50' : icingDesign.border_top ? 'ring-2 ring-purple-500' : ''}`}>
                                                 <LazyImage
                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'borderTop')}
                                                     alt="Top Border"
@@ -3080,7 +3080,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             }}
                                             className="group flex flex-col items-center gap-1 min-w-[60px]"
                                         >
-                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderBase' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderBase' ? 'ring-2 ring-purple-500 bg-purple-50' : icingDesign.border_base ? 'ring-2 ring-purple-500' : ''}`}>
                                                 <LazyImage
                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'borderBase')}
                                                     alt="Base Border"
@@ -3108,7 +3108,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             }}
                                             className="group flex flex-col items-center gap-1 min-w-[60px]"
                                         >
-                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-top' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-top' ? 'ring-2 ring-purple-500 bg-purple-50' : 'ring-2 ring-purple-500'}`}>
                                                 <LazyImage
                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'top', true)}
                                                     alt="Top Icing"
@@ -3136,7 +3136,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             }}
                                             className="group flex flex-col items-center gap-1 min-w-[60px]"
                                         >
-                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-side' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-side' ? 'ring-2 ring-purple-500 bg-purple-50' : 'ring-2 ring-purple-500'}`}>
                                                 <LazyImage
                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'side', false)}
                                                     alt="Body Icing"
@@ -3164,7 +3164,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             }}
                                             className="group flex flex-col items-center gap-1 min-w-[60px]"
                                         >
-                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-gumpasteBaseBoard' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-gumpasteBaseBoard' ? 'ring-2 ring-purple-500 bg-purple-50' : icingDesign.gumpasteBaseBoard ? 'ring-2 ring-purple-500' : ''}`}>
                                                 <LazyImage
                                                     src={getIcingImage(icingDesign as IcingDesignUI, 'gumpasteBaseBoard')}
                                                     alt="Base Board"
@@ -3552,7 +3552,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         }}
                                                         className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                     >
-                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-drip' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-drip' ? 'ring-2 ring-purple-500 bg-purple-50' : icingDesign.drip ? 'ring-2 ring-purple-500' : ''}`}>
                                                             <LazyImage
                                                                 src={getIcingImage(icingDesign as IcingDesignUI, 'drip')}
                                                                 alt="Drip"
@@ -3580,7 +3580,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         }}
                                                         className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                     >
-                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderTop' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderTop' ? 'ring-2 ring-purple-500 bg-purple-50' : icingDesign.border_top ? 'ring-2 ring-purple-500' : ''}`}>
                                                             <LazyImage
                                                                 src={getIcingImage(icingDesign as IcingDesignUI, 'borderTop')}
                                                                 alt="Top Border"
@@ -3608,7 +3608,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         }}
                                                         className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                     >
-                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderBase' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderBase' ? 'ring-2 ring-purple-500 bg-purple-50' : icingDesign.border_base ? 'ring-2 ring-purple-500' : ''}`}>
                                                             <LazyImage
                                                                 src={getIcingImage(icingDesign as IcingDesignUI, 'borderBase')}
                                                                 alt="Base Border"
@@ -3636,7 +3636,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         }}
                                                         className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                     >
-                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-top' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-top' ? 'ring-2 ring-purple-500 bg-purple-50' : 'ring-2 ring-purple-500'}`}>
                                                             <LazyImage
                                                                 src={getIcingImage(icingDesign as IcingDesignUI, 'top', true)}
                                                                 alt="Top Icing"
@@ -3664,7 +3664,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         }}
                                                         className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                     >
-                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-side' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-side' ? 'ring-2 ring-purple-500 bg-purple-50' : 'ring-2 ring-purple-500'}`}>
                                                             <LazyImage
                                                                 src={getIcingImage(icingDesign as IcingDesignUI, 'side', false)}
                                                                 alt="Body Icing"
@@ -3692,7 +3692,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         }}
                                                         className="group flex flex-col items-center gap-1 min-w-[60px]"
                                                     >
-                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-gumpasteBaseBoard' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}`}>
+                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-gumpasteBaseBoard' ? 'ring-2 ring-purple-500 bg-purple-50' : icingDesign.gumpasteBaseBoard ? 'ring-2 ring-purple-500' : ''}`}>
                                                             <LazyImage
                                                                 src={getIcingImage(icingDesign as IcingDesignUI, 'gumpasteBaseBoard')}
                                                                 alt="Base Board"

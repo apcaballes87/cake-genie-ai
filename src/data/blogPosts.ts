@@ -11,6 +11,20 @@ export interface BlogPost {
   cakeSearchKeywords?: string;
   /** Short sentence that bridges the blog content to the related cake designs grid */
   relatedCakesIntro?: string;
+  /** Optional multi-section image showcase config inserted with [[design_showcase:section-id]] placeholders */
+  designShowcases?: Array<{
+    id?: string;
+    keyword?: string;
+    keywords?: string;
+    title?: string;
+    intro?: string;
+  }>;
+  /** Optional keyword/query used for the image-only showcase grid on selected blog posts */
+  designShowcaseKeywords?: string;
+  /** Optional heading displayed above the image-only showcase grid */
+  designShowcaseTitle?: string;
+  /** Optional supporting copy displayed above the image-only showcase grid */
+  designShowcaseIntro?: string;
 }
 
 export const blogPosts: BlogPost[] = [

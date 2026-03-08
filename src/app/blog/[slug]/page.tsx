@@ -7,6 +7,11 @@ import { BlogContent } from './BlogContent';
 import { BlogPostingSchema } from '@/components/SEOSchemas';
 import { getRelatedProductsByKeywords } from '@/services/supabaseService';
 import { RelatedProductsSection } from '@/components/blog/RelatedProductsSection';
+import { BlogDesignShowcaseSection } from '@/components/blog/BlogDesignShowcaseSection';
+import {
+  getBlogDesignShowcaseConfigs,
+  splitBlogContentByShowcasePlaceholders,
+} from '@/components/blog/getBlogDesignShowcase';
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
@@ -63,19 +68,52 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     notFound();
   }
 
-  // Fetch related products for the bottom of the page
+  const showcaseConfigs = getBlogDesignShowcaseConfigs(post);
+  const contentSegments = splitBlogContentByShowcasePlaceholders(post.content);
+
   let relatedDesigns: any[] = [];
-  try {
-    const { data } = await getRelatedProductsByKeywords(
+  const showcaseProductsById = new Map<string, any[]>();
+
+  const [relatedResult, ...showcaseResults] = await Promise.allSettled([
+    getRelatedProductsByKeywords(
       post.cake_search_keywords || post.keywords || post.title,
       slug,
       8,
       0
-    );
-    relatedDesigns = data || [];
-  } catch (e) {
-    console.error('Error fetching related designs:', e);
+    ),
+    ...showcaseConfigs.map((showcaseConfig) =>
+      getRelatedProductsByKeywords(showcaseConfig.keyword, slug, 18, 0)
+    ),
+  ]);
+
+  if (relatedResult.status === 'fulfilled') {
+    relatedDesigns = relatedResult.value.data || [];
+  } else {
+    console.error('Error fetching related designs:', relatedResult.reason);
   }
+
+  showcaseConfigs.forEach((showcaseConfig, index) => {
+    const showcaseResult = showcaseResults[index];
+
+    if (showcaseResult?.status === 'fulfilled') {
+      showcaseProductsById.set(showcaseConfig.id, showcaseResult.value.data || []);
+      return;
+    }
+
+    console.error(`Error fetching blog design showcase: ${showcaseConfig.id}`, showcaseResult);
+    showcaseProductsById.set(showcaseConfig.id, []);
+  });
+
+  const showcaseConfigById = new Map(showcaseConfigs.map((config) => [config.id, config]));
+  const placeholderShowcaseIds = new Set(
+    contentSegments
+      .filter((segment) => segment.type === 'showcase' && segment.showcaseId)
+      .map((segment) => segment.showcaseId as string)
+  );
+  const trailingShowcases = showcaseConfigs.filter((config) => {
+    const products = showcaseProductsById.get(config.id) || [];
+    return !placeholderShowcaseIds.has(config.id) && products.length > 0;
+  });
 
   return (
     <div className="min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100">
@@ -131,8 +169,47 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </div>
         )}
 
-        {/* Post Content */}
-        <BlogContent content={post.content} />
+        {/* Post Content + inline showcase blocks */}
+        {contentSegments.map((segment, index) => {
+          if (segment.type === 'content' && segment.content) {
+            return <BlogContent key={`content-${index}`} content={segment.content} />;
+          }
+
+          if (segment.type === 'showcase' && segment.showcaseId) {
+            const showcaseConfig = showcaseConfigById.get(segment.showcaseId);
+            const showcaseDesigns = showcaseProductsById.get(segment.showcaseId) || [];
+
+            if (!showcaseConfig || showcaseDesigns.length === 0) {
+              return null;
+            }
+
+            return (
+              <BlogDesignShowcaseSection
+                key={`showcase-${segment.showcaseId}-${index}`}
+                title={showcaseConfig.title}
+                intro={showcaseConfig.intro}
+                keyword={showcaseConfig.keyword}
+                products={showcaseDesigns}
+              />
+            );
+          }
+
+          return null;
+        })}
+
+        {trailingShowcases.map((showcaseConfig) => {
+          const showcaseDesigns = showcaseProductsById.get(showcaseConfig.id) || [];
+
+          return (
+            <BlogDesignShowcaseSection
+              key={`showcase-trailing-${showcaseConfig.id}`}
+              title={showcaseConfig.title}
+              intro={showcaseConfig.intro}
+              keyword={showcaseConfig.keyword}
+              products={showcaseDesigns}
+            />
+          );
+        })}
 
         {/* Related Designs Section */}
         {relatedDesigns && relatedDesigns.length > 0 && (
