@@ -1,9 +1,6 @@
-'use client';
-
-import React from 'react';
+/* eslint-disable @next/next/no-img-element -- Intentional SSR-safe image markup for arbitrary showcase URLs without client-side image helpers. */
 import Link from 'next/link';
-import Masonry from 'react-masonry-css';
-import LazyImage from '@/components/LazyImage';
+import { getOptimizedSupabaseImageSrc } from '@/lib/utils/supabaseImageUrl';
 
 interface BlogDesignShowcaseProduct {
   p_hash: string;
@@ -24,6 +21,11 @@ interface BlogDesignShowcaseSectionProps {
 
 const getProductLabel = (product: BlogDesignShowcaseProduct) =>
   product.alt_text?.trim() || product.keywords?.split(',')[0]?.trim() || 'Cake design';
+
+const getProductDimensions = (product: BlogDesignShowcaseProduct) => ({
+  width: product.image_width && product.image_width > 0 ? product.image_width : 800,
+  height: product.image_height && product.image_height > 0 ? product.image_height : 1000,
+});
 
 export function BlogDesignShowcaseSection({
   title,
@@ -46,30 +48,32 @@ export function BlogDesignShowcaseSection({
         </div>
       </div>
 
-      <Masonry
-        breakpointCols={{ default: 6, 1024: 5, 768: 3 }}
-        className="-ml-2 flex w-auto md:-ml-3"
-        columnClassName="pl-2 md:pl-3 bg-clip-padding"
-      >
+      <div className="columns-2 md:columns-3 lg:columns-5 xl:columns-6" style={{ columnGap: '0.75rem' }}>
         {products.map((product, index) => {
           const label = getProductLabel(product);
+          const imageSrc =
+            getOptimizedSupabaseImageSrc(product.original_image_url, product.image_width ?? 800) ||
+            product.original_image_url;
+          const { width, height } = getProductDimensions(product);
           const card = (
-            <div className="group relative mb-2 overflow-hidden rounded-2xl border border-purple-100 bg-gray-50 shadow-sm md:mb-3">
+            <div className="group mb-3 break-inside-avoid overflow-hidden rounded-2xl border border-purple-100 bg-gray-50 shadow-sm">
               <div
-                className={`relative w-full ${product.image_width && product.image_height ? '' : 'aspect-4/5'}`}
+                className={`w-full overflow-hidden ${product.image_width && product.image_height ? '' : 'aspect-4/5'}`}
                 style={
                   product.image_width && product.image_height
                     ? { aspectRatio: `${product.image_width} / ${product.image_height}` }
                     : undefined
                 }
               >
-                <LazyImage
-                  src={product.original_image_url}
+                <img
+                  src={imageSrc}
                   alt={label}
                   title={label}
-                  fill
-                  sizes="(max-width: 768px) 33vw, (max-width: 1024px) 20vw, 16vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  width={width}
+                  height={height}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
             </div>
@@ -90,7 +94,7 @@ export function BlogDesignShowcaseSection({
             </Link>
           );
         })}
-      </Masonry>
+      </div>
 
       <div className="mt-6 flex justify-center">
         <Link
