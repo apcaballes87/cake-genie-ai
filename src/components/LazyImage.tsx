@@ -2,52 +2,13 @@
 import React, { useState, useMemo } from 'react';
 import Image, { ImageProps } from 'next/image';
 import { ImageOff } from 'lucide-react';
+import { getOptimizedSupabaseImageSrc } from '@/lib/utils/supabaseImageUrl';
 
 // Our own Supabase storage domains that are safe for next/image optimization.
 const OWN_SUPABASE_DOMAINS = [
   'cqmhanqnfybyxezhobkx.supabase.co',
   'congofivupobtfudnhni.supabase.co',
 ];
-
-/**
- * Applies Supabase native image transformations (resizing, format change)
- * to URLs to save on next/image costs while delivering optimized assets.
- */
-const getOptimizedSrc = (src: string | undefined, originalWidth?: number | `${number}`): string | undefined => {
-  if (!src || typeof src !== 'string') return src;
-
-  // Only rewrite our own Supabase domains
-  const isOwnSupabase = OWN_SUPABASE_DOMAINS.some(domain => src.includes(domain));
-  if (!isOwnSupabase) return src;
-
-  try {
-    const url = new URL(src);
-
-    // Check if it's pointing to the public object endpoint and hasn't been transformed yet
-    if (url.pathname.includes('/storage/v1/object/public/') && !url.pathname.includes('/render/image/public/')) {
-      // Change endpoint to use Supabase image transformation
-      url.pathname = url.pathname.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
-
-      // Append width if provided, otherwise default to a reasonable max width
-      if (!url.searchParams.has('width')) {
-        // If fill is true (no width passed), default to a large width of 800
-        url.searchParams.set('width', originalWidth ? originalWidth.toString() : '800');
-      }
-      if (!url.searchParams.has('resize')) {
-        url.searchParams.set('resize', 'contain');
-      }
-      // Note: do NOT set format=webp. Supabase only accepts format=origin to opt-out,
-      // and automatically converts to webp/avif if the Accept header allows it.
-      if (!url.searchParams.has('quality')) {
-        url.searchParams.set('quality', '80');
-      }
-      return url.toString();
-    }
-  } catch (e) {
-    // Ignore URL parsing errors, just return original
-  }
-  return src;
-};
 
 /**
  * Simple check: if the URL is NOT from our own Supabase storage, it's external
@@ -140,7 +101,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
       )}
 
       <Image
-        src={getOptimizedSrc(typeof src === 'string' ? src : undefined, width) || src}
+        src={getOptimizedSupabaseImageSrc(typeof src === 'string' ? src : undefined, width) || src}
         alt={alt}
         title={title}
         onLoad={handleLoad}
