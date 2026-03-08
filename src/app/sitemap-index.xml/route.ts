@@ -62,7 +62,6 @@ export async function GET() {
         { name: 'sitemap-bakeries.xml', lastmod: bakeriesLastMod },
         { name: 'sitemap-products.xml', lastmod: productsLastMod },
         { name: 'sitemap-blog.xml', lastmod: latestBlogDate },
-        { name: 'sitemap-categories.xml', lastmod: today } // Built from dynamic recent search data
     ];
 
     for (let i = 0; i < designChunks; i++) {
