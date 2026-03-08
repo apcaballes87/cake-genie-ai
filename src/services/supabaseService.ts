@@ -2932,11 +2932,12 @@ export interface BlogPost {
   cake_search_keywords?: string;
   related_cakes_intro?: string;
   design_showcases?: Array<{
-    id?: string;
-    keyword?: string;
-    keywords?: string;
+    id?: string | number;
+    keyword?: string | string[];
+    keywords?: string | string[];
     title?: string;
     intro?: string;
+    description?: string;
   }> | string | null;
   design_showcase_keywords?: string;
   design_showcase_title?: string;

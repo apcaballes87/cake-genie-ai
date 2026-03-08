@@ -75,6 +75,27 @@ describe('getBlogDesignShowcaseConfigs', () => {
       },
     ]);
   });
+
+  it('supports array keywords and description fields from Supabase JSON rows', () => {
+    expect(
+      getBlogDesignShowcaseConfigs({
+        design_showcases: [
+          {
+            title: 'Minimalist Korean-Style',
+            keywords: ['minimalist', 'pastel', 'Korean style', 'elegant'],
+            description: 'The classic elegant aesthetic.',
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        id: 'minimalist-pastel-korean-style-elegant',
+        keyword: 'minimalist, pastel, Korean style, elegant',
+        title: 'Minimalist Korean-Style',
+        intro: 'The classic elegant aesthetic.',
+      },
+    ]);
+  });
 });
 
 describe('splitBlogContentByShowcasePlaceholders', () => {

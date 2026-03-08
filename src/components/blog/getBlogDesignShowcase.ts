@@ -14,11 +14,12 @@ export interface BlogContentSegment {
 }
 
 interface RawBlogDesignShowcaseConfig {
-  id?: string;
-  keyword?: string;
-  keywords?: string;
+  id?: string | number;
+  keyword?: string | string[];
+  keywords?: string | string[];
   title?: string;
   intro?: string;
+  description?: string;
 }
 
 const DEFAULT_SHOWCASE_ID = 'default';
@@ -38,19 +39,42 @@ const toShowcaseId = (value: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
+function normalizeString(value: unknown): string {
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+
+  if (typeof value === 'number') {
+    return String(value).trim();
+  }
+
+  return '';
+}
+
+function normalizeKeywordValue(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => normalizeString(item))
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  return normalizeString(value);
+}
+
 function buildShowcaseConfig(
   raw: RawBlogDesignShowcaseConfig,
   fallbackId: string,
 ): BlogDesignShowcaseConfig | null {
-  const keyword = (raw.keyword || raw.keywords || '').trim();
+  const keyword = normalizeKeywordValue(raw.keyword || raw.keywords);
 
   if (!keyword) {
     return null;
   }
 
-  const title = raw.title?.trim() || `${toTitleCase(keyword.split(',')[0])} Designs`;
-  const intro = raw.intro?.trim() || undefined;
-  const id = toShowcaseId(raw.id || fallbackId) || fallbackId;
+  const title = normalizeString(raw.title) || `${toTitleCase(keyword.split(',')[0])} Designs`;
+  const intro = normalizeString(raw.intro) || normalizeString(raw.description) || undefined;
+  const id = toShowcaseId(normalizeString(raw.id) || fallbackId) || fallbackId;
 
   return {
     id,
@@ -93,7 +117,13 @@ export function getBlogDesignShowcaseConfigs(
   const rawEntries = parseRawShowcaseEntries(post.design_showcases);
 
   rawEntries.forEach((entry, index) => {
-    const baseId = toShowcaseId(entry.id || entry.keyword || entry.keywords || '') || `showcase-${index + 1}`;
+    const baseId =
+      toShowcaseId(
+        normalizeString(entry.id) ||
+        normalizeKeywordValue(entry.keyword) ||
+        normalizeKeywordValue(entry.keywords) ||
+        normalizeString(entry.title)
+      ) || `showcase-${index + 1}`;
     const config = buildShowcaseConfig(entry, baseId);
 
     if (!config) {
