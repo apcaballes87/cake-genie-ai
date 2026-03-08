@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { getAllBlogs } from '@/services/supabaseService';
 import { ArrowLeft, Calendar, ChevronRight } from 'lucide-react';
 import { BlogSchema } from '@/components/SEOSchemas';
@@ -78,27 +79,43 @@ export default async function BlogPage() {
                 href={`/blog/${post.slug}`}
                 className="block bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-purple-100 hover:shadow-lg hover:border-purple-200 transition-all group"
               >
-                <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
-                  <Calendar size={14} />
-                  <time dateTime={post.date}>
-                    {new Date(post.date).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
-                  </time>
-                  <span className="text-gray-300">|</span>
-                  <span>{post.author}</span>
+                <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+                  {/* Content Section */}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
+                      <Calendar size={14} />
+                      <time dateTime={post.date}>
+                        {new Date(post.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </time>
+                      <span className="text-gray-300">|</span>
+                      <span>{post.author}</span>
+                    </div>
+                    <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-700 transition-colors">
+                      {post.title}
+                    </h2>
+                    <p className="text-gray-500 text-sm leading-relaxed mb-4">
+                      {post.excerpt}
+                    </p>
+                    <span className="inline-flex items-center gap-1 text-sm font-semibold text-purple-600 group-hover:gap-2 transition-all">
+                      Read more <ChevronRight size={16} />
+                    </span>
+                  </div>
+
+                  {/* Image Thumbnail */}
+                  {post.image && (
+                    <div className="md:w-48 md:h-32 shrink-0 overflow-hidden rounded-xl">
+                      <img
+                        src={post.image}
+                        alt={post.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                  )}
                 </div>
-                <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-700 transition-colors">
-                  {post.title}
-                </h2>
-                <p className="text-gray-500 text-sm leading-relaxed mb-4">
-                  {post.excerpt}
-                </p>
-                <span className="inline-flex items-center gap-1 text-sm font-semibold text-purple-600 group-hover:gap-2 transition-all">
-                  Read more <ChevronRight size={16} />
-                </span>
               </Link>
             ))}
           </div>
