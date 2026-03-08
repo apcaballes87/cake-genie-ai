@@ -1,11 +1,14 @@
+import { cache } from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { getDesignsByKeyword, getDesignCategories } from '@/services/supabaseService';
 import { DesignGridWithLoadMore } from '@/components/collections/DesignGridWithLoadMore';
 
 export const revalidate = 3600; // ISR: revalidate every hour
+
+const CATEGORY_PAGE_SIZE = 30;
+const DEFAULT_OG_IMAGE = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta-GENIE.jpg';
 
 interface Props {
     params: Promise<{ keyword: string }>;
@@ -19,6 +22,11 @@ function toTitleCase(str: string): string {
     return str.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+const getCategoryDesigns = cache(async (keyword: string) => {
+    const { data } = await getDesignsByKeyword(keyword, CATEGORY_PAGE_SIZE);
+    return data || [];
+});
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { keyword } = await params;
     const decodedKeyword = decodeKeyword(keyword);
@@ -26,11 +34,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const title = `${displayName} Cake Designs in Cebu`;
     const description = `Browse ${displayName.toLowerCase()} cake designs with instant AI pricing. Order custom ${displayName.toLowerCase()} cakes from trusted bakers in Cebu. Upload your own design or choose from our collection.`;
 
-    // Fetch at least 1 design for OG Image
-    const { data: limitDesigns } = await getDesignsByKeyword(decodedKeyword, 1);
-    const ogImage = limitDesigns && limitDesigns.length > 0 && limitDesigns[0].original_image_url
-        ? limitDesigns[0].original_image_url
-        : 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta-GENIE.jpg';
+    const designs = await getCategoryDesigns(decodedKeyword);
+    const ogImage = designs[0]?.original_image_url || DEFAULT_OG_IMAGE;
 
     return {
         title,
@@ -109,7 +114,7 @@ export default async function CategoryPage({ params }: Props) {
     const decodedKeyword = decodeKeyword(keyword);
     const displayName = toTitleCase(decodedKeyword);
 
-    const { data: designs } = await getDesignsByKeyword(decodedKeyword, 30);
+    const designs = await getCategoryDesigns(decodedKeyword);
 
     if (!designs || designs.length === 0) {
         notFound();

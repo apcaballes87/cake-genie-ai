@@ -81,13 +81,20 @@ interface ImageContextType {
         file: File,
         onSuccess: (result: HybridAnalysisResult) => void,
         onError: (error: Error) => void,
-        options?: { imageUrl?: string; onCoordinatesEnriched?: (result: HybridAnalysisResult) => void; precomputedAnalysis?: HybridAnalysisResult }
+        options?: HandleImageUploadOptions
     ) => Promise<void>;
     loadImageWithoutAnalysis: (imageUrl: string) => Promise<{ data: string; mimeType: string }>;
     handleSave: () => Promise<void>;
     uploadCartImages: (options?: { editedImageDataUri?: string | null; userId?: string }) => Promise<{ originalImageUrl: string; finalImageUrl: string }>;
     clearImages: () => void;
     seoMetadata: CacheSEOMetadata | null;
+}
+
+interface HandleImageUploadOptions {
+    imageUrl?: string;
+    onCoordinatesEnriched?: (result: HybridAnalysisResult) => void;
+    precomputedAnalysis?: HybridAnalysisResult;
+    knownSeoMetadata?: CacheSEOMetadata;
 }
 
 const ImageContext = createContext<ImageContextType | null>(null)
@@ -232,7 +239,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         file: File,
         onSuccess: (result: HybridAnalysisResult) => void,
         onError: (error: Error) => void,
-        options?: { imageUrl?: string; onCoordinatesEnriched?: (result: HybridAnalysisResult) => void; precomputedAnalysis?: HybridAnalysisResult }
+        options?: HandleImageUploadOptions
     ) => {
         setIsLoading(true); // For file processing
         setError(null);
@@ -249,6 +256,16 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             setOriginalImagePreview(imageSrc);
             setIsLoading(false); // File processing done
 
+            const knownSeoMetadata = options?.knownSeoMetadata ?? null;
+
+            if (knownSeoMetadata) {
+                setSeoMetadata(knownSeoMetadata);
+
+                if (knownSeoMetadata.slug) {
+                    setCurrentSlugState(knownSeoMetadata.slug);
+                }
+            }
+
             // --- STEP 0: CHECK PRECOMPUTED ANALYSIS ---
             if (options?.precomputedAnalysis) {
                 console.log('✅ Using precomputed analysis result');
@@ -259,7 +276,10 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             // --- STEP 1: CHECK CACHE FIRST (FAST PATH) ---
 
             const pHash = await generatePerceptualHash(imageSrc);
-            const cacheHit = await findSimilarAnalysisByHash(pHash);
+            const shouldUseSimilarCacheLookup = !knownSeoMetadata;
+            const cacheHit = shouldUseSimilarCacheLookup
+                ? await findSimilarAnalysisByHash(pHash, options?.imageUrl)
+                : null;
 
             if (cacheHit) {
                 console.log('✅ Using cached analysis result');
@@ -447,15 +467,20 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
                 onSuccess(fastResult); // User can now see features and price immediately!
 
-                // Generate slug immediately so share button works right away
-                const icingColor = fastResult.icing_design?.colors?.top || fastResult.icing_design?.colors?.side || null;
-                const generatedSlug = generateCakeAnalysisSlug({
-                    keyword: fastResult.keyword,
-                    icingColor,
-                    cakeType: fastResult.cakeType,
-                    pHash,
-                });
-                setCurrentSlugState(generatedSlug);
+                // Generate slug immediately so share button works right away,
+                // but preserve the exact slug for known products/designs.
+                if (knownSeoMetadata?.slug) {
+                    setCurrentSlugState(knownSeoMetadata.slug);
+                } else {
+                    const icingColor = fastResult.icing_design?.colors?.top || fastResult.icing_design?.colors?.side || null;
+                    const generatedSlug = generateCakeAnalysisSlug({
+                        keyword: fastResult.keyword,
+                        icingColor,
+                        cakeType: fastResult.cakeType,
+                        pHash,
+                    });
+                    setCurrentSlugState(generatedSlug);
+                }
 
                 // PHASE 2: Background coordinate enrichment with Roboflow + Florence-2
                 // (Falls back to Gemini if Roboflow fails or is disabled)
