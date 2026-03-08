@@ -13,6 +13,11 @@ import { getDesignAvailability } from '@/lib/utils/availability';
 import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI } from '@/types';
 import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers';
 import { generateTagsForAnalysis } from '@/utils/tagUtils';
+import {
+  getDistinctiveRelatedSearchTerms,
+  normalizeRelatedSearchPhrase,
+  rankRelatedProducts,
+} from './relatedProductSearch';
 
 // The default client (uses @supabase/ssr browser client)
 const supabase: SupabaseClient = getSupabaseClient();
@@ -907,45 +912,84 @@ export async function getRelatedProductsByKeywords(
 ): Promise<SupabaseServiceResponse<any[]>> {
   const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
   try {
-    // Split keywords into individual terms for matching
-    const keywordList = keywords
-      ? keywords.toLowerCase().split(/[\s,]+/).filter(k => k.length > 1)
-      : [];
+    const normalizedPhrase = normalizeRelatedSearchPhrase(keywords);
+    const distinctiveTerms = getDistinctiveRelatedSearchTerms(keywords);
+    const selectFields =
+      'p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, usage_count';
 
-    let query = client
-      .from('cakegenie_analysis_cache')
-      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height')
-      .not('original_image_url', 'is', null)
-      .not('price', 'is', null)
-      .neq('original_image_url', '');
+    const buildBaseQuery = () => {
+      let query = client
+        .from('cakegenie_analysis_cache')
+        .select(selectFields)
+        .not('original_image_url', 'is', null)
+        .not('price', 'is', null)
+        .neq('original_image_url', '');
 
-    // Exclude the current design/post slug
-    if (excludeSlug) {
-      query = query.neq('slug', excludeSlug);
+      if (excludeSlug) {
+        query = query.neq('slug', excludeSlug);
+      }
+
+      return query;
+    };
+
+    const queries: Array<PromiseLike<{ data: any[] | null; error: PostgrestError | null }>> = [];
+
+    if (normalizedPhrase) {
+      const slugPhrase = normalizedPhrase.replace(/\s+/g, '-');
+      const phraseFilters = [
+        `keywords.ilike.%${normalizedPhrase}%`,
+        `alt_text.ilike.%${normalizedPhrase}%`,
+        `slug.ilike.%${slugPhrase}%`,
+      ].join(',');
+
+      queries.push(
+        buildBaseQuery()
+          .or(phraseFilters)
+          .order('usage_count', { ascending: false })
+          .range(0, Math.max(limit * 2, 36) - 1),
+      );
     }
 
-    // If we have keywords, search across keywords, alt_text, and slug for better recall
-    if (keywordList.length > 0) {
-      const orFilters = keywordList.flatMap(k => [
-        `keywords.ilike.%${k}%`,
-        `alt_text.ilike.%${k}%`,
-        `slug.ilike.%${k}%`,
-      ]).join(',');
-      query = query.or(orFilters);
+    if (distinctiveTerms.length > 0) {
+      const termFilters = distinctiveTerms
+        .flatMap((term) => {
+          const slugTerm = term.replace(/\s+/g, '-');
+          return [
+            `keywords.ilike.%${term}%`,
+            `alt_text.ilike.%${term}%`,
+            `slug.ilike.%${slugTerm}%`,
+          ];
+        })
+        .join(',');
+
+      queries.push(
+        buildBaseQuery()
+          .or(termFilters)
+          .order('usage_count', { ascending: false })
+          .range(0, Math.max(limit * 4, 72) - 1),
+      );
     }
 
-    const { data, error } = await query
-      .order('usage_count', { ascending: false })
-      .range(offset, offset + limit - 1);
+    const results = queries.length > 0 ? await Promise.all(queries) : [];
+    const queryError = results.find((result) => result.error)?.error ?? null;
 
-    if (error) {
-      console.error('Error fetching related products by keywords:', error);
-      return { data: null, error };
+    if (queryError) {
+      console.error('Error fetching related products by keywords:', queryError);
+      return { data: null, error: queryError };
     }
 
-    // If we got results with keyword matching, return them
-    if (data && data.length > 0) {
-      return { data, error: null };
+    const dedupedCandidates = Array.from(
+      new Map(
+        results
+          .flatMap((result) => result.data || [])
+          .map((product) => [product.slug || product.p_hash, product]),
+      ).values(),
+    );
+
+    const rankedProducts = rankRelatedProducts(dedupedCandidates, keywords, offset + limit).slice(offset);
+
+    if (rankedProducts.length > 0) {
+      return { data: rankedProducts, error: null };
     }
 
     // Fallback to recent products if no keyword matches
@@ -2887,6 +2931,16 @@ export interface BlogPost {
   keywords?: string;
   cake_search_keywords?: string;
   related_cakes_intro?: string;
+  design_showcases?: Array<{
+    id?: string;
+    keyword?: string;
+    keywords?: string;
+    title?: string;
+    intro?: string;
+  }> | string | null;
+  design_showcase_keywords?: string;
+  design_showcase_title?: string;
+  design_showcase_intro?: string;
   is_published: boolean;
   created_at: string;
   updated_at: string;

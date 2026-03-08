@@ -18,6 +18,10 @@ CREATE TABLE blogs (
     keywords TEXT,
     cake_search_keywords TEXT,
     related_cakes_intro TEXT,
+    design_showcases JSONB,
+    design_showcase_keywords TEXT,
+    design_showcase_title TEXT,
+    design_showcase_intro TEXT,
     is_published BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -30,6 +34,7 @@ ALTER TABLE blogs DISABLE ROW LEVEL SECURITY;
 CREATE INDEX idx_blogs_slug ON blogs(slug);
 CREATE INDEX idx_blogs_date ON blogs(date DESC);
 CREATE INDEX idx_blogs_cake_search_keywords ON blogs(cake_search_keywords);
+CREATE INDEX idx_blogs_design_showcase_keywords ON blogs(design_showcase_keywords);
 CREATE INDEX idx_blogs_is_published ON blogs(is_published) WHERE is_published = true;
 
 -- Add updated_at trigger
