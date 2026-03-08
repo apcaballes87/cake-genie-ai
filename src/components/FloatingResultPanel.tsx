@@ -44,7 +44,9 @@ export const FloatingResultPanel: React.FC<FloatingResultPanelProps> = ({
 
                 <div className="text-sm text-slate-500">
                     {/* Placeholder for any remaining marker functionality */}
-                    Selected item details...
+                    <div className="flex-1 min-w-0">
+                        {/* Content will go here */}
+                    </div>
                 </div>
             </div>
         </div>
