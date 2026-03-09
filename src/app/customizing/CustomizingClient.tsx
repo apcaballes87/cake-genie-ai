@@ -452,6 +452,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const accountMenuRef = useRef<HTMLDivElement>(null);
     const mainImageContainerRef = useRef<HTMLDivElement>(null);
     const isLoadingDesignRef = useRef(false); // Guard against duplicate analysis calls
+    const isLoadingShopifyCseRef = useRef(false); // Guard against duplicate Shopify CSE loads
     const lastProcessedDesignRefUrl = useRef<string | null>(null);
     const aiChatContainerRef = useRef<HTMLFormElement>(null);
     const aiChatInputRef = useRef<HTMLInputElement>(null);
@@ -1040,62 +1041,88 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         fetchProductImage();
     }, [product, recentSearchDesign, originalImageData, isImageManagementLoading, hookImageUpload, setIsAnalyzing, clearImages, clearCustomization, analysisResult, analysisId, persistedSlug, setCurrentSlug, setPendingAnalysisData, knownSeoMetadata]);
 
-    // Handle sessionStorage image loading from external site (cakesandmemories.com)
+    // Handle image loading from external site (cakesandmemories.com Shopify CSE)
+    // Uses URL query params because sessionStorage is per-origin and doesn't survive cross-domain redirects.
+    // Expected URL: /customizing?source=shopify_cse&image_url=ENCODED_URL&image_name=cake.jpg&image_type=image/jpeg
     useEffect(() => {
         const loadPendingImage = async () => {
             try {
-                // Peek at sessionStorage FIRST before any early returns
-                // so the keys are never wiped before we're ready to use them
-                const pendingImageUrl = sessionStorage.getItem('genie_pending_image_url');
-                const genieSource = sessionStorage.getItem('genie_source');
+                // 1. Check URL query params (primary — works cross-domain)
+                const sourceParam = searchParams.get('source');
+                const imageUrlParam = searchParams.get('image_url');
 
-                // Nothing pending from shopify — bail early
-                if (!pendingImageUrl || genieSource !== 'shopify_cse') {
+                console.log('[ShopifyCSE] useEffect fired. source=', sourceParam, 'image_url=', imageUrlParam ? imageUrlParam.substring(0, 80) + '...' : null);
+
+                // Not a Shopify CSE handoff — bail
+                if (sourceParam !== 'shopify_cse') {
                     return;
                 }
 
-                // Now wait for image management hook to be ready
-                // Effect will re-run when isImageManagementLoading changes
+                if (!imageUrlParam) {
+                    console.warn('[ShopifyCSE] source=shopify_cse present but no image_url param. Cannot load image.');
+                    return;
+                }
+
+                // Prevent duplicate processing (e.g. from router.replace re-triggering the effect)
+                if (isLoadingShopifyCseRef.current) {
+                    console.log('[ShopifyCSE] Already loading, skipping duplicate call');
+                    return;
+                }
+
+                // Wait for image management hook to be ready
                 if (isImageManagementLoading) {
+                    console.log('[ShopifyCSE] Waiting for image management hook to finish loading...');
                     return;
                 }
 
-                const pendingImageName = sessionStorage.getItem('genie_pending_image_name');
-                const pendingImageType = sessionStorage.getItem('genie_pending_image_type');
+                const pendingImageName = searchParams.get('image_name');
+                const pendingImageType = searchParams.get('image_type');
 
-                // Only clear AFTER we are confirmed ready to process
-                sessionStorage.removeItem('genie_pending_image_url');
-                sessionStorage.removeItem('genie_pending_image_name');
-                sessionStorage.removeItem('genie_pending_image_type');
-                sessionStorage.removeItem('genie_source');
+                isLoadingShopifyCseRef.current = true;
+                console.log('[ShopifyCSE] Starting image load:', {
+                    imageUrl: imageUrlParam.substring(0, 100),
+                    imageName: pendingImageName,
+                    imageType: pendingImageType,
+                });
 
                 setIsAnalyzing(true);
                 showInfo("Loading your cake design...");
 
-                // The pendingImageUrl is a ?ref= style URL or direct image URL
-                // (object URLs from cakesandmemories.com are dead by now — use proxy instead)
-                const imageUrl = pendingImageUrl.startsWith('blob:')
-                    ? null  // blob URLs are dead after navigation, can't use
-                    : pendingImageUrl;
+                // Reject blob URLs (dead after navigation)
+                const imageUrl = imageUrlParam.startsWith('blob:') ? null : imageUrlParam;
 
                 if (!imageUrl) {
+                    console.error('[ShopifyCSE] Blob URL detected — cannot use after cross-domain redirect');
                     setIsAnalyzing(false);
+                    isLoadingShopifyCseRef.current = false;
                     showError("Image link expired. Please try again from the shop.");
                     return;
                 }
 
-                // Fetch via proxy to avoid CORS
+                // Fetch via proxy to avoid CORS (try direct first, then proxy)
+                console.log('[ShopifyCSE] Fetching image...');
                 let blob: Blob | null = null;
                 try {
                     const direct = await fetch(imageUrl);
-                    if (direct.ok) blob = await direct.blob();
-                } catch {
-                    // ignore, try proxy
+                    if (direct.ok) {
+                        blob = await direct.blob();
+                        console.log('[ShopifyCSE] Direct fetch succeeded, blob size:', blob.size);
+                    } else {
+                        console.log('[ShopifyCSE] Direct fetch failed with status:', direct.status);
+                    }
+                } catch (e) {
+                    console.log('[ShopifyCSE] Direct fetch error (will try proxy):', e);
                 }
 
                 if (!blob) {
+                    console.log('[ShopifyCSE] Trying proxy...');
                     const proxyResponse = await fetch(`/api/proxy-image?url=${encodeURIComponent(imageUrl)}`);
-                    if (proxyResponse.ok) blob = await proxyResponse.blob();
+                    if (proxyResponse.ok) {
+                        blob = await proxyResponse.blob();
+                        console.log('[ShopifyCSE] Proxy fetch succeeded, blob size:', blob.size);
+                    } else {
+                        console.error('[ShopifyCSE] Proxy fetch failed with status:', proxyResponse.status);
+                    }
                 }
 
                 if (!blob) {
@@ -1105,30 +1132,46 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 const fileName = pendingImageName || 'cake-design.jpg';
                 const fileType = pendingImageType || blob.type || 'image/jpeg';
                 const file = new File([blob], fileName, { type: fileType });
+                console.log('[ShopifyCSE] File created:', { name: fileName, type: fileType, size: file.size });
 
-                // Use same callback pattern as rest of the file
+                // Clean up URL params so a page refresh won't re-trigger this flow
+                const newParams = new URLSearchParams(searchParams.toString());
+                newParams.delete('source');
+                newParams.delete('image_url');
+                newParams.delete('image_name');
+                newParams.delete('image_type');
+                const currentPath = window.location.pathname;
+                const cleanUrl = newParams.toString() ? `${currentPath}?${newParams.toString()}` : currentPath;
+                router.replace(cleanUrl);
+
+                console.log('[ShopifyCSE] Calling hookImageUpload...');
                 hookImageUpload(
                     file,
                     (result) => {
+                        console.log('[ShopifyCSE] hookImageUpload SUCCESS');
                         setPendingAnalysisData(result);
                         setIsAnalyzing(false);
+                        isLoadingShopifyCseRef.current = false;
                         showSuccess("Design loaded!");
                     },
                     (error: Error) => {
+                        console.error('[ShopifyCSE] hookImageUpload ERROR:', error.message);
                         setIsAnalyzing(false);
+                        isLoadingShopifyCseRef.current = false;
                         showError("Failed to analyze image: " + error.message);
                     }
                 );
 
             } catch (err: any) {
-                console.error("Failed to load pending image from sessionStorage:", err);
+                console.error("[ShopifyCSE] Failed to load pending image:", err);
                 setIsAnalyzing(false);
+                isLoadingShopifyCseRef.current = false;
                 showError("Failed to load image. Please try again.");
             }
         };
 
         loadPendingImage();
-    }, [isImageManagementLoading, hookImageUpload]);
+    }, [searchParams, isImageManagementLoading, hookImageUpload]);
 
     // Handle "Customize This Design" flow (loading from URL ref) - Shopify/external integrations
     useEffect(() => {
