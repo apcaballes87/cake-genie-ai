@@ -1854,10 +1854,16 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     // --- UI State ---
     const [activeTab, setActiveTab] = useState<'original' | 'customized'>('customized');
     const [activeCustomization, setActiveCustomization] = useState<string | null>(null);
+    const [activeTopperSection, setActiveTopperSection] = useState<'main' | 'support' | null>(null);
 
 
 
 
+
+    const openTopperSheet = useCallback((section: 'main' | 'support' | null = null) => {
+        setActiveTopperSection(section);
+        setActiveCustomization('toppers');
+    }, []);
 
     // Calculate icing changes at the top level to avoid hook errors
     const hasIcingChanges = useMemo(() => {
@@ -2749,7 +2755,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                             // Or just open the main modal if it contains toppers/elements
                                                             const hasToppers = item.items.some(i => i.itemCategory === 'topper' || i.itemCategory === 'element');
                                                             if (hasToppers) {
-                                                                setActiveCustomization('toppers');
+                                                                const hasMainToppers = item.items.some(i => i.itemCategory === 'topper');
+                                                                const hasSupportItems = item.items.some(i => i.itemCategory === 'element');
+                                                                openTopperSheet(
+                                                                    hasMainToppers && !hasSupportItems ? 'main' :
+                                                                        hasSupportItems && !hasMainToppers ? 'support' :
+                                                                            null
+                                                                );
                                                                 return;
                                                             }
                                                         } else {
@@ -2759,7 +2771,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                 if (singleItem.type === 'edible_photo_top' || singleItem.type === 'edible_photo_side') {
                                                                     setActiveCustomization('photos');
                                                                 } else {
-                                                                    setActiveCustomization('toppers');
+                                                                    openTopperSheet(singleItem.itemCategory === 'topper' ? 'main' : 'support');
                                                                 }
                                                                 return;
                                                             } else if (singleItem.itemCategory === 'message') {
@@ -3399,6 +3411,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         itemPrices={itemPrices}
                                         isAdmin={isAdmin}
                                         isAnalyzing={isAnalyzing}
+                                        mode="summary"
+                                        onSectionClick={openTopperSheet}
                                     />
 
                                     {(mainToppers?.some(t => t.type === 'toy')) && (
@@ -3927,6 +3941,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                     itemPrices={itemPrices}
                                                     isAdmin={isAdmin}
                                                     isAnalyzing={isAnalyzing}
+                                                    mode="summary"
+                                                    onSectionClick={openTopperSheet}
                                                 />
 
                                                 {(mainToppers?.some(t => t.type === 'toy')) && (
@@ -4035,13 +4051,14 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             onCakeMessageChange(originalMessages as CakeMessageUI[]);
                         }
                         setActiveCustomization(null);
+                        setActiveTopperSection(null);
                         setSelectedItem(null);
                     }}
                     title={
                         activeCustomization === 'options' ? 'Cake Options' :
                             activeCustomization === 'icing' ? 'Icing Colors' :
                                 activeCustomization === 'messages' ? 'Cake Messages' :
-                                    activeCustomization === 'toppers' ? 'Cake Toppers' :
+                                    activeCustomization === 'toppers' ? (activeTopperSection === 'main' ? 'Main Toppers' : activeTopperSection === 'support' ? 'Support Elements' : 'Cake Toppers') :
                                         activeCustomization === 'photos' ? 'Edible Photos' : 'Customize'
                     }
                     style={{ bottom: (67 + (availabilityType && !isAnalyzing ? 38 : 0) + (warningMessage ? 38 : 0)) + 'px' }}
@@ -4349,6 +4366,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             itemPrices={itemPrices}
                             isAdmin={isAdmin}
                             isAnalyzing={isAnalyzing}
+                            visibleSections={activeTopperSection ?? 'all'}
                         />
                     </div>
 
@@ -4431,7 +4449,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     cakeInfo={cakeInfo}
                     warningMessage={isSafetyFallback ? "AI editing disabled for adult-themed content. Your design changes will still be saved." : warningMessage}
                     warningDescription={warningDescription}
-                    onWarningClick={warningMessage && !isSafetyFallback ? () => setActiveCustomization('toppers') : undefined}
+                    onWarningClick={warningMessage && !isSafetyFallback ? () => openTopperSheet() : undefined}
                     availability={availabilityType}
                 />
                 <ReportModal

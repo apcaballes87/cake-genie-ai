@@ -3,6 +3,7 @@ import { showSuccess, showError } from '@/lib/utils/toast';
 import { v4 as uuidv4 } from 'uuid';
 import { generateUrlSlug } from '@/lib/utils/urlHelpers';
 import { generateContributorDiscountCode } from './incentiveService';
+import { notifyIndexNow } from './indexNowService';
 import { CartItemDetails } from '@/types';
 
 const supabase = getSupabaseClient();
@@ -182,6 +183,10 @@ export async function saveDesignToShare(data: ShareDesignData): Promise<ShareRes
     const clientDomain = window.location.origin;
     const shareUrl = `${clientDomain}/customizing/${effectiveSlug}`;
     const botShareUrl = `https://genie.ph/customizing/${effectiveSlug}`;
+
+    // Notify IndexNow for the newly shared design
+    // Use the absolute URL via genie.ph domain for indexing
+    notifyIndexNow(botShareUrl);
 
     showSuccess('Share link created!');
 
