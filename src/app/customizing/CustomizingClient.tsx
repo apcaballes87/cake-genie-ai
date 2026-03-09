@@ -1102,35 +1102,14 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     return;
                 }
 
-                // Fetch via proxy to avoid CORS (try direct first, then proxy)
-                console.log('[ShopifyCSE] Fetching image...');
-                let blob: Blob | null = null;
-                try {
-                    const direct = await fetch(imageUrl);
-                    if (direct.ok) {
-                        blob = await direct.blob();
-                        console.log('[ShopifyCSE] Direct fetch succeeded, blob size:', blob.size);
-                    } else {
-                        console.log('[ShopifyCSE] Direct fetch failed with status:', direct.status);
-                    }
-                } catch (e) {
-                    console.log('[ShopifyCSE] Direct fetch error (will try proxy):', e);
+                // Always use the proxy for cross-origin images to avoid CORS errors
+                console.log('[ShopifyCSE] Fetching image via proxy...');
+                const proxyResponse = await fetch(`/api/proxy-image?url=${encodeURIComponent(imageUrl)}`);
+                if (!proxyResponse.ok) {
+                    throw new Error(`Proxy fetch failed with status ${proxyResponse.status}`);
                 }
-
-                if (!blob) {
-                    console.log('[ShopifyCSE] Trying proxy...');
-                    const proxyResponse = await fetch(`/api/proxy-image?url=${encodeURIComponent(imageUrl)}`);
-                    if (proxyResponse.ok) {
-                        blob = await proxyResponse.blob();
-                        console.log('[ShopifyCSE] Proxy fetch succeeded, blob size:', blob.size);
-                    } else {
-                        console.error('[ShopifyCSE] Proxy fetch failed with status:', proxyResponse.status);
-                    }
-                }
-
-                if (!blob) {
-                    throw new Error('Failed to fetch image from both direct and proxy');
-                }
+                const blob = await proxyResponse.blob();
+                console.log('[ShopifyCSE] Proxy fetch succeeded, blob size:', blob.size);
 
                 const fileName = pendingImageName || 'cake-design.jpg';
                 const fileType = pendingImageType || blob.type || 'image/jpeg';
