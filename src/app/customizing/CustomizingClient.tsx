@@ -1044,21 +1044,26 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     useEffect(() => {
         const loadPendingImage = async () => {
             try {
-                // Wait for image management hook to be ready before proceeding
-                if (isImageManagementLoading) {
-                    return;
-                }
-
+                // Peek at sessionStorage FIRST before any early returns
+                // so the keys are never wiped before we're ready to use them
                 const pendingImageUrl = sessionStorage.getItem('genie_pending_image_url');
-                const pendingImageName = sessionStorage.getItem('genie_pending_image_name');
-                const pendingImageType = sessionStorage.getItem('genie_pending_image_type');
                 const genieSource = sessionStorage.getItem('genie_source');
 
+                // Nothing pending from shopify — bail early
                 if (!pendingImageUrl || genieSource !== 'shopify_cse') {
                     return;
                 }
 
-                // Clear immediately to prevent re-processing on refresh
+                // Now wait for image management hook to be ready
+                // Effect will re-run when isImageManagementLoading changes
+                if (isImageManagementLoading) {
+                    return;
+                }
+
+                const pendingImageName = sessionStorage.getItem('genie_pending_image_name');
+                const pendingImageType = sessionStorage.getItem('genie_pending_image_type');
+
+                // Only clear AFTER we are confirmed ready to process
                 sessionStorage.removeItem('genie_pending_image_url');
                 sessionStorage.removeItem('genie_pending_image_name');
                 sessionStorage.removeItem('genie_pending_image_type');
