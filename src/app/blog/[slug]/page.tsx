@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { getBlogBySlug, getAllBlogSlugs } from '@/services/supabaseService';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { BlogContent } from './BlogContent';
@@ -9,6 +8,7 @@ import { BlogPostingSchema, BlogBreadcrumbSchema } from '@/components/SEOSchemas
 import { getRelatedProductsByKeywords } from '@/services/supabaseService';
 import { RelatedProductsSection } from '@/components/blog/RelatedProductsSection';
 import { BlogDesignShowcaseSection } from '@/components/blog/BlogDesignShowcaseSection';
+import LazyImage from '@/components/LazyImage';
 import {
   getBlogDesignShowcaseConfigs,
   splitBlogContentByShowcasePlaceholders,
@@ -170,14 +170,15 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         {/* Featured Image */}
         {post.image && (
           <div className="mb-8">
-            <Image
+            <LazyImage
               src={post.image}
               alt={post.title}
               width={1200}
               height={630}
               sizes="(max-width: 768px) 100vw, 768px"
               priority
-              className="w-full h-auto rounded-xl shadow-md"
+              className="w-full rounded-xl shadow-md"
+              imageClassName="h-auto w-full rounded-xl"
             />
           </div>
         )}
