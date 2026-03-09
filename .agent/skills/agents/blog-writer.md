@@ -22,13 +22,14 @@ When given a topic to write about, follow this research workflow:
 5. **Verify Information** - Cross-check facts from multiple sources when possible
 6. **Synthesize Research** - Combine findings into coherent themes for your blog post
 
-### Research Tools (Playwright)
+### Research Tools (Exa & Playwright)
 
-Use Playwright to research topics online:
+Use Exa and Playwright to research topics online:
 
-- **Navigate to URLs** - Visit relevant websites, blogs, articles
-- **Take snapshots** - Capture page content for reference
-- **Extract information** - Get specific details from pages
+- **Exa Search** - Use for high-relevance web search, research papers, and company info (balanced relevance and speed).
+- **Navigate to URLs** - Visit relevant websites, blogs, articles.
+- **Take snapshots** - Capture page content for reference.
+- **Extract information** - Get specific details from pages.
 
 ### How to Find Valuable Sources
 

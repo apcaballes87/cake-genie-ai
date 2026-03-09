@@ -1,9 +1,9 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
 import { getAllBlogs } from '@/services/supabaseService';
 import { ArrowLeft, Calendar, ChevronRight } from 'lucide-react';
 import { BlogSchema } from '@/components/SEOSchemas';
+import LazyImage from '@/components/LazyImage';
 
 export const revalidate = 3600; // Rebuild cache every 1 hour
 
@@ -108,13 +108,12 @@ export default async function BlogPage() {
                   {/* Image Thumbnail */}
                   {post.image && (
                     <div className="md:w-48 md:h-32 shrink-0 overflow-hidden rounded-xl relative">
-                      <Image
+                      <LazyImage
                         src={post.image}
                         alt={post.title}
-                        width={384}
-                        height={256}
+                        fill
                         sizes="(max-width: 768px) 100vw, 192px"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        imageClassName="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
                   )}

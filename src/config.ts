@@ -28,6 +28,5 @@ export const SUPABASE_URL = supabaseUrl;
 export const SUPABASE_ANON_KEY = supabaseAnonKey;
 export const GOOGLE_MAPS_API_KEY = googleMapsApiKey || '';
 
-// IMPORTANT: The Gemini API Key (process.env.API_KEY) is a special case.
-// The execution environment (e.g., Google AI Studio) securely injects this
-// one specific environment variable at runtime.
+// IMPORTANT: The Gemini API Key (process.env.API_KEY) and Exa API Key are handled server-side.
+export const EXA_API_KEY = process.env.EXA_API_KEY || '';
