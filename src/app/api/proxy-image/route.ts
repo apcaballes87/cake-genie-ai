@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// CORS headers to allow external domains to access this proxy
+const CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+};
+
 // Allowlisted hostname patterns for image sources
 const ALLOWED_HOSTNAME_PATTERNS = [
     // Supabase storage
@@ -54,25 +61,39 @@ export async function GET(request: NextRequest) {
     const urlParam = request.nextUrl.searchParams.get('url');
 
     if (!urlParam) {
-        return NextResponse.json({ error: 'URL parameter is required' }, { status: 400 });
+        return NextResponse.json(
+            { error: 'URL parameter is required' },
+            { status: 400, headers: CORS_HEADERS }
+        );
     }
 
     // Validate and parse URL
     let parsedUrl: URL;
     try {
-        parsedUrl = new URL(urlParam);
+        // Decode the URL in case it's encoded
+        const decodedUrl = decodeURIComponent(urlParam);
+        parsedUrl = new URL(decodedUrl);
     } catch {
-        return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
+        return NextResponse.json(
+            { error: 'Invalid URL format' },
+            { status: 400, headers: CORS_HEADERS }
+        );
     }
 
     // Enforce HTTP or HTTPS (some image sources still use HTTP)
     if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') {
-        return NextResponse.json({ error: 'Only HTTP/HTTPS URLs are allowed' }, { status: 400 });
+        return NextResponse.json(
+            { error: 'Only HTTP/HTTPS URLs are allowed' },
+            { status: 400, headers: CORS_HEADERS }
+        );
     }
 
     // Block private IP ranges (SSRF protection)
     if (isPrivateIP(parsedUrl.hostname)) {
-        return NextResponse.json({ error: 'Access to private networks is not allowed' }, { status: 403 });
+        return NextResponse.json(
+            { error: 'Access to private networks is not allowed' },
+            { status: 403, headers: CORS_HEADERS }
+        );
     }
 
     // Note: We removed the hostname allowlist to support arbitrary image sources
@@ -104,7 +125,7 @@ export async function GET(request: NextRequest) {
         if (!response.ok) {
             return NextResponse.json(
                 { error: 'Failed to fetch image' },
-                { status: response.status }
+                { status: response.status, headers: CORS_HEADERS }
             );
         }
 
@@ -113,14 +134,14 @@ export async function GET(request: NextRequest) {
         if (contentLength && parseInt(contentLength, 10) > MAX_SIZE_BYTES) {
             return NextResponse.json(
                 { error: `File too large. Maximum size is ${MAX_SIZE_BYTES / 1024 / 1024}MB` },
-                { status: 413 }
+                { status: 413, headers: CORS_HEADERS }
             );
         }
 
         // Stream and cap the response size
         const reader = response.body?.getReader();
         if (!reader) {
-            return NextResponse.json({ error: 'Failed to read response' }, { status: 500 });
+            return NextResponse.json({ error: 'Failed to read response' }, { status: 500, headers: CORS_HEADERS });
         }
 
         const chunks: Uint8Array[] = [];
@@ -135,7 +156,7 @@ export async function GET(request: NextRequest) {
                 reader.cancel();
                 return NextResponse.json(
                     { error: `File too large. Maximum size is ${MAX_SIZE_BYTES / 1024 / 1024}MB` },
-                    { status: 413 }
+                    { status: 413, headers: CORS_HEADERS }
                 );
             }
             chunks.push(value);
@@ -154,7 +175,8 @@ export async function GET(request: NextRequest) {
         return new NextResponse(buffer, {
             headers: {
                 'Content-Type': contentType || 'application/octet-stream',
-                'Cache-Control': 'public, max-age=3600'
+                'Cache-Control': 'public, max-age=3600',
+                ...CORS_HEADERS
             }
         });
     } catch (error) {
@@ -163,14 +185,22 @@ export async function GET(request: NextRequest) {
         if (error instanceof Error && error.name === 'AbortError') {
             return NextResponse.json(
                 { error: 'Request timeout - image took too long to fetch' },
-                { status: 504 }
+                { status: 504, headers: CORS_HEADERS }
             );
         }
 
         console.error('Proxy error:', error);
         return NextResponse.json(
             { error: 'Internal server error while fetching image' },
-            { status: 500 }
+            { status: 500, headers: CORS_HEADERS }
         );
     }
+}
+
+// Handle OPTIONS preflight requests for CORS
+export async function OPTIONS() {
+    return new NextResponse(null, {
+        status: 200,
+        headers: CORS_HEADERS
+    });
 }
