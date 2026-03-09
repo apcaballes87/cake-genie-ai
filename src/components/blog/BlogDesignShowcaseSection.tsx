@@ -19,8 +19,8 @@ interface BlogDesignShowcaseSectionProps {
   products: BlogDesignShowcaseProduct[];
 }
 
-const getProductLabel = (product: BlogDesignShowcaseProduct) =>
-  product.alt_text?.trim() || product.keywords?.split(',')[0]?.trim() || 'Cake design';
+const getProductLabel = (product: BlogDesignShowcaseProduct, sectionKeyword?: string) =>
+  product.alt_text?.trim() || product.keywords?.split(',')[0]?.trim() || (sectionKeyword ? `Custom ${sectionKeyword} cake design` : 'Custom cake design idea');
 
 const getProductDimensions = (product: BlogDesignShowcaseProduct) => ({
   width: product.image_width && product.image_width > 0 ? product.image_width : 800,
@@ -50,7 +50,7 @@ export function BlogDesignShowcaseSection({
 
       <div className="columns-2 md:columns-3 lg:columns-5 xl:columns-6" style={{ columnGap: '0.75rem' }}>
         {products.map((product, index) => {
-          const label = getProductLabel(product);
+          const label = getProductLabel(product, keyword);
           const imageSrc =
             getOptimizedSupabaseImageSrc(product.original_image_url, product.image_width ?? 800) ||
             product.original_image_url;

@@ -239,9 +239,10 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
         const posts = blogPosts || [];
         return posts.map((post) => ({
             url: `${baseUrl}/blog/${post.slug}`,
-            lastModified: new Date(),
+            lastModified: post.updated_at ? new Date(post.updated_at) : new Date(),
             changeFrequency: 'weekly' as const,
             priority: 0.8,
+            images: sanitizeUrl(post.image) ? [sanitizeUrl(post.image)] : [],
         }))
     }
 

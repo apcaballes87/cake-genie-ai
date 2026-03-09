@@ -240,7 +240,8 @@ export function BlogPostingSchema({
     authorName,
     authorUrl,
     image,
-    description
+    description,
+    url
 }: {
     headline: string;
     datePublished: string;
@@ -249,6 +250,7 @@ export function BlogPostingSchema({
     authorUrl?: string;
     image?: string;
     description: string;
+    url?: string;
 }) {
     // Sanitize string to prevent script injection in JSON-LD
     const sanitize = (str: string | undefined | null) => str ? str.replace(/<\/script/g, '<\\/script') : '';
@@ -260,20 +262,64 @@ export function BlogPostingSchema({
         datePublished: datePublished,
         ...(dateModified && { dateModified }),
         author: {
-            '@type': 'Organization', // Or Person, but for company blogs Organization is often used if author is the brand
+            '@type': 'Organization',
             name: sanitize(authorName),
             ...(authorUrl && { url: sanitize(authorUrl) })
         },
         image: image ? [image] : [],
         description: sanitize(description),
+        ...(url && {
+            url: sanitize(url),
+            mainEntityOfPage: {
+                '@type': 'WebPage',
+                '@id': sanitize(url)
+            }
+        }),
         publisher: {
             '@type': 'Organization',
             name: 'Genie.ph',
             logo: {
                 '@type': 'ImageObject',
-                url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp' // Ensure this path is correct or generic
+                url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp'
             }
         }
+    };
+
+    return (
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+    );
+}
+
+// JSON-LD Breadcrumb Schema for Blog Posts
+export function BlogBreadcrumbSchema({ postTitle, postSlug }: { postTitle: string; postSlug: string }) {
+    const sanitize = (str: string) => str.replace(/<\/script/g, '<\\/script');
+
+    const schema = {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+            {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'Home',
+                item: 'https://genie.ph',
+            },
+            {
+                '@type': 'ListItem',
+                position: 2,
+                name: 'Blog',
+                item: 'https://genie.ph/blog',
+            },
+            {
+                '@type': 'ListItem',
+                position: 3,
+                name: sanitize(postTitle),
+                item: `https://genie.ph/blog/${postSlug}`,
+            },
+        ],
     };
 
     return (

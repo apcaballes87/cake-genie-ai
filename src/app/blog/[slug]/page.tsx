@@ -1,10 +1,11 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { getBlogBySlug, getAllBlogSlugs } from '@/services/supabaseService';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { BlogContent } from './BlogContent';
-import { BlogPostingSchema } from '@/components/SEOSchemas';
+import { BlogPostingSchema, BlogBreadcrumbSchema } from '@/components/SEOSchemas';
 import { getRelatedProductsByKeywords } from '@/services/supabaseService';
 import { RelatedProductsSection } from '@/components/blog/RelatedProductsSection';
 import { BlogDesignShowcaseSection } from '@/components/blog/BlogDesignShowcaseSection';
@@ -37,6 +38,8 @@ export async function generateMetadata({
     return { title: 'Post Not Found | Genie.ph' };
   }
 
+  const keywords = post.keywords ? post.keywords.split(',').map((k: string) => k.trim()).filter(Boolean) : [];
+
   return {
     title: post.title,
     description: post.excerpt,
@@ -49,6 +52,9 @@ export async function generateMetadata({
       url: `https://genie.ph/blog/${post.slug}`,
       type: 'article',
       publishedTime: post.date,
+      modifiedTime: post.updated_at,
+      authors: [post.author],
+      tags: keywords.length > 0 ? keywords : undefined,
       images: post.image ? [{ url: post.image, width: 1200, height: 630, alt: post.title }] : [],
     },
     twitter: {
@@ -120,11 +126,14 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       <BlogPostingSchema
         headline={post.title}
         datePublished={post.date}
+        dateModified={post.updated_at}
         authorName={post.author}
         authorUrl={post.author_url}
         image={post.image}
         description={post.excerpt}
+        url={`https://genie.ph/blog/${post.slug}`}
       />
+      <BlogBreadcrumbSchema postTitle={post.title} postSlug={post.slug} />
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-md border-b border-purple-100 sticky top-0 z-30">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -161,9 +170,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         {/* Featured Image */}
         {post.image && (
           <div className="mb-8">
-            <img
+            <Image
               src={post.image}
               alt={post.title}
+              width={1200}
+              height={630}
+              sizes="(max-width: 768px) 100vw, 768px"
+              priority
               className="w-full h-auto rounded-xl shadow-md"
             />
           </div>

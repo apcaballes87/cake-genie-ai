@@ -24,10 +24,10 @@ function parseMarkdownToHtml(markdown: string): string {
   // Italic
   html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
 
-  // Images
+  // Images — width/height hint reduces CLS; actual size is responsive via CSS
   html = html.replace(
     /!\[([^\]]*)\]\(([^)]+)\)/g,
-    '<img src="$2" alt="$1" class="w-full h-auto rounded-xl my-8 shadow-md border border-purple-100" loading="lazy" />'
+    '<img src="$2" alt="$1" width="800" height="450" class="w-full h-auto rounded-xl my-8 shadow-md border border-purple-100" loading="lazy" decoding="async" />'
   );
 
   // Links
