@@ -236,7 +236,7 @@ export default function PaymentOptionsClient() {
                 {/* CTA */}
                 <div className="text-center">
                     <Link
-                        href="/customizing"
+                        href="/"
                         className="inline-flex items-center justify-center gap-2 bg-pink-600 hover:bg-pink-700 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
                     >
                         Start Your Custom Order
