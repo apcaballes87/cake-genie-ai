@@ -1088,6 +1088,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     imageType: pendingImageType,
                 });
 
+                // Clear previous image immediately so there's no flash of the old design
+                clearImages();
+                clearCustomization();
                 setIsAnalyzing(true);
                 showInfo("Loading your cake design...");
 
@@ -1152,7 +1155,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         };
 
         loadPendingImage();
-    }, [isImageManagementLoading, hookImageUpload]);
+    }, [isImageManagementLoading, hookImageUpload, clearImages, clearCustomization]);
 
     // Handle "Customize This Design" flow (loading from URL ref) - Shopify/external integrations
     useEffect(() => {
