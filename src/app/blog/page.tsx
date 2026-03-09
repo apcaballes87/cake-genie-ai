@@ -107,10 +107,13 @@ export default async function BlogPage() {
 
                   {/* Image Thumbnail */}
                   {post.image && (
-                    <div className="md:w-48 md:h-32 shrink-0 overflow-hidden rounded-xl">
-                      <img
+                    <div className="md:w-48 md:h-32 shrink-0 overflow-hidden rounded-xl relative">
+                      <Image
                         src={post.image}
                         alt={post.title}
+                        width={384}
+                        height={256}
+                        sizes="(max-width: 768px) 100vw, 192px"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>

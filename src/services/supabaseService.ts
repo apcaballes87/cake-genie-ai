@@ -3004,12 +3004,12 @@ export async function getBlogBySlug(slug: string): Promise<SupabaseServiceRespon
 /**
  * Fetches blog post slugs for static generation
  */
-export async function getAllBlogSlugs(): Promise<SupabaseServiceResponse<{ slug: string }[]>> {
+export async function getAllBlogSlugs(): Promise<SupabaseServiceResponse<{ slug: string; image?: string; updated_at: string }[]>> {
   const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
   try {
     const { data, error } = await client
       .from('blogs')
-      .select('slug')
+      .select('slug, image, updated_at')
       .eq('is_published', true);
 
     if (error) {
