@@ -1049,50 +1049,71 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 const pendingImageType = sessionStorage.getItem('genie_pending_image_type');
                 const genieSource = sessionStorage.getItem('genie_source');
 
-                // Only proceed if we have the required data and it's from shopify_cse
-                if (!pendingImageUrl || !pendingImageName || !pendingImageType || genieSource !== 'shopify_cse') {
+                if (!pendingImageUrl || genieSource !== 'shopify_cse') {
                     return;
                 }
 
-                // Clear the sessionStorage keys immediately to prevent re-processing on refresh
+                // Clear immediately to prevent re-processing on refresh
                 sessionStorage.removeItem('genie_pending_image_url');
                 sessionStorage.removeItem('genie_pending_image_name');
                 sessionStorage.removeItem('genie_pending_image_type');
                 sessionStorage.removeItem('genie_source');
 
-                // Show loading indicator
                 setIsAnalyzing(true);
-                showInfo("Loading image from shop...");
+                showInfo("Loading your cake design...");
 
-                // Fetch the blob from the object URL
-                const response = await fetch(pendingImageUrl);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch image');
+                // The pendingImageUrl is a ?ref= style URL or direct image URL
+                // (object URLs from cakesandmemories.com are dead by now — use proxy instead)
+                const imageUrl = pendingImageUrl.startsWith('blob:')
+                    ? null  // blob URLs are dead after navigation, can't use
+                    : pendingImageUrl;
+
+                if (!imageUrl) {
+                    setIsAnalyzing(false);
+                    showError("Image link expired. Please try again from the shop.");
+                    return;
                 }
 
-                const blob = await response.blob();
+                // Fetch via proxy to avoid CORS
+                let blob: Blob | null = null;
+                try {
+                    const direct = await fetch(imageUrl);
+                    if (direct.ok) blob = await direct.blob();
+                } catch {
+                    // ignore, try proxy
+                }
 
-                // Create a File object from the blob
-                const file = new File([blob], pendingImageName, {
-                    type: pendingImageType
-                });
+                if (!blob) {
+                    const proxyResponse = await fetch(`/api/proxy-image?url=${encodeURIComponent(imageUrl)}`);
+                    if (proxyResponse.ok) blob = await proxyResponse.blob();
+                }
 
-                // Load the image using the same flow as regular uploads
-                await hookImageUpload(
+                if (!blob) {
+                    throw new Error('Failed to fetch image from both direct and proxy');
+                }
+
+                const fileName = pendingImageName || 'cake-design.jpg';
+                const fileType = pendingImageType || blob.type || 'image/jpeg';
+                const file = new File([blob], fileName, { type: fileType });
+
+                // Use same callback pattern as rest of the file
+                hookImageUpload(
                     file,
                     (result) => {
+                        setPendingAnalysisData(result);
                         setIsAnalyzing(false);
-                        showSuccess("Image loaded successfully!");
+                        showSuccess("Design loaded!");
                     },
-                    (error) => {
+                    (error: Error) => {
                         setIsAnalyzing(false);
                         showError("Failed to analyze image: " + error.message);
                     }
                 );
-            } catch (err) {
+
+            } catch (err: any) {
                 console.error("Failed to load pending image from sessionStorage:", err);
                 setIsAnalyzing(false);
-                showError("Failed to load image from shop.");
+                showError("Failed to load image. Please try again.");
             }
         };
 
