@@ -37,6 +37,7 @@ import ReportModal from '../../components/ReportModal';
 import ShareModal from '../../components/ShareModal';
 import { CartItemDetails } from '../../types';
 import { buildKnownSeoMetadata } from './knownSeoMetadata';
+import { getRefLoadStrategy, parsePersistedAnalysis } from './refLoadStrategy';
 
 
 // Hooks
@@ -451,6 +452,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const accountMenuRef = useRef<HTMLDivElement>(null);
     const mainImageContainerRef = useRef<HTMLDivElement>(null);
     const isLoadingDesignRef = useRef(false); // Guard against duplicate analysis calls
+    const lastProcessedDesignRefUrl = useRef<string | null>(null);
     const aiChatContainerRef = useRef<HTMLFormElement>(null);
     const aiChatInputRef = useRef<HTMLInputElement>(null);
 
@@ -1044,6 +1046,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         const fromSaved = searchParams.get('fromSaved') === 'true';
         const fromMerchant = searchParams.get('fromMerchant') === 'true';
 
+        if (!refUrl) {
+            lastProcessedDesignRefUrl.current = null;
+            return;
+        }
+
+        if (isImageManagementLoading) {
+            return;
+        }
+
         // Guard against duplicate calls (e.g., from React strict mode or URL changes)
 
         if (isLoadingDesignRef.current) {
@@ -1051,417 +1062,425 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             return;
         }
 
-        // If fromSaved or fromMerchant is true, we proceed even if originalImageData exists (to override stale persistence)
-        if (refUrl && (!originalImageData || fromSaved || fromMerchant) && !isImageManagementLoading) {
+        const decodedUrl = decodeURIComponent(refUrl);
+        const pathname = window.location.pathname;
+        const persistedAnalysis = parsePersistedAnalysis(localStorage.getItem('cakegenie_analysis'));
+        const refLoadStrategy = getRefLoadStrategy({
+            decodedUrl,
+            fromSaved,
+            fromMerchant,
+            persistedAnalysis,
+            hasLiveAnalysisResult: !!analysisResult,
+            lastProcessedRefUrl: lastProcessedDesignRefUrl.current,
+        });
 
-            const decodedUrl = decodeURIComponent(refUrl);
-            const pathname = window.location.pathname;
+        if (refLoadStrategy === 'skip') {
+            return;
+        }
+
+        if (refLoadStrategy === 'reuse') {
+            console.log("✅ Restoring completed analysis from previous session for:", decodedUrl);
+            lastProcessedDesignRefUrl.current = decodedUrl;
+            showInfo("Welcome back! Your analysis is ready.");
+            return;
+        }
+
+        // If coming from Saved page, try to restore state from localStorage without re-analysis
+        if (fromSaved) {
+            // Set loading guard FIRST before any side effects
+            isLoadingDesignRef.current = true;
+
+            console.log("🔄 Loading saved design, overriding any existing state...");
 
 
-            // If coming from Saved page, try to restore state from localStorage without re-analysis
-            if (fromSaved) {
-                // Set loading guard FIRST before any side effects
-                isLoadingDesignRef.current = true;
+            // Clear any existing stale image/customization data first
+            clearImages();
 
-                console.log("🔄 Loading saved design, overriding any existing state...");
+            clearCustomization();
 
+            // Remove fromSaved param to prevent infinite loop (since we just cleared images)
+            // We use replace to update URL without adding to history
+            const newParams = new URLSearchParams(searchParams.toString());
+            newParams.delete('fromSaved');
+            router.replace(`${pathname}?${newParams.toString()}`);
 
-                // Clear any existing stale image/customization data first
-                clearImages();
+            try {
+                const savedData = localStorage.getItem('cakegenie_restore_saved');
+                if (savedData) {
+                    const parsed = JSON.parse(savedData);
+                    // Validate. Ideally we check URL match, but if user clicked "saved", 
+                    // they want THAT saved item. The localStorage should have just been set by SavedClient.
+                    // We trust it if it's recent.
+                    if (Date.now() - parsed.timestamp < 5 * 60 * 1000) {
+                        if (parsed.imageUrl !== decodedUrl) {
+                            console.warn("⚠️ Saved data URL mismatch, but proceeding with saved data intent.");
+                        }
 
-                clearCustomization();
+                        console.log("✅ Loading saved design with full analysis...");
 
-                // Remove fromSaved param to prevent infinite loop (since we just cleared images)
-                // We use replace to update URL without adding to history
-                const newParams = new URLSearchParams(searchParams.toString());
-                newParams.delete('fromSaved');
-                router.replace(`${pathname}?${newParams.toString()}`);
+                        // Show loading state
+                        setIsAnalyzing(true);
+                        showInfo("Loading your saved design...");
 
-                try {
-                    const savedData = localStorage.getItem('cakegenie_restore_saved');
-                    if (savedData) {
-                        const parsed = JSON.parse(savedData);
-                        // Validate. Ideally we check URL match, but if user clicked "saved", 
-                        // they want THAT saved item. The localStorage should have just been set by SavedClient.
-                        // We trust it if it's recent.
-                        if (Date.now() - parsed.timestamp < 5 * 60 * 1000) {
-                            if (parsed.imageUrl !== decodedUrl) {
-                                console.warn("⚠️ Saved data URL mismatch, but proceeding with saved data intent.");
-                            }
-
-                            console.log("✅ Loading saved design with full analysis...");
-
-                            // Show loading state
-                            setIsAnalyzing(true);
-                            showInfo("Loading your saved design...");
-
-                            // Fetch the image and trigger full analysis (same as non-saved path)
-                            const fetchSavedDesign = async () => {
+                        // Fetch the image and trigger full analysis (same as non-saved path)
+                        const fetchSavedDesign = async () => {
+                            try {
+                                // Try direct fetch first
+                                let blob: Blob | null = null;
                                 try {
-                                    // Try direct fetch first
-                                    let blob: Blob | null = null;
-                                    try {
-                                        const response = await fetch(parsed.imageUrl);
-                                        if (response.ok) {
-                                            blob = await response.blob();
-                                        }
-                                    } catch {
-                                        // Fall back to proxy
-                                        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(parsed.imageUrl)}`;
-                                        const response = await fetch(proxyUrl);
-                                        if (response.ok) {
-                                            blob = await response.blob();
-                                        }
+                                    const response = await fetch(parsed.imageUrl);
+                                    if (response.ok) {
+                                        blob = await response.blob();
                                     }
-
-                                    if (!blob) throw new Error("Failed to load image");
-
-                                    const file = new File([blob], 'saved-design.webp', { type: blob.type || 'image/webp' });
-
-                                    // Check if we have precomputed analysis from cache
-                                    const hasPrecomputedAnalysis = parsed.cachedAnalysis != null;
-                                    if (hasPrecomputedAnalysis) {
-                                        console.log("🚀 Using precomputed analysis from cache - skipping AI call!");
+                                } catch {
+                                    // Fall back to proxy
+                                    const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(parsed.imageUrl)}`;
+                                    const response = await fetch(proxyUrl);
+                                    if (response.ok) {
+                                        blob = await response.blob();
                                     }
+                                }
 
-                                    // Use hookImageUpload with precomputedAnalysis if available
-                                    await hookImageUpload(
-                                        file,
-                                        (result) => {
-                                            console.log("✅ Design loaded for saved item");
-                                            setPendingAnalysisData(result);
-                                            setIsAnalyzing(false);
-                                            // Keep guard TRUE - don't reset, to prevent normal path from running
-                                            showSuccess("Design loaded!");
-                                        },
+                                if (!blob) throw new Error("Failed to load image");
 
-                                        (err) => {
-                                            console.error("Analysis failed:", err);
-                                            if (err instanceof Error) {
-                                                if (err.message.startsWith('AI_REJECTION:')) {
-                                                    const message = err.message;
-                                                    setAnalysisError(message);
-                                                    showError(message.replace('AI_REJECTION: ', ''));
-                                                    // Optional: Redirect or reset state if needed
-                                                } else {
-                                                    showError('Failed to analyze image. Please try again.');
-                                                }
+                                const file = new File([blob], 'saved-design.webp', { type: blob.type || 'image/webp' });
+
+                                // Check if we have precomputed analysis from cache
+                                const hasPrecomputedAnalysis = parsed.cachedAnalysis != null;
+                                if (hasPrecomputedAnalysis) {
+                                    console.log("🚀 Using precomputed analysis from cache - skipping AI call!");
+                                }
+
+                                // Use hookImageUpload with precomputedAnalysis if available
+                                await hookImageUpload(
+                                    file,
+                                    (result) => {
+                                        console.log("✅ Design loaded for saved item");
+                                        lastProcessedDesignRefUrl.current = decodedUrl;
+                                        setPendingAnalysisData(result);
+                                        setIsAnalyzing(false);
+                                        isLoadingDesignRef.current = false;
+                                        showSuccess("Design loaded!");
+                                    },
+
+                                    (err) => {
+                                        console.error("Analysis failed:", err);
+                                        if (err instanceof Error) {
+                                            if (err.message.startsWith('AI_REJECTION:')) {
+                                                const message = err.message;
+                                                setAnalysisError(message);
+                                                showError(message.replace('AI_REJECTION: ', ''));
+                                                // Optional: Redirect or reset state if needed
                                             } else {
                                                 showError('Failed to analyze image. Please try again.');
                                             }
-                                            console.error("Analysis error:", err);
-                                            setIsAnalyzing(false);
-                                            isLoadingDesignRef.current = false; // Reset guard
-                                        },
-                                        {
-                                            imageUrl: parsed.imageUrl,
-                                            precomputedAnalysis: parsed.cachedAnalysis || undefined
+                                        } else {
+                                            showError('Failed to analyze image. Please try again.');
                                         }
-                                    );
-
-                                } catch (err) {
-                                    console.error("Failed to load saved design:", err);
-                                    showError("Failed to load saved design.");
-                                    setIsAnalyzing(false);
-                                    isLoadingDesignRef.current = false; // Reset guard
-                                }
-                            };
-
-
-                            fetchSavedDesign();
-
-                            // Clean up localStorage
-                            localStorage.removeItem('cakegenie_restore_saved');
-
-                            return; // Skip normal flow
-                        }
-                    }
-                } catch (e) {
-                    console.error('Failed to parse saved design data:', e);
-                    isLoadingDesignRef.current = false; // Reset guard on error
-                }
-                // Whether localStorage succeeded or failed, we should NOT fall through
-                // to the normal loading path when fromSaved is true.
-                // Clean up and return - the user can try again if it failed.
-                localStorage.removeItem('cakegenie_restore_saved');
-                return; // Always return for fromSaved to prevent duplicate loads
-            }
-
-            // Handle merchant product clicks
-            if (fromMerchant) {
-                // Set loading guard FIRST before any side effects
-                isLoadingDesignRef.current = true;
-
-                console.log("🏪 Loading merchant product...");
-
-                // Clear any existing stale image/customization data first
-                clearImages();
-                clearCustomization();
-
-                // Remove fromMerchant param to prevent infinite loop
-                const newParams = new URLSearchParams(searchParams.toString());
-                newParams.delete('fromMerchant');
-                router.replace(`${pathname}?${newParams.toString()}`);
-
-                try {
-                    const merchantData = localStorage.getItem('cakegenie_merchant_product');
-                    if (merchantData) {
-                        const parsed = JSON.parse(merchantData);
-                        // Validate timestamp (5 minutes)
-                        if (Date.now() - parsed.timestamp < 5 * 60 * 1000 && parsed.imageUrl) {
-                            console.log("✅ Loading merchant product:", parsed.productName);
-
-                            // Show loading state
-                            setIsAnalyzing(true);
-                            showInfo(`Loading ${parsed.productName || 'product'}...`);
-
-                            // Fetch the image and trigger analysis
-                            const fetchMerchantProduct = async () => {
-                                try {
-                                    let blob: Blob | null = null;
-                                    try {
-                                        const response = await fetch(parsed.imageUrl);
-                                        if (response.ok) {
-                                            blob = await response.blob();
-                                        }
-                                    } catch {
-                                        console.log("Direct fetch failed, trying proxy...");
+                                        console.error("Analysis error:", err);
+                                        setIsAnalyzing(false);
+                                        isLoadingDesignRef.current = false; // Reset guard
+                                    },
+                                    {
+                                        imageUrl: parsed.imageUrl,
+                                        precomputedAnalysis: parsed.cachedAnalysis || undefined
                                     }
+                                );
 
-                                    if (!blob) {
-                                        // Fallback to storage proxy
-                                        const proxyResponse = await fetch(`/api/proxy-image?url=${encodeURIComponent(parsed.imageUrl)}`);
-                                        if (proxyResponse.ok) {
-                                            blob = await proxyResponse.blob();
-                                        }
-                                    }
+                            } catch (err) {
+                                console.error("Failed to load saved design:", err);
+                                showError("Failed to load saved design.");
+                                setIsAnalyzing(false);
+                                isLoadingDesignRef.current = false; // Reset guard
+                            }
+                        };
 
-                                    if (!blob) {
-                                        throw new Error('Failed to fetch product image');
-                                    }
 
-                                    const file = new File([blob], 'merchant-product.jpg', { type: blob.type || 'image/jpeg' });
+                        fetchSavedDesign();
 
-                                    // Use hookImageUpload to trigger full analysis
-                                    // If the product has a p_hash, we could fetch cached analysis, but for now let's do full analysis
-                                    hookImageUpload(
-                                        file,
-                                        () => {
-                                            console.log("✅ Merchant product loaded");
-                                            setIsAnalyzing(false);
-                                            showSuccess("Product loaded!");
-                                            // Guard stays true to prevent normal path from running
-                                        },
+                        // Clean up localStorage
+                        localStorage.removeItem('cakegenie_restore_saved');
 
-                                        (error) => {
-                                            console.error("Error processing merchant product:", error);
-                                            if (error instanceof Error && error.message.startsWith('AI_REJECTION:')) {
-                                                setAnalysisError(error.message);
-                                                showError(error.message.replace('AI_REJECTION: ', ''));
-                                            } else {
-                                                setAnalysisError("Failed to load product");
-                                                showError("Failed to load product");
-                                            }
-                                            setIsAnalyzing(false);
-                                            isLoadingDesignRef.current = false;
-                                        },
-                                        { imageUrl: parsed.imageUrl }
-                                    );
-
-                                } catch (err) {
-                                    console.error("Failed to load merchant product:", err);
-                                    showError("Failed to load product.");
-                                    setIsAnalyzing(false);
-                                    isLoadingDesignRef.current = false;
-                                }
-                            };
-
-                            fetchMerchantProduct();
-                            localStorage.removeItem('cakegenie_merchant_product');
-                            return; // Skip normal flow
-                        }
+                        return; // Skip normal flow
                     }
-                } catch (e) {
-                    console.error('Failed to parse merchant product data:', e);
-                    isLoadingDesignRef.current = false;
                 }
-
-                localStorage.removeItem('cakegenie_merchant_product');
-                return; // Always return for fromMerchant to prevent duplicate loads
-            }
-
-
-
-
-            // Check if we already have a completed analysis for this exact image
-
-            const savedAnalysis = localStorage.getItem('cakegenie_analysis');
-            if (savedAnalysis) {
-                try {
-                    const parsed = JSON.parse(savedAnalysis);
-                    // If we have a saved analysis for the same image ref, skip re-analysis
-                    if (parsed.imageRef === decodedUrl && parsed.result && analysisResult) {
-                        console.log("✅ Restoring completed analysis from previous session for:", decodedUrl);
-                        showInfo("Welcome back! Your analysis is ready.");
-                        return; // Skip fetching and re-analyzing - analysis already loaded from context persistence
-                    }
-                } catch (e) {
-                    console.error('Failed to parse saved analysis:', e);
-                }
-            }
-
-            console.log("Loading referenced design:", decodedUrl);
-
-            // Show loading state immediately
-            setIsAnalyzing(true);
-            showInfo("Loading your cake design...");
-
-            // Save the image ref we're about to analyze (so we can restore on return)
-            const existingData = localStorage.getItem('cakegenie_analysis');
-            try {
-                const data = existingData ? JSON.parse(existingData) : {};
-                data.imageRef = decodedUrl;
-                localStorage.setItem('cakegenie_analysis', JSON.stringify(data));
             } catch (e) {
-                // Create new entry if parsing fails
-                localStorage.setItem('cakegenie_analysis', JSON.stringify({ imageRef: decodedUrl }));
+                console.error('Failed to parse saved design data:', e);
+                isLoadingDesignRef.current = false; // Reset guard on error
             }
-            // TODO: SEO Titles/Descriptions for shared designs
-            // - [/] Fix `seo_title` and `seo_description` for 52 items in `cakegenie_analysis_cache`
-            // - [x] Refine implementation plan based on user feedback (descriptive titles)
-            // - [/] Create generation script for SEO fields
-            // - [ ] Execute updates in Supabase
-            // - [ ] Verify updated entries match the requested format
+            // Whether localStorage succeeded or failed, we should NOT fall through
+            // to the normal loading path when fromSaved is true.
+            // Clean up and return - the user can try again if it failed.
+            localStorage.removeItem('cakegenie_restore_saved');
+            return; // Always return for fromSaved to prevent duplicate loads
+        }
 
-            // Helper for timeout
-            const fetchWithTimeout = async (url: string, timeout = 10000) => {
-                const controller = new AbortController();
-                const id = setTimeout(() => controller.abort(), timeout);
-                try {
-                    const response = await fetch(url, { signal: controller.signal });
-                    clearTimeout(id);
-                    return response;
-                } catch (error) {
-                    clearTimeout(id);
-                    throw error;
+        // Handle merchant product clicks
+        if (fromMerchant) {
+            // Set loading guard FIRST before any side effects
+            isLoadingDesignRef.current = true;
+
+            console.log("🏪 Loading merchant product...");
+
+            // Clear any existing stale image/customization data first
+            clearImages();
+            clearCustomization();
+
+            // Remove fromMerchant param to prevent infinite loop
+            const newParams = new URLSearchParams(searchParams.toString());
+            newParams.delete('fromMerchant');
+            router.replace(`${pathname}?${newParams.toString()}`);
+
+            try {
+                const merchantData = localStorage.getItem('cakegenie_merchant_product');
+                if (merchantData) {
+                    const parsed = JSON.parse(merchantData);
+                    // Validate timestamp (5 minutes)
+                    if (Date.now() - parsed.timestamp < 5 * 60 * 1000 && parsed.imageUrl) {
+                        console.log("✅ Loading merchant product:", parsed.productName);
+
+                        // Show loading state
+                        setIsAnalyzing(true);
+                        showInfo(`Loading ${parsed.productName || 'product'}...`);
+
+                        // Fetch the image and trigger analysis
+                        const fetchMerchantProduct = async () => {
+                            try {
+                                let blob: Blob | null = null;
+                                try {
+                                    const response = await fetch(parsed.imageUrl);
+                                    if (response.ok) {
+                                        blob = await response.blob();
+                                    }
+                                } catch {
+                                    console.log("Direct fetch failed, trying proxy...");
+                                }
+
+                                if (!blob) {
+                                    // Fallback to storage proxy
+                                    const proxyResponse = await fetch(`/api/proxy-image?url=${encodeURIComponent(parsed.imageUrl)}`);
+                                    if (proxyResponse.ok) {
+                                        blob = await proxyResponse.blob();
+                                    }
+                                }
+
+                                if (!blob) {
+                                    throw new Error('Failed to fetch product image');
+                                }
+
+                                const file = new File([blob], 'merchant-product.jpg', { type: blob.type || 'image/jpeg' });
+
+                                // Use hookImageUpload to trigger full analysis
+                                // If the product has a p_hash, we could fetch cached analysis, but for now let's do full analysis
+                                hookImageUpload(
+                                    file,
+                                    () => {
+                                        console.log("✅ Merchant product loaded");
+                                        lastProcessedDesignRefUrl.current = decodedUrl;
+                                        setIsAnalyzing(false);
+                                        showSuccess("Product loaded!");
+                                        isLoadingDesignRef.current = false;
+                                    },
+
+                                    (error) => {
+                                        console.error("Error processing merchant product:", error);
+                                        if (error instanceof Error && error.message.startsWith('AI_REJECTION:')) {
+                                            setAnalysisError(error.message);
+                                            showError(error.message.replace('AI_REJECTION: ', ''));
+                                        } else {
+                                            setAnalysisError("Failed to load product");
+                                            showError("Failed to load product");
+                                        }
+                                        setIsAnalyzing(false);
+                                        isLoadingDesignRef.current = false;
+                                    },
+                                    { imageUrl: parsed.imageUrl }
+                                );
+
+                            } catch (err) {
+                                console.error("Failed to load merchant product:", err);
+                                showError("Failed to load product.");
+                                setIsAnalyzing(false);
+                                isLoadingDesignRef.current = false;
+                            }
+                        };
+
+                        fetchMerchantProduct();
+                        localStorage.removeItem('cakegenie_merchant_product');
+                        return; // Skip normal flow
+                    }
                 }
-            };
+            } catch (e) {
+                console.error('Failed to parse merchant product data:', e);
+                isLoadingDesignRef.current = false;
+            }
 
-            // Fetch and analyze the image
-            const fetchAndAnalyze = async () => {
+            localStorage.removeItem('cakegenie_merchant_product');
+            return; // Always return for fromMerchant to prevent duplicate loads
+        }
+
+        console.log("Loading referenced design:", decodedUrl);
+
+        isLoadingDesignRef.current = true;
+
+        // Always clear stale state before loading an external ref.
+        // Returning users can otherwise see a previous image and never get the new analysis.
+        clearImages();
+        clearCustomization();
+        setAnalysisError(null);
+
+        // Show loading state immediately
+        setIsAnalyzing(true);
+        showInfo("Loading your cake design...");
+
+        // Save the image ref we're about to analyze (so we can restore on return)
+        const existingData = localStorage.getItem('cakegenie_analysis');
+        try {
+            const data = existingData ? JSON.parse(existingData) : {};
+            data.imageRef = decodedUrl;
+            localStorage.setItem('cakegenie_analysis', JSON.stringify(data));
+        } catch (e) {
+            // Create new entry if parsing fails
+            localStorage.setItem('cakegenie_analysis', JSON.stringify({ imageRef: decodedUrl }));
+        }
+        // TODO: SEO Titles/Descriptions for shared designs
+        // - [/] Fix `seo_title` and `seo_description` for 52 items in `cakegenie_analysis_cache`
+        // - [x] Refine implementation plan based on user feedback (descriptive titles)
+        // - [/] Create generation script for SEO fields
+        // - [ ] Execute updates in Supabase
+        // - [ ] Verify updated entries match the requested format
+
+        // Helper for timeout
+        const fetchWithTimeout = async (url: string, timeout = 10000) => {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            try {
+                const response = await fetch(url, { signal: controller.signal });
+                clearTimeout(id);
+                return response;
+            } catch (error) {
+                clearTimeout(id);
+                throw error;
+            }
+        };
+
+        // Fetch and analyze the image
+        const fetchAndAnalyze = async () => {
+            try {
+                let blob: Blob | null = null;
+
+                // 1. Try Direct Fetch (Fastest & Best for CDN/Supabase)
+                // Many modern CDNs (Shopify, Supabase, Cloudinary) support CORS
                 try {
-                    let blob: Blob | null = null;
+                    console.log("Attempting direct fetch...");
+                    const response = await fetchWithTimeout(decodedUrl, 8000); // 8s timeout for direct
+                    if (response.ok) {
+                        blob = await response.blob();
+                        console.log("Direct fetch succeeded");
+                    } else {
+                        console.warn(`Direct fetch failed with status: ${response.status}`);
+                    }
+                } catch (err) {
+                    console.warn("Direct fetch failed, will try proxy:", err);
+                }
 
-                    // 1. Try Direct Fetch (Fastest & Best for CDN/Supabase)
-                    // Many modern CDNs (Shopify, Supabase, Cloudinary) support CORS
+                // 2. Fallback to Proxy if Direct failed
+                if (!blob) {
+                    console.log("Attempting proxy fetch...");
+                    const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(decodedUrl)}`;
                     try {
-                        console.log("Attempting direct fetch...");
-                        const response = await fetchWithTimeout(decodedUrl, 8000); // 8s timeout for direct
+                        const response = await fetchWithTimeout(proxyUrl, 15000); // 15s timeout for proxy
                         if (response.ok) {
                             blob = await response.blob();
-                            console.log("Direct fetch succeeded");
+                            console.log("Proxy fetch succeeded");
                         } else {
-                            console.warn(`Direct fetch failed with status: ${response.status}`);
+                            throw new Error(`Proxy fetch failed with status: ${response.status}`);
                         }
-                    } catch (err) {
-                        console.warn("Direct fetch failed, will try proxy:", err);
+                    } catch (proxyErr) {
+                        console.error("Proxy fetch failed:", proxyErr);
+                        throw proxyErr; // Throw if both failed
                     }
-
-                    // 2. Fallback to Proxy if Direct failed
-                    if (!blob) {
-                        console.log("Attempting proxy fetch...");
-                        // Using corsproxy.io as fallback
-                        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(decodedUrl)}`;
-                        try {
-                            const response = await fetchWithTimeout(proxyUrl, 15000); // 15s timeout for proxy
-                            if (response.ok) {
-                                blob = await response.blob();
-                                console.log("Proxy fetch succeeded");
-                            } else {
-                                throw new Error(`Proxy fetch failed with status: ${response.status}`);
-                            }
-                        } catch (proxyErr) {
-                            console.error("Proxy fetch failed:", proxyErr);
-                            throw proxyErr; // Throw if both failed
-                        }
-                    }
-
-                    if (!blob) throw new Error("Failed to load image from both sources.");
-
-                    // Verify it is an image (skip strict check if type is empty due to proxy)
-                    if (blob.type && !blob.type.startsWith('image/') && !blob.type.startsWith('application/octet-stream')) {
-                        console.warn(`Fetched content might not be an image: ${blob.type}`);
-                        // We continue anyway and let magic byte detection handle it
-                    }
-
-                    // helper to detect mime type from magic numbers
-                    const detectMimeType = async (blob: Blob): Promise<string> => {
-                        try {
-                            const arr = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
-                            // JPEG: FF D8
-                            if (arr[0] === 0xFF && arr[1] === 0xD8) return 'image/jpeg';
-                            // PNG: 89 50 4E 47
-                            if (arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4E && arr[3] === 0x47) return 'image/png';
-                            // WebP: 52 49 46 46 (RIFF) ... 57 45 42 50 (WEBP) at offset 8
-                            if (arr[0] === 0x52 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x46) return 'image/webp';
-                            // GIF: 47 49 46 38
-                            if (arr[0] === 0x47 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x38) return 'image/gif';
-
-                            return blob.type || 'image/jpeg'; // fallback
-                        } catch (e) {
-                            return blob.type || 'image/jpeg';
-                        }
-                    };
-
-                    const mimeType = await detectMimeType(blob);
-                    console.log(`Detected MIME type: ${mimeType} (original: ${blob.type})`);
-
-                    // Determine extension based on mime type
-                    let extension = 'jpg';
-                    if (mimeType === 'image/png') extension = 'png';
-                    if (mimeType === 'image/webp') extension = 'webp';
-                    if (mimeType === 'image/gif') extension = 'gif';
-
-                    const file = new File([blob], `shared-design.${extension}`, { type: mimeType });
-
-                    // Use hookImageUpload to trigger the full analysis flow
-                    await hookImageUpload(
-                        file,
-                        (result) => {
-                            console.log("Analysis complete for shared design");
-                            // Update the customization context with the analysis result
-                            setPendingAnalysisData(result);
-                            setIsAnalyzing(false);
-                        },
-                        (err) => {
-                            console.error("Analysis failed:", err);
-                            if (err instanceof Error && err.message.startsWith('AI_REJECTION:')) {
-                                setAnalysisError(err.message);
-                                showError(err.message.replace('AI_REJECTION: ', ''));
-                            } else {
-                                showError("Failed to analyze the shared design.");
-                            }
-                            setIsAnalyzing(false);
-                        },
-                        { imageUrl: decodedUrl } // Pass original URL
-                    );
-
-                } catch (err) {
-                    console.error("Failed to load referenced design:", err);
-                    let msg = "Could not load the shared design.";
-                    if (err instanceof Error && err.name === 'AbortError') {
-                        msg = "Image loading timed out. Please try uploading directly.";
-                    } else if (err instanceof Error) {
-                        msg = `Could not load design: ${err.message}`;
-                    }
-                    showError(msg);
-                    setIsAnalyzing(false);
                 }
-            };
 
-            fetchAndAnalyze();
-        }
-    }, [searchParams, originalImageData, isImageManagementLoading, hookImageUpload, setIsAnalyzing, setPendingAnalysisData, analysisResult]);
+                if (!blob) throw new Error("Failed to load image from both sources.");
+
+                // Verify it is an image (skip strict check if type is empty due to proxy)
+                if (blob.type && !blob.type.startsWith('image/') && !blob.type.startsWith('application/octet-stream')) {
+                    console.warn(`Fetched content might not be an image: ${blob.type}`);
+                    // We continue anyway and let magic byte detection handle it
+                }
+
+                // helper to detect mime type from magic numbers
+                const detectMimeType = async (blob: Blob): Promise<string> => {
+                    try {
+                        const arr = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+                        // JPEG: FF D8
+                        if (arr[0] === 0xFF && arr[1] === 0xD8) return 'image/jpeg';
+                        // PNG: 89 50 4E 47
+                        if (arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4E && arr[3] === 0x47) return 'image/png';
+                        // WebP: 52 49 46 46 (RIFF) ... 57 45 42 50 (WEBP) at offset 8
+                        if (arr[0] === 0x52 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x46) return 'image/webp';
+                        // GIF: 47 49 46 38
+                        if (arr[0] === 0x47 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x38) return 'image/gif';
+
+                        return blob.type || 'image/jpeg'; // fallback
+                    } catch (e) {
+                        return blob.type || 'image/jpeg';
+                    }
+                };
+
+                const mimeType = await detectMimeType(blob);
+                console.log(`Detected MIME type: ${mimeType} (original: ${blob.type})`);
+
+                // Determine extension based on mime type
+                let extension = 'jpg';
+                if (mimeType === 'image/png') extension = 'png';
+                if (mimeType === 'image/webp') extension = 'webp';
+                if (mimeType === 'image/gif') extension = 'gif';
+
+                const file = new File([blob], `shared-design.${extension}`, { type: mimeType });
+
+                // Use hookImageUpload to trigger the full analysis flow
+                await hookImageUpload(
+                    file,
+                    (result) => {
+                        console.log("Analysis complete for shared design");
+                        // Update the customization context with the analysis result
+                        lastProcessedDesignRefUrl.current = decodedUrl;
+                        setPendingAnalysisData(result);
+                        setIsAnalyzing(false);
+                        isLoadingDesignRef.current = false;
+                    },
+                    (err) => {
+                        console.error("Analysis failed:", err);
+                        if (err instanceof Error && err.message.startsWith('AI_REJECTION:')) {
+                            setAnalysisError(err.message);
+                            showError(err.message.replace('AI_REJECTION: ', ''));
+                        } else {
+                            showError("Failed to analyze the shared design.");
+                        }
+                        setIsAnalyzing(false);
+                        isLoadingDesignRef.current = false;
+                    },
+                    { imageUrl: decodedUrl } // Pass original URL
+                );
+
+            } catch (err) {
+                console.error("Failed to load referenced design:", err);
+                let msg = "Could not load the shared design.";
+                if (err instanceof Error && err.name === 'AbortError') {
+                    msg = "Image loading timed out. Please try uploading directly.";
+                } else if (err instanceof Error) {
+                    msg = `Could not load design: ${err.message}`;
+                }
+                showError(msg);
+                setIsAnalyzing(false);
+                isLoadingDesignRef.current = false;
+            }
+        };
+
+        fetchAndAnalyze();
+    }, [searchParams, isImageManagementLoading, hookImageUpload, setIsAnalyzing, setPendingAnalysisData, analysisResult, clearImages, clearCustomization, setAnalysisError]);
 
 
     const onClose = () => {
@@ -2725,27 +2744,28 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     )}
 
                                     {/* Action Buttons - Moved from footer to main image container */}
-                                    <div className="w-full flex items-center justify-end gap-3 pt-3 px-2 pb-2 mt-auto border-t border-slate-100">
-                                        <button onClick={onOpenReportModal} disabled={!editedImage || isLoading || isReporting} className="flex items-center justify-center text-[11px] font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 py-1.5 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Report an issue with this image">
-                                            <ReportIcon className="w-3.5 h-3.5" />
-                                            <span className="ml-1.5">{isReporting ? 'Submitting...' : 'Report Issue'}</span>
+                                    <div className="w-full flex items-center justify-end gap-1.5 pt-3 px-1.5 pb-2 mt-auto border-t border-slate-100 flex-nowrap overflow-hidden">
+                                        <button onClick={onOpenReportModal} disabled={!editedImage || isLoading || isReporting} className="flex items-center justify-center text-[10px] max-[340px]:text-[9px] font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 py-1.5 px-2 max-[340px]:px-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shrink" aria-label="Report an issue with this image">
+                                            <ReportIcon className="w-3 h-3 shrink-0" />
+                                            <span className="ml-1 shrink overflow-hidden text-ellipsis">{isReporting ? 'Submitting...' : 'Report Issue'}</span>
                                         </button>
-                                        <button onClick={onSave} disabled={!editedImage || isLoading || isSaving} className="flex items-center justify-center text-[11px] font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 py-1.5 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label={isSaving ? "Saving image" : "Save customized image"}>
+
+                                        <button onClick={onSave} disabled={!editedImage || isLoading || isSaving} className="flex items-center justify-center text-[10px] max-[340px]:text-[9px] font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 py-1.5 px-2 max-[340px]:px-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shrink" aria-label={isSaving ? "Saving image" : "Save customized image"}>
                                             {isSaving ? (
                                                 <>
-                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                    <span className="ml-1.5">Saving...</span>
+                                                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                                    <span className="ml-1 shrink overflow-hidden text-ellipsis">Saving...</span>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <SaveIcon className="w-3.5 h-3.5" />
-                                                    <span className="ml-1.5">Save</span>
+                                                    <SaveIcon className="w-3 h-3 shrink-0" />
+                                                    <span className="ml-1 shrink overflow-hidden text-ellipsis">Save</span>
                                                 </>
                                             )}
                                         </button>
-                                        <button onClick={onClearAll} className="flex items-center justify-center text-[11px] font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 py-1.5 px-3 rounded-lg transition-colors" aria-label="Reset everything">
-                                            <ResetIcon className="w-3.5 h-3.5" />
-                                            <span className="ml-1.5">Reset Everything</span>
+                                        <button onClick={onClearAll} className="flex items-center justify-center text-[10px] max-[340px]:text-[9px] font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 py-1.5 px-2 max-[340px]:px-1.5 rounded-lg transition-colors whitespace-nowrap shrink" aria-label="Reset everything">
+                                            <ResetIcon className="w-3 h-3 shrink-0" />
+                                            <span className="ml-1 shrink overflow-hidden text-ellipsis">Reset Everything</span>
                                         </button>
                                     </div>
                                 </div>
@@ -2753,29 +2773,30 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                             {/* Action Buttons moved inside container */}
                             {(cakeInfo || analysisError) && (
-                                <div className="w-full flex items-center justify-center flex-wrap gap-3 p-3 border-t border-slate-100">
-                                    <button onClick={onOpenReportModal} disabled={!editedImage || isLoading || isReporting} className="flex items-center justify-center text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Report an issue with this image">
-                                        <ReportIcon />
-                                        <span className="ml-2">{isReporting ? 'Submitting...' : 'Report Issue'}</span>
+                                <div className="w-full flex items-center justify-center flex-nowrap gap-1.5 p-2 border-t border-slate-100 overflow-hidden">
+                                    <button onClick={onOpenReportModal} disabled={!editedImage || isLoading || isReporting} className="flex items-center justify-center text-[10px] max-[340px]:text-[9px] font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-1.5 px-2 max-[340px]:px-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shrink" aria-label="Report an issue with this image">
+                                        <ReportIcon className="w-3.5 h-3.5 shrink-0" />
+                                        <span className="ml-1 shrink overflow-hidden text-ellipsis">{isReporting ? 'Submitting...' : 'Report Issue'}</span>
                                     </button>
-                                    <button onClick={onSave} disabled={!editedImage || isLoading || isSaving} className="flex items-center justify-center text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label={isSaving ? "Saving image" : "Save customized image"}>
+                                    <button onClick={onSave} disabled={!editedImage || isLoading || isSaving} className="flex items-center justify-center text-[10px] max-[340px]:text-[9px] font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-1.5 px-2 max-[340px]:px-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shrink" aria-label={isSaving ? "Saving image" : "Save customized image"}>
                                         {isSaving ? (
                                             <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                <span className="ml-2">Saving...</span>
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                                                <span className="ml-1 shrink overflow-hidden text-ellipsis">Saving...</span>
                                             </>
                                         ) : (
                                             <>
-                                                <SaveIcon />
-                                                <span className="ml-2">Save</span>
+                                                <SaveIcon className="w-3.5 h-3.5 shrink-0" />
+                                                <span className="ml-1 shrink overflow-hidden text-ellipsis">Save</span>
                                             </>
                                         )}
                                     </button>
-                                    <button onClick={onClearAll} className="flex items-center justify-center text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-2 px-3 rounded-lg transition-colors" aria-label="Reset everything">
-                                        <ResetIcon />
-                                        <span className="ml-2">Reset Everything</span>
+                                    <button onClick={onClearAll} className="flex items-center justify-center text-[10px] max-[340px]:text-[9px] font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-1.5 px-2 max-[340px]:px-1.5 rounded-lg transition-colors whitespace-nowrap shrink" aria-label="Reset everything">
+                                        <ResetIcon className="w-3.5 h-3.5 shrink-0" />
+                                        <span className="ml-1 shrink overflow-hidden text-ellipsis">Reset Everything</span>
                                     </button>
                                 </div>
+
                             )}
                         </div>
 
