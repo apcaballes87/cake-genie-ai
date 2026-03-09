@@ -2,6 +2,7 @@
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback, AvailabilitySettings, CartItem, CacheSEOMetadata } from '@/types';
 import { createClient } from '@supabase/supabase-js';
+import { notifyIndexNow } from './indexNowService';
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem, OrderContribution, CakeGenieSavedItem, CustomizationDetails, CakeGenieMerchant, CakeGenieMerchantProduct, MerchantStaff, MerchantPayout, MerchantDashboardStats, MerchantStaffRole } from '@/lib/database.types';
@@ -568,6 +569,11 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
         }
       } else {
         console.log('✅ Analysis result cached successfully with pHash:', pHash, 'slug:', slug);
+
+        // Notify IndexNow participating search engines
+        if (slug) {
+          notifyIndexNow(`https://genie.ph/customizing/${slug}`);
+        }
       }
     } catch (err) {
       console.error('❌ Exception during fire-and-forget cache write:', err);
