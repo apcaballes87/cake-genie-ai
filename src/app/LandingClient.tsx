@@ -13,11 +13,11 @@ import { useCakeCustomization } from '@/contexts/CustomizationContext';
 import { ImageUploader } from '@/components/ImageUploader';
 import { showError, showSuccess, showLoading } from '@/lib/utils/toast';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { BlogPost } from '@/services/supabaseService';
 import { toast } from 'react-hot-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { LANDING_PAGE_IMAGES, COMMON_ASSETS } from '@/constants';
-import { getAllBlogPosts } from '@/data/blogPosts';
 import {
     Search,
     ShoppingBag,
@@ -93,9 +93,10 @@ interface LandingClientProps {
     children?: React.ReactNode;
     popularDesigns?: any[];
     categories?: FeaturedCollectionItem[];
+    blogPosts?: BlogPost[];
 }
 
-const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], categories = [] }) => {
+const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], categories = [], blogPosts = [] }) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
     const [selectedCategory, setSelectedCategory] = useState('All');
@@ -616,17 +617,17 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         {/* --- BLOG SECTION: LATEST TRENDS --- */}
                         <section aria-label="Blog" className="mt-6 md:mt-8">
                             <div className="flex items-center justify-between mb-3">
-                                <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 leading-tight">What are the latest custom cake trends in Cebu?</h2>
+                                <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 leading-tight">Stories, Blogs and News</h2>
                                 <Link href="/blog" className="group flex items-center gap-1 md:gap-2 text-purple-600 font-semibold hover:text-purple-700 transition-colors text-[13px] md:text-base shrink-0">
                                     View all
                                 </Link>
                             </div>
                             <div className="space-y-4">
-                                {[...getAllBlogPosts()]
-                                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                    .slice(0, 3)
-                                    .map((post) => {
-                                        const imageUrl = post.image || post.content.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1] || post.content.match(/!\[.*?\]\((.*?)\)/i)?.[1];
+                                {blogPosts.length === 0 ? (
+                                    <p className="text-gray-500 text-sm">No blog posts available yet.</p>
+                                ) : (
+                                    blogPosts.map((post) => {
+                                        const imageUrl = post.image || post.content?.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1] || post.content?.match(/!\[.*?\]\((.*?)\)/i)?.[1];
                                         return (
                                             <article key={post.slug}>
                                                 <Link
@@ -654,7 +655,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                                 </Link>
                                             </article>
                                         );
-                                    })}
+                                    })
+                                )}
                             </div>
                         </section>
 
