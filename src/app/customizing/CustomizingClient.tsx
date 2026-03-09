@@ -1040,6 +1040,65 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         fetchProductImage();
     }, [product, recentSearchDesign, originalImageData, isImageManagementLoading, hookImageUpload, setIsAnalyzing, clearImages, clearCustomization, analysisResult, analysisId, persistedSlug, setCurrentSlug, setPendingAnalysisData, knownSeoMetadata]);
 
+    // Handle sessionStorage image loading from external site (cakesandmemories.com)
+    useEffect(() => {
+        const loadPendingImage = async () => {
+            try {
+                const pendingImageUrl = sessionStorage.getItem('genie_pending_image_url');
+                const pendingImageName = sessionStorage.getItem('genie_pending_image_name');
+                const pendingImageType = sessionStorage.getItem('genie_pending_image_type');
+                const genieSource = sessionStorage.getItem('genie_source');
+
+                // Only proceed if we have the required data and it's from shopify_cse
+                if (!pendingImageUrl || !pendingImageName || !pendingImageType || genieSource !== 'shopify_cse') {
+                    return;
+                }
+
+                // Clear the sessionStorage keys immediately to prevent re-processing on refresh
+                sessionStorage.removeItem('genie_pending_image_url');
+                sessionStorage.removeItem('genie_pending_image_name');
+                sessionStorage.removeItem('genie_pending_image_type');
+                sessionStorage.removeItem('genie_source');
+
+                // Show loading indicator
+                setIsAnalyzing(true);
+                showInfo("Loading image from shop...");
+
+                // Fetch the blob from the object URL
+                const response = await fetch(pendingImageUrl);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch image');
+                }
+
+                const blob = await response.blob();
+
+                // Create a File object from the blob
+                const file = new File([blob], pendingImageName, {
+                    type: pendingImageType
+                });
+
+                // Load the image using the same flow as regular uploads
+                await hookImageUpload(
+                    file,
+                    (result) => {
+                        setIsAnalyzing(false);
+                        showSuccess("Image loaded successfully!");
+                    },
+                    (error) => {
+                        setIsAnalyzing(false);
+                        showError("Failed to analyze image: " + error.message);
+                    }
+                );
+            } catch (err) {
+                console.error("Failed to load pending image from sessionStorage:", err);
+                setIsAnalyzing(false);
+                showError("Failed to load image from shop.");
+            }
+        };
+
+        loadPendingImage();
+    }, []); // Run once on mount
+
     // Handle "Customize This Design" flow (loading from URL ref) - Shopify/external integrations
     useEffect(() => {
         const refUrl = searchParams.get('ref');
