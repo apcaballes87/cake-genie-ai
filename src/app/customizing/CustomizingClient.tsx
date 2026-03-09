@@ -1044,6 +1044,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     useEffect(() => {
         const loadPendingImage = async () => {
             try {
+                // Wait for image management hook to be ready before proceeding
+                if (isImageManagementLoading) {
+                    return;
+                }
+
                 const pendingImageUrl = sessionStorage.getItem('genie_pending_image_url');
                 const pendingImageName = sessionStorage.getItem('genie_pending_image_name');
                 const pendingImageType = sessionStorage.getItem('genie_pending_image_type');
@@ -1118,7 +1123,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         };
 
         loadPendingImage();
-    }, []); // Run once on mount
+    }, [isImageManagementLoading, hookImageUpload]);
 
     // Handle "Customize This Design" flow (loading from URL ref) - Shopify/external integrations
     useEffect(() => {
