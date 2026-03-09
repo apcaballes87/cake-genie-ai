@@ -1044,12 +1044,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     // Handle image loading from external site (cakesandmemories.com Shopify CSE)
     // Uses URL query params because sessionStorage is per-origin and doesn't survive cross-domain redirects.
     // Expected URL: /customizing?source=shopify_cse&image_url=ENCODED_URL&image_name=cake.jpg&image_type=image/jpeg
+    // NOTE: We read from window.location.search directly (not useSearchParams) because
+    // Next.js can cache/stale the React hook value on subsequent cross-domain navigations.
     useEffect(() => {
         const loadPendingImage = async () => {
             try {
-                // 1. Check URL query params (primary — works cross-domain)
-                const sourceParam = searchParams.get('source');
-                const imageUrlParam = searchParams.get('image_url');
+                // Read directly from the browser URL bar — avoids Next.js searchParams caching
+                const urlParams = new URLSearchParams(window.location.search);
+                const sourceParam = urlParams.get('source');
+                const imageUrlParam = urlParams.get('image_url');
 
                 console.log('[ShopifyCSE] useEffect fired. source=', sourceParam, 'image_url=', imageUrlParam ? imageUrlParam.substring(0, 80) + '...' : null);
 
@@ -1063,7 +1066,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     return;
                 }
 
-                // Prevent duplicate processing (e.g. from router.replace re-triggering the effect)
+                // Prevent duplicate processing
                 if (isLoadingShopifyCseRef.current) {
                     console.log('[ShopifyCSE] Already loading, skipping duplicate call');
                     return;
@@ -1075,8 +1078,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     return;
                 }
 
-                const pendingImageName = searchParams.get('image_name');
-                const pendingImageType = searchParams.get('image_type');
+                const pendingImageName = urlParams.get('image_name');
+                const pendingImageType = urlParams.get('image_type');
 
                 isLoadingShopifyCseRef.current = true;
                 console.log('[ShopifyCSE] Starting image load:', {
@@ -1134,15 +1137,14 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 const file = new File([blob], fileName, { type: fileType });
                 console.log('[ShopifyCSE] File created:', { name: fileName, type: fileType, size: file.size });
 
-                // Clean up URL params so a page refresh won't re-trigger this flow
-                const newParams = new URLSearchParams(searchParams.toString());
-                newParams.delete('source');
-                newParams.delete('image_url');
-                newParams.delete('image_name');
-                newParams.delete('image_type');
+                // Clean up URL params using history API directly (avoids Next.js router cache issues)
+                urlParams.delete('source');
+                urlParams.delete('image_url');
+                urlParams.delete('image_name');
+                urlParams.delete('image_type');
                 const currentPath = window.location.pathname;
-                const cleanUrl = newParams.toString() ? `${currentPath}?${newParams.toString()}` : currentPath;
-                router.replace(cleanUrl);
+                const cleanUrl = urlParams.toString() ? `${currentPath}?${urlParams.toString()}` : currentPath;
+                window.history.replaceState({}, '', cleanUrl);
 
                 console.log('[ShopifyCSE] Calling hookImageUpload...');
                 hookImageUpload(
@@ -1171,7 +1173,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         };
 
         loadPendingImage();
-    }, [searchParams, isImageManagementLoading, hookImageUpload]);
+    }, [isImageManagementLoading, hookImageUpload]);
 
     // Handle "Customize This Design" flow (loading from URL ref) - Shopify/external integrations
     useEffect(() => {
