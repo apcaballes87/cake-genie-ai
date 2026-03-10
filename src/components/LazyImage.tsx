@@ -57,6 +57,8 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   width,
   height,
   unoptimized,
+  fetchPriority,
+  decoding,
   ...props
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -113,6 +115,8 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         sizes={props.sizes || "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"}
         className={`transition-opacity ${priority ? 'duration-0' : 'duration-200'} ${isLoaded || priority ? 'opacity-100' : 'opacity-0'} ${isFilling ? 'object-cover' : ''} ${imageClassName || ''}`}
         unoptimized={useUnoptimized}
+        fetchPriority={fetchPriority}
+        decoding={decoding}
         {...props}
       />
     </div>
