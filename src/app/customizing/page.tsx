@@ -3,6 +3,12 @@ import { Suspense } from 'react'
 import CustomizingClient from './CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 
+// Shopify CSE handoff: image comes from external URL via query param
+// Read searchParams to enable SSR-side preload of the hero image
+interface CustomizingPageProps {
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}
+
 export const revalidate = 3600; // ISR: revalidate every hour
 
 export const metadata: Metadata = {
@@ -36,7 +42,16 @@ export const metadata: Metadata = {
     },
 }
 
-export default async function CustomizingPage() {
+export default async function CustomizingPage(props: CustomizingPageProps) {
+    // Await searchParams for Next.js 15+ compatibility
+    const searchParams = await props.searchParams;
+    const imageUrl = typeof searchParams.image_url === 'string' ? searchParams.image_url : null;
+    const source = typeof searchParams.source === 'string' ? searchParams.source : null;
+
+    // Only preload for Shopify CSE handoff - external images go through proxy
+    const isShopifyCse = source === 'shopify_cse' && imageUrl;
+    const proxyImageUrl = isShopifyCse ? `/api/proxy-image?url=${encodeURIComponent(imageUrl)}` : null;
+
     const jsonLd = {
         '@context': 'https://schema.org',
         '@type': 'CollectionPage',
@@ -56,9 +71,21 @@ export default async function CustomizingPage() {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
             />
+            {/* SSR preload for Shopify CSE hero image - starts fetching before React hydrates */}
+            {proxyImageUrl && (
+                <link
+                    rel="preload"
+                    as="image"
+                    href={proxyImageUrl}
+                    crossOrigin="anonymous"
+                />
+            )}
             {/* Client-side customization tool — uses root-level CustomizationProvider from Providers.tsx */}
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
-                <CustomizingClient />
+                <CustomizingClient
+                    // Pass the preloading image URL to client for immediate use
+                    preloadImageUrl={proxyImageUrl}
+                />
             </Suspense>
         </>
     )

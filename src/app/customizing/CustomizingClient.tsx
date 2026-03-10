@@ -381,9 +381,11 @@ interface CustomizingClientProps {
     currentSlug?: string | null;
     seoContentSlot?: React.ReactNode;
     initialCaption?: string;
+    // Preloaded image URL from SSR for Shopify CSE handoff - enables instant display
+    preloadImageUrl?: string | null;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, initialCaption }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, initialCaption, preloadImageUrl }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const params = useParams();
@@ -440,6 +442,16 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [selectedAiPromptTemplate, setSelectedAiPromptTemplate] = useState<ParsedAiChatPromptTemplate | null>(null);
     const [selectedAiPromptColor, setSelectedAiPromptColor] = useState('');
     const [showAiPromptColorPicker, setShowAiPromptColorPicker] = useState(false);
+
+    // Preloaded image from SSR for Shopify CSE handoff - shows immediately while processing
+    const [preloadedHeroImage, setPreloadedHeroImage] = useState<string | null>(preloadImageUrl || null);
+
+    // Sync preloadImageUrl to state on mount (from SSR)
+    useEffect(() => {
+        if (preloadImageUrl && !preloadedHeroImage) {
+            setPreloadedHeroImage(preloadImageUrl);
+        }
+    }, [preloadImageUrl]);
 
     // Related Designs Pagination State
     const [displayedRelatedDesigns, setDisplayedRelatedDesigns] = useState<RelatedDesign[]>(relatedDesigns || []);
@@ -2573,6 +2585,29 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     )}
                                     {!originalImagePreview && !isAnalyzing && !product?.image_url && !recentSearchDesign?.original_image_url && <div className="absolute inset-0 flex items-center justify-center text-center text-slate-400 py-16"><ImageIcon /><p className="mt-2 font-semibold">Your creation will appear here</p></div>}
 
+                                    {/* SSR Preloaded Image from Shopify CSE - shows immediately while processing */}
+                                    {!originalImagePreview && preloadedHeroImage && (
+                                        <figure className="absolute inset-0 w-full h-full">
+                                            <LazyImage
+                                                src={preloadedHeroImage}
+                                                alt="Loading cake design..."
+                                                title="Loading your cake design"
+                                                fill
+                                                sizes="(max-width: 768px) 100vw, 50vw"
+                                                imageClassName="object-contain rounded-lg"
+                                                priority
+                                                fetchPriority="high"
+                                                decoding="async"
+                                                unoptimized
+                                            />
+                                            {isAnalyzing && (
+                                                <figcaption className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
+                                                    Analyzing your design...
+                                                </figcaption>
+                                            )}
+                                        </figure>
+                                    )}
+
                                     {/* SSR / Initial Load Fallback Image using Props */}
                                     {!originalImagePreview && (product?.image_url || recentSearchDesign?.original_image_url) && (
                                         <figure className="absolute inset-0 w-full h-full">
@@ -2584,6 +2619,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                 sizes="(max-width: 768px) 100vw, 50vw"
                                                 imageClassName="object-contain rounded-lg"
                                                 priority
+                                                fetchPriority="high"
+                                                decoding="async"
                                                 unoptimized
                                             />
                                             {initialCaption && (
@@ -2621,6 +2658,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                 sizes="(max-width: 768px) 100vw, 50vw"
                                                 imageClassName="object-contain rounded-lg"
                                                 priority
+                                                fetchPriority="high"
+                                                decoding="async"
                                                 unoptimized
                                             />
 
