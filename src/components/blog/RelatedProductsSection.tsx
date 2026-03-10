@@ -1,16 +1,19 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useState, useEffect, useRef } from 'react';
-import { ProductCard } from '@/components/ProductCard';
+import { ProductCard, type ProductCardProps } from '@/components/ProductCard';
 import Masonry from 'react-masonry-css';
 import { getRelatedProductsByKeywords } from '@/services/supabaseService';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { BlogUploadButton } from './BlogUploadButton';
+import { resolveBlogCommercialLinks } from '@/lib/utils/blogCommercialLinks';
 
 interface RelatedProductsProps {
-    initialProducts: any[];
+    initialProducts: ProductCardProps[];
     keyword: string;
     slug: string;
+    postTitle?: string;
     /** Optional contextual sentence that bridges the blog content to the designs grid */
     intro?: string;
 }
@@ -19,14 +22,16 @@ export const RelatedProductsSection: React.FC<RelatedProductsProps> = ({
     initialProducts,
     keyword,
     slug,
+    postTitle,
     intro,
 }) => {
-    const [products, setProducts] = useState<any[]>(initialProducts);
+    const [products, setProducts] = useState<ProductCardProps[]>(initialProducts);
     const [offset, setOffset] = useState(8);
     const [hasMore, setHasMore] = useState(initialProducts.length >= 8);
     const [isLoading, setIsLoading] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
     const sectionRef = useRef<HTMLDivElement>(null);
+    const commercialLinks = resolveBlogCommercialLinks({ title: postTitle, slug, keyword });
 
     // Fade-in when section scrolls into view
     useEffect(() => {
@@ -77,9 +82,17 @@ export const RelatedProductsSection: React.FC<RelatedProductsProps> = ({
             <div className="mb-12 p-8 bg-linear-to-br from-pink-50 via-purple-50 to-indigo-50 rounded-3xl border border-purple-100 shadow-sm">
                 <div className="text-center max-w-2xl mx-auto">
                     <p className="text-gray-700 mb-6 font-medium text-lg leading-relaxed">
-                        Have a different cake design in mind? Upload a photo and we'll give you a price estimate in seconds!
+                        Have a different cake design in mind? Upload a photo and we&apos;ll give you a price estimate in seconds!
                     </p>
-                    <BlogUploadButton />
+                    <div className="flex flex-col items-center gap-3">
+                        <BlogUploadButton />
+                        <Link
+                            href="/collections"
+                            className="inline-flex items-center justify-center rounded-[0.875rem] border border-purple-200 bg-white px-5 py-3 text-sm font-bold text-purple-700 shadow-sm transition-all hover:bg-purple-50 hover:text-purple-800 hover:shadow-md lg:px-7 lg:py-3.5 lg:text-base"
+                        >
+                            Browse Cakes Collections
+                        </Link>
+                    </div>
                 </div>
             </div>
 
@@ -95,14 +108,12 @@ export const RelatedProductsSection: React.FC<RelatedProductsProps> = ({
                             <span>🎂</span>
                             <span>Relevant Cake Designs</span>
                         </h2>
-                        {hasMore && (
-                            <a
-                                href={`/collections?search=${encodeURIComponent(keyword)}`}
-                                className="text-sm text-purple-600 hover:text-purple-800 font-semibold shrink-0"
-                            >
-                                View all
-                            </a>
-                        )}
+                        <Link
+                            href={commercialLinks.primary.href}
+                            className="text-sm text-purple-600 hover:text-purple-800 font-semibold shrink-0"
+                        >
+                            {commercialLinks.primary.label}
+                        </Link>
                     </div>
                     {intro && (
                         <p className="text-gray-500 text-sm leading-relaxed max-w-2xl">

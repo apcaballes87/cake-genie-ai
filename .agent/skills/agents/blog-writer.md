@@ -200,7 +200,10 @@ VALUES (
 4. **SEO Best Practices**:
    - Primary keyword in title, first paragraph, and H2s
    - Natural keyword distribution (avoid stuffing)
-   - Internal links to relevant Genie.ph pages
+   - Internal links to relevant Genie.ph pages using descriptive anchor text, not generic phrases like "click here" or "view more"
+   - Map each post topic to a strong Genie.ph destination: prefer `/collections/[category]` when confidently relevant, otherwise use `/customizing/category/[keyword]`
+   - Add at least one in-article commercial CTA module that points readers toward an order-ready Genie.ph destination
+   - For broader buyer-intent posts without a confident theme/category match, use `/collections/birthday` as the broad commercial destination and `/how-to-order` as the process/support CTA
    - External links to authoritative sources
 
 5. **Local Relevance**:
@@ -232,6 +235,8 @@ Before finalizing any blog post:
 - [ ] At least 1,500 words
 - [ ] Proper heading hierarchy (H2, H3)
 - [ ] Internal links to Genie.ph pages
+- [ ] Internal links use descriptive anchor text and point to strong commercial destinations
+- [ ] At least one in-article commercial CTA module is included
 - [ ] External links to authoritative sources researched
 - [ ] Images have alt text
 - [ ] No AI-sounding phrases (that's what humanizer is for!)

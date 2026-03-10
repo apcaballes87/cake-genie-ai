@@ -180,7 +180,7 @@ export const ProductCard = ({
                         title={title}
                         fill
                         sizes="(max-width: 490px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 17vw"
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        imageClassName="object-cover group-hover:scale-105 transition-transform duration-500 genie-internal-image"
                         priority={priority}
                         loading={priority ? "eager" : "lazy"}
                     />
