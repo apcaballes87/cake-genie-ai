@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Loader2, AlertTriangleIcon } from './icons';
 import { ShareButton } from './ShareButton';
 import { CakeInfoUI } from '@/types';
@@ -22,18 +22,35 @@ interface StickyAddToCartBarProps {
     onWarningClick?: () => void;
     availability?: AvailabilityType;
     className?: string;
+    hasPendingDesignChanges?: boolean;
+    onApplyChangesClick?: () => void;
+    isApplyingChanges?: boolean;
+    applyChangesLabel?: string;
 }
 
-const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({ price, isLoading, isAdding, error, onAddToCartClick, onShareClick, isSharing, canShare, isAnalyzing, cakeInfo, warningMessage, warningDescription, onWarningClick, availability, className }) => {
-    const [show, setShow] = useState(false);
-
-    useEffect(() => {
-        if (price !== null || error || isAnalyzing || warningMessage) {
-            setShow(true);
-        } else {
-            setShow(false);
-        }
-    }, [price, error, isAnalyzing, warningMessage]);
+const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
+    price,
+    isLoading,
+    isAdding,
+    error,
+    onAddToCartClick,
+    onShareClick,
+    isSharing,
+    canShare,
+    isAnalyzing,
+    cakeInfo,
+    warningMessage,
+    warningDescription,
+    onWarningClick,
+    availability,
+    className,
+    hasPendingDesignChanges = false,
+    onApplyChangesClick,
+    isApplyingChanges = false,
+    applyChangesLabel = 'Apply Changes',
+}) => {
+    const show = Boolean(price !== null || error || isAnalyzing || warningMessage || hasPendingDesignChanges || isApplyingChanges);
+    const showApplyChangesButton = (hasPendingDesignChanges || isApplyingChanges) && !!onApplyChangesClick;
 
 
     const renderPrice = () => {
@@ -130,16 +147,26 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({ pric
                         <ShareButton
                             onClick={onShareClick}
                             isLoading={isSharing}
-                            disabled={!canShare}
+                            disabled={!canShare || showApplyChangesButton || isApplyingChanges}
                             className="flex-1"
                         />
-                        <button
-                            onClick={onAddToCartClick}
-                            disabled={isLoading || !!error || price === null || isAdding || isAnalyzing}
-                            className="flex-1 bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md flex justify-center items-center"
-                        >
-                            {isAdding ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Adding...</> : 'Add to Cart'}
-                        </button>
+                        {showApplyChangesButton ? (
+                            <button
+                                onClick={onApplyChangesClick}
+                                disabled={isApplyingChanges || isAnalyzing}
+                                className="flex-1 bg-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:bg-purple-700 hover:shadow-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md flex justify-center items-center"
+                            >
+                                {isApplyingChanges ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Updating...</> : applyChangesLabel}
+                            </button>
+                        ) : (
+                            <button
+                                onClick={onAddToCartClick}
+                                disabled={isLoading || !!error || price === null || isAdding || isAnalyzing}
+                                className="flex-1 bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md flex justify-center items-center"
+                            >
+                                {isAdding ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Adding...</> : 'Add to Cart'}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

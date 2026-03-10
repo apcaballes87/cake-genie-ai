@@ -39,6 +39,7 @@ import ShareModal from '../../components/ShareModal';
 import { CartItemDetails } from '../../types';
 import { buildKnownSeoMetadata } from './knownSeoMetadata';
 import { getRefLoadStrategy, parsePersistedAnalysis } from './refLoadStrategy';
+import { shouldLoadPropDesign, shouldLogShopifyCseMount } from './customizingClientGuards';
 
 
 // Hooks
@@ -468,6 +469,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const mainImageContainerRef = useRef<HTMLDivElement>(null);
     const isLoadingDesignRef = useRef(false); // Guard against duplicate analysis calls
     const isLoadingShopifyCseRef = useRef(false); // Guard against duplicate Shopify CSE loads
+    const isResettingRef = useRef(false); // Guard against reloading the current design during Reset Everything
     const lastProcessedDesignRefUrl = useRef<string | null>(null);
     const aiChatContainerRef = useRef<HTMLFormElement>(null);
     const aiChatInputRef = useRef<HTMLInputElement>(null);
@@ -859,11 +861,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     // Handle product prop loading (from SEO-friendly routes like /shop/[merchant]/[product]/customize)
     // AND recent search designs (from /customizing/[slug])
     useEffect(() => {
-        // Don't load product/recent design if a Shopify CSE image handoff is pending —
-        // the ShopifyCSE effect below owns the image lifecycle in that case.
-        if (new URLSearchParams(window.location.search).get('source') === 'shopify_cse') {
-            return;
-        }
+        const urlParams = new URLSearchParams(window.location.search);
+        const sourceParam = urlParams.get('source');
 
         // Unify the data source (Product Page vs Customizing Page)
         const targetSlug = product?.slug || recentSearchDesign?.slug || recentSearchDesign?.p_hash;
@@ -871,7 +870,18 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         const targetPHash = product?.p_hash || recentSearchDesign?.p_hash;
         const targetTitle = product?.title || recentSearchDesign?.seo_title || 'Design';
 
-        // If no image URL to load, skip
+        if (!shouldLoadPropDesign({
+            sourceParam,
+            isResetting: isResettingRef.current,
+            targetImageUrl,
+            targetSlug,
+            persistedSlug,
+            hasLoadedImage: !!originalImageData,
+            isLoadingDesign: isLoadingDesignRef.current,
+        })) {
+            return;
+        }
+
         if (!targetImageUrl) {
             return;
         }
@@ -879,21 +889,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         // CRITICAL: Set the current slug FIRST - this will automatically clear stale images
         // if the slug changed from a previously persisted session
         setCurrentSlug(targetSlug || null);
-
-        // Check if we need to load this content:
-        // 1. If it's a different item than what we tracked locally (slug/hash mismatch)
-        // 2. OR if we haven't tracked any item yet AND we don't have image data (initial load)
-        // Use currentSlug from context (persisted) for comparison, not just the local ref
-        const isNewItem = targetSlug !== persistedSlug;
-        const hasLoadedImage = !!originalImageData;
-
-        if (!isNewItem && hasLoadedImage) {
-            return;
-        }
-
-        if (isLoadingDesignRef.current) {
-            return;
-        }
 
         isLoadingDesignRef.current = true;
         console.log(`🏪 Loading item from props: ${targetTitle}`);
@@ -1068,7 +1063,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 const sourceParam = urlParams.get('source');
                 const imageUrlParam = urlParams.get('image_url');
 
-                console.log('[ShopifyCSE] useEffect fired. source=', sourceParam, 'image_url=', imageUrlParam ? imageUrlParam.substring(0, 80) + '...' : null);
+                if (shouldLogShopifyCseMount(sourceParam, imageUrlParam)) {
+                    console.log('[ShopifyCSE] useEffect fired. source=', sourceParam, 'image_url=', imageUrlParam ? imageUrlParam.substring(0, 80) + '...' : null);
+                }
 
                 // Not a Shopify CSE handoff — bail
                 if (sourceParam !== 'shopify_cse') {
@@ -1635,6 +1632,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const isSaving = false;
 
     const onClearAll = () => {
+        isResettingRef.current = true;
         clearImages();
         clearCustomization();
         setActiveTab('original');
@@ -1764,6 +1762,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, [editedImage, previousImageData, sourceImageData, lastGenerationInfoRef, mainToppers, supportElements, cakeMessages, icingDesign, addOnPricing]);
 
     const onAddToCart = async () => {
+        if (hasPendingVisualChanges) {
+            showInfo('Apply your design changes first so the preview matches what you add to cart.');
+            return;
+        }
+
         if (!finalPrice || !cakeInfo) return;
         setIsAddingToCart(true);
         try {
@@ -1954,10 +1957,42 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         return photoToppers.some(checkItemChanged) || photoSupport.some(checkItemChanged);
     }, [mainToppers, supportElements, checkItemChanged]);
 
+    const hasPendingVisualChanges = useMemo(() => {
+        return hasIcingChanges || hasMessageChanges || hasToppersChanges || hasPhotoChanges;
+    }, [hasIcingChanges, hasMessageChanges, hasToppersChanges, hasPhotoChanges]);
+
     const hasToyTopper = useMemo(() => {
         if (!mainToppers || !supportElements) return false;
         return [...mainToppers, ...supportElements].some(t => t.isEnabled && (t.type === 'toy' || t.type === 'figurine'));
     }, [mainToppers, supportElements]);
+
+    const restoreOriginalCakeMessages = useCallback(() => {
+        const originalMessages = analysisResult?.cake_messages?.map((m: any, index: number) => ({
+            id: `msg-${index}`,
+            type: m.type,
+            text: m.text,
+            position: m.position,
+            color: m.color,
+            x: m.x,
+            y: m.y,
+            isEnabled: true,
+            price: 0,
+            originalMessage: m
+        })) || [];
+
+        onCakeMessageChange(originalMessages as CakeMessageUI[]);
+    }, [analysisResult, onCakeMessageChange]);
+
+    const handleApplyPendingDesignChanges = useCallback(() => {
+        if (isUpdatingDesign || !originalImageData || !hasPendingVisualChanges) {
+            return;
+        }
+
+        void onUpdateDesign();
+        setActiveCustomization(null);
+        setActiveTopperSection(null);
+        setSelectedItem(null);
+    }, [hasPendingVisualChanges, isUpdatingDesign, onUpdateDesign, originalImageData]);
 
     // Show icing guide when image preview is available (before analysis completes)
     useEffect(() => {
@@ -2450,7 +2485,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setActiveTab('customized');
     };
 
-    const showStickyBar = finalPrice !== null || !!basePriceError || isAnalyzing || !!warningMessage || isSafetyFallback;
+    const showStickyBar = finalPrice !== null || !!basePriceError || isAnalyzing || !!warningMessage || isSafetyFallback || hasPendingVisualChanges || isUpdatingDesign;
 
     return (
         <>
@@ -2891,27 +2926,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
 
-                                    {/* Small Apply button in lower right corner - only show when there are changes */}
-                                    {(hasIcingChanges || isUpdatingDesign) && (
-                                        <button
-                                            onClick={() => onUpdateDesign()}
-                                            disabled={isUpdatingDesign || !originalImageData}
-                                            className="absolute bottom-4 right-4 bg-purple-600 text-purple-50 font-semibold py-1.5 px-3.5 rounded-lg shadow-md hover:shadow-lg hover:bg-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center gap-1.5 text-sm"
-                                            title="Apply icing color changes"
-                                        >
-                                            {isUpdatingDesign ? (
-                                                <>
-                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                    Updating...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <MagicSparkleIcon className="w-3.5 h-3.5" />
-                                                    Apply
-                                                </>
-                                            )}
-                                        </button>
-                                    )}
+
 
                                     {/* Action Buttons - Moved from footer to main image container */}
                                     <div className="w-full flex items-center justify-end gap-1.5 pt-3 px-1.5 pb-2 mt-auto border-t border-slate-100 flex-nowrap overflow-hidden">
@@ -2972,7 +2987,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                         {/* AI Customization Chat - Moved to separate container below hero image */}
                         {cakeInfo && !isAnalyzing && !isRejectionError && (
-                            <div className="w-full mt-0 bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 md:hidden">
+                            <div className="w-full mt-0 bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 md:hidden relative z-30">
                                 <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">AI Customization Chat</h3>
                                 <form onSubmit={handleChatSubmit} className="relative" ref={aiChatContainerRef}>
                                     {selectedAiPromptTemplate ? (
@@ -3040,7 +3055,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         />
                                     )}
                                     {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isUpdatingDesign && (
-                                        <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                                        <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
                                             <div className="max-h-72 overflow-y-auto py-1">
                                                 {filteredAiChatPromptSuggestions.map(({ suggestion, template }, index) => (
                                                     <button
@@ -3503,7 +3518,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 <>
                                     {/* AI Customization Chat */}
                                     {cakeInfo && !isAnalyzing && !isRejectionError && (
-                                        <div className="w-full hidden md:block bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
+                                        <div className="w-full hidden md:block bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 relative z-30">
                                             <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">AI Customization Chat</h3>
                                             <form onSubmit={handleChatSubmit} className="relative" ref={aiChatContainerRef}>
                                                 {selectedAiPromptTemplate ? (
@@ -3571,7 +3586,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                     />
                                                 )}
                                                 {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isUpdatingDesign && (
-                                                    <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                                                    <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
                                                         <div className="max-h-72 overflow-y-auto py-1">
                                                             {filteredAiChatPromptSuggestions.map(({ suggestion, template }, index) => (
                                                                 <button
@@ -4066,22 +4081,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 <CustomizationBottomSheet
                     isOpen={activeCustomization !== null}
                     onClose={() => {
-                        // Revert cake messages if closing without applying
-                        if (activeCustomization === 'messages' && !isUpdatingDesign) {
-                            const originalMessages = analysisResult?.cake_messages?.map((m: any, index: number) => ({
-                                id: `msg-${index}`,
-                                type: m.type,
-                                text: m.text,
-                                position: m.position,
-                                color: m.color,
-                                x: m.x,
-                                y: m.y,
-                                isEnabled: true,
-                                price: 0,
-                                originalMessage: m
-                            })) || [];
-                            onCakeMessageChange(originalMessages as CakeMessageUI[]);
-                        }
                         setActiveCustomization(null);
                         setActiveTopperSection(null);
                         setSelectedItem(null);
@@ -4107,96 +4106,22 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     Apply Changes
                                 </button>
                             ) : null
-                        ) : activeCustomization === 'icing' ? (
-                            (hasIcingChanges || isUpdatingDesign) ? (
+                        ) : activeCustomization === 'icing' || activeCustomization === 'messages' || activeCustomization === 'toppers' || activeCustomization === 'photos' ? (
+                            (hasPendingVisualChanges || isUpdatingDesign) ? (
                                 <button
-                                    onClick={() => {
-                                        onUpdateDesign();
-                                        setActiveCustomization(null);
-                                    }}
+                                    onClick={handleApplyPendingDesignChanges}
                                     disabled={isUpdatingDesign || !originalImageData}
                                     className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     {isUpdatingDesign ? (
                                         <>
                                             <Loader2 className="w-5 h-5 animate-spin" />
-                                            Updating...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <MagicSparkleIcon className="w-5 h-5" />
-                                            Apply Changes
-                                        </>
-                                    )}
-                                </button>
-                            ) : null
-                        ) : activeCustomization === 'messages' ? (
-                            hasMessageChanges ? (
-                                <button
-                                    onClick={() => {
-                                        onUpdateDesign();
-                                        setActiveCustomization(null);
-                                        setSelectedItem(null);
-                                    }}
-                                    disabled={isUpdatingDesign}
-                                    className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                    {isUpdatingDesign ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 animate-spin" />
                                             Updating Design...
                                         </>
                                     ) : (
                                         <>
                                             <MagicSparkleIcon className="w-5 h-5" />
-                                            Apply Changes
-                                        </>
-                                    )}
-                                </button>
-                            ) : null
-
-                        ) : activeCustomization === 'toppers' ? (
-                            (hasToppersChanges || isUpdatingDesign) ? (
-                                <button
-                                    onClick={() => {
-                                        onUpdateDesign();
-                                        setActiveCustomization(null);
-                                    }}
-                                    disabled={isUpdatingDesign}
-                                    className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                    {isUpdatingDesign ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                            Updating Design...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <MagicSparkleIcon className="w-5 h-5" />
-                                            Apply Changes
-                                        </>
-                                    )}
-                                </button>
-                            ) : null
-                        ) : activeCustomization === 'photos' ? (
-                            (hasPhotoChanges || isUpdatingDesign) ? (
-                                <button
-                                    onClick={() => {
-                                        onUpdateDesign();
-                                        setActiveCustomization(null);
-                                    }}
-                                    disabled={isUpdatingDesign}
-                                    className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                    {isUpdatingDesign ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                            Updating Design...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <MagicSparkleIcon className="w-5 h-5" />
-                                            Apply Changes
+                                            Apply All Changes
                                         </>
                                     )}
                                 </button>
@@ -4231,10 +4156,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                     dripPrice: icingDesign.dripPrice,
                                                     gumpasteBaseBoardPrice: icingDesign.gumpasteBaseBoardPrice
                                                 });
-                                                // Trigger re-generation immediately
-                                                onUpdateDesign();
                                                 setSelectedItem(null);
-                                                setActiveCustomization(null);
                                             }
                                         }}
                                         className="text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors flex items-center gap-1"
@@ -4374,16 +4296,33 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     </div>
 
                     <div className={activeCustomization === 'messages' ? 'block' : 'hidden'}>
-                        <CakeMessagesOptions
-                            cakeMessages={cakeMessages}
-                            markerMap={markerMap}
-                            onItemClick={handleListItemClick}
-                            addCakeMessage={addCakeMessage}
-                            updateCakeMessage={updateCakeMessage}
-                            removeCakeMessage={removeCakeMessage}
-                            selectedMessageId={selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'message' ? selectedItem.id : undefined}
-                            cakeType={cakeInfo?.type}
-                        />
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center gap-3">
+                                <p className="text-xs text-slate-500">Edit your cake message text and color, then update the design once when you're ready.</p>
+                                {hasMessageChanges && (
+                                    <button
+                                        onClick={() => {
+                                            restoreOriginalCakeMessages();
+                                            setSelectedItem(null);
+                                        }}
+                                        className="text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors flex items-center gap-1 shrink-0"
+                                    >
+                                        <ResetIcon className="w-3 h-3" />
+                                        Revert
+                                    </button>
+                                )}
+                            </div>
+                            <CakeMessagesOptions
+                                cakeMessages={cakeMessages}
+                                markerMap={markerMap}
+                                onItemClick={handleListItemClick}
+                                addCakeMessage={addCakeMessage}
+                                updateCakeMessage={updateCakeMessage}
+                                removeCakeMessage={removeCakeMessage}
+                                selectedMessageId={selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'message' ? selectedItem.id : undefined}
+                                cakeType={cakeInfo?.type}
+                            />
+                        </div>
                     </div>
 
                     <div className={activeCustomization === 'toppers' ? 'block' : 'hidden'}>
@@ -4476,13 +4415,17 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     onAddToCartClick={onAddToCart}
                     onShareClick={onShare}
                     isSharing={isSharing}
-                    canShare={!!analysisResult}
+                    canShare={!!analysisResult && !hasPendingVisualChanges && !isUpdatingDesign}
                     isAnalyzing={isAnalyzing}
                     cakeInfo={cakeInfo}
                     warningMessage={isSafetyFallback ? "AI editing disabled for adult-themed content. Your design changes will still be saved." : warningMessage}
                     warningDescription={warningDescription}
                     onWarningClick={warningMessage && !isSafetyFallback ? () => openTopperSheet() : undefined}
                     availability={availabilityType}
+                    hasPendingDesignChanges={hasPendingVisualChanges}
+                    onApplyChangesClick={handleApplyPendingDesignChanges}
+                    isApplyingChanges={isUpdatingDesign}
+                    applyChangesLabel="Apply Design Changes"
                 />
                 <ReportModal
                     isOpen={isReportModalOpen}

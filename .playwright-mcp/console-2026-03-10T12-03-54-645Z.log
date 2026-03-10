@@ -83,3 +83,22 @@ useAuth must be used within AuthProvider
 [ 2667992ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
 [ 2668024ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
 [ 2668024ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[ 2846122ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[ 2846165ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[ 2846165ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[ 3712448ms] [ERROR] The final argument passed to %s changed size between renders. The order and size of this array must remain constant.
+
+Previous: %s
+Incoming: %s useEffect [1199, , false, ] [1199, , false, , false, false] @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:3117
+[ 3729275ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[ 3729275ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[ 3729275ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[ 4194332ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[ 4194332ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[ 4194332ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[ 5110033ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[ 5110033ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[ 5110033ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[ 5332311ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[ 5332346ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[ 5332346ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
