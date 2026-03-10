@@ -1,16 +1,12 @@
-import { Metadata } from 'next'
 import { Suspense } from 'react'
 import ForgotPasswordClient from './ForgotPasswordClient'
 import { Loader2 } from '@/components/icons'
+import { buildNoIndexPageMetadata } from '@/lib/utils/metadata'
 
-export const metadata: Metadata = {
-    title: 'Forgot Password | Genie.ph',
+export const metadata = buildNoIndexPageMetadata({
+    title: 'Forgot Password',
     description: 'Reset your Cake Genie account password. Enter your email to receive a password reset link.',
-    robots: {
-        index: false,
-        follow: false,
-    },
-}
+})
 
 function ForgotPasswordFallback() {
     return (

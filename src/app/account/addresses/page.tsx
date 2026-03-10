@@ -1,12 +1,12 @@
-import { Metadata } from 'next'
 import { Suspense } from 'react'
 import AddressesClient from './AddressesClient'
 import { Loader2 } from '@/components/icons'
+import { buildNoIndexPageMetadata } from '@/lib/utils/metadata'
 
-export const metadata: Metadata = {
-    title: 'My Addresses | Genie.ph',
+export const metadata = buildNoIndexPageMetadata({
+    title: 'My Addresses',
     description: 'Manage your saved delivery addresses for faster checkout.',
-}
+})
 
 function AddressesFallback() {
     return (

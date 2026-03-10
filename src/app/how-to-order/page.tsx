@@ -1,13 +1,11 @@
-import { Metadata } from 'next'
 import HowToOrderClient from './HowToOrderClient'
+import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
 
-export const metadata: Metadata = {
-    title: 'How to Order Custom Cakes Online in Cebu | Genie.ph',
-    description: 'Learn how to order custom cakes with Genie.ph. 3 simple steps: Search/Upload, Customize with AI, and Order.',
-    alternates: {
-        canonical: 'https://genie.ph/how-to-order',
-    },
-}
+export const metadata = buildMarketingPageMetadata({
+    title: 'How to Order Custom Cakes Online in Cebu',
+    description: 'Learn how to order custom cakes with Genie.ph in three simple steps: search or upload a design, customize it with AI, and place your order online.',
+    canonicalPath: 'https://genie.ph/how-to-order',
+})
 
 export default function HowToOrderPage() {
     return <HowToOrderClient />

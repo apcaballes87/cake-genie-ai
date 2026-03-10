@@ -138,21 +138,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const data = comparisons[slug]
 
     if (!data) {
-        return { title: 'Comparison Not Found' }
+        return { title: { absolute: 'Comparison Not Found | Genie.ph' } }
     }
 
+    const pageTitle = data.metaTitle.includes('Genie.ph')
+        ? data.metaTitle
+        : `${data.metaTitle} | Genie.ph`
+
     return {
-        title: data.metaTitle,
+        title: { absolute: pageTitle },
         description: data.metaDescription,
         alternates: {
             canonical: `https://genie.ph/compare/${slug}`,
         },
         openGraph: {
-            title: data.metaTitle,
+            title: pageTitle,
             description: data.metaDescription,
             url: `https://genie.ph/compare/${slug}`,
             siteName: 'Genie.ph',
             type: 'article',
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: pageTitle,
+            description: data.metaDescription,
         },
     }
 }

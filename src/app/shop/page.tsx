@@ -5,7 +5,7 @@ import { CakeGenieMerchant } from '@/lib/database.types';
 
 // Static metadata for SEO
 export const metadata: Metadata = {
-    title: 'Shop Custom Cakes from Cebu Bakeshops | Genie.ph',
+    title: { absolute: 'Shop Custom Cakes from Cebu Bakeshops | Genie.ph' },
     description: 'Discover amazing bakeshops and order custom cakes from verified partners in Cebu. Find the perfect cake for any occasion.',
     keywords: 'cake shop, bakery, custom cakes, Cebu bakeshops, order cakes online, Genie.ph',
     alternates: {

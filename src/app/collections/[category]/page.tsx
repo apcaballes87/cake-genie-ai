@@ -1,4 +1,4 @@
-import { Metadata, ResolvingMetadata } from 'next'
+import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getDesignsByKeyword, getCollectionBySlug } from '@/services/supabaseService'
 import CategoryClient from './CategoryClient'
@@ -10,8 +10,7 @@ type Props = {
 }
 
 export async function generateMetadata(
-    { params }: Props,
-    parent: ResolvingMetadata
+    { params }: Props
 ): Promise<Metadata> {
     const { category } = await params
 
@@ -34,7 +33,7 @@ export async function generateMetadata(
     }
 
     return {
-        title: `${title} Cake Ideas & Designs | Genie.ph`,
+        title: { absolute: `${title} Cake Ideas & Designs | Genie.ph` },
         description: desc,
         alternates: {
             canonical: `https://genie.ph/collections/${category}`,
@@ -44,6 +43,11 @@ export async function generateMetadata(
             description: desc,
             url: `https://genie.ph/collections/${category}`,
             type: 'website',
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: `${title} Cake Ideas & Designs | Genie.ph`,
+            description: desc,
         },
     }
 }
@@ -55,7 +59,7 @@ export default async function CategoryPage({ params }: Props) {
     const { data: collection } = await getCollectionBySlug(category);
 
     let readableTitle = collection?.name;
-    let description = collection?.description || null;
+    const description = collection?.description || null;
 
     if (!readableTitle) {
         readableTitle = category.split('-').join(' ');

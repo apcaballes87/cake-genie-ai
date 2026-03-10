@@ -1,17 +1,11 @@
-import { Metadata } from 'next'
 import ReviewsClient from './ReviewsClient'
+import { buildNoIndexPageMetadata } from '@/lib/utils/metadata'
 
-export const metadata: Metadata = {
-    title: 'Customer Reviews — Cebu Cakes | Genie.ph',
-    description: 'Read reviews and testimonials from our happy customers.',
-    robots: {
-        index: false,
-        follow: true,
-    },
-    alternates: {
-        canonical: 'https://genie.ph/reviews',
-    },
-}
+export const metadata = buildNoIndexPageMetadata({
+    title: 'Customer Reviews and Testimonials',
+    description: 'Read reviews and testimonials from customers who ordered custom cakes through Genie.ph.',
+    follow: true,
+})
 
 export default function ReviewsPage() {
     return <ReviewsClient />

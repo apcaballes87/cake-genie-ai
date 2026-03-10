@@ -1,16 +1,14 @@
-import { Metadata } from 'next'
 import { getDesignCategories, getAllRecentDesigns } from '@/services/supabaseService'
 import CollectionsClient from './CollectionsClient'
+import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
-export const metadata: Metadata = {
-    title: 'Browse Custom Cake Designs by Category | Genie.ph',
+export const metadata = buildMarketingPageMetadata({
+    title: 'Browse Custom Cake Designs by Category',
     description: 'Browse thousands of custom cake designs organized by category. From birthday cakes to weddings, find the perfect design and get instant AI pricing.',
-    alternates: {
-        canonical: 'https://genie.ph/collections',
-    },
-}
+    canonicalPath: 'https://genie.ph/collections',
+})
 
 export default async function CollectionsPage() {
     const [categoriesRes, recentRes] = await Promise.all([

@@ -1,11 +1,12 @@
-import { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
 
-export const metadata: Metadata = {
-    title: 'HTML Sitemap - Genie.ph',
+export const metadata = buildMarketingPageMetadata({
+    title: 'HTML Sitemap',
     description: 'Browse all custom cake designs, blog posts, and important links on our sitemap to quickly navigate the Genie.ph marketplace.',
-}
+    canonicalPath: 'https://genie.ph/sitemap-html',
+})
 
 export const revalidate = 86400; // Cache for 24 hours
 

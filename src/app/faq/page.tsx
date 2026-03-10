@@ -1,13 +1,11 @@
-import { Metadata } from 'next'
 import Link from 'next/link'
+import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
 
-export const metadata: Metadata = {
-    title: 'Frequently Asked Questions | Genie.ph',
-    description: 'Find answers to common questions about ordering custom cakes on Genie.ph. Learn about pricing, delivery, customization options, and our AI-powered cake marketplace in Cebu.',
-    alternates: {
-        canonical: 'https://genie.ph/faq',
-    },
-}
+export const metadata = buildMarketingPageMetadata({
+    title: 'Frequently Asked Questions',
+    description: 'Find answers to common questions about ordering custom cakes on Genie.ph, including pricing, delivery, customization options, and marketplace policies.',
+    canonicalPath: 'https://genie.ph/faq',
+})
 
 const faqs = [
     {

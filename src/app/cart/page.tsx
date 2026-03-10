@@ -1,14 +1,10 @@
-import { Metadata } from 'next'
 import CartClient from './CartClient'
+import { buildNoIndexPageMetadata } from '@/lib/utils/metadata'
 
-export const metadata: Metadata = {
-    title: 'Shopping Cart | Genie.ph',
+export const metadata = buildNoIndexPageMetadata({
+    title: 'Shopping Cart',
     description: 'Review your custom cake designs and proceed to checkout.',
-    robots: {
-        index: false,
-        follow: false,
-    },
-}
+})
 
 export default function CartPage() {
     return <CartClient />

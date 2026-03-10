@@ -1,11 +1,11 @@
-import { Metadata } from 'next';
 import Link from 'next/link';
 import { AlertCircle } from 'lucide-react';
+import { buildNoIndexPageMetadata } from '@/lib/utils/metadata';
 
-export const metadata: Metadata = {
+export const metadata = buildNoIndexPageMetadata({
     title: 'Page Not Found',
     description: 'The page you are looking for does not exist.',
-};
+});
 
 export default function NotFound() {
     return (
@@ -16,7 +16,7 @@ export default function NotFound() {
                 </div>
                 <h1 className="text-4xl font-bold text-slate-800 mb-4">Page Not Found</h1>
                 <p className="text-slate-600 mb-8 text-lg">
-                    Oops! The cake you're looking for seems to have been eaten... or the page just doesn't exist.
+                    Oops! The cake you&apos;re looking for seems to have been eaten... or the page just doesn&apos;t exist.
                 </p>
                 <Link
                     href="/"

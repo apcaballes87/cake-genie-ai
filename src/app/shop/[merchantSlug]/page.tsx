@@ -14,19 +14,20 @@ export async function generateMetadata({ params }: MerchantPageProps): Promise<M
 
     if (!merchant) {
         return {
-            title: 'Bakeshop Not Found | CakeGenie',
+            title: { absolute: 'Bakeshop Not Found | Genie.ph' },
             description: 'The requested bakeshop could not be found.',
         };
     }
 
-    const title = `${merchant.business_name} | CakeGenie Partner Bakeshop`;
+    const title = `${merchant.business_name} Partner Bakeshop in ${merchant.city || 'Cebu'}`;
+    const fullTitle = `${title} | Genie.ph`;
     const description = merchant.description || `Order custom cakes from ${merchant.business_name}, serving ${merchant.city || 'Cebu'} and nearby areas. Check reviews, prices, and available cake designs.`;
 
     return {
-        title,
+        title: { absolute: fullTitle },
         description,
         openGraph: {
-            title: merchant.business_name,
+            title: fullTitle,
             description,
             type: 'website',
             images: merchant.cover_image_url ? [
@@ -44,11 +45,11 @@ export async function generateMetadata({ params }: MerchantPageProps): Promise<M
                     alt: merchant.business_name,
                 }
             ] : [],
-            siteName: 'CakeGenie',
+            siteName: 'Genie.ph',
         },
         twitter: {
             card: 'summary_large_image',
-            title: merchant.business_name,
+            title: fullTitle,
             description,
             images: merchant.cover_image_url ? [
                 {
