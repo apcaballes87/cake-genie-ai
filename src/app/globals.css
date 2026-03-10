@@ -539,8 +539,3 @@ div.gs-image-box div.gs-image {
 .blog-content tr:hover td {
   background-color: #faf5ff;
 }
-
-/* Hide SSR content once client is hydrated to avoid duplication */
-.hydrated #ssr-content {
-  display: none;
-}

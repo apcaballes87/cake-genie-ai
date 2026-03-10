@@ -596,9 +596,9 @@ function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { question: 
 
 
 /**
- * Server-rendered cake design details displayed VISIBLY for both SEO and users.
- * This content is shown on initial page load before client hydration.
- * Once CustomizingClient hydrates, it takes over the interactive display.
+ * Server-rendered cake design details kept as a no-JS fallback.
+ * For JS sessions, the interactive client UI is already server-rendered, so
+ * keeping this block hidden avoids a visible SSR -> hydrated layout swap.
  */
 function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { design: any; prices?: BasePriceInfo[]; relatedDesigns?: any[]; captionText?: string }) {
     const keywords = design.keywords || 'Custom';
@@ -627,7 +627,7 @@ function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { desig
     }
 
     return (
-        <div id="ssr-content" className="w-full max-w-4xl mx-auto px-4 py-6">
+        <div id="ssr-content" className="w-full max-w-4xl mx-auto px-4 py-6" style={{ display: 'none' }}>
             {/* Breadcrumb navigation */}
             <nav className="mb-4" aria-label="Breadcrumb">
                 <ol className="flex items-center text-sm text-gray-500 space-x-2">
@@ -1044,6 +1044,10 @@ export default async function RecentSearchPage({ params }: Props) {
             {/* FAQ as visible HTML accordion (FAQPage schema restricted to gov/healthcare Aug 2023) */}
 
             {/* Ordering steps as visible HTML (HowTo schema deprecated Sept 2023) */}
+
+            <noscript>
+                <style>{`#ssr-content { display: block !important; }`}</style>
+            </noscript>
 
             <SSRCakeDetails
                 design={design}

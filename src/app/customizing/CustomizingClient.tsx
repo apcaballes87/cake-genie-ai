@@ -839,14 +839,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, [filteredAiChatPromptSuggestions, handleAiPromptSuggestionSelect, selectedAiPromptIndex, showAiPromptSuggestions]);
 
     // --- Effects ---
-    // Hide SSR content once client hydrates - enables progressive enhancement
-    useEffect(() => {
-        document.body.classList.add('hydrated');
-        return () => {
-            document.body.classList.remove('hydrated');
-        };
-    }, []);
-
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (aiChatContainerRef.current && !aiChatContainerRef.current.contains(event.target as Node)) {
