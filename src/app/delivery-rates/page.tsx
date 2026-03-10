@@ -1,16 +1,14 @@
 import React from 'react';
-import { Metadata } from 'next';
 import Link from 'next/link';
 import { Truck, MapPin, Search as SearchIcon, AlertCircle } from 'lucide-react';
 import { CITIES_AND_BARANGAYS, getDeliveryFeeByCity } from '@/constants';
+import { buildMarketingPageMetadata } from '@/lib/utils/metadata';
 
-export const metadata: Metadata = {
-    title: 'Delivery Rates & Covered Areas | Cake Genie Cebu',
-    description: 'Find out the delivery fees and serviceable areas for Cake Genie in Cebu. We deliver fresh, custom cakes to Cebu City, Mandaue, Lapu-Lapu, Talisay, Consolacion, Cordova, and Liloan.',
-    alternates: {
-        canonical: 'https://www.genie.ph/delivery-rates',
-    },
-};
+export const metadata = buildMarketingPageMetadata({
+    title: 'Delivery Rates and Covered Areas in Cebu',
+    description: 'Find out the delivery fees and serviceable areas for Genie.ph in Cebu. We deliver fresh custom cakes to Cebu City, Mandaue, Lapu-Lapu, Talisay, Consolacion, Cordova, and Liloan.',
+    canonicalPath: 'https://genie.ph/delivery-rates',
+});
 
 const SEO_CONTENT = {
     title: "Delivery Rates & Serviceable Areas",
@@ -73,7 +71,7 @@ export default function DeliveryRatesPage() {
                             <div>
                                 <h2 className="text-2xl font-bold text-slate-800 mb-2">Automatic Calculation at Checkout</h2>
                                 <p className="text-slate-600">
-                                    You don't need to guess! When you check out, simply pin your location on our <strong>interactive Google Map</strong>.
+                                    You don&apos;t need to guess! When you check out, simply pin your location on our <strong>interactive Google Map</strong>.
                                     Our system will instantly detect your city and automatically apply the correct flat delivery rate to your order total.
                                 </p>
                             </div>

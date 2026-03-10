@@ -1,13 +1,11 @@
-import { Metadata } from 'next'
 import ContactClient from './ContactClient'
+import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
 
-export const metadata: Metadata = {
-    title: 'Contact Us — Cebu Custom Cake Orders | Genie.ph',
+export const metadata = buildMarketingPageMetadata({
+    title: 'Contact Us for Cebu Custom Cake Orders',
     description: 'Get in touch with Genie.ph for custom cake orders in Cebu. Visit us at Skyview Park, Nivel Hills, Cebu City or call +63-908-940-8747.',
-    alternates: {
-        canonical: 'https://genie.ph/contact',
-    },
-}
+    canonicalPath: 'https://genie.ph/contact',
+})
 
 function ContactPageSchema() {
     const schema = {

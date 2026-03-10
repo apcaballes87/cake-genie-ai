@@ -8,7 +8,7 @@ import LazyImage from '@/components/LazyImage';
 export const revalidate = 3600; // Rebuild cache every 1 hour
 
 export const metadata: Metadata = {
-  title: 'Custom Cake Ideas, Tips & Guides | Genie.ph Blog',
+  title: { absolute: 'Custom Cake Ideas, Tips & Guides | Genie.ph Blog' },
   description:
     'Read helpful guides, tips, and articles from Genie.ph — your online marketplace for custom cakes in Cebu.',
   alternates: {
@@ -20,6 +20,12 @@ export const metadata: Metadata = {
       'Read helpful guides, tips, and articles from Genie.ph — your online marketplace for custom cakes in Cebu.',
     url: 'https://genie.ph/blog',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Custom Cake Ideas, Tips & Guides | Genie.ph Blog',
+    description:
+      'Read helpful guides, tips, and articles from Genie.ph — your online marketplace for custom cakes in Cebu.',
   },
 };
 

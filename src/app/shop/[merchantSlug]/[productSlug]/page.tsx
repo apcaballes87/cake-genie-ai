@@ -2,10 +2,8 @@ import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import CustomizingClient from '@/app/customizing/CustomizingClient';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { CustomizingPageSkeleton } from '@/components/LoadingSkeletons';
 import { getMerchantBySlug, getMerchantProductBySlug, getCakeBasePriceOptions, getAnalysisByExactHash } from '@/services/supabaseService';
-import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.types';
 import { BasePriceInfo, CakeType, ProductPageProps, CakeThickness } from '@/types';
 import { ProductSchema } from '@/components/SEOSchemas';
 import { CustomizationProvider } from '@/contexts/CustomizationContext';
@@ -19,18 +17,19 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
     if (!product || !merchant) {
         return {
-            title: 'Product Not Found | Genie.ph',
+            title: { absolute: 'Product Not Found | Genie.ph' },
             description: 'The requested cake product could not be found.',
         };
     }
 
     const title = product.og_title || `${product.title} | ${merchant.business_name} - Genie.ph`;
+    const pageTitle = title.includes('Genie.ph') ? title : `${title} | Genie.ph`;
     const description = product.og_description || product.short_description ||
         `Order ${product.title} from ${merchant.business_name}. Custom cakes delivered in ${merchant.city || 'Philippines'}.`;
     const imageAlt = product.alt_text || `${product.title} - Custom cake from ${merchant.business_name}`;
 
     return {
-        title,
+        title: { absolute: pageTitle },
         description,
         keywords: product.meta_keywords || undefined,
         alternates: {
@@ -148,6 +147,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             <div className="bg-white relative z-0 container mx-auto px-4 py-8 max-w-4xl">
                 {/* LCP Optimization: Render main image visibly (can be styled to look good or hidden if needed, but better to be part of content) */}
                 <div className="mb-6">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- Intentional SEO/LCP image markup for the primary product image. */}
                     <img
                         src={product.image_url || ''}
                         alt={product.alt_text || product.title}
@@ -155,7 +155,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                         height={600}
                         className="w-full max-w-md h-auto rounded-xl shadow-md"
                         loading="eager" // Force early load for LCP
-                        {...({ fetchPriority: "high" } as any)} // Hint for LCP
+                        fetchPriority="high"
                         itemProp="image"
                     />
                 </div>

@@ -1,13 +1,11 @@
-import { Metadata } from 'next'
 import AboutClient from './AboutClient'
+import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
 
-export const metadata: Metadata = {
-    title: 'About Genie.ph | The Philippines\' First AI Custom Cake Marketplace',
-    description: 'Genie.ph is an AI-powered custom cake ordering platform in Cebu. We connect customers with artisans for instant pricing and design visualization.',
-    alternates: {
-        canonical: 'https://genie.ph/about',
-    },
-}
+export const metadata = buildMarketingPageMetadata({
+    title: 'About the Marketplace and Team',
+    description: 'Learn about Genie.ph, the AI-powered custom cake marketplace in Cebu, our mission, and how we connect customers with local cake artisans.',
+    canonicalPath: 'https://genie.ph/about',
+})
 
 export default function AboutPage() {
     const schema = {

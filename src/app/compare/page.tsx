@@ -1,13 +1,11 @@
-import { Metadata } from 'next'
 import Link from 'next/link'
+import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
 
-export const metadata: Metadata = {
-    title: 'Compare Cake Ordering Options in Cebu | Genie.ph',
+export const metadata = buildMarketingPageMetadata({
+    title: 'Compare Cake Ordering Options in Cebu',
     description: 'Compare Genie.ph with traditional bakeries and other cake ordering options in Cebu. See how AI-powered pricing, customization, and delivery options stack up.',
-    alternates: {
-        canonical: 'https://genie.ph/compare',
-    },
-}
+    canonicalPath: 'https://genie.ph/compare',
+})
 
 const comparisons = [
     {

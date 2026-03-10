@@ -12,7 +12,7 @@ interface CustomizingPageProps {
 export const revalidate = 3600; // ISR: revalidate every hour
 
 export const metadata: Metadata = {
-    title: 'Cake Designs & Customization',
+    title: { absolute: 'Cake Designs & Customization | Genie.ph' },
     description: 'Browse 1,000+ cake designs by category or upload your own. Get instant AI pricing from trusted bakers in Cebu. Birthday cakes, wedding cakes, character cakes and more.',
     openGraph: {
         title: 'Cake Designs & Customization | Genie.ph',

@@ -1,16 +1,12 @@
-import { Metadata } from 'next'
 import { Suspense } from 'react'
 import LoginClient from './LoginClient'
 import { Loader2 } from '@/components/icons'
+import { buildNoIndexPageMetadata } from '@/lib/utils/metadata'
 
-export const metadata: Metadata = {
-    title: 'Login | Genie.ph',
+export const metadata = buildNoIndexPageMetadata({
+    title: 'Login',
     description: 'Sign in to your Cake Genie account to access your orders, saved addresses, and loyalty points.',
-    robots: {
-        index: false,
-        follow: false,
-    },
-}
+})
 
 function LoginFallback() {
     return (

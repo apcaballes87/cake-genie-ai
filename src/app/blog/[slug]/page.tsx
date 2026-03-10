@@ -18,6 +18,16 @@ interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
 }
 
+interface BlogRelatedProduct {
+  p_hash: string;
+  original_image_url: string;
+  slug?: string | null;
+  keywords?: string | null;
+  alt_text?: string | null;
+  image_width?: number | null;
+  image_height?: number | null;
+}
+
 export async function generateStaticParams() {
   const { data: slugs } = await getAllBlogSlugs();
 
@@ -35,13 +45,15 @@ export async function generateMetadata({
   const { data: post } = await getBlogBySlug(slug);
 
   if (!post) {
-    return { title: 'Post Not Found | Genie.ph' };
+    return { title: { absolute: 'Post Not Found | Genie.ph' } };
   }
+
+  const pageTitle = post.title.includes('Genie.ph') ? post.title : `${post.title} | Genie.ph`;
 
   const keywords = post.keywords ? post.keywords.split(',').map((k: string) => k.trim()).filter(Boolean) : [];
 
   return {
-    title: post.title,
+    title: { absolute: pageTitle },
     description: post.excerpt,
     alternates: {
       canonical: `https://genie.ph/blog/${post.slug}`,
@@ -77,8 +89,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const showcaseConfigs = getBlogDesignShowcaseConfigs(post);
   const contentSegments = splitBlogContentByShowcasePlaceholders(post.content);
 
-  let relatedDesigns: any[] = [];
-  const showcaseProductsById = new Map<string, any[]>();
+  let relatedDesigns: BlogRelatedProduct[] = [];
+  const showcaseProductsById = new Map<string, BlogRelatedProduct[]>();
 
   const [relatedResult, ...showcaseResults] = await Promise.allSettled([
     getRelatedProductsByKeywords(

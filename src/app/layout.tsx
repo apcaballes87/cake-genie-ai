@@ -34,7 +34,6 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://genie.ph',
     siteName: 'Genie.ph',
     title: 'Genie.ph | Online Marketplace for Custom Cakes in Cebu!',
     description: 'Upload any cake design, customize with AI, and get instant pricing from top cakeshops and homebakers in Cebu. Order your perfect custom cake online today!',
@@ -46,9 +45,6 @@ export const metadata: Metadata = {
         alt: 'Genie.ph - Custom Cakes Online',
       },
     ],
-  },
-  alternates: {
-    canonical: 'https://genie.ph',
   },
   twitter: {
     card: 'summary_large_image',

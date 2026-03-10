@@ -1,13 +1,11 @@
-import { Metadata } from 'next';
 import PrivacyClient from './PrivacyClient';
+import { buildMarketingPageMetadata } from '@/lib/utils/metadata';
 
-export const metadata: Metadata = {
-    title: 'Privacy Policy | Genie.ph',
-    description: 'Learn how Genie.ph collects, uses, and protects your personal information when you use our AI-powered cake marketplace.',
-    alternates: {
-        canonical: 'https://genie.ph/privacy',
-    },
-};
+export const metadata = buildMarketingPageMetadata({
+    title: 'Privacy Policy',
+    description: 'Learn how Genie.ph collects, uses, and protects your personal information when you use our AI-powered custom cake marketplace.',
+    canonicalPath: 'https://genie.ph/privacy',
+});
 
 export default function PrivacyPage() {
     return <PrivacyClient />;

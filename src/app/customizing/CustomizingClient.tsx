@@ -6,6 +6,7 @@ import Link from 'next/link';
 import LazyImage from '@/components/LazyImage';
 import { v4 as uuidv4 } from 'uuid';
 import { findClosestColor, hexToColorNameProse } from '@/utils/colorUtils';
+import { generateDesignDetails, generateDynamicFAQ } from '@/utils/designContentUtils';
 import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Heart, Cake, Star, Zap, Clock, CalendarDays, Ruler, Utensils, ChevronRight } from 'lucide-react';
 import Masonry from 'react-masonry-css';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
@@ -358,6 +359,8 @@ interface RecentSearchDesignProp {
     seo_title: string | null;
     seo_description: string | null;
     created_at: string;
+    availability?: string | null;
+    tags?: string[] | null;
 }
 
 export interface RelatedDesign {
@@ -3379,7 +3382,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             {cakeMessages.map((msg, idx) => (
                                                 <div
                                                     key={msg.id || idx}
-                                                    className={`flex items-center gap-3 py-2.5 px-4 rounded-xl bg-slate-50/80 hover:bg-slate-100/80 transition-colors cursor-pointer group ${!msg.isEnabled ? 'opacity-40' : ''}`}
+                                                    className={`flex items-center gap-3 py-[9px] px-4 rounded-xl bg-slate-50/80 hover:bg-slate-100/80 transition-colors cursor-pointer group ${!msg.isEnabled ? 'opacity-40' : ''}`}
                                                     onClick={() => {
                                                         setSelectedItem({ ...msg, itemCategory: 'message' });
                                                         setActiveCustomization('messages');
@@ -3414,22 +3417,22 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         setActiveCustomization('messages');
                                                         setSelectedItem(null);
                                                     }}
-                                                    className="text-xs font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2.5 px-6 rounded-full shadow-sm border border-purple-100 flex items-center gap-2"
+                                                    className="text-[10px] font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2 px-5 rounded-full shadow-sm border border-purple-100 flex items-center gap-1.5"
                                                 >
-                                                    <span className="text-lg leading-none">+</span> Add message
+                                                    <span className="text-base leading-none">+</span> Add message
                                                 </button>
                                             </div>
                                         </div>
                                     ) : (
                                         <div className="flex justify-center py-2">
                                             <button
-                                                className="text-xs font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2.5 px-6 rounded-full shadow-sm border border-purple-100 flex items-center gap-2"
+                                                className="text-[10px] font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2 px-5 rounded-full shadow-sm border border-purple-100 flex items-center gap-1.5"
                                                 onClick={() => {
                                                     setActiveCustomization('messages');
                                                     setSelectedItem(null);
                                                 }}
                                             >
-                                                <span className="text-lg leading-none">+</span> Add a cake message
+                                                <span className="text-base leading-none">+</span> Add a cake message
                                             </button>
                                         </div>
                                     )}
@@ -3909,7 +3912,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                         {cakeMessages.map((msg, idx) => (
                                                             <div
                                                                 key={msg.id || idx}
-                                                                className={`flex items-center gap-3 py-2.5 px-4 rounded-xl bg-slate-50/80 hover:bg-slate-100/80 transition-colors cursor-pointer group ${!msg.isEnabled ? 'opacity-40' : ''}`}
+                                                                className={`flex items-center gap-3 py-[9px] px-4 rounded-xl bg-slate-50/80 hover:bg-slate-100/80 transition-colors cursor-pointer group ${!msg.isEnabled ? 'opacity-40' : ''}`}
                                                                 onClick={() => {
                                                                     setSelectedItem({ ...msg, itemCategory: 'message' });
                                                                     setActiveCustomization('messages');
@@ -3944,22 +3947,22 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                                                     setActiveCustomization('messages');
                                                                     setSelectedItem(null);
                                                                 }}
-                                                                className="text-xs font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2.5 px-6 rounded-full shadow-sm border border-purple-100 flex items-center gap-2"
+                                                                className="text-[10px] font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2 px-5 rounded-full shadow-sm border border-purple-100 flex items-center gap-1.5"
                                                             >
-                                                                <span className="text-lg leading-none">+</span> Add message
+                                                                <span className="text-base leading-none">+</span> Add message
                                                             </button>
                                                         </div>
                                                     </div>
                                                 ) : (
                                                     <div className="flex justify-center py-2">
                                                         <button
-                                                            className="text-xs font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2.5 px-6 rounded-full shadow-sm border border-purple-100 flex items-center gap-2"
+                                                            className="text-[10px] font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2 px-5 rounded-full shadow-sm border border-purple-100 flex items-center gap-1.5"
                                                             onClick={() => {
                                                                 setActiveCustomization('messages');
                                                                 setSelectedItem(null);
                                                             }}
                                                         >
-                                                            <span className="text-lg leading-none">+</span> Add a cake message
+                                                            <span className="text-base leading-none">+</span> Add a cake message
                                                         </button>
                                                     </div>
                                                 )}
@@ -4060,7 +4063,97 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         </div >
                     )}
 
+                {/* Post-analysis content sections — mirror SSRDesignContent from the slug page */}
+                {!slug && analysisResult && (() => {
+                    const effectiveKeywords = currentKeywords || recentSearchDesign?.keywords || 'custom';
+                    const syntheticDesign = {
+                        keywords: effectiveKeywords,
+                        analysis_json: analysisResult,
+                        availability: recentSearchDesign?.availability || availabilityType || 'normal',
+                        tags: recentSearchDesign?.tags || [],
+                    };
 
+                    const faqs = generateDynamicFAQ(syntheticDesign, basePriceOptions);
+
+                    return (
+                        <div className="w-full space-y-4 mt-4">
+                            {/* Design Specifications */}
+                            <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
+                                <h2 className="text-xl font-bold text-slate-800 mb-4 text-center">Design Specifications</h2>
+                                <div className="overflow-hidden rounded-xl border border-slate-200">
+                                    <table className="min-w-full text-sm text-left">
+                                        <tbody className="divide-y divide-slate-200">
+                                            <tr className="bg-white">
+                                                <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Cake Style</th>
+                                                <td className="px-4 py-2 text-slate-600">{analysisResult.cakeType || 'Custom'} {effectiveKeywords}</td>
+                                            </tr>
+                                            <tr className="bg-slate-50">
+                                                <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Icing Finish</th>
+                                                <td className="px-4 py-2 text-slate-600">{analysisResult.icing_design?.base?.replace(/_/g, ' ') || 'Standard Icing'}</td>
+                                            </tr>
+                                            {(analysisResult.main_toppers?.length ?? 0) > 0 && (
+                                                <tr className="bg-white">
+                                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Primary Features</th>
+                                                    <td className="px-4 py-2 text-slate-600">
+                                                        {analysisResult.main_toppers.map((t: any) => t.description || t.type).join(', ')}
+                                                    </td>
+                                                </tr>
+                                            )}
+                                            {(analysisResult.support_elements?.length ?? 0) > 0 && (
+                                                <tr className="bg-slate-50">
+                                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Decorations</th>
+                                                    <td className="px-4 py-2 text-slate-600">
+                                                        {analysisResult.support_elements.map((s: any) => s.description || s.type).join(', ')}
+                                                    </td>
+                                                </tr>
+                                            )}
+                                            {(recentSearchDesign?.tags?.length ?? 0) > 0 && (
+                                                <tr className="bg-white">
+                                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Tags</th>
+                                                    <td className="px-4 py-2 text-slate-600">{recentSearchDesign!.tags!.join(', ')}</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+
+                            {/* FAQ */}
+                            {faqs.length > 0 && (
+                                <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
+                                    <h2 className="text-xl font-bold text-slate-800 mb-4 text-center">Frequently Asked Questions</h2>
+                                    <div className="space-y-3">
+                                        {faqs.map((faq, i) => (
+                                            <details
+                                                key={i}
+                                                className="group bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-200 hover:shadow-md"
+                                                {...(i === 0 ? { open: true } : {})}
+                                            >
+                                                <summary className="flex items-center justify-between p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                                                    <span className="font-semibold text-slate-700 group-open:text-purple-900 text-sm">
+                                                        {faq.question}
+                                                    </span>
+                                                    <svg
+                                                        className="w-5 h-5 text-slate-400 transition-transform duration-300 group-open:rotate-180 shrink-0 ml-2"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                        strokeWidth={2}
+                                                    >
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </summary>
+                                                <div className="px-4 pb-4 text-sm text-slate-600 leading-relaxed">
+                                                    {faq.answer}
+                                                </div>
+                                            </details>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {dominantMotif && (
                     <MotifPanel
@@ -4508,7 +4601,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 />
 
                 {/* Related Designs Section */}
-                {displayedRelatedDesigns && displayedRelatedDesigns.length > 0 && (
+                {!isAnalyzing && displayedRelatedDesigns && displayedRelatedDesigns.length > 0 && (
                     <div className="w-full pb-8 pt-0 mb-0 mt-0">
                         <h2 className="text-lg font-semibold text-slate-800 mb-4">What other designs are trending in Cebu?</h2>
                         <Masonry
@@ -4555,7 +4648,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 )}
 
                 {/* Related Collections Section */}
-                {relatedCollections.length > 0 && (
+                {!isAnalyzing && relatedCollections.length > 0 && (
                     <div className="w-full pb-8 pt-8 border-t border-slate-100">
                         <div className="flex items-center justify-between mb-6">
                             <div>

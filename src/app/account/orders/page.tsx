@@ -1,12 +1,12 @@
-import { Metadata } from 'next'
 import { Suspense } from 'react'
 import OrdersClient from './OrdersClient'
 import { Loader2 } from '@/components/icons'
+import { buildNoIndexPageMetadata } from '@/lib/utils/metadata'
 
-export const metadata: Metadata = {
-    title: 'My Orders | Genie.ph',
+export const metadata = buildNoIndexPageMetadata({
+    title: 'My Orders',
     description: 'View and manage your cake orders, track delivery status, and upload payment proofs.',
-}
+})
 
 function OrdersFallback() {
     return (
