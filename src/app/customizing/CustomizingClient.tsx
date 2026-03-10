@@ -851,6 +851,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     // Handle product prop loading (from SEO-friendly routes like /shop/[merchant]/[product]/customize)
     // AND recent search designs (from /customizing/[slug])
     useEffect(() => {
+        // Don't load product/recent design if a Shopify CSE image handoff is pending —
+        // the ShopifyCSE effect below owns the image lifecycle in that case.
+        if (new URLSearchParams(window.location.search).get('source') === 'shopify_cse') {
+            return;
+        }
+
         // Unify the data source (Product Page vs Customizing Page)
         const targetSlug = product?.slug || recentSearchDesign?.slug || recentSearchDesign?.p_hash;
         const targetImageUrl = product?.image_url || recentSearchDesign?.original_image_url;
