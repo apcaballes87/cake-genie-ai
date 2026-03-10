@@ -73,12 +73,13 @@ When researching, document:
 
 **For Birthday Party Venue Guides (e.g., Kidzooona, Jumpers, Playhouses):**
 
-- **Price Packages**: Different package tiers, what's included in each, prices per head or per package
+- **Price Packages**: Different package tiers, what's included in each, prices per head or per package (e.g., Package A ₱10,000/20 pax, Package B ₱19,200/40 pax, Package C ₱35,200/65 pax)
 - **Program Flow**: Typical party schedule (arrival, games, cake, mascot, etc.)
 - **Food**: Whether food is included, accredited caterer options, outside food policy, cake arrangements
 - **What to Expect**: Duration, activities, what's provided, what to bring
-- **Branches & Locations**: Complete list of branches with addresses
-- **Contact Numbers**: Main contact, branch-specific numbers
+- **Branches & Locations**: Complete list of branches with addresses (e.g., SM City SeaSide 3/F, South Road Properties, Cebu City)
+- **Contact Numbers**: Main contact, branch-specific numbers (e.g., 0908 879 3291 for SM Seaside Cebu)
+- **Emails**: Branch-specific email addresses if available
 - **Social Media**: Facebook page, website, Instagram
 - **FAQ**: Age limits, minimum/maximum guests, reservation process, down payment, cancellation policy
 

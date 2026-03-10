@@ -139,8 +139,7 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
             </div>
 
             <div className="w-full max-w-7xl mx-auto px-4">
-                <div className="bg-white/80 backdrop-blur-lg p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200">
-                    {/* Header */}
+                {/* Header */}
                     <div className="flex items-center gap-4 mb-8">
                         <div className="grow">
                             <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">
@@ -230,8 +229,8 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                             </Masonry>
                         </section>
                     )}
-                </div>
             </div>
+
 
             <MobileBottomNav />
         </div>
