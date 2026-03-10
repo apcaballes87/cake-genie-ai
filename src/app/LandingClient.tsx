@@ -812,7 +812,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         { label: 'How to Order', href: '/how-to-order', emoji: '📋' },
                         { label: 'Payment Options', href: '/payment-options', emoji: '💳' },
                         { label: 'Delivery Rates', href: '/delivery-rates', emoji: '🚚' },
-                        { label: 'Partner Bakeshops', href: '/merchants', emoji: '🏪' },
+                        { label: 'Partner Bakeshops', href: '/shop', emoji: '🏪' },
                         { label: 'About Us', href: '/about', emoji: 'ℹ️' },
                         { label: 'Contact', href: '/contact', emoji: '📞' },
                     ].map((item) => (
