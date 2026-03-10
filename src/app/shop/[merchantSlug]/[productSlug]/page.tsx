@@ -133,6 +133,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
     return (
         <>
             <ProductSchema product={product} merchant={merchant} prices={prices} />
+            {product.image_url && (
+                <link
+                    rel="preload"
+                    as="image"
+                    href={product.image_url}
+                    crossOrigin="anonymous"
+                />
+            )}
 
             <Suspense fallback={<CustomizingPageSkeleton />}>
                 <CustomizationProvider initialData={initialCustomizationState} key={product.product_id}>

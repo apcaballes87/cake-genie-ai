@@ -69,5 +69,7 @@ describe('RecentSearchPage', () => {
 
     expect(staticMarkup).toContain('<noscript>');
     expect(staticMarkup).toContain('#ssr-content { display: block !important; }');
+    expect(staticMarkup).toContain('rel="preload"');
+    expect(staticMarkup).toContain('href="https://example.com/pink-bento-cake.webp"');
   });
 });

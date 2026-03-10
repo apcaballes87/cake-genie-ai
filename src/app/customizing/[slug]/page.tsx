@@ -864,6 +864,14 @@ export default async function RecentSearchPage({ params }: Props) {
     return (
         <>
             <DesignSchema design={design} prices={prices} />
+            {design.original_image_url && (
+                <link
+                    rel="preload"
+                    as="image"
+                    href={design.original_image_url}
+                    crossOrigin="anonymous"
+                />
+            )}
             {/* FAQ as visible HTML accordion (FAQPage schema restricted to gov/healthcare Aug 2023) */}
 
             {/* Ordering steps as visible HTML (HowTo schema deprecated Sept 2023) */}
