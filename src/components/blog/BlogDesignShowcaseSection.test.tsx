@@ -43,9 +43,9 @@ describe('BlogDesignShowcaseSection', () => {
     const fallbackImage = screen.getByAltText('floral cake');
     expect(fallbackImage).toHaveAttribute('title', 'floral cake');
 
-    expect(screen.getByRole('link', { name: 'View More Designs' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Browse Minimalist Cake Designs' })).toHaveAttribute(
       'href',
-      '/search?q=minimalist%20cake',
+      '/collections/minimalist',
     );
   });
 

@@ -1,0 +1,11 @@
+[     658ms] [WARNING] GoTrueClient@sb-cqmhanqnfybyxezhobkx-auth-token:1 (2.86.0) 2026-03-10T11:55:35.604Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key. @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[    7027ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[    7027ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[    7027ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[  114139ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[  114184ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[  114184ms] [WARNING] No pricing rule found for: type="icing_text" (mapped to "icing_text"), size="undefined", subtype="undefined", category="message" @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:2287
+[  121912ms] [ERROR] The final argument passed to %s changed size between renders. The order and size of this array must remain constant.
+
+Previous: %s
+Incoming: %s useEffect [[object Object], rainbow-minimalist-white-1-tier-cake-78ff, 6] [[object Object], rainbow-minimalist-white-1-tier-cake-78ff, Rainbow Minimalist, Rainbow Minimalist, 6] @ http://localhost:3002/_next/static/chunks/2e7b4_next_dist_4293d69a._.js:3117

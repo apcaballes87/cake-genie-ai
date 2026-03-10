@@ -87,9 +87,12 @@ export const useSearchEngine = ({
    * @param clickedImg - The clicked image element to trigger CSE behavior
    * @returns The high-resolution URL if found, otherwise the original thumbnail URL
    */
-  const extractHighResUrl = useCallback(async (thumbnailUrl: string, clickedImg: HTMLElement): Promise<string> => {
+    const extractHighResUrl = useCallback(async (thumbnailUrl: string, clickedImg: HTMLElement): Promise<string> => {
     const maxWaitTime = 1600; // 1.6 seconds max wait for high-res image
     const startTime = Date.now();
+
+    // Small delay to allow React to hide/remove internal sections before we start scanning the DOM
+    await new Promise(r => setTimeout(r, 100));
 
     return new Promise((resolve) => {
       // Try to find an already-loaded high-res image
@@ -98,6 +101,13 @@ export const useSearchEngine = ({
         const images = document.querySelectorAll('img');
         for (const img of Array.from(images)) {
           const htmlImg = img as HTMLImageElement;
+
+          // SKIP criteria:
+          // 1. Internal Genie designs (marked by our ProductCard or container)
+          const isInternal = htmlImg.classList.contains('genie-internal-image') ||
+            htmlImg.closest('#internal-designs-section');
+          if (isInternal) continue;
+
           // Skip if it's a gstatic thumbnail, data URL, or hasn't loaded
           if (
             !htmlImg.src.includes('gstatic.com') &&
@@ -131,7 +141,11 @@ export const useSearchEngine = ({
                   [node];
                 for (const el of imgs) {
                   if (el instanceof HTMLImageElement) {
+                    const isInternal = el.classList.contains('genie-internal-image') ||
+                      el.closest('#internal-designs-section');
+
                     if (
+                      !isInternal &&
                       !el.src.includes('gstatic.com') &&
                       el.src.startsWith('http') &&
                       el.naturalWidth > 200
@@ -150,7 +164,11 @@ export const useSearchEngine = ({
           // Check src attribute changes
           if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
             const target = mutation.target as HTMLImageElement;
+            const isInternal = target.classList.contains('genie-internal-image') ||
+              target.closest('#internal-designs-section');
+
             if (
+              !isInternal &&
               target instanceof HTMLImageElement &&
               !target.src.includes('gstatic.com') &&
               target.src.startsWith('http')

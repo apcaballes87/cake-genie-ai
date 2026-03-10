@@ -6,7 +6,26 @@ interface BlogContentProps {
   content: string;
 }
 
-function parseMarkdownToHtml(markdown: string): string {
+function isInternalHref(href: string) {
+  return /^(\/[^/]|#|https?:\/\/(?:www\.)?genie\.ph(?:\/|$))/i.test(href.trim());
+}
+
+function normalizeInternalHref(href: string) {
+  const trimmedHref = href.trim();
+
+  if (trimmedHref.startsWith('/') || trimmedHref.startsWith('#')) {
+    return trimmedHref;
+  }
+
+  try {
+    const url = new URL(trimmedHref);
+    return `${url.pathname}${url.search}${url.hash}` || '/';
+  } catch {
+    return trimmedHref;
+  }
+}
+
+export function parseMarkdownToHtml(markdown: string): string {
   let html = markdown;
 
   // Horizontal rules
@@ -33,7 +52,13 @@ function parseMarkdownToHtml(markdown: string): string {
   // Links
   html = html.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+    (_, text: string, href: string) => {
+      if (isInternalHref(href)) {
+        return `<a href="${normalizeInternalHref(href)}">${text}</a>`;
+      }
+
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+    }
   );
 
   // Blockquotes

@@ -387,7 +387,7 @@ const SearchingClient: React.FC = () => {
                 )}
                 {/* Internal FTS Product Results */}
                 {searchQuery && !isLoading && (internalResults.length > 0 || isInternalLoading) && (
-                    <div className="mb-6">
+                    <div className="mb-6" id="internal-designs-section">
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-2">
                                 Our Designs

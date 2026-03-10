@@ -21,11 +21,14 @@ interface BlogPostPageProps {
 interface BlogRelatedProduct {
   p_hash: string;
   original_image_url: string;
+  price?: number | null;
+  availability?: string | null;
   slug?: string | null;
   keywords?: string | null;
   alt_text?: string | null;
   image_width?: number | null;
   image_height?: number | null;
+  analysis_json?: any;
 }
 
 export async function generateStaticParams() {
@@ -198,7 +201,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         {/* Post Content + inline showcase blocks */}
         {contentSegments.map((segment, index) => {
           if (segment.type === 'content' && segment.content) {
-            return <BlogContent key={`content-${index}`} content={segment.content} />;
+            return (
+              <div key={`content-${index}`}>
+                <BlogContent content={segment.content} />
+              </div>
+            );
           }
 
           if (segment.type === 'showcase' && segment.showcaseId) {
@@ -243,6 +250,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             initialProducts={relatedDesigns}
             keyword={post.cake_search_keywords || post.keywords || post.title}
             slug={slug}
+            postTitle={post.title}
             intro={post.related_cakes_intro}
           />
         )}

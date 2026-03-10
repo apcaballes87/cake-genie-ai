@@ -601,7 +601,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         // Only run if we have analysis result with keywords
         if (!analysisResult || !analysisResult.keyword) return;
 
-        const targetKeyword = analysisResult.keyword;
+        // Prefer DB-stored keywords (more curated) over AI-generated single keyword
+        const targetKeyword = currentKeywords || recentSearchDesign?.keywords || analysisResult.keyword;
 
         // Don't auto-load if we already have items (prevent dupes or overriding props)
         if (displayedRelatedDesigns.length > 0) return;
@@ -614,10 +615,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         const fetchRelated = async () => {
             setIsLoadingMoreDesigns(true);
             try {
-                // Use the analysis keyword for the first batch
+                // Use the most relevant keyword for the first batch
                 const { data } = await getRelatedProductsByKeywords(
                     targetKeyword,
-                    currentSlug || null,
+                    currentSlug || persistedSlug || recentSearchDesign?.slug || null,
                     6,
                     0
                 );
@@ -636,7 +637,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         };
 
         fetchRelated();
-    }, [analysisResult, currentSlug, displayedRelatedDesigns.length]);
+    }, [analysisResult, currentSlug, currentKeywords, recentSearchDesign?.keywords, displayedRelatedDesigns.length]);
 
     // Auto-load related collections when analysis is complete
     useEffect(() => {
@@ -2480,7 +2481,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 </div>
             </div>
 
-            <div className={`flex flex-col items-center gap-6 w-full max-w-7xl mx-auto px-4 transition-all duration-300 ${showStickyBar ? 'pb-8' : 'pb-10'}`}>
+            <div className={`flex flex-col items-center gap-2 w-full max-w-7xl mx-auto px-4 transition-all duration-300 ${showStickyBar ? 'pb-2' : 'pb-4'}`}>
 
                 {/* SEO Breadcrumbs - Visible for both Shop Product and SEO Landing Pages */}
                 {((product && merchant) || (recentSearchDesign && recentSearchDesign.slug)) && (
@@ -2535,7 +2536,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
                 {/* Two-column layout for desktop/tablet landscape */}
-                <div className="w-full flex flex-col md:flex-row gap-4 md:gap-8">
+                <div className="w-full flex flex-col md:flex-row gap-2">
                     {/* LEFT COLUMN: Image and Update Design */}
                     <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
                         <div ref={mainImageContainerRef} className="w-full bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 flex flex-col">
@@ -2971,7 +2972,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                         {/* AI Customization Chat - Moved to separate container below hero image */}
                         {cakeInfo && !isAnalyzing && !isRejectionError && (
-                            <div className="w-full mt-4 bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200 md:hidden">
+                            <div className="w-full mt-0 bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 md:hidden">
                                 <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">AI Customization Chat</h3>
                                 <form onSubmit={handleChatSubmit} className="relative" ref={aiChatContainerRef}>
                                     {selectedAiPromptTemplate ? (
@@ -3093,10 +3094,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         )}
 
                         {/* Steps 1-4: Sequential Customization Steps in a horizontal scrollable row */}
-                        <div className="w-full mt-4 flex md:hidden overflow-x-auto gap-4 pb-6 scrollbar-hide snap-x">
+                        <div className="w-[calc(100%+2rem)] -mx-4 px-4 mt-0 flex md:hidden overflow-x-auto gap-2 pb-4 scrollbar-hide snap-x scroll-pl-4">
                             {/* Step 1: Cake Specs */}
                             {cakeInfo && !isAnalyzing && !isRejectionError && (
-                                <div className="flex-shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
+                                <div className="flex-shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
                                     <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 1: Choose Your Cake Specs</h3>
                                     <div className="flex gap-[7px] pt-1 pb-1 w-max">
                                         {/* Cake Type */}
@@ -3198,7 +3199,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                             {/* Step 2: Icing Colors */}
                             {cakeInfo && icingDesign && !isAnalyzing && !isRejectionError && (
-                                <div className="flex-shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
+                                <div className="flex-shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
                                     <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 2: Icing Colors</h3>
                                     <div className="flex gap-[7px] pt-1 pb-1 w-max">
                                         {/* Drip */}
@@ -3374,7 +3375,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                             {/* Step 3: Cake Messages */}
                             {cakeInfo && !isAnalyzing && !isRejectionError && (
-                                <div className="flex-shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
+                                <div className="flex-shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
                                     <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 3: Cake Messages</h3>
 
                                     {cakeMessages.length > 0 ? (
@@ -3441,7 +3442,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                             {/* Step 4: Cake Toppers */}
                             {cakeInfo && (mainToppers.length > 0 || supportElements.length > 0) && !isAnalyzing && !isRejectionError && (
-                                <div className="flex-shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
+                                <div className="flex-shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
                                     <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 4: Cake Toppers</h3>
                                     <CakeToppersOptions
                                         mainToppers={mainToppers}
@@ -3472,13 +3473,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                     </div>
                     {/* RIGHT COLUMN: Availability at top, then Feature List */}
-                    <div className="flex flex-row md:flex-col gap-4 w-[calc(100%+2rem)] md:w-[calc(50%-6px)] -mx-4 md:mx-0 overflow-x-auto md:overflow-visible scrollbar-hide snap-x snap-mandatory scroll-pl-4 pb-60 md:pb-0 -mb-60 md:mb-0 px-4 md:px-0 relative z-30">
+                    <div className="flex flex-row md:flex-col gap-2 w-[calc(100%+2rem)] md:w-[calc(50%-6px)] -mx-4 md:mx-0 overflow-x-auto md:overflow-visible scrollbar-hide snap-x snap-mandatory scroll-pl-4 pb-60 md:pb-0 -mb-60 md:mb-0 px-4 md:px-0 relative z-30">
                         {/* Availability Section - at top of right column */}
 
 
-                        <div className="w-full flex-col gap-4 hidden md:flex">
+                        <div className="w-full flex-col gap-2 hidden md:flex">
                             {isAnalyzing || (isLoading && !isDesignSaved) ? (
-                                <div className="bg-white/70 backdrop-blur-lg p-4 md:p-6 rounded-2xl shadow-lg border border-slate-200">
+                                <div className="bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
                                     <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
                                         <div className="p-2 bg-purple-100 rounded-lg">
                                             <MagicSparkleIcon className="w-5 h-5 text-purple-600 animate-pulse" />
@@ -3502,7 +3503,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 <>
                                     {/* AI Customization Chat */}
                                     {cakeInfo && !isAnalyzing && !isRejectionError && (
-                                        <div className="w-full hidden md:block bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
+                                        <div className="w-full hidden md:block bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
                                             <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">AI Customization Chat</h3>
                                             <form onSubmit={handleChatSubmit} className="relative" ref={aiChatContainerRef}>
                                                 {selectedAiPromptTemplate ? (
@@ -3623,10 +3624,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     )}
 
                                     {/* Steps 1-4: Sequential Customization Steps */}
-                                    <div className="w-full hidden md:flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden gap-4 pb-6 md:pb-0 scrollbar-hide snap-x md:snap-none">
+                                    <div className="w-full hidden md:flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden gap-2 pb-6 md:pb-4 scrollbar-hide snap-x md:snap-none">
                                         {/* Step 1: Cake Specs */}
                                         {cakeInfo && !isAnalyzing && !isRejectionError && (
-                                            <div className="shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
+                                            <div className="shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
                                                 <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 1: Choose Your Cake Specs</h3>
                                                 <div className="flex gap-[7px] pt-1 pb-1 w-max md:w-full flex-wrap">
                                                     {/* Cake Type */}
@@ -3728,7 +3729,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                                         {/* Step 2: Icing Colors */}
                                         {cakeInfo && icingDesign && !isAnalyzing && !isRejectionError && (
-                                            <div className="shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
+                                            <div className="shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
                                                 <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 2: Icing Colors</h3>
                                                 <div className="flex gap-[7px] pt-1 pb-1 w-max md:w-full flex-wrap">
                                                     {/* Drip */}
@@ -3904,7 +3905,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                                         {/* Step 3: Cake Messages */}
                                         {cakeInfo && !isAnalyzing && !isRejectionError && (
-                                            <div className="shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
+                                            <div className="shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
                                                 <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 3: Cake Messages</h3>
 
                                                 {cakeMessages.length > 0 ? (
@@ -3971,7 +3972,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                                         {/* Step 4: Cake Toppers */}
                                         {cakeInfo && (mainToppers.length > 0 || supportElements.length > 0) && !isAnalyzing && !isRejectionError && (
-                                            <div className="shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
+                                            <div className="shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
                                                 <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 4: Cake Toppers</h3>
                                                 <CakeToppersOptions
                                                     mainToppers={mainToppers}
@@ -4012,9 +4013,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 {/* Product/Design Description & Tags - Spans full width of the two-column layout */}
                 {/* SEO Content Slot from SSR (if present) OR Client-side fallback (if no slug) */}
                 {
-                    (seoContentSlot || (!slug && ((product && (product.long_description || product.short_description || (product.tags && product.tags.length > 0))) ||
-                        (recentSearchDesign && (recentSearchDesign.seo_description || recentSearchDesign.alt_text)) ||
-                        (analysisResult && (analysisResult.seo_description || analysisResult.alt_text))))) && (
+                    (seoContentSlot || (!slug && (product && (product.long_description || product.short_description || (product.tags && product.tags.length > 0))))) && (
                         <div className="w-full mt-0">
                             <div className="bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
                                 {/* SSR Slot Injection */}
@@ -4032,15 +4031,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             />
                                         )}
 
-                                        {/* Design Description */}
-                                        {((recentSearchDesign && (recentSearchDesign.seo_description || recentSearchDesign.alt_text)) ||
-                                            (analysisResult && (analysisResult.seo_description || analysisResult.alt_text))) && (
-                                                <DesignAboutSection
-                                                    title="About This Design"
-                                                    description={analysisResult?.seo_description || analysisResult?.alt_text || recentSearchDesign?.seo_description || recentSearchDesign?.alt_text || ''}
-                                                    showDisclaimer={true}
-                                                />
-                                            )}
 
                                         {product && product.tags && product.tags.length > 0 && (
                                             <div>
@@ -4063,97 +4053,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         </div >
                     )}
 
-                {/* Post-analysis content sections — mirror SSRDesignContent from the slug page */}
-                {!slug && analysisResult && (() => {
-                    const effectiveKeywords = currentKeywords || recentSearchDesign?.keywords || 'custom';
-                    const syntheticDesign = {
-                        keywords: effectiveKeywords,
-                        analysis_json: analysisResult,
-                        availability: recentSearchDesign?.availability || availabilityType || 'normal',
-                        tags: recentSearchDesign?.tags || [],
-                    };
-
-                    const faqs = generateDynamicFAQ(syntheticDesign, basePriceOptions);
-
-                    return (
-                        <div className="w-full space-y-4 mt-4">
-                            {/* Design Specifications */}
-                            <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
-                                <h2 className="text-xl font-bold text-slate-800 mb-4 text-center">Design Specifications</h2>
-                                <div className="overflow-hidden rounded-xl border border-slate-200">
-                                    <table className="min-w-full text-sm text-left">
-                                        <tbody className="divide-y divide-slate-200">
-                                            <tr className="bg-white">
-                                                <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Cake Style</th>
-                                                <td className="px-4 py-2 text-slate-600">{analysisResult.cakeType || 'Custom'} {effectiveKeywords}</td>
-                                            </tr>
-                                            <tr className="bg-slate-50">
-                                                <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Icing Finish</th>
-                                                <td className="px-4 py-2 text-slate-600">{analysisResult.icing_design?.base?.replace(/_/g, ' ') || 'Standard Icing'}</td>
-                                            </tr>
-                                            {(analysisResult.main_toppers?.length ?? 0) > 0 && (
-                                                <tr className="bg-white">
-                                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Primary Features</th>
-                                                    <td className="px-4 py-2 text-slate-600">
-                                                        {analysisResult.main_toppers.map((t: any) => t.description || t.type).join(', ')}
-                                                    </td>
-                                                </tr>
-                                            )}
-                                            {(analysisResult.support_elements?.length ?? 0) > 0 && (
-                                                <tr className="bg-slate-50">
-                                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Decorations</th>
-                                                    <td className="px-4 py-2 text-slate-600">
-                                                        {analysisResult.support_elements.map((s: any) => s.description || s.type).join(', ')}
-                                                    </td>
-                                                </tr>
-                                            )}
-                                            {(recentSearchDesign?.tags?.length ?? 0) > 0 && (
-                                                <tr className="bg-white">
-                                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Tags</th>
-                                                    <td className="px-4 py-2 text-slate-600">{recentSearchDesign!.tags!.join(', ')}</td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
-
-                            {/* FAQ */}
-                            {faqs.length > 0 && (
-                                <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
-                                    <h2 className="text-xl font-bold text-slate-800 mb-4 text-center">Frequently Asked Questions</h2>
-                                    <div className="space-y-3">
-                                        {faqs.map((faq, i) => (
-                                            <details
-                                                key={i}
-                                                className="group bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-200 hover:shadow-md"
-                                                {...(i === 0 ? { open: true } : {})}
-                                            >
-                                                <summary className="flex items-center justify-between p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                                                    <span className="font-semibold text-slate-700 group-open:text-purple-900 text-sm">
-                                                        {faq.question}
-                                                    </span>
-                                                    <svg
-                                                        className="w-5 h-5 text-slate-400 transition-transform duration-300 group-open:rotate-180 shrink-0 ml-2"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                        strokeWidth={2}
-                                                    >
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                                    </svg>
-                                                </summary>
-                                                <div className="px-4 pb-4 text-sm text-slate-600 leading-relaxed">
-                                                    {faq.answer}
-                                                </div>
-                                            </details>
-                                        ))}
-                                    </div>
-                                </section>
-                            )}
-                        </div>
-                    );
-                })()}
 
                 {dominantMotif && (
                     <MotifPanel
@@ -4602,7 +4501,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                 {/* Related Designs Section */}
                 {!isAnalyzing && displayedRelatedDesigns && displayedRelatedDesigns.length > 0 && (
-                    <div className="w-full pb-8 pt-0 mb-0 mt-0">
+                    <div className="w-full pb-4 pt-1 mt-0">
                         <h2 className="text-lg font-semibold text-slate-800 mb-4">What other designs are trending in Cebu?</h2>
                         <Masonry
                             breakpointCols={{
@@ -4626,7 +4525,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                         {/* Show More Button */}
                         {hasMoreDesigns && (
-                            <div className="flex justify-center mt-4">
+                            <div className="flex justify-center mt-0">
                                 <button
                                     onClick={handleLoadMoreDesigns}
                                     disabled={isLoadingMoreDesigns}
@@ -4649,7 +4548,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                 {/* Related Collections Section */}
                 {!isAnalyzing && relatedCollections.length > 0 && (
-                    <div className="w-full pb-8 pt-8 border-t border-slate-100">
+                    <div className="w-full pb-4 pt-1 mt-1 border-t border-slate-100">
                         <div className="flex items-center justify-between mb-6">
                             <div>
                                 <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -4667,13 +4566,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     className="group relative overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-200/60"
                                 >
                                     <div className="aspect-4/5 relative overflow-hidden">
-                                        <LazyImage
-                                            src={collection.sample_image || '/placeholder-cake.webp'}
-                                            alt={collection.name}
-                                            fill
-                                            containerClassName="absolute inset-0"
-                                            imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
-                                        />
+                                        {collection.sample_image && (
+                                            <LazyImage
+                                                src={collection.sample_image}
+                                                alt={collection.name}
+                                                fill
+                                                containerClassName="absolute inset-0"
+                                                imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
+                                            />
+                                        )}
                                         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
 
                                         <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-1 group-hover:translate-y-0 transition-transform duration-500">
@@ -4690,6 +4591,109 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         </div>
                     </div>
                 )}
+
+                {/* Post-analysis content — mirrors SSRDesignContent from slug page, shown after Related/Collections */}
+                {!slug && analysisResult && (() => {
+                    const effectiveKeywords = currentKeywords || recentSearchDesign?.keywords || 'custom';
+                    const syntheticDesign = {
+                        keywords: effectiveKeywords,
+                        analysis_json: analysisResult,
+                        availability: recentSearchDesign?.availability || availabilityType || 'normal',
+                        tags: recentSearchDesign?.tags || [],
+                    };
+                    const aboutDescription = recentSearchDesign?.seo_description || recentSearchDesign?.alt_text || (analysisResult as any)?.seo_description || (analysisResult as any)?.alt_text || '';
+                    const faqs = generateDynamicFAQ(syntheticDesign, basePriceOptions);
+
+                    return (
+                        <div className="w-full max-w-4xl mx-auto px-0 pb-28 pt-1 space-y-4">
+                            {/* About This Design */}
+                            {aboutDescription && (
+                                <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
+                                    <DesignAboutSection
+                                        title={`About This ${effectiveKeywords || 'Custom'} Cake`}
+                                        description={aboutDescription}
+                                        showDisclaimer={true}
+                                    />
+                                </section>
+                            )}
+
+                            {/* Design Specifications */}
+                            <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
+                                <h2 className="text-xl font-bold text-slate-800 mb-4 text-center">Design Specifications</h2>
+                                <div className="overflow-hidden rounded-xl border border-slate-200">
+                                    <table className="min-w-full text-sm text-left">
+                                        <tbody className="divide-y divide-slate-200">
+                                            <tr className="bg-white">
+                                                <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Cake Style</th>
+                                                <td className="px-4 py-2 text-slate-600">{analysisResult.cakeType || 'Custom'} {effectiveKeywords}</td>
+                                            </tr>
+                                            <tr className="bg-slate-50">
+                                                <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Icing Finish</th>
+                                                <td className="px-4 py-2 text-slate-600">{analysisResult.icing_design?.base?.replace(/_/g, ' ') || 'Standard Icing'}</td>
+                                            </tr>
+                                            {(analysisResult.main_toppers?.length ?? 0) > 0 && (
+                                                <tr className="bg-white">
+                                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Primary Features</th>
+                                                    <td className="px-4 py-2 text-slate-600">
+                                                        {analysisResult.main_toppers.map((t: any) => t.description || t.type).join(', ')}
+                                                    </td>
+                                                </tr>
+                                            )}
+                                            {(analysisResult.support_elements?.length ?? 0) > 0 && (
+                                                <tr className="bg-slate-50">
+                                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Decorations</th>
+                                                    <td className="px-4 py-2 text-slate-600">
+                                                        {analysisResult.support_elements.map((s: any) => s.description || s.type).join(', ')}
+                                                    </td>
+                                                </tr>
+                                            )}
+                                            {(recentSearchDesign?.tags?.length ?? 0) > 0 && (
+                                                <tr className="bg-white">
+                                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Tags</th>
+                                                    <td className="px-4 py-2 text-slate-600">{recentSearchDesign!.tags!.join(', ')}</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+
+                            {/* FAQ */}
+                            {faqs.length > 0 && (
+                                <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
+                                    <h2 className="text-xl font-bold text-slate-800 mb-4 text-center">Frequently Asked Questions</h2>
+                                    <div className="space-y-3">
+                                        {faqs.map((faq, i) => (
+                                            <details
+                                                key={i}
+                                                className="group bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-200 hover:shadow-md"
+                                                {...(i === 0 ? { open: true } : {})}
+                                            >
+                                                <summary className="flex items-center justify-between p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                                                    <span className="font-semibold text-slate-700 group-open:text-purple-900 text-sm">
+                                                        {faq.question}
+                                                    </span>
+                                                    <svg
+                                                        className="w-5 h-5 text-slate-400 transition-transform duration-300 group-open:rotate-180 shrink-0 ml-2"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                        strokeWidth={2}
+                                                    >
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </summary>
+                                                <div className="px-4 pb-4 text-sm text-slate-600 leading-relaxed">
+                                                    {faq.answer}
+                                                </div>
+                                            </details>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
+                        </div>
+                    );
+                })()}
             </div>
         </>
     );
