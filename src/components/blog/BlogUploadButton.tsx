@@ -7,7 +7,7 @@ import { Upload, Loader2 } from 'lucide-react';
 import { showError, showLoading } from '@/lib/utils/toast';
 import { ImageUploader } from '@/components/ImageUploader';
 
-const BUCKET_NAME = 'uploadopenai';
+const BUCKET_NAME = 'cakegenie';
 
 interface BlogUploadButtonProps {
     className?: string;

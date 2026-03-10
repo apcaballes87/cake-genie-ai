@@ -126,7 +126,7 @@ export default async function CategoryPage({ params }: Props) {
         <>
             <CategorySchema keyword={decodedKeyword} designs={designs} url={url} />
             <main className="min-h-screen py-10">
-                <div className="w-full max-w-4xl mx-auto bg-white/80 backdrop-blur-lg p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200">
+                <div className="w-full max-w-7xl mx-auto px-4">
                     {/* Breadcrumb */}
                     <nav className="mb-6" aria-label="Breadcrumb">
                         <ol className="flex items-center text-sm text-slate-500 space-x-2">

@@ -819,21 +819,32 @@ export async function getCollectionBySlug(slug: string): Promise<SupabaseService
  */
 export async function getDesignsByKeyword(keywordOrSlug: string, limit: number = 50, offset: number = 0): Promise<SupabaseServiceResponse<any[]>> {
   try {
-    // Fallback: simple keyword match
-    let orFilters = buildCollectionOrFilter(keywordOrSlug);
-
-    // Try to see if this is a collection slug first
+    // Step 1: Check if this is a collection slug
     const { data: collection } = await supabase
       .from('cakegenie_collections')
       .select('name, tags')
       .eq('slug', keywordOrSlug)
       .single();
 
-    // If we found a collection, use its name for primary matching
-    if (collection) {
-      orFilters = buildCollectionOrFilter(collection.name, collection.tags || []);
+    // Build the FTS query.
+    // For collections: use ONLY the cleaned collection name (single key term).
+    // Joining all tags with spaces would produce an AND query in tsquery,
+    // which is far too restrictive — most products only match one tag, not all.
+    // A single term uses stemming (airplane = airplanes) and searches the full
+    // search_vector including analysis_json, finding more results than ILIKE.
+    // For raw keyword searches: use the input as-is.
+    const ftsQuery = collection ? cleanCollectionName(collection.name) : keywordOrSlug;
+
+    // Step 2: Use FTS search (ranked, searches keywords + analysis_json + alt_text + slug)
+    const ftsResult = await searchProductsFTS(ftsQuery, limit, offset);
+    if (ftsResult.data && ftsResult.data.length > 0) {
+      return ftsResult;
     }
 
+    // Step 3: FTS returned nothing — fall back to ILIKE
+    const orFilters = collection
+      ? buildCollectionOrFilter(collection.name, collection.tags || [])
+      : buildCollectionOrFilter(keywordOrSlug);
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
       .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json, image_width, image_height')
@@ -845,7 +856,7 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error('Error fetching designs by keyword/slug:', error);
+      console.error('Error fetching designs by keyword (fallback):', error);
       return { data: null, error };
     }
 
@@ -919,45 +930,42 @@ export async function getRelatedProductsByKeywords(
   const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
   try {
     const normalizedPhrase = normalizeRelatedSearchPhrase(keywords);
-    const distinctiveTerms = getDistinctiveRelatedSearchTerms(keywords);
-    const selectFields =
-      'p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, usage_count';
-
-    const buildBaseQuery = () => {
-      let query = client
-        .from('cakegenie_analysis_cache')
-        .select(selectFields)
-        .not('original_image_url', 'is', null)
-        .not('price', 'is', null)
-        .neq('original_image_url', '');
-
-      if (excludeSlug) {
-        query = query.neq('slug', excludeSlug);
-      }
-
-      return query;
-    };
-
-    const queries: Array<PromiseLike<{ data: any[] | null; error: PostgrestError | null }>> = [];
-
-    if (normalizedPhrase) {
-      const slugPhrase = normalizedPhrase.replace(/\s+/g, '-');
-      const phraseFilters = [
-        `keywords.ilike.%${normalizedPhrase}%`,
-        `alt_text.ilike.%${normalizedPhrase}%`,
-        `slug.ilike.%${slugPhrase}%`,
-      ].join(',');
-
-      queries.push(
-        buildBaseQuery()
-          .or(phraseFilters)
-          .order('usage_count', { ascending: false })
-          .range(0, Math.max(limit * 2, 36) - 1),
-      );
+    if (!normalizedPhrase) {
+      return getRecommendedProducts(limit, offset);
     }
 
-    if (distinctiveTerms.length > 0) {
-      const termFilters = distinctiveTerms
+    // Use FTS to get a broad set of candidates (fetch more than needed for re-ranking)
+    const candidateLimit = Math.max(limit * 4, 72);
+
+    const { data: ftsResults, error: ftsError } = await client.rpc('search_products', {
+      p_query: normalizedPhrase,
+      p_limit: candidateLimit,
+      p_offset: 0,
+    });
+
+    if (ftsError) {
+      console.error('Error in FTS related search:', ftsError);
+      // Fallback to ILIKE approach if FTS fails
+      const distinctiveTerms = getDistinctiveRelatedSearchTerms(keywords);
+      const selectFields =
+        'p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, usage_count';
+
+      const buildBaseQuery = () => {
+        let query = client
+          .from('cakegenie_analysis_cache')
+          .select(selectFields)
+          .not('original_image_url', 'is', null)
+          .not('price', 'is', null)
+          .neq('original_image_url', '');
+
+        if (excludeSlug) {
+          query = query.neq('slug', excludeSlug);
+        }
+
+        return query;
+      };
+
+      const termFilters = (distinctiveTerms.length > 0 ? distinctiveTerms : [normalizedPhrase])
         .flatMap((term) => {
           const slugTerm = term.replace(/\s+/g, '-');
           return [
@@ -968,42 +976,120 @@ export async function getRelatedProductsByKeywords(
         })
         .join(',');
 
-      queries.push(
-        buildBaseQuery()
-          .or(termFilters)
-          .order('usage_count', { ascending: false })
-          .range(0, Math.max(limit * 4, 72) - 1),
-      );
+      const { data, error } = await buildBaseQuery()
+        .or(termFilters)
+        .order('usage_count', { ascending: false })
+        .range(0, candidateLimit - 1);
+
+      if (error || !data || data.length === 0) {
+        return getRecommendedProducts(limit, offset);
+      }
+
+      const filtered = data.filter((p: any) => !excludeSlug || p.slug !== excludeSlug);
+      const rankedProducts = rankRelatedProducts(filtered, keywords, offset + limit).slice(offset);
+      return { data: rankedProducts.length > 0 ? rankedProducts : (await getRecommendedProducts(limit, offset)).data || [], error: null };
     }
 
-    const results = queries.length > 0 ? await Promise.all(queries) : [];
-    const queryError = results.find((result) => result.error)?.error ?? null;
-
-    if (queryError) {
-      console.error('Error fetching related products by keywords:', queryError);
-      return { data: null, error: queryError };
-    }
-
-    const dedupedCandidates = Array.from(
-      new Map(
-        results
-          .flatMap((result) => result.data || [])
-          .map((product) => [product.slug || product.p_hash, product]),
-      ).values(),
+    // Filter out the excluded slug
+    let candidates = (ftsResults || []).filter(
+      (p: any) => !excludeSlug || p.slug !== excludeSlug
     );
 
-    const rankedProducts = rankRelatedProducts(dedupedCandidates, keywords, offset + limit).slice(offset);
+    // Apply existing JS-side ranking for fine-grained relevance
+    const rankedProducts = rankRelatedProducts(candidates, keywords, offset + limit).slice(offset);
 
     if (rankedProducts.length > 0) {
       return { data: rankedProducts, error: null };
     }
 
     // Fallback to recent products if no keyword matches
-    console.log('No keyword matches found, falling back to recent products');
+    console.log('No FTS keyword matches found, falling back to recent products');
     return getRecommendedProducts(limit, offset);
   } catch (err) {
     console.error('Exception fetching related products by keywords:', err);
     return { data: null, error: err as Error };
+  }
+}
+
+
+// =============================================================================
+// Full-Text Search (PostgreSQL FTS + pg_trgm)
+// =============================================================================
+
+/**
+ * Full-text search for products using PostgreSQL FTS + pg_trgm.
+ * Replaces ILIKE-based search with ranked, typo-tolerant results.
+ */
+export async function searchProductsFTS(
+  query: string,
+  limit: number = 30,
+  offset: number = 0,
+  options?: {
+    availability?: string[];
+    minPrice?: number;
+    maxPrice?: number;
+  }
+): Promise<SupabaseServiceResponse<any[]>> {
+  const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
+  try {
+    const cleanQuery = query.trim().toLowerCase();
+    if (!cleanQuery) {
+      return { data: [], error: null };
+    }
+
+    const { data, error } = await client.rpc('search_products', {
+      p_query: cleanQuery,
+      p_limit: limit,
+      p_offset: offset,
+      p_availability: options?.availability || null,
+      p_min_price: options?.minPrice || null,
+      p_max_price: options?.maxPrice || null,
+    });
+
+    if (error) {
+      console.error('FTS search error:', error);
+      return { data: null, error };
+    }
+
+    return { data: data || [], error: null };
+  } catch (err) {
+    console.error('Exception in FTS search:', err);
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Gets the total count of FTS search results for pagination.
+ */
+export async function searchProductsFTSCount(
+  query: string,
+  options?: {
+    availability?: string[];
+    minPrice?: number;
+    maxPrice?: number;
+  }
+): Promise<number> {
+  const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
+  try {
+    const cleanQuery = query.trim().toLowerCase();
+    if (!cleanQuery) return 0;
+
+    const { data, error } = await client.rpc('search_products_count', {
+      p_query: cleanQuery,
+      p_availability: options?.availability || null,
+      p_min_price: options?.minPrice || null,
+      p_max_price: options?.maxPrice || null,
+    });
+
+    if (error) {
+      console.warn('FTS count error:', error);
+      return 0;
+    }
+
+    return data || 0;
+  } catch (err) {
+    console.warn('Exception in FTS count:', err);
+    return 0;
   }
 }
 
@@ -1839,7 +1925,7 @@ export async function getPopularKeywords(): Promise<string[]> {
  * @param term The search query keyword
  * @param actionType Whether the user typed it out or clicked a suggestion
  */
-export async function logSearchAnalytics(term: string, actionType: 'typed' | 'clicked'): Promise<void> {
+export async function logSearchAnalytics(term: string, actionType: 'typed' | 'clicked' | 'product_click'): Promise<void> {
   try {
     // Only track meaningful keywords
     if (!term || term.trim().length < 3) return;

@@ -105,8 +105,7 @@ const CategoryClient: React.FC<CategoryClientProps> = ({
             </div>
 
             <div className="w-full max-w-7xl mx-auto px-4">
-                <div className="bg-white/80 backdrop-blur-lg p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200">
-                    {/* Breadcrumb */}
+                {/* Breadcrumb */}
                     <nav className="mb-6" aria-label="Breadcrumb">
                         <ol className="flex items-center text-sm text-slate-500 space-x-2">
                             <li><Link href="/" className="hover:text-purple-600 transition-colors">Home</Link></li>
@@ -137,8 +136,8 @@ const CategoryClient: React.FC<CategoryClientProps> = ({
 
                     {/* Designs Grid with Load More & Google Search */}
                     <DesignGridWithLoadMore initialDesigns={designs} keyword={keyword} />
-                </div>
             </div>
+
 
             <MobileBottomNav />
         </div>

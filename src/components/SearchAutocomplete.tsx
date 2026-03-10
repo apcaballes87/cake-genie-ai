@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { SearchIcon, CameraIcon, Loader2 } from './icons';
 import { CAKE_SEARCH_KEYWORDS } from '@/constants/searchKeywords';
 import { getSuggestedKeywords, getPopularKeywords, logSearchAnalytics } from '@/services/supabaseService';
@@ -42,10 +44,16 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   showUploadButton = true,
   className
 }) => {
+  const router = useRouter();
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // FTS live product results
+  const [ftsResults, setFtsResults] = useState<any[]>([]);
+  const [isFtsLoading, setIsFtsLoading] = useState(false);
+  const ftsDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Compute the visible list of keywords for keyboard navigation
   // When input is empty, show suggested + popular + same-day keywords
@@ -70,11 +78,38 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
       const lowerQuery = query.toLowerCase();
       const matches = CAKE_SEARCH_KEYWORDS
         .filter(keyword => keyword.toLowerCase().includes(lowerQuery))
-        .slice(0, 8); // Show max 8 suggestions
+        .slice(0, 6); // Show max 6 keyword suggestions (leave room for product results)
       setSuggestions(matches);
     } else {
       setSuggestions([]); // Clear autocomplete if input is empty
+      setFtsResults([]);
     }
+  }, [query]);
+
+  // Debounced FTS product search when user types 3+ characters
+  useEffect(() => {
+    if (query.trim().length >= 3) {
+      if (ftsDebounceRef.current) clearTimeout(ftsDebounceRef.current);
+      setIsFtsLoading(true);
+      ftsDebounceRef.current = setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}&limit=4`);
+          const json = await res.json();
+          setFtsResults(json.data || []);
+        } catch {
+          setFtsResults([]);
+        } finally {
+          setIsFtsLoading(false);
+        }
+      }, 300);
+    } else {
+      setFtsResults([]);
+      setIsFtsLoading(false);
+    }
+
+    return () => {
+      if (ftsDebounceRef.current) clearTimeout(ftsDebounceRef.current);
+    };
   }, [query]);
 
   // Compute visible keywords for keyboard navigation
@@ -308,24 +343,77 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
               )}
             </div>
           ) : (
-            // Show autocomplete list when user is typing
-            suggestions.length > 0 && (
-              <ul className="max-h-80 overflow-y-auto">
-                {suggestions.map((suggestion, index) => (
-                  <li key={suggestion}>
+            // Show autocomplete list + FTS product results when user is typing
+            <div className="max-h-[28rem] overflow-y-auto">
+              {suggestions.length > 0 && (
+                <ul>
+                  {suggestions.map((suggestion, index) => (
+                    <li key={suggestion}>
+                      <button
+                        onClick={() => handleSelectSuggestion(suggestion)}
+                        className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-purple-50 transition-colors ${index === selectedIndex ? 'bg-purple-50' : ''}`}
+                      >
+                        <SearchIcon className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span className="text-slate-700 text-sm">
+                          <HighlightMatch text={suggestion} query={query} />
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* FTS Live Product Results */}
+              {(ftsResults.length > 0 || isFtsLoading) && (
+                <div className={`${suggestions.length > 0 ? 'border-t border-slate-100' : ''}`}>
+                  <div className="px-4 pt-3 pb-1">
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                      Quick Results
+                      {isFtsLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                    </h3>
+                  </div>
+                  {ftsResults.map((product) => (
                     <button
-                      onClick={() => handleSelectSuggestion(suggestion)}
-                      className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-purple-50 transition-colors ${index === selectedIndex ? 'bg-purple-50' : ''}`}
+                      key={product.slug}
+                      onClick={() => {
+                        setShowSuggestions(false);
+                        logSearchAnalytics(query, 'product_click');
+                        router.push(`/customizing/${product.slug}`);
+                      }}
+                      className="w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-purple-50 transition-colors"
                     >
-                      <SearchIcon className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span className="text-slate-700 text-sm">
-                        <HighlightMatch text={suggestion} query={query} />
-                      </span>
+                      {product.original_image_url && (
+                        <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-slate-100">
+                          <Image
+                            src={product.original_image_url}
+                            alt={product.alt_text || product.keywords || ''}
+                            fill
+                            sizes="40px"
+                            className="object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-slate-700 truncate">
+                          {product.alt_text || product.keywords || product.slug}
+                        </p>
+                        {product.price && (
+                          <p className="text-xs text-pink-600 font-medium">
+                            ₱{Number(product.price).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
                     </button>
-                  </li>
-                ))}
-              </ul>
-            )
+                  ))}
+                </div>
+              )}
+
+              {suggestions.length === 0 && ftsResults.length === 0 && !isFtsLoading && query.trim().length > 0 && (
+                <div className="p-4 text-center text-sm text-slate-500">
+                  No results found. Try a different search term.
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

@@ -6,6 +6,8 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { BackIcon, UserCircleIcon, LogOutIcon, MapPinIcon, PackageIcon } from '@/components/icons';
 import { ShoppingBag } from 'lucide-react';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
+import { ProductCard } from '@/components/ProductCard';
+import Masonry from 'react-masonry-css';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import { useSearchEngine } from '@/hooks/useSearchEngine';
 import { useImageManagement } from '@/contexts/ImageContext';
@@ -41,6 +43,12 @@ const SearchingClient: React.FC = () => {
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
     const accountMenuRef = useRef<HTMLDivElement>(null);
     const [isFetchingWebImage, setIsFetchingWebImage] = useState(false);
+
+    // Internal FTS results state
+    const [internalResults, setInternalResults] = useState<any[]>([]);
+    const [internalTotal, setInternalTotal] = useState(0);
+    const [isInternalLoading, setIsInternalLoading] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
 
     // Loading animation state
     const [loadingStep, setLoadingStep] = useState(0);
@@ -127,6 +135,66 @@ const SearchingClient: React.FC = () => {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialQuery]);
+
+    // Fetch internal FTS results when searchQuery changes
+    useEffect(() => {
+        if (!searchQuery || searchQuery.trim().length === 0) {
+            setInternalResults([]);
+            setInternalTotal(0);
+            return;
+        }
+
+        const controller = new AbortController();
+        setIsInternalLoading(true);
+
+        fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=12`, {
+            signal: controller.signal
+        })
+            .then(res => res.json())
+            .then(json => {
+                setInternalResults(json.data || []);
+                setInternalTotal(json.total || 0);
+            })
+            .catch(err => {
+                if (err.name !== 'AbortError') {
+                    console.error('FTS search error:', err);
+                    setInternalResults([]);
+                    setInternalTotal(0);
+                }
+            })
+            .finally(() => setIsInternalLoading(false));
+
+        return () => controller.abort();
+    }, [searchQuery]);
+
+    // Masonry breakpoints for internal results grid
+    const masonryBreakpoints = {
+        default: 6,
+        1536: 6,
+        1280: 5,
+        1024: 4,
+        768: 3,
+        640: 2,
+    };
+
+    // Load more internal FTS results
+    const handleLoadMore = useCallback(() => {
+        if (!searchQuery || isLoadingMore) return;
+        setIsLoadingMore(true);
+
+        fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=12&offset=${internalResults.length}`)
+            .then(res => res.json())
+            .then(json => {
+                const newResults = json.data || [];
+                setInternalResults(prev => {
+                    const existingSlugs = new Set(prev.map((p: any) => p.slug));
+                    const unique = newResults.filter((p: any) => !existingSlugs.has(p.slug));
+                    return [...prev, ...unique];
+                });
+            })
+            .catch(err => console.error('Load more error:', err))
+            .finally(() => setIsLoadingMore(false));
+    }, [searchQuery, internalResults.length, isLoadingMore]);
 
     // Loading animation effect
     const isLoading = isFetchingWebImage; // Map to local loading state
@@ -317,6 +385,65 @@ const SearchingClient: React.FC = () => {
                         </div>
                     </div>
                 )}
+                {/* Internal FTS Product Results */}
+                {searchQuery && (internalResults.length > 0 || isInternalLoading) && (
+                    <div className="mb-6">
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+                                Our Designs
+                                {isInternalLoading && <LoadingSpinner />}
+                                {!isInternalLoading && internalTotal > 0 && (
+                                    <span className="text-xs font-normal text-slate-400">
+                                        ({internalTotal} found)
+                                    </span>
+                                )}
+                            </h2>
+                        </div>
+                        {internalResults.length > 0 && (
+                            <Masonry
+                                breakpointCols={masonryBreakpoints}
+                                className="flex -ml-3 w-auto"
+                                columnClassName="pl-3 bg-clip-padding"
+                            >
+                                {internalResults.map((product, index) => (
+                                    <div key={product.slug || product.p_hash} className="mb-3">
+                                        <ProductCard
+                                            p_hash={product.p_hash}
+                                            original_image_url={product.original_image_url}
+                                            price={product.price}
+                                            keywords={product.keywords}
+                                            slug={product.slug}
+                                            availability={product.availability}
+                                            analysis_json={product.analysis_json}
+                                            priority={index < 4}
+                                            image_width={product.image_width}
+                                            image_height={product.image_height}
+                                        />
+                                    </div>
+                                ))}
+                            </Masonry>
+                        )}
+                        {internalResults.length > 0 && internalResults.length < internalTotal && (
+                            <div className="flex justify-center mt-6 mb-2">
+                                <button
+                                    onClick={handleLoadMore}
+                                    disabled={isLoadingMore}
+                                    className="px-6 py-2.5 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-full border border-purple-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {isLoadingMore ? (
+                                        <>
+                                            <LoadingSpinner />
+                                            Loading...
+                                        </>
+                                    ) : (
+                                        <>Load more designs</>
+                                    )}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 <div id="google-search-container" className="grow min-h-[400px]"></div>
             </div>
             <MobileBottomNav />

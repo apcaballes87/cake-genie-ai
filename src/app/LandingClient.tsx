@@ -172,7 +172,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
             const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
 
             const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('uploadopenai')
+                .from('cakegenie')
                 .upload(filename, file);
 
             if (uploadError) {
@@ -182,7 +182,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
             }
 
             const { data: urlData } = supabase.storage
-                .from('uploadopenai')
+                .from('cakegenie')
                 .getPublicUrl(uploadData.path);
 
             return urlData.publicUrl;

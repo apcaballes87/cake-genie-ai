@@ -9,7 +9,7 @@ import { Loader2 } from '@/components/icons';
 import { ArrowLeft, Upload, Camera, ChevronDown, ChevronUp } from 'lucide-react';
 
 // Configuration
-const BUCKET_NAME = 'uploadopenai';
+const BUCKET_NAME = 'cakegenie';
 const IMG_MAX_LONG_EDGE = 1800;
 const IMG_TARGET_MAX_BYTES = 1_200_000;
 
