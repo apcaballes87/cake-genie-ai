@@ -24,7 +24,6 @@ import { AvailabilityType } from '../../lib/utils/availability';
 
 import { COLORS, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_THUMBNAILS } from '@/constants';
 import { ColorPalette } from '../../components/ColorPalette';
-import { TopperCard } from '../../components/TopperCard';
 import StickyAddToCartBar from '../../components/StickyAddToCartBar';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
 import { reportCustomization, uploadReportImage, getAnalysisByExactHash, getRelatedProductsByKeywords, getCollectionsForDesign } from '../../services/supabaseService';
@@ -46,6 +45,7 @@ import {
 import { CustomizingAiChatPanel } from './CustomizingAiChatPanel';
 import { CustomizingIcingEditorPanel } from './CustomizingIcingEditorPanel';
 import { CustomizingMessagesPanel } from './CustomizingMessagesPanel';
+import { CustomizingPhotosPanel } from './CustomizingPhotosPanel';
 import { CustomizingStepSummarySections } from './CustomizingStepSummarySections';
 import { CustomizingToppersPanel } from './CustomizingToppersPanel';
 import {
@@ -3264,58 +3264,18 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         visibleSections={activeTopperSection ?? 'all'}
                     />
 
-                    <div className={activeCustomization === 'photos' ? 'block' : 'hidden'}>
-                        <div className="space-y-4">
-                            {(() => {
-                                const ediblePhotoTopper = mainToppers.find(t => t.original_type === 'edible_photo_top');
-                                const ediblePhotoSupport = supportElements.find(s => s.original_type === 'edible_photo_side');
-
-                                const photos = [];
-                                if (ediblePhotoTopper) photos.push({ ...ediblePhotoTopper, category: 'topper' as const });
-                                if (ediblePhotoSupport) photos.push({ ...ediblePhotoSupport, category: 'element' as const });
-
-                                if (photos.length === 0) {
-                                    return (
-                                        <div className="text-center p-8 text-slate-500">
-                                            <p>No edible photos detected on this cake.</p>
-                                            <p className="text-xs mt-2">Edible photos are only available if the AI detected them in the original design.</p>
-                                        </div>
-                                    );
-                                }
-
-                                return photos.map((photo) => (
-                                    <div key={photo.id} className="border border-slate-200 rounded-xl p-4">
-                                        <h3 className="font-bold text-slate-700 mb-2">
-                                            {photo.category === 'topper' ? 'Top Photo' : 'Side Photo'}
-                                        </h3>
-                                        <TopperCard
-                                            item={photo}
-                                            type={photo.category}
-                                            marker={markerMap.get(photo.id)}
-                                            expanded={true}
-                                            onToggle={() => { }}
-                                            updateItem={(updates) => {
-                                                if (photo.category === 'topper') {
-                                                    updateMainTopper(photo.id, updates);
-                                                } else {
-                                                    updateSupportElement(photo.id, updates);
-                                                }
-                                            }}
-                                            onImageReplace={(file) => {
-                                                if (photo.category === 'topper') {
-                                                    onTopperImageReplace(photo.id, file);
-                                                } else {
-                                                    onSupportElementImageReplace(photo.id, file);
-                                                }
-                                            }}
-                                            itemPrice={itemPrices?.get(photo.id)}
-                                            isAdmin={isAdmin}
-                                        />
-                                    </div>
-                                ));
-                            })()}
-                        </div>
-                    </div>
+                    <CustomizingPhotosPanel
+                        isVisible={activeCustomization === 'photos'}
+                        mainToppers={mainToppers}
+                        supportElements={supportElements}
+                        markerMap={markerMap}
+                        updateMainTopper={updateMainTopper}
+                        updateSupportElement={updateSupportElement}
+                        onTopperImageReplace={onTopperImageReplace}
+                        onSupportElementImageReplace={onSupportElementImageReplace}
+                        itemPrices={itemPrices}
+                        isAdmin={isAdmin}
+                    />
 
                     <div className={activeCustomization === 'instructions' ? 'block' : 'hidden'}>
                         <div className="p-4 space-y-3">
