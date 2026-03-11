@@ -27,7 +27,7 @@ async function run() {
             }],
         });
         console.log("Success with overriding mimeType");
-    } catch (e) {
+    } catch (e: any) {
         console.log("Failed with override:", e.message);
     }
 }
