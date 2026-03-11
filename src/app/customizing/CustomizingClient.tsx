@@ -38,7 +38,6 @@ import {
     CustomizingPageMetaHeader,
     CustomizingSupplementalContent,
 } from './CustomizingPageMetaSections';
-import { CustomizingAiChatPanel } from './CustomizingAiChatPanel';
 import { CustomizingEditorSheet } from './CustomizingEditorSheet';
 import { CustomizingHeroPanel } from './CustomizingHeroPanel';
 import { CustomizingIcingEditorPanel } from './CustomizingIcingEditorPanel';
@@ -349,6 +348,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const lastRelatedCollectionsRequestKeyRef = useRef<string | null>(null);
     const aiChatContainerRef = useRef<HTMLFormElement>(null);
     const aiChatInputRef = useRef<HTMLInputElement>(null);
+    const stickyChatContainerRef = useRef<HTMLDivElement>(null);
+    const stickyChatInputRef = useRef<HTMLTextAreaElement>(null);
 
     // --- Hooks ---
     const { addOnPricing, itemPrices, basePriceOptions: hookBasePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice } = usePricing({
@@ -755,9 +756,32 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setSelectedAiPromptIndex(-1);
 
         requestAnimationFrame(() => {
-            aiChatInputRef.current?.focus();
-            const cursorPosition = suggestion.length;
-            aiChatInputRef.current?.setSelectionRange(cursorPosition, cursorPosition);
+            const input = aiChatInputRef.current || stickyChatInputRef.current;
+            if (input) {
+                input.focus();
+                const cursorPosition = suggestion.length;
+                input.setSelectionRange(cursorPosition, cursorPosition);
+            }
+        });
+    }, []);
+
+    const handleStickySuggestionSelect = useCallback((suggestion: string) => {
+        // For the sticky bar, always put the raw text into the textarea.
+        // Replace the "..." placeholder so the user can just type the value after it.
+        const text = suggestion.replace('...', '');
+        setSelectedAiPromptTemplate(null);
+        setSelectedAiPromptColor('');
+        setShowAiPromptColorPicker(false);
+        setChatInput(text);
+        setShowAiPromptSuggestions(false);
+        setSelectedAiPromptIndex(-1);
+
+        requestAnimationFrame(() => {
+            if (stickyChatInputRef.current) {
+                stickyChatInputRef.current.focus();
+                const cursorPosition = text.length;
+                stickyChatInputRef.current.setSelectionRange(cursorPosition, cursorPosition);
+            }
         });
     }, []);
 
@@ -810,7 +834,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         }
     }, [hasAiChatPromptSuggestions]);
 
-    const handleAiPromptInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleAiPromptInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (e.key === 'Escape') {
             setShowAiPromptSuggestions(false);
             setSelectedAiPromptIndex(-1);
@@ -842,7 +866,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     // --- Effects ---
     useEffect(() => {
         const handleClickOutside = (event: PointerEvent) => {
-            if (aiChatContainerRef.current && !aiChatContainerRef.current.contains(event.target as Node)) {
+            const isOutsideTopChat = aiChatContainerRef.current && !aiChatContainerRef.current.contains(event.target as Node);
+            const isOutsideStickyChat = stickyChatContainerRef.current && !stickyChatContainerRef.current.contains(event.target as Node);
+
+            // Close suggestions if clicked outside both containers
+            if ((!aiChatContainerRef.current || isOutsideTopChat) && (!stickyChatContainerRef.current || isOutsideStickyChat)) {
                 setShowAiPromptSuggestions(false);
                 setSelectedAiPromptIndex(-1);
                 setShowAiPromptColorPicker(false);
@@ -2578,28 +2606,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         <CustomizingSidebarPanel
                             showLoadingState={isAnalyzing || (isLoading && !isDesignSaved)}
                             showContentState={Boolean(cakeInfo || analysisError)}
-                            showAiChat={Boolean(cakeInfo) && !isAnalyzing && !isRejectionError}
-                            aiChatProps={{
-                                containerRef: aiChatContainerRef,
-                                inputRef: aiChatInputRef,
-                                chatInput,
-                                selectedAiPromptTemplate,
-                                selectedAiPromptColor,
-                                showAiPromptColorPicker,
-                                showAiPromptSuggestions,
-                                filteredAiChatPromptSuggestions,
-                                selectedAiPromptIndex,
-                                isAiProcessing,
-                                isUpdatingDesign,
-                                onSubmit: handleChatSubmit,
-                                onTemplateColorPickerToggle: handleAiPromptColorPickerToggle,
-                                onTemplateClear: handleAiPromptTemplateClear,
-                                onTemplateColorChange: handleAiPromptTemplateColorChange,
-                                onInputChange: handleAiChatInputChange,
-                                onInputInteract: handleAiChatInputInteract,
-                                onInputKeyDown: handleAiPromptInputKeyDown,
-                                onSuggestionSelect: handleAiPromptSuggestionSelect,
-                            }}
                             stepSummaryProps={{
                                 cakeInfo,
                                 icingDesign,
@@ -2767,6 +2773,20 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     onChatInputChange={handleAiChatInputChange}
                     onChatSubmit={handleChatSubmit}
                     isAiProcessing={isAiProcessing}
+                    showAiPromptSuggestions={showAiPromptSuggestions}
+                    filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
+                    selectedAiPromptIndex={selectedAiPromptIndex}
+                    onSuggestionSelect={handleAiPromptSuggestionSelect}
+                    onInputInteract={handleAiChatInputInteract}
+                    onInputKeyDown={handleAiPromptInputKeyDown}
+                    containerRef={stickyChatContainerRef}
+                    inputRef={stickyChatInputRef}
+                    selectedAiPromptTemplate={selectedAiPromptTemplate}
+                    selectedAiPromptColor={selectedAiPromptColor}
+                    showAiPromptColorPicker={showAiPromptColorPicker}
+                    onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
+                    onTemplateClear={handleAiPromptTemplateClear}
+                    onTemplateColorChange={handleAiPromptTemplateColorChange}
                 />
                 <ReportModal
                     isOpen={isReportModalOpen}

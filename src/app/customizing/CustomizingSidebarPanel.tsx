@@ -3,22 +3,17 @@
 import { memo, type ComponentProps } from 'react';
 import { ChosenOptionsSkeleton } from '../../components/LoadingSkeletons';
 import { MagicSparkleIcon } from '../../components/icons';
-import { CustomizingAiChatPanel } from './CustomizingAiChatPanel';
 import { CustomizingStepSummarySections } from './CustomizingStepSummarySections';
 
 interface CustomizingSidebarPanelProps {
     showLoadingState: boolean;
     showContentState: boolean;
-    showAiChat: boolean;
-    aiChatProps: Omit<ComponentProps<typeof CustomizingAiChatPanel>, 'className'>;
     stepSummaryProps: Omit<ComponentProps<typeof CustomizingStepSummarySections>, 'layout'>;
 }
 
 export const CustomizingSidebarPanel = memo(function CustomizingSidebarPanel({
     showLoadingState,
     showContentState,
-    showAiChat,
-    aiChatProps,
     stepSummaryProps,
 }: CustomizingSidebarPanelProps) {
     return (
@@ -46,13 +41,6 @@ export const CustomizingSidebarPanel = memo(function CustomizingSidebarPanel({
                 </div>
             ) : showContentState ? (
                 <>
-                    {showAiChat ? (
-                        <CustomizingAiChatPanel
-                            {...aiChatProps}
-                            className="w-full hidden md:block bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 relative z-30"
-                        />
-                    ) : null}
-
                     <CustomizingStepSummarySections
                         {...stepSummaryProps}
                         layout="desktop"
