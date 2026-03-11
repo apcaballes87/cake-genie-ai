@@ -109,15 +109,19 @@ export const CustomizingAiChatPanel = React.memo(({
                 />
             )}
             {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isUpdatingDesign && (
-                <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                <div className="absolute left-0 right-0 top-full z-100 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="max-h-72 overflow-y-auto py-1">
                         {filteredAiChatPromptSuggestions.map(({ suggestion, template }, index) => (
                             <button
                                 key={suggestion}
                                 type="button"
-                                onMouseDown={(event) => event.preventDefault()}
+                                onMouseDown={(event) => {
+                                    // Prevent input focus loss
+                                    event.preventDefault();
+                                }}
                                 onClick={() => onSuggestionSelect(suggestion)}
-                                className={`block w-full px-3 py-2 text-left text-sm transition-colors ${selectedAiPromptIndex === index ? 'bg-purple-50 text-purple-700' : 'text-slate-700 hover:bg-slate-50'}`}
+                                className={`block w-full px-4 py-3 text-left text-sm transition-colors cursor-pointer active:bg-purple-100 ${selectedAiPromptIndex === index ? 'bg-purple-50 text-purple-700' : 'text-slate-700 hover:bg-slate-50'}`}
+                                aria-label={`Select suggestion: ${suggestion}`}
                             >
                                 {template ? (
                                     <span className="wrap-break-word">
