@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import Script from 'next/script';
 
 /**
  * Tawk.to Live Chat Widget Component
@@ -8,55 +9,18 @@ import { useEffect } from 'react';
  * 
  * Dashboard: https://dashboard.tawk.to/
  */
-export default function TawkToChat() {
+export const TawkToChat = () => {
+    const [shouldLoad, setShouldLoad] = useState(false);
+
     useEffect(() => {
-        // Skip if already loaded
-        if (window.Tawk_API) return;
+        // Skip if already loaded or about to load
+        if (typeof window === 'undefined' || window.Tawk_API || shouldLoad) return;
 
         const triggerEvents = ['scroll', 'mousemove', 'touchstart', 'keydown'];
 
-        const loadTawkTo = () => {
-            if (window.Tawk_API) return;
-
-            // Initialize Tawk.to API
-            window.Tawk_API = window.Tawk_API || {};
-            window.Tawk_LoadStart = new Date();
-
-            // Adjust widget position (20px above current/default)
-            window.Tawk_API.customStyle = {
-                visibility: {
-                    desktop: {
-                        position: 'br', // bottom right
-                        xOffset: 15,
-                        yOffset: 55   // Default is usually ~15-20, so 35-40 + 20 = 55
-                    },
-                    mobile: {
-                        position: 'br',
-                        xOffset: 15,
-                        yOffset: 115   // To clear mobile bottom nav (estimated at 70-80px + padding) + 20
-                    }
-                }
-            };
-
-            // Create and inject the Tawk.to script
-            const script = document.createElement('script');
-            script.async = true;
-            script.src = 'https://embed.tawk.to/694211438ecd79197d49cf01/1jcl16sm3';
-            script.charset = 'UTF-8';
-            script.setAttribute('crossorigin', '*');
-
-            const firstScript = document.getElementsByTagName('script')[0];
-            if (firstScript?.parentNode) {
-                firstScript.parentNode.insertBefore(script, firstScript);
-            } else {
-                document.body.appendChild(script);
-            }
-
-            removeEventListeners();
-        };
-
         const handleInteraction = () => {
-            loadTawkTo();
+            setShouldLoad(true);
+            removeEventListeners();
         };
 
         const removeEventListeners = () => {
@@ -65,7 +29,7 @@ export default function TawkToChat() {
             });
         };
 
-        // Add interaction listeners
+        // Add interaction listeners for lazy loading
         triggerEvents.forEach(event => {
             window.addEventListener(event, handleInteraction, { once: true, passive: true });
         });
@@ -73,10 +37,57 @@ export default function TawkToChat() {
         return () => {
             removeEventListeners();
         };
-    }, []);
+    }, [shouldLoad]);
 
-    return null;
-}
+    useEffect(() => {
+        if (!shouldLoad) return;
+
+        // Initialize Tawk.to API before script loads to avoid race conditions
+        window.Tawk_API = window.Tawk_API || {};
+        window.Tawk_LoadStart = new Date();
+
+        // Adjust widget position
+        window.Tawk_API.customStyle = {
+            visibility: {
+                desktop: {
+                    position: 'br', // bottom right
+                    xOffset: 15,
+                    yOffset: 55
+                },
+                mobile: {
+                    position: 'br',
+                    xOffset: 15,
+                    yOffset: 115
+                }
+            }
+        };
+
+        // Add event listeners for the API if needed
+        window.Tawk_API.onLoad = function () {
+            if (process.env.NODE_ENV === 'development') {
+                console.log('[Tawk.to] Widget loaded successfully');
+            }
+        };
+
+        window.Tawk_API.onStatusChange = function (status: string) {
+            // Optional: Handle status changes
+        };
+
+    }, [shouldLoad]);
+
+    if (!shouldLoad) return null;
+
+    return (
+        <Script
+            id="tawk-to-script"
+            src="https://embed.tawk.to/694211438ecd79197d49cf01/1jcl16sm3"
+            strategy="afterInteractive"
+            crossOrigin="anonymous"
+        />
+    );
+};
+
+export default TawkToChat;
 
 // Extend Window interface for TypeScript
 declare global {

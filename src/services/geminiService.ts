@@ -256,8 +256,22 @@ export async function editCakeImage(
     supportElements: SupportElementUI[],
     threeTierReferenceImage: { data: string; mimeType: string; } | null,
     systemInstruction: string,
+    traceId?: string,
+    requestSource?: string,
 ): Promise<string> {
     try {
+        const effectiveTraceId = traceId ?? `edit-image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const startedAt = Date.now();
+
+        console.log(`[AI TRACE ${effectiveTraceId}] editCakeImage:start`, {
+            requestSource: requestSource ?? 'unknown',
+            promptLength: prompt.length,
+            originalMimeType: originalImage.mimeType,
+            topperCount: mainToppers.length,
+            supportElementCount: supportElements.length,
+            hasThreeTierReferenceImage: Boolean(threeTierReferenceImage),
+        });
+
         // --- OPTIMIZATION START ---
         // Compress the image before sending to the API to reduce payload size and latency
         // The API only needs a visual reference (1024px is plenty), not the full 12MP upload
@@ -279,10 +293,19 @@ export async function editCakeImage(
         const compressedBase64Result = await fileToBase64(compressedFile);
 
         console.log(`🚀 Designing Image: Compressed input from ${(imageFile.size / 1024 / 1024).toFixed(2)}MB to ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+        console.log(`[AI TRACE ${effectiveTraceId}] editCakeImage:compressed`, {
+            requestSource: requestSource ?? 'unknown',
+            originalBytes: imageFile.size,
+            compressedBytes: compressedFile.size,
+        });
 
         const response = await fetch('/api/ai/edit-image', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-ai-trace-id': effectiveTraceId,
+                'x-ai-request-source': requestSource ?? 'unknown',
+            },
             body: JSON.stringify({
                 prompt,
                 originalImage: compressedBase64Result,
@@ -291,12 +314,29 @@ export async function editCakeImage(
             })
         });
 
+        console.log(`[AI TRACE ${effectiveTraceId}] editCakeImage:response`, {
+            requestSource: requestSource ?? 'unknown',
+            status: response.status,
+            ok: response.ok,
+            durationMs: Date.now() - startedAt,
+        });
+
         if (!response.ok) {
             const errorData = await response.json();
+            console.error(`[AI TRACE ${effectiveTraceId}] editCakeImage:failed-response`, {
+                requestSource: requestSource ?? 'unknown',
+                status: response.status,
+                error: errorData?.error,
+            });
             throw new Error(errorData.error || 'Failed to edit image');
         }
 
         const result = await response.json();
+        console.log(`[AI TRACE ${effectiveTraceId}] editCakeImage:success`, {
+            requestSource: requestSource ?? 'unknown',
+            mimeType: result.mimeType,
+            durationMs: Date.now() - startedAt,
+        });
 
         // Return as data URI
         return `data:${result.mimeType};base64,${result.imageData}`;

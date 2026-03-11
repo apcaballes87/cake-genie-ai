@@ -57,6 +57,8 @@ import { AppState } from '@/hooks/useAppNavigation';
 import { toast } from 'react-hot-toast';
 import { buildAiChatPromptSuggestions, shouldShowAiPromptSuggestion } from '@/utils/aiPromptSuggestions';
 import { fillAiChatPromptTemplate, parseAiChatPromptTemplate, ParsedAiChatPromptTemplate } from '@/utils/aiChatPromptComposer';
+import { mapAnalysisToState } from '@/utils/customizationMapper';
+import type { DesignPromptGenerator } from '@/hooks/useDesignUpdate';
 
 interface AvailabilityInfo {
     type: AvailabilityType;
@@ -68,6 +70,33 @@ interface AvailabilityInfo {
     textColor: string;
     borderColor: string;
 }
+
+const AI_CHAT_USER_REQUEST_REGEX = /\[USER REQUEST\]:\s*(.*)/;
+
+const AI_CHAT_IMAGE_PROMPT_GENERATOR: DesignPromptGenerator = (
+    _originalAnalysis,
+    newCakeInfo,
+    _mainToppers,
+    _supportElements,
+    _cakeMessages,
+    _icingDesign,
+    additionalInstructions,
+) => {
+    const userRequest = additionalInstructions.match(AI_CHAT_USER_REQUEST_REGEX)?.[1]?.trim()
+        ?? additionalInstructions.trim();
+
+    const changes = [
+        `- **⚡ PRIMARY USER REQUEST (HIGHEST PRIORITY):** ${userRequest}. Apply this user request directly to the cake image.`,
+        newCakeInfo?.size ? `- Preserve the final **cake size** as "${newCakeInfo.size}".` : null,
+        '- Preserve all other cake details that the user did not mention.',
+    ].filter(Boolean).join('\n');
+
+    return `---
+### **List of Changes to Apply**
+---
+
+${changes}`;
+};
 
 const AVAILABILITY_MAP: Record<AvailabilityType, AvailabilityInfo> = {
     rush: {
@@ -669,32 +698,93 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         const currentPrompt = prompt.trim();
         if (!currentPrompt || !analysisResult || isAiProcessing || isUpdatingDesign) return;
 
+        const traceId = `ai-chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        let resolveMergedAnalysis: ((value: HybridAnalysisResult) => void) | undefined;
+        let rejectMergedAnalysis: ((reason?: unknown) => void) | undefined;
+
+        console.log(`[AI TRACE ${traceId}] submitAiChatPrompt:start`, {
+            prompt: currentPrompt,
+            promptLength: currentPrompt.length,
+        });
+
         setIsAiProcessing(true);
         setChatInput('');
 
         try {
-            // 1. Fire Image Edit (runs in background, hook manages state/error)
-            // We pass the user prompt explicitly so the model applies it to the *current* 
-            // state before we receive the updated JSON state below.
-            handleUpdateDesign(`[USER REQUEST]: ${currentPrompt}`).catch(err => {
-                console.error("Image generation failed in background:", err);
+            const syncedAnalysis = getSyncedAnalysisResult() || analysisResult;
+            const mergedAnalysisReady = new Promise<HybridAnalysisResult>((resolve, reject) => {
+                resolveMergedAnalysis = resolve;
+                rejectMergedAnalysis = reject;
             });
 
-            // Get the current synced state including user's manual UI changes
-            const syncedAnalysis = getSyncedAnalysisResult() || analysisResult;
+            // 1. Fire Image Edit (runs in background, hook manages state/error)
+            // We keep this fully parallel and drive the first image pass directly from the
+            // raw user request + normal image-edit system instruction selection.
+            console.log(`[AI TRACE ${traceId}] submitAiChatPrompt:dispatch-image-edit`);
+            handleUpdateDesign(`[USER REQUEST]: ${currentPrompt}`, {
+                traceId,
+                source: 'ai-chat-image-edit',
+                promptGenerator: AI_CHAT_IMAGE_PROMPT_GENERATOR,
+            }).catch(err => {
+                void (async () => {
+                    console.warn(`[AI TRACE ${traceId}] submitAiChatPrompt:image-edit-retrying-after-chat-sync`, {
+                        message: err instanceof Error ? err.message : 'Unknown error',
+                    });
+
+                    try {
+                        const mergedAnalysisForRetry = await mergedAnalysisReady;
+                        const mappedState = mapAnalysisToState(mergedAnalysisForRetry);
+                        const fallbackCakeInfo = cakeInfo ? {
+                            ...cakeInfo,
+                            type: mergedAnalysisForRetry.cakeType ?? cakeInfo.type,
+                            thickness: mergedAnalysisForRetry.cakeThickness ?? cakeInfo.thickness,
+                        } : mappedState.cakeInfo ?? null;
+
+                        if (!fallbackCakeInfo || !mappedState.icingDesign) {
+                            throw err;
+                        }
+
+                        await handleUpdateDesign(`[USER REQUEST]: ${currentPrompt}`, {
+                            traceId: `${traceId}-retry`,
+                            source: 'ai-chat-image-edit-retry',
+                            stateOverrides: {
+                                analysisResult: syncedAnalysis,
+                                cakeInfo: fallbackCakeInfo,
+                                mainToppers: mappedState.mainToppers ?? [],
+                                supportElements: mappedState.supportElements ?? [],
+                                cakeMessages: mappedState.cakeMessages ?? [],
+                                icingDesign: mappedState.icingDesign,
+                            },
+                        });
+                    } catch (retryErr) {
+                        console.error(`[AI TRACE ${traceId}] submitAiChatPrompt:image-edit-error`, retryErr);
+                        console.error('Image generation failed in background:', retryErr);
+                    }
+                })();
+            });
 
             console.log('🔍 [DEBUG CHAT] Step 0 - USER PROMPT:', currentPrompt);
             console.log('🔍 [DEBUG CHAT] Step 1 - Synced cake_messages SENT to AI:', JSON.stringify(syncedAnalysis.cake_messages, null, 2));
             console.log('🔍 [DEBUG CHAT] Step 1 - Full synced icing_design SENT to AI:', JSON.stringify(syncedAnalysis.icing_design, null, 2));
 
             // 2. Fire Chat Edit (waits for JSON to update UI)
+            console.log(`[AI TRACE ${traceId}] submitAiChatPrompt:dispatch-chat-edit`);
             const response = await fetch('/api/ai/chat-edit', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-ai-trace-id': traceId,
+                    'x-ai-request-source': 'ai-chat-json-edit',
+                },
                 body: JSON.stringify({
                     prompt: currentPrompt,
                     currentAnalysis: syncedAnalysis,
                 }),
+            });
+
+            console.log(`[AI TRACE ${traceId}] submitAiChatPrompt:chat-edit-response`, {
+                status: response.status,
+                ok: response.ok,
             });
 
             if (!response.ok) {
@@ -733,18 +823,27 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             // Apply the merged analysis as if it was analyzed from an image
             // This instantly updates UI toggles, price, and tags 
             setPendingAnalysisData(mergedAnalysis);
+            resolveMergedAnalysis?.(mergedAnalysis);
+
+            console.log(`[AI TRACE ${traceId}] submitAiChatPrompt:success`);
 
             // Notify user while image is still spinning
             showSuccess('AI applied changes! Image is generating...');
 
         } catch (err: any) {
+            rejectMergedAnalysis?.(err);
+            console.error(`[AI TRACE ${traceId}] submitAiChatPrompt:error`, {
+                message: err?.message || 'Unknown error',
+            });
             console.error('Chat edit error:', err);
             showError(err.message || 'Failed to process your request. Please try again.');
         } finally {
+            console.log(`[AI TRACE ${traceId}] submitAiChatPrompt:finish`);
             setIsAiProcessing(false);
         }
     }, [
         analysisResult,
+        cakeInfo,
         clearDirtyState,
         getSyncedAnalysisResult,
         handleUpdateDesign,

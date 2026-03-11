@@ -3,13 +3,26 @@ import { Type } from "@google/genai";
 import { getAI } from '@/lib/ai/client';
 import { createClient } from '@/lib/supabase/client';
 import { getDynamicTypeEnums } from '@/lib/ai/utils';
+import { normalizeAiRouteError } from '@/lib/ai/routeError';
 
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+    const traceId = req.headers.get('x-ai-trace-id') ?? `chat-edit-route-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const requestSource = req.headers.get('x-ai-request-source') ?? 'unknown';
+    const startedAt = Date.now();
+
     try {
         const body = await req.json();
         const { prompt, currentAnalysis } = body;
+
+        console.log(`[AI TRACE ${traceId}] /api/ai/chat-edit:start`, {
+            requestSource,
+            promptLength: typeof prompt === 'string' ? prompt.length : 0,
+            mainTopperCount: Array.isArray(currentAnalysis?.main_toppers) ? currentAnalysis.main_toppers.length : 0,
+            supportElementCount: Array.isArray(currentAnalysis?.support_elements) ? currentAnalysis.support_elements.length : 0,
+            cakeMessageCount: Array.isArray(currentAnalysis?.cake_messages) ? currentAnalysis.cake_messages.length : 0,
+        });
 
         if (!prompt || !currentAnalysis) {
             return NextResponse.json(
@@ -193,25 +206,54 @@ ${JSON.stringify(currentAnalysis, null, 2)}
             },
         });
 
+        console.log(`[AI TRACE ${traceId}] /api/ai/chat-edit:model-response`, {
+            requestSource,
+            model: 'gemini-2.5-flash',
+            durationMs: Date.now() - startedAt,
+        });
+
         const jsonText = (response.text || '').trim();
         let result;
         try {
             result = JSON.parse(jsonText);
         } catch (e) {
             console.error("Failed to parse AI response:", jsonText);
+            console.error(`[AI TRACE ${traceId}] /api/ai/chat-edit:parse-error`, {
+                requestSource,
+                durationMs: Date.now() - startedAt,
+            });
             return NextResponse.json(
                 { error: 'Invalid response format from AI' },
                 { status: 500 }
             );
         }
 
+        console.log(`[AI TRACE ${traceId}] /api/ai/chat-edit:success`, {
+            requestSource,
+            durationMs: Date.now() - startedAt,
+        });
+
         return NextResponse.json({ analysis_json: result });
 
     } catch (error: any) {
         console.error('Error in /api/ai/chat-edit:', error);
+
+        const normalizedError = normalizeAiRouteError(error, {
+            defaultMessage: 'Failed to update cake design. Please try again.',
+            quotaMessage: 'AI design updates are temporarily unavailable due to quota limits. Please try again later.',
+        });
+
+        console.error(`[AI TRACE ${traceId}] /api/ai/chat-edit:error`, {
+            requestSource,
+            durationMs: Date.now() - startedAt,
+            status: normalizedError.status,
+            message: normalizedError.message,
+            rawStatus: error?.status,
+        });
+
         return NextResponse.json(
-            { error: error.message || 'An error occurred during chat-edit.' },
-            { status: 500 }
+            { error: normalizedError.message },
+            { status: normalizedError.status }
         );
     }
 }

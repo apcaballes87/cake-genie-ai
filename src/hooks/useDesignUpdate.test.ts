@@ -77,4 +77,45 @@ describe('useDesignUpdate', () => {
         expect(onSuccess).toHaveBeenNthCalledWith(1, 'first-image');
         expect(onSuccess).toHaveBeenNthCalledWith(2, 'second-image');
     });
+
+    it('passes state and prompt overrides through to updateDesign', async () => {
+        vi.mocked(updateDesign).mockResolvedValueOnce({
+            image: 'override-image',
+            prompt: 'override-prompt',
+            systemInstruction: 'override-system',
+        });
+        const onSuccess = vi.fn();
+        const promptGenerator = vi.fn(() => 'fast-path prompt');
+        const overriddenCakeInfo = { size: '8" Round' } as never;
+        const overriddenIcingDesign = { drip: true } as never;
+
+        const { result } = renderHook(() => useDesignUpdate({ ...baseProps, onSuccess }));
+
+        await act(async () => {
+            await result.current.handleUpdateDesign('[USER REQUEST]: add drip', {
+                traceId: 'trace-123',
+                source: 'ai-chat-image-edit',
+                promptGenerator,
+                stateOverrides: {
+                    analysisResult: { cakeType: '1 Tier' } as never,
+                    cakeInfo: overriddenCakeInfo,
+                    cakeMessages: [{ text: 'Hi' }] as never,
+                    icingDesign: overriddenIcingDesign,
+                    additionalInstructions: 'existing context',
+                },
+            });
+        });
+
+        expect(updateDesign).toHaveBeenCalledWith(expect.objectContaining({
+            traceId: 'trace-123',
+            requestSource: 'ai-chat-image-edit',
+            analysisResult: { cakeType: '1 Tier' },
+            cakeInfo: overriddenCakeInfo,
+            cakeMessages: [{ text: 'Hi' }],
+            icingDesign: overriddenIcingDesign,
+            additionalInstructions: 'existing context. [USER REQUEST]: add drip',
+            promptGenerator,
+        }));
+        expect(onSuccess).toHaveBeenCalledWith('override-image');
+    });
 });
