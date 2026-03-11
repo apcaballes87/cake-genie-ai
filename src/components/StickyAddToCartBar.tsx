@@ -1,9 +1,13 @@
 'use client';
 import React from 'react';
 import { Loader2, AlertTriangleIcon } from './icons';
+import { X } from 'lucide-react';
 import { ShareButton } from './ShareButton';
 import { CakeInfoUI } from '@/types';
 import { AvailabilityType } from '@/lib/utils/availability';
+import { ColorPalette } from './ColorPalette';
+import type { CustomizingAiPromptSuggestionItem } from '@/app/customizing/CustomizingAiChatPanel';
+import type { ParsedAiChatPromptTemplate } from '@/utils/aiChatPromptComposer';
 
 // --- Sticky Add to Cart Bar ---
 interface StickyAddToCartBarProps {
@@ -31,6 +35,22 @@ interface StickyAddToCartBarProps {
     onChatInputChange?: (value: string) => void;
     onChatSubmit?: () => void | Promise<void>;
     isAiProcessing?: boolean;
+    // Autocomplete
+    showAiPromptSuggestions?: boolean;
+    filteredAiChatPromptSuggestions?: CustomizingAiPromptSuggestionItem[];
+    selectedAiPromptIndex?: number;
+    onSuggestionSelect?: (suggestion: string) => void;
+    onInputInteract?: () => void;
+    onInputKeyDown?: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+    containerRef?: React.RefObject<HTMLDivElement | null>;
+    inputRef?: React.RefObject<HTMLTextAreaElement | null>;
+    // Template / Color picker
+    selectedAiPromptTemplate?: ParsedAiChatPromptTemplate | null;
+    selectedAiPromptColor?: string;
+    showAiPromptColorPicker?: boolean;
+    onTemplateColorPickerToggle?: () => void;
+    onTemplateClear?: () => void;
+    onTemplateColorChange?: (color: string) => void | Promise<void>;
 }
 
 const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
@@ -57,6 +77,20 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     onChatInputChange,
     onChatSubmit,
     isAiProcessing = false,
+    showAiPromptSuggestions = false,
+    filteredAiChatPromptSuggestions = [],
+    selectedAiPromptIndex = -1,
+    onSuggestionSelect,
+    onInputInteract,
+    onInputKeyDown,
+    containerRef,
+    inputRef,
+    selectedAiPromptTemplate = null,
+    selectedAiPromptColor = '',
+    showAiPromptColorPicker = false,
+    onTemplateColorPickerToggle,
+    onTemplateClear,
+    onTemplateColorChange,
 }) => {
     const show = Boolean(price !== null || error || isAnalyzing || warningMessage || hasPendingDesignChanges || isApplyingChanges);
 
@@ -165,34 +199,111 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                 </div>
             )}
             <div className="relative z-10 bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[20px] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] border-t border-slate-200">
-                <div className="max-w-4xl mx-auto mb-2 relative">
-                    <textarea 
-                        placeholder="✨ Tell Genie your cake design wish..."
-                        className="bg-transparent border-none outline-none resize-none px-1 py-1 pr-16 text-slate-700 w-full text-[15px] font-medium placeholder:text-slate-500/70"
-                        rows={1}
-                        value={chatInput}
-                        onChange={(e) => onChatInputChange?.(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                void onChatSubmit?.();
-                            }
-                        }}
-                        disabled={isAiProcessing}
-                    />
-                    <button
-                        type="button"
-                        onClick={() => void onChatSubmit?.()}
-                        disabled={!chatInput.trim() || isAiProcessing}
-                        className="absolute right-0 top-0 bottom-0 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white px-3 transition-all flex items-center justify-center shadow-sm rounded-full disabled:opacity-40 disabled:cursor-not-allowed"
-                        aria-label="Submit AI Edit"
-                    >
-                        {isAiProcessing ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                        )}
-                    </button>
+                <div className="max-w-4xl mx-auto mb-2 relative" ref={containerRef}>
+                    {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isApplyingChanges && (
+                        <div className="absolute left-0 right-0 bottom-full mb-2 z-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+                            <div className="max-h-60 overflow-y-auto py-1">
+                                {filteredAiChatPromptSuggestions.map(({ suggestion, template }, index) => (
+                                    <button
+                                        key={suggestion}
+                                        type="button"
+                                        onMouseDown={(event) => {
+                                            // Prevent input focus loss
+                                            event.preventDefault();
+                                        }}
+                                        onClick={() => onSuggestionSelect?.(suggestion)}
+                                        className={`block w-full px-4 py-3 text-left text-[13px] transition-colors cursor-pointer active:bg-purple-100 ${selectedAiPromptIndex === index ? 'bg-purple-50 text-purple-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}
+                                        aria-label={`Select suggestion: ${suggestion}`}
+                                    >
+                                        {template ? (
+                                            <span className="wrap-break-word">
+                                                {template.prefix}
+                                                <span className="mx-1 inline-flex rounded-full bg-purple-50 px-2 py-0.5 font-bold text-purple-700">
+                                                    {template.placeholderLabel}
+                                                </span>
+                                                {template.suffix}
+                                            </span>
+                                        ) : suggestion}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {selectedAiPromptTemplate ? (
+                        <div className="py-1 pr-10">
+                            <div className="flex items-start gap-2 text-[14px] leading-6 text-slate-700">
+                                <span className="min-w-0 flex-1 wrap-break-word">
+                                    {selectedAiPromptTemplate.prefix}
+                                    <button
+                                        type="button"
+                                        onClick={onTemplateColorPickerToggle}
+                                        className="mx-1 inline-flex rounded-full bg-purple-50 px-2.5 py-0.5 font-bold text-purple-700 underline decoration-purple-300 underline-offset-2 transition hover:bg-purple-100"
+                                        aria-label={`Pick ${selectedAiPromptTemplate.placeholderLabel}`}
+                                    >
+                                        {selectedAiPromptTemplate.placeholderLabel}
+                                    </button>
+                                    {selectedAiPromptTemplate.suffix}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={onTemplateClear}
+                                    className="shrink-0 rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                                    aria-label="Edit prompt as text"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
+                            {showAiPromptColorPicker && (
+                                <div className="mt-2 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                                    <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                                        Choose {selectedAiPromptTemplate.placeholderLabel}
+                                    </div>
+                                    <ColorPalette
+                                        selectedColor={selectedAiPromptColor}
+                                        onColorChange={(color) => { void onTemplateColorChange?.(color); }}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <>
+                            <textarea 
+                                ref={inputRef}
+                                placeholder="✨ Tell Genie your cake design wish..."
+                                className="bg-transparent border-none outline-none resize-none px-1 py-1 pr-16 text-slate-700 w-full text-[15px] font-medium placeholder:text-slate-500/70"
+                                rows={1}
+                                value={chatInput}
+                                onFocus={onInputInteract}
+                                onClick={onInputInteract}
+                                onChange={(e) => onChatInputChange?.(e.target.value)}
+                                onKeyDown={(e) => {
+                                    // Let the autocomplete handler run first (keys like Up/Down/Enter/Escape)
+                                    if (onInputKeyDown) {
+                                        onInputKeyDown(e);
+                                    }
+                                    // If it wasn't handled (e.defaultPrevented), and it's Enter, then submit
+                                    if (!e.defaultPrevented && e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        void onChatSubmit?.();
+                                    }
+                                }}
+                                disabled={isAiProcessing}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => void onChatSubmit?.()}
+                                disabled={!chatInput.trim() || isAiProcessing}
+                                className="absolute right-0 top-0 bottom-0 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white px-3 transition-all flex items-center justify-center shadow-sm rounded-full disabled:opacity-40 disabled:cursor-not-allowed"
+                                aria-label="Submit AI Edit"
+                            >
+                                {isAiProcessing ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                )}
+                            </button>
+                        </>
+                    )}
                 </div>
                 <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
                     <div className="min-w-[100px]">{renderPrice()}</div>

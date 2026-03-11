@@ -21,107 +21,105 @@ async function fileToBase64(buffer: Buffer, mimeType: string): Promise<{ mimeTyp
 }
 
 async function run() {
-    console.log('Fetching cached analyses without embeddings...');
+    console.log('Starting backfill in batches...');
     
-    // Fetch records needing backfill
-    const { data: records, error } = await supabase
-        .from('cakegenie_analysis_cache')
-        .select('p_hash, original_image_url, seo_title, seo_description, keywords, tags')
-        .is('image_embedding', null)
-        .not('original_image_url', 'is', null);
+    let totalProcessed = 0;
+    let hasMore = true;
+    const BATCH_SIZE = 50;
 
-    if (error) {
-        console.error('Error fetching records:', error);
-        return;
-    }
+    while (hasMore) {
+        // Fetch a batch of records needing backfill
+        const { data: records, error } = await supabase
+            .from('cakegenie_analysis_cache')
+            .select('p_hash, original_image_url, seo_title, seo_description, keywords, tags')
+            .is('image_embedding', null)
+            .not('original_image_url', 'is', null)
+            .limit(BATCH_SIZE);
 
-    console.log(`Found ${records?.length || 0} records to backfill.`);
+        if (error) {
+            console.error('Error fetching records:', error);
+            break;
+        }
 
-    if (!records || records.length === 0) {
-        return;
-    }
+        if (!records || records.length === 0) {
+            console.log('No more records to process.');
+            hasMore = false;
+            break;
+        }
 
-    let successCount = 0;
-    let failureCount = 0;
+        console.log(`\n--- Processing batch of ${records.length} records (${totalProcessed} already done) ---`);
 
-    for (const record of records) {
-        console.log(`\nProcessing p_hash: ${record.p_hash}`);
-        try {
-            // 1. Download image
-            const imageRes = await fetch(record.original_image_url);
-            if (!imageRes.ok) throw new Error(`Failed to fetch image: ${imageRes.statusText}`);
-            
-            const arrayBuffer = await imageRes.arrayBuffer();
-            const originalBuffer = Buffer.from(arrayBuffer);
-            
-            // Convert to JPEG using sharp to avoid Gemini 'INVALID_ARGUMENT' errors parsing webps
-            const buffer = await sharp(originalBuffer).jpeg({ quality: 80 }).toBuffer();
-            const mimeType = 'image/jpeg';
-            
-            const imageBase64 = await fileToBase64(buffer, mimeType);
+        for (const record of records) {
+            try {
+                // 1. Download image
+                const imageRes = await fetch(record.original_image_url);
+                if (!imageRes.ok) throw new Error(`Failed to fetch image: ${imageRes.statusText}`);
+                
+                const arrayBuffer = await imageRes.arrayBuffer();
+                const originalBuffer = Buffer.from(arrayBuffer);
+                
+                // Convert to JPEG using sharp
+                const buffer = await sharp(originalBuffer).jpeg({ quality: 80 }).toBuffer();
+                const mimeType = 'image/jpeg';
+                
+                const imageBase64 = await fileToBase64(buffer, mimeType);
 
-            // 2. Build text payload
-            const textParts = [
-                record.seo_title,
-                record.seo_description,
-                record.keywords,
-                (record.tags || []).join(', ')
-            ].filter(Boolean);
-            const textPayload = textParts.join(' | ');
+                // 2. Build text payload
+                const textParts = [
+                    record.seo_title,
+                    record.seo_description,
+                    record.keywords,
+                    (record.tags || []).join(', ')
+                ].filter(Boolean);
+                const textPayload = textParts.join(' | ');
 
-            console.log(`Generating embedding for image and text ("${textPayload.substring(0, 50)}...")...`);
-
-            // 3. Generate embedding
-            const parts: any[] = [];
-            if (textPayload) {
-                parts.push({ text: textPayload });
-            }
-            parts.push({ inlineData: { mimeType: imageBase64.mimeType, data: imageBase64.data } });
-
-            const response = await ai.models.embedContent({
-                model: 'gemini-embedding-2-preview',
-                contents: [{
-                    role: 'user',
-                    parts: parts
-                }],
-                config: {
-                    outputDimensionality: 768
+                // 3. Generate embedding
+                const parts: any[] = [];
+                if (textPayload) {
+                    parts.push({ text: textPayload });
                 }
-            });
+                parts.push({ inlineData: { mimeType: imageBase64.mimeType, data: imageBase64.data } });
 
-            const embeddingValues = response.embeddings?.[0]?.values;
+                const response = await ai.models.embedContent({
+                    model: 'gemini-embedding-2-preview',
+                    contents: [{
+                        role: 'user',
+                        parts: parts
+                    }],
+                    config: {
+                        outputDimensionality: 768
+                    }
+                });
 
-            if (!embeddingValues || embeddingValues.length === 0) {
-                throw new Error('Failed to generate embedding array from AI response');
+                const embeddingValues = response.embeddings?.[0]?.values;
+
+                if (!embeddingValues || embeddingValues.length === 0) {
+                    throw new Error('Failed to generate embedding array from AI response');
+                }
+
+                // 4. Update Database
+                const { error: updateError } = await supabase
+                    .from('cakegenie_analysis_cache')
+                    .update({ image_embedding: embeddingValues })
+                    .eq('p_hash', record.p_hash);
+
+                if (updateError) {
+                    throw new Error(`Database update failed: ${updateError.message}`);
+                }
+
+                console.log(`✅ ${record.p_hash} done`);
+                totalProcessed++;
+
+                // Rate limiting pause
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+            } catch (err: unknown) {
+                console.error(`❌ Failed ${record.p_hash}:`, err instanceof Error ? err.message : err);
             }
-
-            // 4. Update Database
-            const { error: updateError } = await supabase
-                .from('cakegenie_analysis_cache')
-                .update({ image_embedding: embeddingValues })
-                .eq('p_hash', record.p_hash);
-
-            if (updateError) {
-                throw new Error(`Database update failed: ${updateError.message}`);
-            }
-
-            console.log(`✅ Successfully backfilled embedding for ${record.p_hash}`);
-            successCount++;
-
-            // Rate limiting pause (e.g., 2 requests per second)
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-        } catch (err: unknown) {
-            if (err instanceof Error) {
-                console.error(`❌ Failed to process ${record.p_hash}:`, err.message);
-            } else {
-                console.error(`❌ Failed to process ${record.p_hash}:`, err);
-            }
-            failureCount++;
         }
     }
 
-    console.log(`\nBackfill complete! Success: ${successCount}, Failures: ${failureCount}`);
+    console.log(`\nBackfill complete! Total processed: ${totalProcessed}`);
 }
 
 run();
