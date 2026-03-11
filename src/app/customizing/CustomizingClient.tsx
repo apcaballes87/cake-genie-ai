@@ -3112,7 +3112,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         <div className="w-[calc(100%+2rem)] -mx-4 px-4 mt-0 flex md:hidden overflow-x-auto gap-2 pb-4 scrollbar-hide snap-x scroll-pl-4">
                             {/* Step 1: Cake Specs */}
                             {cakeInfo && !isAnalyzing && !isRejectionError && (
-                                <div className="flex-shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
+                                <div className="shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
                                     <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 1: Choose Your Cake Specs</h3>
                                     <div className="flex gap-[7px] pt-1 pb-1 w-max">
                                         {/* Cake Type */}
@@ -3214,7 +3214,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                             {/* Step 2: Icing Colors */}
                             {cakeInfo && icingDesign && !isAnalyzing && !isRejectionError && (
-                                <div className="flex-shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
+                                <div className="shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
                                     <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 2: Icing Colors</h3>
                                     <div className="flex gap-[7px] pt-1 pb-1 w-max">
                                         {/* Drip */}
@@ -3390,7 +3390,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                             {/* Step 3: Cake Messages */}
                             {cakeInfo && !isAnalyzing && !isRejectionError && (
-                                <div className="flex-shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
+                                <div className="shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
                                     <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 3: Cake Messages</h3>
 
                                     {cakeMessages.length > 0 ? (
@@ -3457,7 +3457,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                             {/* Step 4: Cake Toppers */}
                             {cakeInfo && (mainToppers.length > 0 || supportElements.length > 0) && !isAnalyzing && !isRejectionError && (
-                                <div className="flex-shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
+                                <div className="shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
                                     <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 4: Cake Toppers</h3>
                                     <CakeToppersOptions
                                         mainToppers={mainToppers}
