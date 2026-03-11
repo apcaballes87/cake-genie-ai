@@ -13,6 +13,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY }
 
 async function run() {
     const { data } = await supabase.from('cakegenie_analysis_cache').select('original_image_url').eq('p_hash', 'ff30adadf3a80408').single();
+    if (!data) return;
     const url = data.original_image_url;
     console.log("URL:", url);
     
@@ -35,7 +36,7 @@ async function run() {
             }],
         });
         console.log("Success:", response.embeddings?.[0]?.values?.slice(0, 3));
-    } catch (e) {
+    } catch (e: any) {
         console.log("Failed:", e.message);
     }
 }
