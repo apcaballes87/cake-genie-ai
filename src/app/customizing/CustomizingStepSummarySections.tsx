@@ -266,7 +266,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                 </div>
             )}
 
-            {cakeInfo && (mainToppers.length > 0 || supportElements.length > 0) && !isAnalyzing && !isRejectionError && (
+            {cakeInfo && !isAnalyzing && !isRejectionError && (
                 <div className={cardClassName}>
                     <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 4: Cake Toppers</h3>
                     <CakeToppersOptions

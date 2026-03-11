@@ -130,4 +130,16 @@ describe('CustomizingStepSummarySections', () => {
         expect(screen.getByText('1 toppers')).toBeInTheDocument();
         expect(screen.getByText(/Switch from toy toppers to edible or printed toppers/i)).toBeInTheDocument();
     });
+
+    it('keeps step 4 visible even when no toppers or support elements were detected', () => {
+        const props = buildProps();
+        props.mainToppers = [];
+        props.supportElements = [];
+
+        render(<CustomizingStepSummarySections {...props} />);
+
+        expect(screen.getByText('Step 4: Cake Toppers')).toBeInTheDocument();
+        expect(screen.getByText('0 toppers')).toBeInTheDocument();
+        expect(screen.queryByText(/Switch from toy toppers to edible or printed toppers/i)).not.toBeInTheDocument();
+    });
 });
