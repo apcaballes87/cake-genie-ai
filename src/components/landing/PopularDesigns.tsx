@@ -1,14 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import LazyImage from '@/components/LazyImage';
-import { Heart, Cake, Star, Zap, Clock, CalendarDays } from 'lucide-react';
+import React, { memo, useState } from 'react';
 import Masonry from 'react-masonry-css';
 import { ProductCard } from '@/components/ProductCard';
 import { getPopularDesigns } from '@/services/supabaseService';
 import { createClient } from '@/lib/supabase/client';
-import { formatStartingPrice } from '@/lib/utils/currency';
 
 export interface PopularDesign {
     p_hash: string;
@@ -26,11 +22,11 @@ interface PopularDesignsProps {
     designs: PopularDesign[];
 }
 
-export const PopularDesigns = ({ designs: initialDesigns }: PopularDesignsProps) => {
+const PopularDesignsComponent = ({ designs: initialDesigns }: PopularDesignsProps) => {
     const [designs, setDesigns] = useState<PopularDesign[]>(initialDesigns || []);
     const [isLoading, setIsLoading] = useState(false);
-    const [hasMore, setHasMore] = useState(true);
-    const [displayCount, setDisplayCount] = useState(6);
+    const [hasMore, setHasMore] = useState(initialDesigns.length >= 6);
+    const [displayCount, setDisplayCount] = useState(Math.min(initialDesigns.length, 6));
 
     // Create client-side supabase client
     const [supabase] = useState(() => createClient());
@@ -113,9 +109,12 @@ export const PopularDesigns = ({ designs: initialDesigns }: PopularDesignsProps)
                 </div>
             ) : designs.length > 0 ? (
                 <div className="mt-5 text-center text-slate-500">
-                    <p>You've seen all the popular designs!</p>
+                    <p>You&apos;ve seen all the popular designs!</p>
                 </div>
             ) : null}
         </section>
     );
 };
+
+export const PopularDesigns = memo(PopularDesignsComponent);
+PopularDesigns.displayName = 'PopularDesigns';

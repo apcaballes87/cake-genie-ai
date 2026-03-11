@@ -6,7 +6,7 @@ vi.mock('@/services/supabaseService', () => ({
   getRecommendedProducts: vi.fn().mockResolvedValue({ data: [], error: null }),
   getPopularDesigns: vi.fn().mockResolvedValue({ data: [], error: null }),
   getDesignCategories: vi.fn().mockResolvedValue({ data: [], error: null }),
-  getAllBlogs: vi.fn().mockResolvedValue({ data: [], error: null }),
+  getHomepageBlogPreviews: vi.fn().mockResolvedValue({ data: [], error: null }),
 }));
 
 vi.mock('./LandingClient', () => ({

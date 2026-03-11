@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { usePathname } from 'next/navigation'
 import { User, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 
@@ -21,7 +22,10 @@ const AuthContext = createContext<AuthContextType | null>(null)
 import { useAnonymousAuth } from '@/hooks/useAnonymousAuth'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    useAnonymousAuth();
+    const pathname = usePathname()
+    const shouldDeferAnonymousAuth = pathname === '/'
+
+    useAnonymousAuth(!shouldDeferAnonymousAuth)
     const supabase = createClient()
     const [user, setUser] = useState<User | null>(null)
     const [session, setSession] = useState<Session | null>(null)

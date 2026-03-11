@@ -1,7 +1,8 @@
 import { Metadata } from 'next';
 import LandingClient from './LandingClient';
-import { getRecommendedProducts, getPopularDesigns, getDesignCategories, getAllBlogs } from '@/services/supabaseService';
+import { getRecommendedProducts, getPopularDesigns, getDesignCategories, getHomepageBlogPreviews } from '@/services/supabaseService';
 import { RecommendedProductsSection, IntroContent } from '@/components/landing';
+import { LandingFooter } from '@/components/landing/LandingFooter';
 
 // ISR: Revalidate every hour for fresh data while maintaining fast loads
 export const revalidate = 3600;
@@ -103,13 +104,13 @@ export default async function Home() {
         getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err })),
         getPopularDesigns(6, { keyword: 'minimalist', availability: ['rush', 'same-day'] }).catch(err => ({ data: [], error: err })),
         getDesignCategories().catch(err => ({ data: [], error: err })),
-        getAllBlogs().catch(err => ({ data: [], error: err })),
+        getHomepageBlogPreviews(3).catch(err => ({ data: [], error: err })),
     ]);
 
     const recommendedProducts = recommendedProductsRes.data || [];
     const popularDesigns = popularDesignsRes.data || [];
     const categories = categoriesRes.data || [];
-    const blogPosts = (blogsRes.data || []).slice(0, 3); // Get latest 3 blogs
+    const blogPosts = blogsRes.data || [];
 
     return (
         <>
@@ -120,6 +121,7 @@ export default async function Home() {
                 <RecommendedProductsSection products={recommendedProducts} />
                 <IntroContent />
             </LandingClient>
+            <LandingFooter />
         </>
     );
 }

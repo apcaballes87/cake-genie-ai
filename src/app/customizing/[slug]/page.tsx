@@ -1,6 +1,6 @@
 import { Metadata, ResolvingMetadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
-import { Suspense } from 'react'
+import { cache, Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import CustomizingClient from '../CustomizingClient'
@@ -17,7 +17,9 @@ import { upgradeLegacySlug } from '@/lib/utils/urlHelpers'
 import { generateDesignDetails, generateDynamicFAQ } from '@/utils/designContentUtils'
 
 // Helper to fetch design by exact slug
-async function getDesign(supabase: any, slug: string) {
+const getDesign = cache(async (slug: string) => {
+    const supabase = await createClient()
+
     const { data: cacheData } = await supabase
         .from('cakegenie_analysis_cache')
         .select('*')
@@ -75,7 +77,7 @@ async function getDesign(supabase: any, slug: string) {
     }
 
     return null
-}
+})
 
 type Props = {
     params: Promise<{ slug: string }>
@@ -86,9 +88,8 @@ export async function generateMetadata(
     parent: ResolvingMetadata
 ): Promise<Metadata> {
     const { slug } = await params
-    const supabase = await createClient()
 
-    const design = await getDesign(supabase, slug)
+    const design = await getDesign(slug)
 
     if (!design) {
         return {
@@ -750,9 +751,8 @@ function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceI
 
 export default async function RecentSearchPage({ params }: Props) {
     const { slug } = await params
-    const supabase = await createClient()
 
-    const design = await getDesign(supabase, slug)
+    const design = await getDesign(slug)
 
     const pageUrl = `https://genie.ph/customizing/${slug}`;
 
@@ -760,25 +760,27 @@ export default async function RecentSearchPage({ params }: Props) {
         notFound()
     }
 
-    // Fetch base price options for SEO table
+    const seoAnalysis = design.analysis_json || {};
+    const seoCakeType = (seoAnalysis.cakeType as CakeType) || 'custom';
+
+    // Fetch SEO data in parallel to reduce server wait time without changing rendered content.
     let prices: BasePriceInfo[] = [];
-    try {
-        const analysis = design.analysis_json || {};
-        // Use cakeType from analysis or default to 'custom'
-        // Using '4 in' as default thickness for SEO pricing table
-        const cakeType = (analysis.cakeType as CakeType) || 'custom';
-        prices = await getCakeBasePriceOptions(cakeType, '4 in');
-    } catch (e) {
-        console.error('Error fetching SEO prices:', e);
+    let relatedDesigns: any[] = [];
+    const [pricesResult, relatedDesignsResult] = await Promise.allSettled([
+        getCakeBasePriceOptions(seoCakeType, '4 in'),
+        getRelatedProductsByKeywords(design.keywords, slug, 6, 0),
+    ]);
+
+    if (pricesResult.status === 'fulfilled') {
+        prices = pricesResult.value;
+    } else {
+        console.error('Error fetching SEO prices:', pricesResult.reason);
     }
 
-    // Fetch related designs for internal linking (SEO) - keyword-based matching
-    let relatedDesigns: any[] = [];
-    try {
-        const { data } = await getRelatedProductsByKeywords(design.keywords, slug, 6, 0);
-        relatedDesigns = data || [];
-    } catch (e) {
-        console.error('Error fetching related designs:', e);
+    if (relatedDesignsResult.status === 'fulfilled') {
+        relatedDesigns = relatedDesignsResult.value.data || [];
+    } else {
+        console.error('Error fetching related designs:', relatedDesignsResult.reason);
     }
 
     // Generate unique caption for image SEO from the first 1-2 sentences of design details

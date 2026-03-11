@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { shouldLoadPropDesign, shouldLogShopifyCseMount } from './customizingClientGuards'
+import {
+  buildRelatedCollectionsRequestKey,
+  getAutoRelatedDesignRequest,
+  shouldLoadPropDesign,
+  shouldHydrateImageFromExistingAnalysis,
+  shouldLogShopifyCseMount,
+} from './customizingClientGuards'
 
 describe('customizingClientGuards', () => {
   it('skips prop loading during Shopify handoff, reset, or an active load', () => {
@@ -72,5 +78,57 @@ describe('customizingClientGuards', () => {
     expect(shouldLogShopifyCseMount(null, null)).toBe(false)
     expect(shouldLogShopifyCseMount('shopify_cse', null)).toBe(true)
     expect(shouldLogShopifyCseMount(null, 'https://example.com/cake.jpg')).toBe(true)
+  })
+
+  it('reuses existing analysis only when SSR or cached analysis is already available', () => {
+    expect(shouldHydrateImageFromExistingAnalysis({
+      hasSsrData: true,
+      hasCachedAnalysis: false,
+    })).toBe(true)
+
+    expect(shouldHydrateImageFromExistingAnalysis({
+      hasSsrData: false,
+      hasCachedAnalysis: true,
+    })).toBe(true)
+
+    expect(shouldHydrateImageFromExistingAnalysis({
+      hasSsrData: false,
+      hasCachedAnalysis: false,
+    })).toBe(false)
+  })
+
+  it('builds a stable related-design request using the strongest available keyword and slug', () => {
+    expect(getAutoRelatedDesignRequest({
+      currentKeywords: ' Floral Cake ',
+      recentSearchKeywords: 'birthday cake',
+      analysisKeyword: 'rose cake',
+      currentSlug: null,
+      persistedSlug: 'pretty-cake',
+      recentSearchSlug: 'search-cake',
+    })).toEqual({
+      keyword: ' Floral Cake ',
+      slug: 'pretty-cake',
+      key: 'floral cake::pretty-cake',
+    })
+
+    expect(getAutoRelatedDesignRequest({
+      currentKeywords: null,
+      recentSearchKeywords: null,
+      analysisKeyword: null,
+      currentSlug: null,
+      persistedSlug: null,
+      recentSearchSlug: null,
+    })).toBeNull()
+  })
+
+  it('normalizes related-collection inputs into a reusable request key', () => {
+    expect(buildRelatedCollectionsRequestKey([' Floral ', 'PASTEL'], '  Korean Bento  ')).toBe(
+      JSON.stringify({
+        tags: ['floral', 'pastel'],
+        keyword: 'korean bento',
+      })
+    )
+
+    expect(buildRelatedCollectionsRequestKey([], '')).toBeNull()
   })
 })
