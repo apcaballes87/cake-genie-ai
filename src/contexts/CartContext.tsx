@@ -10,6 +10,7 @@ import React, {
     ReactNode,
     useRef,
 } from 'react';
+import { usePathname } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import type { SupabaseClient, User, PostgrestError } from '@supabase/supabase-js';
 import { debounce } from 'lodash-es';
@@ -186,6 +187,8 @@ const CartActionsContext = createContext<CartActionsType | undefined>(undefined)
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const supabase = createClient();
+    const pathname = usePathname();
+    const shouldDeferCartSync = pathname === '/';
 
     // INSTANT LOAD: Initialize cart from localStorage immediately (0ms)
     const [cartItems, setCartItems] = useState<(CakeGenieCartItem & { merchant?: CakeGenieMerchant })[]>(() => {
@@ -334,12 +337,18 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Unified Effect for Auth Changes and Cart Loading
     useEffect(() => {
+        if (shouldDeferCartSync) return;
         // Cleanup old storage on mount
         cleanupExpiredLocalStorage();
-    }, []);
+    }, [shouldDeferCartSync]);
 
     useEffect(() => {
         const handleAuthChange = async () => {
+            if (shouldDeferCartSync) {
+                setIsLoading(false);
+                return;
+            }
+
             if (authLoading) return;
 
             // Update prevUserIdRef if it's the first run (initialization)
@@ -388,7 +397,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
 
         handleAuthChange();
-    }, [user, authLoading, loadCartData]);
+    }, [user, authLoading, loadCartData, shouldDeferCartSync]);
 
     // Auto-cache cart items whenever they change (for instant load on next visit)
     useEffect(() => {

@@ -1,6 +1,7 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react'
+import { usePathname } from 'next/navigation'
 import { v4 as uuidv4 } from 'uuid'
 import {
     HybridAnalysisResult,
@@ -80,6 +81,9 @@ export interface CustomizationState {
 }
 
 export function CustomizationProvider({ children, initialData }: { children: React.ReactNode; initialData?: CustomizationState }) {
+    const pathname = usePathname()
+    const shouldDeferCustomizationPersistence = pathname === '/'
+
     // --- State ---
     // Initialize state with initialData if provided, otherwise null/empty
     const [cakeInfo, setCakeInfo] = useState<CakeInfoUI | null>(initialData?.cakeInfo || null);
@@ -99,6 +103,17 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
     const [dirtyFields, setDirtyFields] = useState<Set<string>>(new Set());
     const [availability, setAvailability] = useState<AvailabilityType>(initialData?.availability || 'rush');
     const [seoMetadata, setSEOMetadata] = useState<CacheSEOMetadata | null>(null);
+    const persistedAnalysisStateRef = React.useRef<string | null>(null);
+    const persistedCustomizationStateRef = React.useRef<string | null>(null);
+    const hasInMemoryCustomizationState = !!(
+        analysisResult ||
+        cakeInfo ||
+        mainToppers.length > 0 ||
+        supportElements.length > 0 ||
+        cakeMessages.length > 0 ||
+        icingDesign ||
+        additionalInstructions
+    )
 
     // --- State Ref for Async Operations ---
     const latestStateRef = React.useRef({
@@ -124,19 +139,28 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         // Load state from localStorage on mount
         // Priority: initialData (SSR) > localStorage > defaults
         // If initialData is provided, we skip loading from localStorage to respect server source of truth
-        if (initialData) return;
+        if (initialData || shouldDeferCustomizationPersistence || hasInMemoryCustomizationState) return;
 
         const savedAnalysis = localStorage.getItem('cakegenie_analysis');
         const savedCustomization = localStorage.getItem('cakegenie_customization');
+
+        persistedCustomizationStateRef.current = savedCustomization;
 
         if (savedAnalysis) {
             try {
                 const parsed = JSON.parse(savedAnalysis);
                 setAnalysisResult(parsed.result);
                 setAnalysisId(parsed.id);
+                persistedAnalysisStateRef.current = JSON.stringify({
+                    result: parsed.result,
+                    id: parsed.id,
+                    imageRef: parsed.imageRef || null,
+                });
             } catch (e) {
                 console.error('Failed to parse saved analysis:', e);
             }
+        } else {
+            persistedAnalysisStateRef.current = null;
         }
 
         if (savedCustomization) {
@@ -152,9 +176,11 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
                 console.error('Failed to parse saved customization:', e);
             }
         }
-    }, [initialData]);
+    }, [initialData, shouldDeferCustomizationPersistence, hasInMemoryCustomizationState]);
 
     useEffect(() => {
+        if (shouldDeferCustomizationPersistence) return;
+
         // Save analysis result whenever it changes
         if (analysisResult && analysisId) {
             // Preserve the existing imageRef if present (it gets set separately by the page component)
@@ -168,33 +194,55 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
                     // Ignore parse errors
                 }
             }
+
+            const analysisStateKey = JSON.stringify({
+                result: analysisResult,
+                id: analysisId,
+                imageRef,
+            });
+
+            if (analysisStateKey === persistedAnalysisStateRef.current) {
+                return;
+            }
+
             localStorage.setItem('cakegenie_analysis', JSON.stringify({
                 result: analysisResult,
                 id: analysisId,
                 imageRef,
                 timestamp: Date.now()
             }));
+            persistedAnalysisStateRef.current = analysisStateKey;
         } else {
+            persistedAnalysisStateRef.current = null;
             localStorage.removeItem('cakegenie_analysis');
         }
-    }, [analysisResult, analysisId]);
+    }, [analysisResult, analysisId, shouldDeferCustomizationPersistence]);
 
     useEffect(() => {
+        if (shouldDeferCustomizationPersistence) return;
+
         // Save customization state whenever it changes
         if (cakeInfo || mainToppers.length > 0 || supportElements.length > 0 || cakeMessages.length > 0 || icingDesign) {
-            const customizationState = {
+            const customizationState = JSON.stringify({
                 cakeInfo,
                 mainToppers,
                 supportElements,
                 cakeMessages,
                 icingDesign,
                 additionalInstructions
-            };
-            localStorage.setItem('cakegenie_customization', JSON.stringify(customizationState));
+            });
+
+            if (customizationState === persistedCustomizationStateRef.current) {
+                return;
+            }
+
+            localStorage.setItem('cakegenie_customization', customizationState);
+            persistedCustomizationStateRef.current = customizationState;
         } else {
+            persistedCustomizationStateRef.current = null;
             localStorage.removeItem('cakegenie_customization');
         }
-    }, [cakeInfo, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions]);
+    }, [cakeInfo, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions, shouldDeferCustomizationPersistence]);
 
     // --- Effect to calculate availability ---
     useEffect(() => {
@@ -392,6 +440,8 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         setIsCustomizationDirty(false);
         setDirtyFields(new Set());
         setSEOMetadata(null);
+        persistedAnalysisStateRef.current = null;
+        persistedCustomizationStateRef.current = null;
         // Clear ALL localStorage data to prevent state leakage between products
         localStorage.removeItem('cakegenie_analysis');
         localStorage.removeItem('cakegenie_customization');
@@ -676,7 +726,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         setDirtyFields(new Set());
     }, []);
 
-    const value = {
+    const value = useMemo(() => ({
         cakeInfo,
         mainToppers,
         supportElements,
@@ -715,7 +765,42 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         clearDirtyState,
         seoMetadata,
         setSEOMetadata,
-    };
+    }), [
+        cakeInfo,
+        mainToppers,
+        supportElements,
+        cakeMessages,
+        icingDesign,
+        additionalInstructions,
+        analysisResult,
+        analysisId,
+        isAnalyzing,
+        analysisError,
+        isCustomizationDirty,
+        dirtyFields,
+        availability,
+        setPendingAnalysisData,
+        handleCakeInfoChange,
+        onMainTopperChange,
+        updateMainTopper,
+        removeMainTopper,
+        onSupportElementChange,
+        updateSupportElement,
+        removeSupportElement,
+        onCakeMessageChange,
+        updateCakeMessage,
+        removeCakeMessage,
+        onIcingDesignChange,
+        onAdditionalInstructionsChange,
+        handleTopperImageReplace,
+        handleSupportElementImageReplace,
+        clearCustomization,
+        initializeDefaultState,
+        syncAnalysisResultWithCurrentState,
+        getSyncedAnalysisResult,
+        clearDirtyState,
+        seoMetadata,
+    ]);
 
     return (
         <CustomizationContext.Provider value={value}>

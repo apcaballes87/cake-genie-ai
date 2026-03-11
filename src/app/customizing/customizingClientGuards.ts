@@ -8,6 +8,20 @@ interface PropDesignLoadGuardArgs {
   isLoadingDesign: boolean
 }
 
+interface AutoRelatedDesignRequestArgs {
+  currentKeywords?: string | null
+  recentSearchKeywords?: string | null
+  analysisKeyword?: string | null
+  currentSlug?: string | null
+  persistedSlug?: string | null
+  recentSearchSlug?: string | null
+}
+
+interface ExistingAnalysisHydrationArgs {
+  hasSsrData?: boolean
+  hasCachedAnalysis?: boolean
+}
+
 export function shouldLoadPropDesign({
   sourceParam,
   isResetting,
@@ -31,4 +45,49 @@ export function shouldLoadPropDesign({
 
 export function shouldLogShopifyCseMount(sourceParam: string | null, imageUrlParam: string | null): boolean {
   return sourceParam === 'shopify_cse' || !!imageUrlParam
+}
+
+export function shouldHydrateImageFromExistingAnalysis({
+  hasSsrData = false,
+  hasCachedAnalysis = false,
+}: ExistingAnalysisHydrationArgs): boolean {
+  return hasSsrData || hasCachedAnalysis
+}
+
+export function getAutoRelatedDesignRequest({
+  currentKeywords,
+  recentSearchKeywords,
+  analysisKeyword,
+  currentSlug,
+  persistedSlug,
+  recentSearchSlug,
+}: AutoRelatedDesignRequestArgs): { keyword: string; slug: string | null; key: string } | null {
+  const keyword = currentKeywords || recentSearchKeywords || analysisKeyword || null
+  if (!keyword) return null
+
+  const slug = currentSlug || persistedSlug || recentSearchSlug || null
+  const normalizedKeyword = keyword.trim().toLowerCase()
+  const normalizedSlug = slug?.trim().toLowerCase() || ''
+
+  return {
+    keyword,
+    slug,
+    key: `${normalizedKeyword}::${normalizedSlug}`,
+  }
+}
+
+export function buildRelatedCollectionsRequestKey(tags: string[] | null | undefined, keyword?: string | null): string | null {
+  const normalizedTags = (tags || [])
+    .map((tag) => tag.trim().toLowerCase())
+    .filter(Boolean)
+  const normalizedKeyword = keyword?.trim().toLowerCase() || ''
+
+  if (normalizedTags.length === 0 && !normalizedKeyword) {
+    return null
+  }
+
+  return JSON.stringify({
+    tags: normalizedTags,
+    keyword: normalizedKeyword,
+  })
 }

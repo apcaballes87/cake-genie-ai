@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { calculatePriceFromDatabase, clearPricingCache } from '@/services/pricingService.database';
+import { calculatePriceFromDatabase } from '@/services/pricingService.database';
 import { getCakeBasePriceOptions } from '@/services/supabaseService';
 import {
     HybridAnalysisResult,
@@ -34,8 +34,22 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
 const pricingKeys = {
     basePrice: (type?: CakeType, thickness?: CakeThickness) =>
         ['pricing', 'base', type, thickness] as const,
-    addOnPrice: (uiState: any) => ['pricing', 'addon', uiState] as const,
+    addOnPrice: (uiStateKey: string, merchantId?: string) => ['pricing', 'addon', uiStateKey, merchantId] as const,
 };
+
+type PricingUiState = {
+    mainToppers: MainTopperUI[]
+    supportElements: SupportElementUI[]
+    cakeMessages: CakeMessageUI[]
+    icingDesign: IcingDesignUI
+    cakeInfo: CakeInfoUI
+}
+
+export function buildPricingUiStateKey(uiState: PricingUiState | null): string {
+    if (!uiState) return 'no-pricing-ui-state'
+
+    return JSON.stringify(uiState)
+}
 
 interface UsePricingProps {
     analysisResult: HybridAnalysisResult | null;
@@ -45,18 +59,12 @@ interface UsePricingProps {
     icingDesign: IcingDesignUI | null;
     cakeInfo: CakeInfoUI | null;
     onCakeInfoCorrection: (updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => void;
-    initialPriceInfo?: { size: string; price: number } | null;
+    initialPriceInfo?: BasePriceInfo | null;
     analysisId: string | null;
     merchantId?: string;
 }
 
-async function calculateAddOnPrice(uiState: {
-    mainToppers: MainTopperUI[],
-    supportElements: SupportElementUI[],
-    cakeMessages: CakeMessageUI[],
-    icingDesign: IcingDesignUI,
-    cakeInfo: CakeInfoUI,
-}, merchantId?: string) {
+async function calculateAddOnPrice(uiState: PricingUiState, merchantId?: string) {
     return await calculatePriceFromDatabase(uiState, merchantId);
 }
 
@@ -153,19 +161,32 @@ export const usePricing = ({
         }
     }, [queryResult, cakeInfo, onCakeInfoCorrection, analysisId, initialPriceInfo]);
 
-    const uiStateForQuery = { mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo };
+    const uiStateForQuery = useMemo<PricingUiState | null>(() => {
+        if (!icingDesign || !cakeInfo) return null;
+
+        return {
+            mainToppers,
+            supportElements,
+            cakeMessages,
+            icingDesign,
+            cakeInfo,
+        };
+    }, [mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo]);
+
+    const pricingUiStateKey = useMemo(() => buildPricingUiStateKey(uiStateForQuery), [uiStateForQuery]);
+
     const {
         data: addonPricingResult,
         isLoading: isCalculatingAddons
     } = useQuery<{ addOnPricing: AddOnPricing | null; itemPrices: Map<string, number> }>({
-        queryKey: [...pricingKeys.addOnPrice(uiStateForQuery), merchantId],
+        queryKey: pricingKeys.addOnPrice(pricingUiStateKey, merchantId),
         queryFn: () => {
-            if (!analysisResult || !icingDesign || !cakeInfo) {
+            if (!analysisResult || !uiStateForQuery) {
                 return Promise.resolve({ addOnPricing: null, itemPrices: new Map<string, number>() });
             }
-            return calculateAddOnPrice({ mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo }, merchantId);
+            return calculateAddOnPrice(uiStateForQuery, merchantId);
         },
-        enabled: !!analysisResult && !!icingDesign && !!cakeInfo,
+        enabled: !!analysisResult && !!uiStateForQuery,
         staleTime: 1 * 60 * 1000,
     });
 

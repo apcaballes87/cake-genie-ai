@@ -1,14 +1,15 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react'
+import { usePathname } from 'next/navigation'
 import { v4 as uuidv4 } from 'uuid'
 import { toast as toastHot } from 'react-hot-toast'
-import { fileToBase64, validateCakeImage, analyzeCakeFeaturesOnly, enrichAnalysisWithCoordinates, enrichAnalysisWithRoboflow } from '@/services/geminiService'
+import { fileToBase64, validateCakeImage, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow, embedCakeImage } from '@/services/geminiService'
 import { createClient } from '@/lib/supabase/client'
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization'
-import { showSuccess, showError, showLoading, showInfo } from '@/lib/utils/toast'
+import { showSuccess, showError, showLoading } from '@/lib/utils/toast'
 import { HybridAnalysisResult, CacheSEOMetadata } from '@/types'
-import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService'
+import { findSimilarAnalysisByHash, findSimilarAnalysisByEmbedding, cacheAnalysisResult } from '@/services/supabaseService'
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils'
 import { COMMON_ASSETS } from '@/constants'
 import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers'
@@ -83,7 +84,7 @@ interface ImageContextType {
         onError: (error: Error) => void,
         options?: HandleImageUploadOptions
     ) => Promise<void>;
-    loadImageWithoutAnalysis: (imageUrl: string) => Promise<{ data: string; mimeType: string }>;
+    loadImageWithoutAnalysis: (imageUrl: string, options?: LoadImageWithoutAnalysisOptions) => Promise<{ data: string; mimeType: string }>;
     handleSave: () => Promise<void>;
     uploadCartImages: (options?: { editedImageDataUri?: string | null; userId?: string }) => Promise<{ originalImageUrl: string; finalImageUrl: string }>;
     clearImages: () => void;
@@ -97,10 +98,22 @@ interface HandleImageUploadOptions {
     knownSeoMetadata?: CacheSEOMetadata;
 }
 
+interface LoadImageWithoutAnalysisOptions {
+    fileName?: string;
+    fallbackMimeType?: string;
+    knownSeoMetadata?: CacheSEOMetadata;
+    errorMessage?: string;
+    preferProxy?: boolean;
+    directTimeoutMs?: number;
+    proxyTimeoutMs?: number;
+}
+
 const ImageContext = createContext<ImageContextType | null>(null)
 
 export function ImageProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient();
+    const pathname = usePathname();
+    const shouldDeferImageBootstrap = pathname === '/';
 
     // State
     const [originalImageData, setOriginalImageData] = useState<{ data: string; mimeType: string } | null>(null);
@@ -113,9 +126,23 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
     const [error, setError] = useState<string | null>(null);
     const [currentSlug, setCurrentSlugState] = useState<string | null>(null);
     const [seoMetadata, setSeoMetadata] = useState<CacheSEOMetadata | null>(null);
+    const persistedImageStateRef = React.useRef<{
+        original: string | null;
+        source: string | null;
+        edited: string | null;
+        slug: string | null;
+    }>({
+        original: null,
+        source: null,
+        edited: null,
+        slug: null,
+    });
+    const hasInMemoryImageState = !!(originalImageData || sourceImageData || editedImage || currentSlug);
 
     // Fetch 3-tier reference image on mount
     useEffect(() => {
+        if (shouldDeferImageBootstrap || threeTierReferenceImage) return;
+
         const fetchReferenceImage = async () => {
             try {
                 const imageUrl = COMMON_ASSETS.threeTierReference;
@@ -132,7 +159,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             }
         };
         fetchReferenceImage();
-    }, []);
+    }, [shouldDeferImageBootstrap, threeTierReferenceImage]);
 
     const clearImages = useCallback(() => {
         setOriginalImageData(null);
@@ -144,6 +171,12 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
         setCurrentSlugState(null);
         setSeoMetadata(null);
+        persistedImageStateRef.current = {
+            original: null,
+            source: null,
+            edited: null,
+            slug: null,
+        };
 
         // Clear IndexedDB
         import('@/lib/utils/storage').then(({ clearIndexedDB }) => {
@@ -163,6 +196,12 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 setPreviousImageData(null);
                 setOriginalImagePreview(null);
                 setEditedImage(null);
+                persistedImageStateRef.current = {
+                    original: null,
+                    source: null,
+                    edited: null,
+                    slug: null,
+                };
                 // Clear persistence
                 import('@/lib/utils/storage').then(({ clearIndexedDB }) => {
                     clearIndexedDB();
@@ -174,6 +213,8 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
     // --- Persistence Logic ---
     useEffect(() => {
+        if (shouldDeferImageBootstrap || hasInMemoryImageState) return;
+
         const loadImages = async () => {
             try {
                 const { getFromIndexedDB } = await import('@/lib/utils/storage');
@@ -183,6 +224,13 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     getFromIndexedDB('editedImage'),
                     getFromIndexedDB('imageSlug')
                 ]);
+
+                persistedImageStateRef.current = {
+                    original: original || null,
+                    source: source || null,
+                    edited: edited || null,
+                    slug: storedSlug || null,
+                };
 
                 // Store the slug that was persisted so we can compare later
                 if (storedSlug) {
@@ -201,39 +249,62 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             }
         };
         loadImages();
-    }, []);
+    }, [shouldDeferImageBootstrap, hasInMemoryImageState]);
 
     useEffect(() => {
+        if (shouldDeferImageBootstrap) return;
+
         const saveImages = async () => {
             const { saveToIndexedDB, removeFromIndexedDB } = await import('@/lib/utils/storage');
+            const serializedOriginal = originalImageData ? JSON.stringify(originalImageData) : null;
+            const serializedSource = sourceImageData ? JSON.stringify(sourceImageData) : null;
+            const nextPersistedState = {
+                original: serializedOriginal,
+                source: serializedSource,
+                edited: editedImage,
+                slug: currentSlug,
+            };
+            const operations: Promise<void>[] = [];
 
-            if (originalImageData) {
-                saveToIndexedDB('originalImageData', JSON.stringify(originalImageData));
-            } else {
-                removeFromIndexedDB('originalImageData');
+            if (nextPersistedState.original !== persistedImageStateRef.current.original) {
+                operations.push(
+                    nextPersistedState.original
+                        ? saveToIndexedDB('originalImageData', nextPersistedState.original)
+                        : removeFromIndexedDB('originalImageData')
+                );
             }
 
-            if (sourceImageData) {
-                saveToIndexedDB('sourceImageData', JSON.stringify(sourceImageData));
-            } else {
-                removeFromIndexedDB('sourceImageData');
+            if (nextPersistedState.source !== persistedImageStateRef.current.source) {
+                operations.push(
+                    nextPersistedState.source
+                        ? saveToIndexedDB('sourceImageData', nextPersistedState.source)
+                        : removeFromIndexedDB('sourceImageData')
+                );
             }
 
-            if (editedImage) {
-                saveToIndexedDB('editedImage', editedImage);
-            } else {
-                removeFromIndexedDB('editedImage');
+            if (nextPersistedState.edited !== persistedImageStateRef.current.edited) {
+                operations.push(
+                    nextPersistedState.edited
+                        ? saveToIndexedDB('editedImage', nextPersistedState.edited)
+                        : removeFromIndexedDB('editedImage')
+                );
             }
 
-            // Persist the current slug alongside the images
-            if (currentSlug) {
-                saveToIndexedDB('imageSlug', currentSlug);
-            } else {
-                removeFromIndexedDB('imageSlug');
+            if (nextPersistedState.slug !== persistedImageStateRef.current.slug) {
+                operations.push(
+                    nextPersistedState.slug
+                        ? saveToIndexedDB('imageSlug', nextPersistedState.slug)
+                        : removeFromIndexedDB('imageSlug')
+                );
             }
+
+            if (operations.length === 0) return;
+
+            await Promise.all(operations);
+            persistedImageStateRef.current = nextPersistedState;
         };
         saveImages();
-    }, [originalImageData, sourceImageData, editedImage, currentSlug]);
+    }, [originalImageData, sourceImageData, editedImage, currentSlug, shouldDeferImageBootstrap]);
 
     const handleImageUpload = useCallback(async (
         file: File,
@@ -273,14 +344,115 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 return;
             }
 
-            // --- STEP 1: CHECK CACHE FIRST (FAST PATH) ---
+            // --- STEP 1: CHECK CACHE FIRST (FAST PATH pHash) ---
 
             const pHash = await generatePerceptualHash(imageSrc);
             const shouldUseSimilarCacheLookup = !knownSeoMetadata;
-            const cacheHit = shouldUseSimilarCacheLookup
+            let cacheHit = shouldUseSimilarCacheLookup
                 ? await findSimilarAnalysisByHash(pHash, options?.imageUrl)
                 : null;
 
+            // --- STEP 2: COMPRESS IMAGE FOR AI & STORAGE (ONLY ON CACHE MISS) ---
+            let uploadedImageUrl = options?.imageUrl; // Use existing URL if from web search
+            let compressedImageData = imageData; // Default to original
+
+            if (!cacheHit) {
+                try {
+                    // Compress image for both AI analysis and storage. 1024x1024 is optimal for Gemini.
+                    const imageBlob = dataURItoBlob(imageSrc);
+                    const fileToUpload = new File([imageBlob], file.name, { type: file.type });
+
+                    const compressedFile = await compressImage(fileToUpload, {
+                        maxSizeMB: 0.5,
+                        maxWidthOrHeight: 1024,
+                        fileType: 'image/jpeg',
+                    });
+
+                    // Convert compressed file to base64 for AI
+                    compressedImageData = await fileToBase64(compressedFile);
+
+                    // --- STEP 2.5: FALLBACK RESIZING (Keyhole) ---
+                    // If compression failed or result is still too large (>1MB), force resize via Canvas
+                    // This guarantees we never send a massive payload to Gemini
+                    if (compressedImageData.data.length > 2 * 1024 * 1024) { // > ~1.5MB base64
+                        console.warn("⚠️ Compressed image still too large, applying forceful resizing...");
+                        try {
+                            const img = new Image();
+                            img.src = imageSrc;
+                            await new Promise((resolve) => { img.onload = resolve; });
+
+                            const canvas = document.createElement('canvas');
+                            const MAX_DIMENSION = 1024; // Force max dimension
+                            let width = img.width;
+                            let height = img.height;
+
+                            if (width > height) {
+                                if (width > MAX_DIMENSION) {
+                                    height *= MAX_DIMENSION / width;
+                                    width = MAX_DIMENSION;
+                                }
+                            } else {
+                                if (height > MAX_DIMENSION) {
+                                    width *= MAX_DIMENSION / height;
+                                    height = MAX_DIMENSION;
+                                }
+                            }
+
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx?.drawImage(img, 0, 0, width, height);
+
+                            const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.8); // Force JPEG 80%
+                            const resizedBase64 = resizedDataUrl.split(',')[1];
+
+                            compressedImageData = {
+                                data: resizedBase64,
+                                mimeType: 'image/jpeg'
+                            };
+                            console.log("✅ Forceful resizing complete. New size:", (resizedBase64.length / 1024 / 1024).toFixed(2), "MB");
+
+                        } catch (resizeErr) {
+                            console.error("Force resize failed:", resizeErr);
+                        }
+                    }
+
+                    // Upload compressed file to storage for cache record
+                    if (!uploadedImageUrl) {
+                        const fileName = `analysis-cache/${uuidv4()}.webp`;
+                        const { error: uploadError } = await supabase.storage
+                            .from('cakegenie')
+                            .upload(fileName, compressedFile, {
+                                contentType: 'image/webp',
+                                upsert: false,
+                            });
+
+                        if (uploadError) {
+                            console.warn('Failed to upload image for caching, proceeding without URL.', uploadError.message);
+                        } else {
+                            const { data: { publicUrl } } = supabase.storage.from('cakegenie').getPublicUrl(fileName);
+                            uploadedImageUrl = publicUrl;
+                        }
+                    }
+
+                    // --- STEP 2.75: CHECK EMBEDDING CACHE IF pHash MISSED ---
+                    if (shouldUseSimilarCacheLookup && !cacheHit) {
+                        console.log('🔄 pHash missed, checking Gemini embeddings for visual similarity...');
+                        try {
+                            const imageEmbedding = await embedCakeImage({ data: compressedImageData.data, mimeType: compressedImageData.mimeType });
+                            // Lowering threshold to 0.88 to allow screenshots and cropped versions of the same cake to match
+                            cacheHit = await findSimilarAnalysisByEmbedding(imageEmbedding, 0.88, uploadedImageUrl);
+                        } catch (embedError) {
+                            console.warn('⚠️ Embedding check failed, falling back to full analysis:', embedError);
+                        }
+                    }
+
+                } catch (compressionErr) {
+                    console.warn('Image compression failed, proceeding with original:', compressionErr);
+                }
+            }
+
+            // --- PROCESS CACHE HIT (IF ANY) ---
             if (cacheHit) {
                 console.log('✅ Using cached analysis result');
                 const cachedAnalysis = cacheHit.analysisResult;
@@ -302,20 +474,25 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     // Run enrichment in background without blocking
                     (async () => {
                         try {
-                            // Need to get compressed image data for enrichment
-                            const imageBlob = dataURItoBlob(imageSrc);
-                            const fileToUpload = new File([imageBlob], file.name, { type: file.type });
-                            const compressedFile = await compressImage(fileToUpload, {
-                                maxSizeMB: 0.5,
-                                maxWidthOrHeight: 1024,
-                                fileType: 'image/webp',
-                            });
-                            const compressedImageData = await fileToBase64(compressedFile);
+                            // Note: we can use compressedImageData if we compressed it above
+                            // If not, we just compress again.
+                            let bgCompressedImageData = compressedImageData;
+                            if (bgCompressedImageData.data.length === imageData.data.length && bgCompressedImageData.data.length > 2 * 1024 * 1024) {
+                                // Need to get compressed image data for enrichment
+                                const imageBlob = dataURItoBlob(imageSrc);
+                                const fileToUpload = new File([imageBlob], file.name, { type: file.type });
+                                const compressedFile = await compressImage(fileToUpload, {
+                                    maxSizeMB: 0.5,
+                                    maxWidthOrHeight: 1024,
+                                    fileType: 'image/webp',
+                                });
+                                bgCompressedImageData = await fileToBase64(compressedFile);
+                            }
 
                             // Enrich with Roboflow
                             const enrichedResult = await enrichAnalysisWithRoboflow(
-                                compressedImageData.data,
-                                compressedImageData.mimeType,
+                                bgCompressedImageData.data,
+                                bgCompressedImageData.mimeType,
                                 cachedAnalysis
                             );
 
@@ -338,94 +515,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
                 return; // Skip compression and AI call entirely!
             }
-
-            // --- STEP 2: COMPRESS IMAGE FOR AI & STORAGE (ONLY ON CACHE MISS) ---
-            let uploadedImageUrl = options?.imageUrl; // Use existing URL if from web search
-            let compressedImageData = imageData; // Default to original
-
-            try {
-                // Compress image for both AI analysis and storage. 1024x1024 is optimal for Gemini.
-                const imageBlob = dataURItoBlob(imageSrc);
-                const fileToUpload = new File([imageBlob], file.name, { type: file.type });
-
-                const compressedFile = await compressImage(fileToUpload, {
-                    maxSizeMB: 0.5,
-                    maxWidthOrHeight: 1024,
-                    fileType: 'image/webp',
-                });
-
-                // Convert compressed file to base64 for AI
-                compressedImageData = await fileToBase64(compressedFile);
-
-
-                // --- STEP 2.5: FALLBACK RESIZING (Keyhole) ---
-                // If compression failed or result is still too large (>1MB), force resize via Canvas
-                // This guarantees we never send a massive payload to Gemini
-                if (compressedImageData.data.length > 2 * 1024 * 1024) { // > ~1.5MB base64
-                    console.warn("⚠️ Compressed image still too large, applying forceful resizing...");
-                    try {
-                        const img = new Image();
-                        img.src = imageSrc;
-                        await new Promise((resolve) => { img.onload = resolve; });
-
-                        const canvas = document.createElement('canvas');
-                        const MAX_DIMENSION = 1024; // Force max dimension
-                        let width = img.width;
-                        let height = img.height;
-
-                        if (width > height) {
-                            if (width > MAX_DIMENSION) {
-                                height *= MAX_DIMENSION / width;
-                                width = MAX_DIMENSION;
-                            }
-                        } else {
-                            if (height > MAX_DIMENSION) {
-                                width *= MAX_DIMENSION / height;
-                                height = MAX_DIMENSION;
-                            }
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx?.drawImage(img, 0, 0, width, height);
-
-                        const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.8); // Force JPEG 80%
-                        const resizedBase64 = resizedDataUrl.split(',')[1];
-
-                        compressedImageData = {
-                            data: resizedBase64,
-                            mimeType: 'image/jpeg'
-                        };
-                        console.log("✅ Forceful resizing complete. New size:", (resizedBase64.length / 1024 / 1024).toFixed(2), "MB");
-
-                    } catch (resizeErr) {
-                        console.error("Force resize failed:", resizeErr);
-                    }
-                }
-
-                // Upload compressed file to storage for cache record
-                if (!uploadedImageUrl) {
-                    const fileName = `analysis-cache/${uuidv4()}.webp`;
-                    const { error: uploadError } = await supabase.storage
-                        .from('cakegenie')
-                        .upload(fileName, compressedFile, {
-                            contentType: 'image/webp',
-                            upsert: false,
-                        });
-
-                    if (uploadError) {
-                        console.warn('Failed to upload image for caching, proceeding without URL.', uploadError.message);
-                    } else {
-                        const { data: { publicUrl } } = supabase.storage.from('cakegenie').getPublicUrl(fileName);
-                        uploadedImageUrl = publicUrl;
-
-                    }
-                }
-            } catch (compressionErr) {
-                console.warn('Image compression failed, proceeding with original:', compressionErr);
-            }
-            // --- END OF COMPRESSION LOGIC ---
+            // --- END OF COMPRESSION LOGIC AND CACHE CHECKS --- 
 
             // --- STEP 2.5: IMAGE VALIDATION GATE ---
             // Reject invalid images before spending AI quota on analysis
@@ -516,39 +606,74 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         }
     }, [supabase]);
 
-    const loadImageWithoutAnalysis = useCallback(async (imageUrl: string) => {
+    const loadImageWithoutAnalysis = useCallback(async (imageUrl: string, options?: LoadImageWithoutAnalysisOptions) => {
         setIsLoading(true);
         setError(null);
+        setSeoMetadata(null);
+        setCurrentSlugState(null);
         try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => {
-                controller.abort();
-                console.warn(`Fetch for ${imageUrl} timed out.`);
-            }, 8000); // 8-second timeout
+            const fetchWithTimeout = async (targetUrl: string, timeoutMs: number) => {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-            const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
-            const response = await fetch(proxyUrl, { signal: controller.signal });
+                try {
+                    const response = await fetch(targetUrl, { signal: controller.signal });
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch image (status: ${response.status}).`);
+                    }
 
-            clearTimeout(timeoutId); // Clear timeout if fetch succeeds
+                    return response;
+                } finally {
+                    clearTimeout(timeoutId);
+                }
+            };
 
-            if (!response.ok) throw new Error(`Failed to fetch image via proxy (status: ${response.status}).`);
-            const blob = await response.blob();
-            if (!blob.type.startsWith('image/')) {
+            let blob: Blob | null = null;
+
+            if (!options?.preferProxy) {
+                try {
+                    const response = await fetchWithTimeout(imageUrl, options?.directTimeoutMs ?? 8000);
+                    blob = await response.blob();
+                } catch {
+                    blob = null;
+                }
+            }
+
+            if (!blob) {
+                const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+                const response = await fetchWithTimeout(proxyUrl, options?.proxyTimeoutMs ?? 15000);
+                blob = await response.blob();
+            }
+
+            if (blob.type && !blob.type.startsWith('image/') && !blob.type.startsWith('application/octet-stream')) {
                 throw new Error('Fetched content is not an image. The proxy may have failed.');
             }
-            const file = new File([blob], 'shopify-product-image.webp', { type: blob.type || 'image/webp' });
+            const file = new File(
+                [blob],
+                options?.fileName || 'shopify-product-image.webp',
+                { type: options?.fallbackMimeType || blob.type || 'image/webp' }
+            );
 
             const imageData = await fileToBase64(file);
             setOriginalImageData(imageData);
             setSourceImageData(imageData); // Store the true original that will never be overwritten
             setOriginalImagePreview(`data:${imageData.mimeType};base64,${imageData.data}`);
+
+            if (options?.knownSeoMetadata) {
+                setSeoMetadata(options.knownSeoMetadata);
+
+                if (options.knownSeoMetadata.slug) {
+                    setCurrentSlugState(options.knownSeoMetadata.slug);
+                }
+            }
+
             return imageData;
         } catch (err) {
-            let errorMessage = 'Could not load product image.';
+            let errorMessage = options?.errorMessage || 'Could not load product image.';
             if (err instanceof Error) {
-                errorMessage = err.name === 'AbortError'
+                errorMessage = !options?.errorMessage && err.name === 'AbortError'
                     ? 'Image loading timed out. Please try again.'
-                    : err.message;
+                    : errorMessage;
             }
             showError(errorMessage);
             setError(errorMessage);
@@ -683,7 +808,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         return { originalImageUrl, finalImageUrl: originalImageUrl };
     }, [originalImagePreview, editedImage, supabase]);
 
-    const value = {
+    const value = useMemo(() => ({
         originalImageData,
         sourceImageData,
         previousImageData,
@@ -705,7 +830,24 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         uploadCartImages,
         clearImages,
         seoMetadata,
-    };
+    }), [
+        originalImageData,
+        sourceImageData,
+        previousImageData,
+        originalImagePreview,
+        editedImage,
+        threeTierReferenceImage,
+        isLoading,
+        error,
+        currentSlug,
+        setCurrentSlug,
+        handleImageUpload,
+        loadImageWithoutAnalysis,
+        handleSave,
+        uploadCartImages,
+        clearImages,
+        seoMetadata,
+    ]);
 
     return (
         <ImageContext.Provider value={value}>

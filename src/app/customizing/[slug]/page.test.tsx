@@ -77,4 +77,18 @@ describe('RecentSearchPage', () => {
     expect(hasDirectPreloadLink).toBe(false);
     expect(staticMarkup).toContain('src="https://example.com/pink-bento-cake.webp"');
   });
+
+  it('still renders when SEO-side data fetches fail independently', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+    vi.mocked(getCakeBasePriceOptions).mockRejectedValueOnce(new Error('pricing failed'));
+    vi.mocked(getRelatedProductsByKeywords).mockRejectedValueOnce(new Error('related failed'));
+
+    const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'pink-minimalist-light-pink-bento-cake-f707' }) });
+    render(page);
+
+    expect(screen.getByTestId('customizing-client')).toBeInTheDocument();
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(2);
+
+    consoleErrorSpy.mockRestore();
+  });
 });

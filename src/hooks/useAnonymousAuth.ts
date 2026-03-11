@@ -3,11 +3,12 @@
 import { useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
-export function useAnonymousAuth() {
+export function useAnonymousAuth(enabled = true) {
     const supabase = createClient();
     const initializingRef = useRef(false);
 
     useEffect(() => {
+        if (!enabled) return;
         if (initializingRef.current) return;
         initializingRef.current = true;
 
@@ -23,5 +24,5 @@ export function useAnonymousAuth() {
         };
 
         initializeAuth();
-    }, []);
+    }, [enabled, supabase]);
 }

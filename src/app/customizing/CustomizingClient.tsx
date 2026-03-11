@@ -2,23 +2,20 @@
 
 import React, { Dispatch, SetStateAction, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
-import Link from 'next/link';
 import LazyImage from '@/components/LazyImage';
 import { v4 as uuidv4 } from 'uuid';
 import { findClosestColor, hexToColorNameProse } from '@/utils/colorUtils';
-import { generateDesignDetails, generateDynamicFAQ } from '@/utils/designContentUtils';
-import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Heart, Cake, Star, Zap, Clock, CalendarDays, Ruler, Utensils, ChevronRight } from 'lucide-react';
-import Masonry from 'react-masonry-css';
+import { generateDesignDetails } from '@/utils/designContentUtils';
+import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Heart, Cake, Zap, Clock, CalendarDays, Ruler, Utensils, ChevronRight } from 'lucide-react';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
 
 import { CustomizationBottomSheet } from '../../components/CustomizationBottomSheet';
-import { ProductCard } from '@/components/ProductCard';
 import { SegmentationOverlay } from '../../components/SegmentationOverlay';
 import { SegmentationBottomSheet } from '../../components/SegmentationBottomSheet';
 import { BoundingBoxOverlay } from '../../components/BoundingBoxOverlay';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { CustomizationSkeleton, ChosenOptionsSkeleton } from '../../components/LoadingSkeletons';
-import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, BackIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon, SideIcingGuideIcon, TopIcingGuideIcon, TopBorderGuideIcon, BaseBorderGuideIcon, BaseBoardGuideIcon, TrashIcon, ReportIcon } from '../../components/icons';
+import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, BackIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon, TrashIcon, ReportIcon } from '../../components/icons';
 import { ShoppingBag } from 'lucide-react';
 import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType, AvailabilitySettings, IcingColorDetails, AnalysisItem, ClusteredMarker, CartItem } from '../../types';
 import { CakeGenieCartItem, CakeGenieMerchant, CakeGenieMerchantProduct } from '../../lib/database.types';
@@ -27,10 +24,7 @@ import { AvailabilityType } from '../../lib/utils/availability';
 
 import { COLORS, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_THUMBNAILS } from '@/constants';
 import { ColorPalette } from '../../components/ColorPalette';
-import { CakeMessagesOptions } from '../../components/CakeMessagesOptions';
-import { CakeToppersOptions } from '../../components/CakeToppersOptions';
 import { TopperCard } from '../../components/TopperCard';
-import { DesignAboutSection } from '@/components/DesignAboutSection';
 import StickyAddToCartBar from '../../components/StickyAddToCartBar';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
 import { reportCustomization, uploadReportImage, getAnalysisByExactHash, getRelatedProductsByKeywords, getCollectionsForDesign } from '../../services/supabaseService';
@@ -39,7 +33,28 @@ import ShareModal from '../../components/ShareModal';
 import { CartItemDetails } from '../../types';
 import { buildKnownSeoMetadata } from './knownSeoMetadata';
 import { getRefLoadStrategy, parsePersistedAnalysis } from './refLoadStrategy';
-import { shouldLoadPropDesign, shouldLogShopifyCseMount } from './customizingClientGuards';
+import {
+    CustomizingDiscoverySections,
+    type CustomizingRelatedCollection,
+    type CustomizingRelatedDesign,
+} from './CustomizingDiscoverySections';
+import { CustomizingPostAnalysisContent } from './CustomizingPostAnalysisContent';
+import {
+    CustomizingPageMetaHeader,
+    CustomizingSupplementalContent,
+} from './CustomizingPageMetaSections';
+import { CustomizingAiChatPanel } from './CustomizingAiChatPanel';
+import { CustomizingIcingEditorPanel } from './CustomizingIcingEditorPanel';
+import { CustomizingMessagesPanel } from './CustomizingMessagesPanel';
+import { CustomizingStepSummarySections } from './CustomizingStepSummarySections';
+import { CustomizingToppersPanel } from './CustomizingToppersPanel';
+import {
+    buildRelatedCollectionsRequestKey,
+    getAutoRelatedDesignRequest,
+    shouldHydrateImageFromExistingAnalysis,
+    shouldLoadPropDesign,
+    shouldLogShopifyCseMount,
+} from './customizingClientGuards';
 
 
 // Hooks
@@ -189,161 +204,6 @@ const getIcingImage = (icingDesign: IcingDesignUI, type: IcingImageType, isTopSp
     return `${baseUrl}${prefix}${separator}${matchedColor}.webp`;
 };
 
-// Simple toggle switch component for icing features
-const SimpleToggle: React.FC<{ label: string; isEnabled: boolean; onChange: (enabled: boolean) => void; disabled?: boolean; }> = ({ label, isEnabled, onChange, disabled = false }) => (
-    <div className={`flex justify-between items-center p-1 ${disabled ? 'opacity-50' : ''}`}>
-        <label className="text-xs font-medium text-slate-700">{label}</label>
-        <button
-            type="button"
-            onClick={(e) => {
-                e.stopPropagation();
-                if (!disabled) onChange(!isEnabled);
-            }}
-            disabled={disabled}
-            className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors ${isEnabled ? 'bg-purple-600' : 'bg-slate-400'}`}
-            aria-pressed={isEnabled}
-        >
-            <span className={`inline-block w-3.5 h-3.5 transform bg-white rounded-full transition-transform shadow-sm ${isEnabled ? 'translate-x-4' : 'translate-x-1'}`} />
-        </button>
-    </div>
-);
-
-const IcingToolbar: React.FC<{ onSelectItem: (item: AnalysisItem) => void; icingDesign: IcingDesignUI | null; cakeType: CakeType | null; isVisible: boolean; showGuide: boolean; selectedItem: ClusteredMarker | null; mainToppers: MainTopperUI[] }> = ({ onSelectItem, icingDesign, cakeType, isVisible, showGuide, selectedItem, mainToppers }) => {
-    const [activeGuideIndex, setActiveGuideIndex] = useState<number>(-1);
-    const isBento = cakeType === 'Bento';
-    const hasEdiblePhotoOnTop = mainToppers.some(t => t.isEnabled && t.type === 'edible_photo_top');
-
-    // Use default values if analysis hasn't completed yet
-    const defaultIcingDesign: IcingDesignUI = {
-        base: 'soft_icing',
-        color_type: 'single',
-        drip: false,
-        border_top: false,
-        border_base: false,
-        colors: { top: '#FFFFFF', side: '#FFFFFF' },
-        gumpasteBaseBoard: false,
-        dripPrice: 0,
-        gumpasteBaseBoardPrice: 0
-    };
-    const effectiveIcingDesign = icingDesign || defaultIcingDesign;
-    const effectiveCakeType: CakeType = cakeType || '1 Tier';
-
-
-
-    // Type guard to check if effectiveIcingDesign has IcingColorDetails properties
-    const hasIcingColorDetails = (design: any): design is IcingDesignUI => {
-        return design && typeof design === 'object' && 'colors' in design;
-    };
-
-    const getColorForTool = (toolId: string): string | undefined => {
-        if (!hasIcingColorDetails(effectiveIcingDesign)) return undefined;
-
-        switch (toolId) {
-            case 'drip': return effectiveIcingDesign.colors?.drip;
-            case 'borderTop': return effectiveIcingDesign.colors?.borderTop;
-            case 'borderBase': return effectiveIcingDesign.colors?.borderBase;
-            case 'top': return effectiveIcingDesign.colors?.top;
-            case 'side': return effectiveIcingDesign.colors?.side;
-            case 'gumpasteBaseBoard': return effectiveIcingDesign.colors?.gumpasteBaseBoardColor;
-            default: return undefined;
-        }
-    };
-
-    // Check if top and side icing colors are the same
-    const topColor = effectiveIcingDesign.colors?.top;
-    const sideColor = effectiveIcingDesign.colors?.side;
-    const icingColorsSame = topColor && sideColor && topColor.toUpperCase() === sideColor.toUpperCase();
-
-    const tools = (icingColorsSame ? [
-        { id: 'drip', description: 'Drip', label: 'Drip', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'drip')} alt="Drip effect" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.drip },
-        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'borderTop')} alt="Top border" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.border_top },
-        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'borderBase')} alt="Base border" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
-        { id: 'icing', description: 'Body Icing', label: 'Body Icing', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'top', false)} alt="Icing color" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: !!(effectiveIcingDesign.colors?.top || effectiveIcingDesign.colors?.side) },
-        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'gumpasteBaseBoard')} alt="Gumpaste baseboard" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
-    ] : [
-        { id: 'drip', description: 'Drip', label: 'Drip', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'drip')} alt="Drip effect" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.drip },
-        { id: 'borderTop', description: 'Top', label: 'Top Border', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'borderTop')} alt="Top border" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.border_top },
-        { id: 'borderBase', description: 'Bottom', label: 'Base Border', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'borderBase')} alt="Base border" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.border_base, disabled: isBento },
-        { id: 'top', description: 'Top Icing', label: 'Top Icing', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'top', true)} alt="Top icing" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: !!effectiveIcingDesign.colors?.top },
-        { id: 'side', description: 'Side Icing', label: 'Body Icing', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'side', false)} alt="Side icing" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: !!effectiveIcingDesign.colors?.side },
-        { id: 'gumpasteBaseBoard', description: 'Board', label: 'Board', icon: <LazyImage src={getIcingImage(effectiveIcingDesign as IcingDesignUI, 'gumpasteBaseBoard')} alt="Gumpaste baseboard" width={48} height={48} containerClassName="w-full h-full flex items-center justify-center" imageClassName="w-full h-full object-contain" unoptimized />, featureFlag: effectiveIcingDesign.gumpasteBaseBoard, disabled: isBento },
-    ]).filter(tool => {
-        // Hide Top Icing tool when there's an edible photo on top (top will be covered)
-        if (tool.id === 'top' && hasEdiblePhotoOnTop) {
-            return false;
-        }
-        return true;
-    });
-
-    useEffect(() => {
-        if (!showGuide) return;
-
-        let currentIndex = 0;
-        const animateGuide = () => {
-            if (currentIndex < tools.length) {
-                setActiveGuideIndex(currentIndex);
-                currentIndex++;
-                setTimeout(animateGuide, 400); // Show each tool for 400ms
-            } else {
-                setActiveGuideIndex(-1); // Reset after animation completes
-            }
-        };
-
-        // Start animation after a brief delay
-        const startTimeout = setTimeout(animateGuide, 300);
-
-        return () => {
-            clearTimeout(startTimeout);
-        };
-    }, [showGuide, tools.length]);
-
-    return (
-        <div className={`flex flex-row flex-wrap gap-3 justify-center transition-opacity ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-            {tools.map((tool, index) => {
-                const isGuideActive = activeGuideIndex === index;
-                const isSelected = selectedItem && 'id' in selectedItem && selectedItem.id === `icing-edit-${tool.id}`;
-
-                // Dynamic sizing based on number of tools and screen width
-                // 6 tools: smaller at 465px breakpoint
-                // 5 tools: smaller at 400px breakpoint
-                const buttonSizeClasses = tools.length === 6
-                    ? 'w-12 h-12 max-[465px]:w-10 max-[465px]:h-10'
-                    : tools.length === 5
-                        ? 'w-12 h-12 max-[400px]:w-10 max-[400px]:h-10'
-                        : 'w-12 h-12';
-
-                return (
-                    <div key={tool.id} className="flex flex-col items-center gap-1 group">
-                        <button
-                            onClick={() => {
-                                if (tool.disabled) return;
-                                // Toggle selection: if already selected, deselect; otherwise select
-                                if (isSelected) {
-                                    onSelectItem(null as any);
-                                } else {
-                                    onSelectItem({ id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: effectiveCakeType });
-                                }
-                            }}
-                            className={`relative ${buttonSizeClasses} p-2 rounded-full hover:bg-purple-100 transition-all ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500' : 'bg-white/80'} backdrop-blur-md ${tool.featureFlag ? 'border-2 border-purple-600' : 'border border-slate-200'} shadow-md ${tool.featureFlag ? '' : 'opacity-60'} ${isGuideActive ? 'ring-4 ring-pink-500 ring-offset-2 scale-110 shadow-xl' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
-                            disabled={tool.disabled}
-                        >
-                            {React.cloneElement(tool.icon as React.ReactElement<any>, { className: 'w-full h-full flex items-center justify-center' })}
-                            {tool.disabled && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
-                                    <X className="w-6 h-6 text-white" />
-                                </div>
-                            )}
-                        </button>
-                        <span className={`text-[10px] font-medium transition-colors whitespace-nowrap ${isSelected ? 'text-purple-600' : 'text-slate-600 group-hover:text-purple-600'} ${tool.disabled ? 'opacity-40' : ''}`}>
-                            {tool.label}
-                        </span>
-                    </div>
-                );
-            })}
-        </div>
-    );
-};
-
 const MotifPanel: React.FC<{
     isOpen: boolean;
     onClose: () => void;
@@ -393,23 +253,13 @@ interface RecentSearchDesignProp {
     tags?: string[] | null;
 }
 
-export interface RelatedDesign {
-    p_hash: string;
-    slug: string | null;
-    original_image_url: string;
-    keywords?: string | null;
-    alt_text?: string | null;
-    price?: number | null;
-    availability?: string | null;
-}
-
 interface CustomizingClientProps {
     product?: CakeGenieMerchantProduct;
     merchant?: CakeGenieMerchant;
     recentSearchDesign?: RecentSearchDesignProp;
     productDetails?: React.ReactNode;
     initialPrices?: BasePriceInfo[];
-    relatedDesigns?: RelatedDesign[];
+    relatedDesigns?: CustomizingRelatedDesign[];
     currentKeywords?: string | null;
     currentSlug?: string | null;
     seoContentSlot?: React.ReactNode;
@@ -487,10 +337,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, [preloadImageUrl]);
 
     // Related Designs Pagination State
-    const [displayedRelatedDesigns, setDisplayedRelatedDesigns] = useState<RelatedDesign[]>(relatedDesigns || []);
+    const [displayedRelatedDesigns, setDisplayedRelatedDesigns] = useState<CustomizingRelatedDesign[]>(relatedDesigns || []);
     const [isLoadingMoreDesigns, setIsLoadingMoreDesigns] = useState(false);
     const [hasMoreDesigns, setHasMoreDesigns] = useState(true);
-    const [relatedCollections, setRelatedCollections] = useState<any[]>([]);
+    const [relatedCollections, setRelatedCollections] = useState<CustomizingRelatedCollection[]>([]);
     const [isLoadingCollections, setIsLoadingCollections] = useState(false);
 
     // --- Refs ---
@@ -500,6 +350,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const isLoadingShopifyCseRef = useRef(false); // Guard against duplicate Shopify CSE loads
     const isResettingRef = useRef(false); // Guard against reloading the current design during Reset Everything
     const lastProcessedDesignRefUrl = useRef<string | null>(null);
+    const lastAutoRelatedDesignRequestKeyRef = useRef<string | null>(null);
+    const lastRelatedCollectionsRequestKeyRef = useRef<string | null>(null);
     const aiChatContainerRef = useRef<HTMLFormElement>(null);
     const aiChatInputRef = useRef<HTMLInputElement>(null);
 
@@ -513,6 +365,22 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         if (hookBasePriceOptions && hookBasePriceOptions.length > 0) return hookBasePriceOptions;
         return initialPrices || [];
     }, [hookBasePriceOptions, initialPrices]);
+
+    const autoRelatedDesignRequest = useMemo(() => getAutoRelatedDesignRequest({
+        currentKeywords,
+        recentSearchKeywords: recentSearchDesign?.keywords,
+        analysisKeyword: analysisResult?.keyword,
+        currentSlug,
+        persistedSlug,
+        recentSearchSlug: recentSearchDesign?.slug,
+    }), [currentKeywords, recentSearchDesign?.keywords, analysisResult?.keyword, currentSlug, persistedSlug, recentSearchDesign?.slug]);
+
+    const relatedCollectionsTags = analysisResult?.tags || null;
+    const relatedCollectionsKeyword = analysisResult?.keyword || null;
+    const relatedCollectionsRequestKey = useMemo(
+        () => buildRelatedCollectionsRequestKey(relatedCollectionsTags, relatedCollectionsKeyword),
+        [relatedCollectionsTags, relatedCollectionsKeyword]
+    );
 
     const aiChatSuggestionAnalysis = useMemo(() => {
         // Prefer the current synced customization state, but fall back to the original design image analysis_json.
@@ -533,6 +401,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             template: parseAiChatPromptTemplate(suggestion),
         }))
     ), [aiChatPromptSuggestions]);
+    const hasAiChatPromptSuggestions = aiChatPromptSuggestions.length > 0;
 
     const filteredAiChatPromptSuggestions = useMemo(() => {
         const normalizedQuery = chatInput.trim().toLowerCase();
@@ -597,7 +466,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     // --- Handlers ---
 
     // Load more related designs with pagination
-    const handleLoadMoreDesigns = async () => {
+    const handleLoadMoreDesigns = useCallback(async () => {
         if (isLoadingMoreDesigns || !hasMoreDesigns) return;
 
         setIsLoadingMoreDesigns(true);
@@ -625,15 +494,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         } finally {
             setIsLoadingMoreDesigns(false);
         }
-    };
+    }, [
+        currentKeywords,
+        currentSlug,
+        displayedRelatedDesigns.length,
+        hasMoreDesigns,
+        isLoadingMoreDesigns,
+        recentSearchDesign?.keywords,
+        recentSearchDesign?.slug,
+    ]);
 
     // Auto-load related designs when analysis is complete
     useEffect(() => {
-        // Only run if we have analysis result with keywords
-        if (!analysisResult || !analysisResult.keyword) return;
-
-        // Prefer DB-stored keywords (more curated) over AI-generated single keyword
-        const targetKeyword = currentKeywords || recentSearchDesign?.keywords || analysisResult.keyword;
+        if (!autoRelatedDesignRequest) return;
 
         // Don't auto-load if we already have items (prevent dupes or overriding props)
         if (displayedRelatedDesigns.length > 0) return;
@@ -641,15 +514,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         // Don't auto-load if we're currently loading
         if (isLoadingMoreDesigns) return;
 
-        console.log('🤖 Analysis complete, fetching related designs for:', targetKeyword);
+        if (lastAutoRelatedDesignRequestKeyRef.current === autoRelatedDesignRequest.key) return;
+
+        lastAutoRelatedDesignRequestKeyRef.current = autoRelatedDesignRequest.key;
+
+        console.log('🤖 Analysis complete, fetching related designs for:', autoRelatedDesignRequest.keyword);
 
         const fetchRelated = async () => {
             setIsLoadingMoreDesigns(true);
             try {
                 // Use the most relevant keyword for the first batch
                 const { data } = await getRelatedProductsByKeywords(
-                    targetKeyword,
-                    currentSlug || persistedSlug || recentSearchDesign?.slug || null,
+                    autoRelatedDesignRequest.keyword,
+                    autoRelatedDesignRequest.slug,
                     6,
                     0
                 );
@@ -661,6 +538,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     setHasMoreDesigns(false);
                 }
             } catch (error) {
+                lastAutoRelatedDesignRequestKeyRef.current = null;
                 console.error('Error auto-loading related designs:', error);
             } finally {
                 setIsLoadingMoreDesigns(false);
@@ -668,22 +546,26 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         };
 
         fetchRelated();
-    }, [analysisResult, currentSlug, currentKeywords, recentSearchDesign?.keywords, displayedRelatedDesigns.length]);
+    }, [autoRelatedDesignRequest, displayedRelatedDesigns.length, isLoadingMoreDesigns]);
 
     // Auto-load related collections when analysis is complete
     useEffect(() => {
-        if (!analysisResult) return;
+        if (!relatedCollectionsRequestKey) return;
+        if (lastRelatedCollectionsRequestKeyRef.current === relatedCollectionsRequestKey) return;
+
+        lastRelatedCollectionsRequestKeyRef.current = relatedCollectionsRequestKey;
 
         const fetchCollections = async () => {
             setIsLoadingCollections(true);
             try {
-                const tags = analysisResult.tags || [];
-                const keyword = analysisResult.keyword || '';
+                const tags = relatedCollectionsTags || [];
+                const keyword = relatedCollectionsKeyword || '';
                 const { data } = await getCollectionsForDesign(tags, keyword);
                 if (data) {
                     setRelatedCollections(data);
                 }
             } catch (error) {
+                lastRelatedCollectionsRequestKeyRef.current = null;
                 console.error('Error fetching related collections:', error);
             } finally {
                 setIsLoadingCollections(false);
@@ -691,7 +573,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         };
 
         fetchCollections();
-    }, [analysisResult]);
+    }, [relatedCollectionsKeyword, relatedCollectionsRequestKey, relatedCollectionsTags]);
 
     // --- AI Chat Customization Handler ---
     const submitAiChatPrompt = useCallback(async (prompt: string) => {
@@ -914,6 +796,25 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         await submitAiChatPrompt(nextPrompt);
     }, [selectedAiPromptTemplate, submitAiChatPrompt]);
 
+    const handleAiPromptColorPickerToggle = useCallback(() => {
+        setShowAiPromptColorPicker(prev => !prev);
+    }, []);
+
+    const handleAiChatInputChange = useCallback((value: string) => {
+        setSelectedAiPromptTemplate(null);
+        setSelectedAiPromptColor('');
+        setShowAiPromptColorPicker(false);
+        setChatInput(value);
+        setShowAiPromptSuggestions(hasAiChatPromptSuggestions);
+        setSelectedAiPromptIndex(-1);
+    }, [hasAiChatPromptSuggestions]);
+
+    const handleAiChatInputInteract = useCallback(() => {
+        if (hasAiChatPromptSuggestions) {
+            setShowAiPromptSuggestions(true);
+        }
+    }, [hasAiChatPromptSuggestions]);
+
     const handleAiPromptInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Escape') {
             setShowAiPromptSuggestions(false);
@@ -1006,6 +907,31 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             setIsAnalyzing(true);
         } else {
             console.log("⚡ Reusing SSR Analysis Data");
+        }
+
+        const shouldReuseSsrAnalysis = shouldHydrateImageFromExistingAnalysis({ hasSsrData: hasSSRData });
+
+        if (targetPHash && shouldReuseSsrAnalysis) {
+            console.log("⚡ Fast Path: Hydrating image from SSR analysis");
+
+            loadImageWithoutAnalysis(targetImageUrl, {
+                fileName: 'product.jpg',
+                fallbackMimeType: 'image/jpeg',
+                knownSeoMetadata: knownSeoMetadata || undefined,
+                errorMessage: 'Failed to load product',
+            })
+                .then(() => {
+                    setIsAnalyzing(false);
+                    isLoadingDesignRef.current = false;
+                })
+                .catch(err => {
+                    console.error('SSR hydration fast path failed:', err);
+                    setAnalysisError('Failed to load product');
+                    isLoadingDesignRef.current = false;
+                    setIsAnalyzing(false);
+                });
+
+            return;
         }
 
         if (targetPHash) {
@@ -1147,7 +1073,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         };
 
         fetchProductImage();
-    }, [product, recentSearchDesign, originalImageData, isImageManagementLoading, hookImageUpload, setIsAnalyzing, clearImages, clearCustomization, analysisResult, analysisId, persistedSlug, setCurrentSlug, setPendingAnalysisData, knownSeoMetadata]);
+    }, [product, recentSearchDesign, originalImageData, isImageManagementLoading, hookImageUpload, loadImageWithoutAnalysis, setIsAnalyzing, clearImages, clearCustomization, analysisResult, analysisId, persistedSlug, setCurrentSlug, setPendingAnalysisData, knownSeoMetadata, setAnalysisError]);
 
     // Handle image loading from external site (cakesandmemories.com Shopify CSE)
     // Uses URL query params because sessionStorage is per-origin and doesn't survive cross-domain redirects.
@@ -1343,11 +1269,40 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             console.warn("⚠️ Saved data URL mismatch, but proceeding with saved data intent.");
                         }
 
-                        console.log("✅ Loading saved design with full analysis...");
+                        const hasPrecomputedAnalysis = parsed.cachedAnalysis != null;
+
+                        console.log(
+                            hasPrecomputedAnalysis
+                                ? "✅ Loading saved design from cached analysis..."
+                                : "✅ Loading saved design with full analysis..."
+                        );
 
                         // Show loading state
                         setIsAnalyzing(true);
                         showInfo("Loading your saved design...");
+
+                        if (shouldHydrateImageFromExistingAnalysis({ hasCachedAnalysis: hasPrecomputedAnalysis })) {
+                            loadImageWithoutAnalysis(parsed.imageUrl, {
+                                fileName: 'saved-design.webp',
+                                fallbackMimeType: 'image/webp',
+                                errorMessage: 'Failed to load saved design.',
+                            })
+                                .then(() => {
+                                    lastProcessedDesignRefUrl.current = decodedUrl;
+                                    setPendingAnalysisData(parsed.cachedAnalysis);
+                                    setIsAnalyzing(false);
+                                    isLoadingDesignRef.current = false;
+                                    showSuccess("Design loaded!");
+                                })
+                                .catch((err) => {
+                                    console.error('Failed to hydrate saved design from cache:', err);
+                                    setIsAnalyzing(false);
+                                    isLoadingDesignRef.current = false;
+                                });
+
+                            localStorage.removeItem('cakegenie_restore_saved');
+                            return;
+                        }
 
                         // Fetch the image and trigger full analysis (same as non-saved path)
                         const fetchSavedDesign = async () => {
@@ -1371,13 +1326,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 if (!blob) throw new Error("Failed to load image");
 
                                 const file = new File([blob], 'saved-design.webp', { type: blob.type || 'image/webp' });
-
-                                // Check if we have precomputed analysis from cache
-                                const hasPrecomputedAnalysis = parsed.cachedAnalysis != null;
-                                if (hasPrecomputedAnalysis) {
-                                    console.log("🚀 Using precomputed analysis from cache - skipping AI call!");
-                                }
-
                                 // Use hookImageUpload with precomputedAnalysis if available
                                 await hookImageUpload(
                                     file,
@@ -1707,7 +1655,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         };
 
         fetchAndAnalyze();
-    }, [searchParams, isImageManagementLoading, hookImageUpload, setIsAnalyzing, setPendingAnalysisData, analysisResult, clearImages, clearCustomization, setAnalysisError]);
+    }, [searchParams, isImageManagementLoading, hookImageUpload, loadImageWithoutAnalysis, setIsAnalyzing, setPendingAnalysisData, analysisResult, clearImages, clearCustomization, setAnalysisError]);
 
 
     const onClose = () => {
@@ -2618,54 +2566,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             <div className={`flex flex-col items-center gap-2 w-full max-w-7xl mx-auto px-4 transition-all duration-300 ${showStickyBar ? 'pb-2' : 'pb-4'}`}>
 
                 {/* SEO Breadcrumbs - Visible for both Shop Product and SEO Landing Pages */}
-                {((product && merchant) || (recentSearchDesign && recentSearchDesign.slug)) && (
-                    <nav className="w-full" aria-label="Breadcrumb">
-                        <ol className="flex items-center gap-1 text-xs text-slate-500 flex-wrap">
-                            <li>
-                                <a href="/" className="hover:text-purple-600 transition-colors">Home</a>
-                            </li>
-                            <li><span className="mx-1">/</span></li>
-
-                            {product && merchant ? (
-                                <>
-                                    <li>
-                                        <a href="/shop" className="hover:text-purple-600 transition-colors">Shop</a>
-                                    </li>
-                                    <li><span className="mx-1">/</span></li>
-                                    <li>
-                                        <a href={`/shop/${merchant.slug}`} className="hover:text-purple-600 transition-colors">{merchant.business_name}</a>
-                                    </li>
-                                    <li><span className="mx-1">/</span></li>
-                                    <li className="text-slate-700 font-medium" aria-current="page">{product.title}</li>
-                                </>
-                            ) : recentSearchDesign ? (
-                                <>
-                                    <li>
-                                        <a href="/customizing" className="hover:text-purple-600 transition-colors">Customizing</a>
-                                    </li>
-                                    <li><span className="mx-1">/</span></li>
-                                    <li className="text-slate-700 font-medium" aria-current="page">
-                                        {recentSearchDesign.seo_title?.replace(/\s*\|\s*Genie\.ph\s*$/i, '') || recentSearchDesign.keywords || 'Custom Design'}
-                                    </li>
-                                </>
-                            ) : null}
-                        </ol>
-                    </nav>
-                )}
-
-                {/* Product/Design Title */}
-                {(product || recentSearchDesign) && (
-                    <div className="w-full">
-                        <h1 className="text-xl md:text-2xl font-bold text-slate-800 leading-tight">
-                            {product ? product.title : (recentSearchDesign?.seo_title?.replace(/\s*\|\s*Genie\.ph\s*$/i, '') || recentSearchDesign?.keywords || 'Custom Design')}
-                        </h1>
-                        {product?.category && (
-                            <span className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
-                                {product.category}
-                            </span>
-                        )}
-                    </div>
-                )}
+                <CustomizingPageMetaHeader
+                    product={product}
+                    merchant={merchant}
+                    recentSearchDesign={recentSearchDesign}
+                />
 
 
 
@@ -3086,504 +2991,53 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                         {/* AI Customization Chat - Moved to separate container below hero image */}
                         {cakeInfo && !isAnalyzing && !isRejectionError && (
-                            <div className="w-full mt-0 bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 md:hidden relative z-30">
-                                <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">AI Customization Chat</h3>
-                                <form onSubmit={handleChatSubmit} className="relative" ref={aiChatContainerRef}>
-                                    {selectedAiPromptTemplate ? (
-                                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-12 shadow-sm">
-                                            <div className="flex items-start gap-2 text-sm leading-6 text-slate-700">
-                                                <span className="min-w-0 flex-1 wrap-break-word">
-                                                    {selectedAiPromptTemplate.prefix}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setShowAiPromptColorPicker(prev => !prev)}
-                                                        className="mx-1 inline-flex rounded-full bg-purple-50 px-2.5 py-0.5 font-bold text-purple-700 underline decoration-purple-300 underline-offset-2 transition hover:bg-purple-100"
-                                                    >
-                                                        {selectedAiPromptTemplate.placeholderLabel}
-                                                    </button>
-                                                    {selectedAiPromptTemplate.suffix}
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleAiPromptTemplateClear}
-                                                    className="shrink-0 rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-                                                    aria-label="Edit prompt as text"
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                            {showAiPromptColorPicker && (
-                                                <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
-                                                    <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                                                        Choose {selectedAiPromptTemplate.placeholderLabel}
-                                                    </div>
-                                                    <ColorPalette
-                                                        selectedColor={selectedAiPromptColor}
-                                                        onColorChange={handleAiPromptTemplateColorChange}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <input
-                                            ref={aiChatInputRef}
-                                            type="text"
-                                            value={chatInput}
-                                            onChange={(e) => {
-                                                setSelectedAiPromptTemplate(null);
-                                                setSelectedAiPromptColor('');
-                                                setShowAiPromptColorPicker(false);
-                                                setChatInput(e.target.value);
-                                                setShowAiPromptSuggestions(aiChatPromptSuggestions.length > 0);
-                                                setSelectedAiPromptIndex(-1);
-                                            }}
-                                            onFocus={() => {
-                                                if (aiChatPromptSuggestions.length > 0) {
-                                                    setShowAiPromptSuggestions(true);
-                                                }
-                                            }}
-                                            onClick={() => {
-                                                if (aiChatPromptSuggestions.length > 0) {
-                                                    setShowAiPromptSuggestions(true);
-                                                }
-                                            }}
-                                            onKeyDown={handleAiPromptInputKeyDown}
-                                            placeholder="✨ Describe changes here..."
-                                            disabled={isAiProcessing || isUpdatingDesign}
-                                            className="w-full pl-4 pr-12 py-3 bg-white border border-slate-200 rounded-2xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
-                                        />
-                                    )}
-                                    {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isUpdatingDesign && (
-                                        <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-                                            <div className="max-h-72 overflow-y-auto py-1">
-                                                {filteredAiChatPromptSuggestions.map(({ suggestion, template }, index) => (
-                                                    <button
-                                                        key={suggestion}
-                                                        type="button"
-                                                        onMouseDown={(event) => event.preventDefault()}
-                                                        onClick={() => handleAiPromptSuggestionSelect(suggestion)}
-                                                        className={`block w-full px-3 py-2 text-left text-sm transition-colors ${selectedAiPromptIndex === index ? 'bg-purple-50 text-purple-700' : 'text-slate-700 hover:bg-slate-50'}`}
-                                                    >
-                                                        {template ? (
-                                                            <span className="wrap-break-word">
-                                                                {template.prefix}
-                                                                <span className="mx-1 inline-flex rounded-full bg-purple-50 px-2 py-0.5 font-bold text-purple-700">
-                                                                    {template.placeholderLabel}
-                                                                </span>
-                                                                {template.suffix}
-                                                            </span>
-                                                        ) : suggestion}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                    <button
-                                        type="submit"
-                                        disabled={!chatInput.trim() || isAiProcessing || isUpdatingDesign || !!selectedAiPromptTemplate}
-                                        className="absolute right-1.5 top-1.5 bottom-1.5 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white px-2.5 rounded-xl transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-                                        aria-label="Submit AI Edit"
-                                    >
-                                        {isAiProcessing ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                                        )}
-                                    </button>
-                                </form>
-
-
-                                <div className="mt-3 px-1 text-center text-[10px] text-slate-500 leading-relaxed font-medium italic">
-                                    <p>Change your cake design by describing the changes you want</p>
-                                    <p className="my-1 text-slate-400 not-italic font-bold text-[9px] opacity-80 uppercase tracking-tight">- or -</p>
-                                    <p>Customize your cake design by doing steps 1 to 4 below</p>
-                                </div>
-
-                                {isAiProcessing && (
-                                    <p className="text-[10px] text-purple-500 font-medium mt-1.5 animate-pulse flex items-center gap-1 px-1">
-                                        <Loader2 className="w-3 h-3 animate-spin" /> Redesigning your cake...
-                                    </p>
-                                )}
-                            </div>
+                            <CustomizingAiChatPanel
+                                className="w-full mt-0 bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 md:hidden relative z-30"
+                                containerRef={aiChatContainerRef}
+                                inputRef={aiChatInputRef}
+                                chatInput={chatInput}
+                                selectedAiPromptTemplate={selectedAiPromptTemplate}
+                                selectedAiPromptColor={selectedAiPromptColor}
+                                showAiPromptColorPicker={showAiPromptColorPicker}
+                                showAiPromptSuggestions={showAiPromptSuggestions}
+                                filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
+                                selectedAiPromptIndex={selectedAiPromptIndex}
+                                isAiProcessing={isAiProcessing}
+                                isUpdatingDesign={isUpdatingDesign}
+                                onSubmit={handleChatSubmit}
+                                onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
+                                onTemplateClear={handleAiPromptTemplateClear}
+                                onTemplateColorChange={handleAiPromptTemplateColorChange}
+                                onInputChange={handleAiChatInputChange}
+                                onInputInteract={handleAiChatInputInteract}
+                                onInputKeyDown={handleAiPromptInputKeyDown}
+                                onSuggestionSelect={handleAiPromptSuggestionSelect}
+                            />
                         )}
 
-                        {/* Steps 1-4: Sequential Customization Steps in a horizontal scrollable row */}
-                        <div className="w-[calc(100%+2rem)] -mx-4 px-4 mt-0 flex md:hidden overflow-x-auto gap-2 pb-4 scrollbar-hide snap-x scroll-pl-4">
-                            {/* Step 1: Cake Specs */}
-                            {cakeInfo && !isAnalyzing && !isRejectionError && (
-                                <div className="shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
-                                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 1: Choose Your Cake Specs</h3>
-                                    <div className="flex gap-[7px] pt-1 pb-1 w-max">
-                                        {/* Cake Type */}
-                                        <button
-                                            onClick={() => setActiveCustomization('options')}
-                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                        >
-                                            <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
-                                                <LazyImage
-                                                    src={CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
-                                                    alt={cakeInfo.type}
-                                                    fill
-                                                    sizes="56px"
-                                                    imageClassName="object-contain"
-                                                />
-                                            </div>
-                                            <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">
-                                                {cakeInfo.type}
-                                            </span>
-                                        </button>
-
-                                        {/* Size */}
-                                        <button
-                                            onClick={() => setActiveCustomization('options')}
-                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                        >
-                                            <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
-                                                <LazyImage
-                                                    src={CAKE_SIZE_THUMBNAILS[cakeInfo.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
-                                                    alt={cakeInfo.size}
-                                                    fill
-                                                    sizes="56px"
-                                                    imageClassName="object-contain"
-                                                />
-                                                <div className="absolute inset-x-0 top-0 pt-3 text-black text-[9px] font-bold text-center leading-tight">
-                                                    {(() => {
-                                                        const sizePart = cakeInfo.size?.split(' ')[0] || '';
-                                                        const tiers = sizePart?.match(/\d+"/g) || [];
-                                                        return (
-                                                            <div>
-                                                                {tiers.map((tier, index) => (
-                                                                    <React.Fragment key={index}>
-                                                                        <span>&lt;- {tier} -&gt;</span><br />
-                                                                    </React.Fragment>
-                                                                ))}
-                                                            </div>
-                                                        );
-                                                    })()}
-                                                </div>
-                                            </div>
-                                            <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">
-                                                {cakeInfo.size}
-                                            </span>
-                                        </button>
-
-                                        {/* Thickness */}
-                                        <button
-                                            onClick={() => setActiveCustomization('options')}
-                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                        >
-                                            <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
-                                                <LazyImage
-                                                    src={CAKE_THICKNESS_THUMBNAILS[cakeInfo.thickness]}
-                                                    alt={cakeInfo.thickness}
-                                                    fill
-                                                    sizes="56px"
-                                                    imageClassName="object-contain"
-                                                />
-                                            </div>
-                                            <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">
-                                                {cakeInfo.thickness}
-                                            </span>
-                                        </button>
-
-                                        {/* Flavors */}
-                                        {cakeInfo.flavors.map((flavor, i) => (
-                                            <button
-                                                key={i}
-                                                onClick={() => setActiveCustomization('options')}
-                                                className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                            >
-                                                <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
-                                                    <LazyImage
-                                                        src={FLAVOR_THUMBNAILS[flavor]}
-                                                        alt={flavor}
-                                                        fill
-                                                        sizes="56px"
-                                                        imageClassName="object-contain"
-                                                    />
-                                                </div>
-                                                <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">
-                                                    {flavor}
-                                                </span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Step 2: Icing Colors */}
-                            {cakeInfo && icingDesign && !isAnalyzing && !isRejectionError && (
-                                <div className="shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
-                                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 2: Icing Colors</h3>
-                                    <div className="flex gap-[7px] pt-1 pb-1 w-max">
-                                        {/* Drip */}
-                                        <button
-                                            onClick={() => {
-                                                setActiveCustomization('icing');
-                                                setSelectedItem({
-                                                    id: 'icing-edit-drip',
-                                                    itemCategory: 'icing',
-                                                    description: 'Drip',
-                                                    cakeType: cakeInfo?.type || '1 Tier'
-                                                });
-                                            }}
-                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                        >
-                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-drip' ? 'ring-2 ring-purple-500 bg-purple-50' : icingDesign.drip ? 'ring-2 ring-purple-500' : ''}`}>
-                                                <LazyImage
-                                                    src={getIcingImage(icingDesign as IcingDesignUI, 'drip')}
-                                                    alt="Drip"
-                                                    width={36}
-                                                    height={36}
-                                                    containerClassName="w-full h-full flex items-center justify-center"
-                                                    imageClassName="w-full h-full object-contain"
-                                                />
-                                            </div>
-                                            <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
-                                                Drip
-                                            </span>
-                                        </button>
-
-                                        {/* Top Border */}
-                                        <button
-                                            onClick={() => {
-                                                setActiveCustomization('icing');
-                                                setSelectedItem({
-                                                    id: 'icing-edit-borderTop',
-                                                    itemCategory: 'icing',
-                                                    description: 'Top',
-                                                    cakeType: cakeInfo?.type || '1 Tier'
-                                                });
-                                            }}
-                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                        >
-                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderTop' ? 'ring-2 ring-purple-500 bg-purple-50' : icingDesign.border_top ? 'ring-2 ring-purple-500' : ''}`}>
-                                                <LazyImage
-                                                    src={getIcingImage(icingDesign as IcingDesignUI, 'borderTop')}
-                                                    alt="Top Border"
-                                                    width={36}
-                                                    height={36}
-                                                    containerClassName="w-full h-full flex items-center justify-center"
-                                                    imageClassName="w-full h-full object-contain"
-                                                />
-                                            </div>
-                                            <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
-                                                Top Border
-                                            </span>
-                                        </button>
-
-                                        {/* Base Border */}
-                                        <button
-                                            onClick={() => {
-                                                setActiveCustomization('icing');
-                                                setSelectedItem({
-                                                    id: 'icing-edit-borderBase',
-                                                    itemCategory: 'icing',
-                                                    description: 'Bottom',
-                                                    cakeType: cakeInfo?.type || '1 Tier'
-                                                });
-                                            }}
-                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                        >
-                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderBase' ? 'ring-2 ring-purple-500 bg-purple-50' : icingDesign.border_base ? 'ring-2 ring-purple-500' : ''}`}>
-                                                <LazyImage
-                                                    src={getIcingImage(icingDesign as IcingDesignUI, 'borderBase')}
-                                                    alt="Base Border"
-                                                    width={36}
-                                                    height={36}
-                                                    containerClassName="w-full h-full flex items-center justify-center"
-                                                    imageClassName="w-full h-full object-contain"
-                                                />
-                                            </div>
-                                            <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
-                                                Base Border
-                                            </span>
-                                        </button>
-
-                                        {/* Top Icing */}
-                                        <button
-                                            onClick={() => {
-                                                setActiveCustomization('icing');
-                                                setSelectedItem({
-                                                    id: 'icing-edit-top',
-                                                    itemCategory: 'icing',
-                                                    description: 'Top Icing',
-                                                    cakeType: cakeInfo?.type || '1 Tier'
-                                                });
-                                            }}
-                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                        >
-                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-top' ? 'ring-2 ring-purple-500 bg-purple-50' : 'ring-2 ring-purple-500'}`}>
-                                                <LazyImage
-                                                    src={getIcingImage(icingDesign as IcingDesignUI, 'top', true)}
-                                                    alt="Top Icing"
-                                                    width={36}
-                                                    height={36}
-                                                    containerClassName="w-full h-full flex items-center justify-center"
-                                                    imageClassName="w-full h-full object-contain"
-                                                />
-                                            </div>
-                                            <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
-                                                Top Icing
-                                            </span>
-                                        </button>
-
-                                        {/* Body Icing */}
-                                        <button
-                                            onClick={() => {
-                                                setActiveCustomization('icing');
-                                                setSelectedItem({
-                                                    id: 'icing-edit-side',
-                                                    itemCategory: 'icing',
-                                                    description: 'Side Icing',
-                                                    cakeType: cakeInfo?.type || '1 Tier'
-                                                });
-                                            }}
-                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                        >
-                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-side' ? 'ring-2 ring-purple-500 bg-purple-50' : 'ring-2 ring-purple-500'}`}>
-                                                <LazyImage
-                                                    src={getIcingImage(icingDesign as IcingDesignUI, 'side', false)}
-                                                    alt="Body Icing"
-                                                    width={36}
-                                                    height={36}
-                                                    containerClassName="w-full h-full flex items-center justify-center"
-                                                    imageClassName="w-full h-full object-contain"
-                                                />
-                                            </div>
-                                            <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
-                                                Body Icing
-                                            </span>
-                                        </button>
-
-                                        {/* Board */}
-                                        <button
-                                            onClick={() => {
-                                                setActiveCustomization('icing');
-                                                setSelectedItem({
-                                                    id: 'icing-edit-gumpasteBaseBoard',
-                                                    itemCategory: 'icing',
-                                                    description: 'Board',
-                                                    cakeType: cakeInfo?.type || '1 Tier'
-                                                });
-                                            }}
-                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                        >
-                                            <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-gumpasteBaseBoard' ? 'ring-2 ring-purple-500 bg-purple-50' : icingDesign.gumpasteBaseBoard ? 'ring-2 ring-purple-500' : ''}`}>
-                                                <LazyImage
-                                                    src={getIcingImage(icingDesign as IcingDesignUI, 'gumpasteBaseBoard')}
-                                                    alt="Base Board"
-                                                    width={36}
-                                                    height={36}
-                                                    containerClassName="w-full h-full flex items-center justify-center"
-                                                    imageClassName="w-full h-full object-contain"
-                                                />
-                                            </div>
-                                            <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2">
-                                                Board
-                                            </span>
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Step 3: Cake Messages */}
-                            {cakeInfo && !isAnalyzing && !isRejectionError && (
-                                <div className="shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
-                                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 3: Cake Messages</h3>
-
-                                    {cakeMessages.length > 0 ? (
-                                        <div className="flex flex-col gap-2">
-                                            {cakeMessages.map((msg, idx) => (
-                                                <div
-                                                    key={msg.id || idx}
-                                                    className={`flex items-center gap-3 py-[9px] px-4 rounded-xl bg-slate-50/80 hover:bg-slate-100/80 transition-colors cursor-pointer group ${!msg.isEnabled ? 'opacity-40' : ''}`}
-                                                    onClick={() => {
-                                                        setSelectedItem({ ...msg, itemCategory: 'message' });
-                                                        setActiveCustomization('messages');
-                                                    }}
-                                                >
-                                                    <span className="text-[10px] font-bold text-purple-500 uppercase tracking-wider shrink-0">
-                                                        {msg.position === 'top' ? 'TOP' : msg.position === 'side' ? 'FRONT' : 'BASE'}
-                                                    </span>
-                                                    <span className={`text-sm font-medium truncate flex-1 ${msg.text || msg.originalMessage?.text ? 'text-slate-700' : 'text-slate-400 italic'}`}>
-                                                        {msg.text || msg.originalMessage?.text || 'New Message'}
-                                                    </span>
-                                                    <div
-                                                        className="w-4 h-4 rounded-full border border-slate-200 shrink-0 shadow-sm"
-                                                        style={{ backgroundColor: msg.color || '#000000' }}
-                                                    />
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            removeCakeMessage(msg.id);
-                                                        }}
-                                                        className="text-slate-400 hover:text-red-500 transition-colors p-1 shrink-0"
-                                                        aria-label="Delete message"
-                                                    >
-                                                        <TrashIcon className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                            <div className="flex justify-center mt-2">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setActiveCustomization('messages');
-                                                        setSelectedItem(null);
-                                                    }}
-                                                    className="text-[10px] font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2 px-5 rounded-full shadow-sm border border-purple-100 flex items-center gap-1.5"
-                                                >
-                                                    <span className="text-base leading-none">+</span> Add message
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="flex justify-center py-2">
-                                            <button
-                                                className="text-[10px] font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2 px-5 rounded-full shadow-sm border border-purple-100 flex items-center gap-1.5"
-                                                onClick={() => {
-                                                    setActiveCustomization('messages');
-                                                    setSelectedItem(null);
-                                                }}
-                                            >
-                                                <span className="text-base leading-none">+</span> Add a cake message
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Step 4: Cake Toppers */}
-                            {cakeInfo && (mainToppers.length > 0 || supportElements.length > 0) && !isAnalyzing && !isRejectionError && (
-                                <div className="shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
-                                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 4: Cake Toppers</h3>
-                                    <CakeToppersOptions
-                                        mainToppers={mainToppers}
-                                        supportElements={supportElements}
-                                        markerMap={markerMap}
-                                        updateMainTopper={updateMainTopper}
-                                        updateSupportElement={updateSupportElement}
-                                        onTopperImageReplace={onTopperImageReplace}
-                                        onSupportElementImageReplace={onSupportElementImageReplace}
-                                        itemPrices={itemPrices}
-                                        isAdmin={isAdmin}
-                                        isAnalyzing={isAnalyzing}
-                                        mode="summary"
-                                        onSectionClick={openTopperSheet}
-                                    />
-
-                                    {(mainToppers?.some(t => t.type === 'toy')) && (
-                                        <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-2">
-                                            <span className="text-amber-500 text-sm">💡</span>
-                                            <p className="text-[11px] text-amber-700 leading-tight">
-                                                <span className="font-semibold">Tip:</span> Switch from toy toppers to edible or printed toppers to reduce the total price!
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                        <CustomizingStepSummarySections
+                            layout="mobile"
+                            cakeInfo={cakeInfo}
+                            icingDesign={icingDesign}
+                            cakeMessages={cakeMessages}
+                            mainToppers={mainToppers}
+                            supportElements={supportElements}
+                            markerMap={markerMap}
+                            itemPrices={itemPrices}
+                            isAdmin={isAdmin}
+                            isAnalyzing={isAnalyzing}
+                            isRejectionError={isRejectionError}
+                            activeCustomization={activeCustomization}
+                            selectedItemId={selectedItem?.id ?? null}
+                            setActiveCustomization={setActiveCustomization}
+                            setSelectedItem={setSelectedItem}
+                            removeCakeMessage={removeCakeMessage}
+                            updateMainTopper={updateMainTopper}
+                            updateSupportElement={updateSupportElement}
+                            onTopperImageReplace={onTopperImageReplace}
+                            onSupportElementImageReplace={onSupportElementImageReplace}
+                            openTopperSheet={openTopperSheet}
+                        />
 
                     </div>
                     {/* RIGHT COLUMN: Availability at top, then Feature List */}
@@ -3617,503 +3071,53 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 <>
                                     {/* AI Customization Chat */}
                                     {cakeInfo && !isAnalyzing && !isRejectionError && (
-                                        <div className="w-full hidden md:block bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 relative z-30">
-                                            <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">AI Customization Chat</h3>
-                                            <form onSubmit={handleChatSubmit} className="relative" ref={aiChatContainerRef}>
-                                                {selectedAiPromptTemplate ? (
-                                                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-12 shadow-sm">
-                                                        <div className="flex items-start gap-2 text-sm leading-6 text-slate-700">
-                                                            <span className="min-w-0 flex-1 wrap-break-word">
-                                                                {selectedAiPromptTemplate.prefix}
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setShowAiPromptColorPicker(prev => !prev)}
-                                                                    className="mx-1 inline-flex rounded-full bg-purple-50 px-2.5 py-0.5 font-bold text-purple-700 underline decoration-purple-300 underline-offset-2 transition hover:bg-purple-100"
-                                                                >
-                                                                    {selectedAiPromptTemplate.placeholderLabel}
-                                                                </button>
-                                                                {selectedAiPromptTemplate.suffix}
-                                                            </span>
-                                                            <button
-                                                                type="button"
-                                                                onClick={handleAiPromptTemplateClear}
-                                                                className="shrink-0 rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-                                                                aria-label="Edit prompt as text"
-                                                            >
-                                                                <X className="h-4 w-4" />
-                                                            </button>
-                                                        </div>
-                                                        {showAiPromptColorPicker && (
-                                                            <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
-                                                                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                                                                    Choose {selectedAiPromptTemplate.placeholderLabel}
-                                                                </div>
-                                                                <ColorPalette
-                                                                    selectedColor={selectedAiPromptColor}
-                                                                    onColorChange={handleAiPromptTemplateColorChange}
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <input
-                                                        ref={aiChatInputRef}
-                                                        type="text"
-                                                        value={chatInput}
-                                                        onChange={(e) => {
-                                                            setSelectedAiPromptTemplate(null);
-                                                            setSelectedAiPromptColor('');
-                                                            setShowAiPromptColorPicker(false);
-                                                            setChatInput(e.target.value);
-                                                            setShowAiPromptSuggestions(aiChatPromptSuggestions.length > 0);
-                                                            setSelectedAiPromptIndex(-1);
-                                                        }}
-                                                        onFocus={() => {
-                                                            if (aiChatPromptSuggestions.length > 0) {
-                                                                setShowAiPromptSuggestions(true);
-                                                            }
-                                                        }}
-                                                        onClick={() => {
-                                                            if (aiChatPromptSuggestions.length > 0) {
-                                                                setShowAiPromptSuggestions(true);
-                                                            }
-                                                        }}
-                                                        onKeyDown={handleAiPromptInputKeyDown}
-                                                        placeholder="✨ Describe changes here..."
-                                                        disabled={isAiProcessing || isUpdatingDesign}
-                                                        className="w-full pl-4 pr-12 py-3 bg-white border border-slate-200 rounded-2xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
-                                                    />
-                                                )}
-                                                {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isUpdatingDesign && (
-                                                    <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-                                                        <div className="max-h-72 overflow-y-auto py-1">
-                                                            {filteredAiChatPromptSuggestions.map(({ suggestion, template }, index) => (
-                                                                <button
-                                                                    key={suggestion}
-                                                                    type="button"
-                                                                    onMouseDown={(event) => event.preventDefault()}
-                                                                    onClick={() => handleAiPromptSuggestionSelect(suggestion)}
-                                                                    className={`block w-full px-3 py-2 text-left text-sm transition-colors ${selectedAiPromptIndex === index ? 'bg-purple-50 text-purple-700' : 'text-slate-700 hover:bg-slate-50'}`}
-                                                                >
-                                                                    {template ? (
-                                                                        <span className="wrap-break-word">
-                                                                            {template.prefix}
-                                                                            <span className="mx-1 inline-flex rounded-full bg-purple-50 px-2 py-0.5 font-bold text-purple-700">
-                                                                                {template.placeholderLabel}
-                                                                            </span>
-                                                                            {template.suffix}
-                                                                        </span>
-                                                                    ) : suggestion}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                <button
-                                                    type="submit"
-                                                    disabled={!chatInput.trim() || isAiProcessing || isUpdatingDesign || !!selectedAiPromptTemplate}
-                                                    className="absolute right-1.5 top-1.5 bottom-1.5 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white px-2.5 rounded-xl transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-                                                    aria-label="Submit AI Edit"
-                                                >
-                                                    {isAiProcessing ? (
-                                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                                    ) : (
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                                                    )}
-                                                </button>
-                                            </form>
-
-                                            <div className="mt-3 px-1 text-center text-[10px] text-slate-500 leading-relaxed font-medium italic">
-                                                <p>Change your cake design by describing the changes you want</p>
-                                                <p className="my-1 text-slate-400 not-italic font-bold text-[9px] opacity-80 uppercase tracking-tight">- or -</p>
-                                                <p>Customize your cake design by doing steps 1 to 4 below</p>
-                                            </div>
-
-                                            {isAiProcessing && (
-                                                <p className="text-[10px] text-purple-500 font-medium mt-1.5 animate-pulse flex items-center gap-1 px-1">
-                                                    <Loader2 className="w-3 h-3 animate-spin" /> Redesigning your cake...
-                                                </p>
-                                            )}
-                                        </div>
+                                        <CustomizingAiChatPanel
+                                            className="w-full hidden md:block bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 relative z-30"
+                                            containerRef={aiChatContainerRef}
+                                            inputRef={aiChatInputRef}
+                                            chatInput={chatInput}
+                                            selectedAiPromptTemplate={selectedAiPromptTemplate}
+                                            selectedAiPromptColor={selectedAiPromptColor}
+                                            showAiPromptColorPicker={showAiPromptColorPicker}
+                                            showAiPromptSuggestions={showAiPromptSuggestions}
+                                            filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
+                                            selectedAiPromptIndex={selectedAiPromptIndex}
+                                            isAiProcessing={isAiProcessing}
+                                            isUpdatingDesign={isUpdatingDesign}
+                                            onSubmit={handleChatSubmit}
+                                            onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
+                                            onTemplateClear={handleAiPromptTemplateClear}
+                                            onTemplateColorChange={handleAiPromptTemplateColorChange}
+                                            onInputChange={handleAiChatInputChange}
+                                            onInputInteract={handleAiChatInputInteract}
+                                            onInputKeyDown={handleAiPromptInputKeyDown}
+                                            onSuggestionSelect={handleAiPromptSuggestionSelect}
+                                        />
                                     )}
 
-                                    {/* Steps 1-4: Sequential Customization Steps */}
-                                    <div className="w-full hidden md:flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden gap-2 pb-6 md:pb-4 scrollbar-hide snap-x md:snap-none">
-                                        {/* Step 1: Cake Specs */}
-                                        {cakeInfo && !isAnalyzing && !isRejectionError && (
-                                            <div className="shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
-                                                <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 1: Choose Your Cake Specs</h3>
-                                                <div className="flex gap-[7px] pt-1 pb-1 w-max md:w-full flex-wrap">
-                                                    {/* Cake Type */}
-                                                    <button
-                                                        onClick={() => setActiveCustomization('options')}
-                                                        className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                                    >
-                                                        <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
-                                                            <LazyImage
-                                                                src={CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
-                                                                alt={cakeInfo.type}
-                                                                fill
-                                                                sizes="56px"
-                                                                imageClassName="object-contain"
-                                                            />
-                                                        </div>
-                                                        <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">
-                                                            {cakeInfo.type}
-                                                        </span>
-                                                    </button>
-
-                                                    {/* Size */}
-                                                    <button
-                                                        onClick={() => setActiveCustomization('options')}
-                                                        className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                                    >
-                                                        <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
-                                                            <LazyImage
-                                                                src={CAKE_SIZE_THUMBNAILS[cakeInfo.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
-                                                                alt={cakeInfo.size}
-                                                                fill
-                                                                sizes="56px"
-                                                                imageClassName="object-contain"
-                                                            />
-                                                            <div className="absolute inset-x-0 top-0 pt-3 text-black text-[9px] font-bold text-center leading-tight">
-                                                                {(() => {
-                                                                    const sizePart = cakeInfo.size?.split(' ')[0] || '';
-                                                                    const tiers = sizePart?.match(/\d+"/g) || [];
-                                                                    return (
-                                                                        <div>
-                                                                            {tiers.map((tier, index) => (
-                                                                                <React.Fragment key={index}>
-                                                                                    <span>&lt;- {tier} -&gt;</span><br />
-                                                                                </React.Fragment>
-                                                                            ))}
-                                                                        </div>
-                                                                    );
-                                                                })()}
-                                                            </div>
-                                                        </div>
-                                                        <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">
-                                                            {cakeInfo.size}
-                                                        </span>
-                                                    </button>
-
-                                                    {/* Thickness */}
-                                                    <button
-                                                        onClick={() => setActiveCustomization('options')}
-                                                        className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                                    >
-                                                        <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
-                                                            <LazyImage
-                                                                src={CAKE_THICKNESS_THUMBNAILS[cakeInfo.thickness]}
-                                                                alt={cakeInfo.thickness}
-                                                                fill
-                                                                sizes="56px"
-                                                                imageClassName="object-contain"
-                                                            />
-                                                        </div>
-                                                        <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">
-                                                            {cakeInfo.thickness}
-                                                        </span>
-                                                    </button>
-
-                                                    {/* Flavors */}
-                                                    {cakeInfo.flavors.map((flavor, i) => (
-                                                        <button
-                                                            key={i}
-                                                            onClick={() => setActiveCustomization('options')}
-                                                            className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                                        >
-                                                            <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
-                                                                <LazyImage
-                                                                    src={FLAVOR_THUMBNAILS[flavor]}
-                                                                    alt={flavor}
-                                                                    fill
-                                                                    sizes="56px"
-                                                                    imageClassName="object-contain"
-                                                                />
-                                                            </div>
-                                                            <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">
-                                                                {flavor}
-                                                            </span>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Step 2: Icing Colors */}
-                                        {cakeInfo && icingDesign && !isAnalyzing && !isRejectionError && (
-                                            <div className="shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
-                                                <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 2: Icing Colors</h3>
-                                                <div className="flex gap-[7px] pt-1 pb-1 w-max md:w-full flex-wrap">
-                                                    {/* Drip */}
-                                                    <button
-                                                        onClick={() => {
-                                                            setActiveCustomization('icing');
-                                                            setSelectedItem({
-                                                                id: 'icing-edit-drip',
-                                                                itemCategory: 'icing',
-                                                                description: 'Drip',
-                                                                cakeType: cakeInfo?.type || '1 Tier'
-                                                            });
-                                                        }}
-                                                        className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                                    >
-                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-drip' ? 'ring-2 ring-purple-500 bg-purple-50' : icingDesign.drip ? 'ring-2 ring-purple-500' : ''}`}>
-                                                            <LazyImage
-                                                                src={getIcingImage(icingDesign as IcingDesignUI, 'drip')}
-                                                                alt="Drip"
-                                                                width={36}
-                                                                height={36}
-                                                                containerClassName="w-full h-full flex items-center justify-center"
-                                                                imageClassName="w-full h-full object-contain"
-                                                            />
-                                                        </div>
-                                                        <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2 mt-0.5">
-                                                            Drip
-                                                        </span>
-                                                    </button>
-
-                                                    {/* Top Border */}
-                                                    <button
-                                                        onClick={() => {
-                                                            setActiveCustomization('icing');
-                                                            setSelectedItem({
-                                                                id: 'icing-edit-borderTop',
-                                                                itemCategory: 'icing',
-                                                                description: 'Top',
-                                                                cakeType: cakeInfo?.type || '1 Tier'
-                                                            });
-                                                        }}
-                                                        className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                                    >
-                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderTop' ? 'ring-2 ring-purple-500 bg-purple-50' : icingDesign.border_top ? 'ring-2 ring-purple-500' : ''}`}>
-                                                            <LazyImage
-                                                                src={getIcingImage(icingDesign as IcingDesignUI, 'borderTop')}
-                                                                alt="Top Border"
-                                                                width={36}
-                                                                height={36}
-                                                                containerClassName="w-full h-full flex items-center justify-center"
-                                                                imageClassName="w-full h-full object-contain"
-                                                            />
-                                                        </div>
-                                                        <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2 mt-0.5">
-                                                            Top Border
-                                                        </span>
-                                                    </button>
-
-                                                    {/* Base Border */}
-                                                    <button
-                                                        onClick={() => {
-                                                            setActiveCustomization('icing');
-                                                            setSelectedItem({
-                                                                id: 'icing-edit-borderBase',
-                                                                itemCategory: 'icing',
-                                                                description: 'Bottom',
-                                                                cakeType: cakeInfo?.type || '1 Tier'
-                                                            });
-                                                        }}
-                                                        className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                                    >
-                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-borderBase' ? 'ring-2 ring-purple-500 bg-purple-50' : icingDesign.border_base ? 'ring-2 ring-purple-500' : ''}`}>
-                                                            <LazyImage
-                                                                src={getIcingImage(icingDesign as IcingDesignUI, 'borderBase')}
-                                                                alt="Base Border"
-                                                                width={36}
-                                                                height={36}
-                                                                containerClassName="w-full h-full flex items-center justify-center"
-                                                                imageClassName="w-full h-full object-contain"
-                                                            />
-                                                        </div>
-                                                        <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2 mt-0.5">
-                                                            Base Border
-                                                        </span>
-                                                    </button>
-
-                                                    {/* Top Icing */}
-                                                    <button
-                                                        onClick={() => {
-                                                            setActiveCustomization('icing');
-                                                            setSelectedItem({
-                                                                id: 'icing-edit-top',
-                                                                itemCategory: 'icing',
-                                                                description: 'Top Icing',
-                                                                cakeType: cakeInfo?.type || '1 Tier'
-                                                            });
-                                                        }}
-                                                        className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                                    >
-                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-top' ? 'ring-2 ring-purple-500 bg-purple-50' : 'ring-2 ring-purple-500'}`}>
-                                                            <LazyImage
-                                                                src={getIcingImage(icingDesign as IcingDesignUI, 'top', true)}
-                                                                alt="Top Icing"
-                                                                width={36}
-                                                                height={36}
-                                                                containerClassName="w-full h-full flex items-center justify-center"
-                                                                imageClassName="w-full h-full object-contain"
-                                                            />
-                                                        </div>
-                                                        <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2 mt-0.5">
-                                                            Top Icing
-                                                        </span>
-                                                    </button>
-
-                                                    {/* Body Icing */}
-                                                    <button
-                                                        onClick={() => {
-                                                            setActiveCustomization('icing');
-                                                            setSelectedItem({
-                                                                id: 'icing-edit-side',
-                                                                itemCategory: 'icing',
-                                                                description: 'Side Icing',
-                                                                cakeType: cakeInfo?.type || '1 Tier'
-                                                            });
-                                                        }}
-                                                        className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                                    >
-                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-side' ? 'ring-2 ring-purple-500 bg-purple-50' : 'ring-2 ring-purple-500'}`}>
-                                                            <LazyImage
-                                                                src={getIcingImage(icingDesign as IcingDesignUI, 'side', false)}
-                                                                alt="Body Icing"
-                                                                width={36}
-                                                                height={36}
-                                                                containerClassName="w-full h-full flex items-center justify-center"
-                                                                imageClassName="w-full h-full object-contain"
-                                                            />
-                                                        </div>
-                                                        <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2 mt-0.5">
-                                                            Body Icing
-                                                        </span>
-                                                    </button>
-
-                                                    {/* Board */}
-                                                    <button
-                                                        onClick={() => {
-                                                            setActiveCustomization('icing');
-                                                            setSelectedItem({
-                                                                id: 'icing-edit-gumpasteBaseBoard',
-                                                                itemCategory: 'icing',
-                                                                description: 'Board',
-                                                                cakeType: cakeInfo?.type || '1 Tier'
-                                                            });
-                                                        }}
-                                                        className="group flex flex-col items-center gap-1 min-w-[60px]"
-                                                    >
-                                                        <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${activeCustomization === 'icing' && selectedItem?.id === 'icing-edit-gumpasteBaseBoard' ? 'ring-2 ring-purple-500 bg-purple-50' : icingDesign.gumpasteBaseBoard ? 'ring-2 ring-purple-500' : ''}`}>
-                                                            <LazyImage
-                                                                src={getIcingImage(icingDesign as IcingDesignUI, 'gumpasteBaseBoard')}
-                                                                alt="Base Board"
-                                                                width={36}
-                                                                height={36}
-                                                                containerClassName="w-full h-full flex items-center justify-center"
-                                                                imageClassName="w-full h-full object-contain"
-                                                            />
-                                                        </div>
-                                                        <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2 mt-0.5">
-                                                            Board
-                                                        </span>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Step 3: Cake Messages */}
-                                        {cakeInfo && !isAnalyzing && !isRejectionError && (
-                                            <div className="shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
-                                                <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 3: Cake Messages</h3>
-
-                                                {cakeMessages.length > 0 ? (
-                                                    <div className="flex flex-col gap-2">
-                                                        {cakeMessages.map((msg, idx) => (
-                                                            <div
-                                                                key={msg.id || idx}
-                                                                className={`flex items-center gap-3 py-[9px] px-4 rounded-xl bg-slate-50/80 hover:bg-slate-100/80 transition-colors cursor-pointer group ${!msg.isEnabled ? 'opacity-40' : ''}`}
-                                                                onClick={() => {
-                                                                    setSelectedItem({ ...msg, itemCategory: 'message' });
-                                                                    setActiveCustomization('messages');
-                                                                }}
-                                                            >
-                                                                <span className="text-[10px] font-bold text-purple-500 uppercase tracking-wider shrink-0">
-                                                                    {msg.position === 'top' ? 'TOP' : msg.position === 'side' ? 'FRONT' : 'BASE'}
-                                                                </span>
-                                                                <span className={`text-sm font-medium truncate flex-1 ${msg.text || (msg as any).originalMessage?.text ? 'text-slate-700' : 'text-slate-400 italic'}`}>
-                                                                    {msg.text || (msg as any).originalMessage?.text || 'New Message'}
-                                                                </span>
-                                                                <div
-                                                                    className="w-4 h-4 rounded-full border border-slate-200 shrink-0 shadow-sm"
-                                                                    style={{ backgroundColor: msg.color || '#000000' }}
-                                                                />
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        removeCakeMessage(msg.id);
-                                                                    }}
-                                                                    className="text-slate-400 hover:text-red-500 transition-colors p-1 shrink-0"
-                                                                    aria-label="Delete message"
-                                                                >
-                                                                    <TrashIcon className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                        ))}
-                                                        <div className="flex justify-center mt-2">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setActiveCustomization('messages');
-                                                                    setSelectedItem(null);
-                                                                }}
-                                                                className="text-[10px] font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2 px-5 rounded-full shadow-sm border border-purple-100 flex items-center gap-1.5"
-                                                            >
-                                                                <span className="text-base leading-none">+</span> Add message
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex justify-center py-2">
-                                                        <button
-                                                            className="text-[10px] font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2 px-5 rounded-full shadow-sm border border-purple-100 flex items-center gap-1.5"
-                                                            onClick={() => {
-                                                                setActiveCustomization('messages');
-                                                                setSelectedItem(null);
-                                                            }}
-                                                        >
-                                                            <span className="text-base leading-none">+</span> Add a cake message
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Step 4: Cake Toppers */}
-                                        {cakeInfo && (mainToppers.length > 0 || supportElements.length > 0) && !isAnalyzing && !isRejectionError && (
-                                            <div className="shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
-                                                <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 4: Cake Toppers</h3>
-                                                <CakeToppersOptions
-                                                    mainToppers={mainToppers}
-                                                    supportElements={supportElements}
-                                                    markerMap={markerMap}
-                                                    updateMainTopper={updateMainTopper}
-                                                    updateSupportElement={updateSupportElement}
-                                                    onTopperImageReplace={onTopperImageReplace}
-                                                    onSupportElementImageReplace={onSupportElementImageReplace}
-                                                    itemPrices={itemPrices}
-                                                    isAdmin={isAdmin}
-                                                    isAnalyzing={isAnalyzing}
-                                                    mode="summary"
-                                                    onSectionClick={openTopperSheet}
-                                                />
-
-                                                {(mainToppers?.some(t => t.type === 'toy')) && (
-                                                    <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-2">
-                                                        <span className="text-amber-500 text-sm">💡</span>
-                                                        <p className="text-[11px] text-amber-700 leading-tight">
-                                                            <span className="font-semibold">Tip:</span> Switch from toy toppers to edible or printed toppers to reduce the total price!
-                                                        </p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
+                                    <CustomizingStepSummarySections
+                                        layout="desktop"
+                                        cakeInfo={cakeInfo}
+                                        icingDesign={icingDesign}
+                                        cakeMessages={cakeMessages}
+                                        mainToppers={mainToppers}
+                                        supportElements={supportElements}
+                                        markerMap={markerMap}
+                                        itemPrices={itemPrices}
+                                        isAdmin={isAdmin}
+                                        isAnalyzing={isAnalyzing}
+                                        isRejectionError={isRejectionError}
+                                        activeCustomization={activeCustomization}
+                                        selectedItemId={selectedItem?.id ?? null}
+                                        setActiveCustomization={setActiveCustomization}
+                                        setSelectedItem={setSelectedItem}
+                                        removeCakeMessage={removeCakeMessage}
+                                        updateMainTopper={updateMainTopper}
+                                        updateSupportElement={updateSupportElement}
+                                        onTopperImageReplace={onTopperImageReplace}
+                                        onSupportElementImageReplace={onSupportElementImageReplace}
+                                        openTopperSheet={openTopperSheet}
+                                    />
                                 </>
                             ) : (
                                 <div className="text-center p-8 bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 text-slate-500">
@@ -4126,46 +3130,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                 {/* Product/Design Description & Tags - Spans full width of the two-column layout */}
                 {/* SEO Content Slot from SSR (if present) OR Client-side fallback (if no slug) */}
-                {
-                    (seoContentSlot || (!slug && (product && (product.long_description || product.short_description || (product.tags && product.tags.length > 0))))) && (
-                        <div className="w-full mt-0">
-                            <div className="bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200">
-                                {/* SSR Slot Injection */}
-                                {seoContentSlot}
-
-                                {/* Client-side Fallback (Only if no SSR slot and no slug) */}
-                                {!seoContentSlot && !slug && (
-                                    <>
-                                        {/* Product Description */}
-                                        {product && (product.long_description || product.short_description) && (
-                                            <DesignAboutSection
-                                                title="About This Cake"
-                                                description={product.long_description || product.short_description || ''}
-                                                showDisclaimer={false}
-                                            />
-                                        )}
-
-
-                                        {product && product.tags && product.tags.length > 0 && (
-                                            <div>
-                                                <h3 className="text-xs font-medium text-slate-500 mb-2">Related Tags</h3>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {product.tags.map((tag, index) => (
-                                                        <span
-                                                            key={index}
-                                                            className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full hover:bg-purple-100 hover:text-purple-700 transition-colors cursor-default"
-                                                        >
-                                                            {tag}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </>
-                                )}
-                            </div >
-                        </div >
-                    )}
+                <CustomizingSupplementalContent
+                    product={product}
+                    seoContentSlot={seoContentSlot}
+                    showClientFallback={!slug}
+                />
 
 
                 {dominantMotif && (
@@ -4242,203 +3211,58 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         )}
                     </div>
 
-                    <div className={activeCustomization === 'icing' ? 'block' : 'hidden'}>
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center">
-                                <p className="text-xs text-slate-500">Customize your cake's colors and icing details.</p>
-                                {hasIcingChanges && (
-                                    <button
-                                        onClick={() => {
-                                            if (analysisResult?.icing_design && icingDesign) {
-                                                onIcingDesignChange({
-                                                    ...analysisResult.icing_design,
-                                                    dripPrice: icingDesign.dripPrice,
-                                                    gumpasteBaseBoardPrice: icingDesign.gumpasteBaseBoardPrice
-                                                });
-                                                setSelectedItem(null);
-                                            }
-                                        }}
-                                        className="text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors flex items-center gap-1"
-                                    >
-                                        <ResetIcon className="w-3 h-3" />
-                                        Revert
-                                    </button>
-                                )}
-                            </div>
-                            <IcingToolbar
-                                onSelectItem={setSelectedItem}
-                                icingDesign={icingDesign}
-                                cakeType={cakeInfo?.type || null}
-                                isVisible={activeCustomization === 'icing'}
-                                showGuide={false}
-                                selectedItem={selectedItem}
-                                mainToppers={mainToppers}
-                            />
-                            {/* Inline Icing Editor Panel */}
-                            {selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'icing' && (
-                                <div className="mt-2 pt-2 border-t border-slate-100 animate-fade-in">
-                                    {(() => {
-                                        const description = selectedItem.description;
-                                        const isBento = cakeInfo?.type === 'Bento';
+                    <CustomizingIcingEditorPanel
+                        isVisible={activeCustomization === 'icing'}
+                        hasIcingChanges={hasIcingChanges}
+                        icingDesign={icingDesign}
+                        cakeType={cakeInfo?.type || null}
+                        selectedItem={selectedItem}
+                        mainToppers={mainToppers}
+                        onSelectItem={setSelectedItem}
+                        onIcingDesignChange={onIcingDesignChange}
+                        onRevert={() => {
+                            if (analysisResult?.icing_design && icingDesign) {
+                                onIcingDesignChange({
+                                    ...analysisResult.icing_design,
+                                    dripPrice: icingDesign.dripPrice,
+                                    gumpasteBaseBoardPrice: icingDesign.gumpasteBaseBoardPrice,
+                                });
+                                setSelectedItem(null);
+                            }
+                        }}
+                    />
 
-                                        // Helper function for toggle + color picker (drip, borders, baseboard)
-                                        const renderToggleAndColor = (
-                                            featureKey: 'drip' | 'border_top' | 'border_base' | 'gumpasteBaseBoard',
-                                            colorKey: keyof IcingColorDetails,
-                                            label: string
-                                        ) => {
-                                            if (!icingDesign) return null;
-                                            const isEnabled = icingDesign[featureKey];
-                                            const isDisabled = (featureKey === 'border_base' || featureKey === 'gumpasteBaseBoard') && isBento;
+                    <CustomizingMessagesPanel
+                        isVisible={activeCustomization === 'messages'}
+                        hasMessageChanges={hasMessageChanges}
+                        cakeMessages={cakeMessages}
+                        markerMap={markerMap}
+                        selectedMessageId={selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'message' ? selectedItem.id : undefined}
+                        cakeType={cakeInfo?.type}
+                        onItemClick={handleListItemClick}
+                        addCakeMessage={addCakeMessage}
+                        updateCakeMessage={updateCakeMessage}
+                        removeCakeMessage={removeCakeMessage}
+                        onRevert={() => {
+                            restoreOriginalCakeMessages();
+                            setSelectedItem(null);
+                        }}
+                    />
 
-                                            return (
-                                                <>
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <span className="text-xs font-semibold text-slate-700">{label}</span>
-                                                        <label className="relative inline-flex items-center cursor-pointer">
-                                                            <input
-                                                                type="checkbox"
-                                                                className="sr-only peer"
-                                                                checked={isEnabled || false}
-                                                                disabled={isDisabled}
-                                                                onChange={(e) => {
-                                                                    const newIcingDesign = { ...icingDesign, [featureKey]: e.target.checked };
-                                                                    if (e.target.checked && !newIcingDesign.colors[colorKey]) {
-                                                                        newIcingDesign.colors = { ...newIcingDesign.colors, [colorKey]: '#FFFFFF' };
-                                                                    }
-                                                                    onIcingDesignChange(newIcingDesign);
-                                                                }}
-                                                            />
-                                                            <div className={`w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'peer-checked:bg-purple-600'}`}></div>
-                                                        </label>
-                                                    </div>
-                                                    <div className={`transition-all duration-300 ${isDisabled ? 'max-h-0 opacity-0 overflow-hidden' : 'max-h-24 opacity-100'}`}>
-                                                        <div className={`pb-2 transition-all duration-200 ${!isEnabled ? 'opacity-40 pointer-events-auto' : ''}`}>
-                                                            <ColorPalette
-                                                                selectedColor={icingDesign.colors[colorKey] || ''}
-                                                                onColorChange={(newHex) => {
-                                                                    const newIcingDesign = {
-                                                                        ...icingDesign,
-                                                                        [featureKey]: true, // Ensure feature is enabled when color is picked
-                                                                        colors: { ...icingDesign.colors, [colorKey]: newHex }
-                                                                    };
-                                                                    onIcingDesignChange(newIcingDesign);
-                                                                }}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </>
-                                            );
-                                        };
-
-                                        // Helper function for color picker only (top/side icing)
-                                        const renderColorOnly = (colorKey: keyof IcingColorDetails, label: string) => {
-                                            if (!icingDesign) return null;
-                                            return (
-                                                <div className="pb-2">
-                                                    <ColorPalette
-                                                        selectedColor={icingDesign.colors[colorKey] || ''}
-                                                        onColorChange={(newHex) => {
-                                                            onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, [colorKey]: newHex } });
-                                                        }}
-                                                    />
-                                                </div>
-                                            );
-                                        };
-
-                                        // Helper function for combined icing color picker
-                                        const renderCombinedIcingColor = () => {
-                                            if (!icingDesign) return null;
-                                            const currentColor = icingDesign.colors.top || icingDesign.colors.side || '#FFFFFF';
-                                            return (
-                                                <div className="pb-2">
-                                                    <ColorPalette
-                                                        selectedColor={currentColor}
-                                                        onColorChange={(newHex) => {
-                                                            onIcingDesignChange({
-                                                                ...icingDesign,
-                                                                colors: {
-                                                                    ...icingDesign.colors,
-                                                                    top: newHex,
-                                                                    side: newHex
-                                                                }
-                                                            });
-                                                        }}
-                                                    />
-                                                </div>
-                                            );
-                                        };
-
-                                        // Switch based on description to render appropriate editor
-                                        switch (description) {
-                                            case 'Drip':
-                                                return renderToggleAndColor('drip', 'drip', 'Drip Effect');
-                                            case 'Top':
-                                                return renderToggleAndColor('border_top', 'borderTop', 'Top Border');
-                                            case 'Bottom':
-                                                return renderToggleAndColor('border_base', 'borderBase', 'Base Border');
-                                            case 'Board':
-                                                return renderToggleAndColor('gumpasteBaseBoard', 'gumpasteBaseBoardColor', 'Covered Board');
-                                            case 'Body Icing':
-                                                return renderCombinedIcingColor();
-                                            case 'Top Icing':
-                                                return renderColorOnly('top', 'Top Icing Color');
-                                            case 'Side Icing':
-                                                return renderColorOnly('side', 'Side Icing Color');
-                                            default:
-                                                return <p className="p-2 text-xs text-slate-500">Select an icing feature to edit.</p>;
-                                        }
-                                    })()}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className={activeCustomization === 'messages' ? 'block' : 'hidden'}>
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center gap-3">
-                                <p className="text-xs text-slate-500">Edit your cake message text and color, then update the design once when you're ready.</p>
-                                {hasMessageChanges && (
-                                    <button
-                                        onClick={() => {
-                                            restoreOriginalCakeMessages();
-                                            setSelectedItem(null);
-                                        }}
-                                        className="text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors flex items-center gap-1 shrink-0"
-                                    >
-                                        <ResetIcon className="w-3 h-3" />
-                                        Revert
-                                    </button>
-                                )}
-                            </div>
-                            <CakeMessagesOptions
-                                cakeMessages={cakeMessages}
-                                markerMap={markerMap}
-                                onItemClick={handleListItemClick}
-                                addCakeMessage={addCakeMessage}
-                                updateCakeMessage={updateCakeMessage}
-                                removeCakeMessage={removeCakeMessage}
-                                selectedMessageId={selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'message' ? selectedItem.id : undefined}
-                                cakeType={cakeInfo?.type}
-                            />
-                        </div>
-                    </div>
-
-                    <div className={activeCustomization === 'toppers' ? 'block' : 'hidden'}>
-                        <CakeToppersOptions
-                            mainToppers={mainToppers}
-                            supportElements={supportElements}
-                            markerMap={markerMap}
-                            updateMainTopper={updateMainTopper}
-                            updateSupportElement={updateSupportElement}
-                            onTopperImageReplace={onTopperImageReplace}
-                            onSupportElementImageReplace={onSupportElementImageReplace}
-                            itemPrices={itemPrices}
-                            isAdmin={isAdmin}
-                            isAnalyzing={isAnalyzing}
-                            visibleSections={activeTopperSection ?? 'all'}
-                        />
-                    </div>
+                    <CustomizingToppersPanel
+                        isVisible={activeCustomization === 'toppers'}
+                        mainToppers={mainToppers}
+                        supportElements={supportElements}
+                        markerMap={markerMap}
+                        updateMainTopper={updateMainTopper}
+                        updateSupportElement={updateSupportElement}
+                        onTopperImageReplace={onTopperImageReplace}
+                        onSupportElementImageReplace={onSupportElementImageReplace}
+                        itemPrices={itemPrices}
+                        isAdmin={isAdmin}
+                        isAnalyzing={isAnalyzing}
+                        visibleSections={activeTopperSection ?? 'all'}
+                    />
 
                     <div className={activeCustomization === 'photos' ? 'block' : 'hidden'}>
                         <div className="space-y-4">
@@ -4541,201 +3365,25 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     shareData={shareData}
                 />
 
-                {/* Related Designs Section */}
-                {!isAnalyzing && displayedRelatedDesigns && displayedRelatedDesigns.length > 0 && (
-                    <div className="w-full pb-4 pt-1 mt-0">
-                        <h2 className="text-lg font-semibold text-slate-800 mb-4">What other designs are trending in Cebu?</h2>
-                        <Masonry
-                            breakpointCols={{
-                                default: 6,
-                                1536: 6,
-                                1280: 5,
-                                1024: 4,
-                                768: 3,
-                                490: 2,
-                                0: 2
-                            }}
-                            className="flex w-auto -ml-3"
-                            columnClassName="pl-3 bg-clip-padding"
-                        >
-                            {displayedRelatedDesigns.map((related, i) => (
-                                <div key={`${related.slug}-${i}`} className="mb-3">
-                                    <ProductCard {...related} />
-                                </div>
-                            ))}
-                        </Masonry>
+                <CustomizingDiscoverySections
+                    isAnalyzing={isAnalyzing}
+                    relatedDesigns={displayedRelatedDesigns}
+                    hasMoreDesigns={hasMoreDesigns}
+                    isLoadingMoreDesigns={isLoadingMoreDesigns}
+                    onLoadMoreDesigns={handleLoadMoreDesigns}
+                    relatedCollections={relatedCollections}
+                />
 
-                        {/* Show More Button */}
-                        {hasMoreDesigns && (
-                            <div className="flex justify-center mt-0">
-                                <button
-                                    onClick={handleLoadMoreDesigns}
-                                    disabled={isLoadingMoreDesigns}
-                                    className="px-8 py-3 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
-                                    aria-label="Show more related designs"
-                                >
-                                    {isLoadingMoreDesigns ? (
-                                        <>
-                                            <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-                                            Loading...
-                                        </>
-                                    ) : (
-                                        'Show More Designs'
-                                    )}
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                {!slug && analysisResult && (
+                    <CustomizingPostAnalysisContent
+                        analysisResult={analysisResult}
+                        keywords={currentKeywords || recentSearchDesign?.keywords || 'custom'}
+                        availability={recentSearchDesign?.availability || availabilityType || 'normal'}
+                        tags={recentSearchDesign?.tags || []}
+                        aboutDescription={recentSearchDesign?.seo_description || recentSearchDesign?.alt_text || analysisResult.seo_description || analysisResult.alt_text || ''}
+                        basePriceOptions={basePriceOptions}
+                    />
                 )}
-
-                {/* Related Collections Section */}
-                {!isAnalyzing && relatedCollections.length > 0 && (
-                    <div className="w-full pb-4 pt-1 mt-1 border-t border-slate-100">
-                        <div className="flex items-center justify-between mb-6">
-                            <div>
-                                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                    <Star className="w-5 h-5 text-purple-500 fill-purple-500" />
-                                    Explore Related Collections
-                                </h2>
-                                <p className="text-sm text-slate-500">Discover more designs in these curated categories</p>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                            {relatedCollections.map((collection) => (
-                                <Link
-                                    key={collection.slug}
-                                    href={`/collections/${collection.slug}`}
-                                    className="group relative overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-200/60"
-                                >
-                                    <div className="aspect-4/5 relative overflow-hidden">
-                                        {collection.sample_image && (
-                                            <LazyImage
-                                                src={collection.sample_image}
-                                                alt={collection.name}
-                                                fill
-                                                containerClassName="absolute inset-0"
-                                                imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
-                                            />
-                                        )}
-                                        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
-
-                                        <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-1 group-hover:translate-y-0 transition-transform duration-500">
-                                            <h3 className="text-white font-bold text-sm md:text-base leading-tight drop-shadow-sm">{collection.name}</h3>
-                                            <div className="flex items-center gap-1.5 mt-1 opacity-90">
-                                                <span className="text-[10px] md:text-xs text-white/90 font-medium bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-full">
-                                                    {collection.item_count || 0} Designs
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Post-analysis content — mirrors SSRDesignContent from slug page, shown after Related/Collections */}
-                {!slug && analysisResult && (() => {
-                    const effectiveKeywords = currentKeywords || recentSearchDesign?.keywords || 'custom';
-                    const syntheticDesign = {
-                        keywords: effectiveKeywords,
-                        analysis_json: analysisResult,
-                        availability: recentSearchDesign?.availability || availabilityType || 'normal',
-                        tags: recentSearchDesign?.tags || [],
-                    };
-                    const aboutDescription = recentSearchDesign?.seo_description || recentSearchDesign?.alt_text || (analysisResult as any)?.seo_description || (analysisResult as any)?.alt_text || '';
-                    const faqs = generateDynamicFAQ(syntheticDesign, basePriceOptions);
-
-                    return (
-                        <div className="w-full max-w-4xl mx-auto px-0 pb-28 pt-1 space-y-4">
-                            {/* About This Design */}
-                            {aboutDescription && (
-                                <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
-                                    <DesignAboutSection
-                                        title={`About This ${effectiveKeywords || 'Custom'} Cake`}
-                                        description={aboutDescription}
-                                        showDisclaimer={true}
-                                    />
-                                </section>
-                            )}
-
-                            {/* Design Specifications */}
-                            <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
-                                <h2 className="text-xl font-bold text-slate-800 mb-4 text-center">Design Specifications</h2>
-                                <div className="overflow-hidden rounded-xl border border-slate-200">
-                                    <table className="min-w-full text-sm text-left">
-                                        <tbody className="divide-y divide-slate-200">
-                                            <tr className="bg-white">
-                                                <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Cake Style</th>
-                                                <td className="px-4 py-2 text-slate-600">{analysisResult.cakeType || 'Custom'} {effectiveKeywords}</td>
-                                            </tr>
-                                            <tr className="bg-slate-50">
-                                                <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Icing Finish</th>
-                                                <td className="px-4 py-2 text-slate-600">{analysisResult.icing_design?.base?.replace(/_/g, ' ') || 'Standard Icing'}</td>
-                                            </tr>
-                                            {(analysisResult.main_toppers?.length ?? 0) > 0 && (
-                                                <tr className="bg-white">
-                                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Primary Features</th>
-                                                    <td className="px-4 py-2 text-slate-600">
-                                                        {analysisResult.main_toppers.map((t: any) => t.description || t.type).join(', ')}
-                                                    </td>
-                                                </tr>
-                                            )}
-                                            {(analysisResult.support_elements?.length ?? 0) > 0 && (
-                                                <tr className="bg-slate-50">
-                                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Decorations</th>
-                                                    <td className="px-4 py-2 text-slate-600">
-                                                        {analysisResult.support_elements.map((s: any) => s.description || s.type).join(', ')}
-                                                    </td>
-                                                </tr>
-                                            )}
-                                            {(recentSearchDesign?.tags?.length ?? 0) > 0 && (
-                                                <tr className="bg-white">
-                                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Tags</th>
-                                                    <td className="px-4 py-2 text-slate-600">{recentSearchDesign!.tags!.join(', ')}</td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
-
-                            {/* FAQ */}
-                            {faqs.length > 0 && (
-                                <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
-                                    <h2 className="text-xl font-bold text-slate-800 mb-4 text-center">Frequently Asked Questions</h2>
-                                    <div className="space-y-3">
-                                        {faqs.map((faq, i) => (
-                                            <details
-                                                key={i}
-                                                className="group bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-200 hover:shadow-md"
-                                                {...(i === 0 ? { open: true } : {})}
-                                            >
-                                                <summary className="flex items-center justify-between p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                                                    <span className="font-semibold text-slate-700 group-open:text-purple-900 text-sm">
-                                                        {faq.question}
-                                                    </span>
-                                                    <svg
-                                                        className="w-5 h-5 text-slate-400 transition-transform duration-300 group-open:rotate-180 shrink-0 ml-2"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                        strokeWidth={2}
-                                                    >
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                                    </svg>
-                                                </summary>
-                                                <div className="px-4 pb-4 text-sm text-slate-600 leading-relaxed">
-                                                    {faq.answer}
-                                                </div>
-                                            </details>
-                                        ))}
-                                    </div>
-                                </section>
-                            )}
-                        </div>
-                    );
-                })()}
             </div>
         </>
     );

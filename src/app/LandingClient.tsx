@@ -1,20 +1,17 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Footer } from '@/components/Footer';
 import { PopularDesigns } from '@/components/landing';
+import type { PopularDesign } from '@/components/landing/PopularDesigns';
 import { FeaturedCollections, FeaturedCollectionItem } from '@/components/landing/FeaturedCollections';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import LazyImage from '@/components/LazyImage';
-import { useImageManagement } from '@/contexts/ImageContext';
-import { useCakeCustomization } from '@/contexts/CustomizationContext';
-import { ImageUploader } from '@/components/ImageUploader';
-import { showError, showSuccess, showLoading } from '@/lib/utils/toast';
+import { showError, showLoading } from '@/lib/utils/toast';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { BlogPost } from '@/services/supabaseService';
-import { toast } from 'react-hot-toast';
+import { BlogHomepagePreview } from '@/services/supabaseService';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { LANDING_PAGE_IMAGES, COMMON_ASSETS } from '@/constants';
@@ -24,30 +21,19 @@ import {
     Home,
     Heart,
     User,
-    Plus,
-    Star,
-    MapPin,
-
-    Package,
-    Camera,
     Cake,
     ImagePlus,
     Tag,
-    CreditCard,
-    Facebook,
-    Instagram,
-    Youtube,
-    MessageCircle,
-    Check,
-    ChevronUp,
-    Mail,
-    Phone,
-    Twitter,
     Upload,
     UploadCloud,
     Calculator,
     Menu
 } from 'lucide-react';
+
+const ImageUploader = dynamic(
+    () => import('@/components/ImageUploader').then((mod) => mod.ImageUploader),
+    { ssr: false }
+);
 
 const quickLinks = [
     {
@@ -72,14 +58,6 @@ const quickLinks = [
     }
 ];
 
-const occasionLinks = [
-    { label: 'Birthday Cakes', slug: 'birthday' },
-    { label: 'Wedding Cakes', slug: 'wedding' },
-    { label: 'Graduation Cakes', slug: 'graduation' },
-    { label: 'Anniversary Cakes', slug: 'anniversary' },
-    { label: 'Christening Cakes', slug: 'christening' },
-];
-
 const heroImages = [
     'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/genie-hero-1.webp',
     'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/genie-hero-2.webp',
@@ -91,39 +69,25 @@ const heroImages = [
 
 interface LandingClientProps {
     children?: React.ReactNode;
-    popularDesigns?: any[];
+    popularDesigns?: PopularDesign[];
     categories?: FeaturedCollectionItem[];
-    blogPosts?: BlogPost[];
+    blogPosts?: BlogHomepagePreview[];
 }
+
+const subscribeToHydration = () => () => { };
 
 const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], categories = [], blogPosts = [] }) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
-    const [selectedCategory, setSelectedCategory] = useState('All');
     const [rushImageIndexes, setRushImageIndexes] = useState<number[]>(quickLinks.map(() => 0));
     const [heroImageIndex, setHeroImageIndex] = useState(0);
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isOccasionOpen, setIsOccasionOpen] = useState(false);
-
-
-    // Context hooks
-    const [isMounted, setIsMounted] = useState(false);
-
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
+    const isMounted = React.useSyncExternalStore(subscribeToHydration, () => true, () => false);
 
     const { itemCount } = useCart();
-    const { user, isAuthenticated, signOut } = useAuth();
-    const { handleImageUpload: hookImageUpload, clearImages } = useImageManagement();
-    const {
-        setIsAnalyzing,
-        setAnalysisError,
-        setPendingAnalysisData,
-        initializeDefaultState,
-        clearCustomization
-    } = useCakeCustomization();
+    const { user, isAuthenticated } = useAuth();
 
     const categoriesList = [
         { id: 'Birthdays', name: 'Birthdays' },
@@ -202,30 +166,37 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
         processUpload();
     }, [router]);
-
-
-
-    const [scrollY, setScrollY] = useState(0);
     const [isScrolled, setIsScrolled] = useState(false);
+    const [showCompactHeader, setShowCompactHeader] = useState(false);
 
     useEffect(() => {
-        const handleScroll = () => {
+        let ticking = false;
+
+        const updateScrollState = () => {
             const currentScrollY = window.scrollY;
-            setScrollY(currentScrollY);
-            setIsScrolled(currentScrollY > 20);
+            const nextIsScrolled = currentScrollY > 20;
+            const nextShowCompactHeader = currentScrollY > 50;
+
+            setIsScrolled((prev) => prev === nextIsScrolled ? prev : nextIsScrolled);
+            setShowCompactHeader((prev) => prev === nextShowCompactHeader ? prev : nextShowCompactHeader);
+            ticking = false;
         };
-        window.addEventListener('scroll', handleScroll);
+
+        const handleScroll = () => {
+            if (ticking) return;
+            ticking = true;
+            window.requestAnimationFrame(updateScrollState);
+        };
+
+        updateScrollState();
+        window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Calculate transition values based on scroll position
     const scrollThreshold = 50;
-    const logoOpacity = Math.max(0, 1 - scrollY / scrollThreshold);
-    const searchBarOpacity = Math.min(1, scrollY / scrollThreshold);
-    const isFullyScrolled = scrollY > scrollThreshold;
 
     return (
-        <div className="font-sans bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100 min-h-screen pb-24 md:pb-0 text-gray-800 flex flex-col">
+        <div id="top" className="font-sans bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100 min-h-screen pb-24 md:pb-0 text-gray-800 flex flex-col">
 
             {/* --- ANIMATED HEADER --- */}
             <nav className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm' : 'bg-transparent'}`}>
@@ -236,7 +207,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         {/* Layer 1: Not-scrolled — [menu | logo | icons], fades OUT on scroll */}
                         <div
                             className="absolute inset-0 grid grid-cols-[1fr_auto_1fr] items-center pt-6 transition-opacity duration-300"
-                            style={{ opacity: logoOpacity, pointerEvents: isFullyScrolled ? 'none' : 'auto' }}
+                            style={{ opacity: showCompactHeader ? 0 : 1, pointerEvents: showCompactHeader ? 'none' : 'auto' }}
                         >
                             <div className="flex items-center">
                                 <button
@@ -284,17 +255,19 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         {/* Layer 2: Scrolled — [search bar | cart], fades IN on scroll */}
                         <div
                             className="absolute inset-0 flex items-center gap-2 pt-6 transition-opacity duration-300"
-                            style={{ opacity: searchBarOpacity, pointerEvents: isFullyScrolled ? 'auto' : 'none' }}
+                            style={{ opacity: showCompactHeader ? 1 : 0, pointerEvents: showCompactHeader ? 'auto' : 'none' }}
                         >
-                            <SearchAutocomplete
-                                onSearch={handleSearch}
-                                onUploadClick={() => setIsUploaderOpen(true)}
-                                placeholder="Search for custom cakes..."
-                                value={searchQuery}
-                                onChange={setSearchQuery}
-                                className="flex-1 min-w-0"
-                                inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
-                            />
+                            {showCompactHeader ? (
+                                <SearchAutocomplete
+                                    onSearch={handleSearch}
+                                    onUploadClick={() => setIsUploaderOpen(true)}
+                                    placeholder="Search for custom cakes..."
+                                    value={searchQuery}
+                                    onChange={setSearchQuery}
+                                    className="flex-1 min-w-0"
+                                    inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                                />
+                            ) : <div className="flex-1 min-w-0" aria-hidden="true" />}
                             <button
                                 onClick={() => router.push('/cart')}
                                 className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
@@ -627,7 +600,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     <p className="text-gray-500 text-sm">No blog posts available yet.</p>
                                 ) : (
                                     blogPosts.map((post) => {
-                                        const imageUrl = post.image || post.content?.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1] || post.content?.match(/!\[.*?\]\((.*?)\)/i)?.[1];
+                                        const imageUrl = post.image;
                                         return (
                                             <article key={post.slug}>
                                                 <Link
@@ -664,9 +637,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                     </div>
                 </div>
             </main>
-
-            {/* --- FOOTER --- */}
-            <Footer />
 
 
 
@@ -713,14 +683,16 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 </button>
             </nav >
 
-            <ImageUploader
-                isOpen={isUploaderOpen}
-                onClose={() => setIsUploaderOpen(false)}
-                onImageSelect={(file) => {
-                    handleAppImageUpload(file);
-                    setIsUploaderOpen(false);
-                }}
-            />
+            {isUploaderOpen ? (
+                <ImageUploader
+                    isOpen={isUploaderOpen}
+                    onClose={() => setIsUploaderOpen(false)}
+                    onImageSelect={(file) => {
+                        handleAppImageUpload(file);
+                        setIsUploaderOpen(false);
+                    }}
+                />
+            ) : null}
 
             {/* --- MOBILE SIDE MENU DRAWER --- */}
             {/* Backdrop */}

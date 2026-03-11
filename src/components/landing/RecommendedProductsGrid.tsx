@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { memo, useState, useCallback } from 'react';
 import { getRecommendedProducts } from '@/services/supabaseService';
 import { ProductCard } from '@/components/ProductCard';
 import Masonry from 'react-masonry-css';
@@ -25,10 +25,10 @@ interface RecommendedProductsGridProps {
     initialProducts: RecommendedProduct[];
 }
 
-export const RecommendedProductsGrid = ({ initialProducts }: RecommendedProductsGridProps) => {
+const RecommendedProductsGridComponent = ({ initialProducts }: RecommendedProductsGridProps) => {
     const [products, setProducts] = useState<RecommendedProduct[]>(initialProducts);
     const [offset, setOffset] = useState(initialProducts.length);
-    const [hasMore, setHasMore] = useState(true);
+    const [hasMore, setHasMore] = useState(initialProducts.length >= 8);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
 
     const fetchMoreProducts = useCallback(async (currentOffset: number) => {
@@ -51,10 +51,10 @@ export const RecommendedProductsGrid = ({ initialProducts }: RecommendedProducts
     }, []);
 
     const handleLoadMore = () => {
-        const nextOffset = offset + 8;
-        setOffset(nextOffset);
+        const currentOffset = offset;
         setIsLoadingMore(true);
-        fetchMoreProducts(nextOffset);
+        fetchMoreProducts(currentOffset);
+        setOffset(currentOffset + 8);
     };
 
     return (
@@ -144,5 +144,8 @@ export const RecommendedProductsGrid = ({ initialProducts }: RecommendedProducts
         </>
     );
 };
+
+export const RecommendedProductsGrid = memo(RecommendedProductsGridComponent);
+RecommendedProductsGrid.displayName = 'RecommendedProductsGrid';
 
 export default RecommendedProductsGrid;
