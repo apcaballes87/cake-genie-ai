@@ -2,20 +2,16 @@
 
 import React, { Dispatch, SetStateAction, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
-import LazyImage from '@/components/LazyImage';
 import { v4 as uuidv4 } from 'uuid';
 import { findClosestColor, hexToColorNameProse } from '@/utils/colorUtils';
 import { generateDesignDetails } from '@/utils/designContentUtils';
-import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Heart, Cake, Zap, Clock, CalendarDays, Ruler, Utensils, ChevronRight } from 'lucide-react';
+import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Cake, Zap, Clock, CalendarDays, ChevronRight } from 'lucide-react';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
 
-import { CustomizationBottomSheet } from '../../components/CustomizationBottomSheet';
 import { SegmentationOverlay } from '../../components/SegmentationOverlay';
 import { SegmentationBottomSheet } from '../../components/SegmentationBottomSheet';
-import { BoundingBoxOverlay } from '../../components/BoundingBoxOverlay';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { CustomizationSkeleton, ChosenOptionsSkeleton } from '../../components/LoadingSkeletons';
-import { MagicSparkleIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, BackIcon, UserCircleIcon, LogOutIcon, Loader2, MapPinIcon, PackageIcon, TrashIcon, ReportIcon } from '../../components/icons';
+import { CustomizationSkeleton } from '../../components/LoadingSkeletons';
+import { BackIcon, UserCircleIcon, LogOutIcon, MapPinIcon, PackageIcon, TrashIcon } from '../../components/icons';
 import { ShoppingBag } from 'lucide-react';
 import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType, AvailabilitySettings, IcingColorDetails, AnalysisItem, ClusteredMarker, CartItem } from '../../types';
 import { CakeGenieCartItem, CakeGenieMerchant, CakeGenieMerchantProduct } from '../../lib/database.types';
@@ -43,9 +39,14 @@ import {
     CustomizingSupplementalContent,
 } from './CustomizingPageMetaSections';
 import { CustomizingAiChatPanel } from './CustomizingAiChatPanel';
+import { CustomizingEditorSheet } from './CustomizingEditorSheet';
+import { CustomizingHeroPanel } from './CustomizingHeroPanel';
 import { CustomizingIcingEditorPanel } from './CustomizingIcingEditorPanel';
+import { CustomizingInstructionsPanel } from './CustomizingInstructionsPanel';
 import { CustomizingMessagesPanel } from './CustomizingMessagesPanel';
+import { CustomizingOptionsPanel } from './CustomizingOptionsPanel';
 import { CustomizingPhotosPanel } from './CustomizingPhotosPanel';
+import { CustomizingSidebarPanel } from './CustomizingSidebarPanel';
 import { CustomizingStepSummarySections } from './CustomizingStepSummarySections';
 import { CustomizingToppersPanel } from './CustomizingToppersPanel';
 import {
@@ -145,12 +146,6 @@ const AVAILABILITY_MAP: Record<AvailabilityType, AvailabilityInfo> = {
         borderColor: 'border-slate-300'
     }
 };
-
-const DimensionsIcon = Ruler;
-const FlavorIcon = Utensils;
-
-
-type ImageTab = 'original' | 'customized';
 
 // --- Helper functions for icing images ---
 
@@ -275,7 +270,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const slug = params?.slug || currentSlug;
 
     // --- Context Hooks ---
-    const { user, isAuthenticated, signOut } = useAuth();
+    const { user, isAuthenticated } = useAuth();
     const { itemCount: supabaseItemCount, addToCartOptimistic, addToCartWithBackgroundUpload, removeItemOptimistic, authError, isLoading: isCartLoading } = useCart();
     const { settings: availabilitySettings, loading: isLoadingAvailabilitySettings } = useAvailabilitySettings();
     const { toggleSaveDesign, isDesignSaved } = useSavedItemsActions();
@@ -846,7 +841,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     // --- Effects ---
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
+        const handleClickOutside = (event: PointerEvent) => {
             if (aiChatContainerRef.current && !aiChatContainerRef.current.contains(event.target as Node)) {
                 setShowAiPromptSuggestions(false);
                 setSelectedAiPromptIndex(-1);
@@ -854,8 +849,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             }
         };
 
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        document.addEventListener('pointerdown', handleClickOutside);
+        return () => document.removeEventListener('pointerdown', handleClickOutside);
     }, []);
 
     // Handle product prop loading (from SEO-friendly routes like /shop/[merchant]/[product]/customize)
@@ -1669,9 +1664,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             router.push('/');
         }
     };
-
-
-    const onSignOut = () => signOut();
     const onOpenReportModal = () => setIsReportModalOpen(true);
 
     const onUpdateDesign = handleUpdateDesign;
@@ -1686,7 +1678,86 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         router.push('/');
     };
 
-    const onUndo = () => {
+    const handleToggleSavedDesign = useCallback(async () => {
+        if (!isAuthenticated || user?.is_anonymous) {
+            showInfo('Please log in to save designs');
+            router.push('/login?redirect=/customizing');
+            return;
+        }
+
+        try {
+            const pHash = analysisId || `design-${Date.now()}`;
+            let currentImageUrl = editedImage || originalImagePreview || '';
+
+            if (currentImageUrl.startsWith('data:')) {
+                showInfo('Saving design...');
+                const { finalImageUrl } = await uploadCartImages({
+                    editedImageDataUri: editedImage || null,
+                    userId: user?.id,
+                });
+                currentImageUrl = finalImageUrl;
+            }
+
+            const customizationSnapshot = {
+                flavors: cakeInfo?.flavors || [],
+                mainToppers: mainToppers.filter(t => t.isEnabled).map(t => ({
+                    description: t.description,
+                    type: t.type,
+                    size: t.size,
+                })),
+                supportElements: supportElements.filter(e => e.isEnabled).map(e => ({
+                    description: e.description,
+                    type: e.type,
+                })),
+                cakeMessages: cakeMessages.filter(m => m.isEnabled).map(m => ({
+                    text: m.text,
+                    color: m.color,
+                })),
+                icingDesign: {
+                    drip: icingDesign?.drip || false,
+                    gumpasteBaseBoard: icingDesign?.gumpasteBaseBoard || false,
+                    colors: icingDesign?.colors
+                        ? Object.entries(icingDesign.colors).reduce((acc, [key, value]) => {
+                            if (value) acc[key] = value;
+                            return acc;
+                        }, {} as Record<string, string>)
+                        : {},
+                },
+                additionalInstructions: additionalInstructions || '',
+            };
+
+            await toggleSaveDesign({
+                analysisPHash: pHash,
+                customizationSnapshot,
+                customizedImageUrl: currentImageUrl,
+            });
+
+            const wasSaved = isDesignSaved(pHash);
+            showSuccess(wasSaved ? 'Removed from saved' : 'Design saved!');
+        } catch (err) {
+            console.error('Failed to save design:', err);
+            showError('Failed to save design. Please try again.');
+        }
+    }, [
+        additionalInstructions,
+        analysisId,
+        cakeInfo?.flavors,
+        cakeMessages,
+        editedImage,
+        icingDesign,
+        isAuthenticated,
+        isDesignSaved,
+        mainToppers,
+        originalImagePreview,
+        router,
+        supportElements,
+        toggleSaveDesign,
+        uploadCartImages,
+        user?.id,
+        user?.is_anonymous,
+    ]);
+
+    const onUndo = useCallback(() => {
         if (previousImageData) {
             setOriginalImageData(previousImageData);
             setPreviousImageData(null);
@@ -1697,7 +1768,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         }
         setEditedImage(null);
         setActiveTab('original');
-    };
+    }, [previousAnalysisSnapshot, previousImageData, setEditedImage, setOriginalImageData, setPendingAnalysisData, setPreviousImageData]);
 
     const canUndo = !!previousImageData;
     const error = analysisError || imageManagementError || designUpdateError || basePriceError || authError || null;
@@ -1903,14 +1974,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [tempCakeMessagesBackup, setTempCakeMessagesBackup] = useState<CakeMessageUI[] | null>(null);
     const [tempToppersBackup, setTempToppersBackup] = useState<{ mainToppers: MainTopperUI[], supportElements: SupportElementUI[] } | null>(null);
     const [tempEdiblePhotoBackup, setTempEdiblePhotoBackup] = useState<{ item: MainTopperUI | SupportElementUI, category: 'topper' | 'element' } | null>(null);
-    const [areHelpersVisible, setAreHelpersVisible] = useState(true);
-    const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
-    const [hoveredItem, setHoveredItem] = useState<ClusteredMarker | null>(null);
     const [selectedItem, setSelectedItem] = useState<ClusteredMarker | null>(null);
-    const cakeBaseSectionRef = useRef<HTMLDivElement>(null);
-    const cakeMessagesSectionRef = useRef<HTMLDivElement>(null);
-    const markerContainerRef = useRef<HTMLDivElement>(null);
-    const [containerDimensions, setContainerDimensions] = useState<{ width: number, height: number } | null>(null);
     const [isMotifPanelOpen, setIsMotifPanelOpen] = useState(false);
     const [dynamicLoadingMessage, setDynamicLoadingMessage] = useState<string>('');
     const [showIcingGuide, setShowIcingGuide] = useState(false);
@@ -2312,23 +2376,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         const newColorName = HEX_TO_COLOR_NAME_MAP[newHex.toLowerCase()] || 'new color';
         showSuccess(`Changed motif from ${dominantMotif.name} to ${newColorName}`);
     }, [dominantMotif, icingDesign, mainToppers, supportElements, cakeMessages, onIcingDesignChange, updateMainTopper, updateSupportElement, onCakeMessageChange, HEX_TO_COLOR_NAME_MAP]);
-
-
-    useEffect(() => {
-        const element = markerContainerRef.current;
-        if (!element) return;
-
-        const resizeObserver = new ResizeObserver(() => {
-            setContainerDimensions({
-                width: element.clientWidth,
-                height: element.clientHeight,
-            });
-        });
-
-        resizeObserver.observe(element);
-        return () => resizeObserver.disconnect();
-    }, []);
-
     const handleListItemClick = useCallback((item: AnalysisItem) => {
         setSelectedItem(item);
         mainImageContainerRef.current?.scrollIntoView({
@@ -2340,20 +2387,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
     const isAdmin = useMemo(() => user?.email === 'apcaballes@gmail.com', [user]);
-
-    const handleScrollToCakeBase = () => {
-        cakeBaseSectionRef.current?.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-        });
-    };
-
-    const handleScrollToCakeMessages = () => {
-        cakeMessagesSectionRef.current?.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-        });
-    };
 
     // Handle undo with modal state cleanup
     const handleUndoWithModalCleanup = useCallback(() => {
@@ -2392,106 +2425,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         });
         return map;
     }, [rawMarkers]);
-
-    const getMarkerPosition = useCallback((x: number, y: number) => {
-        if (!originalImageDimensions || !containerDimensions) {
-            return { top: '50%', left: '50%', topPx: 0, leftPx: 0 };
-        }
-
-        const { width: containerWidth, height: containerHeight } = containerDimensions;
-        const { width: imageWidth, height: imageHeight } = originalImageDimensions;
-
-        // Since we set the container's aspect-ratio CSS to match the image,
-        // the container and image should have the same aspect ratio.
-        // The image fills the container completely with object-contain.
-        const renderedWidth = containerWidth;
-        const renderedHeight = containerHeight;
-        const offsetX = 0;
-        const offsetY = 0;
-
-        const markerXPercent = (x + imageWidth / 2) / imageWidth;
-        const markerYPercent = (-y + imageHeight / 2) / imageHeight;
-
-        let markerX = (markerXPercent * renderedWidth) + offsetX;
-        let markerY = (markerYPercent * renderedHeight) + offsetY;
-
-        // Apply a small upward correction to the y-coordinate in pixel space.
-        // The AI seems to have a consistent downward offset in its y-coordinate reporting.
-        // This empirically corrects for that observation with a 2% upward shift.
-        const yCorrection = renderedHeight * 0.02;
-        markerY -= yCorrection;
-
-        // Constrain markers to avoid overlapping with UI elements
-        // No need to avoid left side anymore since toolbar is below image
-        const minLeft = 10;
-        // Avoid area near bottom buttons (40px for button height + some padding)
-        const minBottom = 45;
-
-        // Apply constraints only to markers that would overlap UI elements
-        markerX = Math.max(minLeft, Math.min(markerX, renderedWidth + offsetX - 12));
-        markerY = Math.max(offsetY + 12, Math.min(markerY, renderedHeight + offsetY - minBottom));
-
-        return { left: `${markerX}px`, top: `${markerY}px`, leftPx: markerX, topPx: markerY };
-    }, [originalImageDimensions, containerDimensions]);
-
-    const clusteredMarkers = useMemo((): ClusteredMarker[] => {
-        const MIN_DISTANCE = 15; // Minimum pixel distance between markers
-
-        // Don't return early with empty array - let clustering work even if dimensions haven't loaded yet.
-        // The rendering condition checks for dimensions, so this prevents markers from disappearing.
-        if (rawMarkers.length === 0) {
-            return [];
-        }
-
-        // If dimensions aren't available yet, return unclustered markers so they render once dimensions load
-        if (!containerDimensions || !originalImageDimensions) {
-            return rawMarkers.map(marker => ({ ...marker, isCluster: false }));
-        }
-
-        const markers = rawMarkers;
-        const markerPositions = markers.map(m => getMarkerPosition(m.x!, m.y!));
-        const clustered: ClusteredMarker[] = [];
-        const clusteredIndices = new Set<number>();
-
-        for (let i = 0; i < markers.length; i++) {
-            if (clusteredIndices.has(i)) continue;
-
-            const currentClusterItems: AnalysisItem[] = [markers[i]];
-            const clusterIndices = [i];
-
-            for (let j = i + 1; j < markers.length; j++) {
-                if (clusteredIndices.has(j)) continue;
-
-                const pos1 = markerPositions[i];
-                const pos2 = markerPositions[j];
-                const distance = Math.sqrt(Math.pow(pos1.leftPx - pos2.leftPx, 2) + Math.pow(pos1.topPx - pos2.topPx, 2));
-
-                if (distance < MIN_DISTANCE) {
-                    currentClusterItems.push(markers[j]);
-                    clusterIndices.push(j);
-                }
-            }
-
-            if (currentClusterItems.length > 1) {
-                clusterIndices.forEach(idx => clusteredIndices.add(idx));
-                const avgX = currentClusterItems.reduce((sum, item) => sum + item.x!, 0) / currentClusterItems.length;
-                const avgY = currentClusterItems.reduce((sum, item) => sum + item.y!, 0) / currentClusterItems.length;
-
-                clustered.push({
-                    id: `cluster-${i}`,
-                    x: avgX,
-                    y: avgY,
-                    isCluster: true,
-                    items: currentClusterItems,
-                });
-            } else {
-                clustered.push({ ...markers[i], isCluster: false });
-            }
-        }
-
-        return clustered;
-    }, [rawMarkers, getMarkerPosition, containerDimensions, originalImageDimensions]);
-
 
     const addCakeMessage = useCallback((position: 'top' | 'side' | 'base_board', text?: string, color?: string) => {
         let coords: { x?: number, y?: number } = {};
@@ -2578,416 +2511,37 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 <div className="w-full flex flex-col md:flex-row gap-2">
                     {/* LEFT COLUMN: Image and Update Design */}
                     <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
-                        <div ref={mainImageContainerRef} className="w-full bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 flex flex-col">
-                            <div className="p-2 shrink-0">
-                                {editedImage && (
-                                    <div className="bg-slate-100 p-1 rounded-lg flex space-x-1">
-                                        <button onClick={() => setActiveTab('original')} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'original' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50'}`}>Original</button>
-                                        <button onClick={handleCustomizedTabClick} disabled={!editedImage} className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'customized' ? 'bg-white shadow text-purple-700' : 'text-slate-600 hover:bg-white/50 disabled:text-slate-400 disabled:hover:bg-transparent disabled:cursor-not-allowed'}`}>Customized</button>
-                                    </div>
-                                )}
-                                {isAnalyzing && (
-                                    <div className="mt-3 w-full text-center animate-fade-in">
-                                        <div className="w-full bg-slate-200 rounded-full h-2.5 relative overflow-hidden">
-                                            <div className="h-full bg-linear-to-r from-pink-500 to-purple-600 progress-bar-fill"></div>
-                                        </div>
-                                        <p className="text-xs text-slate-500 mt-2 font-medium">Analyzing design elements & pricing... You can start customizing below.</p>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="p-2 pt-0 grow">
-                                <div
-                                    ref={markerContainerRef}
-                                    className="relative w-full"
-                                    onContextMenu={(e) => e.preventDefault()}
-                                    style={{
-                                        aspectRatio: originalImageDimensions
-                                            ? `${originalImageDimensions.width} / ${originalImageDimensions.height}`
-                                            : '1 / 1'
-                                    }}
-                                >
-                                    {isUpdatingDesign && <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-2xl z-20"><LoadingSpinner /><p className="mt-4 text-slate-500 font-semibold">{dynamicLoadingMessage}</p></div>}
-                                    {error && (
-                                        <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-b-2xl z-20 p-4">
-                                            <ErrorIcon />
-                                            <p className="mt-4 font-semibold text-red-600">
-                                                {error.startsWith('AI_REJECTION:') ? 'Image Rejected' : 'Update Failed'}
-                                            </p>
-                                            <p className="text-sm text-red-500 text-center">
-                                                {error.replace('AI_REJECTION: ', '')}
-                                            </p>
-                                        </div>
-                                    )}
-                                    {!originalImagePreview && !isAnalyzing && !product?.image_url && !recentSearchDesign?.original_image_url && <div className="absolute inset-0 flex items-center justify-center text-center text-slate-400 py-16"><ImageIcon /><p className="mt-2 font-semibold">Your creation will appear here</p></div>}
-
-                                    {/* SSR Preloaded Image from Shopify CSE - shows immediately while processing */}
-                                    {!originalImagePreview && preloadedHeroImage && (
-                                        <figure className="absolute inset-0 w-full h-full">
-                                            <LazyImage
-                                                src={preloadedHeroImage}
-                                                alt="Loading cake design..."
-                                                title="Loading your cake design"
-                                                fill
-                                                sizes="(max-width: 768px) 100vw, 50vw"
-                                                imageClassName="object-contain rounded-lg"
-                                                priority
-                                                fetchPriority="high"
-                                                decoding="async"
-                                                unoptimized
-                                            />
-                                            {isAnalyzing && (
-                                                <figcaption className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
-                                                    Analyzing your design...
-                                                </figcaption>
-                                            )}
-                                        </figure>
-                                    )}
-
-                                    {/* SSR / Initial Load Fallback Image using Props */}
-                                    {!originalImagePreview && (product?.image_url || recentSearchDesign?.original_image_url) && (
-                                        <figure className="absolute inset-0 w-full h-full">
-                                            <LazyImage
-                                                src={product?.image_url || recentSearchDesign?.original_image_url || ''}
-                                                alt={product?.alt_text || recentSearchDesign?.alt_text || product?.title || recentSearchDesign?.keywords || 'Cake Design'}
-                                                title={product?.title || recentSearchDesign?.seo_title || recentSearchDesign?.keywords || 'Cake Design'}
-                                                fill
-                                                sizes="(max-width: 768px) 100vw, 50vw"
-                                                imageClassName="object-contain rounded-lg"
-                                                priority
-                                                fetchPriority="high"
-                                                decoding="async"
-                                                unoptimized
-                                            />
-                                            {initialCaption && (
-                                                <figcaption className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
-                                                    {initialCaption}
-                                                </figcaption>
-                                            )}
-                                        </figure>
-                                    )}
-
-                                    {(originalImagePreview) && (
-                                        <>
-                                            <LazyImage
-                                                onLoad={(e) => {
-                                                    const img = e.currentTarget;
-                                                    const container = markerContainerRef.current;
-
-                                                    // CRITICAL: Only set originalImageDimensions from the ORIGINAL image
-                                                    // This keeps marker positions anchored to original coordinates
-                                                    // even when viewing the customized image (which may have different resolution)
-                                                    if (container) {
-                                                        // Only update originalImageDimensions if not set OR if viewing original tab
-                                                        if (!originalImageDimensions || activeTab === 'original') {
-                                                            setOriginalImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
-                                                        }
-                                                        // Always update container dimensions for proper rendering
-                                                        setContainerDimensions({ width: container.clientWidth, height: container.clientHeight });
-                                                    }
-                                                }}
-                                                key={activeTab}
-                                                src={activeTab === 'customized' ? (editedImage || originalImagePreview) : originalImagePreview}
-                                                alt={product?.alt_text || (product ? `${product.title} - Custom cake${merchant ? ` from ${merchant.business_name}` : ''}` : (activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake"))}
-                                                title={product?.title || recentSearchDesign?.seo_title || recentSearchDesign?.keywords || (activeTab === 'customized' && editedImage ? "Edited Cake" : "Original Cake")}
-                                                fill
-                                                sizes="(max-width: 768px) 100vw, 50vw"
-                                                imageClassName="object-contain rounded-lg"
-                                                priority
-                                                fetchPriority="high"
-                                                decoding="async"
-                                                unoptimized
-                                            />
-
-                                            {/* Save Design button - top left */}
-                                            {originalImagePreview && analysisResult && (
-                                                <div className="absolute top-3 left-3 z-10">
-                                                    <button
-                                                        onClick={async (e) => {
-                                                            e.stopPropagation();
-                                                            if (!isAuthenticated || user?.is_anonymous) {
-                                                                showInfo('Please log in to save designs');
-                                                                router.push('/login?redirect=/customizing');
-                                                                return;
-                                                            }
-
-                                                            try {
-                                                                // Get the p_hash from the analysis or generate an identifier
-                                                                const pHash = analysisId || `design-${Date.now()}`;
-                                                                let currentImageUrl = editedImage || originalImagePreview || '';
-
-                                                                // If the image is a data URI, upload it to storage first
-                                                                if (currentImageUrl.startsWith('data:')) {
-                                                                    showInfo('Saving design...');
-                                                                    const { originalImageUrl, finalImageUrl } = await uploadCartImages({
-                                                                        editedImageDataUri: editedImage || null,
-                                                                        userId: user?.id
-                                                                    });
-                                                                    currentImageUrl = finalImageUrl;
-                                                                }
-
-                                                                // Build customization snapshot
-                                                                const customizationSnapshot = {
-                                                                    flavors: cakeInfo?.flavors || [],
-                                                                    mainToppers: mainToppers.filter(t => t.isEnabled).map(t => ({
-                                                                        description: t.description,
-                                                                        type: t.type,
-                                                                        size: t.size
-                                                                    })),
-                                                                    supportElements: supportElements.filter(e => e.isEnabled).map(e => ({
-                                                                        description: e.description,
-                                                                        type: e.type
-                                                                    })),
-                                                                    cakeMessages: cakeMessages.filter(m => m.isEnabled).map(m => ({
-                                                                        text: m.text,
-                                                                        color: m.color
-                                                                    })),
-                                                                    icingDesign: {
-                                                                        drip: icingDesign?.drip || false,
-                                                                        gumpasteBaseBoard: icingDesign?.gumpasteBaseBoard || false,
-                                                                        colors: icingDesign?.colors
-                                                                            ? Object.entries(icingDesign.colors).reduce((acc, [k, v]) => {
-                                                                                if (v) acc[k] = v;
-                                                                                return acc;
-                                                                            }, {} as Record<string, string>)
-                                                                            : {}
-                                                                    },
-                                                                    additionalInstructions: additionalInstructions || ''
-                                                                };
-
-                                                                await toggleSaveDesign({
-                                                                    analysisPHash: pHash,
-                                                                    customizationSnapshot: customizationSnapshot,
-                                                                    customizedImageUrl: currentImageUrl
-                                                                });
-
-                                                                const wasSaved = isDesignSaved(pHash);
-                                                                showSuccess(wasSaved ? 'Removed from saved' : 'Design saved!');
-                                                            } catch (err) {
-                                                                console.error('Failed to save design:', err);
-                                                                showError('Failed to save design. Please try again.');
-                                                            }
-                                                        }}
-
-                                                        className={`backdrop-blur-sm rounded-full text-[10px] max-[360px]:text-[8px] font-semibold transition-all shadow-md px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5 flex items-center gap-1 ${isDesignSaved(analysisId || '')
-                                                            ? 'bg-red-500 text-white hover:bg-red-600'
-                                                            : 'bg-white/90 text-slate-700 hover:bg-red-50 hover:text-red-500'
-                                                            }`}
-                                                        aria-label={isDesignSaved(analysisId || '') ? 'Remove from saved' : 'Save this design'}
-                                                    >
-                                                        <Heart
-                                                            className="w-3 h-3 max-[360px]:w-2.5 max-[360px]:h-2.5"
-                                                            fill={isDesignSaved(analysisId || '') ? 'currentColor' : 'none'}
-                                                        />
-                                                        {isDesignSaved(analysisId || '') ? 'Saved' : 'Save'}
-                                                    </button>
-                                                </div>
-                                            )}
-
-                                            {/* Undo button */}
-                                            <div className="absolute top-3 right-3 z-10 flex gap-2">
-                                                {canUndo && (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleUndoWithModalCleanup();
-                                                        }}
-                                                        disabled={!canUndo || isLoading}
-                                                        className="bg-orange-500/90 backdrop-blur-sm text-white rounded-full text-[10px] max-[360px]:text-[8px] font-semibold hover:bg-orange-600 transition-all shadow-md px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                                                        aria-label="Undo last change"
-                                                    >
-                                                        <ResetIcon className="w-2.5 h-2.5 max-[360px]:w-2 max-[360px]:h-2" />
-                                                        Undo
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            {/* Bounding Box Overlay - Replaces Markers */}
-                                            {/* {analysisResult && originalImageDimensions && containerDimensions && (
-                                            <BoundingBoxOverlay
-                                                analysisResult={analysisResult}
-                                                containerWidth={containerDimensions.width}
-                                                containerHeight={containerDimensions.height}
-                                                imageWidth={originalImageDimensions.width}
-                                                imageHeight={originalImageDimensions.height}
-                                            />
-                                        )} */}
-
-                                            <div className="absolute inset-0 pointer-events-none">
-                                                {/* OLD MARKER SYSTEM - Currently disabled in favor of bounding boxes */}
-                                                {false && originalImageDimensions && containerDimensions && containerDimensions!.height > 0 && areHelpersVisible && clusteredMarkers.map((item) => {
-                                                    if (item.x === undefined || item.y === undefined) return null;
-
-                                                    // Hide markers during Phase 1 (coordinates are 0,0)
-                                                    // They'll fade in during Phase 2 when real coordinates arrive
-                                                    if (item.x === 0 && item.y === 0) return null;
-
-                                                    const position = getMarkerPosition(item.x, item.y);
-                                                    const isSelected = selectedItem?.id === item.id;
-                                                    const isCluster = 'isCluster' in item && item.isCluster;
-                                                    const isAction = 'itemCategory' in item && item.itemCategory === 'action';
-
-                                                    // Handle click to detect overlapping markers
-                                                    const handleMarkerClick = (e: React.MouseEvent, item: ClusteredMarker) => {
-                                                        e.stopPropagation();
-                                                        setIsMotifPanelOpen(false);
-
-                                                        // Check if it's a cluster or single item
-                                                        if ('isCluster' in item && item.isCluster) {
-                                                            // For now, if it's a cluster, we might want to just expand the first item or show a mini-menu
-                                                            // But simpler: just treat it as clicking the first item if they are all same type
-                                                            // Or just open the main modal if it contains toppers/elements
-                                                            const hasToppers = item.items.some(i => i.itemCategory === 'topper' || i.itemCategory === 'element');
-                                                            if (hasToppers) {
-                                                                const hasMainToppers = item.items.some(i => i.itemCategory === 'topper');
-                                                                const hasSupportItems = item.items.some(i => i.itemCategory === 'element');
-                                                                openTopperSheet(
-                                                                    hasMainToppers && !hasSupportItems ? 'main' :
-                                                                        hasSupportItems && !hasMainToppers ? 'support' :
-                                                                            null
-                                                                );
-                                                                return;
-                                                            }
-                                                        } else {
-                                                            const singleItem = item as AnalysisItem;
-                                                            if (singleItem.itemCategory === 'topper' || singleItem.itemCategory === 'element') {
-                                                                // Check for Edible Photo specific types
-                                                                if (singleItem.type === 'edible_photo_top' || singleItem.type === 'edible_photo_side') {
-                                                                    setActiveCustomization('photos');
-                                                                } else {
-                                                                    openTopperSheet(singleItem.itemCategory === 'topper' ? 'main' : 'support');
-                                                                }
-                                                                return;
-                                                            } else if (singleItem.itemCategory === 'message') {
-                                                                setActiveCustomization('messages');
-                                                                setSelectedItem(singleItem);
-                                                                return;
-                                                            }
-                                                        }
-
-                                                        // Find all overlapping markers at this position (legacy logic for icing/other)
-                                                        const OVERLAP_THRESHOLD = 12; // 24px marker / 2 = 12px radius
-                                                        const clickedPos = getMarkerPosition(item.x!, item.y!);
-
-                                                        const overlappingItems = clusteredMarkers.filter(marker => {
-                                                            if (marker.x === undefined || marker.y === undefined) return false;
-                                                            const markerPos = getMarkerPosition(marker.x, marker.y);
-                                                            const distance = Math.sqrt(
-                                                                Math.pow(markerPos.leftPx - clickedPos.leftPx, 2) +
-                                                                Math.pow(markerPos.topPx - clickedPos.topPx, 2)
-                                                            );
-                                                            return distance < OVERLAP_THRESHOLD;
-                                                        });
-
-                                                        // If multiple items overlap, create a cluster
-                                                        if (overlappingItems.length > 1) {
-                                                            const clusterItem: ClusteredMarker = {
-                                                                id: `overlap-cluster-${item.id}`,
-                                                                x: item.x!,
-                                                                y: item.y!,
-                                                                isCluster: true,
-                                                                items: overlappingItems.map(m => {
-                                                                    if ('isCluster' in m && m.isCluster) {
-                                                                        return m.items; // Flatten if somehow already clustered
-                                                                    }
-                                                                    return m as AnalysisItem;
-                                                                }).flat()
-                                                            };
-                                                            setSelectedItem(clusterItem);
-                                                        } else {
-                                                            // Single item - toggle selection
-                                                            setSelectedItem(prev => prev?.id === item.id ? null : item);
-                                                        }
-                                                    };
-
-                                                    return (
-                                                        <div
-                                                            key={item.id}
-                                                            className={`analysis-marker ${isSelected ? 'selected' : ''}`}
-                                                            style={{ top: position.top, left: position.left }}
-                                                            onMouseEnter={() => setHoveredItem(item)}
-                                                            onMouseLeave={() => setHoveredItem(null)}
-                                                            onClick={(e) => handleMarkerClick(e, item)}
-                                                        >
-                                                            <div className={`marker-dot ${isAction ? 'action-marker' : ''}`}>
-                                                                {isCluster ? item.items.length : isAction ? '+' : markerMap.get(item.id)}
-                                                            </div>
-                                                            {hoveredItem?.id === item.id && (
-                                                                <span className="marker-tooltip">
-                                                                    {isCluster ? `${item.items.length} items found here` : ('description' in item ? item.description : 'text' in item ? item.text : '')}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-
-
-                                        </>
-                                    )}
-
-
-
-
-
-
-
-
-                                    {/* Action Buttons - Moved from footer to main image container */}
-                                    <div className="w-full flex items-center justify-end gap-1.5 pt-3 px-1.5 pb-2 mt-auto border-t border-slate-100 flex-nowrap overflow-hidden">
-                                        <button onClick={onOpenReportModal} disabled={!editedImage || isLoading || isReporting} className="flex items-center justify-center text-[10px] max-[340px]:text-[9px] font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 py-1.5 px-2 max-[340px]:px-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shrink" aria-label="Report an issue with this image">
-                                            <ReportIcon className="w-3 h-3 shrink-0" />
-                                            <span className="ml-1 shrink overflow-hidden text-ellipsis">{isReporting ? 'Submitting...' : 'Report Issue'}</span>
-                                        </button>
-
-                                        <button onClick={onSave} disabled={!editedImage || isLoading || isSaving} className="flex items-center justify-center text-[10px] max-[340px]:text-[9px] font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 py-1.5 px-2 max-[340px]:px-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shrink" aria-label={isSaving ? "Saving image" : "Save customized image"}>
-                                            {isSaving ? (
-                                                <>
-                                                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                                                    <span className="ml-1 shrink overflow-hidden text-ellipsis">Saving...</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <SaveIcon className="w-3 h-3 shrink-0" />
-                                                    <span className="ml-1 shrink overflow-hidden text-ellipsis">Save</span>
-                                                </>
-                                            )}
-                                        </button>
-                                        <button onClick={onClearAll} className="flex items-center justify-center text-[10px] max-[340px]:text-[9px] font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 py-1.5 px-2 max-[340px]:px-1.5 rounded-lg transition-colors whitespace-nowrap shrink" aria-label="Reset everything">
-                                            <ResetIcon className="w-3 h-3 shrink-0" />
-                                            <span className="ml-1 shrink overflow-hidden text-ellipsis">Reset Everything</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Action Buttons moved inside container */}
-                            {(cakeInfo || analysisError) && (
-                                <div className="w-full flex items-center justify-center flex-nowrap gap-1.5 p-2 border-t border-slate-100 overflow-hidden">
-                                    <button onClick={onOpenReportModal} disabled={!editedImage || isLoading || isReporting} className="flex items-center justify-center text-[10px] max-[340px]:text-[9px] font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-1.5 px-2 max-[340px]:px-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shrink" aria-label="Report an issue with this image">
-                                        <ReportIcon className="w-3.5 h-3.5 shrink-0" />
-                                        <span className="ml-1 shrink overflow-hidden text-ellipsis">{isReporting ? 'Submitting...' : 'Report Issue'}</span>
-                                    </button>
-                                    <button onClick={onSave} disabled={!editedImage || isLoading || isSaving} className="flex items-center justify-center text-[10px] max-[340px]:text-[9px] font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-1.5 px-2 max-[340px]:px-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shrink" aria-label={isSaving ? "Saving image" : "Save customized image"}>
-                                        {isSaving ? (
-                                            <>
-                                                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
-                                                <span className="ml-1 shrink overflow-hidden text-ellipsis">Saving...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <SaveIcon className="w-3.5 h-3.5 shrink-0" />
-                                                <span className="ml-1 shrink overflow-hidden text-ellipsis">Save</span>
-                                            </>
-                                        )}
-                                    </button>
-                                    <button onClick={onClearAll} className="flex items-center justify-center text-[10px] max-[340px]:text-[9px] font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-200 py-1.5 px-2 max-[340px]:px-1.5 rounded-lg transition-colors whitespace-nowrap shrink" aria-label="Reset everything">
-                                        <ResetIcon className="w-3.5 h-3.5 shrink-0" />
-                                        <span className="ml-1 shrink overflow-hidden text-ellipsis">Reset Everything</span>
-                                    </button>
-                                </div>
-
-                            )}
-                        </div>
+                        <CustomizingHeroPanel
+                            mainImageContainerRef={mainImageContainerRef}
+                            editedImage={editedImage}
+                            activeTab={activeTab}
+                            isAnalyzing={isAnalyzing}
+                            isUpdatingDesign={isUpdatingDesign}
+                            dynamicLoadingMessage={dynamicLoadingMessage}
+                            error={error}
+                            originalImagePreview={originalImagePreview}
+                            preloadedHeroImage={preloadedHeroImage}
+                            fallbackImageUrl={product?.image_url || recentSearchDesign?.original_image_url || null}
+                            fallbackImageAlt={product?.alt_text || recentSearchDesign?.alt_text || product?.title || recentSearchDesign?.keywords || 'Cake Design'}
+                            fallbackImageTitle={product?.title || recentSearchDesign?.seo_title || recentSearchDesign?.keywords || 'Cake Design'}
+                            initialCaption={initialCaption}
+                            heroImageAlt={product?.alt_text || (product ? `${product.title} - Custom cake${merchant ? ` from ${merchant.business_name}` : ''}` : (activeTab === 'customized' && editedImage ? 'Edited Cake' : 'Original Cake'))}
+                            heroImageTitle={product?.title || recentSearchDesign?.seo_title || recentSearchDesign?.keywords || (activeTab === 'customized' && editedImage ? 'Edited Cake' : 'Original Cake')}
+                            showSaveDesignButton={Boolean(originalImagePreview && analysisResult)}
+                            isCurrentDesignSaved={isDesignSaved(analysisId || '')}
+                            canUndo={canUndo}
+                            isLoading={isLoading}
+                            isReporting={isReporting}
+                            isSaving={isSaving}
+                            showFooterActions={Boolean(cakeInfo || analysisError)}
+                            onOriginalTabSelect={() => setActiveTab('original')}
+                            onCustomizedTabSelect={handleCustomizedTabClick}
+                            onToggleSaveDesign={handleToggleSavedDesign}
+                            onUndo={handleUndoWithModalCleanup}
+                            onOpenReportModal={onOpenReportModal}
+                            onSave={onSave}
+                            onClearAll={onClearAll}
+                        />
 
                         {/* AI Customization Chat - Moved to separate container below hero image */}
                         {cakeInfo && !isAnalyzing && !isRejectionError && (
@@ -3045,86 +2599,54 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         {/* Availability Section - at top of right column */}
 
 
-                        <div className="w-full flex-col gap-2 hidden md:flex">
-                            {isAnalyzing || (isLoading && !isDesignSaved) ? (
-                                <div className="bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
-                                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-                                        <div className="p-2 bg-purple-100 rounded-lg">
-                                            <MagicSparkleIcon className="w-5 h-5 text-purple-600 animate-pulse" />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-lg font-bold text-slate-800">Analyzing Design...</h2>
-                                            <p className="text-xs text-slate-500">Extracting features and generating options</p>
-                                        </div>
-                                    </div>
-                                    <div className="mt-6">
-                                        <ChosenOptionsSkeleton />
-                                    </div>
-                                    <div className="mt-4 px-2">
-                                        <div className="bg-slate-50 rounded-lg p-3 space-y-2 border border-slate-200/50 animate-pulse">
-                                            <div className="h-4 w-32 bg-slate-200 rounded" />
-                                            <div className="h-16 w-full bg-slate-200 rounded" />
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (cakeInfo || analysisError) ? (
-                                <>
-                                    {/* AI Customization Chat */}
-                                    {cakeInfo && !isAnalyzing && !isRejectionError && (
-                                        <CustomizingAiChatPanel
-                                            className="w-full hidden md:block bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 relative z-30"
-                                            containerRef={aiChatContainerRef}
-                                            inputRef={aiChatInputRef}
-                                            chatInput={chatInput}
-                                            selectedAiPromptTemplate={selectedAiPromptTemplate}
-                                            selectedAiPromptColor={selectedAiPromptColor}
-                                            showAiPromptColorPicker={showAiPromptColorPicker}
-                                            showAiPromptSuggestions={showAiPromptSuggestions}
-                                            filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
-                                            selectedAiPromptIndex={selectedAiPromptIndex}
-                                            isAiProcessing={isAiProcessing}
-                                            isUpdatingDesign={isUpdatingDesign}
-                                            onSubmit={handleChatSubmit}
-                                            onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
-                                            onTemplateClear={handleAiPromptTemplateClear}
-                                            onTemplateColorChange={handleAiPromptTemplateColorChange}
-                                            onInputChange={handleAiChatInputChange}
-                                            onInputInteract={handleAiChatInputInteract}
-                                            onInputKeyDown={handleAiPromptInputKeyDown}
-                                            onSuggestionSelect={handleAiPromptSuggestionSelect}
-                                        />
-                                    )}
-
-                                    <CustomizingStepSummarySections
-                                        layout="desktop"
-                                        cakeInfo={cakeInfo}
-                                        icingDesign={icingDesign}
-                                        cakeMessages={cakeMessages}
-                                        mainToppers={mainToppers}
-                                        supportElements={supportElements}
-                                        markerMap={markerMap}
-                                        itemPrices={itemPrices}
-                                        isAdmin={isAdmin}
-                                        isAnalyzing={isAnalyzing}
-                                        isRejectionError={isRejectionError}
-                                        activeCustomization={activeCustomization}
-                                        selectedItemId={selectedItem?.id ?? null}
-                                        setActiveCustomization={setActiveCustomization}
-                                        setSelectedItem={setSelectedItem}
-                                        removeCakeMessage={removeCakeMessage}
-                                        updateMainTopper={updateMainTopper}
-                                        updateSupportElement={updateSupportElement}
-                                        onTopperImageReplace={onTopperImageReplace}
-                                        onSupportElementImageReplace={onSupportElementImageReplace}
-                                        openTopperSheet={openTopperSheet}
-                                    />
-                                </>
-                            ) : (
-                                <div className="text-center p-8 bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 text-slate-500">
-                                    <p>Upload an image to get started.</p>
-                                </div>
-                            )}
-                        </div>
+                        <CustomizingSidebarPanel
+                            showLoadingState={isAnalyzing || (isLoading && !isDesignSaved)}
+                            showContentState={Boolean(cakeInfo || analysisError)}
+                            showAiChat={Boolean(cakeInfo) && !isAnalyzing && !isRejectionError}
+                            aiChatProps={{
+                                containerRef: aiChatContainerRef,
+                                inputRef: aiChatInputRef,
+                                chatInput,
+                                selectedAiPromptTemplate,
+                                selectedAiPromptColor,
+                                showAiPromptColorPicker,
+                                showAiPromptSuggestions,
+                                filteredAiChatPromptSuggestions,
+                                selectedAiPromptIndex,
+                                isAiProcessing,
+                                isUpdatingDesign,
+                                onSubmit: handleChatSubmit,
+                                onTemplateColorPickerToggle: handleAiPromptColorPickerToggle,
+                                onTemplateClear: handleAiPromptTemplateClear,
+                                onTemplateColorChange: handleAiPromptTemplateColorChange,
+                                onInputChange: handleAiChatInputChange,
+                                onInputInteract: handleAiChatInputInteract,
+                                onInputKeyDown: handleAiPromptInputKeyDown,
+                                onSuggestionSelect: handleAiPromptSuggestionSelect,
+                            }}
+                            stepSummaryProps={{
+                                cakeInfo,
+                                icingDesign,
+                                cakeMessages,
+                                mainToppers,
+                                supportElements,
+                                markerMap,
+                                itemPrices,
+                                isAdmin,
+                                isAnalyzing,
+                                isRejectionError,
+                                activeCustomization,
+                                selectedItemId: selectedItem?.id ?? null,
+                                setActiveCustomization,
+                                setSelectedItem,
+                                removeCakeMessage,
+                                updateMainTopper,
+                                updateSupportElement,
+                                onTopperImageReplace: onTopperImageReplace,
+                                onSupportElementImageReplace: onSupportElementImageReplace,
+                                openTopperSheet,
+                            }}
+                        />
                     </div>
                 </div>
 
@@ -3146,70 +2668,32 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     />
                 )}
 
-                <CustomizationBottomSheet
+                <CustomizingEditorSheet
                     isOpen={activeCustomization !== null}
+                    activeCustomization={activeCustomization}
+                    activeTopperSection={activeTopperSection}
+                    showAvailabilityOffset={Boolean(availabilityType) && !isAnalyzing}
+                    showWarningOffset={Boolean(warningMessage)}
+                    hasCakeInfoChanges={dirtyFields.has('cakeInfo')}
+                    hasPendingVisualChanges={hasPendingVisualChanges}
+                    isUpdatingDesign={isUpdatingDesign}
+                    hasOriginalImageData={Boolean(originalImageData)}
                     onClose={() => {
                         setActiveCustomization(null);
                         setActiveTopperSection(null);
                         setSelectedItem(null);
                     }}
-                    title={
-                        activeCustomization === 'options' ? 'Cake Options' :
-                            activeCustomization === 'icing' ? 'Icing Colors' :
-                                activeCustomization === 'messages' ? 'Cake Messages' :
-                                    activeCustomization === 'toppers' ? (activeTopperSection === 'main' ? 'Main Toppers' : activeTopperSection === 'support' ? 'Support Elements' : 'Cake Toppers') :
-                                        activeCustomization === 'photos' ? 'Edible Photos' : 'Customize'
-                    }
-                    style={{ bottom: (67 + (availabilityType && !isAnalyzing ? 38 : 0) + (warningMessage ? 38 : 0)) + 'px' }}
-                    wrapperClassName="md:max-w-7xl md:mx-auto md:justify-end md:px-6"
-                    className="md:w-[calc(50%-6px)] md:max-w-none"
-                    actionButton={
-                        activeCustomization === 'options' ? (
-                            dirtyFields.has('cakeInfo') ? (
-                                <button
-                                    onClick={() => setActiveCustomization(null)}
-                                    className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg flex items-center justify-center gap-2"
-                                >
-                                    <MagicSparkleIcon className="w-5 h-5" />
-                                    Apply Changes
-                                </button>
-                            ) : null
-                        ) : activeCustomization === 'icing' || activeCustomization === 'messages' || activeCustomization === 'toppers' || activeCustomization === 'photos' ? (
-                            (hasPendingVisualChanges || isUpdatingDesign) ? (
-                                <button
-                                    onClick={handleApplyPendingDesignChanges}
-                                    disabled={isUpdatingDesign || !originalImageData}
-                                    className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                    {isUpdatingDesign ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                            Updating Design...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <MagicSparkleIcon className="w-5 h-5" />
-                                            Apply All Changes
-                                        </>
-                                    )}
-                                </button>
-                            ) : null
-                        ) : null
-                    }
+                    onApplyOptions={() => setActiveCustomization(null)}
+                    onApplyPendingDesignChanges={handleApplyPendingDesignChanges}
                 >
-                    <div className={activeCustomization === 'options' ? 'block' : 'hidden'}>
-                        {cakeInfo && (
-                            <div className="space-y-4">
-                                <CakeBaseOptions
-                                    cakeInfo={cakeInfo}
-                                    basePriceOptions={basePriceOptions}
-                                    onCakeInfoChange={onCakeInfoChange}
-                                    isAnalyzing={isAnalyzing}
-                                    addOnPricing={addOnPricing?.addOnPrice ?? 0}
-                                />
-                            </div>
-                        )}
-                    </div>
+                    <CustomizingOptionsPanel
+                        isVisible={activeCustomization === 'options'}
+                        cakeInfo={cakeInfo}
+                        basePriceOptions={basePriceOptions}
+                        onCakeInfoChange={onCakeInfoChange}
+                        isAnalyzing={isAnalyzing}
+                        addOnPricing={addOnPricing?.addOnPrice ?? 0}
+                    />
 
                     <CustomizingIcingEditorPanel
                         isVisible={activeCustomization === 'icing'}
@@ -3277,18 +2761,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         isAdmin={isAdmin}
                     />
 
-                    <div className={activeCustomization === 'instructions' ? 'block' : 'hidden'}>
-                        <div className="p-4 space-y-3">
-                            <p className="text-xs text-slate-500">Any special requests or details we should know about? Describe them here!</p>
-                            <textarea
-                                value={additionalInstructions}
-                                onChange={(e) => onAdditionalInstructionsChange(e.target.value)}
-                                placeholder="e.g. Please make the colors exactly as in the photo, or Make the topper slightly taller..."
-                                className="w-full h-32 p-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow resize-none"
-                            />
-                        </div>
-                    </div>
-                </CustomizationBottomSheet>
+                    <CustomizingInstructionsPanel
+                        isVisible={activeCustomization === 'instructions'}
+                        additionalInstructions={additionalInstructions}
+                        onAdditionalInstructionsChange={onAdditionalInstructionsChange}
+                    />
+                </CustomizingEditorSheet>
 
                 <StickyAddToCartBar
                     price={finalPrice}
