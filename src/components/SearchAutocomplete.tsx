@@ -181,14 +181,14 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
 
   // Close suggestions when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: PointerEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('pointerdown', handleClickOutside);
+    return () => document.removeEventListener('pointerdown', handleClickOutside);
   }, []);
 
   // --- Fetch suggested & popular keywords on focus ---
@@ -276,12 +276,13 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                           const isSelected = selectedIndex === globalIndex;
                           return (
                             <button
-                              key={`sugg-${keyword}`}
-                              onClick={() => handleSelectSuggestion(keyword)}
-                              className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${isSelected
-                                ? 'bg-pink-100 text-pink-700 ring-2 ring-pink-300'
-                                : 'bg-slate-100 text-slate-700 hover:bg-pink-100 hover:text-pink-700'
-                                }`}
+                               key={`sugg-${keyword}`}
+                               onMouseDown={(e) => e.preventDefault()}
+                               onClick={() => handleSelectSuggestion(keyword)}
+                               className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors active:bg-pink-100 ${isSelected
+                                 ? 'bg-pink-100 text-pink-700 ring-2 ring-pink-300'
+                                 : 'bg-slate-100 text-slate-700 hover:bg-pink-100 hover:text-pink-700'
+                                 }`}
                             >
                               {keyword}
                             </button>
@@ -299,12 +300,13 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                           const isSelected = selectedIndex === globalIndex;
                           return (
                             <button
-                              key={`pop-${keyword}`}
-                              onClick={() => handleSelectSuggestion(keyword)}
-                              className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${isSelected
-                                ? 'bg-pink-100 text-pink-700 ring-2 ring-pink-300'
-                                : 'bg-slate-100 text-slate-700 hover:bg-pink-100 hover:text-pink-700'
-                                }`}
+                               key={`pop-${keyword}`}
+                               onMouseDown={(e) => e.preventDefault()}
+                               onClick={() => handleSelectSuggestion(keyword)}
+                               className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors active:bg-pink-100 ${isSelected
+                                 ? 'bg-pink-100 text-pink-700 ring-2 ring-pink-300'
+                                 : 'bg-slate-100 text-slate-700 hover:bg-pink-100 hover:text-pink-700'
+                                 }`}
                             >
                               {keyword}
                             </button>
@@ -322,8 +324,9 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                         return (
                           <button
                             key={`sameday-${keyword}`}
+                            onMouseDown={(e) => e.preventDefault()}
                             onClick={() => handleSelectSuggestion(keyword)}
-                            className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${isSelected
+                            className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors active:bg-pink-200 ${isSelected
                               ? 'bg-pink-100 text-pink-700 ring-2 ring-pink-300'
                               : 'bg-slate-100 text-slate-700 hover:bg-pink-100 hover:text-pink-700'
                               }`}
@@ -344,14 +347,17 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
             </div>
           ) : (
             // Show autocomplete list + FTS product results when user is typing
-            <div className="max-h-[28rem] overflow-y-auto">
+            <div className="max-h-112 overflow-y-auto">
               {suggestions.length > 0 && (
                 <ul>
                   {suggestions.map((suggestion, index) => (
                     <li key={suggestion}>
                       <button
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                        }}
                         onClick={() => handleSelectSuggestion(suggestion)}
-                        className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-purple-50 transition-colors ${index === selectedIndex ? 'bg-purple-50' : ''}`}
+                        className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors cursor-pointer active:bg-purple-100 ${index === selectedIndex ? 'bg-purple-50' : 'hover:bg-purple-50'}`}
                       >
                         <SearchIcon className="w-4 h-4 text-slate-400 shrink-0" />
                         <span className="text-slate-700 text-sm">

@@ -365,7 +365,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     const compressedFile = await compressImage(fileToUpload, {
                         maxSizeMB: 0.5,
                         maxWidthOrHeight: 1024,
-                        fileType: 'image/jpeg',
+                        fileType: 'image/webp',
                     });
 
                     // Convert compressed file to base64 for AI
@@ -440,8 +440,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                         console.log('🔄 pHash missed, checking Gemini embeddings for visual similarity...');
                         try {
                             const imageEmbedding = await embedCakeImage({ data: compressedImageData.data, mimeType: compressedImageData.mimeType });
-                            // Lowering threshold to 0.88 to allow screenshots and cropped versions of the same cake to match
-                            cacheHit = await findSimilarAnalysisByEmbedding(imageEmbedding, 0.88, uploadedImageUrl);
+                            cacheHit = await findSimilarAnalysisByEmbedding(imageEmbedding, 0.95, uploadedImageUrl);
                         } catch (embedError) {
                             console.warn('⚠️ Embedding check failed, falling back to full analysis:', embedError);
                         }

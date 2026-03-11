@@ -52,12 +52,12 @@ export const TawkToChat = () => {
                 desktop: {
                     position: 'br', // bottom right
                     xOffset: 15,
-                    yOffset: 55
+                    yOffset: 125
                 },
                 mobile: {
                     position: 'br',
                     xOffset: 15,
-                    yOffset: 115
+                    yOffset: 195
                 }
             }
         };

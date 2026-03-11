@@ -2543,31 +2543,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             onClearAll={onClearAll}
                         />
 
-                        {/* AI Customization Chat - Moved to separate container below hero image */}
-                        {cakeInfo && !isAnalyzing && !isRejectionError && (
-                            <CustomizingAiChatPanel
-                                className="w-full mt-0 bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 md:hidden relative z-30"
-                                containerRef={aiChatContainerRef}
-                                inputRef={aiChatInputRef}
-                                chatInput={chatInput}
-                                selectedAiPromptTemplate={selectedAiPromptTemplate}
-                                selectedAiPromptColor={selectedAiPromptColor}
-                                showAiPromptColorPicker={showAiPromptColorPicker}
-                                showAiPromptSuggestions={showAiPromptSuggestions}
-                                filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
-                                selectedAiPromptIndex={selectedAiPromptIndex}
-                                isAiProcessing={isAiProcessing}
-                                isUpdatingDesign={isUpdatingDesign}
-                                onSubmit={handleChatSubmit}
-                                onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
-                                onTemplateClear={handleAiPromptTemplateClear}
-                                onTemplateColorChange={handleAiPromptTemplateColorChange}
-                                onInputChange={handleAiChatInputChange}
-                                onInputInteract={handleAiChatInputInteract}
-                                onInputKeyDown={handleAiPromptInputKeyDown}
-                                onSuggestionSelect={handleAiPromptSuggestionSelect}
-                            />
-                        )}
+
 
                         <CustomizingStepSummarySections
                             layout="mobile"
@@ -2787,6 +2763,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     onApplyChangesClick={handleApplyPendingDesignChanges}
                     isApplyingChanges={isUpdatingDesign}
                     applyChangesLabel="Apply Design Changes"
+                    chatInput={chatInput}
+                    onChatInputChange={handleAiChatInputChange}
+                    onChatSubmit={handleChatSubmit}
+                    isAiProcessing={isAiProcessing}
                 />
                 <ReportModal
                     isOpen={isReportModalOpen}
