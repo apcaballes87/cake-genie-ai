@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Children, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { render, screen } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -57,10 +57,15 @@ describe('RecentSearchPage', () => {
     vi.mocked(getRelatedProductsByKeywords).mockResolvedValue({ data: [], error: null } as never);
   });
 
-  it('keeps the SSR fallback hidden for JS sessions while rendering the client UI', async () => {
+  it('keeps the SSR fallback hidden for JS sessions without preloading the hidden hero image', async () => {
     const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'pink-minimalist-light-pink-bento-cake-f707' }) });
     const { container } = render(page);
     const staticMarkup = renderToStaticMarkup(page);
+    const topLevelChildren = Children.toArray((page as ReactElement).props.children);
+
+    const hasDirectPreloadLink = topLevelChildren.some(
+      (child) => isValidElement(child) && child.type === 'link' && child.props.rel === 'preload',
+    );
 
     expect(screen.getByTestId('customizing-client')).toBeInTheDocument();
 
@@ -69,7 +74,7 @@ describe('RecentSearchPage', () => {
 
     expect(staticMarkup).toContain('<noscript>');
     expect(staticMarkup).toContain('#ssr-content { display: block !important; }');
-    expect(staticMarkup).toContain('rel="preload"');
-    expect(staticMarkup).toContain('href="https://example.com/pink-bento-cake.webp"');
+    expect(hasDirectPreloadLink).toBe(false);
+    expect(staticMarkup).toContain('src="https://example.com/pink-bento-cake.webp"');
   });
 });

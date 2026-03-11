@@ -454,6 +454,8 @@ export async function updateDesign({
     icingDesign,
     additionalInstructions,
     threeTierReferenceImage,
+    traceId,
+    requestSource,
     promptGenerator, // ADDED
 }: {
     originalImageData: { data: string; mimeType: string } | null;
@@ -465,6 +467,8 @@ export async function updateDesign({
     icingDesign: IcingDesignUI;
     additionalInstructions: string;
     threeTierReferenceImage: { data: string; mimeType: string } | null;
+    traceId?: string;
+    requestSource?: string;
     // ADDED: Optional prompt generator function
     promptGenerator?: (
         originalAnalysis: HybridAnalysisResult | null,
@@ -533,6 +537,8 @@ export async function updateDesign({
 
     const isThreeTierReconstruction = cakeInfo.type !== (analysisResult?.cakeType || cakeInfo.type) && cakeInfo.type.includes('3 Tier');
     const useInpaintingStyle = isColorOnlyChange(changesList);
+    const effectiveTraceId = traceId ?? `design-service-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const startedAt = Date.now();
 
     let systemInstruction =
         isThreeTierReconstruction ? THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION :
@@ -560,6 +566,14 @@ ${colorChanges.join('\n')}`;
         }
     }
 
+    console.log(`[AI TRACE ${effectiveTraceId}] updateDesign:prepared`, {
+        requestSource: requestSource ?? 'unknown',
+        changesCount: changesList.length,
+        useInpaintingStyle,
+        isThreeTierReconstruction,
+        promptLength: prompt.length,
+    });
+
 
     // 6. Handle timeout
     const timeoutPromise = new Promise<never>((_, reject) =>
@@ -575,7 +589,9 @@ ${colorChanges.join('\n')}`;
                 mainToppers,
                 supportElements,
                 isThreeTierReconstruction ? threeTierReferenceImage : null,
-                systemInstruction
+                systemInstruction,
+                effectiveTraceId,
+                requestSource
             ),
             timeoutPromise
         ]);
@@ -585,9 +601,19 @@ ${colorChanges.join('\n')}`;
             throw new Error("Image generation did not return a valid string response.");
         }
 
+        console.log(`[AI TRACE ${effectiveTraceId}] updateDesign:success`, {
+            requestSource: requestSource ?? 'unknown',
+            durationMs: Date.now() - startedAt,
+        });
+
         return { image: editedImageResult, prompt, systemInstruction };
 
     } catch (err) {
+        console.error(`[AI TRACE ${effectiveTraceId}] updateDesign:error`, {
+            requestSource: requestSource ?? 'unknown',
+            durationMs: Date.now() - startedAt,
+            errorMessage: err instanceof Error ? err.message : 'Unknown error',
+        });
         // Re-throw the caught error to be handled by the component
         throw err;
     }

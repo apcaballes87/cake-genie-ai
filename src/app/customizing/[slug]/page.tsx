@@ -2,7 +2,6 @@ import { Metadata, ResolvingMetadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import CustomizingClient from '../CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
@@ -476,7 +475,6 @@ function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { desig
                             fill
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-contain"
-                            priority
                             itemProp="image"
                         />
                         <figcaption className="absolute bottom-0 left-0 right-0 text-xs text-slate-500 p-3 text-center bg-white/50 backdrop-blur-sm">
@@ -864,14 +862,6 @@ export default async function RecentSearchPage({ params }: Props) {
     return (
         <>
             <DesignSchema design={design} prices={prices} />
-            {design.original_image_url && (
-                <link
-                    rel="preload"
-                    as="image"
-                    href={design.original_image_url}
-                    crossOrigin="anonymous"
-                />
-            )}
             {/* FAQ as visible HTML accordion (FAQPage schema restricted to gov/healthcare Aug 2023) */}
 
             {/* Ordering steps as visible HTML (HowTo schema deprecated Sept 2023) */}
