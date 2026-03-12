@@ -1,0 +1,101 @@
+[    5184ms] Uncaught TypeError: Cannot read properties of undefined (reading 'apply')
+    at Lu.Au.<computed> (https://scripts.clarity.ms/0.8.57/clarity.js:1:81354)
+    at <anonymous> (https://cakesandmemories.com/:519:8)
+[    5344ms] [ERROR] Refused to execute script from 'https://cakesandmemories.com/?shop=cakes-and-memories.myshopify.com' because its MIME type ('text/html') is not executable, and strict MIME type checking is enabled. @ https://cakesandmemories.com/:0
+[   13920ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[   17995ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[   28549ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[   41145ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[   50813ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[   62124ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[   71961ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[   81590ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[   99258ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[  113678ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[  130899ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[  147788ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[  161567ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[  182665ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[  203482ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[  228232ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[  245520ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[  266715ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/:0
+[  277635ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://cakesandmemories.com/path/to/your/FB-Send-to-Messenger-Button2.jpg:0
+[  279775ms] Uncaught TypeError: Cannot read properties of undefined (reading 'apply')
+    at Lu.Au.<computed> (https://scripts.clarity.ms/0.8.57/clarity.js:1:81354)
+    at <anonymous> (https://cakesandmemories.com/search?q=katseye+cake&type=product:516:8)
+[  398713ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://cakesandmemories.com/path/to/your/FB-Send-to-Messenger-Button2.jpg:0
+[  401141ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://cakesandmemories.com/path/to/your/FB-Send-to-Messenger-Button2.jpg:0
+[  402777ms] Uncaught TypeError: Cannot read properties of undefined (reading 'apply')
+    at Lu.Au.<computed> (https://scripts.clarity.ms/0.8.57/clarity.js:1:81354)
+    at <anonymous> (https://cakesandmemories.com/search?q=bini%20cake&type=product:516:8)
+[  402847ms] [ERROR] Error fetching data: TypeError: Failed to fetch
+    at https://cakesandmemories.com/cdn/wpm/bdf8d3400wef50681bp68ad6cf7m44c53f1am.js:1:68100
+    at window2.fetch (https://cakesandmemories.com/cdn/shopifycloud/storefront/assets/shop_events_listener-3da45d37.js:1:7564)
+    at window.fetch.window.fetch (https://cdn.jsdelivr.net/gh/cloudlift-app/cdn@0.14.32/static/app-upload.js:47:119977)
+    at ns.fetch (https://plugin.brevo.com/integrations/api/sy/cart_tracking/script?ma-key=go35vtuys6yhhbk3c40sqrl7&user_connection_id=64328cbaca1b947a3013aed8&shop=cakes-and-memories.myshopify.com:115:23)
+    at epb_get_bars_remotely (https://cdn.hextom.com/js/eventpromotionbar.js?shop=cakes-and-memories.myshopify.com:1:116093)
+    at epb_get_bars_locally (https://cdn.hextom.com/js/eventpromotionbar.js?shop=cakes-and-memories.myshopify.com:1:117354)
+    at epb_load_css (https://cdn.hextom.com/js/eventpromotionbar.js?shop=cakes-and-memories.myshopify.com:1:115991)
+    at epb_main_logic (https://cdn.hextom.com/js/eventpromotionbar.js?shop=cakes-and-memories.myshopify.com:1:115674) @ https://cdn.hextom.com/js/eventpromotionbar.js?shop=cakes-and-memories.myshopify.com:0
+[  404664ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://cakesandmemories.com/path/to/your/FB-Send-to-Messenger-Button2.jpg:0
+[  407924ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://cakesandmemories.com/path/to/your/FB-Send-to-Messenger-Button2.jpg:0
+[  413536ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://cakesandmemories.com/path/to/your/FB-Send-to-Messenger-Button2.jpg:0
+[  415308ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://cakesandmemories.com/path/to/your/FB-Send-to-Messenger-Button2.jpg:0
+[  416473ms] Uncaught TypeError: Cannot read properties of undefined (reading 'apply')
+    at Lu.Au.<computed> (https://scripts.clarity.ms/0.8.57/clarity.js:1:81354)
+    at <anonymous> (https://cakesandmemories.com/search?q=bento%20cake%20edible%20photo&type=product:516:8)
+[  416906ms] [ERROR] Error fetching data: TypeError: Failed to fetch
+    at https://cakesandmemories.com/cdn/wpm/bdf8d3400wef50681bp68ad6cf7m44c53f1am.js:1:68100
+    at window2.fetch (https://cakesandmemories.com/cdn/shopifycloud/storefront/assets/shop_events_listener-3da45d37.js:1:7564)
+    at window.fetch.window.fetch (https://cdn.jsdelivr.net/gh/cloudlift-app/cdn@0.14.32/static/app-upload.js:47:119977)
+    at ns.fetch (https://plugin.brevo.com/integrations/api/sy/cart_tracking/script?ma-key=go35vtuys6yhhbk3c40sqrl7&user_connection_id=64328cbaca1b947a3013aed8&shop=cakes-and-memories.myshopify.com:115:23)
+    at epb_get_bars_remotely (https://cdn.hextom.com/js/eventpromotionbar.js?shop=cakes-and-memories.myshopify.com:1:116093)
+    at epb_get_bars_locally (https://cdn.hextom.com/js/eventpromotionbar.js?shop=cakes-and-memories.myshopify.com:1:117354)
+    at epb_load_css (https://cdn.hextom.com/js/eventpromotionbar.js?shop=cakes-and-memories.myshopify.com:1:115991)
+    at epb_main_logic (https://cdn.hextom.com/js/eventpromotionbar.js?shop=cakes-and-memories.myshopify.com:1:115674) @ https://cdn.hextom.com/js/eventpromotionbar.js?shop=cakes-and-memories.myshopify.com:0
+[  417392ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://cakesandmemories.com/path/to/your/FB-Send-to-Messenger-Button2.jpg:0
+[  418927ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://cakesandmemories.com/path/to/your/FB-Send-to-Messenger-Button2.jpg:0
+[  420054ms] Uncaught TypeError: Cannot read properties of undefined (reading 'apply')
+    at Lu.Au.<computed> (https://scripts.clarity.ms/0.8.57/clarity.js:1:81354)
+    at <anonymous> (https://cakesandmemories.com/search?q=bento%20cake%20aesthetic&type=product:516:8)
+[  745548ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://cakesandmemories.com/favicon.ico:0
+[ 1000311ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://cakesandmemories.com/path/to/your/FB-Send-to-Messenger-Button2.jpg:0
+[ 1007701ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://cakesandmemories.com/path/to/your/FB-Send-to-Messenger-Button2.jpg:0
+[ 1015431ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://cakesandmemories.com/path/to/your/FB-Send-to-Messenger-Button2.jpg:0
+[ 1016156ms] Uncaught TypeError: Cannot read properties of undefined (reading 'apply')
+    at Lu.Au.<computed> (https://scripts.clarity.ms/0.8.57/clarity.js:1:81354)
+    at <anonymous> (https://cakesandmemories.com/search?q=bento%20cake%20funny&type=product:516:8)
+[ 1016872ms] [ERROR] Error fetching data: TypeError: Failed to fetch
+    at https://cakesandmemories.com/cdn/wpm/bdf8d3400wef50681bp68ad6cf7m44c53f1am.js:1:68100
+    at window2.fetch (https://cakesandmemories.com/cdn/shopifycloud/storefront/assets/shop_events_listener-3da45d37.js:1:7564)
+    at window.fetch.window.fetch (https://cdn.jsdelivr.net/gh/cloudlift-app/cdn@0.14.32/static/app-upload.js:47:119977)
+    at ns.fetch (https://plugin.brevo.com/integrations/api/sy/cart_tracking/script?ma-key=go35vtuys6yhhbk3c40sqrl7&user_connection_id=64328cbaca1b947a3013aed8&shop=cakes-and-memories.myshopify.com:115:23)
+    at epb_get_bars_remotely (https://cdn.hextom.com/js/eventpromotionbar.js?shop=cakes-and-memories.myshopify.com:1:116093)
+    at epb_get_bars_locally (https://cdn.hextom.com/js/eventpromotionbar.js?shop=cakes-and-memories.myshopify.com:1:117354)
+    at epb_load_css (https://cdn.hextom.com/js/eventpromotionbar.js?shop=cakes-and-memories.myshopify.com:1:115991)
+    at epb_main_logic (https://cdn.hextom.com/js/eventpromotionbar.js?shop=cakes-and-memories.myshopify.com:1:115674) @ https://cdn.hextom.com/js/eventpromotionbar.js?shop=cakes-and-memories.myshopify.com:0
+[ 1019421ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://cakesandmemories.com/path/to/your/FB-Send-to-Messenger-Button2.jpg:0
+[ 1022558ms] Uncaught TypeError: Cannot read properties of undefined (reading 'apply')
+    at Lu.Au.<computed> (https://scripts.clarity.ms/0.8.57/clarity.js:1:81354)
+    at <anonymous> (https://cakesandmemories.com/search?q=bento%20cake%20aesthetic&type=product:516:8)
+[ 1050806ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://cakesandmemories.com/path/to/your/FB-Send-to-Messenger-Button2.jpg:0
+[ 1055931ms] [ERROR] Attestation check for Attribution Reporting on https://www.facebook.com failed. @ https://cakesandmemories.com/products/sprinkle-bento-cake:1098
+[ 1059614ms] [ERROR] Attestation check for Attribution Reporting on https://www.facebook.com failed. @ https://cakesandmemories.com/products/red-bento-cake:0
+[ 1062941ms] Uncaught TypeError: Cannot read properties of undefined (reading 'apply')
+    at Lu.Au.<computed> (https://scripts.clarity.ms/0.8.57/clarity.js:1:81354)
+    at <anonymous> (https://cakesandmemories.com/products/red-bento-cake:579:8)
+[ 1065925ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/products/red-bento-cake:0
+[ 1068661ms] [ERROR] Refused to execute script from 'https://cakesandmemories.com/products/red-bento-cake?shop=cakes-and-memories.myshopify.com' because its MIME type ('text/html') is not executable, and strict MIME type checking is enabled. @ https://cakesandmemories.com/products/red-bento-cake:0
+[ 1072063ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/products/red-bento-cake:0
+[ 1076274ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/products/red-bento-cake:0
+[ 1084501ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/products/red-bento-cake:0
+[ 1094988ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/products/red-bento-cake:0
+[ 1105373ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/products/red-bento-cake:0
+[ 1144853ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/products/red-bento-cake:0
+[ 1149508ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/products/red-bento-cake:0
+[ 1165869ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/products/red-bento-cake:0
+[ 1187057ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/products/red-bento-cake:0
+[ 1193295ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/products/red-bento-cake:0
+[ 1202064ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/products/red-bento-cake:0
+[ 1205360ms] [WARNING] The resource https://cdn.shopify.com/s/files/1/1175/4972/files/live_cake_customization.jpg?v=1763202512 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://cakesandmemories.com/products/red-bento-cake:0
