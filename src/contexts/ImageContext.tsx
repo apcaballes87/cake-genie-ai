@@ -342,6 +342,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
             // --- STEP 0: CHECK PRECOMPUTED ANALYSIS ---
             if (options?.precomputedAnalysis) {
+                setIsAnalysisCached(true);
                 onSuccess(options.precomputedAnalysis);
                 return;
             }
@@ -642,6 +643,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
                 if (options.knownSeoMetadata.slug) {
                     setCurrentSlugState(options.knownSeoMetadata.slug);
+                    setIsAnalysisCached(true);
                 }
             }
 

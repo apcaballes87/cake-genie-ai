@@ -3,7 +3,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useJsApiLoader, Libraries } from '@react-google-maps/api';
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!;
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!; // Loaded from .env.local
 
 const LIBRARIES: Libraries = ['places', 'geocoding'];
 
