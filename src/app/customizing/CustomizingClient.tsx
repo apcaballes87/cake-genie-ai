@@ -1792,11 +1792,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, [editedImage, previousImageData, sourceImageData, lastGenerationInfoRef, mainToppers, supportElements, cakeMessages, icingDesign, addOnPricing]);
 
     const onAddToCart = async () => {
-        if (hasPendingVisualChanges) {
-            showInfo('Apply your design changes first so the preview matches what you add to cart.');
-            return;
-        }
-
         if (!finalPrice || !cakeInfo) return;
         setIsAddingToCart(true);
         try {
@@ -2636,7 +2631,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     onAddToCartClick={onAddToCart}
                     onShareClick={onShare}
                     isSharing={isSharing}
-                    canShare={!!analysisResult && isAnalysisCached && !hasPendingVisualChanges && !isUpdatingDesign}
+                    canShare={!!analysisResult && isAnalysisCached}
                     isAnalyzing={isAnalyzing}
                     cakeInfo={cakeInfo}
                     warningMessage={isSafetyFallback ? "AI editing disabled for adult-themed content. Your design changes will still be saved." : warningMessage}
