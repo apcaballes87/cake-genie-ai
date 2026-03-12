@@ -879,9 +879,6 @@ export default async function RecentSearchPage({ params }: Props) {
                 captionText={captionText}
             />
 
-            {/* Persistent SEO content — always visible to both users and Googlebot */}
-            <SSRDesignContent design={design} prices={prices} />
-
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                 <CustomizationProvider initialData={initialState}>
                     <CustomizingClient
@@ -891,6 +888,7 @@ export default async function RecentSearchPage({ params }: Props) {
                         currentKeywords={design.keywords}
                         currentSlug={slug}
                         initialCaption={captionText}
+                        postEditorSlot={<SSRDesignContent design={design} prices={prices} />}
                     />
                 </CustomizationProvider>
             </Suspense>
