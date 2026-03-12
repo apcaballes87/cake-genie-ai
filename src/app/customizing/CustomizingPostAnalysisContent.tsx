@@ -38,7 +38,7 @@ export const CustomizingPostAnalysisContent = React.memo(({
     );
 
     return (
-        <div className="w-full max-w-4xl mx-auto px-0 pb-4 pt-1 space-y-4">
+        <div className="w-full pb-4 pt-1 space-y-4">
             {aboutDescription && (
                 <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
                     <DesignAboutSection
