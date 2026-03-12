@@ -196,18 +196,33 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
     }, [isLoaded, map]);
 
     const handleSubmit = () => {
-        if (map && completeAddress.trim()) {
-            const finalCenter = map.getCenter();
-            if (finalCenter) {
-                onLocationSelect({
-                    latitude: finalCenter.lat(),
-                    longitude: finalCenter.lng(),
-                    street_address: completeAddress.trim(),
-                    city: detectedCity,
-                });
-            }
-        } else {
+        if (!completeAddress.trim()) {
             showError("Please enter your complete address.");
+            return;
+        }
+
+        // Fallback mode: Google Maps didn't load, so accept the typed address
+        // with default Cebu City coordinates.
+        if (loadError || !map) {
+            onLocationSelect({
+                latitude: 10.3157,
+                longitude: 123.8854,
+                street_address: completeAddress.trim(),
+                city: detectedCity || 'Cebu City',
+            });
+            return;
+        }
+
+        const finalCenter = map.getCenter();
+        if (finalCenter) {
+            onLocationSelect({
+                latitude: finalCenter.lat(),
+                longitude: finalCenter.lng(),
+                street_address: completeAddress.trim(),
+                city: detectedCity,
+            });
+        } else {
+            showError("Could not determine map location. Please try again.");
         }
     };
 
@@ -299,7 +314,7 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                     </div>
                     <button
                         onClick={handleSubmit}
-                        disabled={!completeAddress.trim() || isGeocoding || !isServiceable}
+                        disabled={!completeAddress.trim() || isGeocoding || (!loadError && !isServiceable)}
                         className="w-full mt-3 bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition-all disabled:opacity-50 flex items-center justify-center"
                     >
                         {isGeocoding ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Locating...</> : 'Confirm Location'}

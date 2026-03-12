@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { useJsApiLoader, Libraries } from '@react-google-maps/api';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!; // Loaded from .env.local
@@ -21,7 +21,16 @@ export const GoogleMapsLoaderProvider: React.FC<{ children: ReactNode }> = ({ ch
         libraries: LIBRARIES,
     });
 
-    const value = { isLoaded, loadError };
+    const [timedOut, setTimedOut] = useState(false);
+
+    useEffect(() => {
+        if (isLoaded || loadError) return;
+        const timer = setTimeout(() => setTimedOut(true), 10000);
+        return () => clearTimeout(timer);
+    }, [isLoaded, loadError]);
+
+    const effectiveError = loadError || (timedOut ? new Error('Google Maps took too long to load. Please check your connection.') : undefined);
+    const value = { isLoaded, loadError: effectiveError };
 
     return (
         <GoogleMapsLoaderContext.Provider value={value}>
