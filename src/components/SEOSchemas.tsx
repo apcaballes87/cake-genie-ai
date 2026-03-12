@@ -69,19 +69,20 @@ export function ProductSchema({ product, merchant, prices, ratingValue, reviewCo
         reviewCount
     } : undefined;
 
-    // Enhanced ImageObject
+    // Enhanced ImageObject — use image_caption when available, fall back to alt_text then title
     const imageObject = product.image_url ? {
         '@type': 'ImageObject',
         url: product.image_url,
         contentUrl: product.image_url,
         width: 1200, // Best practice estimate if actual not valid, or valid if available
         height: 1200,
-        caption: sanitize(product.alt_text || product.title),
+        caption: sanitize(product.image_caption || product.alt_text || product.title),
         creditText: sanitize(merchant.business_name),
         creator: {
             '@type': 'Organization',
             name: sanitize(merchant.business_name)
-        }
+        },
+        encodingFormat: 'image/webp',
     } : undefined;
 
     // Standard Shipping Details (Placeholder for now as dynamic calculation isn't available here)
@@ -255,6 +256,17 @@ export function BlogPostingSchema({
     // Sanitize string to prevent script injection in JSON-LD
     const sanitize = (str: string | undefined | null) => str ? str.replace(/<\/script/g, '<\\/script') : '';
 
+    const imageObject = image ? {
+        '@type': 'ImageObject',
+        url: image,
+        contentUrl: image,
+        width: 1200,
+        height: 630,
+        caption: sanitize(headline),
+        creditText: sanitize(authorName),
+        encodingFormat: 'image/webp',
+    } : undefined;
+
     const schema = {
         '@context': 'https://schema.org',
         '@type': 'BlogPosting',
@@ -266,7 +278,7 @@ export function BlogPostingSchema({
             name: sanitize(authorName),
             ...(authorUrl && { url: sanitize(authorUrl) })
         },
-        image: image ? [image] : [],
+        image: imageObject ? [imageObject] : [],
         description: sanitize(description),
         ...(url && {
             url: sanitize(url),

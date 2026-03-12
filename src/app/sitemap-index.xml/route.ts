@@ -58,10 +58,11 @@ export async function GET() {
         : today;
 
     const sitemaps = [
-        { name: 'sitemap-core.xml', lastmod: today }, // Static pages change frequently due to dynamic features on them 
+        { name: 'sitemap-core.xml', lastmod: today }, // Static pages change frequently due to dynamic features on them
         { name: 'sitemap-bakeries.xml', lastmod: bakeriesLastMod },
         { name: 'sitemap-products.xml', lastmod: productsLastMod },
         { name: 'sitemap-blog.xml', lastmod: latestBlogDate },
+        { name: 'sitemap-images.xml', lastmod: productsLastMod }, // Dedicated Google Image Sitemap (image:title + image:caption)
     ];
 
     for (let i = 0; i < designChunks; i++) {

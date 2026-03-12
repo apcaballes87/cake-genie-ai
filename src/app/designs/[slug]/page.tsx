@@ -155,7 +155,18 @@ function DesignSchema({ design }: { design: SharedDesign }) {
         },
         primaryImageOfPage: {
             '@type': 'ImageObject',
-            url: imageUrl
+            url: imageUrl,
+            contentUrl: imageUrl,
+            width: 1200,
+            height: 1200,
+            caption: sanitize(design.alt_text || design.title || `Custom ${design.cake_type} cake design from Genie.ph`),
+            creditText: 'Genie.ph',
+            creator: {
+                '@type': 'Organization',
+                name: 'Genie.ph',
+                url: 'https://genie.ph'
+            },
+            encodingFormat: 'image/webp',
         },
         thumbnailUrl: imageUrl
     };
