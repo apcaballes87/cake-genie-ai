@@ -7,6 +7,7 @@ interface ShareButtonProps {
   onClick: () => void;
   isLoading?: boolean;
   disabled?: boolean;
+  showText?: boolean;
   className?: string;
 }
 
@@ -14,6 +15,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
   onClick, 
   isLoading = false,
   disabled = false,
+  showText = true,
   className = '' 
 }) => {
   const isEffectivelyDisabled = isLoading || disabled;
@@ -34,6 +36,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
           hover:bg-pink-50 hover:shadow-md
           transition-all
           disabled:opacity-50 disabled:cursor-not-allowed
+          whitespace-nowrap
         `}
         aria-label={isLoading ? "Generating share link" : "Share your cake design"}
         type="button"
@@ -41,12 +44,12 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         {isLoading ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Sharing...</span>
+            {showText && <span>Sharing...</span>}
           </>
         ) : (
           <>
             <Share2Icon className="w-5 h-5" />
-            <span>Share</span>
+            {showText && <span>Share</span>}
           </>
         )}
       </button>

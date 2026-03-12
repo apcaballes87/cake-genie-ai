@@ -46,18 +46,21 @@ export const TawkToChat = () => {
         window.Tawk_API = window.Tawk_API || {};
         window.Tawk_LoadStart = new Date();
 
+        // Calculate 15% vertical position
+        const vOffset = typeof window !== 'undefined' ? Math.floor(window.innerHeight * 0.15) : 100;
+
         // Adjust widget position
         window.Tawk_API.customStyle = {
             visibility: {
                 desktop: {
-                    position: 'br', // bottom right
+                    position: 'tr', // top right
                     xOffset: 15,
-                    yOffset: 125
+                    yOffset: vOffset
                 },
                 mobile: {
-                    position: 'br',
+                    position: 'tr',
                     xOffset: 15,
-                    yOffset: 195
+                    yOffset: vOffset
                 }
             }
         };
