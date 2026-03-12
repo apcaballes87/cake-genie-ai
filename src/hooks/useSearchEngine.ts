@@ -121,7 +121,6 @@ export const useSearchEngine = ({
             const isLargeInViewport = htmlImg.getBoundingClientRect().width > 200;
 
             if (isInPopup || isLargeInViewport) {
-              console.log('[CSE] Found high-res image:', htmlImg.src);
               return htmlImg.src;
             }
           }
@@ -150,7 +149,6 @@ export const useSearchEngine = ({
                       el.src.startsWith('http') &&
                       el.naturalWidth > 200
                     ) {
-                      console.log('[CSE] Found high-res via observer:', el.src);
                       observer.disconnect();
                       clearInterval(intervalId);
                       resolve(el.src);
@@ -173,7 +171,6 @@ export const useSearchEngine = ({
               !target.src.includes('gstatic.com') &&
               target.src.startsWith('http')
             ) {
-              console.log('[CSE] Found high-res via src change:', target.src);
               observer.disconnect();
               clearInterval(intervalId);
               resolve(target.src);
@@ -200,7 +197,6 @@ export const useSearchEngine = ({
           resolve(highRes);
         } else if (Date.now() - startTime > maxWaitTime) {
           // Timeout - fall back to thumbnail
-          console.log('[CSE] Timeout waiting for high-res, using thumbnail');
           clearInterval(intervalId);
           observer.disconnect();
           resolve(thumbnailUrl);
@@ -313,9 +309,7 @@ export const useSearchEngine = ({
     }
 
     // Step 2: Wait for CSE to load the high-resolution image
-    console.log('[CSE] Waiting for high-resolution URL...');
     const imageUrl = await extractHighResUrl(thumbnailUrl, clickedElement);
-    console.log('[CSE] Using image URL:', imageUrl, imageUrl !== thumbnailUrl ? '(HIGH-RES)' : '(THUMBNAIL)');
 
     // Use our local API route as the primary proxy
     // This avoids 403 errors from public proxies
@@ -339,7 +333,7 @@ export const useSearchEngine = ({
       await handleImageUpload(file, imageUrl);
 
     } catch (err) {
-      console.warn("Primary proxy failed, trying fallbacks...", err);
+        // Silently try fallbacks
 
       // Fallback strategies if local proxy fails
       try {
@@ -351,7 +345,7 @@ export const useSearchEngine = ({
         const file = new File([blob], 'cake-design.webp', { type: blob.type || 'image/webp' });
         await handleImageUpload(file, imageUrl);
       } catch (backupErr) {
-        console.error("All fetch attempts failed:", backupErr);
+        // Silently handle backup fetch failure
         setImageError("Could not load image. It may be protected. Tip: Try saving the image to your device and using the 'Upload' button.");
         clickedElement.style.border = '4px solid #EF4444';
         clickedElement.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.6)';
@@ -385,7 +379,7 @@ export const useSearchEngine = ({
       });
     }
 
-    trackSearchTerm(searchQueryValue).catch(console.error);
+    trackSearchTerm(searchQueryValue).catch(() => {});
     if (typeof query === 'string') setSearchInput(searchQueryValue);
 
     // Always trigger a new search, even if query string is identical
@@ -514,7 +508,7 @@ export const useSearchEngine = ({
           return;
         }
       } catch (e) {
-        console.error("CSE Execute Error:", e);
+        // Silently handle CSE execution error
         setImageError('Failed to initialize or run the search service. Please refresh.');
       } finally {
         // Debounce hiding the spinner to avoid flickering if search is fast

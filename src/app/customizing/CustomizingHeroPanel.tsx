@@ -146,7 +146,7 @@ export const CustomizingHeroPanel = memo(function CustomizingHeroPanel({
             <div className="p-2 pt-0 grow">
                 <div
                     ref={markerContainerRef}
-                    className="relative w-full"
+                    className="relative w-full min-h-[300px] md:min-h-[400px] bg-slate-50/50 rounded-2xl overflow-hidden"
                     onContextMenu={(event) => event.preventDefault()}
                     style={{ aspectRatio: originalImageDimensions ? `${originalImageDimensions.width} / ${originalImageDimensions.height}` : '1 / 1' }}
                 >
@@ -172,7 +172,7 @@ export const CustomizingHeroPanel = memo(function CustomizingHeroPanel({
                         </div>
                     ) : null}
 
-                    {!originalImagePreview && preloadedHeroImage ? (
+                    {!originalImagePreview && preloadedHeroImage && (
                         <figure className="absolute inset-0 w-full h-full">
                             <LazyImage src={preloadedHeroImage} alt="Loading cake design..." title="Loading your cake design" fill sizes="(max-width: 768px) 100vw, 50vw" imageClassName="object-contain rounded-lg" priority fetchPriority="high" decoding="async" unoptimized />
                             {isAnalyzing ? (
@@ -181,9 +181,9 @@ export const CustomizingHeroPanel = memo(function CustomizingHeroPanel({
                                 </figcaption>
                             ) : null}
                         </figure>
-                    ) : null}
+                    )}
 
-                    {!originalImagePreview && fallbackImageUrl ? (
+                    {!originalImagePreview && fallbackImageUrl && (
                         <figure className="absolute inset-0 w-full h-full">
                             <LazyImage src={fallbackImageUrl} alt={fallbackImageAlt} title={fallbackImageTitle} fill sizes="(max-width: 768px) 100vw, 50vw" imageClassName="object-contain rounded-lg" priority fetchPriority="high" decoding="async" unoptimized />
                             {initialCaption ? (
@@ -192,7 +192,7 @@ export const CustomizingHeroPanel = memo(function CustomizingHeroPanel({
                                 </figcaption>
                             ) : null}
                         </figure>
-                    ) : null}
+                    )}
 
                     {originalImagePreview ? (
                         <>
@@ -251,7 +251,6 @@ export const CustomizingHeroPanel = memo(function CustomizingHeroPanel({
                         </>
                     ) : null}
 
-                    <HeroActionButtonsRow editedImage={editedImage} isLoading={isLoading} isReporting={isReporting} isSaving={isSaving} onOpenReportModal={onOpenReportModal} onSave={onSave} onClearAll={onClearAll} />
                 </div>
             </div>
 

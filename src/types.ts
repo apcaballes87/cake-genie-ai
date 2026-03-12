@@ -137,6 +137,7 @@ export interface HybridAnalysisResult {
   seo_title?: string;
   seo_description?: string;
   tags?: string[] | null;
+  cakeSize?: CakeSize;
 }
 
 export interface CacheSEOMetadata {

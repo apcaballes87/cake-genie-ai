@@ -19,7 +19,7 @@ export function useAnonymousAuth(enabled = true) {
                     await supabase.auth.signInAnonymously();
                 }
             } catch (error) {
-                console.error('Error initializing anonymous session:', error);
+                // Error initializing anonymous session silently handled
             }
         };
 

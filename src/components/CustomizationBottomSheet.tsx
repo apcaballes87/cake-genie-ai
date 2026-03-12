@@ -144,6 +144,9 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
                         {actionButton}
                     </div>
                 )}
+
+                {/* Filler to close gap with sticky bar rounded corners */}
+                <div className="absolute -bottom-4 left-0 right-0 h-4 bg-white pointer-events-none" />
             </div>
         </div>
     );

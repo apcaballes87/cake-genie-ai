@@ -252,7 +252,7 @@ async function getLowestBasePrice(type: CakeType): Promise<number> {
     .eq('type', type)
     .order('price', { ascending: true })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
     console.warn(`Could not find base price for type ${type}, defaulting to 0`);
@@ -375,12 +375,12 @@ export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string
  * @param imageUrl Optional URL of the image being searched.
  * @returns The cached analysis JSON and SEO metadata if a similar one is found, otherwise null.
  */
-export async function findSimilarAnalysisByEmbedding(embedding: number[], matchThreshold: number = 0.95, imageUrl?: string): Promise<CacheHitResult | null> {
+export async function findSimilarAnalysisByEmbedding(embedding: number[], matchThreshold: number = 0.86, imageUrl?: string): Promise<CacheHitResult | null> {
   try {
     console.log(`🔍 Calling find_similar_images_by_embedding RPC with threshold: ${matchThreshold}`);
 
     const { data, error } = await supabase.rpc('find_similar_images_by_embedding', {
-      query_embedding: embedding,
+      new_embedding: embedding,
       match_threshold: matchThreshold,
       match_count: 1
     });
@@ -489,135 +489,132 @@ export async function convertToWebP(blob: Blob): Promise<Blob> {
  * @param imageUrl The public URL of the original image being cached.
  * @param imageBlob Optional Blob of the processed image to be converted and uploaded to Supabase.
  */
-export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysisResult, imageUrl?: string, imageBlob?: Blob): void {
-  // FIX: Converted to an async IIFE to use try/catch for error handling,
-  // as the Supabase query builder is a 'thenable' but may not have a .catch method.
-  (async () => {
-    try {
-      console.log('💾 Attempting to cache analysis result with pHash:', pHash);
+export async function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysisResult, imageUrl?: string, imageBlob?: Blob): Promise<void> {
+  try {
+    console.log('💾 Attempting to cache analysis result with pHash:', pHash);
 
-      // Calculate Price and Keywords before inserting
-      const pricingState = mapAnalysisToPricingState(analysisResult);
-      const { addOnPricing } = await calculatePriceFromDatabase(pricingState);
-      const lowestBasePrice = await getLowestBasePrice(analysisResult.cakeType);
-      let totalPrice = lowestBasePrice + addOnPricing.addOnPrice;
+    // Calculate Price and Keywords before inserting
+    const pricingState = mapAnalysisToPricingState(analysisResult);
+    const { addOnPricing } = await calculatePriceFromDatabase(pricingState);
+    const lowestBasePrice = await getLowestBasePrice(analysisResult.cakeType);
+    let totalPrice = lowestBasePrice + addOnPricing.addOnPrice;
 
-      // Apply "round down to nearest 99" logic
-      totalPrice = roundDownToNearest99(totalPrice, lowestBasePrice);
+    // Apply "round down to nearest 99" logic
+    totalPrice = roundDownToNearest99(totalPrice, lowestBasePrice);
 
-      const keywords = analysisResult.keyword || '';
+    const keywords = analysisResult.keyword || '';
 
-      // Generate SEO-friendly slug: keyword + icing color + type + phash
-      const icingColor = analysisResult.icing_design?.colors?.top || analysisResult.icing_design?.colors?.side || null;
-      const slug = generateCakeAnalysisSlug({
-        keyword: keywords,
-        icingColor,
-        cakeType: analysisResult.cakeType,
-        pHash
-      });
+    // Generate SEO-friendly slug: keyword + icing color + type + phash
+    const icingColor = analysisResult.icing_design?.colors?.top || analysisResult.icing_design?.colors?.side || null;
+    const slug = generateCakeAnalysisSlug({
+      keyword: keywords,
+      icingColor,
+      cakeType: analysisResult.cakeType,
+      pHash
+    });
 
-      // Generate fallback SEO fields if AI didn't provide them
-      const altText = analysisResult.alt_text || `${keywords || 'Custom'} cake design`;
-      const seoTitle = analysisResult.seo_title || `${keywords || 'Custom'} Cake | Genie.ph`;
-      const seoDescription = analysisResult.seo_description || `Get instant pricing for this ${keywords || 'custom'} cake design. Customize and order at Genie.ph. Starting at ₱${totalPrice.toLocaleString()}.`;
+    // Generate fallback SEO fields if AI didn't provide them
+    const altText = analysisResult.alt_text || `${keywords || 'Custom'} cake design`;
+    const seoTitle = analysisResult.seo_title || `${keywords || 'Custom'} Cake | Genie.ph`;
+    const seoDescription = analysisResult.seo_description || `Get instant pricing for this ${keywords || 'custom'} cake design. Customize and order at Genie.ph. Starting at ₱${totalPrice.toLocaleString()}.`;
 
-      let finalImageUrl = imageUrl;
-      let imageDimensions: { image_width: number | null; image_height: number | null } = {
-        image_width: null,
-        image_height: null,
-      };
+    let finalImageUrl = imageUrl;
+    let imageDimensions: { image_width: number | null; image_height: number | null } = {
+      image_width: null,
+      image_height: null,
+    };
 
-      // Measure image dimensions from blob (client-side only) for CLS prevention
-      const blobToMeasure = imageBlob;
-      if (blobToMeasure && typeof window !== 'undefined') {
-        try {
-          const dims = await new Promise<{ w: number; h: number }>((resolve, reject) => {
-            const img = new window.Image();
-            const objectUrl = URL.createObjectURL(blobToMeasure);
-            img.onload = () => {
-              URL.revokeObjectURL(objectUrl);
-              resolve({ w: img.naturalWidth, h: img.naturalHeight });
-            };
-            img.onerror = () => {
-              URL.revokeObjectURL(objectUrl);
-              reject(new Error('Image dimension measurement failed'));
-            };
-            img.src = objectUrl;
+    // Measure image dimensions from blob (client-side only) for CLS prevention
+    const blobToMeasure = imageBlob;
+    if (blobToMeasure && typeof window !== 'undefined') {
+      try {
+        const dims = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+          const img = new window.Image();
+          const objectUrl = URL.createObjectURL(blobToMeasure);
+          img.onload = () => {
+            URL.revokeObjectURL(objectUrl);
+            resolve({ w: img.naturalWidth, h: img.naturalHeight });
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error('Image dimension measurement failed'));
+          };
+          img.src = objectUrl;
+        });
+        imageDimensions = { image_width: dims.w, image_height: dims.h };
+        console.log(`📐 Image dimensions: ${dims.w}×${dims.h}`);
+      } catch (dimErr) {
+        console.warn('⚠️ Could not measure image dimensions:', dimErr);
+      }
+    }
+
+    // If we have a blob, convert to WebP and upload to Supabase storage
+    if (imageBlob) {
+      try {
+        console.log('🖼️ Converting image to WebP and uploading to Supabase...');
+        const webpBlob = await convertToWebP(imageBlob);
+        const fileName = `${slug}.webp`;
+        const filePath = `analysis-cache/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('cakegenie')
+          .upload(filePath, webpBlob, {
+            contentType: 'image/webp',
+            upsert: true,
           });
-          imageDimensions = { image_width: dims.w, image_height: dims.h };
-          console.log(`📐 Image dimensions: ${dims.w}×${dims.h}`);
-        } catch (dimErr) {
-          console.warn('⚠️ Could not measure image dimensions:', dimErr);
-        }
-      }
 
-      // If we have a blob, convert to WebP and upload to Supabase storage
-      if (imageBlob) {
-        try {
-          console.log('🖼️ Converting image to WebP and uploading to Supabase...');
-          const webpBlob = await convertToWebP(imageBlob);
-          const fileName = `${slug}.webp`;
-          const filePath = `analysis-cache/${fileName}`;
-
-          const { error: uploadError } = await supabase.storage
+        if (uploadError) {
+          console.error('❌ Failed to upload image to Supabase storage:', uploadError);
+        } else {
+          const { data: { publicUrl } } = supabase.storage
             .from('cakegenie')
-            .upload(filePath, webpBlob, {
-              contentType: 'image/webp',
-              upsert: true,
-            });
+            .getPublicUrl(filePath);
 
-          if (uploadError) {
-            console.error('❌ Failed to upload image to Supabase storage:', uploadError);
-          } else {
-            const { data: { publicUrl } } = supabase.storage
-              .from('cakegenie')
-              .getPublicUrl(filePath);
-
-            finalImageUrl = publicUrl;
-            console.log('✅ Image uploaded successfully to:', finalImageUrl);
-          }
-        } catch (uploadErr) {
-          console.error('❌ Error during image upload process:', uploadErr);
+          finalImageUrl = publicUrl;
+          console.log('✅ Image uploaded successfully to:', finalImageUrl);
         }
+      } catch (uploadErr) {
+        console.error('❌ Error during image upload process:', uploadErr);
       }
+    }
 
-      // Calculate availability from the analysis result
-      const mainToppers = (analysisResult.main_toppers || []).map(t => ({ type: t.type, description: t.description || '' }));
-      const supportElements = (analysisResult.support_elements || []).map(s => ({ type: s.type, description: s.description || '' }));
-      const availability = getDesignAvailability({
-        cakeType: analysisResult.cakeType,
-        cakeSize: '6" Round', // Default size — initial analysis doesn't specify size
-        icingBase: analysisResult.icing_design?.base || 'soft_icing',
-        drip: analysisResult.icing_design?.drip || false,
-        gumpasteBaseBoard: analysisResult.icing_design?.gumpasteBaseBoard || false,
-        mainToppers,
-        supportElements,
-      });
+    // Calculate availability from the analysis result
+    const mainToppers = (analysisResult.main_toppers || []).map(t => ({ type: t.type, description: t.description || '' }));
+    const supportElements = (analysisResult.support_elements || []).map(s => ({ type: s.type, description: s.description || '' }));
+    const availability = getDesignAvailability({
+      cakeType: analysisResult.cakeType,
+      cakeSize: '6" Round', // Default size — initial analysis doesn't specify size
+      icingBase: analysisResult.icing_design?.base || 'soft_icing',
+      drip: analysisResult.icing_design?.drip || false,
+      gumpasteBaseBoard: analysisResult.icing_design?.gumpasteBaseBoard || false,
+      mainToppers,
+      supportElements,
+    });
 
-      // Generate tags
-      const tags = generateTagsForAnalysis(analysisResult, keywords, seoTitle, altText);
+    // Generate tags
+    const tags = generateTagsForAnalysis(analysisResult, keywords, seoTitle, altText);
 
-      // Generate Embedding
-      let imageEmbedding: number[] | null = null;
-      if (imageBlob) {
-        try {
-            console.log('🧠 Generating Gemini multimodal embedding for cache...');
-            const base64ForEmbedding = await fileToBase64(new File([imageBlob], 'image.png', { type: imageBlob.type }));
-            const textPayloadForEmbedding = [seoTitle, seoDescription, keywords, tags.join(', ')].filter(Boolean).join(' | ');
-            imageEmbedding = await embedCakeImage(base64ForEmbedding, textPayloadForEmbedding);
-            console.log('✅ Generated multimodal embedding successfully');
-        } catch (embedErr) {
-            console.error('⚠️ Could not generate embedding:', embedErr);
-        }
+    // Generate Embedding
+    let imageEmbedding: number[] | null = null;
+    if (imageBlob) {
+      try {
+          console.log('🧠 Generating Gemini multimodal embedding for cache...');
+          const base64ForEmbedding = await fileToBase64(new File([imageBlob], 'image.png', { type: imageBlob.type }));
+          const textPayloadForEmbedding = [seoTitle, seoDescription, keywords, tags.join(', ')].filter(Boolean).join(' | ');
+          imageEmbedding = await embedCakeImage(base64ForEmbedding, textPayloadForEmbedding);
+          console.log('✅ Generated multimodal embedding successfully');
+      } catch (embedErr) {
+          console.error('⚠️ Could not generate embedding:', embedErr);
       }
+    }
 
-      const { error } = await supabase
-        .from('cakegenie_analysis_cache')
-        .upsert({
-          p_hash: pHash,
-          analysis_json: analysisResult,
-          original_image_url: finalImageUrl,
-          price: totalPrice,
+    const { error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .upsert({
+        p_hash: pHash,
+        analysis_json: analysisResult,
+        original_image_url: finalImageUrl,
+        price: totalPrice,
           keywords: keywords,
           slug: slug,
           alt_text: altText,
@@ -634,12 +631,12 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
 
 
       if (error) {
-        // Log error but don't interrupt the user. A unique constraint violation is expected and fine.
-        if (error.code !== '23505') { // 23505 is unique_violation
-          console.error('❌ Failed to cache analysis result:', error);
-          console.error('Error details:', { code: error.code, message: error.message, hint: error.hint });
+        // Log error but don't interrupt the user. Unique constraint violations (409) are expected and fine
+        // especially during race conditions or when different designs share a truncated slug.
+        if (error.code !== '23505' && error.code !== 'PGRST116') {
+          console.warn('⚠️ Cache insert status:', error.message);
         } else {
-          console.log('ℹ️ Analysis already cached (duplicate pHash - this is fine).');
+          console.log('ℹ️ Analysis already cached (duplicate pHash or slug - this is fine).');
         }
       } else {
         console.log('✅ Analysis result cached successfully with pHash:', pHash, 'slug:', slug);
@@ -649,10 +646,9 @@ export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysi
           notifyIndexNow(`https://genie.ph/customizing/${slug}`);
         }
       }
-    } catch (err) {
-      console.error('❌ Exception during fire-and-forget cache write:', err);
-    }
-  })();
+  } catch (err) {
+    console.error('❌ Exception during fire-and-forget cache write:', err);
+  }
 }
 
 /**

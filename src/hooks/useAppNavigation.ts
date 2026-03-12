@@ -35,7 +35,6 @@ export const useAppNavigation = () => {
             const isStaticRoute = staticRoutes.some(route => path === route || path.startsWith(`${route}/`));
 
             if (isStaticRoute) {
-                console.log(`[Routing] Redirecting static path ${path} to hash route /#${path}`);
                 window.location.replace(`/#${path}${window.location.search}`);
                 return;
             }
@@ -44,14 +43,12 @@ export const useAppNavigation = () => {
             const discountCodeMatch = path.match(/^\/([A-Za-z0-9]+)\/?$/i);
             if (discountCodeMatch && discountCodeMatch[1]) {
                 const code = discountCodeMatch[1].toUpperCase();
-                console.log(`[Routing] Detected discount code from pathname: ${code}, redirecting to hash route`);
                 window.location.replace(`/#/${code}`);
                 return;
             }
         }
 
         const handleRouting = () => {
-            console.log('[Routing] Handling route for hash:', window.location.hash);
             let pathWithQuery = window.location.hash.substring(1) || ''; // e.g., /order-confirmation?order_id=... or /auth/set-password#access_token=...
 
             // Supabase appends auth tokens with # (e.g., #access_token=...), so we need to handle both ? and #
@@ -59,8 +56,6 @@ export const useAppNavigation = () => {
             const [pathWithPossibleQuery] = pathWithQuery.split('#');
             const [path = '', queryString] = pathWithPossibleQuery.split('?');
             const params = new URLSearchParams(queryString || '');
-
-            console.log('[Routing] Parsed Path:', path, 'Query:', queryString);
 
             // Ensure path is a string before calling .match()
             if (!path || typeof path !== 'string') {
@@ -89,7 +84,6 @@ export const useAppNavigation = () => {
             if (customizingMatch && params.get('image') && (params.get('source') === 'shopify' || params.get('source') === 'shopify_search')) {
                 const imageUrl = params.get('image');
                 const shopifyRowId = params.get('shopify_rowid');
-                console.log('[Routing] Matched customizing with Shopify image:', imageUrl);
 
                 // Store in sessionStorage for App.tsx to pick up
                 if (imageUrl) {
@@ -104,7 +98,6 @@ export const useAppNavigation = () => {
                 setAppState('customizing');
             } else if (orderConfirmationMatch && params.get('order_id')) {
                 const orderId = params.get('order_id');
-                console.log('[Routing] Matched order confirmation with orderId:', orderId);
                 if (orderId) {
                     setConfirmedOrderId(orderId);
                     setAppState('order_confirmation');
@@ -136,7 +129,6 @@ export const useAppNavigation = () => {
             } else if (discountMatch && discountMatch[1]) {
                 // Discount code route - store code and go to landing
                 const code = discountMatch[1].toUpperCase();
-                console.log('[Routing] Matched discount code:', code);
                 setUrlDiscountCode(code);
                 // User stays on landing page, code will be applied when they visit cart
                 if (appStateRef.current !== 'landing') {

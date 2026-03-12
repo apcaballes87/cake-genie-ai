@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { Footer } from '@/components/Footer';
 
 const Section: React.FC<{ title: string; children: React.ReactNode; className?: string }> = ({ title, children, className = '' }) => (
@@ -122,7 +122,14 @@ const PrivacyClient: React.FC = () => {
                             </ul>
                         </Section>
 
-                        <Section title="8. Data Retention">
+                        <Section title="8. Data Deletion Instructions">
+                            <p>
+                                If you would like to request the deletion of your account and associated personal data, 
+                                please follow our detailed <a href="/privacy/data-deletion" className="text-purple-600 font-bold hover:underline inline-flex items-center gap-1">Data Deletion Instructions <ExternalLink size={14} /></a>.
+                            </p>
+                        </Section>
+
+                        <Section title="9. Data Retention">
                             <p>
                                 We retain your personal information for as long as your account is active or as needed to provide
                                 our services. Order records are kept for a minimum of 3 years for legal and accounting purposes.
@@ -130,7 +137,7 @@ const PrivacyClient: React.FC = () => {
                             </p>
                         </Section>
 
-                        <Section title="9. Changes to This Policy">
+                        <Section title="10. Changes to This Policy">
                             <p>
                                 We may update this Privacy Policy from time to time. We will notify you of significant changes
                                 via email or a notice on our website. Continued use of the platform after changes constitutes
@@ -138,7 +145,7 @@ const PrivacyClient: React.FC = () => {
                             </p>
                         </Section>
 
-                        <Section title="10. Contact Us">
+                        <Section title="11. Contact Us">
                             <p>
                                 For privacy-related inquiries or to exercise your data rights, please contact us:
                             </p>

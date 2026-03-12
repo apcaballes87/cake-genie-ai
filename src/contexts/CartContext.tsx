@@ -46,10 +46,7 @@ const flushWrites = () => {
         }
     } catch (e) {
         if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
-            console.error("LocalStorage quota exceeded. Cannot save cart state.");
             showError("Could not save session. Browser storage might be full.");
-        } else {
-            console.error("Failed to write to localStorage:", e);
         }
     } finally {
         isFlushScheduled = false;
@@ -209,7 +206,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             try {
                 return JSON.parse(cached);
             } catch (e) {
-                console.warn('[CartContext] Failed to parse cached addresses');
+                // Silently ignore cache parsing errors
             }
         }
         return [];
@@ -295,10 +292,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 cartData = result.cartData;
                 addressesData = result.addressesData;
             } catch (timeoutError) {
-                console.warn('Cart query timed out, keeping cached data');
-                // Don't clear the cart - just keep the cached data we already have
-                // The user already sees their cart from cache, no need to replace it
-                return; // Exit early, don't update state
+                // Return early on timeout, keep cached data
+                return;
             }
 
             const { data: cartItemsData, error: cartError } = cartData;
@@ -314,8 +309,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
             const { data: userAddressesData, error: addressesError } = addressesData;
             if (addressesError) {
-                console.error('Failed to load addresses:', addressesError);
-                // Don't throw, allow cart to load without addresses
+                // Silently allow cart to load without addresses
             }
             setAddresses(userAddressesData || []);
 
@@ -325,7 +319,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
 
         } catch (error) {
-            console.error('Failed to load cart data:', error);
             setCartItems([]);
             setAddresses([]);
             // Clear cache on error
@@ -369,7 +362,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 const localItems = cartItemsRef.current;
 
                 if (localItems.length > 0) {
-                    console.log("Syncing items...", localItems.length);
                     try {
                         const syncPromise = Promise.all(localItems.map(async (item) => {
                             const { cart_item_id, created_at, updated_at, expires_at, ...itemParams } = item;
@@ -384,7 +376,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         setCartItems([]);
                         batchRemoveFromLocalStorage('cart_items_cache');
                     } catch (e) {
-                        console.error("Sync failed", e);
+                        // Silently handle sync failure
                     }
                 }
             }
@@ -456,10 +448,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const { data: realItem, error } = await addToCartService(itemToSend);
 
             if (error || !realItem) {
-                if (error) {
-                    const supabaseError = error as PostgrestError;
-                    console.error('🔴 Supabase error adding to cart:', JSON.stringify(supabaseError, null, 2));
-                }
                 throw error || new Error('Failed to add item to cart. No data returned from service.');
             }
 
@@ -470,7 +458,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
 
         } catch (error: any) {
-            console.error('🔴 Error in addToCartOptimistic, rolling back:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
             if (!options?.skipOptimistic) {
                 setCartItems(prev => prev.filter(item => item.cart_item_id !== tempId));
             }
@@ -536,7 +523,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setCartItems(prev => prev.map(item => item.cart_item_id === tempId ? realItem : item));
 
             } catch (error) {
-                console.error("Background upload/add failed", error);
                 // Rollback
                 setCartItems(prev => prev.filter(item => item.cart_item_id !== tempId));
                 showError("Failed to save item to cart. Please try again.");
@@ -556,7 +542,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const { error } = await removeItemService(cartItemId);
             if (error) throw error;
         } catch (error) {
-            console.error('Error removing item, rolling back:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
             setCartItems(originalCart);
             throw error;
         }
@@ -567,7 +552,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             try {
                 const { error } = await updateQuantityService(cartItemId, quantity);
                 if (error) {
-                    console.error('Error updating quantity:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
                     setCartItems(originalCart);
                     throw error;
                 }

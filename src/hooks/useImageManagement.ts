@@ -3,12 +3,12 @@
 import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { toast as toastHot } from 'react-hot-toast';
-import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithCoordinates, enrichAnalysisWithRoboflow } from '@/services/geminiService';
+import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithCoordinates, enrichAnalysisWithRoboflow, embedCakeImage } from '@/services/geminiService';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { showSuccess, showError, showLoading, showInfo } from '@/lib/utils/toast';
 import { HybridAnalysisResult } from '@/types';
-import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService';
+import { findSimilarAnalysisByHash, findSimilarAnalysisByEmbedding, cacheAnalysisResult } from '@/services/supabaseService';
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
 
 /**
@@ -87,7 +87,7 @@ export const useImageManagement = () => {
                 setThreeTierReferenceImage(imageData);
 
             } catch (error) {
-                console.error('❌ Failed to load 3-tier reference image:', error);
+                // Silently handle reference image load failure
             }
         };
         fetchReferenceImage();
@@ -120,69 +120,67 @@ export const useImageManagement = () => {
             setIsLoading(false); // File processing done
 
             // --- STEP 1: CHECK CACHE FIRST (FAST PATH) ---
+            let uploadedImageUrl = options?.imageUrl; // Use existing URL if from web search
+            let compressedImageData = imageData; // Default to original
+            let finalImageBlobToCache: Blob | undefined;
 
             const pHash = await generatePerceptualHash(imageSrc);
             const cacheHit = await findSimilarAnalysisByHash(pHash, options?.imageUrl);
 
             if (cacheHit) {
                 const cachedAnalysis = cacheHit.analysisResult;
-                console.log('✅ Using cached analysis result');
                 onSuccess(cachedAnalysis);
 
                 // Check if cached result has bbox data
                 const hasBbox = hasBoundingBoxData(cachedAnalysis);
 
                 if (!hasBbox) {
-                    console.log('🔄 Cached result missing bbox data, enriching in background...');
 
                     // Run enrichment in background without blocking
                     (async () => {
                         try {
-                            // Need to get compressed image data for enrichment
-                            const imageBlob = dataURItoBlob(imageSrc);
-                            const fileToUpload = new File([imageBlob], file.name, { type: file.type });
-                            const compressedFile = await compressImage(fileToUpload, {
-                                maxSizeMB: 0.5,
-                                maxWidthOrHeight: 1024,
-                                fileType: 'image/webp',
-                            });
-                            const compressedImageData = await fileToBase64(compressedFile);
+                            let bgCompressedData = compressedImageData;
+                            let bgBlob = finalImageBlobToCache;
+
+                            if (!bgBlob) {
+                                // Need to get compressed image data for enrichment
+                                const imageBlob = dataURItoBlob(imageSrc);
+                                const fileToUpload = new File([imageBlob], file.name, { type: file.type });
+                                bgBlob = await compressImage(fileToUpload, {
+                                    maxSizeMB: 0.5,
+                                    maxWidthOrHeight: 1024,
+                                    fileType: 'image/webp',
+                                });
+                                bgCompressedData = await fileToBase64(new File([bgBlob], file.name, { type: 'image/webp' }));
+                            }
 
                             // Enrich with Roboflow
                             const enrichedResult = await enrichAnalysisWithRoboflow(
-                                compressedImageData.data,
-                                compressedImageData.mimeType,
+                                bgCompressedData.data,
+                                bgCompressedData.mimeType,
                                 cachedAnalysis
                             );
 
+                            // Better Process: Only update image if it's missing in cache
+                            const blobToPass = cacheHit.seoMetadata.original_image_url ? undefined : bgBlob;
+
                             // Update cache with bbox data
-                            cacheAnalysisResult(pHash, enrichedResult);
+                            cacheAnalysisResult(pHash, enrichedResult, undefined, blobToPass);
 
                             // Notify UI of enriched coordinates
                             if (options?.onCoordinatesEnriched) {
                                 options.onCoordinatesEnriched(enrichedResult);
                             }
-
-                            console.log('✅ Background enrichment complete, cache updated with bbox data');
                         } catch (error) {
-                            console.warn('⚠️ Background enrichment failed:', error);
+                            // Silently handle background enrichment failure
                         }
                     })();
-                } else {
-                    console.log('✨ Cached result already has bbox data, skipping enrichment');
                 }
 
                 return; // Skip compression and AI call entirely!
             }
 
-
-
-
             // --- STEP 2: COMPRESS IMAGE FOR AI & STORAGE (ONLY ON CACHE MISS) ---
-            let uploadedImageUrl = options?.imageUrl; // Use existing URL if from web search
-            let compressedImageData = imageData; // Default to original
-            let finalImageBlobToCache: Blob | undefined;
-
             try {
                 // Compress image for both AI analysis and storage. 1024x1024 is optimal for Gemini.
                 const imageBlob = dataURItoBlob(imageSrc);
@@ -199,13 +197,48 @@ export const useImageManagement = () => {
                 // Convert compressed file to base64 for AI
                 compressedImageData = await fileToBase64(compressedFile);
 
+                // --- STEP 2.75: CHECK EMBEDDING CACHE IF pHash MISSED ---
+                try {
+                    const imageEmbedding = await embedCakeImage({ data: compressedImageData.data, mimeType: compressedImageData.mimeType });
+                    const embeddingMatch = await findSimilarAnalysisByEmbedding(imageEmbedding, 0.86, uploadedImageUrl);
+
+                    if (embeddingMatch) {
+                        onSuccess(embeddingMatch.analysisResult);
+
+                        // Background enrichment for embeddings too
+                        (async () => {
+                            try {
+                                const enrichedResult = await enrichAnalysisWithRoboflow(
+                                    compressedImageData.data,
+                                    compressedImageData.mimeType,
+                                    embeddingMatch.analysisResult
+                                );
+                                
+                                // Better Process: Only update image if it's missing in cache
+                                const blobToPass = embeddingMatch.seoMetadata.original_image_url ? undefined : finalImageBlobToCache;
+                                
+                                cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, blobToPass);
+                                if (options?.onCoordinatesEnriched) {
+                                    options.onCoordinatesEnriched(enrichedResult);
+                                }
+                            } catch (e) {
+                                // Silently handle background enrichment failure
+                            }
+                        })();
+
+                        return; // EXIT EARLY
+                    }
+                } catch (embedError) {
+                    // Silently handle embedding check failure
+                }
+
                 // Image upload to Supabase is now deferred until after AI analysis completes
                 // so we can use the generated SEO-friendly slug as the filename.
 
             } catch (compressionErr) {
-                console.warn('Image compression failed, proceeding with original:', compressionErr);
+                // Silently handle compression failure
             }
-            // --- END OF COMPRESSION LOGIC ---
+            // --- END OF COMPRESSION LOGIC & EMBEDDING CHECK ---
 
             // --- STEP 3: TWO-PHASE AI ANALYSIS ---
 
@@ -233,10 +266,7 @@ export const useImageManagement = () => {
 
                     // Cache the fully enriched result, passing the blob to upload it with the generated slug
                     cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache);
-
-                    console.log('✨ Coordinate enrichment complete');
                 }).catch(enrichmentError => {
-                    console.warn('⚠️ Coordinate enrichment failed, but features are still available:', enrichmentError);
                     // Still cache the fast result even if enrichment fails, passing the blob
                     cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache);
                 });
@@ -260,7 +290,6 @@ export const useImageManagement = () => {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => {
                 controller.abort();
-                console.warn(`Fetch for ${imageUrl} timed out.`);
             }, 8000); // 8-second timeout
 
             const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(imageUrl)}`;

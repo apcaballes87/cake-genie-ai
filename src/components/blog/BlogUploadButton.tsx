@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { Upload, Loader2 } from 'lucide-react';
@@ -26,7 +27,7 @@ export function BlogUploadButton({ className = '' }: BlogUploadButtonProps) {
     const handleImageSelect = async (file: File) => {
         setIsUploaderOpen(false);
         setIsUploading(true);
-        showLoading('Uploading your design...');
+        const toastId = showLoading('Uploading your design...');
 
         try {
             // Generate unique filename
@@ -58,6 +59,7 @@ export function BlogUploadButton({ className = '' }: BlogUploadButtonProps) {
             showError('Failed to upload. Please try again.');
         } finally {
             setIsUploading(false);
+            toast.dismiss(toastId);
         }
     };
 

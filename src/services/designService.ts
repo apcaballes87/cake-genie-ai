@@ -109,13 +109,15 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     }
 
     // A more descriptive size instruction for multi-tier cakes.
-    const tiers = newCakeInfo.size?.match(/\d+"/g); // e.g., ["6\"", "8\"", "10\""]
-    if ((newCakeInfo.type.includes('2 Tier')) && tiers && tiers.length === 2) {
-        changes.push(`- The final **cake size** represents a 2-tier structure: a ${tiers[0]} diameter top tier stacked on a ${tiers[1]} diameter bottom tier.`);
-    } else if ((newCakeInfo.type.includes('3 Tier')) && tiers && tiers.length === 3) {
-        changes.push(`- The final **cake size** represents a 3-tier structure: a ${tiers[0]} diameter top tier, an ${tiers[1]} diameter middle tier, and a ${tiers[2]} diameter bottom tier.`);
-    } else {
-        changes.push(`- The final **cake size** must be "${newCakeInfo.size}".`);
+    if (newCakeInfo.size !== originalAnalysis.cakeSize) {
+        const tiers = newCakeInfo.size?.match(/\d+"/g); // e.g., ["6\"", "8\"", "10\""]
+        if ((newCakeInfo.type.includes('2 Tier')) && tiers && tiers.length === 2) {
+            changes.push(`- The final **cake size** represents a 2-tier structure: a ${tiers[0]} diameter top tier stacked on a ${tiers[1]} diameter bottom tier.`);
+        } else if ((newCakeInfo.type.includes('3 Tier')) && tiers && tiers.length === 3) {
+            changes.push(`- The final **cake size** represents a 3-tier structure: a ${tiers[0]} diameter top tier, an ${tiers[1]} diameter middle tier, and a ${tiers[2]} diameter bottom tier.`);
+        } else {
+            changes.push(`- The final **cake size** must be "${newCakeInfo.size}".`);
+        }
     }
 
     // 2. Topper Changes
@@ -408,7 +410,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
 
 
     // 6. Bento-specific instruction
-    if (newCakeInfo.type === 'Bento') {
+    if (newCakeInfo.type === 'Bento' && originalAnalysis.cakeType !== 'Bento') {
         changes.push(`- **Bento Box Presentation:** The final image MUST show the cake placed inside a classic, open, light brown clamshell bento box. The box should be visible around the base of the cake, framing it.`);
     }
 
@@ -516,7 +518,9 @@ export async function updateDesign({
         );
 
     // 4. Determine change type and select system instruction
-    const changesList = prompt.split('### **List of Changes to Apply**')[1]?.trim().split('\n').filter(line => line.startsWith('- ')) || [];
+    const changesList = prompt.split('### **List of Changes to Apply**')[1]?.trim().split('\n').filter(line => 
+        line.startsWith('- ') && !line.includes('No changes were requested')
+    ) || [];
 
     const isColorOnlyChange = (changes: string[]): boolean => {
         if (changes.length === 0) return true;
@@ -574,6 +578,17 @@ ${colorChanges.join('\n')}`;
         promptLength: prompt.length,
     });
 
+
+    // 5.5 Fast Path: If no changes were requested, return the original image immediately.
+    // This avoids a 400 error from the API when Gemini returns text ("No changes requested") instead of an image.
+    if (!isThreeTierReconstruction && changesList.length === 0 && !additionalInstructions.trim()) {
+        console.log(`[AI TRACE ${effectiveTraceId}] updateDesign:noop-success`, {
+            requestSource: requestSource ?? 'unknown',
+            reason: 'No visual changes detected in customization state'
+        });
+        const originalImageUri = `data:${originalImageData.mimeType};base64,${originalImageData.data}`;
+        return { image: originalImageUri, prompt, systemInstruction };
+    }
 
     // 6. Handle timeout
     const timeoutPromise = new Promise<never>((_, reject) =>

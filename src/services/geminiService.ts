@@ -353,8 +353,10 @@ editCakeImage.stripDataUriPrefix = (dataUri: string): string => {
 };
 
 /**
- * Generates an embedding vector for a cake image and its associated metadata using the server-side API.
- * Uses gemini-embedding-2-preview multimodal model to combine visual semantic and descriptive text data.
+ * Generates an embedding vector for a cake image.
+ * For visual similarity matching (screenshots, duplicates, crops), we use IMAGE-ONLY embeddings
+ * to ensure the highest visual matching accuracy. Optional textData can be added for 
+ * contextual/semantic search but is generally avoided for pure visual matching.
  */
 export async function embedCakeImage(
     originalImage: { data: string; mimeType: string; },
@@ -362,7 +364,7 @@ export async function embedCakeImage(
 ): Promise<number[]> {
     try {
         const startedAt = Date.now();
-        console.log(`[AI Embed] Starting embedding generation for image (length: ${originalImage.data.length}) and text (length: ${textData?.length || 0})`);
+        console.log(`[AI Embed] Starting IMAGE-ONLY embedding generation (image length: ${originalImage.data.length})`);
 
         // Compress the image before embedding (model works fine with 1024px, saves payload size)
         const fullDataUri = `data:${originalImage.mimeType};base64,${originalImage.data}`;

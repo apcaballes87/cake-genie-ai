@@ -55,7 +55,7 @@ export const useDesignSharing = ({ slug, originalImageUrl }: UseDesignSharingPro
                     return;
                 }
             } catch (error) {
-                console.error('Failed to fetch slug from cache:', error);
+                // Silently handle error fetching slug from cache
             } finally {
                 setIsSavingDesign(false);
             }
