@@ -2676,15 +2676,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     shareData={shareData}
                 />
 
-                <CustomizingDiscoverySections
-                    isAnalyzing={isAnalyzing}
-                    relatedDesigns={displayedRelatedDesigns}
-                    hasMoreDesigns={hasMoreDesigns}
-                    isLoadingMoreDesigns={isLoadingMoreDesigns}
-                    onLoadMoreDesigns={handleLoadMoreDesigns}
-                    relatedCollections={relatedCollections}
-                />
-
                 {!slug && analysisResult && (
                     <CustomizingPostAnalysisContent
                         analysisResult={analysisResult}
@@ -2695,6 +2686,17 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         basePriceOptions={basePriceOptions}
                     />
                 )}
+
+                <div className="w-full pb-28">
+                    <CustomizingDiscoverySections
+                        isAnalyzing={isAnalyzing}
+                        relatedDesigns={displayedRelatedDesigns}
+                        hasMoreDesigns={hasMoreDesigns}
+                        isLoadingMoreDesigns={isLoadingMoreDesigns}
+                        onLoadMoreDesigns={handleLoadMoreDesigns}
+                        relatedCollections={relatedCollections}
+                    />
+                </div>
             </div>
         </>
     );
