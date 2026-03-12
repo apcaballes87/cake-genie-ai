@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { Loader2, AlertTriangleIcon } from './icons';
+import { Loader2, AlertTriangleIcon, CartIcon } from './icons';
 import { X } from 'lucide-react';
 import { ShareButton } from './ShareButton';
 import { CakeInfoUI } from '@/types';
@@ -107,6 +107,25 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             return () => clearTimeout(timer);
         }
     }, [availability, isAnalyzing]);
+
+    const [isCompact, setIsCompact] = React.useState(false);
+    const buttonsRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        const currentRef = buttonsRef.current;
+        if (!currentRef) return;
+
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                // If width is less than ~230px, we switch to compact mode
+                // This value is based on: Share Button (~90px) + "Add to Cart" (~130px) + Gap (12px)
+                setIsCompact(entry.contentRect.width < 230);
+            }
+        });
+
+        observer.observe(currentRef);
+        return () => observer.disconnect();
+    }, []);
 
     const renderPrice = () => {
         if (isAnalyzing) {
@@ -333,19 +352,27 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                 </div>
                 <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
                     <div className="min-w-[100px]">{renderPrice()}</div>
-                    <div className="flex flex-1 gap-3">
+                    <div className="flex flex-1 gap-3 min-w-0" ref={buttonsRef}>
                         <ShareButton
                             onClick={onShareClick}
                             isLoading={isSharing}
                             disabled={!canShare || isApplyingChanges}
-                            className="flex-1"
+                            className="flex-1 min-w-0"
+                            showText={!isCompact}
                         />
                         <button
                             onClick={onAddToCartClick}
                             disabled={isLoading || !!error || price === null || isAdding || isAnalyzing}
-                            className="flex-1 bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md flex justify-center items-center"
+                            className="flex-1 min-w-0 bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md flex justify-center items-center gap-2 whitespace-nowrap"
                         >
-                            {isAdding ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Adding...</> : 'Add to Cart'}
+                            {isAdding ? (
+                                <><Loader2 className="w-5 h-5 animate-spin" /> {!isCompact && 'Adding...'}</>
+                            ) : (
+                                <>
+                                    <CartIcon className="w-5 h-5 shrink-0" />
+                                    {!isCompact && 'Add to Cart'}
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>
