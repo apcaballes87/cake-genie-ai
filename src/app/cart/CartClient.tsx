@@ -52,6 +52,20 @@ const paymentMethods = [
     { name: 'Palawan', logoUrl: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/payment_logos/palawan.jpg' },
 ];
 
+const PICKUP_ADDRESS = {
+    street_address: 'Unit 3, Treehouse Building, R. Aboitiz St., Camputhaw, Cebu City',
+    city: 'Cebu City',
+    latitude: 10.3124792,
+    longitude: 123.8929501,
+    barangay: '',
+    province: 'Cebu',
+    postal_code: '',
+    country: 'Philippines',
+    address_label: 'Pickup',
+    landmark: null,
+    is_default: false,
+} as const;
+
 function CartClient() {
     const router = useRouter();
     const { user, signInAnonymously } = useAuth();
@@ -726,7 +740,19 @@ function CartClient() {
             let effectiveDeliveryAddressId = isAnonymous ? null : selectedAddress?.address_id || null;
             let effectiveGuestAddress = isAnonymous ? guestAddress : undefined;
 
-            if (isAddingAddress || (isAnonymous && !guestAddress)) {
+            if (fulfillmentType === 'pickup') {
+                // For pickup orders, use the bakeshop's address as the delivery location
+                effectiveDeliveryAddressId = null;
+                effectiveGuestAddress = {
+                    ...PICKUP_ADDRESS,
+                    recipient_name: selectedAddress?.recipient_name || guestAddress?.recipient_name || user?.user_metadata?.first_name || '',
+                    recipient_phone: selectedAddress?.recipient_phone || guestAddress?.recipient_phone || '',
+                    address_id: 'pickup',
+                    user_id: user?.id || '',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                } as CakeGenieAddress;
+            } else if (isAddingAddress || (isAnonymous && !guestAddress)) {
                 if (!isPendingAddressValid || !pendingAddressData) {
                     throw new Error("Invalid address data.");
                 }
@@ -803,7 +829,7 @@ function CartClient() {
                 deliveryFee,
                 discountAmount: appliedDiscount?.discountAmount,
                 discountCodeId: appliedDiscount?.codeId,
-                guestAddress: isAnonymous && effectiveGuestAddress ? {
+                guestAddress: effectiveGuestAddress ? {
                     recipientName: effectiveGuestAddress.recipient_name,
                     recipientPhone: effectiveGuestAddress.recipient_phone,
                     streetAddress: effectiveGuestAddress.street_address,
@@ -894,7 +920,19 @@ function CartClient() {
             let effectiveDeliveryAddressId = isAnonymous ? null : selectedAddress?.address_id || null;
             let effectiveGuestAddress = isAnonymous ? guestAddress : undefined;
 
-            if (isAddingAddress || (isAnonymous && !guestAddress)) {
+            if (fulfillmentType === 'pickup') {
+                // For pickup orders, use the bakeshop's address as the delivery location
+                effectiveDeliveryAddressId = null;
+                effectiveGuestAddress = {
+                    ...PICKUP_ADDRESS,
+                    recipient_name: selectedAddress?.recipient_name || guestAddress?.recipient_name || user?.user_metadata?.first_name || '',
+                    recipient_phone: selectedAddress?.recipient_phone || guestAddress?.recipient_phone || '',
+                    address_id: 'pickup',
+                    user_id: user?.id || '',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                } as CakeGenieAddress;
+            } else if (isAddingAddress || (isAnonymous && !guestAddress)) {
                 if (!isPendingAddressValid || !pendingAddressData) {
                     throw new Error("Invalid address data.");
                 }
@@ -970,7 +1008,7 @@ function CartClient() {
                 isSplitOrder: true,
                 splitMessage,
                 splitCount,
-                guestAddress: isAnonymous && effectiveGuestAddress ? {
+                guestAddress: effectiveGuestAddress ? {
                     recipientName: effectiveGuestAddress.recipient_name,
                     recipientPhone: effectiveGuestAddress.recipient_phone,
                     streetAddress: effectiveGuestAddress.street_address,
