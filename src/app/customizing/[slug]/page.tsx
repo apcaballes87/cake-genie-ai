@@ -658,7 +658,7 @@ function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceI
     const analysis = design.analysis_json || {};
 
     return (
-        <div className="w-full max-w-4xl mx-auto px-4 pb-28 pt-1 space-y-1">
+        <div className="w-full max-w-4xl mx-auto px-4 pb-4 pt-1 space-y-1">
             {/* Design Details - now rendered in SSR for SEO */}
             {designDetails && (
                 <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
@@ -879,6 +879,9 @@ export default async function RecentSearchPage({ params }: Props) {
                 captionText={captionText}
             />
 
+            {/* Persistent SEO content — always visible to both users and Googlebot */}
+            <SSRDesignContent design={design} prices={prices} />
+
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                 <CustomizationProvider initialData={initialState}>
                     <CustomizingClient
@@ -891,9 +894,6 @@ export default async function RecentSearchPage({ params }: Props) {
                     />
                 </CustomizationProvider>
             </Suspense>
-
-            {/* Persistent SEO content — always visible to both users and Googlebot */}
-            <SSRDesignContent design={design} prices={prices} />
         </>
     )
 }
