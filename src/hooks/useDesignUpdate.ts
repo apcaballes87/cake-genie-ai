@@ -91,17 +91,9 @@ export const useDesignUpdate = ({
         const resolvedPromptGenerator = options?.promptGenerator ?? promptGenerator;
 
         if (inFlightPromiseRef.current) {
-            console.log(`[AI TRACE ${traceId}] handleUpdateDesign:reusing-in-flight`, { requestSource });
             return inFlightPromiseRef.current;
         }
 
-        console.log(`[AI TRACE ${traceId}] handleUpdateDesign:start`, {
-            requestSource,
-            hasOverrideInstruction: Boolean(overrideInstruction),
-            hasOriginalImageData: Boolean(originalImageData),
-            hasCakeInfo: Boolean(resolvedCakeInfo),
-            hasIcingDesign: Boolean(resolvedIcingDesign),
-        });
 
         // Analytics: Track when a user completes a customization by updating the design
         if (typeof gtag === 'function') {
@@ -113,8 +105,7 @@ export const useDesignUpdate = ({
         // Guard against missing critical data which is checked in the service, but good to have here too.
         if (!originalImageData || !resolvedIcingDesign || !resolvedCakeInfo) {
             const missingDataError = "Cannot update design: missing original image, icing design, or cake info.";
-            console.error(missingDataError);
-            setError(missingDataError);
+            // setError(missingDataError); // Removed per instruction
             throw new Error(missingDataError);
         }
 
@@ -128,10 +119,6 @@ export const useDesignUpdate = ({
                     ? (resolvedAdditionalInstructions ? `${resolvedAdditionalInstructions}. ${overrideInstruction}` : overrideInstruction)
                     : resolvedAdditionalInstructions;
 
-                console.log(`[AI TRACE ${traceId}] handleUpdateDesign:calling-updateDesign`, {
-                    requestSource,
-                    combinedInstructionsLength: combinedInstructions?.length ?? 0,
-                });
 
                 const { image: editedImageResult, prompt, systemInstruction } = await updateDesign({
                     originalImageData,
@@ -149,19 +136,11 @@ export const useDesignUpdate = ({
                 });
 
                 lastGenerationInfoRef.current = { prompt, systemInstruction };
-                console.log(`[AI TRACE ${traceId}] handleUpdateDesign:success`, {
-                    requestSource,
-                    imageLength: editedImageResult.length,
-                });
                 onSuccess(editedImageResult);
                 return editedImageResult;
 
             } catch (err) {
                 const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while updating the design.';
-                console.error(`[AI TRACE ${traceId}] handleUpdateDesign:error`, {
-                    requestSource,
-                    errorMessage,
-                });
 
                 // Check for safety/policy blocking errors
                 // Gemini often returns "safety settings" or "blocked" in the error message
@@ -170,7 +149,6 @@ export const useDesignUpdate = ({
                     errorMessage.toLowerCase().includes('policy');
 
                 if (isSafetyError) {
-                    console.warn("AI generation blocked due to safety settings. Falling back to original image.");
                     setIsSafetyFallback(true);
 
                     // Fallback: Use the original image data
@@ -187,7 +165,6 @@ export const useDesignUpdate = ({
                 setError(errorMessage);
                 throw err; // Re-throw other errors to be caught by the caller
             } finally {
-                console.log(`[AI TRACE ${traceId}] handleUpdateDesign:finish`, { requestSource });
                 setIsLoading(false);
                 inFlightPromiseRef.current = null;
             }

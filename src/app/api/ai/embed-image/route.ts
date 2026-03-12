@@ -20,10 +20,12 @@ export async function POST(req: NextRequest) {
         // Construct the parts array for multimodal input
         const parts: any[] = [];
         
+        // If textData is provided, it's used for contextual/semantic enrichment
         if (textData && typeof textData === 'string' && textData.trim().length > 0) {
             parts.push({ text: textData.trim() });
         }
         
+        // Image is mandatory for this endpoint
         parts.push({ inlineData: { mimeType, data: imageData } });
 
         const response = await aiClient.models.embedContent({

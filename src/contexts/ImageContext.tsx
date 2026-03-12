@@ -89,6 +89,7 @@ interface ImageContextType {
     uploadCartImages: (options?: { editedImageDataUri?: string | null; userId?: string }) => Promise<{ originalImageUrl: string; finalImageUrl: string }>;
     clearImages: () => void;
     seoMetadata: CacheSEOMetadata | null;
+    isAnalysisCached: boolean;
 }
 
 interface HandleImageUploadOptions {
@@ -126,6 +127,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
     const [error, setError] = useState<string | null>(null);
     const [currentSlug, setCurrentSlugState] = useState<string | null>(null);
     const [seoMetadata, setSeoMetadata] = useState<CacheSEOMetadata | null>(null);
+    const [isAnalysisCached, setIsAnalysisCached] = useState<boolean>(false);
     const persistedImageStateRef = React.useRef<{
         original: string | null;
         source: string | null;
@@ -155,7 +157,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 setThreeTierReferenceImage(imageData);
 
             } catch (error) {
-                console.error('❌ Failed to load 3-tier reference image:', error);
+                // Silently handle reference image load failure
             }
         };
         fetchReferenceImage();
@@ -171,6 +173,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
         setCurrentSlugState(null);
         setSeoMetadata(null);
+        setIsAnalysisCached(false);
         persistedImageStateRef.current = {
             original: null,
             source: null,
@@ -189,7 +192,6 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         setCurrentSlugState(prevSlug => {
             // If slug is changing to a different value, clear persisted images
             if (prevSlug !== null && newSlug !== null && prevSlug !== newSlug) {
-                console.log(`🔄 Slug changed from ${prevSlug} to ${newSlug}, clearing stale images`);
                 // Clear state immediately
                 setOriginalImageData(null);
                 setSourceImageData(null);
@@ -245,7 +247,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 if (source) setSourceImageData(JSON.parse(source));
                 if (edited) setEditedImage(edited);
             } catch (err) {
-                console.error('Failed to load images from persistence:', err);
+                // Silently handle persistence load error
             }
         };
         loadImages();
@@ -318,6 +320,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         // so the share button won't show an old link
         setCurrentSlugState(null);
         setSeoMetadata(null);
+        setIsAnalysisCached(false);
         try {
             const imageData = await fileToBase64(file);
             const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
@@ -339,12 +342,14 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
             // --- STEP 0: CHECK PRECOMPUTED ANALYSIS ---
             if (options?.precomputedAnalysis) {
-                console.log('✅ Using precomputed analysis result');
                 onSuccess(options.precomputedAnalysis);
                 return;
             }
 
             // --- STEP 1: CHECK CACHE FIRST (FAST PATH pHash) ---
+            let uploadedImageUrl = options?.imageUrl; // Use existing URL if from web search
+            let compressedImageData = imageData; // Default to original
+            let finalImageBlobToCache: Blob | undefined;
 
             const pHash = await generatePerceptualHash(imageSrc);
             const shouldUseSimilarCacheLookup = !knownSeoMetadata;
@@ -353,20 +358,19 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 : null;
 
             // --- STEP 2: COMPRESS IMAGE FOR AI & STORAGE (ONLY ON CACHE MISS) ---
-            let uploadedImageUrl = options?.imageUrl; // Use existing URL if from web search
-            let compressedImageData = imageData; // Default to original
-
             if (!cacheHit) {
                 try {
                     // Compress image for both AI analysis and storage. 1024x1024 is optimal for Gemini.
                     const imageBlob = dataURItoBlob(imageSrc);
                     const fileToUpload = new File([imageBlob], file.name, { type: file.type });
+                    finalImageBlobToCache = fileToUpload; // Default
 
                     const compressedFile = await compressImage(fileToUpload, {
                         maxSizeMB: 0.5,
                         maxWidthOrHeight: 1024,
                         fileType: 'image/webp',
                     });
+                    finalImageBlobToCache = compressedFile;
 
                     // Convert compressed file to base64 for AI
                     compressedImageData = await fileToBase64(compressedFile);
@@ -375,7 +379,6 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     // If compression failed or result is still too large (>1MB), force resize via Canvas
                     // This guarantees we never send a massive payload to Gemini
                     if (compressedImageData.data.length > 2 * 1024 * 1024) { // > ~1.5MB base64
-                        console.warn("⚠️ Compressed image still too large, applying forceful resizing...");
                         try {
                             const img = new Image();
                             img.src = imageSrc;
@@ -410,50 +413,29 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                                 data: resizedBase64,
                                 mimeType: 'image/jpeg'
                             };
-                            console.log("✅ Forceful resizing complete. New size:", (resizedBase64.length / 1024 / 1024).toFixed(2), "MB");
 
                         } catch (resizeErr) {
-                            console.error("Force resize failed:", resizeErr);
-                        }
-                    }
-
-                    // Upload compressed file to storage for cache record
-                    if (!uploadedImageUrl) {
-                        const fileName = `analysis-cache/${uuidv4()}.webp`;
-                        const { error: uploadError } = await supabase.storage
-                            .from('cakegenie')
-                            .upload(fileName, compressedFile, {
-                                contentType: 'image/webp',
-                                upsert: false,
-                            });
-
-                        if (uploadError) {
-                            console.warn('Failed to upload image for caching, proceeding without URL.', uploadError.message);
-                        } else {
-                            const { data: { publicUrl } } = supabase.storage.from('cakegenie').getPublicUrl(fileName);
-                            uploadedImageUrl = publicUrl;
+                            // Silently handle resize failure
                         }
                     }
 
                     // --- STEP 2.75: CHECK EMBEDDING CACHE IF pHash MISSED ---
                     if (shouldUseSimilarCacheLookup && !cacheHit) {
-                        console.log('🔄 pHash missed, checking Gemini embeddings for visual similarity...');
                         try {
                             const imageEmbedding = await embedCakeImage({ data: compressedImageData.data, mimeType: compressedImageData.mimeType });
-                            cacheHit = await findSimilarAnalysisByEmbedding(imageEmbedding, 0.95, uploadedImageUrl);
+                            cacheHit = await findSimilarAnalysisByEmbedding(imageEmbedding, 0.86, uploadedImageUrl);
                         } catch (embedError) {
-                            console.warn('⚠️ Embedding check failed, falling back to full analysis:', embedError);
+                            // Silently handle embedding check failure
                         }
                     }
 
                 } catch (compressionErr) {
-                    console.warn('Image compression failed, proceeding with original:', compressionErr);
+                    // Silently handle compression failure
                 }
             }
 
             // --- PROCESS CACHE HIT (IF ANY) ---
             if (cacheHit) {
-                console.log('✅ Using cached analysis result');
                 const cachedAnalysis = cacheHit.analysisResult;
                 setSeoMetadata(cacheHit.seoMetadata);
 
@@ -461,6 +443,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 if (cacheHit.seoMetadata.slug) {
                     setCurrentSlugState(cacheHit.seoMetadata.slug);
                 }
+                setIsAnalysisCached(true);
 
                 onSuccess(cachedAnalysis);
 
@@ -468,48 +451,47 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 const hasBbox = hasBoundingBoxData(cachedAnalysis);
 
                 if (!hasBbox) {
-                    console.log('🔄 Cached result missing bbox data, enriching in background...');
 
                     // Run enrichment in background without blocking
                     (async () => {
                         try {
-                            // Note: we can use compressedImageData if we compressed it above
-                            // If not, we just compress again.
-                            let bgCompressedImageData = compressedImageData;
-                            if (bgCompressedImageData.data.length === imageData.data.length && bgCompressedImageData.data.length > 2 * 1024 * 1024) {
+                            let bgCompressedData = compressedImageData;
+                            let bgBlob = finalImageBlobToCache;
+
+                            if (!bgBlob) {
                                 // Need to get compressed image data for enrichment
                                 const imageBlob = dataURItoBlob(imageSrc);
                                 const fileToUpload = new File([imageBlob], file.name, { type: file.type });
-                                const compressedFile = await compressImage(fileToUpload, {
+                                bgBlob = await compressImage(fileToUpload, {
                                     maxSizeMB: 0.5,
                                     maxWidthOrHeight: 1024,
                                     fileType: 'image/webp',
                                 });
-                                bgCompressedImageData = await fileToBase64(compressedFile);
+                                bgCompressedData = await fileToBase64(new File([bgBlob], file.name, { type: 'image/webp' }));
                             }
 
                             // Enrich with Roboflow
                             const enrichedResult = await enrichAnalysisWithRoboflow(
-                                bgCompressedImageData.data,
-                                bgCompressedImageData.mimeType,
+                                bgCompressedData.data,
+                                bgCompressedData.mimeType,
                                 cachedAnalysis
                             );
 
+                            // Better Process: Only update image if it's missing in cache
+                            const blobToPass = cacheHit.seoMetadata.original_image_url ? undefined : bgBlob;
+
                             // Update cache with bbox data
-                            cacheAnalysisResult(pHash, enrichedResult);
+                            await cacheAnalysisResult(pHash, enrichedResult, undefined, blobToPass);
+                            setIsAnalysisCached(true);
 
                             // Notify UI of enriched coordinates
                             if (options?.onCoordinatesEnriched) {
                                 options.onCoordinatesEnriched(enrichedResult);
                             }
-
-                            console.log('✅ Background enrichment complete, cache updated with bbox data');
                         } catch (error) {
-                            console.warn('⚠️ Background enrichment failed:', error);
+                            // Silently handle background enrichment failure
                         }
                     })();
-                } else {
-                    console.log('✨ Cached result already has bbox data, skipping enrichment');
                 }
 
                 return; // Skip compression and AI call entirely!
@@ -539,8 +521,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     return;
                 }
             } catch (validationErr) {
-                // If validation itself fails, log and continue — don't block the user
-                console.warn('⚠️ Validation step failed, proceeding with analysis:', validationErr);
+                // If validation itself fails, continue — don't block the user
             }
             // --- END OF VALIDATION GATE ---
 
@@ -577,20 +558,18 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     compressedImageData.data,
                     compressedImageData.mimeType,
                     fastResult
-                ).then(enrichedResult => {
+                ).then(async enrichedResult => {
                     // Notify the UI to update with enriched coordinates
                     if (options?.onCoordinatesEnriched) {
                         options.onCoordinatesEnriched(enrichedResult);
                     }
 
-                    // Cache the fully enriched result
-                    cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl);
-
-                    console.log('✨ Coordinate enrichment complete');
-                }).catch(enrichmentError => {
-                    console.warn('⚠️ Coordinate enrichment failed, but features are still available:', enrichmentError);
+                    await cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache);
+                    setIsAnalysisCached(true);
+                }).catch(async enrichmentError => {
                     // Still cache the fast result even if enrichment fails
-                    cacheAnalysisResult(pHash, fastResult, uploadedImageUrl);
+                    await cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache);
+                    setIsAnalysisCached(true);
                 });
 
             } catch (error) {
@@ -829,6 +808,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         uploadCartImages,
         clearImages,
         seoMetadata,
+        isAnalysisCached,
     }), [
         originalImageData,
         sourceImageData,
@@ -846,6 +826,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         uploadCartImages,
         clearImages,
         seoMetadata,
+        isAnalysisCached,
     ]);
 
     return (

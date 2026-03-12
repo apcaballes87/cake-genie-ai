@@ -23,7 +23,6 @@ const topMessage: CakeMessageUI = {
 
 const buildProps = (): React.ComponentProps<typeof CustomizingMessagesPanel> => ({
     isVisible: true,
-    hasMessageChanges: true,
     cakeMessages: [topMessage],
     markerMap: new Map(),
     selectedMessageId: undefined,
@@ -32,19 +31,16 @@ const buildProps = (): React.ComponentProps<typeof CustomizingMessagesPanel> => 
     addCakeMessage: vi.fn(),
     updateCakeMessage: vi.fn(),
     removeCakeMessage: vi.fn(),
-    onRevert: vi.fn(),
 });
 
 describe('CustomizingMessagesPanel', () => {
-    it('forwards revert and existing-message selection interactions', () => {
+    it('forwards existing-message selection interactions', () => {
         const props = buildProps();
 
         render(<CustomizingMessagesPanel {...props} />);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Revert' }));
         fireEvent.click(screen.getByRole('button', { name: 'Top Top' }));
 
-        expect(props.onRevert).toHaveBeenCalledTimes(1);
         expect(props.onItemClick).toHaveBeenCalledWith(expect.objectContaining({
             id: 'message-top',
             itemCategory: 'message',

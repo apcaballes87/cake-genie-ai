@@ -142,31 +142,37 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
 
         if (availability === 'rush') {
             return (
-                <div className="bg-green-100 border-b border-green-200 rounded-t-2xl pb-[8px] -mb-[8px]">
+                <div className="bg-green-100 border-b border-green-200 rounded-t-2xl pb-[8px] -mb-[8px] relative">
                     <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-green-800 text-xs sm:text-sm font-bold p-2">
                         <span>⚡</span>
                         <span>Rush Order Available! Ready in 30 mins</span>
                     </div>
+                    {/* Filler to close gap with element below */}
+                    <div className="absolute -bottom-4 left-0 right-0 h-4 bg-green-100 pointer-events-none" />
                 </div>
             );
         }
         if (availability === 'same-day') {
             return (
-                <div className="bg-blue-100 border-b border-blue-200 rounded-t-2xl pb-[8px] -mb-[8px]">
+                <div className="bg-blue-100 border-b border-blue-200 rounded-t-2xl pb-[8px] -mb-[8px] relative">
                     <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-blue-800 text-xs sm:text-sm font-bold p-2">
                         <span>🕐</span>
                         <span>Same-Day Order! Ready in 3 hours</span>
                     </div>
+                    {/* Filler to close gap with element below */}
+                    <div className="absolute -bottom-4 left-0 right-0 h-4 bg-blue-100 pointer-events-none" />
                 </div>
             );
         }
         if (availability === 'normal') {
             return (
-                <div className="bg-slate-100 border-b border-slate-200 rounded-t-2xl pb-[8px] -mb-[8px]">
+                <div className="bg-slate-100 border-b border-slate-200 rounded-t-2xl pb-[8px] -mb-[8px] relative">
                     <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-slate-700 text-xs sm:text-sm font-bold p-2">
                         <span>📅</span>
                         <span>Standard order. Requires 1-day lead time</span>
                     </div>
+                    {/* Filler to close gap with element below */}
+                    <div className="absolute -bottom-4 left-0 right-0 h-4 bg-slate-100 pointer-events-none" />
                 </div>
             );
         }
@@ -189,6 +195,8 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                         <AlertTriangleIcon className="w-5 h-5 text-red-600 shrink-0" />
                         <span>{warningMessage}</span>
                     </div>
+                    {/* Filler to close gap with element below */}
+                    <div className="absolute -bottom-4 left-0 right-0 h-4 bg-red-50 pointer-events-none" />
                     {/* Tooltip */}
                     {warningDescription && (
                         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-72 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-xl z-50 text-center leading-relaxed pointer-events-none">
@@ -199,9 +207,9 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                 </div>
             )}
             <div className="relative z-10 bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[20px] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] border-t border-slate-200">
-                <div className="max-w-4xl mx-auto mb-2 relative" ref={containerRef}>
+                <div className="max-w-4xl mx-auto mb-2 relative bg-white border border-slate-200 rounded-2xl p-[0px] shadow-inner transition-all" ref={containerRef}>
                     {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isApplyingChanges && (
-                        <div className="absolute left-0 right-0 bottom-full mb-2 z-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+                        <div className="absolute left-0 right-0 bottom-full mb-3 z-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
                             <div className="max-h-60 overflow-y-auto py-1">
                                 {filteredAiChatPromptSuggestions.map(({ suggestion, template }, index) => (
                                     <button
@@ -230,7 +238,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                         </div>
                     )}
                     {selectedAiPromptTemplate ? (
-                        <div className="py-1 pr-10">
+                        <div className="py-2 px-3 pr-10">
                             <div className="flex items-start gap-2 text-[14px] leading-6 text-slate-700">
                                 <span className="min-w-0 flex-1 wrap-break-word">
                                     {selectedAiPromptTemplate.prefix}
@@ -254,8 +262,8 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                                 </button>
                             </div>
                             {showAiPromptColorPicker && (
-                                <div className="mt-2 rounded-2xl border border-slate-100 bg-slate-50 p-3">
-                                    <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                                <div className="mt-2 rounded-xl border border-slate-100 bg-slate-50 p-2">
+                                    <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 px-1">
                                         Choose {selectedAiPromptTemplate.placeholderLabel}
                                     </div>
                                     <ColorPalette
@@ -266,16 +274,21 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                             )}
                         </div>
                     ) : (
-                        <>
-                            <textarea 
+                        <div className="relative flex items-center">
+                            <textarea
                                 ref={inputRef}
                                 placeholder="✨ Tell Genie your cake design wish..."
-                                className="bg-transparent border-none outline-none resize-none px-1 py-1 pr-16 text-slate-700 w-full text-[15px] font-medium placeholder:text-slate-500/70"
+                                className="bg-transparent border-none outline-none resize-none px-3 py-2.5 pr-12 text-slate-700 w-full text-[14px] font-medium placeholder:text-slate-500/60 leading-normal"
                                 rows={1}
                                 value={chatInput}
                                 onFocus={onInputInteract}
                                 onClick={onInputInteract}
-                                onChange={(e) => onChatInputChange?.(e.target.value)}
+                                onChange={(e) => {
+                                    onChatInputChange?.(e.target.value);
+                                    // Auto-resize
+                                    e.target.style.height = 'auto';
+                                    e.target.style.height = e.target.scrollHeight + 'px';
+                                }}
                                 onKeyDown={(e) => {
                                     // Let the autocomplete handler run first (keys like Up/Down/Enter/Escape)
                                     if (onInputKeyDown) {
@@ -293,16 +306,29 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                                 type="button"
                                 onClick={() => void onChatSubmit?.()}
                                 disabled={!chatInput.trim() || isAiProcessing}
-                                className="absolute right-0 top-0 bottom-0 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white px-3 transition-all flex items-center justify-center shadow-sm rounded-full disabled:opacity-40 disabled:cursor-not-allowed"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white transition-all flex items-center justify-center rounded-xl disabled:opacity-40 disabled:cursor-not-allowed group"
                                 aria-label="Submit AI Edit"
                             >
                                 {isAiProcessing ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                    <svg
+                                        width="14"
+                                        height="14"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                                    >
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
                                 )}
                             </button>
-                        </>
+                        </div>
                     )}
                 </div>
                 <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">

@@ -64,21 +64,10 @@ async function run() {
                 
                 const imageBase64 = await fileToBase64(buffer, mimeType);
 
-                // 2. Build text payload
-                const textParts = [
-                    record.seo_title,
-                    record.seo_description,
-                    record.keywords,
-                    (record.tags || []).join(', ')
-                ].filter(Boolean);
-                const textPayload = textParts.join(' | ');
-
-                // 3. Generate embedding
-                const parts: any[] = [];
-                if (textPayload) {
-                    parts.push({ text: textPayload });
-                }
-                parts.push({ inlineData: { mimeType: imageBase64.mimeType, data: imageBase64.data } });
+                // 3. Generate embedding (IMAGE-ONLY for visual similarity)
+                const parts: any[] = [
+                    { inlineData: { mimeType: imageBase64.mimeType, data: imageBase64.data } }
+                ];
 
                 const response = await ai.models.embedContent({
                     model: 'gemini-embedding-2-preview',

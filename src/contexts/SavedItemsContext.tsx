@@ -94,13 +94,11 @@ export const SavedItemsProvider: React.FC<SavedItemsProviderProps> = ({ children
         try {
             const { data, error } = await getSavedItems(user.id);
             if (error) {
-                console.error('Error fetching saved items:', error);
                 setSavedItems([]);
             } else {
                 setSavedItems(data || []);
             }
         } catch (err) {
-            console.error('Exception fetching saved items:', err);
             setSavedItems([]);
         } finally {
             setIsLoading(false);
@@ -120,7 +118,6 @@ export const SavedItemsProvider: React.FC<SavedItemsProviderProps> = ({ children
     }) => {
         if (!user || user.is_anonymous) {
             // Could dispatch a login prompt event here
-            console.warn('User must be logged in to save items');
             return;
         }
 
@@ -150,14 +147,12 @@ export const SavedItemsProvider: React.FC<SavedItemsProviderProps> = ({ children
             if (isSaved) {
                 const { error } = await unsaveProduct(user.id, product.productId);
                 if (error) {
-                    console.error('Error unsaving product:', error);
                     // Rollback
                     fetchSavedItems();
                 }
             } else {
                 const { data, error } = await saveProductItem(user.id, product);
                 if (error) {
-                    console.error('Error saving product:', error);
                     // Rollback
                     fetchSavedItems();
                 } else if (data) {
@@ -172,7 +167,6 @@ export const SavedItemsProvider: React.FC<SavedItemsProviderProps> = ({ children
                 }
             }
         } catch (err) {
-            console.error('Exception toggling save product:', err);
             fetchSavedItems();
         }
     }, [user, savedProductIds, fetchSavedItems]);
@@ -183,7 +177,6 @@ export const SavedItemsProvider: React.FC<SavedItemsProviderProps> = ({ children
         customizedImageUrl: string;
     }) => {
         if (!user || user.is_anonymous) {
-            console.warn('User must be logged in to save items');
             return;
         }
 
@@ -213,13 +206,11 @@ export const SavedItemsProvider: React.FC<SavedItemsProviderProps> = ({ children
             if (isSaved) {
                 const { error } = await unsaveCustomDesign(user.id, design.analysisPHash);
                 if (error) {
-                    console.error('Error unsaving design:', error);
                     fetchSavedItems();
                 }
             } else {
                 const { data, error } = await saveCustomDesign(user.id, design);
                 if (error) {
-                    console.error('Error saving design:', error);
                     fetchSavedItems();
                 } else if (data) {
                     setSavedItems(prev =>
@@ -232,7 +223,6 @@ export const SavedItemsProvider: React.FC<SavedItemsProviderProps> = ({ children
                 }
             }
         } catch (err) {
-            console.error('Exception toggling save design:', err);
             fetchSavedItems();
         }
     }, [user, savedDesignHashes, fetchSavedItems]);
@@ -253,18 +243,16 @@ export const SavedItemsProvider: React.FC<SavedItemsProviderProps> = ({ children
         try {
             const { error } = await removeSavedItem(savedItemId);
             if (error) {
-                console.error('Error removing saved item:', error);
                 // Rollback
                 if (itemToRemove) {
                     setSavedItems(prev => [itemToRemove, ...prev]);
                 }
             }
-        } catch (err) {
-            console.error('Exception removing saved item:', err);
-            if (itemToRemove) {
-                setSavedItems(prev => [itemToRemove, ...prev]);
-            }
+    } catch (err) {
+        if (itemToRemove) {
+            setSavedItems(prev => [itemToRemove, ...prev]);
         }
+    }
     }, [savedItems]);
 
     // Data context value

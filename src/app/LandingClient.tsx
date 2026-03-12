@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import toast from 'react-hot-toast';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -27,7 +28,8 @@ import {
     Upload,
     UploadCloud,
     Calculator,
-    Menu
+    Menu,
+    Loader2
 } from 'lucide-react';
 
 const ImageUploader = dynamic(
@@ -84,6 +86,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isOccasionOpen, setIsOccasionOpen] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const uploadToastId = useRef<string | null>(null);
     const isMounted = React.useSyncExternalStore(subscribeToHydration, () => true, () => false);
 
     const { itemCount } = useCart();
@@ -129,43 +133,63 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     };
 
     const handleAppImageUpload = useCallback((file: File) => {
+        if (isUploading) return;
+
         // Upload to Supabase first, then redirect (same approach as BlogUploadButton)
         const uploadToSupabase = async () => {
             const supabase = getSupabaseClient();
             const ext = file.name.split('.').pop() || 'jpg';
             const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
 
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('cakegenie')
-                .upload(filename, file);
+            try {
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('cakegenie')
+                    .upload(filename, file);
 
-            if (uploadError) {
-                console.error('Upload failed:', uploadError);
+                if (uploadError) {
+                    console.error('Upload failed:', uploadError);
+                    showError('Failed to upload. Please try again.');
+                    return null;
+                }
+
+                const { data: urlData } = supabase.storage
+                    .from('cakegenie')
+                    .getPublicUrl(uploadData.path);
+
+                return urlData.publicUrl;
+            } catch (err) {
+                console.error('Upload catch error:', err);
                 showError('Failed to upload. Please try again.');
                 return null;
             }
-
-            const { data: urlData } = supabase.storage
-                .from('cakegenie')
-                .getPublicUrl(uploadData.path);
-
-            return urlData.publicUrl;
         };
 
         const processUpload = async () => {
-            showLoading('Uploading your design...');
+            setIsUploading(true);
+            uploadToastId.current = showLoading('Uploading your design...');
 
-            const publicUrl = await uploadToSupabase();
+            try {
+                const publicUrl = await uploadToSupabase();
 
-            if (publicUrl) {
-                // Redirect to customizing with the uploaded image URL
-                const encodedUrl = encodeURIComponent(publicUrl);
-                router.push(`/customizing?ref=${encodedUrl}&source=landing`);
+                if (publicUrl) {
+                    // Redirect to customizing with the uploaded image URL
+                    const encodedUrl = encodeURIComponent(publicUrl);
+                    router.push(`/customizing?ref=${encodedUrl}&source=landing`);
+                    // We don't dismiss here yet because router.push might take time if page is heavy, 
+                    // but usually it's better to dismiss when we know we are transitioning.
+                    // However, we MUST dismiss eventually.
+                }
+            } finally {
+                setIsUploading(false);
+                if (uploadToastId.current) {
+                    toast.dismiss(uploadToastId.current);
+                    uploadToastId.current = null;
+                }
             }
         };
 
         processUpload();
-    }, [router]);
+    }, [router, isUploading]);
     const [isScrolled, setIsScrolled] = useState(false);
     const [showCompactHeader, setShowCompactHeader] = useState(false);
 
@@ -403,11 +427,16 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 {/* Buttons Below */}
                                 <div className="flex flex-row items-center gap-2 xs:gap-3 w-full max-w-[360px] mx-auto">
                                     <button
-                                        className="flex-1 flex items-center justify-center gap-1.5 w-full bg-[#9b80e3] hover:bg-[#8669cc] text-white py-3.5 px-2 rounded-[0.875rem] font-semibold transition-all shadow-md active:scale-[0.98] text-[14px] xs:text-[15px] whitespace-nowrap"
+                                        disabled={isUploading}
+                                        className="flex-1 flex items-center justify-center gap-1.5 w-full bg-[#9b80e3] hover:bg-[#8669cc] disabled:bg-[#9b80e3]/70 text-white py-3.5 px-2 rounded-[0.875rem] font-semibold transition-all shadow-md active:scale-[0.98] text-[14px] xs:text-[15px] whitespace-nowrap disabled:cursor-not-allowed"
                                         onClick={() => setIsUploaderOpen(true)}
                                     >
-                                        <Upload size={18} className="shrink-0" />
-                                        <span>Upload<span className="hidden min-[350px]:inline"> a Design</span></span>
+                                        {isUploading ? (
+                                            <Loader2 size={18} className="animate-spin shrink-0" />
+                                        ) : (
+                                            <Upload size={18} className="shrink-0" />
+                                        )}
+                                        <span>{isUploading ? 'Uploading...' : 'Upload'} <span className="hidden min-[350px]:inline">{isUploading ? '' : 'a Design'}</span></span>
                                     </button>
                                     <Link
                                         href="/collections"
@@ -433,11 +462,16 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         </p>
                                         <div className="flex flex-row gap-3 lg:gap-4 items-center flex-nowrap shrink-0">
                                             <button
-                                                className="flex items-center justify-center gap-2 bg-[#9b80e3] hover:bg-[#8669cc] text-white px-5 py-3 lg:px-7 lg:py-3.5 rounded-[0.875rem] font-semibold transition-all shadow-md active:scale-[0.98] text-sm lg:text-base whitespace-nowrap shrink-0"
+                                                disabled={isUploading}
+                                                className="flex items-center justify-center gap-2 bg-[#9b80e3] hover:bg-[#8669cc] disabled:bg-[#9b80e3]/70 text-white px-5 py-3 lg:px-7 lg:py-3.5 rounded-[0.875rem] font-semibold transition-all shadow-md active:scale-[0.98] text-sm lg:text-base whitespace-nowrap shrink-0 disabled:cursor-not-allowed"
                                                 onClick={() => setIsUploaderOpen(true)}
                                             >
-                                                <Upload size={18} className="shrink-0 lg:w-5 lg:h-5" />
-                                                Upload a Design
+                                                {isUploading ? (
+                                                    <Loader2 size={18} className="animate-spin shrink-0 lg:w-5 lg:h-5" />
+                                                ) : (
+                                                    <Upload size={18} className="shrink-0 lg:w-5 lg:h-5" />
+                                                )}
+                                                {isUploading ? 'Uploading...' : 'Upload a Design'}
                                             </button>
                                             <Link
                                                 href="/collections"

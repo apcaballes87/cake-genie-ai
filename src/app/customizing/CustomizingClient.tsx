@@ -298,7 +298,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setEditedImage, setError: setImageManagementError, setOriginalImageData, setPreviousImageData,
         handleImageUpload: hookImageUpload, handleSave, uploadCartImages, clearImages,
         loadImageWithoutAnalysis, setCurrentSlug, currentSlug: persistedSlug,
-        seoMetadata,
+        seoMetadata, isAnalysisCached,
     } = useImageManagement();
 
     // --- Local State ---
@@ -486,7 +486,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 setHasMoreDesigns(false);
             }
         } catch (error) {
-            console.error('Error loading more designs:', error);
+            // Silently handle discovery error
         } finally {
             setIsLoadingMoreDesigns(false);
         }
@@ -514,8 +514,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
         lastAutoRelatedDesignRequestKeyRef.current = autoRelatedDesignRequest.key;
 
-        console.log('🤖 Analysis complete, fetching related designs for:', autoRelatedDesignRequest.keyword);
-
         const fetchRelated = async () => {
             setIsLoadingMoreDesigns(true);
             try {
@@ -535,7 +533,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 }
             } catch (error) {
                 lastAutoRelatedDesignRequestKeyRef.current = null;
-                console.error('Error auto-loading related designs:', error);
+                // Silently handle discovery error
             } finally {
                 setIsLoadingMoreDesigns(false);
             }
@@ -562,7 +560,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 }
             } catch (error) {
                 lastRelatedCollectionsRequestKeyRef.current = null;
-                console.error('Error fetching related collections:', error);
+                // Silently handle meta data fetch error
             } finally {
                 setIsLoadingCollections(false);
             }
@@ -580,11 +578,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         let resolveMergedAnalysis: ((value: HybridAnalysisResult) => void) | undefined;
         let rejectMergedAnalysis: ((reason?: unknown) => void) | undefined;
 
-        console.log(`[AI TRACE ${traceId}] submitAiChatPrompt:start`, {
-            prompt: currentPrompt,
-            promptLength: currentPrompt.length,
-        });
-
         setIsAiProcessing(true);
         setChatInput('');
 
@@ -598,17 +591,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             // 1. Fire Image Edit (runs in background, hook manages state/error)
             // We keep this fully parallel and drive the first image pass directly from the
             // raw user request + normal image-edit system instruction selection.
-            console.log(`[AI TRACE ${traceId}] submitAiChatPrompt:dispatch-image-edit`);
             handleUpdateDesign(`[USER REQUEST]: ${currentPrompt}`, {
                 traceId,
                 source: 'ai-chat-image-edit',
                 promptGenerator: AI_CHAT_IMAGE_PROMPT_GENERATOR,
             }).catch(err => {
                 void (async () => {
-                    console.warn(`[AI TRACE ${traceId}] submitAiChatPrompt:image-edit-retrying-after-chat-sync`, {
-                        message: err instanceof Error ? err.message : 'Unknown error',
-                    });
-
                     try {
                         const mergedAnalysisForRetry = await mergedAnalysisReady;
                         const mappedState = mapAnalysisToState(mergedAnalysisForRetry);
@@ -635,18 +623,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             },
                         });
                     } catch (retryErr) {
-                        console.error(`[AI TRACE ${traceId}] submitAiChatPrompt:image-edit-error`, retryErr);
-                        console.error('Image generation failed in background:', retryErr);
+                        // Image generation failed in background
                     }
                 })();
             });
 
-            console.log('🔍 [DEBUG CHAT] Step 0 - USER PROMPT:', currentPrompt);
-            console.log('🔍 [DEBUG CHAT] Step 1 - Synced cake_messages SENT to AI:', JSON.stringify(syncedAnalysis.cake_messages, null, 2));
-            console.log('🔍 [DEBUG CHAT] Step 1 - Full synced icing_design SENT to AI:', JSON.stringify(syncedAnalysis.icing_design, null, 2));
-
             // 2. Fire Chat Edit (waits for JSON to update UI)
-            console.log(`[AI TRACE ${traceId}] submitAiChatPrompt:dispatch-chat-edit`);
             const response = await fetch('/api/ai/chat-edit', {
                 method: 'POST',
                 headers: {
@@ -660,11 +642,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 }),
             });
 
-            console.log(`[AI TRACE ${traceId}] submitAiChatPrompt:chat-edit-response`, {
-                status: response.status,
-                ok: response.ok,
-            });
-
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to update design');
@@ -672,10 +649,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
             const data = await response.json();
             const aiResponse = data.analysis_json;
-
-            console.log('🔍 [DEBUG CHAT] Step 2 - AI RETURNED cake_messages:', JSON.stringify(aiResponse.cake_messages, null, 2));
-            console.log('🔍 [DEBUG CHAT] Step 2 - AI RETURNED icing_design:', JSON.stringify(aiResponse.icing_design, null, 2));
-            console.log('🔍 [DEBUG CHAT] Step 2 - FULL AI response:', JSON.stringify(aiResponse, null, 2));
 
             // DEFENSIVE MERGE: The AI sometimes returns partial JSON, omitting fields
             // it didn't change. We must merge with the synced state so missing fields
@@ -690,33 +663,21 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 icing_design: aiResponse.icing_design ?? syncedAnalysis.icing_design,
             };
 
-            console.log('🔍 [DEBUG CHAT] Step 2.5 - MERGED cake_messages:', JSON.stringify(mergedAnalysis.cake_messages, null, 2));
-            console.log('🔍 [DEBUG CHAT] Step 2.5 - MERGED icing_design:', JSON.stringify(mergedAnalysis.icing_design, null, 2));
-
             // Clear dirty state so AI changes take precedence over previous manual overrides
             clearDirtyState();
-
-            console.log('🔍 [DEBUG CHAT] Step 3 - Dirty state cleared, about to call setPendingAnalysisData');
 
             // Apply the merged analysis as if it was analyzed from an image
             // This instantly updates UI toggles, price, and tags 
             setPendingAnalysisData(mergedAnalysis);
             resolveMergedAnalysis?.(mergedAnalysis);
 
-            console.log(`[AI TRACE ${traceId}] submitAiChatPrompt:success`);
-
             // Notify user while image is still spinning
             showSuccess('AI applied changes! Image is generating...');
 
         } catch (err: any) {
             rejectMergedAnalysis?.(err);
-            console.error(`[AI TRACE ${traceId}] submitAiChatPrompt:error`, {
-                message: err?.message || 'Unknown error',
-            });
-            console.error('Chat edit error:', err);
             showError(err.message || 'Failed to process your request. Please try again.');
         } finally {
-            console.log(`[AI TRACE ${traceId}] submitAiChatPrompt:finish`);
             setIsAiProcessing(false);
         }
     }, [
@@ -914,7 +875,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setCurrentSlug(targetSlug || null);
 
         isLoadingDesignRef.current = true;
-        console.log(`🏪 Loading item from props: ${targetTitle}`);
+        // Loading item from props
 
         // Clear any existing stale data
         // 1. Reset Image Context (always needed as it persists across products if provider is higher up)
@@ -928,14 +889,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         if (!hasSSRData) {
             clearCustomization();
             setIsAnalyzing(true);
-        } else {
-            console.log("⚡ Reusing SSR Analysis Data");
         }
 
         const shouldReuseSsrAnalysis = shouldHydrateImageFromExistingAnalysis({ hasSsrData: hasSSRData });
 
         if (targetPHash && shouldReuseSsrAnalysis) {
-            console.log("⚡ Fast Path: Hydrating image from SSR analysis");
 
             loadImageWithoutAnalysis(targetImageUrl, {
                 fileName: 'product.jpg',
@@ -948,7 +906,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     isLoadingDesignRef.current = false;
                 })
                 .catch(err => {
-                    console.error('SSR hydration fast path failed:', err);
                     setAnalysisError('Failed to load product');
                     isLoadingDesignRef.current = false;
                     setIsAnalyzing(false);
@@ -958,7 +915,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         }
 
         if (targetPHash) {
-            console.log("⚡ Fast Path: Using stored p_hash:", targetPHash);
 
             // Start image fetch in parallel with analysis fetch
             const imageFetchPromise = (async () => {
@@ -989,7 +945,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         file,
                         (result) => {
                             if (analysisData) {
-                                console.log("✅ Image loaded (Analysis synced)");
 
                                 // Only trigger 'setPendingAnalysisData' if we didn't start with SSR data.
                                 // If hasSSRData is true, the context is already populated via initialData.
@@ -1002,11 +957,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 isLoadingDesignRef.current = false;
                             } else {
                                 // Fallback: If DB lookup failed (shouldn't happen with valid FK), run analysis
-                                console.warn("⚠️ Hash lookup returned null, falling back to full analysis");
                             }
                         },
                         (error) => {
-                            console.error("Error processing product image:", error);
                             if (error instanceof Error && error.message.startsWith('AI_REJECTION:')) {
                                 setAnalysisError(error.message);
                                 showError(error.message.replace('AI_REJECTION: ', ''));
@@ -1024,7 +977,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     );
                 })
                 .catch(err => {
-                    console.error("Fast path failed:", err);
                     // Fallback to old full flow if fast path crashes
                     isLoadingDesignRef.current = false; // Reset lock to allow retry or old flow
                     setIsAnalyzing(false);
@@ -1034,7 +986,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         }
 
         // OLD FLOW (Fallback): Load image and calculate hash client-side
-        console.log("🐢 Slow Path: No p_hash, calculating client-side...");
+        setIsAnalyzing(true);
         const fetchProductImage = async () => {
             try {
                 let blob: Blob | null = null;
@@ -1046,7 +998,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         blob = await response.blob();
                     }
                 } catch {
-                    console.log("Direct fetch failed, trying proxy...");
                 }
 
                 if (!blob) {
@@ -1066,14 +1017,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 hookImageUpload(
                     file,
                     (result) => {
-                        console.log("✅ Product loaded from props");
                         setPendingAnalysisData(result);
                         setIsAnalyzing(false);
                         showSuccess("Design loaded!");
                         isLoadingDesignRef.current = false;
                     },
                     (error) => {
-                        console.error("Error processing product:", error);
                         if (error instanceof Error && error.message.startsWith('AI_REJECTION:')) {
                             setAnalysisError(error.message);
                             showError(error.message.replace('AI_REJECTION: ', ''));
@@ -1088,7 +1037,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 );
 
             } catch (err) {
-                console.error("Failed to load product:", err);
                 showError("Failed to load product.");
                 setIsAnalyzing(false);
                 isLoadingDesignRef.current = false;
@@ -1111,29 +1059,22 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 const sourceParam = urlParams.get('source');
                 const imageUrlParam = urlParams.get('image_url');
 
-                if (shouldLogShopifyCseMount(sourceParam, imageUrlParam)) {
-                    console.log('[ShopifyCSE] useEffect fired. source=', sourceParam, 'image_url=', imageUrlParam ? imageUrlParam.substring(0, 80) + '...' : null);
-                }
-
                 // Not a Shopify CSE handoff — bail
                 if (sourceParam !== 'shopify_cse') {
                     return;
                 }
 
                 if (!imageUrlParam) {
-                    console.warn('[ShopifyCSE] source=shopify_cse present but no image_url param. Cannot load image.');
                     return;
                 }
 
                 // Prevent duplicate processing
                 if (isLoadingShopifyCseRef.current) {
-                    console.log('[ShopifyCSE] Already loading, skipping duplicate call');
                     return;
                 }
 
                 // Wait for image management hook to be ready
                 if (isImageManagementLoading) {
-                    console.log('[ShopifyCSE] Waiting for image management hook to finish loading...');
                     return;
                 }
 
@@ -1141,11 +1082,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 const pendingImageType = urlParams.get('image_type');
 
                 isLoadingShopifyCseRef.current = true;
-                console.log('[ShopifyCSE] Starting image load:', {
-                    imageUrl: imageUrlParam.substring(0, 100),
-                    imageName: pendingImageName,
-                    imageType: pendingImageType,
-                });
 
                 // Clear previous image immediately so there's no flash of the old design
                 clearImages();
@@ -1157,7 +1093,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 const imageUrl = imageUrlParam.startsWith('blob:') ? null : imageUrlParam;
 
                 if (!imageUrl) {
-                    console.error('[ShopifyCSE] Blob URL detected — cannot use after cross-domain redirect');
                     setIsAnalyzing(false);
                     isLoadingShopifyCseRef.current = false;
                     showError("Image link expired. Please try again from the shop.");
@@ -1165,18 +1100,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 }
 
                 // Always use the proxy for cross-origin images to avoid CORS errors
-                console.log('[ShopifyCSE] Fetching image via proxy...');
                 const proxyResponse = await fetch(`/api/proxy-image?url=${encodeURIComponent(imageUrl)}`);
                 if (!proxyResponse.ok) {
                     throw new Error(`Proxy fetch failed with status ${proxyResponse.status}`);
                 }
                 const blob = await proxyResponse.blob();
-                console.log('[ShopifyCSE] Proxy fetch succeeded, blob size:', blob.size);
 
                 const fileName = pendingImageName || 'cake-design.jpg';
                 const fileType = pendingImageType || blob.type || 'image/jpeg';
                 const file = new File([blob], fileName, { type: fileType });
-                console.log('[ShopifyCSE] File created:', { name: fileName, type: fileType, size: file.size });
 
                 // Clean up URL params using history API directly (avoids Next.js router cache issues)
                 urlParams.delete('source');
@@ -1187,18 +1119,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 const cleanUrl = urlParams.toString() ? `${currentPath}?${urlParams.toString()}` : currentPath;
                 window.history.replaceState({}, '', cleanUrl);
 
-                console.log('[ShopifyCSE] Calling hookImageUpload...');
                 hookImageUpload(
                     file,
                     (result) => {
-                        console.log('[ShopifyCSE] hookImageUpload SUCCESS');
                         setPendingAnalysisData(result);
                         setIsAnalyzing(false);
                         isLoadingShopifyCseRef.current = false;
                         showSuccess("Design loaded!");
                     },
                     (error: Error) => {
-                        console.error('[ShopifyCSE] hookImageUpload ERROR:', error.message);
                         setIsAnalyzing(false);
                         isLoadingShopifyCseRef.current = false;
                         showError("Failed to analyze image: " + error.message);
@@ -1206,7 +1135,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 );
 
             } catch (err: any) {
-                console.error("[ShopifyCSE] Failed to load pending image:", err);
                 setIsAnalyzing(false);
                 isLoadingShopifyCseRef.current = false;
                 showError("Failed to load image. Please try again.");
@@ -1234,7 +1162,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         // Guard against duplicate calls (e.g., from React strict mode or URL changes)
 
         if (isLoadingDesignRef.current) {
-            console.log("⏸️ Design load already in progress, skipping duplicate call");
             return;
         }
 
@@ -1255,7 +1182,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         }
 
         if (refLoadStrategy === 'reuse') {
-            console.log("✅ Restoring completed analysis from previous session for:", decodedUrl);
             lastProcessedDesignRefUrl.current = decodedUrl;
             showInfo("Welcome back! Your analysis is ready.");
             return;
@@ -1265,8 +1191,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         if (fromSaved) {
             // Set loading guard FIRST before any side effects
             isLoadingDesignRef.current = true;
-
-            console.log("🔄 Loading saved design, overriding any existing state...");
 
 
             // Clear any existing stale image/customization data first
@@ -1289,16 +1213,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     // We trust it if it's recent.
                     if (Date.now() - parsed.timestamp < 5 * 60 * 1000) {
                         if (parsed.imageUrl !== decodedUrl) {
-                            console.warn("⚠️ Saved data URL mismatch, but proceeding with saved data intent.");
                         }
 
                         const hasPrecomputedAnalysis = parsed.cachedAnalysis != null;
-
-                        console.log(
-                            hasPrecomputedAnalysis
-                                ? "✅ Loading saved design from cached analysis..."
-                                : "✅ Loading saved design with full analysis..."
-                        );
 
                         // Show loading state
                         setIsAnalyzing(true);
@@ -1318,7 +1235,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     showSuccess("Design loaded!");
                                 })
                                 .catch((err) => {
-                                    console.error('Failed to hydrate saved design from cache:', err);
                                     setIsAnalyzing(false);
                                     isLoadingDesignRef.current = false;
                                 });
@@ -1353,7 +1269,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 await hookImageUpload(
                                     file,
                                     (result) => {
-                                        console.log("✅ Design loaded for saved item");
                                         lastProcessedDesignRefUrl.current = decodedUrl;
                                         setPendingAnalysisData(result);
                                         setIsAnalyzing(false);
@@ -1362,7 +1277,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     },
 
                                     (err) => {
-                                        console.error("Analysis failed:", err);
                                         if (err instanceof Error) {
                                             if (err.message.startsWith('AI_REJECTION:')) {
                                                 const message = err.message;
@@ -1375,7 +1289,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         } else {
                                             showError('Failed to analyze image. Please try again.');
                                         }
-                                        console.error("Analysis error:", err);
                                         setIsAnalyzing(false);
                                         isLoadingDesignRef.current = false; // Reset guard
                                     },
@@ -1386,7 +1299,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 );
 
                             } catch (err) {
-                                console.error("Failed to load saved design:", err);
                                 showError("Failed to load saved design.");
                                 setIsAnalyzing(false);
                                 isLoadingDesignRef.current = false; // Reset guard
@@ -1403,7 +1315,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     }
                 }
             } catch (e) {
-                console.error('Failed to parse saved design data:', e);
                 isLoadingDesignRef.current = false; // Reset guard on error
             }
             // Whether localStorage succeeded or failed, we should NOT fall through
@@ -1418,7 +1329,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             // Set loading guard FIRST before any side effects
             isLoadingDesignRef.current = true;
 
-            console.log("🏪 Loading merchant product...");
 
             // Clear any existing stale image/customization data first
             clearImages();
@@ -1435,7 +1345,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     const parsed = JSON.parse(merchantData);
                     // Validate timestamp (5 minutes)
                     if (Date.now() - parsed.timestamp < 5 * 60 * 1000 && parsed.imageUrl) {
-                        console.log("✅ Loading merchant product:", parsed.productName);
 
                         // Show loading state
                         setIsAnalyzing(true);
@@ -1451,7 +1360,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         blob = await response.blob();
                                     }
                                 } catch {
-                                    console.log("Direct fetch failed, trying proxy...");
                                 }
 
                                 if (!blob) {
@@ -1473,7 +1381,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 hookImageUpload(
                                     file,
                                     () => {
-                                        console.log("✅ Merchant product loaded");
                                         lastProcessedDesignRefUrl.current = decodedUrl;
                                         setIsAnalyzing(false);
                                         showSuccess("Product loaded!");
@@ -1481,14 +1388,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     },
 
                                     (error) => {
-                                        console.error("Error processing merchant product:", error);
-                                        if (error instanceof Error && error.message.startsWith('AI_REJECTION:')) {
-                                            setAnalysisError(error.message);
-                                            showError(error.message.replace('AI_REJECTION: ', ''));
-                                        } else {
-                                            setAnalysisError("Failed to load product");
-                                            showError("Failed to load product");
-                                        }
+                                        setAnalysisError("Failed to load product");
+                                        showError("Failed to load product");
                                         setIsAnalyzing(false);
                                         isLoadingDesignRef.current = false;
                                     },
@@ -1496,7 +1397,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 );
 
                             } catch (err) {
-                                console.error("Failed to load merchant product:", err);
                                 showError("Failed to load product.");
                                 setIsAnalyzing(false);
                                 isLoadingDesignRef.current = false;
@@ -1509,15 +1409,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     }
                 }
             } catch (e) {
-                console.error('Failed to parse merchant product data:', e);
                 isLoadingDesignRef.current = false;
             }
 
             localStorage.removeItem('cakegenie_merchant_product');
             return; // Always return for fromMerchant to prevent duplicate loads
         }
-
-        console.log("Loading referenced design:", decodedUrl);
 
         isLoadingDesignRef.current = true;
 
@@ -1570,32 +1467,25 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 // 1. Try Direct Fetch (Fastest & Best for CDN/Supabase)
                 // Many modern CDNs (Shopify, Supabase, Cloudinary) support CORS
                 try {
-                    console.log("Attempting direct fetch...");
                     const response = await fetchWithTimeout(decodedUrl, 8000); // 8s timeout for direct
                     if (response.ok) {
                         blob = await response.blob();
-                        console.log("Direct fetch succeeded");
-                    } else {
-                        console.warn(`Direct fetch failed with status: ${response.status}`);
                     }
                 } catch (err) {
-                    console.warn("Direct fetch failed, will try proxy:", err);
+                    // Direct fetch failed
                 }
 
                 // 2. Fallback to Proxy if Direct failed
                 if (!blob) {
-                    console.log("Attempting proxy fetch...");
-                    const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(decodedUrl)}`;
                     try {
+                        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(decodedUrl)}`;
                         const response = await fetchWithTimeout(proxyUrl, 15000); // 15s timeout for proxy
                         if (response.ok) {
                             blob = await response.blob();
-                            console.log("Proxy fetch succeeded");
                         } else {
                             throw new Error(`Proxy fetch failed with status: ${response.status}`);
                         }
                     } catch (proxyErr) {
-                        console.error("Proxy fetch failed:", proxyErr);
                         throw proxyErr; // Throw if both failed
                     }
                 }
@@ -1604,7 +1494,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                 // Verify it is an image (skip strict check if type is empty due to proxy)
                 if (blob.type && !blob.type.startsWith('image/') && !blob.type.startsWith('application/octet-stream')) {
-                    console.warn(`Fetched content might not be an image: ${blob.type}`);
                     // We continue anyway and let magic byte detection handle it
                 }
 
@@ -1628,7 +1517,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 };
 
                 const mimeType = await detectMimeType(blob);
-                console.log(`Detected MIME type: ${mimeType} (original: ${blob.type})`);
 
                 // Determine extension based on mime type
                 let extension = 'jpg';
@@ -1642,7 +1530,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 await hookImageUpload(
                     file,
                     (result) => {
-                        console.log("Analysis complete for shared design");
                         // Update the customization context with the analysis result
                         lastProcessedDesignRefUrl.current = decodedUrl;
                         setPendingAnalysisData(result);
@@ -1650,7 +1537,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         isLoadingDesignRef.current = false;
                     },
                     (err) => {
-                        console.error("Analysis failed:", err);
                         if (err instanceof Error && err.message.startsWith('AI_REJECTION:')) {
                             setAnalysisError(err.message);
                             showError(err.message.replace('AI_REJECTION: ', ''));
@@ -1664,7 +1550,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 );
 
             } catch (err) {
-                console.error("Failed to load referenced design:", err);
                 let msg = "Could not load the shared design.";
                 if (err instanceof Error && err.name === 'AbortError') {
                     msg = "Image loading timed out. Please try uploading directly.";
@@ -1763,7 +1648,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             const wasSaved = isDesignSaved(pHash);
             showSuccess(wasSaved ? 'Removed from saved' : 'Design saved!');
         } catch (err) {
-            console.error('Failed to save design:', err);
             showError('Failed to save design. Please try again.');
         }
     }, [
@@ -1974,7 +1858,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             router.push('/cart');
         } catch (err) {
             showError('Failed to add to cart: ' + (err instanceof Error ? err.message : 'Unknown error'));
-            console.error(err);
         } finally {
             setIsAddingToCart(false);
         }
@@ -2700,7 +2583,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                     <CustomizingMessagesPanel
                         isVisible={activeCustomization === 'messages'}
-                        hasMessageChanges={hasMessageChanges}
                         cakeMessages={cakeMessages}
                         markerMap={markerMap}
                         selectedMessageId={selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'message' ? selectedItem.id : undefined}
@@ -2709,10 +2591,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         addCakeMessage={addCakeMessage}
                         updateCakeMessage={updateCakeMessage}
                         removeCakeMessage={removeCakeMessage}
-                        onRevert={() => {
-                            restoreOriginalCakeMessages();
-                            setSelectedItem(null);
-                        }}
                     />
 
                     <CustomizingToppersPanel
@@ -2758,7 +2636,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     onAddToCartClick={onAddToCart}
                     onShareClick={onShare}
                     isSharing={isSharing}
-                    canShare={!!analysisResult && !hasPendingVisualChanges && !isUpdatingDesign}
+                    canShare={!!analysisResult && isAnalysisCached && !hasPendingVisualChanges && !isUpdatingDesign}
                     isAnalyzing={isAnalyzing}
                     cakeInfo={cakeInfo}
                     warningMessage={isSafetyFallback ? "AI editing disabled for adult-themed content. Your design changes will still be saved." : warningMessage}

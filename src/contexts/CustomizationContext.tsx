@@ -157,7 +157,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
                     imageRef: parsed.imageRef || null,
                 });
             } catch (e) {
-                console.error('Failed to parse saved analysis:', e);
+                // Silently handle parse errors
             }
         } else {
             persistedAnalysisStateRef.current = null;
@@ -173,7 +173,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
                 if (parsed.icingDesign) setIcingDesign(parsed.icingDesign);
                 if (parsed.additionalInstructions) setAdditionalInstructions(parsed.additionalInstructions);
             } catch (e) {
-                console.error('Failed to parse saved customization:', e);
+                // Silently handle parse errors
             }
         }
     }, [initialData, shouldDeferCustomizationPersistence, hasInMemoryCustomizationState]);
@@ -463,11 +463,6 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
 
         const newState = mapAnalysisToState(rawData);
 
-        console.log('🔍 [DEBUG APPLY] Step 4 - rawData.cake_messages (AI JSON):', JSON.stringify(rawData.cake_messages, null, 2));
-        console.log('🔍 [DEBUG APPLY] Step 4 - newState.cakeMessages (after mapper):', JSON.stringify(newState.cakeMessages, null, 2));
-        console.log('🔍 [DEBUG APPLY] Step 4 - dirtyFields:', Array.from(dirtyFields));
-        console.log('🔍 [DEBUG APPLY] Step 4 - dirtyFields.has(cakeMessages):', dirtyFields.has('cakeMessages'));
-
         if (!dirtyFields.has('cakeInfo') && newState.cakeInfo) {
             setCakeInfo(newState.cakeInfo);
         }
@@ -488,10 +483,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         }
 
         if (!dirtyFields.has('cakeMessages') && newState.cakeMessages) {
-            console.log('🔍 [DEBUG APPLY] Step 5 - APPLYING new cakeMessages to state:', JSON.stringify(newState.cakeMessages, null, 2));
             setCakeMessages(newState.cakeMessages);
-        } else {
-            console.log('🔍 [DEBUG APPLY] Step 5 - SKIPPED cakeMessages because dirtyFields blocks it');
         }
 
         setIcingDesign(prev => {
@@ -539,9 +531,6 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
 
     useEffect(() => {
         if (pendingAnalysisData) {
-            console.log('🔍 [DEBUG PENDING] Step 3.5 - pendingAnalysisData effect fired');
-            console.log('🔍 [DEBUG PENDING] Step 3.5 - pendingAnalysisData.cake_messages:', JSON.stringify(pendingAnalysisData.cake_messages, null, 2));
-            console.log('🔍 [DEBUG PENDING] Step 3.5 - current dirtyFields:', Array.from(dirtyFields));
 
             // Check if this is a coordinate-only update by comparing with current analysisResult
             const isCoordinateUpdate = analysisResult &&
@@ -632,6 +621,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
                 icing_design: syncedIcingDesign,
                 cakeType: current.cakeInfo?.type || prev.cakeType,
                 cakeThickness: current.cakeInfo?.thickness || prev.cakeThickness,
+                cakeSize: current.cakeInfo?.size || prev.cakeSize,
             };
         });
 
@@ -718,6 +708,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
             icing_design: syncedIcingDesign,
             cakeType: current.cakeInfo?.type || analysisResult.cakeType,
             cakeThickness: current.cakeInfo?.thickness || analysisResult.cakeThickness,
+            cakeSize: current.cakeInfo?.size || analysisResult.cakeSize,
         };
     }, [analysisResult]);
 
