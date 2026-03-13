@@ -351,7 +351,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                     )}
                 </div>
                 <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
-                    <div className="min-w-[100px]">{renderPrice()}</div>
+                    <div className="min-w-[100px] min-h-[44px] flex items-center">{renderPrice()}</div>
                     <div className="flex flex-1 gap-3 min-w-0" ref={buttonsRef}>
                         <ShareButton
                             onClick={onShareClick}
