@@ -32,7 +32,7 @@ export function BlogUploadButton({ className = '' }: BlogUploadButtonProps) {
         try {
             // Generate unique filename
             const ext = file.name.split('.').pop() || 'jpg';
-            const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
+            const filename = `customizations/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
 
             // Upload to Supabase
             const { data: uploadData, error: uploadError } = await supabase.storage

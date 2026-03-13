@@ -32,11 +32,11 @@ async function uploadImageToStorage(imageDataUri: string, designId: string): Pro
 
     // Generate filename with design ID
     const fileName = `${designId}.jpg`;
-    const filePath = `shared-cake-images/${fileName}`;
+    const filePath = `customizations/shared-cake-images/${fileName}`;
 
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
-      .from('shared-cake-images')
+      .from('cakegenie')
       .upload(filePath, blob, {
         contentType: 'image/jpeg',
         upsert: true, // Allow overwriting if exists
@@ -49,7 +49,7 @@ async function uploadImageToStorage(imageDataUri: string, designId: string): Pro
 
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
-      .from('shared-cake-images')
+      .from('cakegenie')
       .getPublicUrl(filePath);
 
     return publicUrl;

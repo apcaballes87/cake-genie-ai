@@ -93,7 +93,7 @@ const CakePriceCalculatorClient: React.FC = () => {
             setProcessingStatus('Uploading...');
 
             // Generate unique filename
-            const path = `${Date.now()}.${ext || 'jpg'}`;
+            const path = `customizations/${Date.now()}.${ext || 'jpg'}`;
 
             // Upload to Supabase
             const { data: uploadData, error: uploadError } = await supabase.storage
