@@ -63,6 +63,9 @@ export const metadata: Metadata = {
     icon: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp',
     apple: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp',
   },
+  other: {
+    'p:domain_verify': '0a26251bc18b086ea69d8022ef9eeb05',
+  },
 }
 
 function OrganizationSchema() {
