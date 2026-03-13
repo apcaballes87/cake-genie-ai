@@ -66,8 +66,6 @@ export function useDeleteAddress() {
     mutationFn: async ({ userId, addressId }: { userId: string; addressId: string }) => {
       const result = await deleteAddress(addressId);
       if (result.error) throw result.error;
-      // FIX: `result.data` is null, so it cannot be spread. Return it directly.
-      // The `userId` is available in `variables` in `onSuccess`.
       return result.data;
     },
     onSuccess: (_, variables) => {
