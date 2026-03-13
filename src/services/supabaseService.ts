@@ -3014,9 +3014,12 @@ export function groupCartItemsByMerchant(
 
   for (const item of cartItems) {
     const merchantId = item.merchant_id || 'unknown';
-    const existing = grouped.get(merchantId) || [];
-    existing.push(item);
-    grouped.set(merchantId, existing);
+    const existing = grouped.get(merchantId);
+    if (existing) {
+      existing.push(item);
+    } else {
+      grouped.set(merchantId, [item]);
+    }
   }
 
   return grouped;
