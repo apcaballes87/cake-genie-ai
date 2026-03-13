@@ -638,11 +638,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 }
             };
 
-            // 4. Update UI Optimistically & Hand off upload task
-            // We await it only to catch immediate sync errors if we want, but checking 
-            // implementation, it triggers background task. However, since the function allows passing promise,
-            // we should NOT await the background task completion, but we CAN await the *invocation* which is fast.
-            await addToCartWithBackgroundUpload(cartItem, uploadPromise);
+            // 4. Fire-and-forget: optimistic update happens instantly, upload runs in background
+            // No await needed - function returns immediately after optimistic update
+            addToCartWithBackgroundUpload(cartItem, uploadPromise);
 
             showSuccess('Added to cart!');
             router.push('/cart');
@@ -2592,7 +2590,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                     </div>
                     {/* RIGHT COLUMN: Availability at top, then Feature List */}
-                    <div className="flex flex-row md:flex-col gap-2 w-[calc(100%+2rem)] md:w-[calc(50%-6px)] -mx-4 md:mx-0 overflow-x-auto md:overflow-visible scrollbar-hide snap-x snap-mandatory scroll-pl-4 pb-60 md:pb-0 -mb-60 md:mb-0 px-4 md:px-0 relative z-30">
+                    <div className="flex flex-row md:flex-col gap-2 w-[calc(100%+2rem)] md:w-[calc(50%-6px)] -mx-4 md:mx-0 overflow-x-auto md:overflow-visible scrollbar-hide snap-x snap-mandatory scroll-pl-4 pb-60 md:pb-0 -mb-60 md:mb-0 px-4 md:px-0 relative z-60">
                         {/* Availability Section - at top of right column */}
 
 
