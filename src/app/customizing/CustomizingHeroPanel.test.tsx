@@ -58,6 +58,7 @@ const buildProps = (): React.ComponentProps<typeof CustomizingHeroPanel> => ({
 describe('CustomizingHeroPanel', () => {
     it('renders the empty hero state with disabled report and save actions', () => {
         const props = buildProps();
+        props.showFooterActions = true;
 
         render(<CustomizingHeroPanel {...props} />);
 
@@ -109,9 +110,9 @@ describe('CustomizingHeroPanel', () => {
         fireEvent.load(screen.getByRole('img', { name: 'Hero cake' }));
         fireEvent.click(screen.getByRole('button', { name: 'Save this design' }));
         fireEvent.click(screen.getByRole('button', { name: 'Undo last change' }));
-        fireEvent.click(screen.getAllByRole('button', { name: 'Report an issue with this image' })[0]);
-        fireEvent.click(screen.getAllByRole('button', { name: 'Save customized image' })[0]);
-        fireEvent.click(screen.getAllByRole('button', { name: 'Reset everything' })[0]);
+        fireEvent.click(screen.getByRole('button', { name: 'Report an issue with this image' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Save customized image' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Reset everything' }));
 
         expect(props.onOriginalTabSelect).toHaveBeenCalledTimes(1);
         expect(props.onCustomizedTabSelect).toHaveBeenCalledTimes(1);
@@ -120,6 +121,7 @@ describe('CustomizingHeroPanel', () => {
         expect(props.onOpenReportModal).toHaveBeenCalledTimes(1);
         expect(props.onSave).toHaveBeenCalledTimes(1);
         expect(props.onClearAll).toHaveBeenCalledTimes(1);
-        expect(screen.getAllByRole('button', { name: 'Save customized image' })).toHaveLength(2);
+        expect(screen.getByRole('button', { name: 'Save this design' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Save customized image' })).toBeInTheDocument();
     });
 });

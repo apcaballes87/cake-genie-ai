@@ -15,22 +15,26 @@ export interface IndexNowResult {
 
 export const normalizeIndexNowUrls = (urls: string | string[]): string[] => {
     const urlList = Array.isArray(urls) ? urls : [urls];
+    const validUrls = new Set<string>();
 
-    return Array.from(
-        new Set(
-            urlList
-                .map((url) => url.trim())
-                .filter(Boolean)
-                .filter((url) => {
-                    try {
-                        const parsedUrl = new URL(url);
-                        return parsedUrl.protocol === 'https:' && parsedUrl.hostname === INDEXNOW_HOST;
-                    } catch {
-                        return false;
-                    }
-                })
-        )
-    );
+    for (let i = 0; i < urlList.length; i++) {
+        const url = urlList[i];
+        if (!url) continue;
+
+        const trimmedUrl = url.trim();
+        if (!trimmedUrl) continue;
+
+        try {
+            const parsedUrl = new URL(trimmedUrl);
+            if (parsedUrl.protocol === 'https:' && parsedUrl.hostname === INDEXNOW_HOST) {
+                validUrls.add(trimmedUrl);
+            }
+        } catch {
+            // Ignore invalid URLs
+        }
+    }
+
+    return Array.from(validUrls);
 };
 
 export const submitIndexNow = async (urls: string | string[]): Promise<IndexNowResult[]> => {
