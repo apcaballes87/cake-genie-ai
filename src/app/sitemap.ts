@@ -132,13 +132,20 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
                 .order('created_at', { ascending: false })
                 .range(offset, offset + CHUNK_SIZE - 1);
 
-            return (customizedCakes || []).map((cake: any) => ({
-                url: `${baseUrl}/customizing/${cake.slug}`,
-                lastModified: new Date(cake.created_at),
-                changeFrequency: 'weekly' as const,
-                priority: 0.6,
-                images: sanitizeUrl(cake.original_image_url) ? [sanitizeUrl(cake.original_image_url)] : [],
-            }));
+            const cakes = customizedCakes || [];
+            const result = new Array(cakes.length);
+            for (let i = 0; i < cakes.length; i++) {
+                const cake = cakes[i];
+                const img = sanitizeUrl(cake.original_image_url);
+                result[i] = {
+                    url: `${baseUrl}/customizing/${cake.slug}`,
+                    lastModified: new Date(cake.created_at),
+                    changeFrequency: 'weekly' as const,
+                    priority: 0.6,
+                    images: img ? [img] : [],
+                };
+            }
+            return result;
         }
 
         if (idStr.startsWith('designs-')) {
@@ -152,13 +159,20 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
                 .order('created_at', { ascending: false })
                 .range(offset, offset + CHUNK_SIZE - 1);
 
-            return (designs || []).map((design: any) => ({
-                url: `${baseUrl}/designs/${design.url_slug}`,
-                lastModified: new Date(design.created_at),
-                changeFrequency: 'weekly' as const,
-                priority: 0.7,
-                images: sanitizeUrl(design.customized_image_url) ? [sanitizeUrl(design.customized_image_url)] : [],
-            }));
+            const items = designs || [];
+            const result = new Array(items.length);
+            for (let i = 0; i < items.length; i++) {
+                const design = items[i];
+                const img = sanitizeUrl(design.customized_image_url);
+                result[i] = {
+                    url: `${baseUrl}/designs/${design.url_slug}`,
+                    lastModified: new Date(design.created_at),
+                    changeFrequency: 'weekly' as const,
+                    priority: 0.7,
+                    images: img ? [img] : [],
+                };
+            }
+            return result;
         }
 
         return [];
@@ -170,7 +184,7 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
 
     // Chunk 0: Static Routes
     if (sitemapId === 0) {
-        return [
+        const staticRoutes = [
             '',
             '/shop',
             '/customizing',
@@ -189,12 +203,18 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
             '/compare/genie-ph-vs-traditional-bakeries',
             '/compare/genie-ph-vs-social-media-ordering',
             '/compare/custom-cake-pricing-cebu',
-        ].map((route) => ({
-            url: `${baseUrl}${route}`,
-            lastModified: new Date('2026-02-27'),
-            changeFrequency: 'daily' as const,
-            priority: 1,
-        }))
+        ];
+        const result = new Array(staticRoutes.length);
+        const lastModified = new Date('2026-02-27');
+        for (let i = 0; i < staticRoutes.length; i++) {
+            result[i] = {
+                url: `${baseUrl}${staticRoutes[i]}`,
+                lastModified,
+                changeFrequency: 'daily' as const,
+                priority: 1,
+            };
+        }
+        return result;
     }
 
     // Chunk 1: Bakeries (Merchants)
@@ -204,12 +224,19 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
             .select('slug, updated_at')
             .eq('is_active', true)
 
-        return (merchants || []).map((merchant) => ({
-            url: `${baseUrl}/shop/${merchant.slug}`,
-            lastModified: merchant.updated_at ? new Date(merchant.updated_at) : new Date(),
-            changeFrequency: 'weekly' as const,
-            priority: 0.9,
-        }))
+        const items = merchants || [];
+        const result = new Array(items.length);
+        const now = new Date();
+        for (let i = 0; i < items.length; i++) {
+            const merchant = items[i];
+            result[i] = {
+                url: `${baseUrl}/shop/${merchant.slug}`,
+                lastModified: merchant.updated_at ? new Date(merchant.updated_at) : now,
+                changeFrequency: 'weekly' as const,
+                priority: 0.9,
+            };
+        }
+        return result;
     }
 
     // Chunk 2: Products
@@ -224,26 +251,41 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
             `)
             .eq('is_active', true)
 
-        return (products || []).map((product: any) => ({
-            url: `${baseUrl}/shop/${product.cakegenie_merchants.slug}/${product.slug}`,
-            lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),
-            changeFrequency: 'weekly' as const,
-            priority: 0.8,
-            images: sanitizeUrl(product.image_url) ? [sanitizeUrl(product.image_url)] : [],
-        }))
+        const items = products || [];
+        const result = new Array(items.length);
+        const now = new Date();
+        for (let i = 0; i < items.length; i++) {
+            const product: any = items[i];
+            const img = sanitizeUrl(product.image_url);
+            result[i] = {
+                url: `${baseUrl}/shop/${product.cakegenie_merchants.slug}/${product.slug}`,
+                lastModified: product.updated_at ? new Date(product.updated_at) : now,
+                changeFrequency: 'weekly' as const,
+                priority: 0.8,
+                images: img ? [img] : [],
+            };
+        }
+        return result;
     }
 
     // Chunk 3: Blog Posts
     if (sitemapId === 3) {
         const { data: blogPosts } = await getAllBlogSlugs();
         const posts = blogPosts || [];
-        return posts.map((post) => ({
-            url: `${baseUrl}/blog/${post.slug}`,
-            lastModified: post.updated_at ? new Date(post.updated_at) : new Date(),
-            changeFrequency: 'weekly' as const,
-            priority: 0.8,
-            images: sanitizeUrl(post.image) ? [sanitizeUrl(post.image)] : [],
-        }))
+        const result = new Array(posts.length);
+        const now = new Date();
+        for (let i = 0; i < posts.length; i++) {
+            const post = posts[i];
+            const img = sanitizeUrl(post.image);
+            result[i] = {
+                url: `${baseUrl}/blog/${post.slug}`,
+                lastModified: post.updated_at ? new Date(post.updated_at) : now,
+                changeFrequency: 'weekly' as const,
+                priority: 0.8,
+                images: img ? [img] : [],
+            };
+        }
+        return result;
     }
 
     // Fallback
