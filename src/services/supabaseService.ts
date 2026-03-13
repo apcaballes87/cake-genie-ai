@@ -132,7 +132,7 @@ export const uploadReportImage = async (base64Data: string, imageType: 'original
     const timestamp = Date.now();
     const randomId = uuidv4().substring(0, 8);
     const fileName = `${imageType}_${timestamp}_${randomId}.webp`;
-    const filePath = `reported_cakes/${fileName}`;
+    const filePath = `customizations/reported_cakes/${fileName}`;
 
     // Upload to Supabase storage
     const { error: uploadError } = await supabase.storage
@@ -554,7 +554,7 @@ export async function cacheAnalysisResult(pHash: string, analysisResult: HybridA
         console.log('🖼️ Converting image to WebP and uploading to Supabase...');
         const webpBlob = await convertToWebP(imageBlob);
         const fileName = `${slug}.webp`;
-        const filePath = `analysis-cache/${fileName}`;
+        const filePath = `customizations/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('cakegenie')

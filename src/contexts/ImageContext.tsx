@@ -749,7 +749,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
         // Prepare both images for upload in parallel
         const originalImageBlob = dataURItoBlob(originalImagePreview);
-        const originalImageFileName = `designs/${userId}/${uuidv4()}.webp`;
+        const originalImageFileName = `customizations/designs/${userId}/${uuidv4()}.webp`;
 
         const imageToUpload = options.editedImageDataUri !== undefined ? options.editedImageDataUri : editedImage;
 
@@ -758,7 +758,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             const editedImageBlob = dataURItoBlob(imageToUpload);
             const editedImageFile = new File([editedImageBlob], 'edited-design.webp', { type: 'image/webp' });
             const compressedEditedFile = await compressImage(editedImageFile, { maxSizeMB: 1, fileType: 'image/webp' });
-            const editedImageFileName = `designs/${userId}/${uuidv4()}.webp`;
+            const editedImageFileName = `customizations/designs/${userId}/${uuidv4()}.webp`;
 
             // Upload both images in PARALLEL for ~2x speedup
             const [originalResult, editedResult] = await Promise.all([

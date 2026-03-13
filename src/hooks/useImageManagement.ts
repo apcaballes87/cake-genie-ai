@@ -8,6 +8,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { showSuccess, showError, showLoading, showInfo } from '@/lib/utils/toast';
 import { HybridAnalysisResult } from '@/types';
+import { COMMON_ASSETS } from '@/constants';
 import { findSimilarAnalysisByHash, findSimilarAnalysisByEmbedding, cacheAnalysisResult } from '@/services/supabaseService';
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
 
@@ -77,7 +78,7 @@ export const useImageManagement = () => {
     useEffect(() => {
         const fetchReferenceImage = async () => {
             try {
-                const imageUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/3tier.webp';
+                const imageUrl = COMMON_ASSETS.threeTierReference;
 
                 const response = await fetch(imageUrl);
                 if (!response.ok) throw new Error('Failed to fetch reference image');

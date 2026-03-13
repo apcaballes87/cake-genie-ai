@@ -139,7 +139,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
         const uploadToSupabase = async () => {
             const supabase = getSupabaseClient();
             const ext = file.name.split('.').pop() || 'jpg';
-            const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
+            const filename = `customizations/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
 
             try {
                 const { data: uploadData, error: uploadError } = await supabase.storage
