@@ -15,6 +15,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { BlogHomepagePreview } from '@/services/supabaseService';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigation } from '@/contexts/NavigationContext';
 import { LANDING_PAGE_IMAGES, COMMON_ASSETS } from '@/constants';
 import {
     Search,
@@ -92,6 +93,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
     const { itemCount } = useCart();
     const { user, isAuthenticated } = useAuth();
+    const { recordNavigation } = useNavigation();
 
     const categoriesList = [
         { id: 'Birthdays', name: 'Birthdays' },
@@ -111,6 +113,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     const [searchQuery, setSearchQuery] = useState('');
 
     const handleSearch = (query: string) => {
+        // Record navigation before going to search
+        recordNavigation('search', 'home');
         router.push(`/search?q=${encodeURIComponent(query)}`);
     };
 

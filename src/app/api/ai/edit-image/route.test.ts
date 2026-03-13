@@ -17,7 +17,7 @@ describe('/api/ai/edit-image', () => {
         vi.clearAllMocks();
     });
 
-    it('calls the Gemini 3.1 Flash Image Preview model for image edits', async () => {
+    it('calls the Gemini 2.5 Flash Image model for image edits', async () => {
         generateContent.mockResolvedValueOnce({
             candidates: [
                 {
@@ -49,7 +49,7 @@ describe('/api/ai/edit-image', () => {
         expect(response.status).toBe(200);
         expect(generateContent).toHaveBeenCalledWith(
             expect.objectContaining({
-                model: 'gemini-3.1-flash-image-preview',
+                model: 'gemini-2.5-flash-image',
             })
         );
     });
