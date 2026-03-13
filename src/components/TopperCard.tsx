@@ -26,10 +26,13 @@ export const supportTypeDisplayMap: Record<SupportElementType, string> = {
     'plastic_ball': 'Plastic Ball', 'plastic_ball_regular': 'Plastic Ball', 'plastic_ball_disco': 'Disco Ball',
     'macarons': 'Macarons', 'meringue': 'Meringue', 'gumpaste_bundle': 'Gumpaste Bundle', 'candy': 'Candy',
     'gumpaste_panel': 'Gumpaste Panel', 'icing_decorations': 'Icing Decorations', 'gumpaste_creations': 'Gumpaste Creations',
+    'marshmallows': 'Marshmallows', 'edible_3d_ordinary': 'Gumpaste (3D Ordinary)', 'fresh_flowers': 'Fresh Flowers', 'artificial_flowers': 'Artificial Flowers',
 };
 export const COLORABLE_ITEM_TYPES: Array<MainTopperType | SupportElementType> = [
     'edible_3d_complex', 'edible_3d_ordinary', 'edible_3d_support', 'edible_2d_support', 'edible_flowers', 'icing_doodle',
     'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop',
+    'isomalt', 'macarons', 'meringue', 'icing_decorations', 'gumpaste_panel', 'gumpaste_creations',
+    'marshmallows',
 ];
 
 export const TopperCard: React.FC<{
@@ -69,7 +72,7 @@ export const TopperCard: React.FC<{
 
     const isPrintoutOrPhoto = item.type === 'printout' || item.type === 'edible_photo_top' || item.type === 'support_printout' || item.type === 'edible_photo_side';
     const isDoodle = item.original_type === 'icing_doodle';
-    const canChangeColor = isDoodle || (COLORABLE_ITEM_TYPES.includes(item.original_type) && 'original_color' in item && item.original_color);
+    const canChangeColor = isDoodle || COLORABLE_ITEM_TYPES.includes(item.type as any);
     const isReplaceableIcingFigure = (item.type === 'icing_doodle' || item.type === 'icing_palette_knife') && isHumanFigure;
     const isReplaceableGumpasteFigure = (item.type === 'edible_3d_complex' || item.type === 'edible_3d_ordinary' || item.type === 'edible_3d_support') && isHumanFigure;
     const isPaletteKnife = item.type === 'icing_palette_knife';
