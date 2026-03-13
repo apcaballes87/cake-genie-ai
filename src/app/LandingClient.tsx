@@ -82,7 +82,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
     const [rushImageIndexes, setRushImageIndexes] = useState<number[]>(quickLinks.map(() => 0));
-    const [heroImageIndex, setHeroImageIndex] = useState(0);
+    // Note: heroImageIndex removed - using CSS animations instead for better INP
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isOccasionOpen, setIsOccasionOpen] = useState(false);
@@ -103,8 +103,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     ];
 
     useEffect(() => {
+        // Only use JS animation as fallback - prefer CSS animations for better INP
+        // CSS animations are handled via inline styles below
+        // This effect is kept for browser compatibility and to sync state if needed
         const intervals = quickLinks.map((link, cardIndex) => {
-            // Stagger each card's interval slightly so they don't all change at once
             return setInterval(() => {
                 setRushImageIndexes(prev => {
                     const next = [...prev];
@@ -114,13 +116,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
             }, 4000 + cardIndex * 600);
         });
 
-        const heroInterval = setInterval(() => {
-            setHeroImageIndex(prevIndex => (prevIndex + 1) % heroImages.length);
-        }, 1000);
-
         return () => {
             intervals.forEach(clearInterval);
-            clearInterval(heroInterval);
         };
     }, []);
 
@@ -396,10 +393,29 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             <div className="sm:hidden flex flex-col gap-3 text-center pt-2 pb-2">
                                 {/* Rotating Image Banner with Text Overlay */}
                                 <div className="relative w-full rounded-2xl overflow-hidden shadow-sm aspect-3/2 bg-white flex flex-col justify-center">
+                                    {/* CSS-based hero carousel for better INP - runs on compositor thread */}
+                                    <style jsx>{`
+                                        @keyframes heroFadeIn {
+                                            0% { opacity: 0; }
+                                            10% { opacity: 1; }
+                                            90% { opacity: 1; }
+                                            100% { opacity: 0; }
+                                        }
+                                        .hero-image {
+                                            will-change: opacity;
+                                            animation: heroFadeIn 6s infinite;
+                                        }
+                                        .hero-image-0 { animation-delay: 0s; }
+                                        .hero-image-1 { animation-delay: 1s; }
+                                        .hero-image-2 { animation-delay: 2s; }
+                                        .hero-image-3 { animation-delay: 3s; }
+                                        .hero-image-4 { animation-delay: 4s; }
+                                        .hero-image-5 { animation-delay: 5s; }
+                                    `}</style>
                                     {heroImages.map((src, index) => (
                                         <div
                                             key={src}
-                                            className={`absolute inset-0 transition-opacity duration-1000 ${index === heroImageIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                                            className={`hero-image hero-image-${index} absolute inset-0 z-${index === 0 ? '10' : '0'}`}
                                         >
                                             <LazyImage
                                                 src={src}
@@ -490,10 +506,30 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         {/* Soft gradient fade on the left edge of the image to blend it with the white text area */}
                                         <div className="absolute inset-y-0 left-0 w-[50%] bg-linear-to-r from-white via-white/80 to-transparent z-20 pointer-events-none" />
 
+                                        {/* CSS-based hero carousel for better INP - runs on compositor thread */}
+                                        <style jsx>{`
+                                            @keyframes heroFadeInDesktop {
+                                                0% { opacity: 0; }
+                                                10% { opacity: 1; }
+                                                90% { opacity: 1; }
+                                                100% { opacity: 0; }
+                                            }
+                                            .hero-desktop-image {
+                                                will-change: opacity;
+                                                animation: heroFadeInDesktop 6s infinite;
+                                            }
+                                            .hero-desktop-0 { animation-delay: 0s; }
+                                            .hero-desktop-1 { animation-delay: 1s; }
+                                            .hero-desktop-2 { animation-delay: 2s; }
+                                            .hero-desktop-3 { animation-delay: 3s; }
+                                            .hero-desktop-4 { animation-delay: 4s; }
+                                            .hero-desktop-5 { animation-delay: 5s; }
+                                        `}</style>
+
                                         {heroImages.map((src, index) => (
                                             <div
                                                 key={src}
-                                                className={`absolute inset-0 transition-opacity duration-1000 ${index === heroImageIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                                                className={`hero-desktop-image hero-desktop-${index} absolute inset-0 z-${index === 0 ? '10' : '0'}`}
                                             >
                                                 <LazyImage
                                                     src={src}

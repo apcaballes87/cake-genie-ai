@@ -30,6 +30,8 @@ export interface BoundingBox {
 }
 
 export interface MainTopper {
+  id?: string;
+  isEnabled?: boolean;
   type: MainTopperType;
   description: string;
   size: Size;
@@ -38,6 +40,9 @@ export interface MainTopper {
   classification: 'hero' | 'support' | 'hero + support';
   color?: string;
   colors?: (string | null)[];
+  original_type?: MainTopperType;
+  original_color?: string;
+  original_colors?: (string | null)[];
   subtype?: string;  // For subtype-specific pricing (e.g., 'ferrero' for chocolates)
   x?: number;
   y?: number;
@@ -45,12 +50,17 @@ export interface MainTopper {
 }
 
 export interface SupportElement {
+  id?: string;
+  isEnabled?: boolean;
   type: SupportElementType;
   description: string;
   size: Size;
   group_id: string;
   color?: string;
   colors?: (string | null)[];
+  original_type?: SupportElementType;
+  original_color?: string;
+  original_colors?: (string | null)[];
   subtype?: string;  // For subtype-specific pricing (e.g., 'ferrero' for chocolates)
   quantity?: number; // For countable items like chocolates
   x?: number;
@@ -59,6 +69,8 @@ export interface SupportElement {
 }
 
 export interface CakeMessage {
+  id?: string;
+  isEnabled?: boolean;
   type: CakeMessageType;
   text: string;
   position: 'top' | 'side' | 'base_board';

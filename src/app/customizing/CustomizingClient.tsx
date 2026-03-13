@@ -1968,7 +1968,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         // Check if any message properties changed
         return cakeMessages.some(currentMsg => {
             // Robust matching: Try ID first, then fallback to position since we typically have 1 message per position
-            const originalMsg = analysisResult.cake_messages?.find((m: any) =>
+            const originalMsg = analysisResult.cake_messages?.find(m =>
                 (m.id && m.id === currentMsg.id) || (!m.id && m.position === currentMsg.position)
             );
 
@@ -1977,7 +1977,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             return (
                 currentMsg.text !== originalMsg.text ||
                 currentMsg.color !== originalMsg.color ||
-                currentMsg.isEnabled !== (originalMsg as any).isEnabled ||
+                currentMsg.isEnabled !== (originalMsg.isEnabled ?? true) ||
                 currentMsg.position !== originalMsg.position
             );
         });
@@ -2156,7 +2156,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     useEffect(() => {
         if (!selectedItem || !('itemCategory' in selectedItem) || selectedItem.itemCategory !== 'icing') return;
 
-        const description = (selectedItem as any).description;
+        const description = 'description' in selectedItem ? selectedItem.description : '';
         let type: IcingImageType | null = null;
         let isTopSpecific = false;
 
@@ -2193,9 +2193,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             const colorKey = type === 'gumpasteBaseBoard' ? 'gumpasteBaseBoardColor' : type;
             const tempDesign = {
                 colors: {
-                    [colorKey]: color.hex
+                    [colorKey as string]: color.hex
                 }
-            } as any as IcingDesignUI;
+            } as unknown as IcingDesignUI;
 
             const url = getIcingImage(tempDesign, type as IcingImageType, isTopSpecific);
 

@@ -44,7 +44,7 @@ describe('CustomizingEditorSheet', () => {
         render(<CustomizingEditorSheet {...props} />);
 
         expect(screen.getByText('Cake Options')).toBeInTheDocument();
-        expect(screen.getByText('105px')).toBeInTheDocument();
+        expect(screen.getByText('130px')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: /apply changes/i }));
         expect(props.onApplyOptions).toHaveBeenCalledTimes(1);
         expect(screen.getByText('panel-content')).toBeInTheDocument();

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { SearchIcon, CameraIcon, Loader2 } from './icons';
@@ -255,7 +255,11 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
       </div>
 
       {showSuggestions && (
-        <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden animate-fade-in">
+        <div
+          className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden animate-fade-in"
+          // Reserve minimum height to prevent CLS when dropdown appears
+          style={{ minHeight: '180px' }}
+        >
           <style>{`.animate-fade-in { animation: fadeIn 0.2s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }`}</style>
 
           {query.trim().length === 0 ? (
@@ -276,13 +280,13 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                           const isSelected = selectedIndex === globalIndex;
                           return (
                             <button
-                               key={`sugg-${keyword}`}
-                               onMouseDown={(e) => e.preventDefault()}
-                               onClick={() => handleSelectSuggestion(keyword)}
-                               className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors active:bg-pink-100 ${isSelected
-                                 ? 'bg-pink-100 text-pink-700 ring-2 ring-pink-300'
-                                 : 'bg-slate-100 text-slate-700 hover:bg-pink-100 hover:text-pink-700'
-                                 }`}
+                              key={`sugg-${keyword}`}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => handleSelectSuggestion(keyword)}
+                              className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors active:bg-pink-100 ${isSelected
+                                ? 'bg-pink-100 text-pink-700 ring-2 ring-pink-300'
+                                : 'bg-slate-100 text-slate-700 hover:bg-pink-100 hover:text-pink-700'
+                                }`}
                             >
                               {keyword}
                             </button>
@@ -300,13 +304,13 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                           const isSelected = selectedIndex === globalIndex;
                           return (
                             <button
-                               key={`pop-${keyword}`}
-                               onMouseDown={(e) => e.preventDefault()}
-                               onClick={() => handleSelectSuggestion(keyword)}
-                               className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors active:bg-pink-100 ${isSelected
-                                 ? 'bg-pink-100 text-pink-700 ring-2 ring-pink-300'
-                                 : 'bg-slate-100 text-slate-700 hover:bg-pink-100 hover:text-pink-700'
-                                 }`}
+                              key={`pop-${keyword}`}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => handleSelectSuggestion(keyword)}
+                              className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors active:bg-pink-100 ${isSelected
+                                ? 'bg-pink-100 text-pink-700 ring-2 ring-pink-300'
+                                : 'bg-slate-100 text-slate-700 hover:bg-pink-100 hover:text-pink-700'
+                                }`}
                             >
                               {keyword}
                             </button>

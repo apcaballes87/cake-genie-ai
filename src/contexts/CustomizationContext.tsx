@@ -601,6 +601,8 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
             // Sync cake messages: extract only the base CakeMessage properties
             // This ensures we don't pollute the analysis result with UI-only properties
             const syncedCakeMessages = current.cakeMessages.map(m => ({
+                id: m.id,
+                isEnabled: m.isEnabled,
                 type: m.type,
                 text: m.text,
                 position: m.position,
@@ -683,6 +685,8 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         }));
 
         const syncedCakeMessages = current.cakeMessages.map(m => ({
+            id: m.id,
+            isEnabled: m.isEnabled,
             type: m.type,
             text: m.text || m.originalMessage?.text || '',
             position: m.position,

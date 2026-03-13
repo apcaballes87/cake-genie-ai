@@ -363,16 +363,24 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
                 if (localItems.length > 0) {
                     try {
-                        const syncPromise = Promise.all(localItems.map(async (item) => {
-                            const { cart_item_id, created_at, updated_at, expires_at, ...itemParams } = item;
-                            const result = await addToCartService({
-                                ...itemParams,
-                                user_id: user?.is_anonymous ? null : (user?.id ?? null),
-                                session_id: user?.is_anonymous ? user?.id : null
-                            });
-                            return result;
-                        }));
-                        await syncPromise;
+                        const len = localItems.length;
+                        const syncPromises = new Array(len);
+
+                        const isAnon = user?.is_anonymous;
+                        const userId = isAnon ? null : (user?.id ?? null);
+                        const sessionId = isAnon ? user?.id : null;
+
+                        for (let i = 0; i < len; i++) {
+                            const { cart_item_id, created_at, updated_at, expires_at, ...itemParams } = localItems[i];
+                            // Re-assign explicitly without object spread
+                            (itemParams as any).user_id = userId;
+                            (itemParams as any).session_id = sessionId;
+
+                            // Catch explicitly per promise to avoid short-circuiting Promise.all like allSettled
+                            syncPromises[i] = addToCartService(itemParams as any).catch(() => null);
+                        }
+
+                        await Promise.all(syncPromises);
                         setCartItems([]);
                         batchRemoveFromLocalStorage('cart_items_cache');
                     } catch (e) {

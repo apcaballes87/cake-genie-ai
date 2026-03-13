@@ -48,7 +48,7 @@ describe('CustomizingAiChatPanel', () => {
         fireEvent.focus(input);
         fireEvent.click(input);
         fireEvent.change(input, { target: { value: 'make it pastel blue' } });
-        fireEvent.click(screen.getByRole('button', { name: 'add butterflies' }));
+        fireEvent.click(screen.getByRole('button', { name: /add butterflies/i }));
         fireEvent.click(screen.getByRole('button', { name: 'Submit AI Edit' }));
 
         expect(props.onInputInteract).toHaveBeenCalledTimes(2);
