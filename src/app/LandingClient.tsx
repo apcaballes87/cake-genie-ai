@@ -81,8 +81,8 @@ const subscribeToHydration = () => () => { };
 const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], categories = [], blogPosts = [] }) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
-    const [rushImageIndexes, setRushImageIndexes] = useState<number[]>(quickLinks.map(() => 0));
-    // Note: heroImageIndex removed - using CSS animations instead for better INP
+    // Note: rushImageIndexes removed - using CSS animations for better INP
+    // Quick links now use CSS animations instead of JS intervals
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isOccasionOpen, setIsOccasionOpen] = useState(false);
@@ -102,24 +102,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
         { id: 'Baptismal', name: 'Baptismal' },
     ];
 
-    useEffect(() => {
-        // Only use JS animation as fallback - prefer CSS animations for better INP
-        // CSS animations are handled via inline styles below
-        // This effect is kept for browser compatibility and to sync state if needed
-        const intervals = quickLinks.map((link, cardIndex) => {
-            return setInterval(() => {
-                setRushImageIndexes(prev => {
-                    const next = [...prev];
-                    next[cardIndex] = (next[cardIndex] + 1) % link.imageUrls.length;
-                    return next;
-                });
-            }, 4000 + cardIndex * 600);
-        });
-
-        return () => {
-            intervals.forEach(clearInterval);
-        };
-    }, []);
+    // Quick links use CSS animations - no JS intervals needed (better for INP)
+    // Animations are handled via inline <style jsx> below
+    // useEffect removed - no longer needed for quick links carousel
 
 
 
@@ -611,36 +596,49 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         <section aria-label="Rush order cakes" className="mb-4">
                             <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 mb-3">Shop Cake Designs Available for Rush Orders</h2>
                             <div className="flex overflow-x-auto gap-3 pb-4 md:grid grid-cols-2 min-[490px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 md:gap-6 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
-                                {quickLinks.map((link, cardIndex) => {
-                                    const activeIndex = rushImageIndexes[cardIndex] ?? 0;
-                                    return (
-                                        <Link
-                                            key={link.name}
-                                            href={`/search?q=${encodeURIComponent(link.searchTerm)}`}
-                                            className="group relative overflow-hidden rounded-2xl aspect-square shadow-sm hover:shadow-lg transition-all duration-300 min-w-[30%] md:min-w-0 block"
-                                        >
-                                            {link.imageUrls.map((imgUrl, imgIndex) => (
-                                                <div
-                                                    key={imgUrl}
-                                                    className={`absolute inset-0 transition-opacity duration-1500 ease-in-out ${imgIndex === activeIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
-                                                        }`}
-                                                >
-                                                    <LazyImage
-                                                        src={imgUrl}
-                                                        alt={link.name}
-                                                        title={link.name}
-                                                        className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-500`}
-                                                        priority={imgIndex === 0}
-                                                        fill
-                                                    />
-                                                </div>
-                                            ))}
-                                            <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent flex items-end p-3 md:p-4 z-20">
-                                                <span className="text-white font-bold text-xs md:text-base leading-tight">{link.name}</span>
+                                {quickLinks.map((link, cardIndex) => (
+                                    <Link
+                                        key={link.name}
+                                        href={`/search?q=${encodeURIComponent(link.searchTerm)}`}
+                                        className="group relative overflow-hidden rounded-2xl aspect-square shadow-sm hover:shadow-lg transition-all duration-300 min-w-[30%] md:min-w-0 block"
+                                    >
+                                        {/* CSS-based quick links carousel for better INP */}
+                                        <style jsx>{`
+                                            @keyframes quickLinkFade {
+                                                0% { opacity: 0; }
+                                                10% { opacity: 1; }
+                                                80% { opacity: 1; }
+                                                100% { opacity: 0; }
+                                            }
+                                            .quick-link-image {
+                                                will-change: opacity;
+                                                animation: quickLinkFade 4.6s infinite;
+                                            }
+                                            .quick-link-0 { animation-delay: 0s; }
+                                            .quick-link-1 { animation-delay: 0.6s; }
+                                            .quick-link-2 { animation-delay: 1.2s; }
+                                            .quick-link-3 { animation-delay: 1.8s; }
+                                        `}</style>
+                                        {link.imageUrls.map((imgUrl, imgIndex) => (
+                                            <div
+                                                key={imgUrl}
+                                                className={`quick-link-image quick-link-${imgIndex} absolute inset-0`}
+                                            >
+                                                <LazyImage
+                                                    src={imgUrl}
+                                                    alt={link.name}
+                                                    title={link.name}
+                                                    className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-500`}
+                                                    priority={imgIndex === 0}
+                                                    fill
+                                                />
                                             </div>
-                                        </Link>
-                                    );
-                                })}
+                                        ))}
+                                        <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent flex items-end p-3 md:p-4 z-20">
+                                            <span className="text-white font-bold text-xs md:text-base leading-tight">{link.name}</span>
+                                        </div>
+                                    </Link>
+                                ))}
                             </div>
                         </section>
 
