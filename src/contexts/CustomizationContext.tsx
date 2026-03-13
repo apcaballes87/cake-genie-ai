@@ -63,6 +63,8 @@ interface CustomizationContextType {
     clearDirtyState: () => void;
     seoMetadata: CacheSEOMetadata | null;
     setSEOMetadata: (metadata: CacheSEOMetadata | null) => void;
+    chatHistory: string[];
+    addChatEntry: (message: string) => void;
 }
 
 const CustomizationContext = createContext<CustomizationContextType | null>(null)
@@ -78,6 +80,7 @@ export interface CustomizationState {
     analysisResult?: HybridAnalysisResult | null;
     analysisId?: string | null;
     availability?: AvailabilityType;
+    chatHistory?: string[];
 }
 
 export function CustomizationProvider({ children, initialData }: { children: React.ReactNode; initialData?: CustomizationState }) {
@@ -102,6 +105,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
     const [isCustomizationDirty, setIsCustomizationDirty] = useState(false);
     const [dirtyFields, setDirtyFields] = useState<Set<string>>(new Set());
     const [availability, setAvailability] = useState<AvailabilityType>(initialData?.availability || 'rush');
+    const [chatHistory, setChatHistory] = useState<string[]>(initialData?.chatHistory || []);
     const [seoMetadata, setSEOMetadata] = useState<CacheSEOMetadata | null>(null);
     const persistedAnalysisStateRef = React.useRef<string | null>(null);
     const persistedCustomizationStateRef = React.useRef<string | null>(null);
@@ -172,6 +176,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
                 if (parsed.cakeMessages) setCakeMessages(parsed.cakeMessages);
                 if (parsed.icingDesign) setIcingDesign(parsed.icingDesign);
                 if (parsed.additionalInstructions) setAdditionalInstructions(parsed.additionalInstructions);
+                if (parsed.chatHistory) setChatHistory(parsed.chatHistory);
             } catch (e) {
                 // Silently handle parse errors
             }
@@ -229,7 +234,8 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
                 supportElements,
                 cakeMessages,
                 icingDesign,
-                additionalInstructions
+                additionalInstructions,
+                chatHistory
             });
 
             if (customizationState === persistedCustomizationStateRef.current) {
@@ -273,6 +279,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         setCakeMessages([]);
         setIcingDesign(DEFAULT_ICING_DESIGN);
         setAdditionalInstructions('');
+        setChatHistory([]);
         setIsCustomizationDirty(false);
         setDirtyFields(new Set());
     }, []);
@@ -435,6 +442,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         setCakeMessages([]);
         setIcingDesign(null);
         setAdditionalInstructions('');
+        setChatHistory([]);
         setAnalysisError(null);
         setIsAnalyzing(false);
         setIsCustomizationDirty(false);
@@ -716,6 +724,10 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         setIsCustomizationDirty(false);
         setDirtyFields(new Set());
     }, []);
+ 
+    const addChatEntry = useCallback((message: string) => {
+        setChatHistory(prev => [...prev, message]);
+    }, []);
 
     const value = useMemo(() => ({
         cakeInfo,
@@ -756,6 +768,8 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         clearDirtyState,
         seoMetadata,
         setSEOMetadata,
+        chatHistory,
+        addChatEntry,
     }), [
         cakeInfo,
         mainToppers,
@@ -791,6 +805,8 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         getSyncedAnalysisResult,
         clearDirtyState,
         seoMetadata,
+        chatHistory,
+        addChatEntry,
     ]);
 
     return (

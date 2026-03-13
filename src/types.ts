@@ -219,6 +219,7 @@ export interface CartItemDetails {
     colors: Record<string, string>;
   };
   additionalInstructions: string;
+  chat_history?: string[];
 }
 
 export interface CartItem {

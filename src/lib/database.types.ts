@@ -37,6 +37,7 @@ export interface CustomizationDetails {
     colors: Record<string, string>;
   };
   additionalInstructions: string;
+  chat_history?: string[];
 }
 
 /**

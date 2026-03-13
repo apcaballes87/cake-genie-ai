@@ -291,6 +291,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         syncAnalysisResultWithCurrentState,
         getSyncedAnalysisResult,
         clearDirtyState,
+        chatHistory, addChatEntry,
     } = useCakeCustomization();
 
     const {
@@ -571,7 +572,92 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, [relatedCollectionsKeyword, relatedCollectionsRequestKey, relatedCollectionsTags]);
 
     // --- AI Chat Customization Handler ---
+    const onAddToCart = useCallback(async () => {
+        if (!finalPrice || !cakeInfo) return;
+        setIsAddingToCart(true);
+        try {
+            // 1. Prepare Base64 placeholders for immediate optimistic display
+            const optimisticOriginal = originalImagePreview || '';
+            const optimisticCustomized = editedImage || '';
+ 
+            // 2. Start Upload in Background (Do NOT await)
+            const uploadPromise = uploadCartImages({
+                editedImageDataUri: editedImage,
+                userId: user?.id
+            });
+ 
+            const cartItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'> = {
+                user_id: user?.id || null,
+                session_id: user?.is_anonymous ? user.id : null,
+                merchant_id: null, // Will be set when ordering from a specific merchant shop
+                cake_type: cakeInfo.type,
+                cake_thickness: cakeInfo.thickness,
+                cake_size: cakeInfo.size,
+                base_price: basePrice || 0,
+                addon_price: (finalPrice || 0) - (basePrice || 0),
+                final_price: finalPrice || 0,
+                quantity: 1,
+                original_image_url: optimisticOriginal, // Base64
+                customized_image_url: optimisticCustomized, // Base64
+                customization_details: {
+                    flavors: cakeInfo.flavors,
+                    mainToppers: mainToppers.filter(t => t.isEnabled).map(t => ({
+                        description: t.description,
+                        type: t.type,
+                        size: t.size
+                    })),
+                    supportElements: supportElements.filter(e => e.isEnabled).map(e => ({
+                        description: e.description,
+                        type: e.type,
+                        coverage: e.size
+                    })),
+                    cakeMessages: cakeMessages.filter(m => m.isEnabled && m.text && m.text.trim().length > 0).map(m => ({
+                        text: m.text,
+                        color: m.color
+                    })),
+                    icingDesign: {
+                        drip: icingDesign?.drip || false,
+                        gumpasteBaseBoard: icingDesign?.gumpasteBaseBoard || false,
+                        colors: (icingDesign?.colors as unknown as Record<string, string>) || {}
+                    },
+                    additionalInstructions: additionalInstructions,
+                    chat_history: chatHistory
+                }
+            };
+ 
+            // 4. Update UI Optimistically & Hand off upload task
+            // We await it only to catch immediate sync errors if we want, but checking 
+            // implementation, it triggers background task. However, since the function allows passing promise,
+            // we should NOT await the background task completion, but we CAN await the *invocation* which is fast.
+            await addToCartWithBackgroundUpload(cartItem, uploadPromise);
+ 
+            showSuccess('Added to cart!');
+            router.push('/cart');
+        } catch (err) {
+            showError('Failed to add to cart: ' + (err instanceof Error ? err.message : 'Unknown error'));
+        } finally {
+            setIsAddingToCart(false);
+        }
+    }, [
+        finalPrice,
+        cakeInfo,
+        originalImagePreview,
+        editedImage,
+        uploadCartImages,
+        user?.id,
+        user?.is_anonymous,
+        basePrice,
+        mainToppers,
+        supportElements,
+        cakeMessages,
+        icingDesign,
+        additionalInstructions,
+        addToCartWithBackgroundUpload,
+        router,
+    ]);
+ 
     const submitAiChatPrompt = useCallback(async (prompt: string) => {
+
         const currentPrompt = prompt.trim();
         if (!currentPrompt || !analysisResult || isAiProcessing || isUpdatingDesign) return;
 
@@ -581,6 +667,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
         setIsAiProcessing(true);
         setChatInput('');
+        addChatEntry(currentPrompt);
 
         try {
             const syncedAnalysis = getSyncedAnalysisResult() || analysisResult;
@@ -674,6 +761,25 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
             // Notify user while image is still spinning
             showSuccess('AI applied changes! Image is generating...');
+ 
+            // 3. Handle extra actions (add to cart, update instructions)
+            if (aiResponse.actions && Array.isArray(aiResponse.actions)) {
+                for (const action of aiResponse.actions) {
+                    if (action.type === 'update_instructions' && action.content) {
+                        const newInstructions = additionalInstructions
+                            ? `${additionalInstructions}\n${action.content}`
+                            : action.content;
+                        onAdditionalInstructionsChange(newInstructions);
+                        showSuccess('Added a note to your instructions!');
+                    }
+                    if (action.type === 'add_to_cart') {
+                        // Short delay to allow design changes to be reflected in UI first
+                        setTimeout(() => {
+                            void onAddToCart();
+                        }, 1200);
+                    }
+                }
+            }
 
         } catch (err: any) {
             rejectMergedAnalysis?.(err);
@@ -690,6 +796,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         isAiProcessing,
         isUpdatingDesign,
         setPendingAnalysisData,
+        additionalInstructions,
+        onAdditionalInstructionsChange,
+        onAddToCart,
     ]);
 
     const handleChatSubmit = useCallback(async (e?: React.FormEvent) => {
@@ -1792,72 +1901,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         }
     }, [editedImage, previousImageData, sourceImageData, lastGenerationInfoRef, mainToppers, supportElements, cakeMessages, icingDesign, addOnPricing]);
 
-    const onAddToCart = async () => {
-        if (!finalPrice || !cakeInfo) return;
-        setIsAddingToCart(true);
-        try {
-            // 1. Prepare Base64 placeholders for immediate optimistic display
-            const optimisticOriginal = originalImagePreview || '';
-            const optimisticCustomized = editedImage || '';
-
-            // 2. Start Upload in Background (Do NOT await)
-            const uploadPromise = uploadCartImages({
-                editedImageDataUri: editedImage,
-                userId: user?.id
-            });
-
-            const cartItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'> = {
-                user_id: user?.id || null,
-                session_id: user?.is_anonymous ? user.id : null,
-                merchant_id: null, // Will be set when ordering from a specific merchant shop
-                cake_type: cakeInfo.type,
-                cake_thickness: cakeInfo.thickness,
-                cake_size: cakeInfo.size,
-                base_price: basePrice || 0,
-                addon_price: (finalPrice || 0) - (basePrice || 0),
-                final_price: finalPrice || 0,
-                quantity: 1,
-                original_image_url: optimisticOriginal, // Base64
-                customized_image_url: optimisticCustomized, // Base64
-                customization_details: {
-                    flavors: cakeInfo.flavors,
-                    mainToppers: mainToppers.filter(t => t.isEnabled).map(t => ({
-                        description: t.description,
-                        type: t.type,
-                        size: t.size
-                    })),
-                    supportElements: supportElements.filter(e => e.isEnabled).map(e => ({
-                        description: e.description,
-                        type: e.type,
-                        coverage: e.size
-                    })),
-                    cakeMessages: cakeMessages.filter(m => m.isEnabled && m.text && m.text.trim().length > 0).map(m => ({
-                        text: m.text,
-                        color: m.color
-                    })),
-                    icingDesign: {
-                        drip: icingDesign?.drip || false,
-                        gumpasteBaseBoard: icingDesign?.gumpasteBaseBoard || false,
-                        colors: (icingDesign?.colors as unknown as Record<string, string>) || {}
-                    },
-                    additionalInstructions: additionalInstructions
-                }
-            };
-
-            // 4. Update UI Optimistically & Hand off upload task
-            // We await it only to catch immediate sync errors if we want, but checking 
-            // implementation, it triggers background task. However, since the function allows passing promise,
-            // we should NOT await the background task completion, but we CAN await the *invocation* which is fast.
-            await addToCartWithBackgroundUpload(cartItem, uploadPromise);
-
-            showSuccess('Added to cart!');
-            router.push('/cart');
-        } catch (err) {
-            showError('Failed to add to cart: ' + (err instanceof Error ? err.message : 'Unknown error'));
-        } finally {
-            setIsAddingToCart(false);
-        }
-    };
 
     const onShare = () => {
         handleShare();

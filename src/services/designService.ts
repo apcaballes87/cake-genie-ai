@@ -25,7 +25,8 @@ const INPAINTING_STYLE_SYSTEM_INSTRUCTION = `You are an expert, non-destructive 
     *   When asked to change a color, you MUST perform a "hue-shift" or "color tinting" operation only."
     *   Analogy: You are applying a "Hue/Saturation" adjustment layer in Photoshop.
 2.  **PRESERVE EVERYTHING ELSE:** Do NOT add, remove, or change the shape of any element. The final output image MUST have the exact same dimensions, aspect ratio, background, lighting, shadows, and all other unmentioned details as the original input image.
-3.  **Remove watermarks and digitally overlayed logos (If there are any).**`;
+3.  **Remove watermarks and digitally overlayed logos (If there any).**
+4.  **IGNORE NON-DESIGN PROMPTS:** If the user's instruction or statement has nothing to do with editing the cake image (e.g., "add to cart", "pick up", "address", "payment", or date/time selections), ignore it completely and make no changes to the image.`;
 
 const GENERATIVE_DESIGN_SYSTEM_INSTRUCTION = `You are a master digital cake artist performing photorealistic edits on a cake image. Your goal is to apply ONLY the specific changes listed in the prompt, while preserving the original image's style, lighting, and composition.
 
@@ -38,7 +39,8 @@ const GENERATIVE_DESIGN_SYSTEM_INSTRUCTION = `You are a master digital cake arti
 4.  **Preserve Unmentioned Details:** Any feature from the original image not mentioned in the list of changes MUST be preserved exactly as it is. This includes background, cake stand, and non-targeted decorations.
 5.  **Clean Removals:** When asked to remove an element, you must cleanly erase it and realistically in-paint the background area to seamlessly match the surrounding texture and lighting.
 6.  **Texture-Preserving Color Changes:** When asked to change an existing color, you MUST perform a "hue-shift" or "color tinting" operation. Preserve 100% of the original surface details and micro-textures (like icing strokes). The brightness and darkness (luminance) of every pixel should remain identical to the original; only the hue and saturation should change. Avoid flat, "plastic" looks.
-7.  **Remove watermarks and digitally overlayed logos (If there are any).**`;
+7.  **Remove watermarks and digitally overlayed logos (If there are any).**
+8.  **IGNORE NON-DESIGN PROMPTS:** If the user's instruction or statement has nothing to do with editing the cake image (e.g., "add to cart", "pick up", "address", "payment", or date/time selections), ignore it completely and make no changes to the image.`;
 
 const THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION = `You are a master digital cake artist tasked with reconstructing a cake design into a new 3-tier structure. You will be given an original cake image for its design language and a reference image for the 3-tier structure.
 
@@ -54,7 +56,8 @@ const THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION = `You are a master digital c
     - Side decorations (e.g., florals, lace) should appear on all tiers or follow a cascading pattern.
     - Cake messages should remain readable and be centered on an appropriate tier.
 6.  **Maintain Theme & Style Consistency:** If the original had a drip effect, apply it to all tiers consistently. If it used gold leaf, fresh flowers, or geometric patterns, replicate that aesthetic across the new structure.
-7.  **Do NOT Preserve Spatial Layout:** It is expected that elements will move to fit the new tier structure. The goal is stylistic continuity, not pixel-perfect replication of element positions.`;
+7.  **Do NOT Preserve Spatial Layout:** It is expected that elements will move to fit the new tier structure. The goal is stylistic continuity, not pixel-perfect replication of element positions.
+8.  **IGNORE NON-DESIGN PROMPTS:** If the user's instruction or statement has nothing to do with editing the cake design (e.g., "add to cart", "pick up", "address", "payment", or date/time selections), ignore it completely and make no changes to the image.`;
 
 
 const EDIT_CAKE_PROMPT_TEMPLATE = (
