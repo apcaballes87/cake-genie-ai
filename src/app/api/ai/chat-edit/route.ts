@@ -123,6 +123,10 @@ export async function POST(req: NextRequest) {
                     },
                     required: ['base', 'color_type', 'colors', 'drip', 'border_top', 'border_base', 'gumpasteBaseBoard'],
                 },
+                restrictionViolation: { 
+                    type: Type.STRING, 
+                    description: "If the user request violates a design rule (e.g. Bento restrictions), explain WHY here and do NOT apply the change. Leave null or empty if valid." 
+                },
                 keyword: { type: Type.STRING },
                 alt_text: { type: Type.STRING },
                 seo_title: { type: Type.STRING },
@@ -154,6 +158,22 @@ You are given the CURRENT cake design analysis JSON. Return a NEW, COMPLETE cake
 ABSOLUTELY CRITICAL: You MUST return the COMPLETE JSON with ALL fields from the input. Do NOT omit any fields.
 If the user only asks to change one thing (like a message color), you still MUST return every single field that was in the input (cakeType, cakeThickness, main_toppers, support_elements, cake_messages, icing_design, keyword, etc).
 Omitting a field will DELETE that data. Every field from the input MUST appear in your output.
+
+--- DESIGN RESTRICTIONS & SAFEGUARDS ---
+Check the current "cakeType" and existing elements before applying ANY changes. 
+
+1. BENTO CAKE RESTRICTIONS (If cakeType is 'Bento'):
+   - FLAVORS: Only "Chocolate Cake" and "Vanilla Cake" are allowed. If the user asks for "Ube" or "Mocha", REJECT it.
+   - POSITION: Bento cakes are too small for board messages. Do NOT allow any message with position: "base_board".
+   - ICING FEATURES: Bento cakes CANNOT have "border_base" (Bottom Border) or "gumpasteBaseBoard" (Covered Board). If user asks for these, REJECT it.
+   - DIMENSIONS: Strictly "2 in" thickness and "4\" Round" size. If user asks to change these for Bento, ignore or reject.
+
+2. EDIBLE PHOTO RESTRICTIONS:
+   - If a main_topper with type "edible_photo_top" exists, the user CANNOT change the "top" icing color (icing_design.colors.top). The photo covers the entire top surface.
+
+3. HANDLING VIOLATIONS:
+   - If a request violates any of the above, set the "restrictionViolation" field to a polite explanation (e.g., "Sorry, Bento cakes don't support bottom borders or board messages.").
+   - When a violation is found, do NOT apply that specific change to the JSON. Revert that field to its current value.
 
 --- TOPPER & ELEMENT TYPES ---
 You MUST strictly follow these classifications for any new or modified items. Do NOT use generic types like "topper".

@@ -162,7 +162,16 @@ export const useCakeCustomization = () => {
     }, []);
 
     const updateCakeMessage = useCallback((id: string, updates: Partial<CakeMessageUI>) => {
-        setCakeMessages(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+        setCakeMessages(prev => prev.map(m => {
+            if (m.id === id) {
+                const newMsg = { ...m, ...updates };
+                if (updates.text !== undefined) {
+                    newMsg.isPlaceholder = false;
+                }
+                return newMsg;
+            }
+            return m;
+        }));
         markDirty('cakeMessages');
     }, []);
 
@@ -315,7 +324,8 @@ export const useCakeCustomization = () => {
                 id: uuidv4(),
                 isEnabled: true,
                 price: 0,
-                originalMessage: { ...msg }
+                originalMessage: { ...msg },
+                isPlaceholder: !msg.text || msg.text.trim().length === 0
             }));
             setCakeMessages(newCakeMessages);
         }

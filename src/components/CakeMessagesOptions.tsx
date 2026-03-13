@@ -75,6 +75,9 @@ const MessageEditor: React.FC<{
                         </button>
                     )}
                     <span className="text-xs font-bold text-slate-800">Edit {title} Message</span>
+                    {message.isPlaceholder && (
+                        <span className="bg-purple-100 text-purple-700 text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase">Suggested</span>
+                    )}
                 </div>
                 <button
                     onClick={() => {
@@ -99,6 +102,7 @@ const MessageEditor: React.FC<{
                     onChange={(e) => updateCakeMessage(message.id, { text: e.target.value, isPlaceholder: false })}
                     className="w-full px-4 py-2.5 text-sm border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all outline-none bg-slate-50/50"
                     placeholder={message.originalMessage?.text || 'What should it say?'}
+                    autoComplete="off"
                 />
             </div>
 
@@ -157,8 +161,8 @@ export const CakeMessagesOptions: React.FC<CakeMessagesOptionsProps> = ({
                                     }
                                 }}
                                 className={`flex flex-col items-center gap-2 p-2 rounded-xl border transition-all ${hasMessage
-                                        ? 'border-purple-200 bg-white'
-                                        : 'border-slate-100 bg-white hover:border-purple-200 hover:bg-slate-50'
+                                    ? 'border-purple-200 bg-white'
+                                    : 'border-slate-100 bg-white hover:border-purple-200 hover:bg-slate-50'
                                     }`}
                             >
                                 <div className="relative w-full aspect-square overflow-hidden rounded-lg border border-slate-100 bg-slate-50">
@@ -172,6 +176,11 @@ export const CakeMessagesOptions: React.FC<CakeMessagesOptionsProps> = ({
                                     {hasMessage && (
                                         <div className="absolute top-1 right-1 bg-purple-600 rounded-full shadow-sm">
                                             <CheckCircleIcon className="w-3.5 h-3.5 text-white p-0.5" />
+                                        </div>
+                                    )}
+                                    {hasMessage && message.isPlaceholder && (
+                                        <div className="absolute bottom-0 left-0 right-0 bg-purple-500 content-center py-0.5">
+                                            <p className="text-[7px] text-white font-extrabold text-center uppercase tracking-tighter leading-tight">AI Suggested</p>
                                         </div>
                                     )}
                                 </div>

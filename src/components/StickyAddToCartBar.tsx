@@ -108,6 +108,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         }
     }, [availability, isAnalyzing]);
 
+
     const [isCompact, setIsCompact] = React.useState(false);
     const buttonsRef = React.useRef<HTMLDivElement>(null);
 
@@ -229,7 +230,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                 <div className="max-w-4xl mx-auto mb-2 relative bg-white border border-slate-200 rounded-2xl p-[0px] shadow-inner transition-all" ref={containerRef}>
                     {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isApplyingChanges && (
                         <div className="absolute left-0 right-0 bottom-full mb-3 z-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
-                            <div className="max-h-60 overflow-y-auto py-1">
+                            <div className="max-h-35 overflow-y-auto py-1">
                                 {filteredAiChatPromptSuggestions.map(({ suggestion, template }, index) => (
                                     <button
                                         key={suggestion}
@@ -239,7 +240,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                                             event.preventDefault();
                                         }}
                                         onClick={() => onSuggestionSelect?.(suggestion)}
-                                        className={`block w-full px-4 py-3 text-left text-[13px] transition-colors cursor-pointer active:bg-purple-100 ${selectedAiPromptIndex === index ? 'bg-purple-50 text-purple-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}
+                                        className={`block w-full px-4 py-1 text-left text-[11px] transition-colors cursor-pointer active:bg-purple-100 ${selectedAiPromptIndex === index ? 'bg-purple-50 text-purple-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}
                                         aria-label={`Select suggestion: ${suggestion}`}
                                     >
                                         {template ? (
@@ -351,7 +352,9 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                     )}
                 </div>
                 <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
-                    <div className="min-w-[100px] min-h-[44px] flex items-center">{renderPrice()}</div>
+                    <div className="min-w-[100px] min-h-[44px] flex items-center relative">
+                        {renderPrice()}
+                    </div>
                     <div className="flex flex-1 gap-3 min-w-0" ref={buttonsRef}>
                         <ShareButton
                             onClick={onShareClick}
@@ -362,8 +365,8 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                         />
                         <button
                             onClick={onAddToCartClick}
-                            disabled={isLoading || !!error || price === null || isAdding || isAnalyzing}
-                            className="flex-1 min-w-0 bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md flex justify-center items-center gap-2 whitespace-nowrap"
+                            disabled={isLoading || !!error || price === null || isAdding || isAnalyzing || chatInput.trim().length > 0}
+                            className={`flex-1 min-w-0 bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md flex justify-center items-center gap-2 whitespace-nowrap ${chatInput.trim().length > 0 ? 'opacity-40 grayscale-[0.5]' : ''}`}
                         >
                             {isAdding ? (
                                 <><Loader2 className="w-5 h-5 animate-spin" /> {!isCompact && 'Adding...'}</>

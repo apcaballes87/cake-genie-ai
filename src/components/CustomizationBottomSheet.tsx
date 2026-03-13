@@ -93,7 +93,7 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
 
     return (
         <div
-            className={`fixed inset-x-0 z-40 flex justify-center pointer-events-none transition-all duration-500 ease-in-out ${!style?.bottom ? 'bottom-[80px]' : ''} ${wrapperClassName} ${!isVisible ? 'invisible' : ''}`}
+            className={`fixed inset-x-0 z-[45] flex justify-center pointer-events-none transition-all duration-500 ease-in-out ${!style?.bottom ? 'bottom-[80px]' : ''} ${wrapperClassName} ${!isVisible ? 'invisible' : ''}`}
             style={style}
             inert={!isVisible ? true : undefined}
         >

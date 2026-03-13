@@ -611,7 +611,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         type: e.type,
                         coverage: e.size
                     })),
-                    cakeMessages: cakeMessages.filter(m => m.isEnabled && m.text && m.text.trim().length > 0).map(m => ({
+                    cakeMessages: cakeMessages.filter(m => m.isEnabled).map(m => ({
                         text: m.text,
                         color: m.color
                     })),
@@ -679,11 +679,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             // 1. Fire Image Edit (runs in background, hook manages state/error)
             // We keep this fully parallel and drive the first image pass directly from the
             // raw user request + normal image-edit system instruction selection.
-            handleUpdateDesign(`[USER REQUEST]: ${currentPrompt}`, {
+            const imageUpdatePromise = handleUpdateDesign(`[USER REQUEST]: ${currentPrompt}`, {
                 traceId,
                 source: 'ai-chat-image-edit',
                 promptGenerator: AI_CHAT_IMAGE_PROMPT_GENERATOR,
-            }).catch(err => {
+            });
+            
+            imageUpdatePromise.catch(err => {
                 void (async () => {
                     try {
                         const mergedAnalysisForRetry = await mergedAnalysisReady;
@@ -737,6 +739,28 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
             const data = await response.json();
             const aiResponse = data.analysis_json;
+
+            // Handle Design Restriction Violations
+            if (aiResponse.restrictionViolation) {
+                // 1. Show descriptive error toast
+                showError(aiResponse.restrictionViolation);
+
+                // 2. Cancel/Revert the visual track
+                // Since handleUpdateDesign might have already finished or be in flight,
+                // we set the edited image back to the "original" state (pre-generation).
+                // If we have previousImageData, used that, otherwise originalImagePreview.
+                const revertImage = previousImageData 
+                    ? `data:${previousImageData.mimeType};base64,${previousImageData.data}`
+                    : (originalImagePreview || '');
+                
+                setEditedImage(revertImage);
+                
+                // Also ensure we stay on the current tab if image update hasn't finished yet
+                // (though hook might have already switched it)
+                
+                // We stop here and do NOT apply the JSON changes
+                return;
+            }
 
             // DEFENSIVE MERGE: The AI sometimes returns partial JSON, omitting fields
             // it didn't change. We must merge with the synced state so missing fields
@@ -1844,7 +1868,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 type: s.type,
                 size: s.size
             })),
-            cakeMessages: cakeMessages.filter((m: CakeMessageUI) => m.isEnabled && m.text && m.text.trim().length > 0).map((m: CakeMessageUI) => ({ text: m.text, color: hexToName(m.color) })),
+            cakeMessages: cakeMessages.filter((m: CakeMessageUI) => m.isEnabled).map((m: CakeMessageUI) => ({ text: m.text, color: hexToName(m.color) })),
             icingDesign: {
                 drip: icingDesign.drip, gumpasteBaseBoard: icingDesign.gumpasteBaseBoard,
                 colors: Object.entries(icingDesign.colors).reduce((acc: Record<string, string>, [key, value]) => {
@@ -1936,6 +1960,32 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [activeTab, setActiveTab] = useState<'original' | 'customized'>('customized');
     const [activeCustomization, setActiveCustomization] = useState<string | null>(null);
     const [activeTopperSection, setActiveTopperSection] = useState<'main' | 'support' | null>(null);
+
+    // Draft state snapshot for Step 2, 3, 4
+    const [draftSnapshot, setDraftSnapshot] = useState<{
+        icingDesign: IcingDesignUI | null;
+        cakeMessages: CakeMessageUI[];
+        mainToppers: MainTopperUI[];
+        supportElements: SupportElementUI[];
+    } | null>(null);
+    const isDraftApplied = useRef(false);
+
+    // Capture snapshot when a customization panel is opened
+    useEffect(() => {
+        if (activeCustomization && !draftSnapshot) {
+            setDraftSnapshot({
+                icingDesign: icingDesign ? JSON.parse(JSON.stringify(icingDesign)) : null,
+                cakeMessages: JSON.parse(JSON.stringify(cakeMessages)),
+                mainToppers: JSON.parse(JSON.stringify(mainToppers)),
+                supportElements: JSON.parse(JSON.stringify(supportElements)),
+            });
+            isDraftApplied.current = false;
+        } else if (!activeCustomization) {
+            setDraftSnapshot(null);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeCustomization]);
+
 
 
 
@@ -2049,11 +2099,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             return;
         }
 
+        isDraftApplied.current = true;
         void onUpdateDesign();
         setActiveCustomization(null);
         setActiveTopperSection(null);
         setSelectedItem(null);
     }, [hasPendingVisualChanges, isUpdatingDesign, onUpdateDesign, originalImageData]);
+
 
     // Show icing guide when image preview is available (before analysis completes)
     useEffect(() => {
@@ -2582,11 +2634,24 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     hasPendingVisualChanges={hasPendingVisualChanges}
                     isUpdatingDesign={isUpdatingDesign}
                     hasOriginalImageData={Boolean(originalImageData)}
+                    isEmpty={
+                        (activeCustomization === 'toppers' && (
+                            (activeTopperSection === 'main' && mainToppers.length === 0) ||
+                            (activeTopperSection === 'support' && supportElements.length === 0)
+                        ))
+                    }
                     onClose={() => {
+                        if (!isDraftApplied.current && draftSnapshot) {
+                            onIcingDesignChange(draftSnapshot.icingDesign!);
+                            onCakeMessageChange(draftSnapshot.cakeMessages);
+                            onMainTopperChange(draftSnapshot.mainToppers);
+                            onSupportElementChange(draftSnapshot.supportElements);
+                        }
                         setActiveCustomization(null);
                         setActiveTopperSection(null);
                         setSelectedItem(null);
                     }}
+
                     onApplyOptions={() => setActiveCustomization(null)}
                     onApplyPendingDesignChanges={handleApplyPendingDesignChanges}
                 >
