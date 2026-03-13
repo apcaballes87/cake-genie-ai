@@ -127,6 +127,23 @@ export async function POST(req: NextRequest) {
                 alt_text: { type: Type.STRING },
                 seo_title: { type: Type.STRING },
                 seo_description: { type: Type.STRING },
+                actions: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            type: {
+                                type: Type.STRING,
+                                enum: ['add_to_cart', 'update_instructions'],
+                            },
+                            content: {
+                                type: Type.STRING,
+                                description: 'For update_instructions, this should be the extracted note from the user statement.',
+                            },
+                        },
+                        required: ['type'],
+                    },
+                },
             },
             required: ['cakeType', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design'],
         };
@@ -186,7 +203,13 @@ EXAMPLES:
 - Prompt: "make the cake mint green" -> Action: set icing_design.colors.top and side to "#98FF98". Return ALL other fields unchanged.
 - Prompt: "add a gold drip" -> Action: set icing_design.drip = true AND icing_design.colors.drip = "#FFD700". Return ALL other fields unchanged.
 
-Return the FULL, COMPLETE updated JSON with every field from the input included.`;
+Return the FULL, COMPLETE updated JSON with every field from the input included.
+ 
+--- ACTIONS & NON-DESIGN PROMPTS ---
+1. Add to Cart: If the user says "add to cart", "buy this", "order this", or similar, add an object to the "actions" array: { "type": "add_to_cart" }.
+2. Additional Instructions: If the user provides delivery details, pickup times, address, or special notes (e.g., "this is for my daughter's birthday", "for pickup tomorrow at 10am", "deliver to 123 Street"), add an object to the "actions" array: { "type": "update_instructions", "content": "THE EXTRACTED NOTE" }.
+3. You can combine actions and design changes. If the user says "make it pink and add to cart", perform the design change AND add the action.
+4. If the user's statement is ONLY a non-design interaction that we don't support (e.g., "how are you?", "tell me a joke"), return the input JSON exactly as is with an empty actions array.`;
 
         const promptText = `
 User Prompt: ${prompt}
