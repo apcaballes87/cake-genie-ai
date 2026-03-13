@@ -49,10 +49,14 @@ export function buildMarketingPageMetadata({
 export function buildNoIndexPageMetadata({
     title,
     description,
+    canonicalPath,
     follow = false,
 }: {
     title: string;
     description: string;
+    /** Optional canonical URL. Use when this page has a preferred URL that
+     *  should be signalled to crawlers even though it is not indexed. */
+    canonicalPath?: string;
     follow?: boolean;
 }): Metadata {
     const fullTitle = withSiteName(title);
@@ -60,6 +64,7 @@ export function buildNoIndexPageMetadata({
     return {
         title: { absolute: fullTitle },
         description,
+        ...(canonicalPath ? { alternates: { canonical: canonicalPath } } : {}),
         openGraph: {
             type: 'website',
             siteName: SITE_NAME,

@@ -3,7 +3,7 @@ import { getAI } from '@/lib/ai/client';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 
 export const maxDuration = 60; // Allow sufficient time for image generation
-const MODEL_NAME = 'gemini-3.1-flash-image-preview';
+const MODEL_NAME = 'gemini-2.5-flash-image';
 
 function extractGeneratedImage(response: any) {
     const candidate = response?.candidates?.[0];

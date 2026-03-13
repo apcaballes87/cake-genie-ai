@@ -2,6 +2,8 @@
 
 import React, { Dispatch, SetStateAction, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
+import { useSmartBack } from '@/hooks/useSmartBack';
+import { useNavigation } from '@/contexts/NavigationContext';
 import { v4 as uuidv4 } from 'uuid';
 import { findClosestColor, hexToColorNameProse } from '@/utils/colorUtils';
 import { generateDesignDetails } from '@/utils/designContentUtils';
@@ -268,6 +270,17 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const searchParams = useSearchParams();
     const params = useParams();
     const slug = params?.slug || currentSlug;
+
+    // Smart back navigation
+    const { goBack } = useSmartBack('customizing');
+    const { navigationState, recordNavigation } = useNavigation();
+
+    // Record navigation when entering customizing page (for direct visits)
+    useEffect(() => {
+        if (!navigationState.entrySource) {
+            recordNavigation('customizing', 'direct');
+        }
+    }, [recordNavigation, navigationState.entrySource]);
 
     // --- Context Hooks ---
     const { user, isAuthenticated } = useAuth();
@@ -579,13 +592,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             // 1. Prepare Base64 placeholders for immediate optimistic display
             const optimisticOriginal = originalImagePreview || '';
             const optimisticCustomized = editedImage || '';
- 
+
             // 2. Start Upload in Background (Do NOT await)
             const uploadPromise = uploadCartImages({
                 editedImageDataUri: editedImage,
                 userId: user?.id
             });
- 
+
             const cartItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'> = {
                 user_id: user?.id || null,
                 session_id: user?.is_anonymous ? user.id : null,
@@ -624,13 +637,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     chat_history: chatHistory
                 }
             };
- 
+
             // 4. Update UI Optimistically & Hand off upload task
             // We await it only to catch immediate sync errors if we want, but checking 
             // implementation, it triggers background task. However, since the function allows passing promise,
             // we should NOT await the background task completion, but we CAN await the *invocation* which is fast.
             await addToCartWithBackgroundUpload(cartItem, uploadPromise);
- 
+
             showSuccess('Added to cart!');
             router.push('/cart');
         } catch (err) {
@@ -655,7 +668,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         addToCartWithBackgroundUpload,
         router,
     ]);
- 
+
     const submitAiChatPrompt = useCallback(async (prompt: string) => {
 
         const currentPrompt = prompt.trim();
@@ -684,7 +697,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 source: 'ai-chat-image-edit',
                 promptGenerator: AI_CHAT_IMAGE_PROMPT_GENERATOR,
             });
-            
+
             imageUpdatePromise.catch(err => {
                 void (async () => {
                     try {
@@ -749,15 +762,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 // Since handleUpdateDesign might have already finished or be in flight,
                 // we set the edited image back to the "original" state (pre-generation).
                 // If we have previousImageData, used that, otherwise originalImagePreview.
-                const revertImage = previousImageData 
+                const revertImage = previousImageData
                     ? `data:${previousImageData.mimeType};base64,${previousImageData.data}`
                     : (originalImagePreview || '');
-                
+
                 setEditedImage(revertImage);
-                
+
                 // Also ensure we stay on the current tab if image update hasn't finished yet
                 // (though hook might have already switched it)
-                
+
                 // We stop here and do NOT apply the JSON changes
                 return;
             }
@@ -785,7 +798,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
             // Notify user while image is still spinning
             showSuccess('AI applied changes! Image is generating...');
- 
+
             // 3. Handle extra actions (add to cart, update instructions)
             if (aiResponse.actions && Array.isArray(aiResponse.actions)) {
                 for (const action of aiResponse.actions) {
@@ -1701,13 +1714,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
     const onClose = () => {
+        // Use smart back navigation - it will automatically determine the right destination
+        // based on where the user came from (search, saved, or home)
+
+        // Check URL params for specific redirect logic (legacy support)
         if (searchParams.get('from') === 'search') {
-            router.back();
+            // Use smart back to go back to search results
+            goBack();
         } else if (sessionStorage.getItem('cakegenie_from_saved') === 'true') {
             // If came from saved page, go back to saved
             sessionStorage.removeItem('cakegenie_from_saved');
             router.push('/saved');
         } else {
+            // Default: go home
             router.push('/');
         }
     };

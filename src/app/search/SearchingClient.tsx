@@ -4,12 +4,15 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { BackIcon, UserCircleIcon, LogOutIcon, MapPinIcon, PackageIcon } from '@/components/icons';
+import { useSmartBack } from '@/hooks/useSmartBack';
 import { ShoppingBag } from 'lucide-react';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import { ProductCard } from '@/components/ProductCard';
 import Masonry from 'react-masonry-css';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import { useSearchEngine } from '@/hooks/useSearchEngine';
+import { useRecordNavigation } from '@/hooks/useSmartBack';
+import { useNavigation } from '@/contexts/NavigationContext';
 import { useImageManagement } from '@/contexts/ImageContext';
 import { useCakeCustomization } from '@/contexts/CustomizationContext';
 import { useCart } from '@/contexts/CartContext';
@@ -21,6 +24,9 @@ const SearchingClient: React.FC = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const initialQuery = searchParams.get('q') || '';
+
+    // Smart back navigation
+    const { goBack } = useSmartBack('search');
 
     // Contexts
     const { user, isAuthenticated, signOut } = useAuth();
@@ -58,11 +64,25 @@ const SearchingClient: React.FC = () => {
         '🔵 Preparing customization...'
     ];
 
+    // Record navigation when entering search page
+    // Only record if there's no prior navigation source (direct visit)
+    const { navigationState } = useNavigation();
+    const recordNavigation = useRecordNavigation();
+    useEffect(() => {
+        // Only record as 'direct' if there's no prior source
+        if (!navigationState.entrySource) {
+            recordNavigation('search', 'direct');
+        }
+    }, [recordNavigation, navigationState.entrySource]);
+
     // Adapter for AppState
     const setAppState = useCallback((state: AppState) => {
         switch (state) {
             case 'landing': router.push('/'); break;
-            case 'customizing': router.push('/customizing'); break;
+            case 'customizing':
+                recordNavigation('customizing', 'search');
+                router.push('/customizing');
+                break;
             case 'cart': router.push('/cart'); break;
             case 'auth': router.push('/login'); break;
             case 'addresses': router.push('/account/addresses'); break;
@@ -73,7 +93,7 @@ const SearchingClient: React.FC = () => {
                 break;
             default: router.push('/');
         }
-    }, [router]);
+    }, [router, recordNavigation]);
 
     const handleAppImageUpload = useCallback(async (file: File, imageUrl?: string) => {
         clearImages();
@@ -83,6 +103,7 @@ const SearchingClient: React.FC = () => {
         initializeDefaultState();
 
         // Navigate immediately
+        recordNavigation('customizing', 'search');
         router.push('/customizing?from=search');
 
         return new Promise<void>((resolve, reject) => {
@@ -329,7 +350,7 @@ const SearchingClient: React.FC = () => {
         <div className="w-full max-w-7xl mx-auto h-full flex flex-col min-h-screen px-4 pb-24 md:pb-0 overflow-hidden">
             {/* Consistent Header */}
             <div className="w-full flex items-center gap-2 md:gap-4 mb-4 pt-6">
-                <button onClick={() => router.back()} className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label="Go back">
+                <button onClick={goBack} className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label="Go back">
                     <BackIcon />
                 </button>
                 <div className="relative grow">

@@ -52,14 +52,11 @@ export const useSEO = (config: SEOConfig) => {
     if (config.url) {
       updateMetaTag('[property="og:url"]', config.url, 'property');
 
-      // Update canonical URL
-      let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
-      if (!canonical) {
-        canonical = document.createElement('link');
-        canonical.rel = 'canonical';
-        document.head.appendChild(canonical);
-      }
-      canonical.href = config.url;
+      // NOTE: Canonical URL is intentionally NOT managed here.
+      // In Next.js App Router, canonicals must be set server-side via
+      // generateMetadata() using alternates.canonical. Client-side canonical
+      // injection is ignored by Googlebot and causes "Duplicate without
+      // user-selected canonical" in Google Search Console.
     }
 
     if (config.image) {

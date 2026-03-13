@@ -8,6 +8,7 @@ import { ImageProvider } from '@/contexts/ImageContext'
 import { CustomizationProvider } from '@/contexts/CustomizationContext'
 import { CartProvider } from '@/contexts/CartContext'
 import { SavedItemsProvider } from '@/contexts/SavedItemsContext'
+import { NavigationProvider } from '@/contexts/NavigationContext'
 import ComposeProviders from './ComposeProviders'
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -38,6 +39,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 CustomizationProvider,
                 CartProvider,
                 SavedItemsProvider,
+                NavigationProvider,
             ]}
         >
             {children}
