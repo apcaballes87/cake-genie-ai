@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import DOMPurify from 'isomorphic-dompurify';
 
 interface BlogContentProps {
   content: string;
@@ -179,11 +180,14 @@ export function parseMarkdownToHtml(markdown: string): string {
 
 export function BlogContent({ content }: BlogContentProps) {
   const html = parseMarkdownToHtml(content);
+  const sanitizedHtml = DOMPurify.sanitize(html, {
+    ADD_ATTR: ['target', 'rel', 'loading', 'decoding'],
+  });
 
   return (
     <div
       className="blog-content"
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
     />
   );
 }

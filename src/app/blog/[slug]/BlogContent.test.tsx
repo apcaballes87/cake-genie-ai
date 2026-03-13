@@ -27,4 +27,18 @@ describe('BlogContent', () => {
       '_blank',
     );
   });
+
+  it('sanitizes malicious HTML to prevent XSS', () => {
+    const maliciousContent = 'Some text <script>alert("xss")</script> and an image <img src="x" onerror="alert(\'xss\')">';
+    const { container } = render(<BlogContent content={maliciousContent} />);
+
+    // Check that script tag is removed
+    expect(container.querySelector('script')).toBeNull();
+
+    // Check that onerror attribute is removed from img
+    const img = container.querySelector('img');
+    if (img) {
+      expect(img).not.toHaveAttribute('onerror');
+    }
+  });
 });
