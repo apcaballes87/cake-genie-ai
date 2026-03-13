@@ -208,7 +208,36 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
             {cakeInfo && !isAnalyzing && !isRejectionError && (
                 <div className={cardClassName}>
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 3: Cake Messages</h3>
+                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 3: Cake Toppers</h3>
+                    <CakeToppersOptions
+                        mainToppers={mainToppers}
+                        supportElements={supportElements}
+                        markerMap={markerMap}
+                        updateMainTopper={updateMainTopper}
+                        updateSupportElement={updateSupportElement}
+                        onTopperImageReplace={onTopperImageReplace}
+                        onSupportElementImageReplace={onSupportElementImageReplace}
+                        itemPrices={itemPrices}
+                        isAdmin={isAdmin}
+                        isAnalyzing={isAnalyzing}
+                        mode="summary"
+                        onSectionClick={openTopperSheet}
+                    />
+
+                    {mainToppers.some((topper) => topper.type === 'toy') && (
+                        <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-2">
+                            <span className="text-amber-500 text-sm">💡</span>
+                            <p className="text-[11px] text-amber-700 leading-tight">
+                                <span className="font-semibold">Tip:</span> Switch from toy toppers to edible or printed toppers to reduce the total price!
+                            </p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {cakeInfo && !isAnalyzing && !isRejectionError && (
+                <div className={cardClassName}>
+                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 4: Cake Messages</h3>
                     {cakeMessages.length > 0 ? (
                         <div className="flex flex-col gap-2">
                             {cakeMessages.map((message, index) => (
@@ -261,35 +290,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             >
                                 <span className="text-base leading-none">+</span> Add a cake message
                             </button>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {cakeInfo && !isAnalyzing && !isRejectionError && (
-                <div className={cardClassName}>
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 4: Cake Toppers</h3>
-                    <CakeToppersOptions
-                        mainToppers={mainToppers}
-                        supportElements={supportElements}
-                        markerMap={markerMap}
-                        updateMainTopper={updateMainTopper}
-                        updateSupportElement={updateSupportElement}
-                        onTopperImageReplace={onTopperImageReplace}
-                        onSupportElementImageReplace={onSupportElementImageReplace}
-                        itemPrices={itemPrices}
-                        isAdmin={isAdmin}
-                        isAnalyzing={isAnalyzing}
-                        mode="summary"
-                        onSectionClick={openTopperSheet}
-                    />
-
-                    {mainToppers.some((topper) => topper.type === 'toy') && (
-                        <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-2">
-                            <span className="text-amber-500 text-sm">💡</span>
-                            <p className="text-[11px] text-amber-700 leading-tight">
-                                <span className="font-semibold">Tip:</span> Switch from toy toppers to edible or printed toppers to reduce the total price!
-                            </p>
                         </div>
                     )}
                 </div>

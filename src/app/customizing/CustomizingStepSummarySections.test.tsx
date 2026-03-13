@@ -138,7 +138,7 @@ describe('CustomizingStepSummarySections', () => {
 
         render(<CustomizingStepSummarySections {...props} />);
 
-        expect(screen.getByText('Step 4: Cake Toppers')).toBeInTheDocument();
+        expect(screen.getByText('Step 3: Cake Toppers')).toBeInTheDocument();
         expect(screen.getByText('0 toppers')).toBeInTheDocument();
         expect(screen.queryByText(/Switch from toy toppers to edible or printed toppers/i)).not.toBeInTheDocument();
     });
