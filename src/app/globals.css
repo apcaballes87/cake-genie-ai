@@ -483,10 +483,41 @@ div.gs-image-box div.gs-image {
 }
 
 .blog-content li {
-  color: #4b5563;
-  line-height: 1.8;
-  margin-bottom: 0.25rem;
-}
+   color: #4b5563;
+   line-height: 1.8;
+   margin-bottom: 0.25rem;
+ }
+
+/* Price Change Animation */
+@keyframes priceUp {
+   from {
+     opacity: 1;
+     transform: translateY(0);
+   }
+   to {
+     opacity: 0;
+     transform: translateY(-20px);
+   }
+ }
+
+@keyframes priceDown {
+   from {
+     opacity: 1;
+     transform: translateY(0);
+   }
+   to {
+     opacity: 0;
+     transform: translateY(20px);
+   }
+ }
+
+.animate-price-up {
+   animation: priceUp 1.5s ease-out forwards;
+ }
+
+.animate-price-down {
+   animation: priceDown 1.5s ease-out forwards;
+ }
 
 .blog-content blockquote {
   border-left: 4px solid #c084fc;

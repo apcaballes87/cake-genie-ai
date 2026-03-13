@@ -102,7 +102,7 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
         isEnabled: true,
         price: 0,
         originalMessage: { ...msg },
-        isPlaceholder: false // Do not mark as placeholder so it renders fully in UI
+        isPlaceholder: !msg.text || msg.text.trim().length === 0
     }));
     console.log('🔍 [DEBUG MAPPER] mapped cakeMessages output:', JSON.stringify(state.cakeMessages, null, 2));
 

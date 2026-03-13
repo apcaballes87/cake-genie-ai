@@ -31,6 +31,7 @@ const buildProps = (): React.ComponentProps<typeof CustomizingEditorSheet> => ({
     hasPendingVisualChanges: false,
     isUpdatingDesign: false,
     hasOriginalImageData: true,
+    isEmpty: false,
     onClose: vi.fn(),
     onApplyOptions: vi.fn(),
     onApplyPendingDesignChanges: vi.fn(),

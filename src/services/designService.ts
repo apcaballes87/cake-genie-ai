@@ -372,30 +372,42 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
 
         if (!correspondingUIMsg || !correspondingUIMsg.isEnabled) {
             // Message was disabled or deleted - erase it
-            messageChanges.push(`- **Erase the text** that says "${originalMsg.text}" from the cake's **${originalMsg.position}**. The area should be clean as if the text was never there.`);
+            if (originalMsg.text && originalMsg.text.trim().length > 0) {
+                messageChanges.push(`- **Erase the text** that says "${originalMsg.text}" from the cake's **${originalMsg.position}**. The area should be clean as if the text was never there.`);
+            } else {
+                // For placeholders, we use a more general erasure prompt
+                messageChanges.push(`- **Remove the message/text placeholder** from the cake's **${originalMsg.position}**. The area should be clean.`);
+            }
         } else {
             const uiMsg = correspondingUIMsg;
-            const changesInMessage = [];
+            
+            // SPECIAL CASE: If it's a placeholder (no recognized text from analysis) and user hasn't typed anything yet,
+            // we MUST explicitly tell the AI to preserve it, otherwise it might "clean up" the unrecognized text.
+            if (uiMsg.isPlaceholder && (!uiMsg.text || uiMsg.text.trim().length === 0)) {
+                messageChanges.push(`- **Preserve the existing text/message** on the cake's **${uiMsg.position}** exactly as it appears in the original image. Do not erase or modify it.`);
+            } else {
+                const changesInMessage = [];
 
-            const effectiveText = (uiMsg.text || "").trim() === "" ? uiMsg.originalMessage!.text : uiMsg.text;
-            const textChanged = effectiveText !== uiMsg.originalMessage!.text;
-            const colorChanged = uiMsg.color.toLowerCase() !== uiMsg.originalMessage!.color.toLowerCase();
+                const effectiveText = (uiMsg.text || "").trim() === "" ? uiMsg.originalMessage!.text : uiMsg.text;
+                const textChanged = effectiveText !== uiMsg.originalMessage!.text;
+                const colorChanged = uiMsg.color.toLowerCase() !== uiMsg.originalMessage!.color.toLowerCase();
 
-            if (textChanged) {
-                changesInMessage.push(`change the text from "${uiMsg.originalMessage!.text}" to "${effectiveText}"`);
-            }
-            if (colorChanged) {
-                changesInMessage.push(`change the color to ${colorName(uiMsg.color)}`);
-            }
-            if (uiMsg.position !== uiMsg.originalMessage!.position) {
-                changesInMessage.push(`move it from the ${uiMsg.originalMessage!.position} to the ${uiMsg.position}`);
-            }
-            if (uiMsg.type !== uiMsg.originalMessage!.type) {
-                changesInMessage.push(`change the style to ${uiMsg.type}`);
-            }
+                if (textChanged) {
+                    changesInMessage.push(`change the text from "${uiMsg.originalMessage!.text || 'the existing text'}" to "${effectiveText}"`);
+                }
+                if (colorChanged) {
+                    changesInMessage.push(`change the color to ${colorName(uiMsg.color)}`);
+                }
+                if (uiMsg.position !== uiMsg.originalMessage!.position) {
+                    changesInMessage.push(`move it from the ${uiMsg.originalMessage!.position} to the ${uiMsg.position}`);
+                }
+                if (uiMsg.type !== uiMsg.originalMessage!.type) {
+                    changesInMessage.push(`change the style to ${uiMsg.type}`);
+                }
 
-            if (changesInMessage.length > 0) {
-                messageChanges.push(`- Regarding the message on the **${uiMsg.originalMessage!.position}**, please ${changesInMessage.join(' and ')}.`);
+                if (changesInMessage.length > 0) {
+                    messageChanges.push(`- Regarding the message on the **${uiMsg.originalMessage!.position}**, please ${changesInMessage.join(' and ')}.`);
+                }
             }
         }
     });
