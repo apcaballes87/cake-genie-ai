@@ -230,7 +230,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             </div>
             
             <div className="relative z-90 pointer-events-auto bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[20px] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] border-t border-slate-200">
-                <div className="max-w-4xl mx-auto mb-2 relative bg-white border border-slate-200 rounded-2xl p-[0px] shadow-inner transition-all" ref={containerRef}>
+                <div className="max-w-4xl mx-auto mb-2 relative bg-white border border-slate-200 rounded-2xl p-0 shadow-inner transition-all" ref={containerRef}>
                     {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isApplyingChanges && (
                         <div className="absolute left-0 right-0 bottom-full mb-3 z-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
                             <div className="max-h-35 overflow-y-auto py-1">
