@@ -209,7 +209,7 @@ const MotifPanel: React.FC<{
     if (!isOpen) return null;
 
     return (
-        <div className={`fixed bottom-28 right-4 w-80 max-w-[90vw] bg-white/90 backdrop-blur-lg shadow-2xl border border-slate-200 z-50 flex flex-col transform rounded-xl transition-transform duration-300 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)]'}`}>
+        <div className={`fixed bottom-28 right-4 w-80 max-w-[90vw] bg-white/90 backdrop-blur-lg shadow-2xl border border-slate-200 z-100 flex flex-col transform rounded-xl transition-transform duration-300 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)]'}`}>
             <div className="p-4 flex justify-between items-center border-b border-slate-200">
                 <h2 className="text-sm font-bold text-slate-800">Change Motif Color</h2>
                 <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-full">
