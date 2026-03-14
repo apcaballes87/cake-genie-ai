@@ -375,13 +375,23 @@ export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string
 }
 
 /**
+ * Default threshold for embedding similarity matching.
+ * 0.98 is very strict, intended for finding near-identical images.
+ */
+export const EMBEDDING_MATCH_THRESHOLD = 0.98;
+
+/**
  * Searches for a similar analysis result in the cache using Gemini vector embeddings.
  * @param embedding The image embedding of the new image.
- * @param matchThreshold The similarity threshold (e.g., 0.95 for duplicates).
+ * @param matchThreshold The similarity threshold (e.g., 0.98 for duplicates).
  * @param imageUrl Optional URL of the image being searched.
  * @returns The cached analysis JSON and SEO metadata if a similar one is found, otherwise null.
  */
-export async function findSimilarAnalysisByEmbedding(embedding: number[], matchThreshold: number = 0.92, imageUrl?: string): Promise<CacheHitResult | null> {
+export async function findSimilarAnalysisByEmbedding(
+  embedding: number[],
+  matchThreshold: number = EMBEDDING_MATCH_THRESHOLD,
+  imageUrl?: string
+): Promise<CacheHitResult | null> {
   try {
     console.log(`🔍 Calling find_similar_images_by_embedding RPC with threshold: ${matchThreshold}`);
 
