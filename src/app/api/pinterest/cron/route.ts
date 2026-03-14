@@ -18,8 +18,15 @@ export async function GET(request: Request) {
   }
 
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json({ 
+        error: `Supabase configuration missing: ${!supabaseUrl ? 'URL ' : ''}${!supabaseServiceKey ? 'ServiceRoleKey' : ''}` 
+      }, { status: 500 });
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // 2. Get Persistent Tokens
