@@ -227,3 +227,18 @@ export const AlertTriangleIcon: React.FC<{ className?: string }> = ({ className 
         <path d="M12 17h.01" />
     </svg>
 );
+
+export const LinkIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+);
+
+export const LayersIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.27a1 1 0 0 0 0 1.82l8.57 4.09a2 2 0 0 0 1.66 0l8.57-4.09a1 1 0 0 0 0-1.82z" />
+        <path d="m2.6 11.36 8.57 4.09a2 2 0 0 0 1.66 0l8.57-4.09" />
+        <path d="m2.6 15.64 8.57 4.09a2 2 0 0 0 1.66 0l8.57-4.09" />
+    </svg>
+);

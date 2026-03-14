@@ -3,9 +3,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { SearchIcon, CameraIcon, Loader2 } from './icons';
+import { SearchIcon, CameraIcon, Loader2, LinkIcon, LayersIcon } from './icons';
 import { CAKE_SEARCH_KEYWORDS } from '@/constants/searchKeywords';
 import { getSuggestedKeywords, getPopularKeywords, logSearchAnalytics } from '@/services/supabaseService';
+import Link from 'next/link';
 
 interface SearchAutocompleteProps {
   onSearch: (query: string) => void;
@@ -17,6 +18,25 @@ interface SearchAutocompleteProps {
   showUploadButton?: boolean;
   className?: string;
 }
+
+// Static site links configuration
+const SITE_LINKS = [
+  { label: 'How to Order', href: '/how-to-order', keywords: ['how', 'order', 'guide', 'steps'] },
+  { label: 'Payment Options', href: '/payment-options', keywords: ['pay', 'payment', 'gcash', 'bank', 'card', 'checkout'] },
+  { label: 'Delivery Rates', href: '/delivery-rates', keywords: ['delivery', 'rates', 'shipping', 'fee', 'transport'] },
+  { label: 'FAQ', href: '/faq', keywords: ['faq', 'questions', 'help', 'info'] },
+  { label: 'Contact Us', href: '/contact', keywords: ['contact', 'email', 'phone', 'support', 'reach'] },
+];
+
+// Collection links configuration
+const COLLECTION_LINKS = [
+  { label: 'Birthday Cakes', href: '/collections/birthday-cake', keywords: ['birthday', 'bday', 'party'] },
+  { label: 'Wedding Cakes', href: '/collections/wedding-cake', keywords: ['wedding', 'marriage', 'bridal'] },
+  { label: 'Minimalist Cakes', href: '/collections/minimalist-cake', keywords: ['minimalist', 'simple', 'clean'] },
+  { label: 'Bento Cakes', href: '/collections/bento-cake', keywords: ['bento', 'lunchbox', 'small'] },
+  { label: 'K-Pop Cakes', href: '/collections/kpop-cake', keywords: ['kpop', 'bts', 'blackpink', 'army', 'blink'] },
+  { label: 'Anniversary Cakes', href: '/collections/anniversary-cake', keywords: ['anniversary', 'monthsary', 'couple'] },
+];
 
 // Helper to highlight matching text
 function HighlightMatch({ text, query }: { text: string; query: string }) {
@@ -55,6 +75,10 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   const [isFtsLoading, setIsFtsLoading] = useState(false);
   const ftsDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  // Filtered links
+  const [filteredSiteLinks, setFilteredSiteLinks] = useState<typeof SITE_LINKS>([]);
+  const [filteredCollectionLinks, setFilteredCollectionLinks] = useState<typeof COLLECTION_LINKS>([]);
+
   // Compute the visible list of keywords for keyboard navigation
   // When input is empty, show suggested + popular + same-day keywords
   // When input has text, show autocomplete suggestions
@@ -76,13 +100,31 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   useEffect(() => {
     if (query.trim().length > 0) {
       const lowerQuery = query.toLowerCase();
+      
+      // Keyword suggestions
       const matches = CAKE_SEARCH_KEYWORDS
         .filter(keyword => keyword.toLowerCase().includes(lowerQuery))
-        .slice(0, 6); // Show max 6 keyword suggestions (leave room for product results)
+        .slice(0, 6); // Show max 6 keyword suggestions
       setSuggestions(matches);
+
+      // Filter site links
+      const matchedSiteLinks = SITE_LINKS.filter(link => 
+        link.label.toLowerCase().includes(lowerQuery) || 
+        link.keywords.some(k => k.toLowerCase().includes(lowerQuery))
+      );
+      setFilteredSiteLinks(matchedSiteLinks);
+
+      // Filter collection links
+      const matchedCollections = COLLECTION_LINKS.filter(link => 
+        link.label.toLowerCase().includes(lowerQuery) || 
+        link.keywords.some(k => k.toLowerCase().includes(lowerQuery))
+      );
+      setFilteredCollectionLinks(matchedCollections);
     } else {
       setSuggestions([]); // Clear autocomplete if input is empty
       setFtsResults([]);
+      setFilteredSiteLinks([]);
+      setFilteredCollectionLinks([]);
     }
   }, [query]);
 
@@ -113,9 +155,13 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   }, [query]);
 
   // Compute visible keywords for keyboard navigation
-  const getVisibleKeywords = (): string[] => {
+  const getVisibleKeywords = (): (string | { label: string, href: string })[] => {
     if (query.trim().length > 0) {
-      return suggestions;
+      return [
+        ...suggestions,
+        ...filteredSiteLinks,
+        ...filteredCollectionLinks
+      ];
     }
     // When input is empty, combine all visible keyword lists
     return [...suggestedKeywords, ...popularKeywords, ...sameDayKeywords];
@@ -123,14 +169,20 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    const visibleKeywords = getVisibleKeywords();
+    const visibleItems = getVisibleKeywords();
 
     // Handle Enter key separately to ensure it always works
     if (e.key === 'Enter') {
       e.preventDefault();
       // If a suggestion is highlighted, select it. Otherwise, search the typed text.
-      if (showSuggestions && selectedIndex >= 0 && visibleKeywords[selectedIndex]) {
-        handleSelectSuggestion(visibleKeywords[selectedIndex]);
+      if (showSuggestions && selectedIndex >= 0 && visibleItems[selectedIndex]) {
+        const selected = visibleItems[selectedIndex];
+        if (typeof selected === 'string') {
+          handleSelectSuggestion(selected);
+        } else {
+          router.push(selected.href);
+          setShowSuggestions(false);
+        }
       } else {
         // Search the current input text explicitly
         const currentQuery = query.trim();
@@ -144,12 +196,12 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     }
 
     // Guard for other navigation keys (Arrows, Escape)
-    if (!showSuggestions || visibleKeywords.length === 0) return;
+    if (!showSuggestions || visibleItems.length === 0) return;
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedIndex(prev => (prev < visibleKeywords.length - 1 ? prev + 1 : prev));
+        setSelectedIndex(prev => (prev < visibleItems.length - 1 ? prev + 1 : prev));
         break;
 
       case 'ArrowUp':
@@ -373,9 +425,71 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                 </ul>
               )}
 
+              {/* Site Links Section */}
+              {filteredSiteLinks.length > 0 && (
+                <div className={`${suggestions.length > 0 ? 'border-t border-slate-100' : ''}`}>
+                  <div className="px-4 pt-3 pb-1">
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                      Site Pages
+                    </h3>
+                  </div>
+                  <ul>
+                    {filteredSiteLinks.map((link, index) => {
+                      const globalIndex = suggestions.length + index;
+                      const isSelected = selectedIndex === globalIndex;
+                      return (
+                        <li key={link.href}>
+                          <Link
+                            href={link.href}
+                            onClick={() => setShowSuggestions(false)}
+                            className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors cursor-pointer active:bg-purple-100 ${isSelected ? 'bg-purple-50' : 'hover:bg-purple-50'}`}
+                          >
+                            <LinkIcon className="w-4 h-4 text-purple-400 shrink-0" />
+                            <span className="text-slate-700 text-sm font-medium">
+                              <HighlightMatch text={link.label} query={query} />
+                            </span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              {/* Collection Links Section */}
+              {filteredCollectionLinks.length > 0 && (
+                <div className={`${(suggestions.length > 0 || filteredSiteLinks.length > 0) ? 'border-t border-slate-100' : ''}`}>
+                  <div className="px-4 pt-3 pb-1">
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                      Collections
+                    </h3>
+                  </div>
+                  <ul>
+                    {filteredCollectionLinks.map((link, index) => {
+                      const globalIndex = suggestions.length + filteredSiteLinks.length + index;
+                      const isSelected = selectedIndex === globalIndex;
+                      return (
+                        <li key={link.href}>
+                          <Link
+                            href={link.href}
+                            onClick={() => setShowSuggestions(false)}
+                            className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors cursor-pointer active:bg-pink-100 ${isSelected ? 'bg-pink-50' : 'hover:bg-pink-50'}`}
+                          >
+                            <LayersIcon className="w-4 h-4 text-pink-400 shrink-0" />
+                            <span className="text-slate-700 text-sm font-medium">
+                              <HighlightMatch text={link.label} query={query} />
+                            </span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
               {/* FTS Live Product Results */}
               {(ftsResults.length > 0 || isFtsLoading) && (
-                <div className={`${suggestions.length > 0 ? 'border-t border-slate-100' : ''}`}>
+                <div className={`${(suggestions.length > 0 || filteredSiteLinks.length > 0 || filteredCollectionLinks.length > 0) ? 'border-t border-slate-100' : ''}`}>
                   <div className="px-4 pt-3 pb-1">
                     <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                       Quick Results
@@ -418,7 +532,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                 </div>
               )}
 
-              {suggestions.length === 0 && ftsResults.length === 0 && !isFtsLoading && query.trim().length > 0 && (
+              {suggestions.length === 0 && ftsResults.length === 0 && filteredSiteLinks.length === 0 && filteredCollectionLinks.length === 0 && !isFtsLoading && query.trim().length > 0 && (
                 <div className="p-4 text-center text-sm text-slate-500">
                   No results found. Try a different search term.
                 </div>
