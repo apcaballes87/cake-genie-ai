@@ -251,15 +251,25 @@ CustomizationSkeleton.displayName = 'CustomizationSkeleton';
 
 // Footer: Sticky Add to Cart Bar Skeleton
 export const StickyAddToCartBarSkeleton: React.FC = React.memo(() => (
-  <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-lg p-3 shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] border-t border-slate-200">
-    <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
-      <div className="min-w-[100px] flex flex-col gap-1">
-        <Skeleton className="h-6 w-20" /> {/* Price */}
-        <Skeleton className="h-3 w-12" /> {/* Label */}
+  <div className="fixed bottom-0 left-0 right-0 z-90 pointer-events-none">
+    <div className="relative pointer-events-auto bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[20px] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] border-t border-slate-200">
+      {/* AI Chat Input Skeleton */}
+      <div className="max-w-4xl mx-auto mb-2 relative bg-white border border-slate-200 rounded-2xl p-0 shadow-inner h-[46px] flex items-center px-3">
+        <Skeleton className="h-4 w-40 bg-slate-200/60" />
+        <div className="absolute right-1 h-9 w-9 bg-slate-200 rounded-xl" />
       </div>
-      <div className="flex flex-1 gap-3">
-        <Skeleton className="flex-1 h-12 rounded-xl" /> {/* Share Button */}
-        <Skeleton className="flex-1 h-12 rounded-xl" /> {/* Add to Cart Button */}
+
+      <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
+        <div className="min-w-[100px] min-h-[44px] flex items-center">
+          <div className="flex flex-col gap-1">
+            <Skeleton className="h-6 w-20" /> {/* Price */}
+            <Skeleton className="h-3 w-12" /> {/* Label */}
+          </div>
+        </div>
+        <div className="flex flex-1 gap-3">
+          <Skeleton className="flex-1 h-12 rounded-xl" /> {/* Share Button */}
+          <Skeleton className="flex-1 h-12 rounded-xl" /> {/* Add to Cart Button */}
+        </div>
       </div>
     </div>
   </div>
@@ -297,7 +307,7 @@ export const CustomizingPageSkeleton: React.FC = React.memo(() => (
       </div>
 
       {/* Main Two-Column Layout */}
-      <div className="w-full flex flex-col md:flex-row gap-4 md:gap-8">
+      <div className="w-full flex flex-col md:flex-row gap-2">
 
         {/* LEFT COLUMN: Image & Preview */}
         <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
@@ -322,42 +332,53 @@ export const CustomizingPageSkeleton: React.FC = React.memo(() => (
               </div>
             </div>
           </div>
+
+          {/* Step Summary (Mobile) */}
+          <div className="flex md:hidden gap-2 overflow-x-hidden -mx-4 px-4">
+              <div className="shrink-0 w-[280px] bg-white/70 backdrop-blur-lg p-3 rounded-2xl border border-slate-200 space-y-3">
+                  <Skeleton className="h-3 w-32" />
+                  <div className="flex gap-2">
+                      <Skeleton className="w-12 h-12 rounded-xl" />
+                      <Skeleton className="w-12 h-12 rounded-xl" />
+                      <Skeleton className="w-12 h-12 rounded-xl" />
+                      <Skeleton className="w-12 h-12 rounded-xl" />
+                  </div>
+              </div>
+              <div className="shrink-0 w-[280px] bg-white/70 backdrop-blur-lg p-3 rounded-2xl border border-slate-200 space-y-3">
+                  <Skeleton className="h-3 w-32" />
+                  <div className="flex gap-2">
+                       <Skeleton className="w-12 h-12 rounded-full" />
+                       <Skeleton className="w-12 h-12 rounded-full" />
+                       <Skeleton className="w-12 h-12 rounded-full" />
+                  </div>
+              </div>
+          </div>
         </div>
 
-        {/* RIGHT COLUMN: Controls */}
-        <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
-          <div className="w-full bg-white/70 backdrop-blur-lg p-4 rounded-2xl shadow-lg border border-slate-200 space-y-8">
-            {/* Customization Navigation (Tabs) */}
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                <Skeleton className="h-4 w-40" />
+        {/* RIGHT COLUMN: Controls (Desktop) or Sidebar */}
+        <div className="hidden md:flex flex-col gap-2 w-full md:w-[calc(50%-6px)]">
+          <div className="bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200">
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                  <div className="p-2 bg-purple-50 rounded-lg">
+                      <div className="w-5 h-5 bg-purple-200 rounded animate-pulse" />
+                  </div>
+                  <div className="space-y-1">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-2 w-48" />
+                  </div>
               </div>
-              <CustomizationTabsSkeleton />
-            </div>
-
-            {/* Choice Preview (Chosen Options) */}
-            <div className="space-y-3">
-              <ChosenOptionsSkeleton />
-            </div>
-
-            {/* AI Control / Quick Actions */}
-            <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-200/60 space-y-3">
-              <div className="flex items-center gap-2">
-                <Skeleton className="w-8 h-8 rounded-full" />
-                <Skeleton className="h-4 w-32" />
+              <div className="space-y-6">
+                   <div className="space-y-3">
+                       <Skeleton className="h-3 w-24 ml-1" />
+                       <div className="flex gap-2">
+                           {[1,2,3,4,5].map(i => <Skeleton key={i} className="w-14 h-14 rounded-lg" />)}
+                       </div>
+                   </div>
+                   <div className="bg-slate-50 rounded-lg p-3 space-y-2 border border-slate-200/50">
+                       <Skeleton className="h-3 w-32" />
+                       <Skeleton className="h-12 w-full rounded" />
+                   </div>
               </div>
-              <Skeleton className="h-20 w-full rounded-xl" />
-              <div className="flex justify-between items-center">
-                <Skeleton className="h-3 w-40" />
-                <Skeleton className="h-8 w-24 rounded-full" />
-              </div>
-            </div>
-
-            {/* Bottom Actions for Desktop */}
-            <div className="hidden md:flex items-center justify-end gap-3 pt-6 border-t border-slate-100">
-              <Skeleton className="h-10 w-28 rounded-xl" />
-              <Skeleton className="h-10 w-28 rounded-xl" />
-            </div>
           </div>
         </div>
       </div>

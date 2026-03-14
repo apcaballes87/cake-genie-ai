@@ -7,7 +7,7 @@ import { useCart, useCartActions, readFromLocalStorage, batchSaveToLocalStorage,
 import { useAddresses, useAddAddress } from '@/hooks/useAddresses';
 import { showSuccess, showError, showInfo } from '@/lib/utils/toast';
 import { Loader2, CloseIcon, TrashIcon } from '@/components/icons';
-import { MapPin, Search, X, Users, ChevronDown, CalendarDays } from 'lucide-react';
+import { MapPin, Search, X, Users, User, ChevronDown, CalendarDays } from 'lucide-react';
 import { PaymentModeToggle } from '@/components/PaymentModeToggle';
 import { CartItem, CartItemDetails, CakeType } from '@/types';
 import { CakeGenieAddress } from '@/lib/database.types';
@@ -52,19 +52,34 @@ const paymentMethods = [
     { name: 'Palawan', logoUrl: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/payment_logos/palawan.jpg' },
 ];
 
-const PICKUP_ADDRESS = {
-    street_address: 'Unit 3, Treehouse Building, R. Aboitiz St., Camputhaw, Cebu City',
-    city: 'Cebu City',
-    latitude: 10.3124792,
-    longitude: 123.8929501,
-    barangay: '',
-    province: 'Cebu',
-    postal_code: '',
-    country: 'Philippines',
-    address_label: 'Pickup',
-    landmark: null,
-    is_default: false,
-} as const;
+const PICKUP_LOCATIONS = [
+    {
+        id: 'treehouse',
+        name: 'Cebu (Treehouse)',
+        branchName: 'Cakes and Memories Bakeshop – Treehouse',
+        street_address: 'Unit 3, Treehouse Building, R. Aboitiz St., Camputhaw, Cebu City',
+        city: 'Cebu City',
+        latitude: 10.3124792,
+        longitude: 123.8929501,
+        province: 'Cebu',
+        country: 'Philippines',
+        mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3925.012!2d123.8929501!3d10.3124792!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33a999df1bf0044f%3A0x5dfb51cb83a184c6!2sCakes%20and%20Memories%20Bakeshop%20-%20Treehouse!5e0!3m2!1sen!2sph!4v1708950000000!5m2!1sen!2sph",
+        googleMapsUrl: "https://www.google.com/maps/place/Cakes+and+Memories+Bakeshop+-+Treehouse/@10.3124792,123.8929501,17z"
+    },
+    {
+        id: 'molino',
+        name: 'Bacoor (Molino)',
+        branchName: 'Cakes and Memories Bacoor (Molino)',
+        street_address: 'Avenida Rizal, Beside Iglesia ni Cristo Chapel, Bahayang Pag-asa Subdivision, Molino 3, Bacoor, 4126 Cavite',
+        city: 'Bacoor',
+        latitude: 14.3983397,
+        longitude: 120.9770755,
+        province: 'Cavite',
+        country: 'Philippines',
+        mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3866.4523!2d120.9744868!3d14.3983397!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397d3d1ee9a1573%3A0x982617c076bfc62b!2sCakes%20and%20Memories%20Bakeshop!5e0!3m2!1sen!2sph!4v1710430000000!5m2!1sen!2sph",
+        googleMapsUrl: "https://www.google.com/maps/place/Cakes+and+Memories+Bakeshop/@14.3983397,120.9770755,17z/data=!3m1!4b1!4m6!3m5!1s0x3397d3d1ee9a1573:0x982617c076bfc62b!8m2!3d14.3983397!4d120.9770755!16s%2Fg%2F11xjgyvws"
+    }
+];
 
 function CartClient() {
     const router = useRouter();
@@ -195,6 +210,11 @@ function CartClient() {
         }
     });
 
+    // Pickup Recipient State
+    const [selectedPickupIndex, setSelectedPickupIndex] = useState(0);
+    const [pickupRecipientName, setPickupRecipientName] = useState(() => readFromLocalStorage('cart_pickup_name') || '');
+    const [pickupRecipientPhone, setPickupRecipientPhone] = useState(() => readFromLocalStorage('cart_pickup_phone') || '');
+
     // Split with Friends State
     const [isSplitModalOpen, setIsSplitModalOpen] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -228,14 +248,24 @@ function CartClient() {
         }
     }, [guestEmail]);
 
-    // Persist guest address to localStorage
+    // Persist pickup recipient info to localStorage
     useEffect(() => {
-        if (guestAddress) {
-            batchSaveToLocalStorage('cart_guest_address', JSON.stringify(guestAddress));
+        if (pickupRecipientName) {
+            batchSaveToLocalStorage('cart_pickup_name', pickupRecipientName);
         } else {
-            batchRemoveFromLocalStorage('cart_guest_address');
+            batchRemoveFromLocalStorage('cart_pickup_name');
         }
-    }, [guestAddress]);
+    }, [pickupRecipientName]);
+
+    useEffect(() => {
+        if (pickupRecipientPhone) {
+            batchSaveToLocalStorage('cart_pickup_phone', pickupRecipientPhone);
+        } else {
+            batchRemoveFromLocalStorage('cart_pickup_phone');
+        }
+    }, [pickupRecipientPhone]);
+
+    // Persist guest address to localStorage
 
     // State for discount
     const [discountCode, setDiscountCode] = useState<string>(() => readFromLocalStorage('cart_discount_code') || '');
@@ -717,6 +747,8 @@ function CartClient() {
         } else {
             // For pickup, still require email for anonymous users (for order receipt)
             if (isAnonymous && !guestEmail) missing.push('Email Address');
+            if (!pickupRecipientName) missing.push('Contact Name');
+            if (!pickupRecipientPhone) missing.push('Contact Number');
         }
 
         return missing;
@@ -741,17 +773,17 @@ function CartClient() {
             let effectiveGuestAddress = isAnonymous ? guestAddress : undefined;
 
             if (fulfillmentType === 'pickup') {
-                // For pickup orders, use the bakeshop's address as the delivery location
+                // For pickup orders, use the selected bakeshop's address as the delivery location
                 effectiveDeliveryAddressId = null;
                 effectiveGuestAddress = {
-                    ...PICKUP_ADDRESS,
-                    recipient_name: selectedAddress?.recipient_name || guestAddress?.recipient_name || user?.user_metadata?.first_name || '',
-                    recipient_phone: selectedAddress?.recipient_phone || guestAddress?.recipient_phone || '',
+                    ...PICKUP_LOCATIONS[selectedPickupIndex],
+                    recipient_name: pickupRecipientName,
+                    recipient_phone: pickupRecipientPhone,
                     address_id: 'pickup',
                     user_id: user?.id || '',
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
-                } as CakeGenieAddress;
+                } as unknown as CakeGenieAddress;
             } else if (isAddingAddress || (isAnonymous && !guestAddress)) {
                 if (!isPendingAddressValid || !pendingAddressData) {
                     throw new Error("Invalid address data.");
@@ -765,7 +797,7 @@ function CartClient() {
                         user_id: user?.id || '',
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString()
-                    } as CakeGenieAddress;
+                    } as unknown as CakeGenieAddress;
                     setGuestAddress(effectiveGuestAddress); // Update state for UI
                 } else {
                     // Save new address for registered user
@@ -921,17 +953,17 @@ function CartClient() {
             let effectiveGuestAddress = isAnonymous ? guestAddress : undefined;
 
             if (fulfillmentType === 'pickup') {
-                // For pickup orders, use the bakeshop's address as the delivery location
+                // For pickup orders, use the selected bakeshop's address as the delivery location
                 effectiveDeliveryAddressId = null;
                 effectiveGuestAddress = {
-                    ...PICKUP_ADDRESS,
-                    recipient_name: selectedAddress?.recipient_name || guestAddress?.recipient_name || user?.user_metadata?.first_name || '',
-                    recipient_phone: selectedAddress?.recipient_phone || guestAddress?.recipient_phone || '',
+                    ...PICKUP_LOCATIONS[selectedPickupIndex],
+                    recipient_name: pickupRecipientName,
+                    recipient_phone: pickupRecipientPhone,
                     address_id: 'pickup',
                     user_id: user?.id || '',
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
-                } as CakeGenieAddress;
+                } as unknown as CakeGenieAddress;
             } else if (isAddingAddress || (isAnonymous && !guestAddress)) {
                 if (!isPendingAddressValid || !pendingAddressData) {
                     throw new Error("Invalid address data.");
@@ -1361,21 +1393,48 @@ function CartClient() {
 
                                     {fulfillmentType === 'pickup' ? (
                                         /* ---- PICK-UP UI ---- */
-                                        <div className="space-y-3 animate-fade-in">
-                                            <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl">
-                                                <div className="flex items-start gap-3 mb-3">
+                                        <div className="space-y-4 animate-fade-in">
+                                            {/* Pickup Location Selection */}
+                                            <div className="space-y-3">
+                                                <label className="block text-sm font-semibold text-slate-700">Select Pickup Branch <span className="text-red-500">*</span></label>
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    {PICKUP_LOCATIONS.map((location, index) => (
+                                                        <button
+                                                            key={location.name}
+                                                            type="button"
+                                                            onClick={() => setSelectedPickupIndex(index)}
+                                                            className={`flex items-start gap-3 p-3 rounded-xl border-2 transition-all text-left ${selectedPickupIndex === index
+                                                                ? 'border-pink-500 bg-pink-50 ring-1 ring-pink-500'
+                                                                : 'border-slate-200 bg-white hover:border-slate-300'
+                                                                }`}
+                                                        >
+                                                            <div className={`mt-0.5 shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedPickupIndex === index ? 'border-pink-500 bg-pink-500' : 'border-slate-300'}`}>
+                                                                {selectedPickupIndex === index && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                                            </div>
+                                                            <div>
+                                                                <p className={`text-sm font-bold ${selectedPickupIndex === index ? 'text-pink-900' : 'text-slate-800'}`}>{location.name}</p>
+                                                                <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{location.street_address}</p>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Selected Branch Details & Map */}
+                                            <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl space-y-3">
+                                                <div className="flex items-start gap-3">
                                                     <MapPin className="w-5 h-5 text-purple-500 mt-0.5 shrink-0" />
                                                     <div>
-                                                        <p className="text-sm font-bold text-purple-800">Cakes and Memories Bakeshop – Treehouse</p>
-                                                        <p className="text-xs text-purple-600 mt-0.5">Pick up your order directly from our store.</p>
+                                                        <p className="text-sm font-bold text-purple-800">{PICKUP_LOCATIONS[selectedPickupIndex].name}</p>
+                                                        <p className="text-xs text-purple-600 mt-0.5">{PICKUP_LOCATIONS[selectedPickupIndex].street_address}, {PICKUP_LOCATIONS[selectedPickupIndex].city}</p>
                                                     </div>
                                                 </div>
-                                                <div className="rounded-xl overflow-hidden border border-purple-200 shadow-sm">
+                                                <div className="rounded-xl overflow-hidden border border-purple-200 shadow-sm bg-white">
                                                     <iframe
-                                                        title="Cakes and Memories Treehouse location"
-                                                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3925.012!2d123.8929501!3d10.3124792!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33a999df1bf0044f%3A0x5dfb51cb83a184c6!2sCakes%20and%20Memories%20Bakeshop%20-%20Treehouse!5e0!3m2!1sen!2sph!4v1708950000000!5m2!1sen!2sph"
+                                                        title={`${PICKUP_LOCATIONS[selectedPickupIndex].name} location`}
+                                                        src={PICKUP_LOCATIONS[selectedPickupIndex].mapEmbedUrl}
                                                         width="100%"
-                                                        height="220"
+                                                        height="180"
                                                         style={{ border: 0 }}
                                                         allowFullScreen
                                                         loading="lazy"
@@ -1383,14 +1442,48 @@ function CartClient() {
                                                     />
                                                 </div>
                                                 <a
-                                                    href="https://www.google.com/maps/place/Cakes+and+Memories+Bakeshop+-+Treehouse/@10.3124792,123.8929501,17z"
+                                                    href={PICKUP_LOCATIONS[selectedPickupIndex].googleMapsUrl}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-purple-600 hover:text-purple-800 hover:underline transition-colors"
+                                                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-600 hover:text-purple-800 hover:underline transition-colors"
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
                                                     Open in Google Maps
                                                 </a>
+                                            </div>
+
+                                            {/* Pickup Contact Information */}
+                                            <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl space-y-4">
+                                                <h3 className="text-sm font-bold text-blue-800 flex items-center gap-2">
+                                                    <User className="w-4 h-4" />
+                                                    Pickup Contact Person
+                                                </h3>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label htmlFor="pickupRecipientName" className="block text-xs font-semibold text-blue-700 mb-1">Recipient Name <span className="text-red-500">*</span></label>
+                                                        <input
+                                                            id="pickupRecipientName"
+                                                            type="text"
+                                                            value={pickupRecipientName}
+                                                            onChange={(e) => setPickupRecipientName(e.target.value)}
+                                                            className={`${inputStyle} text-sm py-2`}
+                                                            placeholder="Who will pick up?"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label htmlFor="pickupRecipientPhone" className="block text-xs font-semibold text-blue-700 mb-1">Contact Number <span className="text-red-500">*</span></label>
+                                                        <input
+                                                            id="pickupRecipientPhone"
+                                                            type="tel"
+                                                            value={pickupRecipientPhone}
+                                                            onChange={(e) => setPickupRecipientPhone(e.target.value)}
+                                                            className={`${inputStyle} text-sm py-2`}
+                                                            placeholder="Phone number"
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
 
                                             {/* Guest Email for pickup (still need receipt) */}
