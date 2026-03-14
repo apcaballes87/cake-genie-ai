@@ -46,7 +46,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, onSubmit, is
 
     return (
         <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-200 animate-fade-in"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-100 flex items-center justify-center p-4 transition-opacity duration-200 animate-fade-in"
             onClick={onClose}
             aria-modal="true"
             role="dialog"
@@ -123,7 +123,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, onSubmit, is
                     <button
                         onClick={handleSubmit}
                         disabled={isSubmitting}
-                        className="bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-2 px-6 rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 flex items-center"
+                            className="flex-1 bg-linear-to-r from-pink-500 to-violet-600 text-white py-3 px-6 rounded-xl font-bold hover:shadow-lg hover:shadow-pink-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSubmitting ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Sending...</> : 'Send Report'}
                     </button>
