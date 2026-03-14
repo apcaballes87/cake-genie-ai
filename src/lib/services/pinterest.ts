@@ -79,6 +79,55 @@ export const pinterestService = {
   },
 
   /**
+   * Refresh the access token using a refresh token
+   */
+  refreshToken: async (
+    refreshToken: string,
+    clientId: string,
+    clientSecret: string
+  ): Promise<PinterestTokenResponse> => {
+    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    
+    const response = await fetch('https://api.pinterest.com/v5/oauth/token', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Pinterest token refresh failed: ${JSON.stringify(error)}`);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * List user's boards
+   */
+  listBoards: async (accessToken: string): Promise<{ items: PinterestBoard[] }> => {
+    const response = await fetch(`${PINTEREST_API_BASE}/boards`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Failed to list Pinterest boards: ${JSON.stringify(error)}`);
+    }
+
+    return response.json();
+  },
+
+  /**
    * Create a new board on Pinterest
    */
   createBoard: async (accessToken: string, name: string, description?: string): Promise<PinterestBoard> => {

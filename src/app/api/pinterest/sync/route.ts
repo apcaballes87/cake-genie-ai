@@ -12,11 +12,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function POST(request: Request) {
   try {
-    const { collectionName, accessToken, pHashes } = await request.json();
-
-    if (!accessToken) {
-      return NextResponse.json({ error: 'Missing accessToken' }, { status: 400 });
-    }
+    const { collectionName, accessToken: providedToken, pHashes } = await request.json();
 
     // Initialize Supabase client inside the handler to avoid build-time errors
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -28,6 +24,48 @@ export async function POST(request: Request) {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    let accessToken = providedToken;
+
+    // 0. If no token provided, try to use stored token (Automation bridge)
+    if (!accessToken) {
+      const { data: tokenRecord } = await supabase
+        .from('cakegenie_pinterest_tokens')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (!tokenRecord) {
+        return NextResponse.json({ error: 'Missing accessToken and no stored tokens found' }, { status: 400 });
+      }
+
+      accessToken = tokenRecord.access_token;
+      
+      // Check expiry and refresh if needed
+      const isExpired = new Date(tokenRecord.expires_at) <= new Date();
+      if (isExpired) {
+        console.log('Access token expired in manual sync, refreshing...');
+        const clientId = process.env.PINTEREST_CLIENT_ID;
+        const clientSecret = process.env.PINTEREST_CLIENT_SECRET;
+        
+        if (clientId && clientSecret) {
+          const refreshed = await pinterestService.refreshToken(tokenRecord.refresh_token, clientId, clientSecret);
+          accessToken = refreshed.access_token;
+          
+          const expiresAt = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
+          await supabase
+            .from('cakegenie_pinterest_tokens')
+            .update({
+              access_token: refreshed.access_token,
+              refresh_token: refreshed.refresh_token,
+              expires_at: expiresAt,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', tokenRecord.id);
+        }
+      }
+    }
 
     // 1. Check Daily Limit
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -63,22 +101,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to fetch products from cache' }, { status: 500 });
     }
 
-    // 3. Create Board (mapped to collection)
+    // 3. Ensure Board
     const boardName = collectionName || 'Genie.ph - Best Cakes';
     const boardDescription = `Beautiful custom cakes curated by Genie.ph`;
     
-    // Pinterest API doesn't have an "upsert" board, so we just try to create it.
-    // In a mature version, we'd list boards first and match by name.
-    let board;
+    let boardId: string | null = null;
     try {
-      board = await pinterestService.createBoard(accessToken, boardName, boardDescription);
-    } catch (boardErr: any) {
-      // If board already exists, we might get an error. 
-      // For now, if it fails, we assume it's because it exists or other reasons and try to proceed if we have a board ID or handle error
-      console.error('Board creation error (may already exist):', boardErr.message);
-      // Fallback: we should actually search for the board ID if creation fails
-      // For simplicity in this refinement, we'll assume creation works or we'd need to add getBoards to service.
-      throw new Error(`Could not ensure board "${boardName}" exists: ${boardErr.message}`);
+      // First, try to find the board
+      const boardsResponse = await pinterestService.listBoards(accessToken);
+      const existingBoard = boardsResponse.items.find(b => b.name === boardName);
+      
+      if (existingBoard) {
+        boardId = existingBoard.id;
+      } else {
+        const newBoard = await pinterestService.createBoard(accessToken, boardName, boardDescription);
+        boardId = newBoard.id;
+      }
+    } catch (e: any) {
+      console.error('Board logic failed:', e.message);
+      return NextResponse.json({ error: `Board logic failed: ${e.message}` }, { status: 500 });
+    }
+
+    if (!boardId) {
+      return NextResponse.json({ error: 'Could not determine Pinterest board' }, { status: 500 });
     }
 
     let pinsCreated = 0;
@@ -90,7 +135,7 @@ export async function POST(request: Request) {
 
       try {
         const pin = await pinterestService.createPin(accessToken, {
-          board_id: board.id,
+          board_id: boardId,
           title: product.slug?.split('-').map((s: string) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ') || 'Custom Cake',
           description: product.seo_description || product.alt_text || `Order this beautiful custom cake on Genie.ph`,
           link: `https://genie.ph/customizing/${product.slug}`,
@@ -100,12 +145,12 @@ export async function POST(request: Request) {
             url: product.original_image_url,
           },
         });
-
+ 
         // 5. Record the pin in our database
         await supabase.from('cakegenie_pinterest_pins').insert({
           p_hash: product.p_hash,
           pinterest_pin_id: pin.id,
-          board_id: board.id,
+          board_id: boardId,
         });
 
         pinsCreated++;
