@@ -52,7 +52,7 @@ export const CustomizingEditorSheet = memo(function CustomizingEditorSheet({
     children,
 }: CustomizingEditorSheetProps) {
     const title = getEditorTitle(activeCustomization, activeTopperSection);
-    const bottomOffset = 102 + (showAvailabilityOffset ? 38 : 0) + (showWarningOffset ? 38 : 0);
+    const bottomOffset = 85 + (showAvailabilityOffset ? 38 : 0) + (showWarningOffset ? 38 : 0);
 
     const actionButton = activeCustomization === 'options'
         ? (hasCakeInfoChanges ? (
