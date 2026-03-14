@@ -2593,7 +2593,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                     </div>
                     {/* RIGHT COLUMN: Availability at top, then Feature List */}
-                    <div className="flex flex-row md:flex-col gap-2 w-[calc(100%+2rem)] md:w-[calc(50%-6px)] -mx-4 md:mx-0 overflow-x-auto md:overflow-visible scrollbar-hide snap-x snap-mandatory scroll-pl-4 pb-60 md:pb-0 -mb-60 md:mb-0 px-4 md:px-0 relative z-60">
+                    <div className="flex flex-row md:flex-col gap-2 w-[calc(100%+2rem)] md:w-[calc(50%-6px)] -mx-4 md:mx-0 overflow-x-auto md:overflow-visible scrollbar-hide snap-x snap-mandatory scroll-pl-4 pb-60 md:pb-0 -mb-60 md:mb-0 px-4 md:px-0">
                         {/* Availability Section - at top of right column */}
 
 
