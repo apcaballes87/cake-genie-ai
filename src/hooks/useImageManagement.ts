@@ -201,7 +201,7 @@ export const useImageManagement = () => {
                 // --- STEP 2.75: CHECK EMBEDDING CACHE IF pHash MISSED ---
                 try {
                     const imageEmbedding = await embedCakeImage({ data: compressedImageData.data, mimeType: compressedImageData.mimeType });
-                    const embeddingMatch = await findSimilarAnalysisByEmbedding(imageEmbedding, 0.86, uploadedImageUrl);
+                    const embeddingMatch = await findSimilarAnalysisByEmbedding(imageEmbedding, 0.92, uploadedImageUrl);
 
                     if (embeddingMatch) {
                         onSuccess(embeddingMatch.analysisResult);

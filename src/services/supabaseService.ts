@@ -375,7 +375,7 @@ export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string
  * @param imageUrl Optional URL of the image being searched.
  * @returns The cached analysis JSON and SEO metadata if a similar one is found, otherwise null.
  */
-export async function findSimilarAnalysisByEmbedding(embedding: number[], matchThreshold: number = 0.86, imageUrl?: string): Promise<CacheHitResult | null> {
+export async function findSimilarAnalysisByEmbedding(embedding: number[], matchThreshold: number = 0.92, imageUrl?: string): Promise<CacheHitResult | null> {
   try {
     console.log(`🔍 Calling find_similar_images_by_embedding RPC with threshold: ${matchThreshold}`);
 
