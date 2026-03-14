@@ -92,9 +92,9 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     onTemplateClear,
     onTemplateColorChange,
 }) => {
-    const show = Boolean(price !== null || error || isAnalyzing || warningMessage || hasPendingDesignChanges || isApplyingChanges);
+    const show = Boolean(price !== null || error || isAnalyzing || warningMessage || hasPendingDesignChanges || isApplyingChanges || availability);
 
-    const showAvailability = Boolean(availability && !isAnalyzing);
+    const showAvailability = Boolean(availability);
 
 
     const [isCompact, setIsCompact] = React.useState(false);
@@ -146,46 +146,71 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     };
 
     const renderAvailabilityNotification = () => {
+        // Priority 1: Warning Message (Toy availability, replacements, etc.)
+        if (warningMessage) {
+            return (
+                <div
+                    className={`bg-red-50 border-b border-red-200 rounded-t-2xl group relative transition-colors ${onWarningClick ? 'cursor-pointer hover:bg-red-100' : ''}`}
+                    onClick={onWarningClick}
+                >
+                    <div className={`max-w-4xl mx-auto flex items-center justify-center gap-2 text-red-800 text-xs sm:text-sm font-bold p-2 ${!onWarningClick ? 'cursor-help' : ''}`}>
+                        <AlertTriangleIcon className="w-5 h-5 text-red-600 shrink-0" />
+                        <span>{warningMessage}</span>
+                    </div>
+                    {/* Tooltip */}
+                    {warningDescription && (
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-72 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-xl z-50 text-center font-normal leading-relaxed pointer-events-none">
+                            {warningDescription}
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800"></div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Priority 2: Order Availability
         if (!availability) return null;
 
         if (availability === 'rush') {
             return (
-                <div className="bg-green-100 border-b border-green-200 rounded-t-2xl pb-[8px] -mb-[8px] relative">
+                <div className="bg-green-100 border-b border-green-200 rounded-t-2xl">
                     <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-green-800 text-xs sm:text-sm font-bold p-2">
                         <span>⚡</span>
                         <span>Rush Order Available! Ready in 30 mins</span>
                     </div>
-                    {/* Filler to close gap with element below */}
-                    <div className="absolute -bottom-4 left-0 right-0 h-4 bg-green-100 pointer-events-none" />
                 </div>
             );
         }
         if (availability === 'same-day') {
             return (
-                <div className="bg-blue-100 border-b border-blue-200 rounded-t-2xl pb-[8px] -mb-[8px] relative">
+                <div className="bg-blue-100 border-b border-blue-200 rounded-t-2xl">
                     <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-blue-800 text-xs sm:text-sm font-bold p-2">
                         <span>🕐</span>
                         <span>Same-Day Order! Ready in 3 hours</span>
                     </div>
-                    {/* Filler to close gap with element below */}
-                    <div className="absolute -bottom-4 left-0 right-0 h-4 bg-blue-100 pointer-events-none" />
                 </div>
             );
         }
         if (availability === 'normal') {
             return (
-                <div className="bg-slate-100 border-b border-slate-200 rounded-t-2xl pb-[8px] -mb-[8px] relative">
+                <div className="bg-slate-100 border-b border-slate-200 rounded-t-2xl">
                     <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-slate-700 text-xs sm:text-sm font-bold p-2">
                         <span>📅</span>
                         <span>Standard order. Requires 1-day lead time</span>
                     </div>
-                    {/* Filler to close gap with element below */}
-                    <div className="absolute -bottom-4 left-0 right-0 h-4 bg-slate-100 pointer-events-none" />
                 </div>
             );
         }
         return null;
     };
+
+    // Bridge color matches the active notification — rendered outside overflow-hidden so it
+    // fills the transparent rounded-corner area at the top of the main bar below.
+    const notificationBridgeColor =
+        warningMessage ? 'bg-red-50' :
+        availability === 'rush' ? 'bg-green-100' :
+        availability === 'same-day' ? 'bg-blue-100' :
+        availability === 'normal' ? 'bg-slate-100' : '';
 
     return (
         <>
@@ -194,33 +219,15 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                 <div className="pointer-events-auto">
                     <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${(warningMessage || (showAvailability && availability)) ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                         <div className="rounded-t-2xl relative overflow-hidden">
-                            {warningMessage ? (
-                                <div
-                                    className={`bg-red-50 border-b border-red-200 pb-[8px] -mb-[8px] group relative ${onWarningClick ? 'cursor-pointer hover:bg-red-100 transition-colors' : ''}`}
-                                    onClick={onWarningClick}
-                                >
-                                    <div className={`max-w-4xl mx-auto flex items-center justify-center gap-2 text-red-800 text-xs sm:text-sm font-semibold p-2 ${!onWarningClick ? 'cursor-help' : ''}`}>
-                                        <AlertTriangleIcon className="w-5 h-5 text-red-600 shrink-0" />
-                                        <span>{warningMessage}</span>
-                                    </div>
-                                    {/* Filler to close gap with element below */}
-                                    <div className="absolute -bottom-4 left-0 right-0 h-4 bg-red-50 pointer-events-none" />
-                                    {/* Tooltip */}
-                                    {warningDescription && (
-                                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-72 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-xl z-50 text-center leading-relaxed pointer-events-none">
-                                            {warningDescription}
-                                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800"></div>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                renderAvailabilityNotification()
-                            )}
+                            {renderAvailabilityNotification()}
                         </div>
                     </div>
+                    {/* Bridge: 16px of matching color outside overflow-hidden, fills the transparent
+                        rounded-corner area at the top of the main bar (border-radius = 1rem = 16px) */}
+                    <div className={`h-4 transition-opacity duration-500 ease-in-out ${(warningMessage || (showAvailability && availability)) ? 'opacity-100' : 'opacity-0'} ${notificationBridgeColor}`} />
                 </div>
-                {/* Spacer to keep warnings above the main bar which is 92px high */}
-                <div className="h-[92px]" />
+                {/* Spacer: 114px + 16px bridge above = 130px total gap above the main bar */}
+                <div className="h-[114px]" />
             </div>
 
             {/* Bottom Section: Main Action Bar (z-90) */}

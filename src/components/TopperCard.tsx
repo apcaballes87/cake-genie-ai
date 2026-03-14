@@ -72,11 +72,11 @@ export const TopperCard: React.FC<{
 
     const isPrintoutOrPhoto = item.type === 'printout' || item.type === 'edible_photo_top' || item.type === 'support_printout' || item.type === 'edible_photo_side';
     const isDoodle = item.original_type === 'icing_doodle';
-    const canChangeColor = isDoodle || COLORABLE_ITEM_TYPES.includes(item.type as any);
-    const isReplaceableIcingFigure = (item.type === 'icing_doodle' || item.type === 'icing_palette_knife') && isHumanFigure;
-    const isReplaceableGumpasteFigure = (item.type === 'edible_3d_complex' || item.type === 'edible_3d_ordinary' || item.type === 'edible_3d_support') && isHumanFigure;
     const isPaletteKnife = item.type === 'icing_palette_knife';
     const canChangeMultipleColors = isPaletteKnife && 'colors' in item && item.colors && item.colors.length > 0;
+    const canChangeColor = (isDoodle || COLORABLE_ITEM_TYPES.includes(item.type as any)) && !canChangeMultipleColors;
+    const isReplaceableIcingFigure = (item.type === 'icing_doodle' || item.type === 'icing_palette_knife') && isHumanFigure;
+    const isReplaceableGumpasteFigure = (item.type === 'edible_3d_complex' || item.type === 'edible_3d_ordinary' || item.type === 'edible_3d_support') && isHumanFigure;
 
     const materialLabel = isTopper ? topperTypeDisplayMap[item.type as MainTopperType] : supportTypeDisplayMap[item.type as SupportElementType];
 
@@ -260,10 +260,10 @@ export const TopperCard: React.FC<{
 
                     {/* Multiple Colors */}
                     {canChangeMultipleColors && (
-                        <div>
-                            <label className="block text-[10px] font-medium text-slate-600 mb-1.5">Colors</label>
-                            <MultiColorEditor colors={(item as any).colors!} onColorChange={(index, newHex) => handleColorArrayChange(index, newHex)} />
-                        </div>
+                        <MultiColorEditor
+                            colors={(item as any).colors!}
+                            onColorChange={(index, newHex) => handleColorArrayChange(index, newHex)}
+                        />
                     )}
                 </div>
             )}

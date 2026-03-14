@@ -2016,6 +2016,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setActiveCustomization('toppers');
     }, []);
 
+    const hasTypeChanges = useMemo(() => {
+        if (!analysisResult?.cakeType || !cakeInfo?.type) return false;
+        return cakeInfo.type !== analysisResult.cakeType;
+    }, [cakeInfo?.type, analysisResult?.cakeType]);
+
     // Calculate icing changes at the top level to avoid hook errors
     const hasIcingChanges = useMemo(() => {
         if (!analysisResult?.icing_design || !icingDesign) return false;
@@ -2089,8 +2094,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, [mainToppers, supportElements, checkItemChanged]);
 
     const hasPendingVisualChanges = useMemo(() => {
-        return hasIcingChanges || hasMessageChanges || hasToppersChanges || hasPhotoChanges;
-    }, [hasIcingChanges, hasMessageChanges, hasToppersChanges, hasPhotoChanges]);
+        return hasIcingChanges || hasMessageChanges || hasToppersChanges || hasPhotoChanges || hasTypeChanges;
+    }, [hasIcingChanges, hasMessageChanges, hasToppersChanges, hasPhotoChanges, hasTypeChanges]);
 
     const hasToyTopper = useMemo(() => {
         if (!mainToppers || !supportElements) return false;
