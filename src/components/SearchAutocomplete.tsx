@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { SearchIcon, CameraIcon, Loader2, LinkIcon, LayersIcon } from './icons';
 import { CAKE_SEARCH_KEYWORDS } from '@/constants/searchKeywords';
-import { getSuggestedKeywords, getPopularKeywords, logSearchAnalytics } from '@/services/supabaseService';
+import { getSuggestedKeywords, getPopularKeywords, logSearchAnalytics, getDesignCategories } from '@/services/supabaseService';
 import Link from 'next/link';
 
 interface SearchAutocompleteProps {
@@ -24,18 +24,17 @@ const SITE_LINKS = [
   { label: 'How to Order', href: '/how-to-order', keywords: ['how', 'order', 'guide', 'steps'] },
   { label: 'Payment Options', href: '/payment-options', keywords: ['pay', 'payment', 'gcash', 'bank', 'card', 'checkout'] },
   { label: 'Delivery Rates', href: '/delivery-rates', keywords: ['delivery', 'rates', 'shipping', 'fee', 'transport'] },
-  { label: 'FAQ', href: '/faq', keywords: ['faq', 'questions', 'help', 'info'] },
+  { label: 'Partner Bakeshops', href: '/shop', keywords: ['shop', 'merchants', 'bakeshops', 'stores'] },
+  { label: 'About Us', href: '/about', keywords: ['about', 'story', 'company', 'info'] },
   { label: 'Contact Us', href: '/contact', keywords: ['contact', 'email', 'phone', 'support', 'reach'] },
 ];
 
-// Collection links configuration
-const COLLECTION_LINKS = [
+// Fallback collection links (will be replaced by dynamic ones)
+const FALLBACK_COLLECTIONS = [
   { label: 'Birthday Cakes', href: '/collections/birthday-cake', keywords: ['birthday', 'bday', 'party'] },
   { label: 'Wedding Cakes', href: '/collections/wedding-cake', keywords: ['wedding', 'marriage', 'bridal'] },
   { label: 'Minimalist Cakes', href: '/collections/minimalist-cake', keywords: ['minimalist', 'simple', 'clean'] },
   { label: 'Bento Cakes', href: '/collections/bento-cake', keywords: ['bento', 'lunchbox', 'small'] },
-  { label: 'K-Pop Cakes', href: '/collections/kpop-cake', keywords: ['kpop', 'bts', 'blackpink', 'army', 'blink'] },
-  { label: 'Anniversary Cakes', href: '/collections/anniversary-cake', keywords: ['anniversary', 'monthsary', 'couple'] },
 ];
 
 // Helper to highlight matching text
@@ -77,7 +76,8 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
 
   // Filtered links
   const [filteredSiteLinks, setFilteredSiteLinks] = useState<typeof SITE_LINKS>([]);
-  const [filteredCollectionLinks, setFilteredCollectionLinks] = useState<typeof COLLECTION_LINKS>([]);
+  const [filteredCollectionLinks, setFilteredCollectionLinks] = useState<{ label: string; href: string; keywords: string[] }[]>([]);
+  const [dynamicCollections, setDynamicCollections] = useState<{ label: string; href: string; keywords: string[] }[]>([]);
 
   // Compute the visible list of keywords for keyboard navigation
   // When input is empty, show suggested + popular + same-day keywords
@@ -115,10 +115,11 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
       setFilteredSiteLinks(matchedSiteLinks);
 
       // Filter collection links
-      const matchedCollections = COLLECTION_LINKS.filter(link => 
+      const collectionsToFilter = dynamicCollections.length > 0 ? dynamicCollections : FALLBACK_COLLECTIONS;
+      const matchedCollections = collectionsToFilter.filter(link => 
         link.label.toLowerCase().includes(lowerQuery) || 
         link.keywords.some(k => k.toLowerCase().includes(lowerQuery))
-      );
+      ).slice(0, 10); // Show up to 10 matching collections
       setFilteredCollectionLinks(matchedCollections);
     } else {
       setSuggestions([]); // Clear autocomplete if input is empty
@@ -126,7 +127,40 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
       setFilteredSiteLinks([]);
       setFilteredCollectionLinks([]);
     }
-  }, [query]);
+  }, [query, dynamicCollections]);
+
+  // Load dynamic collections as the LAST thing on the site
+  useEffect(() => {
+    const fetchCollections = async () => {
+      try {
+        const { data, error } = await getDesignCategories();
+        if (data && !error) {
+          const collections = data.map(cat => ({
+            label: cat.keyword,
+            href: `/collections/${cat.slug}`,
+            keywords: [cat.keyword.toLowerCase()]
+          }));
+          setDynamicCollections(collections);
+          console.log(`✅ Loaded ${collections.length} collections for search autocomplete.`);
+        }
+      } catch (err) {
+        console.error('Failed to fetch collections:', err);
+      }
+    };
+
+    // Ensure this is the last one to load
+    const handleLoad = () => {
+      // 2 second delay after window load to be absolutely sure it's last
+      setTimeout(fetchCollections, 2000);
+    };
+
+    if (document.readyState === 'complete') {
+      handleLoad();
+    } else {
+      window.addEventListener('load', handleLoad);
+      return () => window.removeEventListener('load', handleLoad);
+    }
+  }, []);
 
   // Debounced FTS product search when user types 3+ characters
   useEffect(() => {
