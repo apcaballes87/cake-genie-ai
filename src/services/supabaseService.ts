@@ -376,9 +376,9 @@ export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string
 
 /**
  * Default threshold for embedding similarity matching.
- * 0.98 is very strict, intended for finding near-identical images.
+ * 0.96 is strict, intended for finding near-identical images.
  */
-export const EMBEDDING_MATCH_THRESHOLD = 0.98;
+export const EMBEDDING_MATCH_THRESHOLD = 0.96;
 
 /**
  * Searches for a similar analysis result in the cache using Gemini vector embeddings.
