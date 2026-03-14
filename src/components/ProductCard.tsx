@@ -107,7 +107,7 @@ const ProductCardContent = ({
 
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
 
-                    <div className="absolute top-2.5 left-2.5 z-10">
+                    <div className="absolute top-2.5 left-2.5">
                         <span className={`backdrop-blur-sm text-[10px] md:text-xs font-extrabold px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap ${avail === 'rush'
                             ? 'bg-green-600/95 text-white'
                             : avail === 'same-day'
@@ -135,7 +135,7 @@ const ProductCardShell = ({ children, isSaved, onSaveClick }: ProductCardShellPr
         {children}
         <button
             onClick={onSaveClick}
-            className={`save-heart-button absolute top-2.5 right-2.5 w-8 h-8 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm z-20 transition-colors ${isSaved
+            className={`save-heart-button absolute top-2.5 right-2.5 w-8 h-8 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-colors ${isSaved
                 ? 'bg-red-500 text-white'
                 : 'bg-white/90 text-gray-400 hover:text-red-500'
                 }`}

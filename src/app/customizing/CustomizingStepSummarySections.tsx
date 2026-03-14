@@ -118,7 +118,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     const isDesktop = layout === 'desktop';
     const containerClassName = isDesktop
         ? 'w-full hidden md:flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden gap-2 pb-6 md:pb-4 scrollbar-hide snap-x md:snap-none'
-        : 'w-[calc(100%+2rem)] -mx-4 px-4 mt-0 flex md:hidden overflow-x-auto gap-2 pb-4 scrollbar-hide snap-x scroll-pl-4';
+        : 'w-[calc(100%+2rem)] -mx-4 px-4 mt-0 flex md:hidden overflow-x-auto gap-2 pb-4 scrollbar-hide snap-x scroll-pl-4 relative z-60';
     const cardClassName = isDesktop
         ? 'shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200'
         : 'shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200';
