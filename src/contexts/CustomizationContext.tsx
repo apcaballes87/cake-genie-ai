@@ -61,6 +61,7 @@ interface CustomizationContextType {
     syncAnalysisResultWithCurrentState: () => void;
     getSyncedAnalysisResult: () => HybridAnalysisResult | null;
     clearDirtyState: () => void;
+    applyFullCustomizationState: (state: CustomizationState) => void;
     seoMetadata: CacheSEOMetadata | null;
     setSEOMetadata: (metadata: CacheSEOMetadata | null) => void;
     chatHistory: string[];
@@ -537,6 +538,19 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
 
     }, [dirtyFields]);
 
+    const applyFullCustomizationState = useCallback((state: CustomizationState) => {
+        if (state.cakeInfo !== undefined) setCakeInfo(state.cakeInfo ?? null);
+        if (state.mainToppers !== undefined) setMainToppers(state.mainToppers);
+        if (state.supportElements !== undefined) setSupportElements(state.supportElements);
+        if (state.cakeMessages !== undefined) setCakeMessages(state.cakeMessages);
+        if (state.icingDesign !== undefined) setIcingDesign(state.icingDesign ?? null);
+        if (state.additionalInstructions !== undefined) setAdditionalInstructions(state.additionalInstructions);
+        if (state.analysisResult !== undefined) setAnalysisResult(state.analysisResult ?? null);
+        if (state.analysisId !== undefined) setAnalysisId(state.analysisId ?? null);
+        setIsCustomizationDirty(false);
+        setDirtyFields(new Set());
+    }, []);
+
     useEffect(() => {
         if (pendingAnalysisData) {
 
@@ -770,6 +784,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         syncAnalysisResultWithCurrentState,
         getSyncedAnalysisResult,
         clearDirtyState,
+        applyFullCustomizationState,
         seoMetadata,
         setSEOMetadata,
         chatHistory,
@@ -808,6 +823,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         syncAnalysisResultWithCurrentState,
         getSyncedAnalysisResult,
         clearDirtyState,
+        applyFullCustomizationState,
         seoMetadata,
         chatHistory,
         addChatEntry,

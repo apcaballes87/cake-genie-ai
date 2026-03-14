@@ -60,7 +60,7 @@ import {
 
 
 // Hooks
-import { useCakeCustomization } from '@/contexts/CustomizationContext';
+import { useCakeCustomization, type CustomizationState } from '@/contexts/CustomizationContext';
 import { useImageManagement } from '@/contexts/ImageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
@@ -304,6 +304,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         syncAnalysisResultWithCurrentState,
         getSyncedAnalysisResult,
         clearDirtyState,
+        applyFullCustomizationState,
         chatHistory, addChatEntry,
     } = useCakeCustomization();
 
@@ -325,7 +326,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [pendingCartItems, setPendingCartItems] = useState<CartItem[]>([]);
     const [isAddingToCart, setIsAddingToCart] = useState(false);
     const [isPreparingSharedDesign, setIsPreparingSharedDesign] = useState(false);
-    const [previousAnalysisSnapshot, setPreviousAnalysisSnapshot] = useState<HybridAnalysisResult | null>(null);
+    const [previousUIState, setPreviousUIState] = useState<CustomizationState | null>(null);
+    const committedStateRef = useRef<CustomizationState | null>(null);
     const [searchInput, setSearchInput] = useState('');
     const [chatInput, setChatInput] = useState('');
     const [isAiProcessing, setIsAiProcessing] = useState(false);
@@ -351,6 +353,18 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [hasMoreDesigns, setHasMoreDesigns] = useState(true);
     const [relatedCollections, setRelatedCollections] = useState<CustomizingRelatedCollection[]>([]);
     const [isLoadingCollections, setIsLoadingCollections] = useState(false);
+
+    // Track "committed" state = UI state that matches the currently displayed image.
+    // Only updates when dirty state is cleared (after analysis apply or design update sync).
+    useEffect(() => {
+        if (!isCustomizationDirty) {
+            committedStateRef.current = {
+                cakeInfo, mainToppers, supportElements, cakeMessages,
+                icingDesign, additionalInstructions, analysisResult, analysisId,
+            };
+        }
+    }, [isCustomizationDirty, cakeInfo, mainToppers, supportElements, cakeMessages,
+        icingDesign, additionalInstructions, analysisResult, analysisId]);
 
     // --- Refs ---
     const accountMenuRef = useRef<HTMLDivElement>(null);
@@ -430,11 +444,16 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         originalImageData, analysisResult, cakeInfo, mainToppers, supportElements, cakeMessages,
         icingDesign, additionalInstructions, threeTierReferenceImage,
         onSuccess: (editedImageResult: string) => {
+            // Save the committed state (matches the previous image) for undo.
+            // committedStateRef tracks state from before user edits, so it won't
+            // contain the user's latest changes captured by the closure.
+            setPreviousUIState(committedStateRef.current);
+
             setEditedImage(editedImageResult);
             setActiveTab('customized');
             if (originalImageData) setPreviousImageData(originalImageData);
-            if (analysisResult) setPreviousAnalysisSnapshot(analysisResult);
             syncAnalysisResultWithCurrentState();
+            clearDirtyState();
 
             const mimeMatch = editedImageResult.match(/^data:([^;]+);base64,(.+)$/);
             if (mimeMatch) {
@@ -1828,13 +1847,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             setOriginalImageData(previousImageData);
             setPreviousImageData(null);
         }
-        if (previousAnalysisSnapshot) {
-            setPendingAnalysisData(previousAnalysisSnapshot);
-            setPreviousAnalysisSnapshot(null);
+        if (previousUIState) {
+            applyFullCustomizationState(previousUIState);
+            setPreviousUIState(null);
         }
         setEditedImage(null);
         setActiveTab('original');
-    }, [previousAnalysisSnapshot, previousImageData, setEditedImage, setOriginalImageData, setPendingAnalysisData, setPreviousImageData]);
+    }, [previousUIState, previousImageData, setEditedImage, setOriginalImageData, setPreviousImageData, applyFullCustomizationState]);
 
     const canUndo = !!previousImageData;
     const error = analysisError || imageManagementError || designUpdateError || basePriceError || authError || null;
