@@ -94,19 +94,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
 }) => {
     const show = Boolean(price !== null || error || isAnalyzing || warningMessage || hasPendingDesignChanges || isApplyingChanges);
 
-    const [showAvailability, setShowAvailability] = React.useState(false);
-
-    React.useEffect(() => {
-        if (isAnalyzing) {
-            setShowAvailability(false);
-        } else if (availability) {
-            setShowAvailability(true);
-            const timer = setTimeout(() => {
-                setShowAvailability(false);
-            }, 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [availability, isAnalyzing]);
+    const showAvailability = Boolean(availability && !isAnalyzing);
 
 
     const [isCompact, setIsCompact] = React.useState(false);
@@ -202,7 +190,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     return (
         <>
             {/* Top Section: Warnings & Availability (z-60) */}
-            <div className={`fixed bottom-0 left-0 right-0 z-60 pointer-events-none transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}>
+            <div className={`fixed bottom-0 left-0 right-0 z-85 pointer-events-none transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}>
                 <div className="pointer-events-auto">
                     <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${showAvailability && availability ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                         <div className="rounded-t-2xl relative">
