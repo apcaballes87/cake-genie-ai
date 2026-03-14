@@ -125,10 +125,14 @@ export const useImageManagement = () => {
             let compressedImageData = imageData; // Default to original
             let finalImageBlobToCache: Blob | undefined;
 
+            // --- STEP 1: CHECK pHash CACHE (FASTEST) ---
             const pHash = await generatePerceptualHash(imageSrc);
-            const cacheHit = await findSimilarAnalysisByHash(pHash, options?.imageUrl);
+            console.log(`🖼️ Generated pHash for upload: ${pHash}`);
+            
+            const cacheHit = await findSimilarAnalysisByHash(pHash, uploadedImageUrl);
 
             if (cacheHit) {
+                console.log('⚡ pHash Cache Hit! Skipping AI analysis.');
                 const cachedAnalysis = cacheHit.analysisResult;
                 onSuccess(cachedAnalysis);
 
@@ -200,10 +204,13 @@ export const useImageManagement = () => {
 
                 // --- STEP 2.75: CHECK EMBEDDING CACHE IF pHash MISSED ---
                 try {
+                    console.log('🧠 Generating image embedding for deeper cache check...');
                     const imageEmbedding = await embedCakeImage({ data: compressedImageData.data, mimeType: compressedImageData.mimeType });
+                    console.log('🔎 Searching embedding cache with 0.92 threshold...');
                     const embeddingMatch = await findSimilarAnalysisByEmbedding(imageEmbedding, 0.92, uploadedImageUrl);
 
                     if (embeddingMatch) {
+                        console.log('✅ Embedding Match Found! Similarity Score:', (embeddingMatch as any).similarity || 'High');
                         onSuccess(embeddingMatch.analysisResult);
 
                         // Background enrichment for embeddings too

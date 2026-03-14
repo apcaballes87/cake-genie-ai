@@ -321,11 +321,17 @@ export interface CacheHitResult {
 
 export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string): Promise<CacheHitResult | null> {
   try {
+    console.log(`🔍 Starting pHash cache lookup for hash: ${pHash}`);
+
     console.log('🔍 Calling find_similar_analysis RPC with pHash:', pHash);
 
     const { data, error } = await supabase.rpc('find_similar_analysis', {
       new_hash: pHash,
     });
+    
+    if (data) {
+      console.log(`📡 RPC 'find_similar_analysis' returned ${data.length} potential hash matches.`);
+    }
 
     if (error) {
       console.error('❌ Analysis cache lookup error:', error);
@@ -384,6 +390,10 @@ export async function findSimilarAnalysisByEmbedding(embedding: number[], matchT
       match_threshold: matchThreshold,
       match_count: 1
     });
+
+    if (data) {
+      console.log(`📡 RPC 'find_similar_images_by_embedding' returned ${data.length} matches.`);
+    }
 
     if (error) {
       console.error('❌ Embedding cache lookup error:', error);
