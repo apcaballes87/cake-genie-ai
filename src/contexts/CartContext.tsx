@@ -495,8 +495,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // 2. Fire-and-forget Background Process (runs without blocking navigation)
         // We DON'T await this - it runs in the background while user is navigated to cart
+        console.log('🔄 Cart: Background upload started...');
         uploadTask
             .then(async ({ originalImageUrl, finalImageUrl }) => {
+                console.log('✅ Cart: Background upload complete. Saving to database...', { originalImageUrl, finalImageUrl });
+                
                 // Prepare real item for DB
                 const finalItemParams = {
                     ...initialItem,
@@ -507,6 +510,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 const { data: { user } } = await supabase.auth.getUser();
                 const isAnonymous = user?.is_anonymous ?? false;
                 if (!user) {
+                    console.error('❌ Cart: User session lost during background save');
                     throw new Error("User session not found during background save");
                 }
 
@@ -518,12 +522,18 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
                 const { data: realItem, error } = await addToCartService(itemToSend);
 
-                if (error || !realItem) throw error;
+                if (error || !realItem) {
+                    console.error('❌ Cart: Failed to save real item to database:', error);
+                    throw error;
+                }
+
+                console.log('✅ Cart: Item successfully persisted to database.');
 
                 // Replace temp item with real item once upload/DB is complete
                 setCartItems(prev => prev.map(item => item.cart_item_id === tempId ? realItem : item));
             })
             .catch((error) => {
+                console.error('❌ Cart: Background process failed:', error);
                 // Rollback on failure - remove the temp item
                 setCartItems(prev => prev.filter(item => item.cart_item_id !== tempId));
                 showError("Failed to save item to cart. Please try again.");
