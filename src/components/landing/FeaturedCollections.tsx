@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { LazyImage } from '@/components/LazyImage';
 import { ArrowRight } from 'lucide-react';
@@ -12,6 +12,8 @@ export interface FeaturedCollectionItem {
 
 interface FeaturedCollectionsProps {
     categories?: FeaturedCollectionItem[];
+    // Featured collections to show first (in order)
+    featuredSlugs?: string[];
 }
 
 const getCategoryStyle = (index: number) => {
@@ -31,7 +33,7 @@ const getCategoryStyle = (index: number) => {
     };
 };
 
-export const FeaturedCollections: React.FC<FeaturedCollectionsProps> = ({ categories = [] }) => {
+export const FeaturedCollections: React.FC<FeaturedCollectionsProps> = ({ categories = [], featuredSlugs = [] }) => {
     // If no categories are provided (e.g. initial load or error), we could show a skeleton or return null.
     // However, to avoid layout shift, let's just render nothing or a safe fallback if absolutely needed.
     // For now, if empty, we hide the section.
@@ -39,9 +41,37 @@ export const FeaturedCollections: React.FC<FeaturedCollectionsProps> = ({ catego
         return null;
     }
 
+    // Reorder categories to put featured items first
+    const reorderedCategories = useMemo(() => {
+        if (featuredSlugs.length === 0) {
+            return categories;
+        }
+
+        const featured: FeaturedCollectionItem[] = [];
+        const others: FeaturedCollectionItem[] = [];
+        const featuredSet = new Set(featuredSlugs);
+
+        // First, add featured items in the order they appear in featuredSlugs
+        for (const slug of featuredSlugs) {
+            const found = categories.find(c => c.slug === slug);
+            if (found) {
+                featured.push(found);
+            }
+        }
+
+        // Then add remaining items that aren't in featured
+        for (const cat of categories) {
+            if (!featuredSet.has(cat.slug)) {
+                others.push(cat);
+            }
+        }
+
+        return [...featured, ...others];
+    }, [categories, featuredSlugs]);
+
     // Limit to top 5 or 6 based on layout needs
     // Desktop layout logic in original code handles 5 items well, hiding others.
-    const displayCategories = categories.slice(0, 10);
+    const displayCategories = reorderedCategories.slice(0, 10);
 
     return (
         <section className="mb-6 md:mb-8">

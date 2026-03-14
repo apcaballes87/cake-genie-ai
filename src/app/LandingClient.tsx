@@ -8,6 +8,16 @@ import Link from 'next/link';
 import { PopularDesigns } from '@/components/landing';
 import type { PopularDesign } from '@/components/landing/PopularDesigns';
 import { FeaturedCollections, FeaturedCollectionItem } from '@/components/landing/FeaturedCollections';
+
+// Featured collections to show first on the landing page
+const FEATURED_COLLECTION_SLUGS = [
+    'bini-cake',
+    'kpop-cake',
+    'kpop-demon-hunters-cake',
+    'kuromi-cake',
+    'roblox-cake',
+    'barbie-cake',
+];
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import LazyImage from '@/components/LazyImage';
 import { showError, showLoading } from '@/lib/utils/toast';
@@ -647,7 +657,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         </section>
 
                         {/* --- FEATURED COLLECTIONS SECTION --- */}
-                        <FeaturedCollections categories={categories} />
+                        <FeaturedCollections categories={categories} featuredSlugs={FEATURED_COLLECTION_SLUGS} />
 
                         {/* --- POPULAR DESIGNS SECTION --- */}
                         <section aria-label="Popular designs" className="mt-6 md:mt-8">

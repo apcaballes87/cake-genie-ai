@@ -11,7 +11,7 @@ After analyzing the landing page ([`LandingClient.tsx`](src/app/LandingClient.ts
 ### Identified Problems
 
 | # | Issue | Location | Impact |
-|---|-------|----------|--------|
+| --- | ------- | ---------- | -------- |
 | 1 | **Heavy client-side context initialization** | [`LandingClient.tsx:81`](src/app/LandingClient.tsx:81), [`CustomizingClient.tsx:272`](src/app/customizing/CustomizingClient.tsx:272) | Multiple contexts (Auth, Cart, SavedItems, Customization, Image) load simultaneously |
 | 2 | **Synchronous data fetching on user focus** | [`SearchAutocomplete.tsx:194-216`](src/components/SearchAutocomplete.tsx:194) | Fetches keywords when search input is focused |
 | 3 | **Multiple setInterval animations** | [`LandingClient.tsx:105-125`](src/app/LandingClient.tsx:105) | Hero image rotation + quick links carousel run on main thread |
@@ -64,10 +64,10 @@ const heroInterval = setInterval(() => { ... }, 1000);
 
 ## CLS (Cumulative Layout Shift) Issues
 
-### Identified Problems
+### CLS Identified Problems
 
 | # | Issue | Location | Impact |
-|---|-------|----------|--------|
+| --- | ------- | ---------- | -------- |
 | 1 | **Missing explicit image dimensions** | [`ProductCard.tsx:92-96`](src/components/ProductCard.tsx:92), [`LazyImage.tsx`](src/components/LazyImage.tsx) | Uses fallback `aspect-4/5` even when `image_width`/`image_height` are available |
 | 2 | **Masonry layout causes shifts** | [`PopularDesigns.tsx:73-90`](src/components/landing/PopularDesigns.tsx:73) | Grid reflows as images load |
 | 3 | **Search dropdown appears dynamically** | [`SearchAutocomplete.tsx:257-425`](src/components/SearchAutocomplete.tsx:257) | Causes content push |
@@ -105,7 +105,7 @@ const heroInterval = setInterval(() => { ... }, 1000);
 
 ```typescript
 // Use fixed aspect ratio for hero container
-<div className="relative w-full rounded-2xl aspect-[3/2] bg-white">
+<div className="relative w-full rounded-2xl aspect-3/2 bg-white">
   {/* Hero images here */}
 </div>
 ```
@@ -142,7 +142,7 @@ font-display: swap; /* or optional: block, fallback, optional */
 ### Landing Page ([`LandingClient.tsx`](src/app/LandingClient.tsx))
 
 | Priority | Action | Expected Impact |
-|----------|--------|-----------------|
+| ---------- | -------- | ----------------- |
 | High | Add `priority={true}` to first hero image | Improve LCP, reduce CLS |
 | High | Preload critical fonts | Reduce FOUT |
 | Medium | Convert hero rotation to CSS animations | Reduce JS main thread blocking |
@@ -152,7 +152,7 @@ font-display: swap; /* or optional: block, fallback, optional */
 ### Customizing Page ([`CustomizingClient.tsx`](src/app/customizing/CustomizingClient.tsx))
 
 | Priority | Action | Expected Impact |
-|----------|--------|-----------------|
+| ---------- | -------- | ----------------- |
 | High | Defer CustomizationContext initialization | Faster TTI |
 | High | Reserve space for sidebar panels | Reduce CLS |
 | Medium | Lazy load AI chat panel | Faster initial load |
@@ -163,7 +163,7 @@ font-display: swap; /* or optional: block, fallback, optional */
 
 ## Implementation Priority Matrix
 
-```
+```text
                     | Low CLS Impact | High CLS Impact |
 --------------------|----------------|-----------------|
 Low INP Impact      | Nice-to-have   | Medium Priority |
