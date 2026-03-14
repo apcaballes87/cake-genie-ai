@@ -107,21 +107,6 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             changes.push(typeChangeInstruction);
         }
     }
-    if (newCakeInfo.thickness !== originalAnalysis.cakeThickness) {
-        changes.push(`- **Change the cake thickness** to "${newCakeInfo.thickness}".`);
-    }
-
-    // A more descriptive size instruction for multi-tier cakes.
-    if (newCakeInfo.size !== originalAnalysis.cakeSize) {
-        const tiers = newCakeInfo.size?.match(/\d+"/g); // e.g., ["6\"", "8\"", "10\""]
-        if ((newCakeInfo.type.includes('2 Tier')) && tiers && tiers.length === 2) {
-            changes.push(`- The final **cake size** represents a 2-tier structure: a ${tiers[0]} diameter top tier stacked on a ${tiers[1]} diameter bottom tier.`);
-        } else if ((newCakeInfo.type.includes('3 Tier')) && tiers && tiers.length === 3) {
-            changes.push(`- The final **cake size** represents a 3-tier structure: a ${tiers[0]} diameter top tier, an ${tiers[1]} diameter middle tier, and a ${tiers[2]} diameter bottom tier.`);
-        } else {
-            changes.push(`- The final **cake size** must be "${newCakeInfo.size}".`);
-        }
-    }
 
     // 2. Topper Changes
     mainToppers.forEach(t => {

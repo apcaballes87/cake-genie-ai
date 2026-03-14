@@ -76,10 +76,20 @@ describe('TopperCard - Color Customization', () => {
     expect(screen.getByTestId('color-palette')).toBeInTheDocument();
   });
 
-  it('shows color palette for icing_palette_knife', () => {
+  it('shows color palette for icing_palette_knife when it has no multiple colors', () => {
     const item = createMockTopper('icing_palette_knife', 'Knife Swipe');
     render(<TopperCard {...defaultProps} item={item} />);
     expect(screen.getByTestId('color-palette')).toBeInTheDocument();
+    expect(screen.queryByTestId('multi-color-editor')).not.toBeInTheDocument();
+  });
+
+  it('shows ONLY multi-color editor for icing_palette_knife when it has multiple colors', () => {
+    const item = createMockTopper('icing_palette_knife', 'Knife Swipe', {
+      colors: ['#FF0000', '#00FF00']
+    } as any);
+    render(<TopperCard {...defaultProps} item={item} />);
+    expect(screen.queryByTestId('color-palette')).not.toBeInTheDocument();
+    expect(screen.getByTestId('multi-color-editor')).toBeInTheDocument();
   });
 
   it('shows color palette for marshmallows', () => {
