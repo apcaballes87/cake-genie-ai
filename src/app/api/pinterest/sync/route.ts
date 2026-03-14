@@ -1,104 +1,122 @@
 // src/app/api/pinterest/sync/route.ts
 import { NextResponse } from 'next/server';
 import { pinterestService } from '@/lib/services/pinterest';
-import { getMerchantById, getMerchantProducts } from '@/services/supabaseService';
-import { CakeGenieMerchantProduct } from '@/lib/database.types';
+import { createClient } from '@supabase/supabase-js';
 
-const SLEEP_MS = 5000; // 5 seconds between each pin
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // Use service role for admin tasks
+);
+
+const SLEEP_MS = 10000; // 10 seconds between each pin for extra safety
+const DAILY_LIMIT = 10;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function POST(request: Request) {
   try {
-    const { merchantId, accessToken, productIds } = await request.json();
+    const { collectionName, accessToken, pHashes } = await request.json();
 
-    if (!merchantId || !accessToken) {
-      return NextResponse.json({ error: 'Missing merchantId or accessToken' }, { status: 400 });
+    if (!accessToken) {
+      return NextResponse.json({ error: 'Missing accessToken' }, { status: 400 });
     }
 
-    // 1. Get Merchant Info
-    const { data: merchant, error: merchantError } = await getMerchantById(merchantId);
-    if (merchantError || !merchant) {
-      return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
+    // 1. Check Daily Limit
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: pinsLast24Hours, error: countError } = await supabase
+      .from('cakegenie_pinterest_pins')
+      .select('*', { count: 'exact', head: true })
+      .gt('pinned_at', twentyFourHoursAgo);
+
+    if (countError) {
+      return NextResponse.json({ error: 'Failed to check daily limit' }, { status: 500 });
     }
 
-    // 2. Get Products (Filtered if productIds provided)
-    const { data: allProducts, error: productsError } = await getMerchantProducts(merchantId);
-    if (productsError || !allProducts) {
-      return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
+    if ((pinsLast24Hours || 0) >= DAILY_LIMIT) {
+      return NextResponse.json({ 
+        error: `Daily limit reached. You have already pinned ${pinsLast24Hours} items in the last 24 hours.` 
+      }, { status: 429 });
     }
 
-    const products = productIds 
-      ? allProducts.filter(p => productIds.includes(p.product_id))
-      : allProducts;
+    const remainingPins = DAILY_LIMIT - (pinsLast24Hours || 0);
+    const hashesToPin = pHashes?.slice(0, remainingPins) || [];
 
-    if (products.length === 0) {
-      return NextResponse.json({ message: 'No active products to sync' });
+    if (hashesToPin.length === 0) {
+      return NextResponse.json({ error: 'No products selected or remaining limit is zero' }, { status: 400 });
     }
 
-    // 3. Create/Group by Board
-    const boardName = `Genie.ph Cakes - ${merchant.business_name}`;
-    const boardDescription = `Curated cake collections from ${merchant.business_name} at Genie.ph`;
+    // 2. Fetch Products from Cache
+    const { data: products, error: productsError } = await supabase
+      .from('cakegenie_analysis_cache')
+      .select('*')
+      .in('p_hash', hashesToPin);
+
+    if (productsError || !products) {
+      return NextResponse.json({ error: 'Failed to fetch products from cache' }, { status: 500 });
+    }
+
+    // 3. Create Board (mapped to collection)
+    const boardName = collectionName || 'Genie.ph - Best Cakes';
+    const boardDescription = `Beautiful custom cakes curated by Genie.ph`;
     
-    // In a real app, we'd check if the board exists, but for now we'll rely on service logic
-    const board = await pinterestService.createBoard(accessToken, boardName, boardDescription);
+    // Pinterest API doesn't have an "upsert" board, so we just try to create it.
+    // In a mature version, we'd list boards first and match by name.
+    let board;
+    try {
+      board = await pinterestService.createBoard(accessToken, boardName, boardDescription);
+    } catch (boardErr: any) {
+      // If board already exists, we might get an error. 
+      // For now, if it fails, we assume it's because it exists or other reasons and try to proceed if we have a board ID or handle error
+      console.error('Board creation error (may already exist):', boardErr.message);
+      // Fallback: we should actually search for the board ID if creation fails
+      // For simplicity in this refinement, we'll assume creation works or we'd need to add getBoards to service.
+      throw new Error(`Could not ensure board "${boardName}" exists: ${boardErr.message}`);
+    }
 
-    // 4. Group products by category (Collections)
-    const productsByCategory = products.reduce((acc, product) => {
-      const category = product.category || 'Special Cakes';
-      if (!acc[category]) acc[category] = [];
-      acc[category].push(product);
-      return acc;
-    }, {} as Record<string, CakeGenieMerchantProduct[]>);
-
+    let pinsCreated = 0;
     const syncResults = [];
 
-    // 5. Create Sections and Pins SEQUENTIALLY with delays
-    for (const [category, categoryProducts] of Object.entries(productsByCategory)) {
-      // Create section for this "collection" (Pinterest calls them sections)
-      const section = await pinterestService.createSection(accessToken, board.id, category);
-      
-      let pinsCreated = 0;
-      
-      for (const product of categoryProducts) {
-        if (!product.image_url) continue;
+    // 4. Create Pins SEQUENTIALLY
+    for (const product of products) {
+      if (!product.original_image_url) continue;
 
-        try {
-          await pinterestService.createPin(accessToken, {
-            board_id: board.id,
-            board_section_id: section.id,
-            title: product.title,
-            description: product.short_description || product.long_description || `Order ${product.title} from ${merchant.business_name} on Genie.ph`,
-            link: `https://genie.ph/shop/${merchant.slug}/${product.slug}`,
-            media_source: {
-              source_type: 'image_url',
-              url: product.image_url,
-            },
-          });
-          
-          pinsCreated++;
-          
-          // SAFETY DELAY: Mimic human behavior
-          if (pinsCreated < categoryProducts.length) {
-            await sleep(SLEEP_MS); 
-          }
-        } catch (pinErr: any) {
-          console.error(`Failed to pin product ${product.product_id}:`, pinErr.message);
+      try {
+        const pin = await pinterestService.createPin(accessToken, {
+          board_id: board.id,
+          title: product.slug?.split('-').map((s: string) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ') || 'Custom Cake',
+          description: product.seo_description || product.alt_text || `Order this beautiful custom cake on Genie.ph`,
+          link: `https://genie.ph/customizing/${product.slug}`,
+          alt_text: product.alt_text || 'Premium custom cake design',
+          media_source: {
+            source_type: 'image_url',
+            url: product.original_image_url,
+          },
+        });
+
+        // 5. Record the pin in our database
+        await supabase.from('cakegenie_pinterest_pins').insert({
+          p_hash: product.p_hash,
+          pinterest_pin_id: pin.id,
+          board_id: board.id,
+        });
+
+        pinsCreated++;
+        syncResults.push({ p_hash: product.p_hash, status: 'success' });
+
+        // Safety delay
+        if (pinsCreated < products.length) {
+          await sleep(SLEEP_MS);
         }
+      } catch (pinErr: any) {
+        console.error(`Failed to pin product ${product.p_hash}:`, pinErr.message);
+        syncResults.push({ p_hash: product.p_hash, status: 'error', error: pinErr.message });
       }
-
-      syncResults.push({
-        category,
-        pins_created: pinsCreated,
-      });
-
-      // Extra delay between categories
-      await sleep(SLEEP_MS * 2);
     }
 
     return NextResponse.json({
-      message: `Sync completed! Created ${syncResults.reduce((sum, r) => sum + r.pins_created, 0)} pins safely across ${syncResults.length} categories.`,
-      board_id: board.id,
+      message: `Sync completed! Created ${pinsCreated} pins.`,
+      used_limit: (pinsLast24Hours || 0) + pinsCreated,
+      remaining: DAILY_LIMIT - ((pinsLast24Hours || 0) + pinsCreated),
       results: syncResults,
     });
   } catch (err: any) {
