@@ -21,8 +21,18 @@ export default function PinterestManagerClient() {
   const [error, setError] = useState<string | null>(null);
   const [dailyUsage, setDailyUsage] = useState<number>(0);
   const DAILY_LIMIT = 10;
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    async function checkConnection() {
+      const { data } = await supabase
+        .from('cakegenie_pinterest_tokens')
+        .select('id')
+        .limit(1)
+        .single();
+      setIsConnected(!!data);
+    }
+    checkConnection();
     async function loadCollections() {
       const { data } = await getDesignCategories();
       if (data) setCollections(data);
@@ -51,8 +61,6 @@ export default function PinterestManagerClient() {
       setLoading(true);
       const { data } = await getDesignsByKeyword(selectedCollection, 100);
       if (data) {
-        // Filter out products already pinned (optional but good UI)
-        // For now just show all
         setProducts(data);
       }
       setLoading(false);
@@ -93,8 +101,11 @@ export default function PinterestManagerClient() {
       }
     }
 
-    const accessToken = prompt('Please enter your Pinterest Access Token:');
-    if (!accessToken) return;
+    let accessToken = null;
+    if (!isConnected) {
+      accessToken = prompt('Pinterest not connected in cloud. Please enter your Pinterest Access Token for manual sync OR click "Connect to Pinterest" first:');
+      if (!accessToken) return;
+    }
 
     setLoading(true);
     setError(null);
@@ -108,7 +119,7 @@ export default function PinterestManagerClient() {
         body: JSON.stringify({
           collectionName: selectedCollectionName,
           pHashes: selectedProducts,
-          accessToken,
+          accessToken: accessToken, // Will be null if isConnected, indicating backend should use stored token
         }),
       });
 
@@ -176,12 +187,16 @@ export default function PinterestManagerClient() {
 
             <button
               onClick={handleConnect}
-              className="w-full flex items-center justify-center gap-3 p-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-red-100 active:scale-[0.98]"
+              className={`w-full flex items-center justify-center gap-3 p-4 text-white rounded-2xl font-bold transition-all shadow-lg active:scale-[0.98] ${
+                isConnected 
+                  ? 'bg-green-600 hover:bg-green-700 shadow-green-100' 
+                  : 'bg-red-600 hover:bg-red-700 shadow-red-100'
+              }`}
             >
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.034-1.002 2.331-1.492 3.127C10.038 23.86 11.003 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/>
               </svg>
-              Connect to Pinterest
+              {isConnected ? 'Pinterest Connected (Cloud Sync Ready)' : 'Connect Pinterest (Enable Cloud Sync)'}
             </button>
 
             <div className="pt-4 border-t border-gray-100">

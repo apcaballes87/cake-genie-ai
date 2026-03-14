@@ -35,16 +35,44 @@ export async function GET(request: Request) {
       redirectUri
     );
 
-    // In a real app, you would store tokens.access_token and tokens.refresh_token 
-    // in the database associated with the merchantId (state).
-    
-    // For now, we'll return a success message with the tokens (DANGEROUS but for demo/user confirmation)
-    // and a instruction to the user on how to proceed.
+    // Initialize Supabase client
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Supabase configuration missing');
+    }
+
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Calculate expiration
+    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
+    const refreshTokenExpiresAt = tokens.refresh_token_expires_in 
+      ? new Date(Date.now() + tokens.refresh_token_expires_in * 1000).toISOString()
+      : null;
+
+    // Store tokens (singleton approach for now - upsert if we have a way to identify the app/owner)
+    // For simplicity, we'll just store/update the latest one.
+    const { error: upsertError } = await supabase
+      .from('cakegenie_pinterest_tokens')
+      .upsert({
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        expires_at: expiresAt,
+        refresh_token_expires_at: refreshTokenExpiresAt,
+        scope: tokens.scope,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' }); // This might need a better unique key if not singleton
+
+    if (upsertError) {
+      console.error('Failed to store tokens:', upsertError);
+      throw new Error(`Failed to store Pinterest tokens: ${upsertError.message}`);
+    }
     
     return NextResponse.json({
       message: 'Successfully connected to Pinterest!',
-      merchant_id: state,
-      // tokens: tokens // Hide tokens in production
+      merchant_id: state
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

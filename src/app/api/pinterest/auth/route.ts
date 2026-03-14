@@ -7,6 +7,7 @@ export async function GET(request: Request) {
   const redirectUri = process.env.PINTEREST_REDIRECT_URI;
 
   if (!clientId || !redirectUri) {
+    console.error('Pinterest credentials missing:', { clientId: !!clientId, redirectUri: !!redirectUri });
     return NextResponse.json(
       { error: 'Pinterest credentials not configured' },
       { status: 500 }
