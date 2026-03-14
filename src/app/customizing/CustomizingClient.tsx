@@ -2752,6 +2752,30 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     />
                 </CustomizingEditorSheet>
 
+                {!slug && analysisResult && (
+                    <CustomizingPostAnalysisContent
+                        analysisResult={analysisResult}
+                        keywords={currentKeywords || recentSearchDesign?.keywords || 'custom'}
+                        availability={recentSearchDesign?.availability || availabilityType || 'normal'}
+                        tags={recentSearchDesign?.tags || []}
+                        aboutDescription={recentSearchDesign?.seo_description || recentSearchDesign?.alt_text || analysisResult.seo_description || analysisResult.alt_text || ''}
+                        basePriceOptions={basePriceOptions}
+                    />
+                )}
+
+                {postEditorSlot}
+
+                <div className="w-full pb-28">
+                    <CustomizingDiscoverySections
+                        isAnalyzing={isAnalyzing}
+                        relatedDesigns={displayedRelatedDesigns}
+                        hasMoreDesigns={hasMoreDesigns}
+                        isLoadingMoreDesigns={isLoadingMoreDesigns}
+                        onLoadMoreDesigns={handleLoadMoreDesigns}
+                        relatedCollections={relatedCollections}
+                    />
+                </div>
+
                 <StickyAddToCartBar
                     price={finalPrice}
                     isLoading={isFetchingBasePrice}
@@ -2804,30 +2828,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     onClose={closeShareModal}
                     shareData={shareData}
                 />
-
-                {!slug && analysisResult && (
-                    <CustomizingPostAnalysisContent
-                        analysisResult={analysisResult}
-                        keywords={currentKeywords || recentSearchDesign?.keywords || 'custom'}
-                        availability={recentSearchDesign?.availability || availabilityType || 'normal'}
-                        tags={recentSearchDesign?.tags || []}
-                        aboutDescription={recentSearchDesign?.seo_description || recentSearchDesign?.alt_text || analysisResult.seo_description || analysisResult.alt_text || ''}
-                        basePriceOptions={basePriceOptions}
-                    />
-                )}
-
-                {postEditorSlot}
-
-                <div className="w-full pb-28">
-                    <CustomizingDiscoverySections
-                        isAnalyzing={isAnalyzing}
-                        relatedDesigns={displayedRelatedDesigns}
-                        hasMoreDesigns={hasMoreDesigns}
-                        isLoadingMoreDesigns={isLoadingMoreDesigns}
-                        onLoadMoreDesigns={handleLoadMoreDesigns}
-                        relatedCollections={relatedCollections}
-                    />
-                </div>
             </div>
         </>
     );
