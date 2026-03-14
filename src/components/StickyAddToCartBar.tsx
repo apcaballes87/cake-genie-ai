@@ -200,8 +200,9 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     };
 
     return (
-        <div className={`fixed bottom-0 left-0 right-0 z-90 pointer-events-none transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}>
-            <div className="z-60 pointer-events-auto">
+        <div className={`fixed bottom-0 left-0 right-0 pointer-events-none ${className || ''}`}>
+            {/* Top Section: Warnings & Availability (z-60) */}
+            <div className={`z-60 pointer-events-auto transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'}`}>
                 <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${showAvailability && availability ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                     <div className="rounded-t-2xl relative">
                         {renderAvailabilityNotification()}
@@ -228,8 +229,9 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                     </div>
                 )}
             </div>
-            
-            <div className="relative z-90 pointer-events-auto bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[30px] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] border-t border-slate-200">
+
+            {/* Bottom Section: Main Action Bar (z-90) */}
+            <div className={`relative z-90 pointer-events-auto bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[20px] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] border-t border-slate-200 transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'}`}>
                 <div className="max-w-4xl mx-auto mb-2 relative bg-white border border-slate-200 rounded-2xl p-0 shadow-inner transition-all" ref={containerRef}>
                     {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isApplyingChanges && (
                         <div className="absolute left-0 right-0 bottom-full mb-3 z-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
@@ -264,16 +266,16 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                         <div className="py-2 px-3 pr-10">
                             <div className="flex items-start gap-2 text-[14px] leading-6 text-slate-700">
                                 <span className="min-w-0 flex-1 wrap-break-word">
-                                    {selectedAiPromptTemplate.prefix}
+                                    {selectedAiPromptTemplate?.prefix}
                                     <button
                                         type="button"
                                         onClick={onTemplateColorPickerToggle}
                                         className="mx-1 inline-flex rounded-full bg-purple-50 px-2.5 py-0.5 font-bold text-purple-700 underline decoration-purple-300 underline-offset-2 transition hover:bg-purple-100"
-                                        aria-label={`Pick ${selectedAiPromptTemplate.placeholderLabel}`}
+                                        aria-label={`Pick ${selectedAiPromptTemplate?.placeholderLabel}`}
                                     >
-                                        {selectedAiPromptTemplate.placeholderLabel}
+                                        {selectedAiPromptTemplate?.placeholderLabel}
                                     </button>
-                                    {selectedAiPromptTemplate.suffix}
+                                    {selectedAiPromptTemplate?.suffix}
                                 </span>
                                 <button
                                     type="button"
@@ -287,7 +289,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                             {showAiPromptColorPicker && (
                                 <div className="mt-2 rounded-xl border border-slate-100 bg-slate-50 p-2">
                                     <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 px-1">
-                                        Choose {selectedAiPromptTemplate.placeholderLabel}
+                                        Choose {selectedAiPromptTemplate?.placeholderLabel}
                                     </div>
                                     <ColorPalette
                                         selectedColor={selectedAiPromptColor}
