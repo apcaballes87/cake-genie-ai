@@ -596,7 +596,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             // 2. Start Upload in Background (Do NOT await)
             const uploadPromise = uploadCartImages({
                 editedImageDataUri: editedImage,
-                userId: user?.id
+                userId: user?.id,
+                slug: typeof slug === 'string' ? slug : undefined
             });
 
             const cartItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'> = {
@@ -1205,7 +1206,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 const imageUrlParam = urlParams.get('image_url');
 
                 // Not a Shopify CSE handoff — bail
-                if (sourceParam !== 'shopify_cse') {
+                // Match both shopify and shopify_cse as valid external origins
+                if (sourceParam !== 'shopify_cse' && sourceParam !== 'shopify') {
                     return;
                 }
 

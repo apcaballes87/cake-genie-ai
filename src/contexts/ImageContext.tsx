@@ -86,7 +86,7 @@ interface ImageContextType {
     ) => Promise<void>;
     loadImageWithoutAnalysis: (imageUrl: string, options?: LoadImageWithoutAnalysisOptions) => Promise<{ data: string; mimeType: string }>;
     handleSave: () => Promise<void>;
-    uploadCartImages: (options?: { editedImageDataUri?: string | null; userId?: string }) => Promise<{ originalImageUrl: string; finalImageUrl: string }>;
+    uploadCartImages: (options?: { editedImageDataUri?: string | null; userId?: string; slug?: string }) => Promise<{ originalImageUrl: string; finalImageUrl: string }>;
     clearImages: () => void;
     seoMetadata: CacheSEOMetadata | null;
     isAnalysisCached: boolean;
@@ -731,11 +731,17 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
     }, [editedImage]);
 
     const uploadCartImages = useCallback(async (
-        options: { editedImageDataUri?: string | null; userId?: string } = {}
+        options: { editedImageDataUri?: string | null; userId?: string; slug?: string } = {}
     ): Promise<{ originalImageUrl: string; finalImageUrl: string }> => {
         if (!originalImagePreview) {
             throw new Error("Cannot upload to cart: original image is missing.");
         }
+
+        // Helper to check if string is a Supabase public URL or similar permanent storage URL
+        const isPermanentUrl = (str: string) => {
+            if (!str) return false;
+            return str.startsWith('http') && (str.includes('supabase.co') || str.includes('genie.ph'));
+        };
 
         // Use provided userId or fetch from auth (allows caller to cache auth)
         let userId = options.userId;
@@ -747,45 +753,58 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             userId = user.id;
         }
 
-        // Prepare both images for upload in parallel
-        const originalImageBlob = dataURItoBlob(originalImagePreview);
-        const originalImageFileName = `customizations/designs/${userId}/${uuidv4()}.webp`;
+        const slug = options.slug;
+        const storageFolder = 'customizations';
+        
+        // 1. Handle Original Image
+        let originalImageUrl = originalImagePreview;
+        let originalImageFileName = '';
 
+        if (!isPermanentUrl(originalImagePreview)) {
+            const originalImageBlob = dataURItoBlob(originalImagePreview);
+            // Use slug if available, else random UUID
+            originalImageFileName = slug 
+                ? `${storageFolder}/${userId}/${slug}.webp` 
+                : `${storageFolder}/${userId}/${uuidv4()}.webp`;
+            
+            const { error: originalUploadError } = await supabase.storage
+                .from('cakegenie')
+                .upload(originalImageFileName, originalImageBlob, { contentType: 'image/webp', upsert: true });
+            
+            if (originalUploadError) throw new Error(`Failed to upload original image: ${originalUploadError.message}`);
+            
+            const { data: urlData } = supabase.storage.from('cakegenie').getPublicUrl(originalImageFileName);
+            if (!urlData?.publicUrl) throw new Error("Could not get original image public URL.");
+            originalImageUrl = urlData.publicUrl;
+        }
+
+        // 2. Handle Edited Image
         const imageToUpload = options.editedImageDataUri !== undefined ? options.editedImageDataUri : editedImage;
+        let finalImageUrl = originalImageUrl;
 
-        // If we have an edited image, prepare and upload both in parallel
-        if (imageToUpload) {
+        if (imageToUpload && !isPermanentUrl(imageToUpload)) {
             const editedImageBlob = dataURItoBlob(imageToUpload);
             const editedImageFile = new File([editedImageBlob], 'edited-design.webp', { type: 'image/webp' });
             const compressedEditedFile = await compressImage(editedImageFile, { maxSizeMB: 1, fileType: 'image/webp' });
-            const editedImageFileName = `customizations/designs/${userId}/${uuidv4()}.webp`;
+            
+            const editedImageFileName = slug 
+                ? `${storageFolder}/${userId}/${slug}_edited.webp` 
+                : `${storageFolder}/${userId}/${uuidv4()}.webp`;
 
-            // Upload both images in PARALLEL for ~2x speedup
-            const [originalResult, editedResult] = await Promise.all([
-                supabase.storage.from('cakegenie').upload(originalImageFileName, originalImageBlob, { contentType: 'image/webp', upsert: false }),
-                supabase.storage.from('cakegenie').upload(editedImageFileName, compressedEditedFile, { contentType: 'image/webp', upsert: false })
-            ]);
+            const { error: editedUploadError } = await supabase.storage
+                .from('cakegenie')
+                .upload(editedImageFileName, compressedEditedFile, { contentType: 'image/webp', upsert: true });
 
-            if (originalResult.error) throw new Error(`Failed to upload original image: ${originalResult.error.message}`);
-            if (editedResult.error) throw new Error(`Failed to upload customized image: ${editedResult.error.message}`);
+            if (editedUploadError) throw new Error(`Failed to upload customized image: ${editedUploadError.message}`);
 
-            const { data: { publicUrl: originalImageUrl } } = supabase.storage.from('cakegenie').getPublicUrl(originalImageFileName);
-            const { data: { publicUrl: editedPublicUrl } } = supabase.storage.from('cakegenie').getPublicUrl(editedImageFileName);
-
-            if (!originalImageUrl) throw new Error("Could not get original image public URL.");
-            if (!editedPublicUrl) throw new Error("Could not get customized image public URL.");
-
-            return { originalImageUrl, finalImageUrl: editedPublicUrl };
+            const { data: urlData } = supabase.storage.from('cakegenie').getPublicUrl(editedImageFileName);
+            if (!urlData?.publicUrl) throw new Error("Could not get customized image public URL.");
+            finalImageUrl = urlData.publicUrl;
+        } else if (imageToUpload && isPermanentUrl(imageToUpload)) {
+            finalImageUrl = imageToUpload;
         }
 
-        // Only original image to upload
-        const { error: originalUploadError } = await supabase.storage.from('cakegenie').upload(originalImageFileName, originalImageBlob, { contentType: 'image/webp', upsert: false });
-        if (originalUploadError) throw new Error(`Failed to upload original image: ${originalUploadError.message}`);
-
-        const { data: { publicUrl: originalImageUrl } } = supabase.storage.from('cakegenie').getPublicUrl(originalImageFileName);
-        if (!originalImageUrl) throw new Error("Could not get original image public URL.");
-
-        return { originalImageUrl, finalImageUrl: originalImageUrl };
+        return { originalImageUrl, finalImageUrl };
     }, [originalImagePreview, editedImage, supabase]);
 
     const value = useMemo(() => ({
