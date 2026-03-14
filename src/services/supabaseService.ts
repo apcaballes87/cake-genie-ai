@@ -19,7 +19,7 @@ import {
   normalizeRelatedSearchPhrase,
   rankRelatedProducts,
 } from './relatedProductSearch';
-import { embedCakeImage, fileToBase64 } from './geminiService';
+import { fileToBase64 } from './geminiService';
 
 // The default client (uses @supabase/ssr browser client)
 const supabase: SupabaseClient = getSupabaseClient();
@@ -374,77 +374,6 @@ export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string
   }
 }
 
-/**
- * Default threshold for embedding similarity matching.
- * 0.96 is strict, intended for finding near-identical images.
- */
-export const EMBEDDING_MATCH_THRESHOLD = 0.94;
-
-/**
- * Searches for a similar analysis result in the cache using Gemini vector embeddings.
- * @param embedding The image embedding of the new image.
- * @param matchThreshold The similarity threshold (e.g., 0.98 for duplicates).
- * @param imageUrl Optional URL of the image being searched.
- * @returns The cached analysis JSON and SEO metadata if a similar one is found, otherwise null.
- */
-export async function findSimilarAnalysisByEmbedding(
-  embedding: number[],
-  matchThreshold: number = EMBEDDING_MATCH_THRESHOLD,
-  imageUrl?: string
-): Promise<CacheHitResult | null> {
-  try {
-    console.log(`🔍 Calling find_similar_images_by_embedding RPC with threshold: ${matchThreshold}`);
-
-    const { data, error } = await supabase.rpc('find_similar_images_by_embedding', {
-      new_embedding: embedding,
-      match_threshold: matchThreshold,
-      match_count: 1
-    });
-
-    if (data) {
-      console.log(`📡 RPC 'find_similar_images_by_embedding' returned ${data.length} matches.`);
-    }
-
-    if (error) {
-      console.error('❌ Embedding cache lookup error:', error);
-      console.error('Error details:', { code: error.code, message: error.message, hint: error.hint });
-      return null;
-    }
-
-    if (data && data.length > 0) {
-      const result = data[0];
-      console.log(`✅ Embedding Cache HIT! Found matching analysis. Similarity: ${result.similarity}`);
-
-      // Check if we need to backfill
-      const needsBackfill = result.price === null || result.keywords === null || (result.original_image_url === null && imageUrl);
-
-      if (needsBackfill) {
-        backfillCacheFields(result.p_hash, result.analysis_json, imageUrl);
-      }
-
-      const analysisResult: HybridAnalysisResult = result.analysis_json;
-      const seoMetadata: CacheSEOMetadata = {
-        seo_title: result.seo_title || null,
-        seo_description: result.seo_description || null,
-        keywords: result.keywords || null,
-        alt_text: result.alt_text || null,
-        slug: result.slug || null,
-        original_image_url: result.original_image_url || null,
-        price: result.price ? Number(result.price) : null,
-        availability: result.availability || null,
-      };
-
-      return { analysisResult, seoMetadata };
-
-    } else {
-      console.log('⚫️ Embedding Cache MISS. No highly similar images found.');
-      return null;
-    }
-  } catch (err) {
-    console.error('❌ Exception during embedding cache lookup:', err);
-    return null;
-  }
-}
 
 /**
  * Fetches analysis directly by exact p_hash string match.
@@ -614,19 +543,6 @@ export async function cacheAnalysisResult(pHash: string, analysisResult: HybridA
     // Generate tags
     const tags = generateTagsForAnalysis(analysisResult, keywords, seoTitle, altText);
 
-    // Generate Embedding
-    let imageEmbedding: number[] | null = null;
-    if (imageBlob) {
-      try {
-        console.log('🧠 Generating Gemini multimodal embedding for cache...');
-        const base64ForEmbedding = await fileToBase64(new File([imageBlob], 'image.png', { type: imageBlob.type }));
-        const textPayloadForEmbedding = [seoTitle, seoDescription, keywords, tags.join(', ')].filter(Boolean).join(' | ');
-        imageEmbedding = await embedCakeImage(base64ForEmbedding, textPayloadForEmbedding);
-        console.log('✅ Generated multimodal embedding successfully');
-      } catch (embedErr) {
-        console.error('⚠️ Could not generate embedding:', embedErr);
-      }
-    }
 
     const { error } = await supabase
       .from('cakegenie_analysis_cache')
@@ -642,7 +558,7 @@ export async function cacheAnalysisResult(pHash: string, analysisResult: HybridA
         seo_description: seoDescription,
         availability: availability,
         tags: tags,
-        image_embedding: imageEmbedding,
+
         ...imageDimensions,
       }, {
         onConflict: 'p_hash',

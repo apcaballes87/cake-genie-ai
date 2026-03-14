@@ -3,13 +3,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { toast as toastHot } from 'react-hot-toast';
-import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithCoordinates, enrichAnalysisWithRoboflow, embedCakeImage } from '@/services/geminiService';
+import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithCoordinates, enrichAnalysisWithRoboflow } from '@/services/geminiService';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { showSuccess, showError, showLoading, showInfo } from '@/lib/utils/toast';
 import { HybridAnalysisResult } from '@/types';
 import { COMMON_ASSETS } from '@/constants';
-import { findSimilarAnalysisByHash, findSimilarAnalysisByEmbedding, cacheAnalysisResult, EMBEDDING_MATCH_THRESHOLD } from '@/services/supabaseService';
+import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService';
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
 
 /**
@@ -202,51 +202,10 @@ export const useImageManagement = () => {
                 // Convert compressed file to base64 for AI
                 compressedImageData = await fileToBase64(compressedFile);
 
-                // --- STEP 2.75: CHECK EMBEDDING CACHE IF pHash MISSED ---
-                try {
-                    console.log('🧠 Generating image embedding for deeper cache check...');
-                    const imageEmbedding = await embedCakeImage({ data: compressedImageData.data, mimeType: compressedImageData.mimeType });
-                    console.log(`🔎 Searching embedding cache with ${EMBEDDING_MATCH_THRESHOLD} threshold...`);
-                    const embeddingMatch = await findSimilarAnalysisByEmbedding(imageEmbedding, EMBEDDING_MATCH_THRESHOLD, uploadedImageUrl);
-
-                    if (embeddingMatch) {
-                        console.log('✅ Embedding Match Found! Similarity Score:', (embeddingMatch as any).similarity || 'High');
-                        onSuccess(embeddingMatch.analysisResult);
-
-                        // Background enrichment for embeddings too
-                        (async () => {
-                            try {
-                                const enrichedResult = await enrichAnalysisWithRoboflow(
-                                    compressedImageData.data,
-                                    compressedImageData.mimeType,
-                                    embeddingMatch.analysisResult
-                                );
-                                
-                                // Better Process: Only update image if it's missing in cache
-                                const blobToPass = embeddingMatch.seoMetadata.original_image_url ? undefined : finalImageBlobToCache;
-                                
-                                cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, blobToPass);
-                                if (options?.onCoordinatesEnriched) {
-                                    options.onCoordinatesEnriched(enrichedResult);
-                                }
-                            } catch (e) {
-                                // Silently handle background enrichment failure
-                            }
-                        })();
-
-                        return; // EXIT EARLY
-                    }
-                } catch (embedError) {
-                    // Silently handle embedding check failure
-                }
-
-                // Image upload to Supabase is now deferred until after AI analysis completes
-                // so we can use the generated SEO-friendly slug as the filename.
-
             } catch (compressionErr) {
                 // Silently handle compression failure
             }
-            // --- END OF COMPRESSION LOGIC & EMBEDDING CHECK ---
+            // --- END OF COMPRESSION LOGIC ---
 
             // --- STEP 3: TWO-PHASE AI ANALYSIS ---
 

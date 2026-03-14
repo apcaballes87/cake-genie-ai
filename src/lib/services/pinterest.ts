@@ -36,7 +36,7 @@ export const pinterestService = {
    * Get the authorization URL for Pinterest OAuth 2.0
    */
   getAuthUrl: (clientId: string, redirectUri: string, state: string) => {
-    const scopes = ['boards:read', 'boards:write', 'pins:read', 'pins:write'];
+    const scopes = ['boards:read', 'boards:write', 'pins:read', 'pins:write', 'user_accounts:read'];
     const url = new URL('https://www.pinterest.com/oauth/');
     url.searchParams.append('client_id', clientId);
     url.searchParams.append('redirect_uri', redirectUri);

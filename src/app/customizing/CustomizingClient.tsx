@@ -1233,6 +1233,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 // Clear previous image immediately so there's no flash of the old design
                 clearImages();
                 clearCustomization();
+                setActiveTab('original');
                 setIsAnalyzing(true);
                 showInfo("Loading your cake design...");
 
@@ -1342,8 +1343,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
             // Clear any existing stale image/customization data first
             clearImages();
-
             clearCustomization();
+            setActiveTab('original');
 
             // Remove fromSaved param to prevent infinite loop (since we just cleared images)
             // We use replace to update URL without adding to history
@@ -1976,7 +1977,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [showMessagesPanel, setShowMessagesPanel] = useState(false); // Messages panel visibility
     const [wasUpdating, setWasUpdating] = useState(false);
     // --- UI State ---
-    const [activeTab, setActiveTab] = useState<'original' | 'customized'>('customized');
+    const [activeTab, setActiveTab] = useState<'original' | 'customized'>('original');
     const [activeCustomization, setActiveCustomization] = useState<string | null>(null);
     const [activeTopperSection, setActiveTopperSection] = useState<'main' | 'support' | null>(null);
 

@@ -352,58 +352,6 @@ editCakeImage.stripDataUriPrefix = (dataUri: string): string => {
     return dataUri.replace(/^data:image\/[a-z]+;base64,/, '');
 };
 
-/**
- * Generates an embedding vector for a cake image.
- * For visual similarity matching (screenshots, duplicates, crops), we use IMAGE-ONLY embeddings
- * to ensure the highest visual matching accuracy. Optional textData can be added for 
- * contextual/semantic search but is generally avoided for pure visual matching.
- */
-export async function embedCakeImage(
-    originalImage: { data: string; mimeType: string; },
-    textData?: string
-): Promise<number[]> {
-    try {
-        const startedAt = Date.now();
-        console.log(`[AI Embed] Starting IMAGE-ONLY embedding generation (image length: ${originalImage.data.length})`);
-
-        // Compress the image before embedding (model works fine with 1024px, saves payload size)
-        const fullDataUri = `data:${originalImage.mimeType};base64,${originalImage.data}`;
-        const imageBlob = dataURItoBlob(fullDataUri);
-        const imageFile = new File([imageBlob], "input-image.png", { type: originalImage.mimeType });
-
-        const compressedFile = await compressImage(imageFile, {
-            maxSizeMB: 0.8,
-            maxWidthOrHeight: 1024,
-            useWebWorker: true,
-            fileType: 'image/jpeg'
-        });
-
-        const compressedBase64Result = await fileToBase64(compressedFile);
-
-        const response = await fetch('/api/ai/embed-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                imageData: compressedBase64Result.data,
-                mimeType: compressedBase64Result.mimeType,
-                textData: textData || ''
-            })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to generate embedding');
-        }
-
-        const result = await response.json();
-        console.log(`[AI Embed] Embedding generation success in ${Date.now() - startedAt}ms`);
-
-        return result.embedding;
-    } catch (error) {
-        console.error("Error generating embedding:", error);
-        throw error;
-    }
-}
 
 // Export clearPromptCache for backward compatibility (it does nothing now as cache is server side mostly)
 export function clearPromptCache() {

@@ -4,12 +4,12 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { usePathname } from 'next/navigation'
 import { v4 as uuidv4 } from 'uuid'
 import { toast as toastHot } from 'react-hot-toast'
-import { fileToBase64, validateCakeImage, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow, embedCakeImage } from '@/services/geminiService'
+import { fileToBase64, validateCakeImage, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow } from '@/services/geminiService'
 import { createClient } from '@/lib/supabase/client'
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization'
 import { showSuccess, showError, showLoading } from '@/lib/utils/toast'
 import { HybridAnalysisResult, CacheSEOMetadata } from '@/types'
-import { findSimilarAnalysisByHash, findSimilarAnalysisByEmbedding, cacheAnalysisResult, EMBEDDING_MATCH_THRESHOLD } from '@/services/supabaseService'
+import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService'
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils'
 import { COMMON_ASSETS } from '@/constants'
 import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers'
@@ -316,6 +316,12 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
     ) => {
         setIsLoading(true); // For file processing
         setError(null);
+        
+        // --- PREVENT FLICKERING: Clear old image states immediately ---
+        setEditedImage(null);
+        setPreviousImageData(null);
+        setOriginalImagePreview(null);
+        
         // Clear stale slug and seoMetadata from any previous upload
         // so the share button won't show an old link
         setCurrentSlugState(null);
@@ -426,24 +432,6 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
                         } catch (resizeErr) {
                             // Silently handle resize failure
-                        }
-                    }
-
-                    // --- STEP 2.75: CHECK EMBEDDING CACHE IF pHash MISSED ---
-                    if (shouldUseSimilarCacheLookup && !cacheHit) {
-                        try {
-                            console.log('[AI Embed] Starting IMAGE-ONLY embedding generation...');
-                            const imageEmbedding = await embedCakeImage({ data: compressedImageData.data, mimeType: compressedImageData.mimeType });
-                            console.log(`🔎 Searching embedding cache with ${EMBEDDING_MATCH_THRESHOLD} threshold...`);
-                            cacheHit = await findSimilarAnalysisByEmbedding(imageEmbedding, EMBEDDING_MATCH_THRESHOLD, uploadedImageUrl);
-
-                            if (cacheHit) {
-                                console.log(`✅ Embedding Cache HIT! Similarity: ${(cacheHit as any).similarity || 'High'}`);
-                            } else {
-                                console.log('⚫️ Embedding Cache MISS. No similar images found.');
-                            }
-                        } catch (embedError) {
-                            console.error('❌ Embedding check failed:', embedError);
                         }
                     }
 
@@ -607,6 +595,10 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
     const loadImageWithoutAnalysis = useCallback(async (imageUrl: string, options?: LoadImageWithoutAnalysisOptions) => {
         setIsLoading(true);
         setError(null);
+        // --- PREVENT FLICKERING: Clear old image states immediately ---
+        setEditedImage(null);
+        setPreviousImageData(null);
+        setOriginalImagePreview(null);
         setSeoMetadata(null);
         setCurrentSlugState(null);
         try {
