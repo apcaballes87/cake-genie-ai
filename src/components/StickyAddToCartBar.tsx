@@ -200,33 +200,36 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     };
 
     return (
-        <div className={`fixed bottom-0 left-0 right-0 z-60 transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}>
-            <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${showAvailability && availability ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                <div className="rounded-t-2xl relative">
-                    {renderAvailabilityNotification()}
-                </div>
-            </div>
-            {warningMessage && (
-                <div
-                    className={`bg-red-50 border-b border-red-200 rounded-t-2xl pb-[8px] -mb-[8px] group relative ${onWarningClick ? 'cursor-pointer hover:bg-red-100 transition-colors' : ''}`}
-                    onClick={onWarningClick}
-                >
-                    <div className={`max-w-4xl mx-auto flex items-center justify-center gap-2 text-red-800 text-xs sm:text-sm font-semibold p-2 ${!onWarningClick ? 'cursor-help' : ''}`}>
-                        <AlertTriangleIcon className="w-5 h-5 text-red-600 shrink-0" />
-                        <span>{warningMessage}</span>
+        <div className={`fixed bottom-0 left-0 right-0 pointer-events-none transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}>
+            <div className="z-60 pointer-events-auto">
+                <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${showAvailability && availability ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                    <div className="rounded-t-2xl relative">
+                        {renderAvailabilityNotification()}
                     </div>
-                    {/* Filler to close gap with element below */}
-                    <div className="absolute -bottom-4 left-0 right-0 h-4 bg-red-50 pointer-events-none" />
-                    {/* Tooltip */}
-                    {warningDescription && (
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-72 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-xl z-50 text-center leading-relaxed pointer-events-none">
-                            {warningDescription}
-                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800"></div>
-                        </div>
-                    )}
                 </div>
-            )}
-            <div className="relative z-10 bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[20px] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] border-t border-slate-200">
+                {warningMessage && (
+                    <div
+                        className={`bg-red-50 border-b border-red-200 rounded-t-2xl pb-[8px] -mb-[8px] group relative ${onWarningClick ? 'cursor-pointer hover:bg-red-100 transition-colors' : ''}`}
+                        onClick={onWarningClick}
+                    >
+                        <div className={`max-w-4xl mx-auto flex items-center justify-center gap-2 text-red-800 text-xs sm:text-sm font-semibold p-2 ${!onWarningClick ? 'cursor-help' : ''}`}>
+                            <AlertTriangleIcon className="w-5 h-5 text-red-600 shrink-0" />
+                            <span>{warningMessage}</span>
+                        </div>
+                        {/* Filler to close gap with element below */}
+                        <div className="absolute -bottom-4 left-0 right-0 h-4 bg-red-50 pointer-events-none" />
+                        {/* Tooltip */}
+                        {warningDescription && (
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-72 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-xl z-50 text-center leading-relaxed pointer-events-none">
+                                {warningDescription}
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800"></div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+            
+            <div className="relative z-90 pointer-events-auto bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[20px] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] border-t border-slate-200">
                 <div className="max-w-4xl mx-auto mb-2 relative bg-white border border-slate-200 rounded-2xl p-[0px] shadow-inner transition-all" ref={containerRef}>
                     {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isApplyingChanges && (
                         <div className="absolute left-0 right-0 bottom-full mb-3 z-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
