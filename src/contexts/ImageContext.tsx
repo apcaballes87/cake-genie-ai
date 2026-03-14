@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, type SetStateAction } from 'react'
 import { usePathname } from 'next/navigation'
 import { v4 as uuidv4 } from 'uuid'
 import { toast as toastHot } from 'react-hot-toast'
@@ -117,10 +117,19 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
     const shouldDeferImageBootstrap = pathname === '/';
 
     // State
-    const [originalImageData, setOriginalImageData] = useState<{ data: string; mimeType: string } | null>(null);
+    const [originalImageData, setOriginalImageDataRaw] = useState<{ data: string; mimeType: string } | null>(null);
     const [sourceImageData, setSourceImageData] = useState<{ data: string; mimeType: string } | null>(null); // True original, never overwritten
     const [previousImageData, setPreviousImageData] = useState<{ data: string; mimeType: string } | null>(null); // For undo functionality
     const [originalImagePreview, setOriginalImagePreview] = useState<string | null>(null);
+
+    // Wrap setOriginalImageData to keep originalImagePreview in sync
+    const setOriginalImageData = useCallback((update: SetStateAction<{ data: string; mimeType: string } | null>) => {
+        setOriginalImageDataRaw(prev => {
+            const next = typeof update === 'function' ? update(prev) : update;
+            setOriginalImagePreview(next ? `data:${next.mimeType};base64,${next.data}` : null);
+            return next;
+        });
+    }, []);
     const [editedImage, setEditedImage] = useState<string | null>(null);
     const [threeTierReferenceImage, setThreeTierReferenceImage] = useState<{ data: string; mimeType: string } | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -167,7 +176,6 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         setOriginalImageData(null);
         setSourceImageData(null);
         setPreviousImageData(null);
-        setOriginalImagePreview(null);
         setEditedImage(null);
         setError(null);
         setIsLoading(false);
@@ -196,7 +204,6 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 setOriginalImageData(null);
                 setSourceImageData(null);
                 setPreviousImageData(null);
-                setOriginalImagePreview(null);
                 setEditedImage(null);
                 persistedImageStateRef.current = {
                     original: null,
@@ -242,7 +249,6 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 if (original) {
                     const parsed = JSON.parse(original);
                     setOriginalImageData(parsed);
-                    setOriginalImagePreview(`data:${parsed.mimeType};base64,${parsed.data}`);
                 }
                 if (source) setSourceImageData(JSON.parse(source));
                 if (edited) setEditedImage(edited);
@@ -332,8 +338,6 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
             setOriginalImageData(imageData);
             setSourceImageData(imageData); // Store the true original that will never be overwritten
-            setOriginalImagePreview(imageSrc);
-            setOriginalImagePreview(imageSrc);
             setIsLoading(false); // File processing done
 
             const knownSeoMetadata = options?.knownSeoMetadata ?? null;
@@ -647,7 +651,6 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             const imageData = await fileToBase64(file);
             setOriginalImageData(imageData);
             setSourceImageData(imageData); // Store the true original that will never be overwritten
-            setOriginalImagePreview(`data:${imageData.mimeType};base64,${imageData.data}`);
 
             if (options?.knownSeoMetadata) {
                 setSeoMetadata(options.knownSeoMetadata);
