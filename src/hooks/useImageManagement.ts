@@ -9,7 +9,7 @@ import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { showSuccess, showError, showLoading, showInfo } from '@/lib/utils/toast';
 import { HybridAnalysisResult } from '@/types';
 import { COMMON_ASSETS } from '@/constants';
-import { findSimilarAnalysisByHash, findSimilarAnalysisByEmbedding, cacheAnalysisResult } from '@/services/supabaseService';
+import { findSimilarAnalysisByHash, findSimilarAnalysisByEmbedding, cacheAnalysisResult, EMBEDDING_MATCH_THRESHOLD } from '@/services/supabaseService';
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
 
 /**
@@ -206,8 +206,8 @@ export const useImageManagement = () => {
                 try {
                     console.log('🧠 Generating image embedding for deeper cache check...');
                     const imageEmbedding = await embedCakeImage({ data: compressedImageData.data, mimeType: compressedImageData.mimeType });
-                    console.log('🔎 Searching embedding cache with 0.92 threshold...');
-                    const embeddingMatch = await findSimilarAnalysisByEmbedding(imageEmbedding, 0.92, uploadedImageUrl);
+                    console.log(`🔎 Searching embedding cache with ${EMBEDDING_MATCH_THRESHOLD} threshold...`);
+                    const embeddingMatch = await findSimilarAnalysisByEmbedding(imageEmbedding, EMBEDDING_MATCH_THRESHOLD, uploadedImageUrl);
 
                     if (embeddingMatch) {
                         console.log('✅ Embedding Match Found! Similarity Score:', (embeddingMatch as any).similarity || 'High');
