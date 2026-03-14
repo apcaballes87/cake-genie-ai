@@ -72,8 +72,8 @@ describe('RecentSearchPage', () => {
     const ssrFallback = container.querySelector('#ssr-content');
     expect(ssrFallback).toHaveStyle({ display: 'none' });
 
-    expect(staticMarkup).toContain('<noscript>');
-    expect(staticMarkup).toContain('#ssr-content { display: block !important; }');
+    // noscript style removed — Clarity was applying it and making the hidden SSR block visible
+    expect(staticMarkup).not.toContain('<noscript>');
     expect(hasDirectPreloadLink).toBe(false);
     expect(staticMarkup).toContain('src="https://example.com/pink-bento-cake.webp"');
   });

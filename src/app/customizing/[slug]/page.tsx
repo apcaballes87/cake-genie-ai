@@ -731,6 +731,8 @@ function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceI
                                     </span>
                                     <svg
                                         className="w-5 h-5 text-slate-400 transition-transform duration-300 group-open:rotate-180 shrink-0 ml-2"
+                                        width="20"
+                                        height="20"
                                         fill="none"
                                         viewBox="0 0 24 24"
                                         stroke="currentColor"
@@ -870,10 +872,6 @@ export default async function RecentSearchPage({ params }: Props) {
             {/* FAQ as visible HTML accordion (FAQPage schema restricted to gov/healthcare Aug 2023) */}
 
             {/* Ordering steps as visible HTML (HowTo schema deprecated Sept 2023) */}
-
-            <noscript>
-                <style>{`#ssr-content { display: block !important; }`}</style>
-            </noscript>
 
             <SSRCakeDetails
                 design={design}
