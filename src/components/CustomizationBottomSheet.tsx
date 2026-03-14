@@ -140,7 +140,7 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
 
                 {/* Footer (Action Button) */}
                 {actionButton && (
-                    <div className="p-2 border-t border-slate-100 bg-white sticky bottom-0 z-10">
+                    <div className="pt-2 px-2 pb-4 border-t border-slate-100 bg-white sticky bottom-0 z-10">
                         {actionButton}
                     </div>
                 )}
