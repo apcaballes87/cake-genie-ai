@@ -1,99 +1,123 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getMerchants, getMerchantProducts } from '@/services/supabaseService';
-import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.types';
+import { getDesignCategories, getDesignsByKeyword } from '@/services/supabaseService';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function PinterestManagerClient() {
-  const [merchants, setMerchants] = useState<CakeGenieMerchant[]>([]);
-  const [products, setProducts] = useState<CakeGenieMerchantProduct[]>([]);
-  const [selectedMerchant, setSelectedMerchant] = useState<string>('');
+  const [collections, setCollections] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [selectedCollection, setSelectedCollection] = useState<string>('');
+  const [selectedCollectionName, setSelectedCollectionName] = useState<string>('');
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [syncResults, setSyncResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dailyUsage, setDailyUsage] = useState<number>(0);
+  const DAILY_LIMIT = 10;
 
   useEffect(() => {
-    async function loadMerchants() {
-      const { data } = await getMerchants();
-      if (data) setMerchants(data);
+    async function loadCollections() {
+      const { data } = await getDesignCategories();
+      if (data) setCollections(data);
     }
-    loadMerchants();
+    loadCollections();
+    fetchDailyUsage();
   }, []);
 
+  const fetchDailyUsage = async () => {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await supabase
+      .from('cakegenie_pinterest_pins')
+      .select('*', { count: 'exact', head: true })
+      .gt('pinned_at', twentyFourHoursAgo);
+    
+    setDailyUsage(count || 0);
+  };
+
   useEffect(() => {
-    if (!selectedMerchant) {
+    if (!selectedCollection) {
       setProducts([]);
       setSelectedProducts([]);
       return;
     }
     async function loadProducts() {
-      const { data } = await getMerchantProducts(selectedMerchant);
-      if (data) setProducts(data);
+      setLoading(true);
+      const { data } = await getDesignsByKeyword(selectedCollection, 100);
+      if (data) {
+        // Filter out products already pinned (optional but good UI)
+        // For now just show all
+        setProducts(data);
+      }
+      setLoading(false);
     }
     loadProducts();
-  }, [selectedMerchant]);
+  }, [selectedCollection]);
 
   const handleConnect = () => {
-    if (!selectedMerchant) {
-      alert('Please select a merchant first');
-      return;
-    }
-    window.location.href = `/api/pinterest/auth?merchant_id=${selectedMerchant}`;
+    window.location.href = `/api/pinterest/auth`;
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedProducts(products.map(p => p.product_id));
+      setSelectedProducts(products.map(p => p.p_hash));
     } else {
       setSelectedProducts([]);
     }
   };
 
-  const toggleProduct = (productId: string) => {
+  const toggleProduct = (p_hash: string) => {
     setSelectedProducts(prev => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId) 
-        : [...prev, productId]
+      prev.includes(p_hash) 
+        ? prev.filter(id => id !== p_hash) 
+        : [...prev, p_hash]
     );
   };
 
   const handleSync = async () => {
-    if (!selectedMerchant || selectedProducts.length === 0) {
-      alert('Please select a merchant and at least one product');
+    if (selectedProducts.length === 0) {
+      alert('Please select at least one product');
       return;
     }
 
-    if (selectedProducts.length > 20) {
-      if (!confirm(`You have selected ${selectedProducts.length} products. Pinterest recommends a maximum of 15 pins per day per account to avoid shadow banning. Do you want to continue?`)) {
+    const remaining = DAILY_LIMIT - dailyUsage;
+    if (selectedProducts.length > remaining) {
+      if (!confirm(`You selected ${selectedProducts.length} items, but you only have ${remaining} remaining in your daily limit. Only the first ${remaining} will be pinned. Continue?`)) {
         return;
       }
     }
 
-    const accessToken = prompt('Please enter your Pinterest Access Token (returned after connection):');
+    const accessToken = prompt('Please enter your Pinterest Access Token:');
     if (!accessToken) return;
 
     setLoading(true);
     setError(null);
     setSyncResults(null);
-    setMessage(`Syncing ${selectedProducts.length} products with safety delays...`);
+    setMessage(`Syncing ${Math.min(selectedProducts.length, remaining)} products with safety delays...`);
 
     try {
       const response = await fetch('/api/pinterest/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          merchantId: selectedMerchant,
-          productIds: selectedProducts,
+          collectionName: selectedCollectionName,
+          pHashes: selectedProducts,
           accessToken,
         }),
       });
 
       const data = await response.json();
-      if (data.error) throw new Error(data.error);
+      if (!response.ok) throw new Error(data.error || 'Sync failed');
+      
       setSyncResults(data);
       setMessage(null);
+      fetchDailyUsage(); // Refresh usage
     } catch (err: any) {
       setError(err.message);
       setMessage(null);
@@ -117,9 +141,11 @@ export default function PinterestManagerClient() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
           <div>
-            <p className="text-xs font-bold text-orange-800 uppercase tracking-wider">Shadowban Prevention</p>
-            <p className="text-xs text-orange-700 leading-relaxed">Pinterest recommends <b>3-15 pins per day</b>. 
-            Avoid pinning more than 20 items in a 24-hour period.</p>
+            <p className="text-xs font-bold text-orange-800 uppercase tracking-wider">Daily Pinning Logic</p>
+            <p className="text-xs text-orange-700 leading-relaxed">
+              We enforce a strict <b>{DAILY_LIMIT} pins per day</b> limit to protect your account. 
+              Sequential delays of 10s are added between каждой pin.
+            </p>
           </div>
         </div>
       </div>
@@ -129,16 +155,20 @@ export default function PinterestManagerClient() {
         <div className="lg:col-span-1 space-y-8">
           <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100 space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-3">1. Select Merchant</label>
+              <label className="block text-sm font-semibold text-gray-900 mb-3">1. Select Collection / Board</label>
               <select
-                value={selectedMerchant}
-                onChange={(e) => setSelectedMerchant(e.target.value)}
+                value={selectedCollection}
+                onChange={(e) => {
+                  setSelectedCollection(e.target.value);
+                  const col = collections.find(c => c.slug === e.target.value);
+                  setSelectedCollectionName(col?.keyword || '');
+                }}
                 className="w-full p-4 border border-gray-200 rounded-xl focus:ring-4 focus:ring-pink-100 focus:border-pink-500 transition-all bg-white font-medium"
               >
-                <option value="">-- Choose a Merchant --</option>
-                {merchants.map((m: CakeGenieMerchant) => (
-                  <option key={m.merchant_id} value={m.merchant_id}>
-                    {m.business_name}
+                <option value="">-- Choose a Collection --</option>
+                {collections.map((c: any) => (
+                  <option key={c.slug} value={c.slug}>
+                    {c.keyword} ({c.count})
                   </option>
                 ))}
               </select>
@@ -155,16 +185,20 @@ export default function PinterestManagerClient() {
             </button>
 
             <div className="pt-4 border-t border-gray-100">
-              <p className="text-sm font-semibold text-gray-900 mb-2">Usage Summary</p>
+              <p className="text-sm font-semibold text-gray-900 mb-2">Usage Summary (Last 24h)</p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white p-3 rounded-xl border border-gray-100">
-                  <p className="text-xs text-gray-500">Products</p>
-                  <p className="text-lg font-bold">{products.length}</p>
+                  <p className="text-xs text-gray-500">Pinned</p>
+                  <p className="text-lg font-bold">{dailyUsage}</p>
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-gray-100">
-                  <p className="text-xs text-gray-500">Selected</p>
-                  <p className="text-lg font-bold text-pink-500">{selectedProducts.length}</p>
+                  <p className="text-xs text-gray-500">Remaining</p>
+                  <p className="text-lg font-bold text-pink-500">{Math.max(0, DAILY_LIMIT - dailyUsage)}</p>
                 </div>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs text-gray-500">Selected</p>
+                <p className="text-lg font-bold text-indigo-500">{selectedProducts.length}</p>
               </div>
             </div>
           </div>
@@ -173,7 +207,7 @@ export default function PinterestManagerClient() {
         {/* Right Column: Collection Select */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-100">
-            <h2 className="font-bold text-gray-900">2. Select Products to Pin</h2>
+            <h2 className="font-bold text-gray-900">2. Select Designs from Analysis Cache</h2>
             <label className="flex items-center gap-2 cursor-pointer group">
               <span className="text-sm font-medium text-gray-600 group-hover:text-pink-600 transition-colors">Select All Visible</span>
               <input 
@@ -187,39 +221,39 @@ export default function PinterestManagerClient() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
             {products.length > 0 ? (
-              products.map((product: CakeGenieMerchantProduct) => (
+              products.map((product: any) => (
                 <div 
-                  key={product.product_id}
-                  onClick={() => toggleProduct(product.product_id)}
+                  key={product.p_hash}
+                  onClick={() => toggleProduct(product.p_hash)}
                   className={`flex items-center gap-4 p-3 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.97] ${
-                    selectedProducts.includes(product.product_id) 
+                    selectedProducts.includes(product.p_hash) 
                       ? 'border-pink-500 bg-pink-50/30' 
                       : 'border-gray-100 hover:border-pink-200'
                   }`}
                 >
                   <div className="relative w-16 h-16 shrink-0 bg-gray-100 rounded-xl overflow-hidden shadow-sm">
-                    {product.image_url ? (
-                      <img src={product.image_url} alt={product.title} className="w-full h-full object-cover" />
+                    {product.original_image_url ? (
+                      <img src={product.original_image_url} alt={product.alt_text} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-300">
                         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                       </div>
                     )}
-                    <div className={`absolute inset-0 bg-pink-500/20 flex items-center justify-center transition-opacity ${selectedProducts.includes(product.product_id) ? 'opacity-100' : 'opacity-0'}`}>
+                    <div className={`absolute inset-0 bg-pink-500/20 flex items-center justify-center transition-opacity ${selectedProducts.includes(product.p_hash) ? 'opacity-100' : 'opacity-0'}`}>
                       <div className="bg-white rounded-full p-1 shadow-md">
                         <svg className="w-4 h-4 text-pink-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
                       </div>
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-900 truncate text-sm">{product.title}</p>
-                    <p className="text-xs text-gray-500">{product.category || 'Specialty'}</p>
+                    <p className="font-bold text-gray-900 truncate text-sm">{product.slug}</p>
+                    <p className="text-xs text-gray-500 truncate">{product.alt_text || 'Premium Design'}</p>
                   </div>
                 </div>
               ))
             ) : (
               <div className="col-span-2 py-20 text-center text-gray-400 border-2 border-dashed border-gray-100 rounded-3xl">
-                {selectedMerchant ? 'Loading products...' : 'Select a merchant to view products'}
+                {selectedCollection ? (loading ? 'Loading designs...' : 'No designs found for this collection') : 'Select a collection to view designs'}
               </div>
             )}
           </div>
@@ -227,7 +261,7 @@ export default function PinterestManagerClient() {
           <div className="pt-6">
             <button
               onClick={handleSync}
-              disabled={loading || selectedProducts.length === 0}
+              disabled={loading || selectedProducts.length === 0 || dailyUsage >= DAILY_LIMIT}
               className="w-full flex items-center justify-center gap-3 p-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xl transition-all shadow-xl shadow-indigo-100 active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
             >
               {loading ? (
@@ -238,7 +272,7 @@ export default function PinterestManagerClient() {
               ) : (
                 <>
                   <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>
-                  Push to Pinterest
+                  Push to Pinterest {dailyUsage >= DAILY_LIMIT && '(Daily Limit Reached)'}
                 </>
               )}
             </button>
@@ -272,14 +306,15 @@ export default function PinterestManagerClient() {
             </div>
             
             <p className="font-medium text-green-700 mb-6 px-1 opacity-80">{syncResults.message}</p>
+            <p className="text-sm font-bold text-green-600 mb-4 px-1">Daily Limit Used: {syncResults.used_limit}/{DAILY_LIMIT}</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {syncResults.results?.map((res: any) => (
-                <div key={res.category} className="bg-white/70 backdrop-blur-sm p-4 rounded-2xl border border-green-200/50 flex flex-col shadow-sm">
-                  <span className="text-xs uppercase font-bold text-green-600 tracking-widest mb-1">{res.category || 'Specialty'}</span>
+                <div key={res.p_hash} className="bg-white/70 backdrop-blur-sm p-4 rounded-2xl border border-green-200/50 flex flex-col shadow-sm">
+                  <span className="text-xs uppercase font-bold text-green-600 tracking-widest mb-1 truncate">{res.p_hash}</span>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-black text-green-900">{res.pins_created}</span>
-                    <span className="text-xs font-bold text-green-700/60 lowercase">pins added</span>
+                    <span className="text-sm font-black text-green-900">{res.status}</span>
+                    {res.error && <span className="text-[10px] text-red-500 truncate">{res.error}</span>}
                   </div>
                 </div>
               ))}
@@ -291,10 +326,10 @@ export default function PinterestManagerClient() {
       <div className="mt-10 pt-6 border-t border-gray-100 text-sm text-gray-500">
         <p className="font-medium text-gray-700 mb-1">How to use:</p>
         <ol className="list-decimal list-inside space-y-1 ml-1">
-          <li>Select a merchant and click <b>Connect to Pinterest</b></li>
-          <li>Authorize the app and copy the <b>Access Token</b> provided.</li>
-          <li>Select individual products or a batch to pin.</li>
-          <li>Click <b>Push to Pinterest</b> and paste your token.</li>
+          <li>Select a <b>Collection</b> (will map to a Pinterest Board).</li>
+          <li>Click <b>Connect to Pinterest</b> to get your token if needed.</li>
+          <li>Select individual products from the cache.</li>
+          <li>Click <b>Push to Pinterest</b>. We pin max 10/day for safety.</li>
         </ol>
       </div>
     </div>

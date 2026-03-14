@@ -17,6 +17,7 @@ export interface PinterestPin {
   description?: string;
   link?: string;
   image_url: string;
+  alt_text?: string;
 }
 
 export interface PinterestTokenResponse {
@@ -135,6 +136,7 @@ export const pinterestService = {
       title?: string;
       description?: string;
       link?: string;
+      alt_text?: string;
       media_source: {
         source_type: 'image_url';
         url: string;
