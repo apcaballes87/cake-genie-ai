@@ -328,7 +328,7 @@ export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string
     const { data, error } = await supabase.rpc('find_similar_analysis', {
       new_hash: pHash,
     });
-    
+
     if (data) {
       console.log(`📡 RPC 'find_similar_analysis' returned ${data.length} potential hash matches.`);
     }
@@ -378,7 +378,7 @@ export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string
  * Default threshold for embedding similarity matching.
  * 0.96 is strict, intended for finding near-identical images.
  */
-export const EMBEDDING_MATCH_THRESHOLD = 0.96;
+export const EMBEDDING_MATCH_THRESHOLD = 0.94;
 
 /**
  * Searches for a similar analysis result in the cache using Gemini vector embeddings.
@@ -618,13 +618,13 @@ export async function cacheAnalysisResult(pHash: string, analysisResult: HybridA
     let imageEmbedding: number[] | null = null;
     if (imageBlob) {
       try {
-          console.log('🧠 Generating Gemini multimodal embedding for cache...');
-          const base64ForEmbedding = await fileToBase64(new File([imageBlob], 'image.png', { type: imageBlob.type }));
-          const textPayloadForEmbedding = [seoTitle, seoDescription, keywords, tags.join(', ')].filter(Boolean).join(' | ');
-          imageEmbedding = await embedCakeImage(base64ForEmbedding, textPayloadForEmbedding);
-          console.log('✅ Generated multimodal embedding successfully');
+        console.log('🧠 Generating Gemini multimodal embedding for cache...');
+        const base64ForEmbedding = await fileToBase64(new File([imageBlob], 'image.png', { type: imageBlob.type }));
+        const textPayloadForEmbedding = [seoTitle, seoDescription, keywords, tags.join(', ')].filter(Boolean).join(' | ');
+        imageEmbedding = await embedCakeImage(base64ForEmbedding, textPayloadForEmbedding);
+        console.log('✅ Generated multimodal embedding successfully');
       } catch (embedErr) {
-          console.error('⚠️ Could not generate embedding:', embedErr);
+        console.error('⚠️ Could not generate embedding:', embedErr);
       }
     }
 
@@ -635,37 +635,37 @@ export async function cacheAnalysisResult(pHash: string, analysisResult: HybridA
         analysis_json: analysisResult,
         original_image_url: finalImageUrl,
         price: totalPrice,
-          keywords: keywords,
-          slug: slug,
-          alt_text: altText,
-          seo_title: seoTitle,
-          seo_description: seoDescription,
-          availability: availability,
-          tags: tags,
-          image_embedding: imageEmbedding,
-          ...imageDimensions,
-        }, {
-          onConflict: 'p_hash',
-          ignoreDuplicates: false // We set to false because we want to update with the new persistent image URL if it was already cached without one
-        });
+        keywords: keywords,
+        slug: slug,
+        alt_text: altText,
+        seo_title: seoTitle,
+        seo_description: seoDescription,
+        availability: availability,
+        tags: tags,
+        image_embedding: imageEmbedding,
+        ...imageDimensions,
+      }, {
+        onConflict: 'p_hash',
+        ignoreDuplicates: false // We set to false because we want to update with the new persistent image URL if it was already cached without one
+      });
 
 
-      if (error) {
-        // Log error but don't interrupt the user. Unique constraint violations (409) are expected and fine
-        // especially during race conditions or when different designs share a truncated slug.
-        if (error.code !== '23505' && error.code !== 'PGRST116') {
-          console.warn('⚠️ Cache insert status:', error.message);
-        } else {
-          console.log('ℹ️ Analysis already cached (duplicate pHash or slug - this is fine).');
-        }
+    if (error) {
+      // Log error but don't interrupt the user. Unique constraint violations (409) are expected and fine
+      // especially during race conditions or when different designs share a truncated slug.
+      if (error.code !== '23505' && error.code !== 'PGRST116') {
+        console.warn('⚠️ Cache insert status:', error.message);
       } else {
-        console.log('✅ Analysis result cached successfully with pHash:', pHash, 'slug:', slug);
-
-        // Notify IndexNow participating search engines
-        if (slug) {
-          notifyIndexNow(`https://genie.ph/customizing/${slug}`);
-        }
+        console.log('ℹ️ Analysis already cached (duplicate pHash or slug - this is fine).');
       }
+    } else {
+      console.log('✅ Analysis result cached successfully with pHash:', pHash, 'slug:', slug);
+
+      // Notify IndexNow participating search engines
+      if (slug) {
+        notifyIndexNow(`https://genie.ph/customizing/${slug}`);
+      }
+    }
   } catch (err) {
     console.error('❌ Exception during fire-and-forget cache write:', err);
   }
