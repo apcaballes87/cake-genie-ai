@@ -53,6 +53,9 @@ function HighlightMatch({ text, query }: { text: string; query: string }) {
   );
 }
 
+// Global cache to prevent redundant fetches across remounts
+let collectionsCache: { label: string; href: string; keywords: string[] }[] | null = null;
+
 export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   onSearch,
   onUploadClick,
@@ -77,7 +80,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   // Filtered links
   const [filteredSiteLinks, setFilteredSiteLinks] = useState<typeof SITE_LINKS>([]);
   const [filteredCollectionLinks, setFilteredCollectionLinks] = useState<{ label: string; href: string; keywords: string[] }[]>([]);
-  const [dynamicCollections, setDynamicCollections] = useState<{ label: string; href: string; keywords: string[] }[]>([]);
+  const [dynamicCollections, setDynamicCollections] = useState<{ label: string; href: string; keywords: string[] }[]>(collectionsCache || []);
 
   // Compute the visible list of keywords for keyboard navigation
   // When input is empty, show suggested + popular + same-day keywords
@@ -131,6 +134,10 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
 
   // Load dynamic collections as the LAST thing on the site
   useEffect(() => {
+    if (collectionsCache) {
+      return;
+    }
+
     const fetchCollections = async () => {
       try {
         const { data, error } = await getDesignCategories();
@@ -140,8 +147,8 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
             href: `/collections/${cat.slug}`,
             keywords: [cat.keyword.toLowerCase()]
           }));
+          collectionsCache = collections;
           setDynamicCollections(collections);
-          console.log(`✅ Loaded ${collections.length} collections for search autocomplete.`);
         }
       } catch (err) {
         console.error('Failed to fetch collections:', err);

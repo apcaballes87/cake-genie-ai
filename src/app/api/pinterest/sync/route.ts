@@ -15,12 +15,14 @@ export async function POST(request: Request) {
     const { collectionName, accessToken: providedToken, pHashes } = await request.json();
 
     // Initialize Supabase client inside the handler to avoid build-time errors
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('Missing Supabase environment variables');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+      return NextResponse.json({ 
+        error: `Supabase configuration missing: ${!supabaseUrl ? 'URL ' : ''}${!supabaseServiceKey ? 'ServiceRoleKey' : ''}` 
+      }, { status: 500 });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -46,8 +48,8 @@ export async function POST(request: Request) {
       const isExpired = new Date(tokenRecord.expires_at) <= new Date();
       if (isExpired) {
         console.log('Access token expired in manual sync, refreshing...');
-        const clientId = process.env.PINTEREST_CLIENT_ID;
-        const clientSecret = process.env.PINTEREST_CLIENT_SECRET;
+        const clientId = process.env.PINTEREST_CLIENT_ID || process.env.NEXT_PUBLIC_PINTEREST_APP_ID;
+        const clientSecret = process.env.PINTEREST_CLIENT_SECRET || process.env.PINTEREST_APP_SECRET;
         
         if (clientId && clientSecret) {
           const refreshed = await pinterestService.refreshToken(tokenRecord.refresh_token, clientId, clientSecret);
