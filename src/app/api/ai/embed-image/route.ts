@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
                 parts: parts
             }],
             config: {
+                taskType: 'SEMANTIC_SIMILARITY',
                 outputDimensionality: 768
             }
         });
