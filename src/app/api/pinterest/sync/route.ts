@@ -3,10 +3,7 @@ import { NextResponse } from 'next/server';
 import { pinterestService } from '@/lib/services/pinterest';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Use service role for admin tasks
-);
+export const dynamic = 'force-dynamic';
 
 const SLEEP_MS = 10000; // 10 seconds between each pin for extra safety
 const DAILY_LIMIT = 10;
@@ -20,6 +17,17 @@ export async function POST(request: Request) {
     if (!accessToken) {
       return NextResponse.json({ error: 'Missing accessToken' }, { status: 400 });
     }
+
+    // Initialize Supabase client inside the handler to avoid build-time errors
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing Supabase environment variables');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // 1. Check Daily Limit
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
