@@ -192,31 +192,32 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             {/* Top Section: Warnings & Availability (z-60) */}
             <div className={`fixed bottom-0 left-0 right-0 z-85 pointer-events-none transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}>
                 <div className="pointer-events-auto">
-                    <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${showAvailability && availability ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                        <div className="rounded-t-2xl relative">
-                            {renderAvailabilityNotification()}
-                        </div>
-                    </div>
-                    {warningMessage && (
-                        <div
-                            className={`bg-red-50 border-b border-red-200 rounded-t-2xl pb-[8px] -mb-[8px] group relative ${onWarningClick ? 'cursor-pointer hover:bg-red-100 transition-colors' : ''}`}
-                            onClick={onWarningClick}
-                        >
-                            <div className={`max-w-4xl mx-auto flex items-center justify-center gap-2 text-red-800 text-xs sm:text-sm font-semibold p-2 ${!onWarningClick ? 'cursor-help' : ''}`}>
-                                <AlertTriangleIcon className="w-5 h-5 text-red-600 shrink-0" />
-                                <span>{warningMessage}</span>
-                            </div>
-                            {/* Filler to close gap with element below */}
-                            <div className="absolute -bottom-4 left-0 right-0 h-4 bg-red-50 pointer-events-none" />
-                            {/* Tooltip */}
-                            {warningDescription && (
-                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-72 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-xl z-50 text-center leading-relaxed pointer-events-none">
-                                    {warningDescription}
-                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800"></div>
+                    <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${(warningMessage || (showAvailability && availability)) ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                        <div className="rounded-t-2xl relative overflow-hidden">
+                            {warningMessage ? (
+                                <div
+                                    className={`bg-red-50 border-b border-red-200 pb-[8px] -mb-[8px] group relative ${onWarningClick ? 'cursor-pointer hover:bg-red-100 transition-colors' : ''}`}
+                                    onClick={onWarningClick}
+                                >
+                                    <div className={`max-w-4xl mx-auto flex items-center justify-center gap-2 text-red-800 text-xs sm:text-sm font-semibold p-2 ${!onWarningClick ? 'cursor-help' : ''}`}>
+                                        <AlertTriangleIcon className="w-5 h-5 text-red-600 shrink-0" />
+                                        <span>{warningMessage}</span>
+                                    </div>
+                                    {/* Filler to close gap with element below */}
+                                    <div className="absolute -bottom-4 left-0 right-0 h-4 bg-red-50 pointer-events-none" />
+                                    {/* Tooltip */}
+                                    {warningDescription && (
+                                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-72 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-xl z-50 text-center leading-relaxed pointer-events-none">
+                                            {warningDescription}
+                                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800"></div>
+                                        </div>
+                                    )}
                                 </div>
+                            ) : (
+                                renderAvailabilityNotification()
                             )}
                         </div>
-                    )}
+                    </div>
                 </div>
                 {/* Spacer to keep warnings above the main bar which is 92px high */}
                 <div className="h-[92px]" />

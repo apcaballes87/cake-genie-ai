@@ -1843,7 +1843,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     const { warningMessage, warningDescription } = useMemo(() => {
         // Check for active toys/figurines (manual selection)
-        const hasActiveToy = mainToppers.some(
+        const hasActiveToy = [...mainToppers, ...supportElements].some(
             topper => topper.isEnabled && ['toy', 'figurine'].includes(topper.type)
         );
 
