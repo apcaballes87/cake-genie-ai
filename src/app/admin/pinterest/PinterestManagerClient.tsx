@@ -23,6 +23,8 @@ export default function PinterestManagerClient() {
   const DAILY_LIMIT = 10;
   const [isConnected, setIsConnected] = useState(false);
   const [pinterestUser, setPinterestUser] = useState<{ username?: string; business_name?: string; account_type?: string } | null>(null);
+  const [boardSyncing, setBoardSyncing] = useState(false);
+  const [boardResults, setBoardResults] = useState<any>(null);
 
   useEffect(() => {
     // Handle redirect params from OAuth callback
@@ -108,6 +110,32 @@ export default function PinterestManagerClient() {
         ? prev.filter(id => id !== p_hash) 
         : [...prev, p_hash]
     );
+  };
+
+  const handleCreateAllBoards = async () => {
+    if (!isConnected) {
+      alert('Please connect your Pinterest account first.');
+      return;
+    }
+    if (!confirm(`This will create a Pinterest board for every collection (${collections.length} collections). Continue?`)) return;
+
+    setBoardSyncing(true);
+    setBoardResults(null);
+    setError(null);
+    setMessage('Creating boards for all collections...');
+
+    try {
+      const response = await fetch('/api/pinterest/boards/sync', { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Board sync failed');
+      setBoardResults(data);
+      setMessage(null);
+    } catch (err: any) {
+      setError(err.message);
+      setMessage(null);
+    } finally {
+      setBoardSyncing(false);
+    }
   };
 
   const handleDownloadCSV = () => {
@@ -269,6 +297,24 @@ export default function PinterestManagerClient() {
                 : 'Connect Pinterest (Enable Cloud Sync)'}
             </button>
 
+            <button
+              onClick={handleCreateAllBoards}
+              disabled={boardSyncing || !isConnected}
+              className="w-full flex items-center justify-center gap-2 p-3 bg-pink-600 hover:bg-pink-700 text-white rounded-2xl font-bold text-sm transition-all shadow-md shadow-pink-100 active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
+            >
+              {boardSyncing ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  Creating Boards...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" /></svg>
+                  Auto-Create All Boards ({collections.length})
+                </>
+              )}
+            </button>
+
             <div className="pt-4 border-t border-gray-100">
               <p className="text-sm font-semibold text-gray-900 mb-2">Usage Summary (Last 24h)</p>
               <div className="grid grid-cols-2 gap-4">
@@ -421,6 +467,38 @@ export default function PinterestManagerClient() {
           </div>
         )}
       </div>
+
+      {/* Board Sync Results */}
+      {boardResults && (
+        <div className="mt-6 p-6 bg-pink-50 rounded-3xl border border-pink-100 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-pink-500 p-1.5 rounded-full text-white">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+            </div>
+            <div>
+              <h3 className="font-black text-lg text-gray-900">Board Sync Complete!</h3>
+              <p className="text-xs text-pink-600 font-medium">{boardResults.message}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">
+            {boardResults.results?.map((r: any) => (
+              <div key={r.slug} className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-medium ${
+                r.status === 'created' ? 'bg-green-50 border-green-200 text-green-800' :
+                r.status === 'exists' ? 'bg-white border-gray-200 text-gray-500' :
+                'bg-red-50 border-red-200 text-red-700'
+              }`}>
+                <span className="text-base">
+                  {r.status === 'created' ? '✅' : r.status === 'exists' ? '📌' : '❌'}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate font-bold">{r.collection}</p>
+                  {r.error && <p className="truncate text-red-500">{r.error}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* RSS Auto-Publish Section */}
       <div className="mt-10 p-6 bg-gradient-to-br from-red-50 to-pink-50 rounded-3xl border border-red-100">
