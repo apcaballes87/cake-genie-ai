@@ -910,6 +910,23 @@ export default async function RecentSearchPage({ params }: Props) {
                     />
                 </CustomizationProvider>
             </Suspense>
+
+            {/* Visible SSR hero image for Googlebot and image SEO.
+                Placed after the interactive client so users won't see it during hydration.
+                Hidden by CustomizingClient on mount via document.getElementById('ssr-hero-img'). */}
+            {design.original_image_url && (
+                <div id="ssr-hero-img" className="w-full max-w-4xl mx-auto px-4 pt-6">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={design.original_image_url}
+                        alt={design.alt_text || design.seo_title || `${design.keywords || 'Custom'} cake design`}
+                        width={design.image_width || 600}
+                        height={design.image_height || 600}
+                        className="w-full max-w-md h-auto rounded-xl shadow-md mx-auto"
+                        loading="lazy"
+                    />
+                </div>
+            )}
         </>
     )
 }
