@@ -117,8 +117,8 @@ export async function POST(request: Request) {
       if (existingBoard) {
         boardId = existingBoard.id;
       } else {
-        const newBoard = await pinterestService.createBoard(accessToken, boardName, boardDescription);
-        boardId = newBoard.id;
+        const { board: newBoard } = await pinterestService.createBoard(accessToken, boardName, boardDescription);
+        boardId = newBoard?.id ?? null;
       }
     } catch (e: any) {
       console.error('Board logic failed:', e.message);
