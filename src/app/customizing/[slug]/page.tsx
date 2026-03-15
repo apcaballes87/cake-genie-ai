@@ -622,6 +622,7 @@ function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { desig
                                                 <LazyImage
                                                     src={related.original_image_url}
                                                     alt={related.alt_text || `${related.keywords || 'Custom'} cake design`}
+                                                    title={related.keywords || 'Custom cake design'}
                                                     className="object-cover group-hover:scale-105 transition-transform duration-200"
                                                     fill
                                                     sizes="(max-width: 768px) 50vw, 33vw"
@@ -910,6 +911,7 @@ export default async function RecentSearchPage({ params }: Props) {
                         <img
                             src={design.original_image_url}
                             alt={design.alt_text || design.seo_title || `${design.keywords || 'Custom'} cake design`}
+                            title={design.seo_title?.replace(/\s*\|\s*Genie\.ph\s*$/i, '') || design.keywords || 'Custom cake design'}
                             width={design.image_width || 600}
                             height={design.image_height || 600}
                             className="w-full max-w-md h-auto rounded-xl shadow-md mx-auto"

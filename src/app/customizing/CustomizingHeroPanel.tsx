@@ -208,6 +208,7 @@ export const CustomizingHeroPanel = memo(function CustomizingHeroPanel({
                                 fetchPriority="high"
                                 decoding="async"
                                 unoptimized
+                                itemProp="image"
                                 onLoad={(event) => {
                                     const image = event.currentTarget;
                                     if (!originalImageDimensions || activeTab === 'original') {
