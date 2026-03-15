@@ -156,27 +156,36 @@ export const pinterestService = {
   },
 
   /**
-   * Create a new board on Pinterest
+   * Create a new board on Pinterest.
+   * Returns { board, created: true } on success, or { board: null, created: false } if it already exists (HTTP 409).
+   * Throws on any other error.
    */
-  createBoard: async (accessToken: string, name: string, description?: string): Promise<PinterestBoard> => {
+  createBoard: async (
+    accessToken: string,
+    name: string,
+    description?: string
+  ): Promise<{ board: PinterestBoard | null; created: boolean }> => {
     const response = await fetch(`${PINTEREST_API_BASE}/boards`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        name,
-        description,
-      }),
+      body: JSON.stringify({ name, description }),
     });
+
+    // 409 = board with this name already exists
+    if (response.status === 409) {
+      return { board: null, created: false };
+    }
 
     if (!response.ok) {
       const error = await response.json();
       throw new Error(`Failed to create Pinterest board: ${JSON.stringify(error)}`);
     }
 
-    return response.json();
+    const board = await response.json();
+    return { board, created: true };
   },
 
   /**

@@ -4,6 +4,8 @@ import { pinterestService } from '@/lib/services/pinterest';
 import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
+// Allow up to 5 minutes for large collections
+export const maxDuration = 300;
 
 export async function POST() {
   try {
@@ -25,7 +27,10 @@ export async function POST() {
       .single();
 
     if (!tokenRecord) {
-      return NextResponse.json({ error: 'Pinterest not connected. Please connect your account first.' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Pinterest not connected. Please connect your account first.' },
+        { status: 401 }
+      );
     }
 
     let accessToken = tokenRecord.access_token;
@@ -36,7 +41,11 @@ export async function POST() {
       const clientId = process.env.PINTEREST_CLIENT_ID;
       const clientSecret = process.env.PINTEREST_CLIENT_SECRET;
       if (clientId && clientSecret) {
-        const refreshed = await pinterestService.refreshToken(tokenRecord.refresh_token, clientId, clientSecret);
+        const refreshed = await pinterestService.refreshToken(
+          tokenRecord.refresh_token,
+          clientId,
+          clientSecret
+        );
         accessToken = refreshed.access_token;
         await supabase
           .from('cakegenie_pinterest_tokens')
@@ -56,17 +65,20 @@ export async function POST() {
       .select('name, slug, description, item_count')
       .order('name', { ascending: true });
 
-    if (collectionsError || !collections) {
-      return NextResponse.json({ error: 'Failed to fetch collections' }, { status: 500 });
+    if (collectionsError || !collections || collections.length === 0) {
+      return NextResponse.json({ error: 'Failed to fetch collections or none found' }, { status: 500 });
     }
 
-    // 3. Fetch existing Pinterest boards
-    const boardsResponse = await pinterestService.listBoards(accessToken);
-    const existingBoards = boardsResponse.items || [];
-    const existingBoardNames = new Set(existingBoards.map((b) => b.name.toLowerCase()));
-
-    // 4. Create boards for collections that don't have one yet
-    const results: { collection: string; slug: string; status: 'created' | 'exists' | 'error'; board_id?: string; error?: string }[] = [];
+    // 3. Attempt to create a board for each collection.
+    //    No pre-fetching of existing boards — we rely on Pinterest returning 409
+    //    when a board with that name already exists.
+    const results: {
+      collection: string;
+      slug: string;
+      status: 'created' | 'exists' | 'error';
+      board_id?: string;
+      error?: string;
+    }[] = [];
 
     for (const collection of collections) {
       const boardName = collection.name;
@@ -74,20 +86,25 @@ export async function POST() {
         collection.description ||
         `Custom ${collection.name.toLowerCase()} cakes from Genie.ph. Order yours today!`;
 
-      if (existingBoardNames.has(boardName.toLowerCase())) {
-        const existingBoard = existingBoards.find((b) => b.name.toLowerCase() === boardName.toLowerCase());
-        results.push({ collection: boardName, slug: collection.slug, status: 'exists', board_id: existingBoard?.id });
-        continue;
-      }
-
       try {
-        const newBoard = await pinterestService.createBoard(accessToken, boardName, boardDescription);
-        results.push({ collection: boardName, slug: collection.slug, status: 'created', board_id: newBoard.id });
-        // Small delay to avoid rate limiting
-        await new Promise((r) => setTimeout(r, 500));
+        const { board, created } = await pinterestService.createBoard(
+          accessToken,
+          boardName,
+          boardDescription
+        );
+
+        if (created && board) {
+          results.push({ collection: boardName, slug: collection.slug, status: 'created', board_id: board.id });
+        } else {
+          // 409 — board already exists
+          results.push({ collection: boardName, slug: collection.slug, status: 'exists' });
+        }
       } catch (err: any) {
         results.push({ collection: boardName, slug: collection.slug, status: 'error', error: err.message });
       }
+
+      // 1 second delay between requests to stay within Pinterest rate limits
+      await new Promise((r) => setTimeout(r, 1000));
     }
 
     const created = results.filter((r) => r.status === 'created').length;
