@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getDesignCategories, getDesignsByKeyword } from '@/services/supabaseService';
 import { createClient } from '@supabase/supabase-js';
+import { slugToTitle } from '@/lib/utils/pinterest';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -152,7 +153,7 @@ export default function PinterestManagerClient() {
     const csvRows = selected
       .filter(p => p.original_image_url)
       .map(product => {
-        const title = (product.slug?.split('-').map((s: string) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ') || 'Custom Cake').slice(0, 100);
+        const title = slugToTitle(product.slug);
         const description = (product.seo_description || product.alt_text || 'Order this beautiful custom cake on Genie.ph').slice(0, 500);
         const link = `https://genie.ph/customizing/${product.slug}`;
         const keywords = product.slug?.split('-').join(', ') || '';
