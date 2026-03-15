@@ -155,7 +155,16 @@ function DesignSchema({ design }: { design: SharedDesign }) {
         },
         primaryImageOfPage: {
             '@type': 'ImageObject',
-            url: imageUrl
+            url: imageUrl,
+            contentUrl: imageUrl,
+            width: 1200,
+            height: 1200,
+            caption: sanitize(design.title || 'Custom Cake Design'),
+            creditText: 'Genie.ph',
+            creator: {
+                '@type': 'Organization',
+                name: 'Genie.ph'
+            }
         },
         thumbnailUrl: imageUrl
     };

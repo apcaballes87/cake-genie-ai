@@ -4,7 +4,8 @@ import Image, { ImageProps } from 'next/image';
 import { ImageOff } from 'lucide-react';
 import { getOptimizedSupabaseImageSrc } from '@/lib/utils/supabaseImageUrl';
 
-// Our own Supabase storage domains that are safe for next/image optimization.
+// Our own Supabase storage domains — these go through Next.js Image Optimization
+// (AVIF/WebP serving) since they're configured in next.config.ts remotePatterns.
 const OWN_SUPABASE_DOMAINS = [
   'cqmhanqnfybyxezhobkx.supabase.co',
   'congofivupobtfudnhni.supabase.co',
@@ -23,9 +24,9 @@ const shouldUseUnoptimized = (src: string | undefined): boolean => {
   // Simple check: is it from our own Supabase storage?
   const isOwnSupabase = OWN_SUPABASE_DOMAINS.some(domain => src.includes(domain));
 
-  // If it IS our own Supabase, we prevent Next.js optimization to save costs/limits.
-  // (We use Supabase's native /render/image/public/ endpoint instead via getOptimizedSrc)
-  if (isOwnSupabase) return true;
+  // Own Supabase images: let Next.js optimize (serves AVIF/WebP via next.config formats).
+  // The domains are already in next.config.ts remotePatterns.
+  if (isOwnSupabase) return false;
 
   // For other external domains, we skip optimization to avoid 400 errors and save on
   // Next.js Image Optimization costs. To improve LCP/CWV scores, consider setting this
@@ -103,7 +104,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
       )}
 
       <Image
-        src={getOptimizedSupabaseImageSrc(typeof src === 'string' ? src : undefined, width) || src}
+        src={useUnoptimized ? (getOptimizedSupabaseImageSrc(typeof src === 'string' ? src : undefined, width) || src) : src}
         alt={alt}
         title={title}
         onLoad={handleLoad}
