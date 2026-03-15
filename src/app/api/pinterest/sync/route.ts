@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { pinterestService } from '@/lib/services/pinterest';
 import { createClient } from '@supabase/supabase-js';
+import { slugToTitle } from '@/lib/utils/pinterest';
 
 export const dynamic = 'force-dynamic';
 
@@ -138,7 +139,7 @@ export async function POST(request: Request) {
       try {
         const pin = await pinterestService.createPin(accessToken, {
           board_id: boardId,
-          title: product.slug?.split('-').map((s: string) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ') || 'Custom Cake',
+          title: slugToTitle(product.slug),
           description: product.seo_description || product.alt_text || `Order this beautiful custom cake on Genie.ph`,
           link: `https://genie.ph/customizing/${product.slug}`,
           alt_text: product.alt_text || 'Premium custom cake design',

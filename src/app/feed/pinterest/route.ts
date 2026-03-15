@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest } from 'next/server';
+import { slugToTitle } from '@/lib/utils/pinterest';
 
 // Cache for 6 hours - Pinterest checks feeds within 24 hours
 export const revalidate = 21600;
@@ -120,12 +121,7 @@ export async function GET(request: NextRequest) {
 // ─── Helpers ──────────────────────────────────────────
 
 function formatTitle(slug: string): string {
-  if (!slug) return 'Custom Cake Design';
-  return slug
-    .split('-')
-    .map(s => s.charAt(0).toUpperCase() + s.slice(1))
-    .join(' ')
-    .slice(0, 100);
+  return slugToTitle(slug);
 }
 
 function sanitizeXml(text: string): string {
