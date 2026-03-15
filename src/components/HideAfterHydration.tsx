@@ -3,9 +3,9 @@
 import { useState, useEffect, type ReactNode } from 'react';
 
 /**
- * Renders children in SSR HTML for Googlebot, then hides them after client
- * hydration so the interactive version takes over without duplicates.
- * Content stays in the DOM (display:none) for stable hydration.
+ * Renders children in SSR HTML for Googlebot. Content is absolutely positioned
+ * so it overlaps with (rather than pushes down) the CSR interactive version.
+ * After hydration, content is hidden via display:none.
  */
 export function HideAfterHydration({ children }: { children: ReactNode }) {
     const [hydrated, setHydrated] = useState(false);
@@ -15,7 +15,18 @@ export function HideAfterHydration({ children }: { children: ReactNode }) {
     }, []);
 
     return (
-        <div className={hydrated ? 'hidden' : ''} aria-hidden={hydrated || undefined}>
+        <div
+            style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                zIndex: 0,
+                pointerEvents: hydrated ? 'none' : undefined,
+                display: hydrated ? 'none' : undefined,
+            }}
+            aria-hidden={hydrated || undefined}
+        >
             {children}
         </div>
     );
