@@ -16,6 +16,10 @@ import { mapProductToDefaultState } from '@/utils/customizationMapper'
 import { upgradeLegacySlug } from '@/lib/utils/urlHelpers'
 import { generateDesignDetails, generateDynamicFAQ } from '@/utils/designContentUtils'
 
+// ISR: Cache pages for 1 hour, then revalidate in the background.
+// Reduces TTFB for 8k+ pages and gives Google a faster crawl experience.
+export const revalidate = 3600;
+
 // Helper to fetch design by exact slug
 const getDesign = cache(async (slug: string) => {
     const supabase = await createClient()
@@ -107,11 +111,14 @@ export async function generateMetadata(
         ? `${baseSeoTitle}${priceDisplay}`
         : `${tagsPrefix}${design.keywords || 'Custom'} Cake Designs & Photos${priceDisplay}`
 
-    // Richer Fallback Description Logic
-    let description = design.seo_description || `Customize this ${tagsPrefix}${design.keywords || 'custom'} cake design on Genie.ph. Get instant pricing from local bakers in Cebu and Cavite. ${design.alt_text || ''}`
+    // Description with rich fallback chain:
+    // 1. Use seo_description if available
+    // 2. Build from analysis features (colors, toppers, tags) for richer snippets
+    // 3. Generic fallback with pricing
+    let description = design.seo_description || '';
 
     if (!description && design.analysis_json) {
-        // Construct description from analysis features for legacy records
+        // Construct description from analysis features for legacy records without seo_description
         const analysis = design.analysis_json
         const features = []
         if (tags.length > 0) features.push(`Perfect for: ${tags.join(', ')}`)
@@ -131,8 +138,10 @@ export async function generateMetadata(
         }
 
         description = `Customize this ${tagsPrefix}${design.keywords || 'custom'} cake design. ${features.join('. ')}. Starting at ₱${design.price?.toLocaleString() || '0'}.`
-    } else if (!description) {
-        description = `Get instant pricing for this ${tagsPrefix}${design.keywords || 'custom'} cake design. Starting at ₱${design.price?.toLocaleString() || '0'}.`
+    }
+
+    if (!description) {
+        description = `Customize this ${tagsPrefix}${design.keywords || 'custom'} cake design on Genie.ph. Get instant pricing from local bakers in Cebu and Cavite. ${design.alt_text || ''}`
     }
 
     const canonicalUrl = `https://genie.ph/customizing/${slug}`
@@ -162,8 +171,8 @@ export async function generateMetadata(
             images: design.original_image_url ? [
                 {
                     url: design.original_image_url,
-                    width: 1200,
-                    height: 630,
+                    width: design.image_width || 1200,
+                    height: design.image_height || 1200,
                     alt: design.alt_text || design.keywords || 'Custom cake design',
                 },
             ] : [],
@@ -176,15 +185,15 @@ export async function generateMetadata(
             images: design.original_image_url ? [
                 {
                     url: design.original_image_url,
-                    width: 1200,
-                    height: 630,
+                    width: design.image_width || 1200,
+                    height: design.image_height || 1200,
                     alt: design.alt_text || design.keywords || 'Custom cake design',
                 }
             ] : [],
         },
         other: {
             thumbnail: design.original_image_url || '',
-            'og:type': 'product',
+            // product:* meta tags for e-commerce enrichment (og:type set via openGraph.type above)
             'product:price:amount': design.price?.toString() || '',
             'product:price:currency': 'PHP',
         },
@@ -193,8 +202,8 @@ export async function generateMetadata(
 
 // JSON-LD Schema for SEO - Enhanced for Google Image Thumbnails
 function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[] }) {
-    // Escaping done via string replace in dangerouslySetInnerHTML
-    const sanitize = (str: string | null | undefined) => str ? str : '';
+    // Sanitize string to prevent script injection in JSON-LD (matches SEOSchemas.tsx pattern)
+    const sanitize = (str: string | null | undefined) => str ? str.replace(/<\/script/gi, '<\\/script') : '';
 
     const tags = design.tags || [];
     const keywords = design.keywords || 'Custom';
@@ -260,7 +269,8 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         returnPolicyCountry: 'PH' // Required since March 2025
     };
 
-    const priceValidUntil = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    // Use end of current year for stable schema (avoids changing on every render)
+    const priceValidUntil = `${new Date().getFullYear()}-12-31`;
     const productMpn = design.p_hash || design.slug;
 
     let baseOffersWrapper;
@@ -492,12 +502,12 @@ function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { desig
                     {/* User-requested customization guide text for SEO */}
                     <p className="text-xs font-semibold text-slate-500 mb-1">How would you like your cake customized?</p>
 
-                    {/* Title */}
-                    <h1
+                    {/* Title — h2 since this block is hidden; the visible h1 is in CustomizingClient */}
+                    <h2
                         className="text-xl md:text-2xl font-bold text-slate-800"
                     >
                         {title}
-                    </h1>
+                    </h2>
 
                     {/* Description */}
                     {design.alt_text && (
@@ -869,6 +879,18 @@ export default async function RecentSearchPage({ params }: Props) {
     return (
         <>
             <DesignSchema design={design} prices={prices} />
+
+            {/* Visible breadcrumb for users and Googlebot (reinforces BreadcrumbList schema) */}
+            <nav className="w-full max-w-4xl mx-auto px-4 pt-4" aria-label="Breadcrumb">
+                <ol className="flex items-center text-sm text-gray-500 space-x-2">
+                    <li><Link href="/" className="hover:text-purple-600">Home</Link></li>
+                    <li>/</li>
+                    <li><Link href="/customizing" className="hover:text-purple-600">Cake Designs</Link></li>
+                    <li>/</li>
+                    <li className="text-gray-900 font-medium line-clamp-1">{design.seo_title?.replace(/\s*\|\s*Genie\.ph\s*$/i, '') || design.keywords || 'Design'}</li>
+                </ol>
+            </nav>
+
             {/* Preload hero image for faster LCP */}
             {design.original_image_url && (
                 <link
