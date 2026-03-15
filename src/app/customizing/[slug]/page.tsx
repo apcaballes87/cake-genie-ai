@@ -869,9 +869,34 @@ export default async function RecentSearchPage({ params }: Props) {
     return (
         <>
             <DesignSchema design={design} prices={prices} />
-            {/* FAQ as visible HTML accordion (FAQPage schema restricted to gov/healthcare Aug 2023) */}
+            {/* Preload hero image for faster LCP */}
+            {design.original_image_url && (
+                <link
+                    rel="preload"
+                    as="image"
+                    href={design.original_image_url}
+                    crossOrigin="anonymous"
+                />
+            )}
 
-            {/* Ordering steps as visible HTML (HowTo schema deprecated Sept 2023) */}
+            {/* SEO: Visible server-rendered image for Googlebot (matches shop product page pattern).
+                SSRCakeDetails is hidden with display:none, and the interactive hero requires JS,
+                so this ensures crawlers always see a standard <img> element. */}
+            {design.original_image_url && (
+                <div className="w-full max-w-4xl mx-auto px-4 pt-6">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- Intentional SEO/LCP image for primary design image */}
+                    <img
+                        src={design.original_image_url}
+                        alt={design.alt_text || design.seo_title || `${design.keywords || 'Custom'} cake design`}
+                        width={design.image_width || 600}
+                        height={design.image_height || 600}
+                        className="w-full max-w-md h-auto rounded-xl shadow-md mx-auto"
+                        loading="eager"
+                        fetchPriority="high"
+                        itemProp="image"
+                    />
+                </div>
+            )}
 
             <SSRCakeDetails
                 design={design}
