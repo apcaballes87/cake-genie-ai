@@ -282,12 +282,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         }
     }, [recordNavigation, navigationState.entrySource]);
 
-    // Hide the SSR hero image once the interactive client has mounted.
-    // The SSR <img id="ssr-hero-img"> is visible on initial paint for SEO/LCP,
-    // then removed here to avoid duplication with the interactive hero panel.
+    // Hide the SSR fallback content once the interactive client has mounted.
+    // SSRCakeDetails is visible on initial paint for Googlebot image crawlability,
+    // then hidden here to avoid duplication with the interactive UI.
     useEffect(() => {
-        const ssrHero = document.getElementById('ssr-hero-img');
-        if (ssrHero) ssrHero.style.display = 'none';
+        const ssrContent = document.getElementById('ssr-content');
+        if (ssrContent) ssrContent.style.display = 'none';
     }, []);
 
     // --- Context Hooks ---
