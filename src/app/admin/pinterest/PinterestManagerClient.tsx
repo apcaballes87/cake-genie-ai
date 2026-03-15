@@ -110,6 +110,52 @@ export default function PinterestManagerClient() {
     );
   };
 
+  const handleDownloadCSV = () => {
+    if (selectedProducts.length === 0) {
+      alert('Please select at least one product');
+      return;
+    }
+
+    const selected = products.filter(p => selectedProducts.includes(p.p_hash));
+    const boardName = selectedCollectionName || 'Genie.ph Cakes';
+
+    // Pinterest Bulk Upload CSV columns: Title, Media URL, Pinterest board, Description, Link, Keywords
+    const csvHeaders = ['Title', 'Media URL', 'Pinterest board', 'Description', 'Link', 'Keywords'];
+    const csvRows = selected
+      .filter(p => p.original_image_url)
+      .map(product => {
+        const title = (product.slug?.split('-').map((s: string) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ') || 'Custom Cake').slice(0, 100);
+        const description = (product.seo_description || product.alt_text || 'Order this beautiful custom cake on Genie.ph').slice(0, 500);
+        const link = `https://genie.ph/customizing/${product.slug}`;
+        const keywords = product.slug?.split('-').join(', ') || '';
+        return [title, product.original_image_url, boardName, description, link, keywords];
+      });
+
+    // Build CSV content with proper escaping
+    const escapeCSV = (val: string) => {
+      if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+        return `"${val.replace(/"/g, '""')}"`;
+      }
+      return val;
+    };
+
+    const csvContent = [
+      csvHeaders.join(','),
+      ...csvRows.map(row => row.map(escapeCSV).join(','))
+    ].join('\n');
+
+    // Download CSV
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pinterest-bulk-${boardName.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    setMessage(`CSV downloaded with ${csvRows.length} pins for board "${boardName}". Upload it at Pinterest Settings > Bulk Create Pins.`);
+  };
+
   const handleSync = async () => {
     if (selectedProducts.length === 0) {
       alert('Please select at least one product');
@@ -141,16 +187,16 @@ export default function PinterestManagerClient() {
         body: JSON.stringify({
           collectionName: selectedCollectionName,
           pHashes: selectedProducts,
-          accessToken: accessToken, // Will be null if isConnected, indicating backend should use stored token
+          accessToken: accessToken,
         }),
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Sync failed');
-      
+
       setSyncResults(data);
       setMessage(null);
-      fetchDailyUsage(); // Refresh usage
+      fetchDailyUsage();
     } catch (err: any) {
       setError(err.message);
       setMessage(null);
@@ -174,10 +220,10 @@ export default function PinterestManagerClient() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
           <div>
-            <p className="text-xs font-bold text-orange-800 uppercase tracking-wider">Daily Pinning Logic</p>
+            <p className="text-xs font-bold text-orange-800 uppercase tracking-wider">Bulk Upload Mode</p>
             <p className="text-xs text-orange-700 leading-relaxed">
-              We enforce a strict <b>{DAILY_LIMIT} pins per day</b> limit to protect your account. 
-              Sequential delays of 10s are added between each pin.
+              Download a CSV and upload it at <b>Pinterest Bulk Create Pins</b> to create up to <b>200 pins at once</b>.
+              No API access required.
             </p>
           </div>
         </div>
@@ -297,21 +343,35 @@ export default function PinterestManagerClient() {
             )}
           </div>
 
-          <div className="pt-6">
+          <div className="pt-6 space-y-3">
+            <button
+              onClick={handleDownloadCSV}
+              disabled={selectedProducts.length === 0}
+              className="w-full flex items-center justify-center gap-3 p-5 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black text-xl transition-all shadow-xl shadow-red-100 active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
+            >
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              Download CSV for Bulk Upload ({selectedProducts.length})
+            </button>
+
+            <div className="relative flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
+              <span className="relative bg-white px-4 text-xs text-gray-400 font-medium">OR use API (requires Standard access)</span>
+            </div>
+
             <button
               onClick={handleSync}
               disabled={loading || selectedProducts.length === 0 || dailyUsage >= DAILY_LIMIT}
-              className="w-full flex items-center justify-center gap-3 p-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xl transition-all shadow-xl shadow-indigo-100 active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
+              className="w-full flex items-center justify-center gap-3 p-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
             >
               {loading ? (
                 <>
-                  <svg className="animate-spin h-6 w-6 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                   Syncing {selectedProducts.length} Items...
                 </>
               ) : (
                 <>
-                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>
-                  Push to Pinterest {dailyUsage >= DAILY_LIMIT && '(Daily Limit Reached)'}
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>
+                  Push via API {dailyUsage >= DAILY_LIMIT && '(Daily Limit Reached)'}
                 </>
               )}
             </button>
@@ -362,13 +422,82 @@ export default function PinterestManagerClient() {
         )}
       </div>
 
-      <div className="mt-10 pt-6 border-t border-gray-100 text-sm text-gray-500">
-        <p className="font-medium text-gray-700 mb-1">How to use:</p>
+      {/* RSS Auto-Publish Section */}
+      <div className="mt-10 p-6 bg-gradient-to-br from-red-50 to-pink-50 rounded-3xl border border-red-100">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="bg-red-600 p-2 rounded-xl text-white">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a1 1 0 000 2c5.523 0 10 4.477 10 10a1 1 0 102 0C17 8.373 11.627 3 5 3zm0 4a1 1 0 000 2 6 6 0 016 6 1 1 0 102 0 8 8 0 00-8-8zm0 4a1 1 0 000 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4zm0 4a1 1 0 100 2 1 1 0 000-2z" /></svg>
+          </div>
+          <div>
+            <h3 className="font-black text-lg text-gray-900">RSS Auto-Publish (Recommended)</h3>
+            <p className="text-xs text-gray-500">Set it once. Pinterest auto-publishes new pins every 24 hours.</p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="bg-white p-4 rounded-2xl border border-red-100">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">All Designs Feed</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-sm bg-gray-50 px-3 py-2 rounded-lg font-mono text-red-700 truncate">
+                https://genie.ph/feed/pinterest
+              </code>
+              <button
+                onClick={() => { navigator.clipboard.writeText('https://genie.ph/feed/pinterest'); setMessage('Feed URL copied!'); }}
+                className="shrink-0 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-colors"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+
+          {selectedCollectionName && (
+            <div className="bg-white p-4 rounded-2xl border border-pink-100">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                Board: {selectedCollectionName}
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-sm bg-gray-50 px-3 py-2 rounded-lg font-mono text-pink-700 truncate">
+                  https://genie.ph/feed/pinterest?board={selectedCollection}
+                </code>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(`https://genie.ph/feed/pinterest?board=${selectedCollection}`); setMessage('Board feed URL copied!'); }}
+                  className="shrink-0 px-3 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg text-xs font-bold transition-colors"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          )}
+
+          <a
+            href="/feed/pinterest/feeds"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+            View all collection feed URLs (JSON)
+          </a>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-red-100">
+          <p className="font-medium text-gray-700 mb-2 text-sm">How to set up Auto-Publish:</p>
+          <ol className="list-decimal list-inside space-y-1 ml-1 text-sm">
+            <li>Copy a feed URL above.</li>
+            <li>Go to <a href="https://ph.pinterest.com/settings/bulk-create-pins/" target="_blank" rel="noopener noreferrer" className="text-pink-600 underline font-semibold">Pinterest Settings &gt; Bulk Create Pins</a>.</li>
+            <li>Scroll to <b>Auto-publish</b> and paste the RSS feed URL.</li>
+            <li>Choose the Pinterest board to publish to.</li>
+            <li>Pinterest checks every 24 hours and auto-creates up to 200 pins/day.</li>
+          </ol>
+        </div>
+      </div>
+
+      <div className="mt-6 pt-6 border-t border-gray-100 text-sm text-gray-500">
+        <p className="font-medium text-gray-700 mb-1">Manual: Bulk CSV Upload</p>
         <ol className="list-decimal list-inside space-y-1 ml-1">
-          <li>Select a <b>Collection</b> (will map to a Pinterest Board).</li>
-          <li>Click <b>Connect to Pinterest</b> to get your token if needed.</li>
-          <li>Select individual products from the cache.</li>
-          <li>Click <b>Push to Pinterest</b>. We pin max 10/day for safety.</li>
+          <li>Select a <b>Collection</b> and pick designs above.</li>
+          <li>Click <b>Download CSV for Bulk Upload</b>.</li>
+          <li>Go to <a href="https://ph.pinterest.com/settings/bulk-create-pins/" target="_blank" rel="noopener noreferrer" className="text-pink-600 underline font-semibold">Pinterest Bulk Create Pins</a> and upload the CSV.</li>
         </ol>
       </div>
     </div>
