@@ -14,10 +14,8 @@ export async function GET(request: Request) {
     );
   }
 
-  // State can be used for CSRF protection or to pass merchant_id
-  const { searchParams } = new URL(request.url);
-  const merchantId = searchParams.get('merchant_id') || 'unknown';
-  const state = merchantId; 
+  // State parameter for CSRF protection
+  const state = crypto.randomUUID();
 
   const authUrl = pinterestService.getAuthUrl(clientId, redirectUri, state);
   

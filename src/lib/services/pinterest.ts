@@ -29,9 +29,37 @@ export interface PinterestTokenResponse {
   token_type: string;
 }
 
+export interface PinterestUserAccount {
+  id: string;
+  username: string;
+  account_type: 'PINNER' | 'BUSINESS';
+  business_name?: string | null;
+  profile_image?: string;
+  website_url?: string;
+}
+
 const PINTEREST_API_BASE = 'https://api.pinterest.com/v5';
 
 export const pinterestService = {
+  /**
+   * Get the authenticated user's account info
+   */
+  getUserAccount: async (accessToken: string): Promise<PinterestUserAccount> => {
+    const response = await fetch(`${PINTEREST_API_BASE}/user_account`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Failed to get Pinterest user account: ${JSON.stringify(error)}`);
+    }
+
+    return response.json();
+  },
+
   /**
    * Get the authorization URL for Pinterest OAuth 2.0
    */
