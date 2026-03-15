@@ -64,7 +64,6 @@ export async function GET() {
       <image:loc>${imageLoc}</image:loc>
       <image:title>${title.replace(/&/g, '&amp;')}</image:title>
       <image:caption>${caption.replace(/&/g, '&amp;')}</image:caption>
-      <image:geo_location>Cebu, Philippines</image:geo_location>
     </image:image>
   </url>`;
     }).join('\n');

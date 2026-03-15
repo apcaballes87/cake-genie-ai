@@ -218,7 +218,6 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         contentUrl: imageUrl,
         ...(design.image_width && { width: design.image_width }),
         ...(design.image_height && { height: design.image_height }),
-        encodingFormat: 'image/webp',
         name: sanitize(design.alt_text || title || 'Custom Cake Design'),
         caption: sanitize(design.seo_description || `Custom ${keywords} cake design`),
         creditText: 'Genie.ph',
@@ -432,9 +431,10 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
 
 
 /**
- * Server-rendered cake design details kept as a no-JS fallback.
- * For JS sessions, the interactive client UI is already server-rendered, so
- * keeping this block hidden avoids a visible SSR -> hydrated layout swap.
+ * Server-rendered cake design details visible on initial paint for SEO/image crawlability.
+ * Google does not index content hidden with display:none, so this block is rendered visible.
+ * CustomizingClient hides it on mount via document.getElementById('ssr-content') to avoid
+ * duplication with the interactive UI. No-JS users see this as the primary content.
  */
 function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { design: any; prices?: BasePriceInfo[]; relatedDesigns?: any[]; captionText?: string }) {
     const keywords = design.keywords || 'Custom';
@@ -463,7 +463,7 @@ function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { desig
     }
 
     return (
-        <div id="ssr-content" className="w-full max-w-4xl mx-auto px-4 py-6" style={{ display: 'none' }}>
+        <div id="ssr-content" className="w-full max-w-4xl mx-auto px-4 py-6">
             {/* Breadcrumb navigation */}
             <nav className="mb-4" aria-label="Breadcrumb">
                 <ol className="flex items-center text-sm text-gray-500 space-x-2">
@@ -911,22 +911,6 @@ export default async function RecentSearchPage({ params }: Props) {
                 </CustomizationProvider>
             </Suspense>
 
-            {/* Visible SSR hero image for Googlebot and image SEO.
-                Placed after the interactive client so users won't see it during hydration.
-                Hidden by CustomizingClient on mount via document.getElementById('ssr-hero-img'). */}
-            {design.original_image_url && (
-                <div id="ssr-hero-img" className="w-full max-w-4xl mx-auto px-4 pt-6">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                        src={design.original_image_url}
-                        alt={design.alt_text || design.seo_title || `${design.keywords || 'Custom'} cake design`}
-                        width={design.image_width || 600}
-                        height={design.image_height || 600}
-                        className="w-full max-w-md h-auto rounded-xl shadow-md mx-auto"
-                        loading="lazy"
-                    />
-                </div>
-            )}
         </>
     )
 }
