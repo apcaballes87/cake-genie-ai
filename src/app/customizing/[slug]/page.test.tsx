@@ -57,7 +57,7 @@ describe('RecentSearchPage', () => {
     vi.mocked(getRelatedProductsByKeywords).mockResolvedValue({ data: [], error: null } as never);
   });
 
-  it('keeps the SSR fallback hidden for JS sessions without preloading the hidden hero image', async () => {
+  it('renders a visible SSR image and preload link for image SEO alongside the hidden SSR fallback', async () => {
     const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'pink-minimalist-light-pink-bento-cake-f707' }) });
     const { container } = render(page);
     const staticMarkup = renderToStaticMarkup(page);
@@ -74,7 +74,9 @@ describe('RecentSearchPage', () => {
 
     // noscript style removed — Clarity was applying it and making the hidden SSR block visible
     expect(staticMarkup).not.toContain('<noscript>');
-    expect(hasDirectPreloadLink).toBe(false);
+    // Preload link added for LCP optimization (image SEO improvement)
+    expect(hasDirectPreloadLink).toBe(true);
+    // Visible SSR <img> tag for Googlebot + hidden SSR fallback both reference the image
     expect(staticMarkup).toContain('src="https://example.com/pink-bento-cake.webp"');
   });
 
