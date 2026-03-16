@@ -15,7 +15,6 @@ export default function supabaseLoader({ src, width, quality }: { src: string; w
   params.set('width', width.toString());
   params.set('quality', (quality || 80).toString());
   params.set('resize', 'contain');
-  params.set('format', 'webp');
 
   return `${baseUrl}${path}?${params.toString()}`;
 }

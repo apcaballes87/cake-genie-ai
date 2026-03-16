@@ -33,10 +33,8 @@ export function getOptimizedSupabaseImageSrc(
       if (!url.searchParams.has('quality')) {
         url.searchParams.set('quality', '80');
       }
-      // Serve WebP for smaller file sizes (used when Next.js optimization is bypassed)
-      if (!url.searchParams.has('format')) {
-        url.searchParams.set('format', 'webp');
-      }
+      // Supabase render/image serves the original format by default.
+      // The source images are already .webp so no conversion needed.
 
       return url.toString();
     }
