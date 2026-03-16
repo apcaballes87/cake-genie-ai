@@ -14,6 +14,8 @@ import {
   splitBlogContentByShowcasePlaceholders,
 } from '@/components/blog/getBlogDesignShowcase';
 
+export const revalidate = 3600; // Rebuild cache every 1 hour
+
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
 }
