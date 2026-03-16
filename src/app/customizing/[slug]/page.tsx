@@ -716,7 +716,19 @@ function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceI
                             {tags.length > 0 && (
                                 <tr className="bg-white">
                                     <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">TAGS</th>
-                                    <td className="px-4 py-2 text-slate-600">{tags.join(', ')}</td>
+                                    <td className="px-4 py-2 text-slate-600">
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {tags.map((tag: string, index: number) => (
+                                                <a
+                                                    key={`${tag}-${index}`}
+                                                    href={`/search?q=${encodeURIComponent(tag)}`}
+                                                    className="text-purple-600 hover:text-purple-800 hover:underline transition-colors"
+                                                >
+                                                    {tag}{index < tags.length - 1 ? ',' : ''}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </td>
                                 </tr>
                             )}
                         </tbody>
