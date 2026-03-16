@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { PopularDesigns } from '@/components/landing';
 import type { PopularDesign } from '@/components/landing/PopularDesigns';
@@ -26,6 +26,7 @@ import { BlogHomepagePreview } from '@/services/supabaseService';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
+import { batchSaveToLocalStorage } from '@/contexts/CartContext';
 import { LANDING_PAGE_IMAGES, COMMON_ASSETS } from '@/constants';
 import {
     Search,
@@ -91,6 +92,8 @@ const subscribeToHydration = () => () => { };
 
 const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], categories = [], blogPosts = [] }) => {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const urlDiscount = searchParams.get('discount');
     const [activeTab, setActiveTab] = useState('home');
     // Note: rushImageIndexes removed - using CSS animations for better INP
     // Quick links now use CSS animations instead of JS intervals
@@ -98,6 +101,13 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isOccasionOpen, setIsOccasionOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+
+    // Capture discount from URL if present
+    useEffect(() => {
+        if (urlDiscount) {
+            batchSaveToLocalStorage('cart_discount_code', urlDiscount.toUpperCase());
+        }
+    }, [urlDiscount]);
     const uploadToastId = useRef<string | null>(null);
     const isMounted = React.useSyncExternalStore(subscribeToHydration, () => true, () => false);
 
