@@ -1,38 +1,7 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import Image, { ImageProps } from 'next/image';
 import { ImageOff } from 'lucide-react';
-import { getOptimizedSupabaseImageSrc } from '@/lib/utils/supabaseImageUrl';
-
-// Our own Supabase storage domains — these go through Next.js Image Optimization
-// (AVIF/WebP serving) since they're configured in next.config.ts remotePatterns.
-const OWN_SUPABASE_DOMAINS = [
-  'cqmhanqnfybyxezhobkx.supabase.co',
-  'congofivupobtfudnhni.supabase.co',
-];
-
-/**
- * Simple check: if the URL is NOT from our own Supabase storage, it's external
- * and should be unoptimized to avoid 400 errors from unreliable external servers.
- */
-const shouldUseUnoptimized = (src: string | undefined): boolean => {
-  if (!src || typeof src !== 'string') return false;
-
-  // Relative URLs are always safe (local images)
-  if (src.startsWith('/') || src.startsWith('data:')) return false;
-
-  // Simple check: is it from our own Supabase storage?
-  const isOwnSupabase = OWN_SUPABASE_DOMAINS.some(domain => src.includes(domain));
-
-  // Own Supabase images: let Next.js optimize (serves AVIF/WebP via next.config formats).
-  // The domains are already in next.config.ts remotePatterns.
-  if (isOwnSupabase) return false;
-
-  // For other external domains, we skip optimization to avoid 400 errors and save on
-  // Next.js Image Optimization costs. To improve LCP/CWV scores, consider setting this
-  // to `false` for trusted external domains and configuring them in next.config images.remotePatterns.
-  return true;
-};
 
 interface LazyImageProps extends Omit<ImageProps, 'onLoad' | 'onError'> {
   placeholderClassName?: string;
@@ -65,14 +34,6 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
 
-  // Determine if we should skip next/image optimization for this URL
-  const useUnoptimized = useMemo(() => {
-    // If explicitly set, use that value
-    if (typeof unoptimized === 'boolean') return unoptimized;
-    // Otherwise, check if the domain is whitelisted
-    return shouldUseUnoptimized(typeof src === 'string' ? src : undefined);
-  }, [src, unoptimized]);
-
   const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     setIsLoaded(true);
     if (onLoad) {
@@ -104,7 +65,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
       )}
 
       <Image
-        src={useUnoptimized ? (getOptimizedSupabaseImageSrc(typeof src === 'string' ? src : undefined, width) || src) : src}
+        src={src}
         alt={alt}
         title={title}
         onLoad={handleLoad}
@@ -115,7 +76,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         height={!isFilling ? height : undefined}
         sizes={props.sizes || "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"}
         className={`transition-opacity ${priority ? 'duration-0' : 'duration-200'} ${isLoaded || priority ? 'opacity-100' : 'opacity-0'} ${isFilling ? 'object-cover' : ''} ${imageClassName || ''}`}
-        unoptimized={useUnoptimized}
+        unoptimized={unoptimized}
         fetchPriority={fetchPriority}
         decoding={decoding}
         {...props}
