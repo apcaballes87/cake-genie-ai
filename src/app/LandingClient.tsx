@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import toast from 'react-hot-toast';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
+
 import Link from 'next/link';
 import { PopularDesigns } from '@/components/landing';
 import type { PopularDesign } from '@/components/landing/PopularDesigns';
@@ -90,10 +91,22 @@ interface LandingClientProps {
 
 const subscribeToHydration = () => () => { };
 
-const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], categories = [], blogPosts = [] }) => {
-    const router = useRouter();
+// Separate component so useSearchParams doesn't block static prerendering
+const DiscountCapture = () => {
     const searchParams = useSearchParams();
     const urlDiscount = searchParams.get('discount');
+
+    useEffect(() => {
+        if (urlDiscount) {
+            batchSaveToLocalStorage('cart_discount_code', urlDiscount.toUpperCase());
+        }
+    }, [urlDiscount]);
+
+    return null;
+};
+
+const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], categories = [], blogPosts = [] }) => {
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
     // Note: rushImageIndexes removed - using CSS animations for better INP
     // Quick links now use CSS animations instead of JS intervals
@@ -101,13 +114,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isOccasionOpen, setIsOccasionOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
-
-    // Capture discount from URL if present
-    useEffect(() => {
-        if (urlDiscount) {
-            batchSaveToLocalStorage('cart_discount_code', urlDiscount.toUpperCase());
-        }
-    }, [urlDiscount]);
     const uploadToastId = useRef<string | null>(null);
     const isMounted = React.useSyncExternalStore(subscribeToHydration, () => true, () => false);
 
@@ -227,6 +233,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
     return (
         <div id="top" className="font-sans bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100 min-h-screen pb-24 md:pb-0 text-gray-800 flex flex-col">
+            {/* Capture discount code from URL without blocking prerender */}
+            <Suspense fallback={null}>
+                <DiscountCapture />
+            </Suspense>
 
             {/* --- ANIMATED HEADER --- */}
             <nav className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm' : 'bg-transparent'}`}>
