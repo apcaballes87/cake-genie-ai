@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart, useCartActions, readFromLocalStorage, batchSaveToLocalStorage, batchRemoveFromLocalStorage } from '@/contexts/CartContext';
 import { useAddresses, useAddAddress } from '@/hooks/useAddresses';
@@ -83,6 +83,8 @@ const PICKUP_LOCATIONS = [
 
 function CartClient() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const urlDiscount = searchParams.get('discount');
     const { user, signInAnonymously } = useAuth();
     const isRegisteredUser = !!(user && !user.is_anonymous);
     const isAuthenticated = !!user;
@@ -323,6 +325,14 @@ function CartClient() {
         isLoaded: isMapsLoaded,
         loadError: mapsLoadError
     } = useGoogleMapsLoader();
+
+    // Process discount from URL query parameter
+    useEffect(() => {
+        if (!urlDiscount || hasProcessedUrlDiscount.current || subtotal <= 0) return;
+
+        hasProcessedUrlDiscount.current = true;
+        handleApplyDiscount(urlDiscount);
+    }, [urlDiscount, handleApplyDiscount, subtotal]);
 
     // New state for address form refactor
     const [pendingAddressData, setPendingAddressData] = useState<Partial<CakeGenieAddress> | null>(null);
