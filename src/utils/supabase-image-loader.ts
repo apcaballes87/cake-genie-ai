@@ -1,7 +1,8 @@
 export default function supabaseLoader({ src, width, quality }: { src: string; width: number; quality?: number }) {
-  // Non-Supabase URLs pass through unchanged
+  // Non-Supabase URLs: append width param so srcset entries are unique
   if (!src.includes('supabase.co/storage/v1/object/public/')) {
-    return src;
+    const separator = src.includes('?') ? '&' : '?';
+    return `${src}${separator}w=${width}`;
   }
 
   // Convert /object/public/ → /render/image/public/ for Supabase image transformations
