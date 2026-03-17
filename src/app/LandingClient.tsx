@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -8,17 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { PopularDesigns } from '@/components/landing';
 import type { PopularDesign } from '@/components/landing/PopularDesigns';
-import { FeaturedCollections, FeaturedCollectionItem } from '@/components/landing/FeaturedCollections';
 
-// Featured collections to show first on the landing page
-const FEATURED_COLLECTION_SLUGS = [
-    'bini-cake',
-    'kpop-cake',
-    'kpop-demon-hunters-cake',
-    'kuromi-cake',
-    'roblox-cake',
-    'barbie-cake',
-];
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import LazyImage from '@/components/LazyImage';
 import { showError, showLoading, showInfo } from '@/lib/utils/toast';
@@ -28,7 +18,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { batchSaveToLocalStorage } from '@/contexts/CartContext';
-import { LANDING_PAGE_IMAGES, COMMON_ASSETS } from '@/constants';
+import { COMMON_ASSETS } from '@/constants';
 import {
     Search,
     ShoppingBag,
@@ -37,12 +27,12 @@ import {
     User,
     Cake,
     ImagePlus,
-    Tag,
     Upload,
-    UploadCloud,
-    Calculator,
     Menu,
-    Loader2
+    Loader2,
+    Camera,
+    ArrowRight,
+    ChevronDown
 } from 'lucide-react';
 
 const ImageUploader = dynamic(
@@ -50,42 +40,19 @@ const ImageUploader = dynamic(
     { ssr: false }
 );
 
-const quickLinks = [
-    {
-        name: 'Minimalist Cakes',
-        imageUrls: LANDING_PAGE_IMAGES.minimalist,
-        searchTerm: 'minimalist cakes'
-    },
-    {
-        name: 'Edible Photo',
-        imageUrls: LANDING_PAGE_IMAGES.ediblePhoto,
-        searchTerm: 'edible photo cakes'
-    },
-    {
-        name: 'Bento Cakes',
-        imageUrls: LANDING_PAGE_IMAGES.bento,
-        searchTerm: 'bento cakes'
-    },
-    {
-        name: 'Birthday Printouts',
-        imageUrls: LANDING_PAGE_IMAGES.birthdayPrintouts,
-        searchTerm: 'birthday printouts'
-    }
-];
 
-const heroImages = [
-    'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/genie-hero-1.webp',
-    'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/genie-hero-2.webp',
-    'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/genie-hero-3.webp',
-    'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/genie-hero-4.webp',
-    'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/genie-hero-5.webp',
-    'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/genie-hero-6.webp'
+const trustBadges = [
+    'METRO CEBU DELIVERY',
+    '4.8★ CUSTOMER RATED',
+    'CUSTOM CAKES',
+    'INSTANT AI PRICING',
+    '50+ TRUSTED BAKERS',
+    'SAME-DAY RUSH ORDERS',
 ];
 
 interface LandingClientProps {
     children?: React.ReactNode;
     popularDesigns?: PopularDesign[];
-    categories?: FeaturedCollectionItem[];
     blogPosts?: BlogHomepagePreview[];
 }
 
@@ -107,11 +74,9 @@ const DiscountCapture = () => {
     return null;
 };
 
-const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], categories = [], blogPosts = [] }) => {
+const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], blogPosts = [] }) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
-    // Note: rushImageIndexes removed - using CSS animations for better INP
-    // Quick links now use CSS animations instead of JS intervals
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isOccasionOpen, setIsOccasionOpen] = useState(false);
@@ -132,16 +97,16 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
         { id: 'Baptismal', name: 'Baptismal' },
     ];
 
-    // Quick links use CSS animations - no JS intervals needed (better for INP)
-    // Animations are handled via inline <style jsx> below
-    // useEffect removed - no longer needed for quick links carousel
-
-
+    // Pick 4 random minimalist cakes per session for the hero grid
+    const heroProducts = useMemo(() => {
+        if (!popularDesigns || popularDesigns.length === 0) return [];
+        const shuffled = [...popularDesigns].sort(() => Math.random() - 0.5);
+        return shuffled.slice(0, 4);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const [searchQuery, setSearchQuery] = useState('');
 
     const handleSearch = (query: string) => {
-        // Record navigation before going to search
         recordNavigation('search', 'home');
         router.push(`/search?q=${encodeURIComponent(query)}`);
     };
@@ -149,7 +114,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     const handleAppImageUpload = useCallback((file: File) => {
         if (isUploading) return;
 
-        // Upload to Supabase first, then redirect (same approach as BlogUploadButton)
         const uploadToSupabase = async () => {
             const supabase = getSupabaseClient();
             const ext = file.name.split('.').pop() || 'jpg';
@@ -186,12 +150,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 const publicUrl = await uploadToSupabase();
 
                 if (publicUrl) {
-                    // Redirect to customizing with the uploaded image URL
                     const encodedUrl = encodeURIComponent(publicUrl);
                     router.push(`/customizing?ref=${encodedUrl}&source=landing`);
-                    // We don't dismiss here yet because router.push might take time if page is heavy, 
-                    // but usually it's better to dismiss when we know we are transitioning.
-                    // However, we MUST dismiss eventually.
                 }
             } finally {
                 setIsUploading(false);
@@ -204,6 +164,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
         processUpload();
     }, [router, isUploading]);
+
     const [isScrolled, setIsScrolled] = useState(false);
     const [showCompactHeader, setShowCompactHeader] = useState(false);
 
@@ -240,13 +201,33 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 <DiscountCapture />
             </Suspense>
 
-            {/* --- ANIMATED HEADER --- */}
+            {/* ========== TRUST BANNER MARQUEE ========== */}
+            <div className="w-full overflow-hidden bg-purple-600 py-[4.5px]">
+                <style jsx>{`
+                    @keyframes marquee {
+                        0% { transform: translateX(0); }
+                        100% { transform: translateX(-50%); }
+                    }
+                    .trust-marquee {
+                        animation: marquee 25s linear infinite;
+                    }
+                `}</style>
+                <div className="trust-marquee flex whitespace-nowrap">
+                    {[...trustBadges, ...trustBadges].map((badge, i) => (
+                        <span key={i} className="inline-flex items-center text-white text-[9px] md:text-[10px] font-bold tracking-wider mx-6 md:mx-10">
+                            {badge}
+                            <span className="ml-6 md:ml-10 text-purple-300">&#9830;</span>
+                        </span>
+                    ))}
+                </div>
+            </div>
+
+            {/* ========== HEADER ========== */}
             <nav className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm' : 'bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
-                    {/* Mobile Header — both layouts always in the DOM, cross-fading via opacity */}
-                    <div className="md:hidden relative w-full mb-4" style={{ height: '88px' /* pt-6 (24px) + logo h-16 (64px) */ }}>
-
-                        {/* Layer 1: Not-scrolled — [menu | logo | icons], fades OUT on scroll */}
+                    {/* Mobile Header */}
+                    <div className="md:hidden relative w-full mb-4" style={{ height: '88px' }}>
+                        {/* Layer 1: Not-scrolled — [menu | logo | icons] */}
                         <div
                             className="absolute inset-0 grid grid-cols-[1fr_auto_1fr] items-center pt-6 transition-opacity duration-300"
                             style={{ opacity: showCompactHeader ? 0 : 1, pointerEvents: showCompactHeader ? 'none' : 'auto' }}
@@ -294,7 +275,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             </div>
                         </div>
 
-                        {/* Layer 2: Scrolled — [search bar | cart], fades IN on scroll */}
+                        {/* Layer 2: Scrolled — [search bar | cart] */}
                         <div
                             className="absolute inset-0 flex items-center gap-2 pt-6 transition-opacity duration-300"
                             style={{ opacity: showCompactHeader ? 1 : 0, pointerEvents: showCompactHeader ? 'auto' : 'none' }}
@@ -323,46 +304,50 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 )}
                             </button>
                         </div>
-
                     </div>
 
-                    {/* Desktop Header: Menu + Logo left, Search center, Icons right */}
-                    <div className="hidden md:flex w-full items-center gap-4 mb-4 pt-6">
-                        {/* Left: Menu icon + Logo */}
-                        <div className="flex items-center gap-2 shrink-0">
-                            <button
-                                onClick={() => setIsMenuOpen(true)}
-                                className="p-2 text-slate-600 hover:text-purple-700 transition-colors"
-                                aria-label="Open menu"
-                            >
-                                <Menu size={24} />
-                            </button>
+                    {/* Desktop Header: Logo + Search | Nav Links | Get a Price */}
+                    <div className="hidden md:flex w-full items-center gap-6 py-4">
+                        {/* Left: Logo + Search Bar */}
+                        <div className="flex items-center gap-4 shrink-0">
                             <Link href="/">
                                 <img
                                     src={COMMON_ASSETS.logo}
                                     alt="Genie Logo"
-                                    width={180}
+                                    width={150}
                                     height={48}
-                                    className="h-12 w-auto object-contain"
+                                    className="h-10 w-auto object-contain"
                                 />
                             </Link>
-                        </div>
-
-                        {/* Center: Search Bar */}
-                        <div className="flex-1 flex justify-center">
                             <SearchAutocomplete
                                 onSearch={handleSearch}
                                 onUploadClick={() => setIsUploaderOpen(true)}
-                                placeholder="Search for custom cakes..."
+                                placeholder="Search cakes..."
                                 value={searchQuery}
                                 onChange={setSearchQuery}
-                                className="w-full max-w-md lg:max-w-lg"
-                                inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                                className="w-64 lg:w-80"
+                                inputClassName="w-full pl-5 pr-12 py-2.5 text-sm bg-white border-slate-200 border rounded-full shadow-sm focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
                             />
                         </div>
 
-                        {/* Right: Account + Cart */}
-                        <div className="flex items-center gap-1 shrink-0">
+                        {/* Center: Nav Links */}
+                        <div className="flex-1 flex items-center justify-center gap-6 lg:gap-8">
+                            <Link href="/search?q=cakes" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                                Browse Cakes
+                            </Link>
+                            <Link href="/collections" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                                Collections
+                            </Link>
+                            <Link href="/shop" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                                Our Bakers
+                            </Link>
+                            <Link href="/blog" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                                Blog
+                            </Link>
+                        </div>
+
+                        {/* Right: Account + Cart + Get a Price */}
+                        <div className="flex items-center gap-2 shrink-0">
                             <button
                                 onClick={() => {
                                     if (isAuthenticated && !user?.is_anonymous) {
@@ -374,14 +359,14 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                 aria-label="Account"
                             >
-                                <User size={24} />
+                                <User size={22} />
                             </button>
                             <button
                                 onClick={() => router.push('/cart')}
                                 className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                 aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
                             >
-                                <ShoppingBag size={24} />
+                                <ShoppingBag size={22} />
                                 {isMounted && itemCount > 0 && (
                                     <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
                                         {itemCount}
@@ -393,358 +378,295 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 </div>
             </nav>
 
-            {/* --- MAIN CONTENT AREA --- */}
-            <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4">
+            {/* ========== MAIN CONTENT ========== */}
+            <main className="flex-1">
                 <h1 className="sr-only">Genie.ph | Best Custom Cakes in Cebu & Online Cake Delivery</h1>
 
-
-
-
-                <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-
-
-                    {/* Main Feed */}
-                    <div className="flex-1 min-w-0"> {/* min-w-0 prevents flex child from overflowing */}
-
-
-
-                        {/* --- HERO SECTION --- */}
-                        <section aria-label="Hero" className="mb-2 md:mb-4 space-y-4">
-                            {/* Mobile Hero */}
-                            <div className="sm:hidden flex flex-col gap-3 text-center pt-2 pb-2">
-                                {/* Rotating Image Banner with Text Overlay */}
-                                <div className="relative w-full rounded-2xl overflow-hidden shadow-sm aspect-3/2 bg-white flex flex-col justify-center">
-                                    {/* CSS-based hero carousel for better INP - runs on compositor thread */}
-                                    <style jsx>{`
-                                        @keyframes heroFadeIn {
-                                            0% { opacity: 0; }
-                                            10% { opacity: 1; }
-                                            90% { opacity: 1; }
-                                            100% { opacity: 0; }
-                                        }
-                                        .hero-image {
-                                            will-change: opacity;
-                                            animation: heroFadeIn 6s infinite;
-                                        }
-                                        .hero-image-0 { animation-delay: 0s; }
-                                        .hero-image-1 { animation-delay: 1s; }
-                                        .hero-image-2 { animation-delay: 2s; }
-                                        .hero-image-3 { animation-delay: 3s; }
-                                        .hero-image-4 { animation-delay: 4s; }
-                                        .hero-image-5 { animation-delay: 5s; }
-                                    `}</style>
-                                    {heroImages.map((src, index) => (
-                                        <div
-                                            key={src}
-                                            className={`hero-image hero-image-${index} absolute inset-0 z-${index === 0 ? '10' : '0'}`}
-                                        >
-                                            <LazyImage
-                                                src={src}
-                                                alt={`Custom Cake Mobile ${index + 1}`}
-                                                className="w-full h-full object-cover"
-                                                priority={index === 0}
-                                                fill
-                                            />
-                                        </div>
-                                    ))}
-
-                                    {/* Responsive Text Overlay */}
-                                    <div className="absolute inset-y-0 left-0 w-3/4 max-w-[280px] bg-linear-to-r from-white via-white/80 to-transparent z-20 pointer-events-none" />
-
-                                    <div className="relative z-30 px-5 text-left w-full sm:w-[85%]">
-                                        <p className="text-[1.75rem] xs:text-[2rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight drop-shadow-sm">
-                                            Upload any Cake Design,<br />Get the Price in Seconds
-                                        </p>
-                                        <p className="mt-2 text-[0.78rem] xs:text-[0.85rem] text-[#6d3fc7] font-medium leading-snug drop-shadow-sm">
-                                            The fastest way to buy customized cakes.<br />Personalize your order in a few clicks.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Buttons Below */}
-                                <div className="flex flex-row items-center gap-2 xs:gap-3 w-full max-w-[360px] mx-auto">
-                                    <button
-                                        disabled={isUploading}
-                                        className="flex-1 flex items-center justify-center gap-1.5 w-full bg-[#9b80e3] hover:bg-[#8669cc] disabled:bg-[#9b80e3]/70 text-white py-3.5 px-2 rounded-[0.875rem] font-semibold transition-all shadow-md active:scale-[0.98] text-[14px] xs:text-[15px] whitespace-nowrap disabled:cursor-not-allowed"
-                                        onClick={() => setIsUploaderOpen(true)}
-                                    >
-                                        {isUploading ? (
-                                            <Loader2 size={18} className="animate-spin shrink-0" />
-                                        ) : (
-                                            <Upload size={18} className="shrink-0" />
-                                        )}
-                                        <span>{isUploading ? 'Uploading...' : 'Upload'} <span className="hidden min-[350px]:inline">{isUploading ? '' : 'a Design'}</span></span>
-                                    </button>
-                                    <Link
-                                        href="/collections"
-                                        className="flex-1 flex items-center justify-center gap-1.5 w-full bg-white hover:bg-purple-50 text-[#9b80e3] border border-[#d8cbf9] py-3.5 px-2 rounded-[0.875rem] font-semibold transition-all active:scale-[0.98] text-[14px] xs:text-[15px] whitespace-nowrap"
-                                    >
-                                        <Search size={18} className="shrink-0" />
-                                        <span>Browse<span className="hidden min-[350px]:inline"> Designs</span></span>
-                                    </Link>
-                                </div>
-                            </div>
-
-                            {/* Desktop/Tablet Hero */}
-                            <div className="hidden sm:flex relative overflow-hidden rounded-4xl bg-white h-72 lg:h-104 items-center shadow-sm">
-                                {/* Left Side: Text and Buttons */}
-                                <div className="flex-1 px-8 lg:px-14 z-20 flex flex-col justify-center h-full max-w-[55%] relative">
-                                    <div className="absolute inset-0 bg-linear-to-r from-white via-white/95 to-transparent pointer-events-none -mr-32" />
-                                    <div className="relative z-10">
-                                        <p className="text-[2.5rem] lg:text-[3rem] font-extrabold text-[#4a1d96] leading-[1.1] tracking-tight drop-shadow-sm">
-                                            Upload any Cake Design,<br />Get the Price in Seconds
-                                        </p>
-                                        <p className="mt-3 mb-8 text-[0.95rem] lg:text-[1.1rem] text-[#6d3fc7] font-medium leading-snug">
-                                            The fastest way to buy customized cakes.<br />Personalize your order in a few clicks.
-                                        </p>
-                                        <div className="flex flex-row gap-3 lg:gap-4 items-center flex-nowrap shrink-0">
-                                            <button
-                                                disabled={isUploading}
-                                                className="flex items-center justify-center gap-2 bg-[#9b80e3] hover:bg-[#8669cc] disabled:bg-[#9b80e3]/70 text-white px-5 py-3 lg:px-7 lg:py-3.5 rounded-[0.875rem] font-semibold transition-all shadow-md active:scale-[0.98] text-sm lg:text-base whitespace-nowrap shrink-0 disabled:cursor-not-allowed"
-                                                onClick={() => setIsUploaderOpen(true)}
-                                            >
-                                                {isUploading ? (
-                                                    <Loader2 size={18} className="animate-spin shrink-0 lg:w-5 lg:h-5" />
-                                                ) : (
-                                                    <Upload size={18} className="shrink-0 lg:w-5 lg:h-5" />
-                                                )}
-                                                {isUploading ? 'Uploading...' : 'Upload a Design'}
-                                            </button>
-                                            <Link
-                                                href="/collections"
-                                                className="flex items-center justify-center gap-2 bg-[#fcfcff] hover:bg-purple-50 text-[#9b80e3] border border-[#d8cbf9] px-5 py-3 lg:px-7 lg:py-3.5 rounded-[0.875rem] font-semibold transition-all active:scale-[0.98] text-sm lg:text-base whitespace-nowrap shrink-0"
-                                            >
-                                                <Search size={18} className="shrink-0" />
-                                                Browse Designs
-                                            </Link>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Background Rotating Image covering full area */}
-                                <div className="absolute inset-0 z-0">
-                                    <div className="relative w-full h-full">
-                                        {/* Soft gradient fade on the left edge of the image to blend it with the white text area */}
-                                        <div className="absolute inset-y-0 left-0 w-[50%] bg-linear-to-r from-white via-white/80 to-transparent z-20 pointer-events-none" />
-
-                                        {/* CSS-based hero carousel for better INP - runs on compositor thread */}
-                                        <style jsx>{`
-                                            @keyframes heroFadeInDesktop {
-                                                0% { opacity: 0; }
-                                                10% { opacity: 1; }
-                                                90% { opacity: 1; }
-                                                100% { opacity: 0; }
-                                            }
-                                            .hero-desktop-image {
-                                                will-change: opacity;
-                                                animation: heroFadeInDesktop 6s infinite;
-                                            }
-                                            .hero-desktop-0 { animation-delay: 0s; }
-                                            .hero-desktop-1 { animation-delay: 1s; }
-                                            .hero-desktop-2 { animation-delay: 2s; }
-                                            .hero-desktop-3 { animation-delay: 3s; }
-                                            .hero-desktop-4 { animation-delay: 4s; }
-                                            .hero-desktop-5 { animation-delay: 5s; }
-                                        `}</style>
-
-                                        {heroImages.map((src, index) => (
-                                            <div
-                                                key={src}
-                                                className={`hero-desktop-image hero-desktop-${index} absolute inset-0 z-${index === 0 ? '10' : '0'}`}
-                                            >
-                                                <LazyImage
-                                                    src={src}
-                                                    alt={`Featured Custom Cake ${index + 1}`}
-                                                    className="w-full h-full object-cover object-[center_right]"
-                                                    priority={index === 0}
-                                                    fill
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* --- HOW IT WORKS SECTION --- */}
-                        <section aria-label="How it works" className="mt-2 md:mt-8 mb-3 w-screen relative left-[50%] right-[50%] -ml-[50vw] -mr-[50vw]">
-                            <div className="absolute inset-0 z-0">
-                                <LazyImage
-                                    src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/how-it-works-bg.webp"
-                                    alt="How it Works Background"
-                                    className="w-full h-full object-cover opacity-90"
-                                    fill
-                                    priority
-                                />
-                                <div className="absolute inset-0 bg-white/20"></div>
-                            </div>
-                            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-4 md:pt-8 md:pb-[42px]">
-                                <div className="text-center mb-4 md:mb-6">
-                                    <p className="text-[12px] md:text-[14px] font-bold text-purple-800 uppercase tracking-widest mb-1 opacity-90">
-                                        Skip the endless &quot;HM?&quot; and &quot;PM for price&quot;
-                                    </p>
-                                    <h2 className="text-[24px] md:text-3xl font-bold text-purple-950 drop-shadow-sm">How it Works</h2>
-                                </div>
-                                <div className="flex gap-2 md:grid md:grid-cols-4 md:gap-6 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 pb-1 md:pb-0">
-                                    {/* Card 1 */}
-                                    <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-xl md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
-                                        <div className="mb-2 md:mb-4 text-purple-800">
-                                            <UploadCloud className="w-6 h-6 sm:w-8 sm:h-8 md:w-11 md:h-11" strokeWidth={1.5} />
-                                        </div>
-                                        <h3 className="text-[11px] sm:text-[14px] leading-[1.2] md:text-[21px] font-bold text-purple-950 mb-1 md:mb-2">1. Upload<br className="md:hidden" /> or Browse</h3>
-                                        <p className="text-purple-800 text-[9px] sm:text-[12px] leading-tight md:text-[17px]">Any Cake Design<br className="md:hidden" /></p>
-                                    </div>
-
-                                    {/* Card 2 */}
-                                    <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-xl md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
-                                        <div className="mb-2 md:mb-4 text-purple-800 flex items-center justify-center relative w-[28px] h-[24px] sm:w-[40px] sm:h-[36px] md:w-[56px] md:h-[46px]">
-                                            <Tag className="absolute left-0 top-0 opacity-80 w-3.5 h-3.5 sm:w-5 sm:h-5 md:w-8 md:h-8" strokeWidth={1.5} />
-                                            <Calculator className="absolute right-0 bottom-0 bg-purple-50/60 rounded rotate-12 w-5 h-5 sm:w-7 sm:h-7 md:w-9 md:h-9 shadow-sm" strokeWidth={1.5} />
-                                        </div>
-                                        <h3 className="text-[11px] sm:text-[14px] leading-[1.2] md:text-[21px] font-bold text-purple-950 mb-1 md:mb-2">2. Get Instant<br className="md:hidden" /> Quote</h3>
-                                        <p className="text-purple-800 text-[9px] sm:text-[12px] leading-tight md:text-[17px]">Prices in seconds<br className="md:hidden" /></p>
-                                    </div>
-
-                                    {/* Card 3 - NEW */}
-                                    <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-xl md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
-                                        <div className="mb-2 md:mb-4 text-purple-800">
-                                            <Cake className="w-6 h-6 sm:w-8 sm:h-8 md:w-11 md:h-11" strokeWidth={1.5} />
-                                        </div>
-                                        <h3 className="text-[11px] sm:text-[14px] leading-[1.2] md:text-[21px] font-bold text-purple-950 mb-1 md:mb-2">3. Customize<br className="md:hidden" /> Your Cake</h3>
-                                        <p className="text-purple-800 text-[9px] sm:text-[12px] leading-tight md:text-[17px]">Size, color &amp; toppers<br className="md:hidden" /></p>
-                                    </div>
-
-                                    {/* Card 4 */}
-                                    <div className="bg-white/80 backdrop-blur-sm hover:bg-purple-50/90 transition-all rounded-xl md:rounded-[1.25rem] p-3 sm:p-4 md:p-8 flex flex-col items-center text-center shadow-sm border border-white/50 hover:shadow-md min-w-[30vw] max-w-[110px] md:min-w-0 md:max-w-none shrink-0">
-                                        <div className="mb-2 md:mb-4 text-purple-800">
-                                            <ShoppingBag className="w-6 h-6 sm:w-8 sm:h-8 md:w-11 md:h-11" strokeWidth={1.5} />
-                                        </div>
-                                        <h3 className="text-[11px] sm:text-[14px] leading-[1.2] md:text-[21px] font-bold text-purple-950 mb-1 md:mb-2">4. Add to Cart<br className="md:hidden" /></h3>
-                                        <p className="text-purple-800 text-[9px] sm:text-[12px] leading-tight md:text-[17px]">Convenient Payment Options<br className="md:hidden" /></p>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Mobile Categories removed — moved to side drawer */}
-
-                        {/* --- CAKES AVAILABLE TODAY --- */}
-                        <section aria-label="Rush order cakes" className="mb-4">
-                            <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 mb-3">Shop Cake Designs Available for Rush Orders</h2>
-                            <div className="flex overflow-x-auto gap-3 pb-4 md:grid grid-cols-2 min-[490px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 md:gap-6 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
-                                {quickLinks.map((link, cardIndex) => (
-                                    <Link
-                                        key={link.name}
-                                        href={`/search?q=${encodeURIComponent(link.searchTerm)}`}
-                                        className="group relative overflow-hidden rounded-2xl aspect-square shadow-sm hover:shadow-lg transition-all duration-300 min-w-[30%] md:min-w-0 block"
-                                    >
-                                        {/* CSS-based quick links carousel for better INP */}
-                                        <style jsx>{`
-                                            @keyframes quickLinkFade {
-                                                0% { opacity: 0; }
-                                                10% { opacity: 1; }
-                                                80% { opacity: 1; }
-                                                100% { opacity: 0; }
-                                            }
-                                            .quick-link-image {
-                                                will-change: opacity;
-                                                animation: quickLinkFade 4.6s infinite;
-                                            }
-                                            .quick-link-0 { animation-delay: 0s; }
-                                            .quick-link-1 { animation-delay: 0.6s; }
-                                            .quick-link-2 { animation-delay: 1.2s; }
-                                            .quick-link-3 { animation-delay: 1.8s; }
-                                        `}</style>
-                                        {link.imageUrls.map((imgUrl, imgIndex) => (
-                                            <div
-                                                key={imgUrl}
-                                                className={`quick-link-image quick-link-${imgIndex} absolute inset-0`}
-                                            >
-                                                <LazyImage
-                                                    src={imgUrl}
-                                                    alt={link.name}
-                                                    title={link.name}
-                                                    className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-500`}
-                                                    priority={imgIndex === 0}
-                                                    fill
-                                                />
-                                            </div>
-                                        ))}
-                                        <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent flex items-end p-3 md:p-4 z-20">
-                                            <span className="text-white font-bold text-xs md:text-base leading-tight">{link.name}</span>
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        </section>
-
-                        {/* --- FEATURED COLLECTIONS SECTION --- */}
-                        <FeaturedCollections categories={categories} featuredSlugs={FEATURED_COLLECTION_SLUGS} />
-
-                        {/* --- POPULAR DESIGNS SECTION --- */}
-                        <section aria-label="Popular designs" className="mt-6 md:mt-8">
-                            <PopularDesigns designs={popularDesigns} />
-                        </section>
-
-                        {/* --- SHOP BY OCCASION (SEO Links) - REMOVED AS REQUESTED --- */}
-
-                        {/* Server-rendered merchants and products sections */}
-                        {children}
-
-                        {/* --- BLOG SECTION: LATEST TRENDS --- */}
-                        <section aria-label="Blog" className="mt-6 md:mt-8">
-                            <div className="flex items-center justify-between mb-3">
-                                <h2 className="text-[18px] md:text-[21px] font-bold text-gray-900 leading-tight">Stories, Blogs and News</h2>
-                                <Link href="/blog" className="group flex items-center gap-1 md:gap-2 text-purple-600 font-semibold hover:text-purple-700 transition-colors text-[13px] md:text-base shrink-0">
-                                    View all
+                {/* ===== HERO SECTION ===== */}
+                <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-4 pb-4 md:pt-6 md:pb-6 lg:pt-8 lg:pb-8">
+                    <div className="flex flex-col md:flex-row gap-8 md:gap-10 items-start">
+                        {/* Left: Text Content */}
+                        <div className="flex-1 text-center md:text-left md:pt-2 lg:pt-4">
+                            <p className="text-xs md:text-sm font-bold text-purple-600 uppercase tracking-[0.2em] mb-4 flex items-center justify-center md:justify-start gap-2">
+                                <span className="hidden md:inline-block w-8 h-[2px] bg-purple-400"></span>
+                                Cebu&apos;s Premier Cake Marketplace
+                            </p>
+                            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-5 md:mb-6">
+                                Custom cakes
+                                <br />
+                                <span className="text-purple-600 italic">you can order</span>
+                                <br />
+                                right now.
+                            </h2>
+                            <p className="text-sm md:text-base text-gray-600 leading-relaxed mb-8 max-w-lg mx-auto md:mx-0">
+                                Upload any cake photo. Our AI analyzes the design and gives you an accurate price quote in under 30 seconds — then connects you with the best local bakers in Cebu.
+                            </p>
+                            <div className="flex items-center gap-2 sm:gap-3 justify-center md:justify-start">
+                                <button
+                                    disabled={isUploading}
+                                    className="flex items-center justify-center gap-1.5 sm:gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/70 text-white px-4 py-2.5 sm:px-6 sm:py-3.5 lg:px-8 lg:py-4 rounded-full font-semibold transition-all shadow-lg active:scale-[0.98] text-xs sm:text-sm lg:text-base whitespace-nowrap disabled:cursor-not-allowed"
+                                    onClick={() => setIsUploaderOpen(true)}
+                                >
+                                    {isUploading ? (
+                                        <Loader2 size={15} className="animate-spin shrink-0" />
+                                    ) : (
+                                        <Upload size={15} className="shrink-0" />
+                                    )}
+                                    {isUploading ? 'Uploading...' : 'Upload Your Design'}
+                                    <ArrowRight size={14} className="shrink-0" />
+                                </button>
+                                <Link
+                                    href="/collections"
+                                    className="flex items-center justify-center gap-1.5 sm:gap-2 bg-white hover:bg-purple-50 text-purple-600 border border-purple-200 px-4 py-2.5 sm:px-6 sm:py-3.5 lg:px-8 lg:py-4 rounded-full font-semibold transition-all active:scale-[0.98] text-xs sm:text-sm lg:text-base whitespace-nowrap"
+                                >
+                                    Browse Designs
+                                    <ChevronDown size={14} className="shrink-0" />
                                 </Link>
                             </div>
-                            <div className="space-y-4">
-                                {blogPosts.length === 0 ? (
-                                    <p className="text-gray-500 text-sm">No blog posts available yet.</p>
-                                ) : (
-                                    blogPosts.map((post) => {
-                                        const imageUrl = post.image;
-                                        return (
-                                            <article key={post.slug}>
-                                                <Link
-                                                    href={`/blog/${post.slug}`}
-                                                    className="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-purple-100 hover:shadow-md hover:border-purple-200 transition-all group flex gap-4 items-center justify-between"
-                                                >
-                                                    <div className="flex-1 min-w-0">
-                                                        <h3 className="text-base md:text-lg font-bold text-gray-900 mb-2 group-hover:text-purple-700 transition-colors leading-snug">
-                                                            {post.title}
-                                                        </h3>
-                                                        <p className="text-gray-500 text-sm leading-relaxed line-clamp-2">
-                                                            {post.excerpt}
-                                                        </p>
-                                                    </div>
-                                                    {imageUrl && (
-                                                        <div className="shrink-0 w-20 h-20 md:w-28 md:h-28 rounded-xl overflow-hidden shadow-sm relative">
-                                                            <LazyImage
-                                                                src={imageUrl}
-                                                                alt={post.title}
-                                                                fill
-                                                                className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                                            />
-                                                        </div>
-                                                    )}
-                                                </Link>
-                                            </article>
-                                        );
-                                    })
-                                )}
+                        </div>
+
+                        {/* Right: Hero Masonry Image Grid */}
+                        {heroProducts.length >= 4 && (
+                            <div className="flex-1 w-full max-w-xl md:max-w-none">
+                                <div className="flex gap-3 md:gap-4">
+                                    {/* Column 1: 2 images */}
+                                    <div className="flex flex-col gap-3 md:gap-4 flex-1">
+                                        <Link href={`/customizing/${heroProducts[0].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-[3/4] group block">
+                                            <LazyImage
+                                                src={heroProducts[0].original_image_url}
+                                                alt={heroProducts[0].alt_text || heroProducts[0].keywords || 'Minimalist cake'}
+                                                fill
+                                                priority
+                                                className="object-cover group-hover:scale-105 transition-transform duration-700"
+                                            />
+                                        </Link>
+                                        <Link href={`/customizing/${heroProducts[2].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-[4/3] group block">
+                                            <LazyImage
+                                                src={heroProducts[2].original_image_url}
+                                                alt={heroProducts[2].alt_text || heroProducts[2].keywords || 'Minimalist cake'}
+                                                fill
+                                                className="object-cover group-hover:scale-105 transition-transform duration-700"
+                                            />
+                                        </Link>
+                                    </div>
+                                    {/* Column 2: 2 images */}
+                                    <div className="flex flex-col gap-3 md:gap-4 flex-1">
+                                        <Link href={`/customizing/${heroProducts[1].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-[4/3] group block">
+                                            <LazyImage
+                                                src={heroProducts[1].original_image_url}
+                                                alt={heroProducts[1].alt_text || heroProducts[1].keywords || 'Minimalist cake'}
+                                                fill
+                                                priority
+                                                className="object-cover group-hover:scale-105 transition-transform duration-700"
+                                            />
+                                        </Link>
+                                        <Link href={`/customizing/${heroProducts[3].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-[3/4] group block">
+                                            <LazyImage
+                                                src={heroProducts[3].original_image_url}
+                                                alt={heroProducts[3].alt_text || heroProducts[3].keywords || 'Minimalist cake'}
+                                                fill
+                                                className="object-cover group-hover:scale-105 transition-transform duration-700"
+                                            />
+                                        </Link>
+                                    </div>
+                                </div>
                             </div>
-                        </section>
-
-
+                        )}
                     </div>
+                </section>
+
+
+                {/* ===== SEE A CAKE YOU LOVE SECTION ===== */}
+                <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-6 pb-6 md:pt-8 md:pb-8 lg:pt-10 lg:pb-10">
+                    <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
+                        {/* Left: Text + Upload Zone */}
+                        <div className="flex-1">
+                            <p className="text-xs md:text-sm font-bold text-purple-600 uppercase tracking-[0.15em] mb-3">
+                                AI-Powered Instant Pricing
+                            </p>
+                            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-4">
+                                See a cake you love? We&apos;ll price it for you, in 10 seconds.
+                            </h2>
+                            <p className="text-sm md:text-base text-gray-600 leading-relaxed mb-8 max-w-xl">
+                                Found the perfect inspo on Pinterest or Instagram? Just upload the screenshot. Our AI reads the design — tier count, frosting type, decorations — and gives you a real price from real local bakers.
+                            </p>
+
+                            {/* Upload Drop Zone */}
+                            <div
+                                className="border-2 border-dashed border-purple-300 bg-purple-50/50 rounded-2xl p-8 md:p-10 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-all"
+                                onClick={() => setIsUploaderOpen(true)}
+                            >
+                                <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <Camera size={28} className="text-purple-500" />
+                                </div>
+                                <p className="text-base font-semibold text-gray-800 mb-1">Drop your cake photo here</p>
+                                <p className="text-sm text-gray-500">PNG, JPG, WEBP up to 10MB</p>
+                            </div>
+                        </div>
+
+                        {/* Right: Customizing Page Preview Mock */}
+                        <div className="flex-1 w-full max-w-lg lg:max-w-none">
+                            <p className="text-xs font-bold text-purple-500 uppercase tracking-[0.15em] mb-4">
+                                What you get
+                            </p>
+
+                            {/* Mock of the actual customizing page — Step cards + Add to Cart bar */}
+
+                            {/* Step Cards — no outer wrapper */}
+                            <div className="flex flex-col gap-2 mb-3">
+
+                                {/* Step 1: Cake Specs + Icing Colors */}
+                                <div className="bg-white/70 backdrop-blur-sm p-3 rounded-2xl shadow-sm border border-slate-200">
+                                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 1: Choose Your Cake Specs</h3>
+                                    <div className="flex gap-2 flex-wrap">
+                                        {/* Cake spec thumbnails */}
+                                        {[
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/1tier.webp', label: '1 Tier' },
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/1tier.webp', label: '8" Round' },
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakechocolate.webp', label: 'Chocolate' },
+                                        ].map((item) => (
+                                            <div key={item.label} className="flex flex-col items-center gap-1 min-w-[56px]">
+                                                <div className="w-14 h-14 rounded-xl border-2 border-purple-400 ring-2 ring-purple-500 ring-offset-1 overflow-hidden relative bg-purple-50/50">
+                                                    <img src={item.src} alt={item.label} className="w-full h-full object-contain" />
+                                                </div>
+                                                <span className="text-[10px] text-center text-slate-500 font-medium leading-tight">{item.label}</span>
+                                            </div>
+                                        ))}
+                                        {/* Icing color swatches */}
+                                        {[
+                                            { color: '#f4c2d0', label: 'Body Icing' },
+                                            { color: '#c9a0dc', label: 'Drip' },
+                                            { color: '#e8d5f0', label: 'Base Border' },
+                                        ].map((item) => (
+                                            <div key={item.label} className="flex flex-col items-center gap-1 min-w-[50px]">
+                                                <div
+                                                    className="w-12 h-12 rounded-full border border-slate-200 ring-2 ring-purple-500 ring-offset-1 shadow-sm"
+                                                    style={{ backgroundColor: item.color }}
+                                                />
+                                                <span className="text-[10px] text-center text-slate-500 font-medium leading-tight max-w-[52px]">{item.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Step 2: Cake Toppers */}
+                                <div className="bg-white/70 backdrop-blur-sm p-3 rounded-2xl shadow-sm border border-slate-200">
+                                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 2: Cake Toppers</h3>
+                                    <div className="flex gap-2 flex-wrap">
+                                        {[
+                                            { emoji: '🌸', label: 'Sugar Flowers' },
+                                            { emoji: '🎂', label: 'Number Topper' },
+                                            { emoji: '✨', label: 'Sparkle' },
+                                        ].map((item) => (
+                                            <div key={item.label} className="flex flex-col items-center gap-1 min-w-[56px]">
+                                                <div className="w-14 h-14 rounded-xl border border-slate-200 bg-purple-50/50 flex items-center justify-center text-2xl">
+                                                    {item.emoji}
+                                                </div>
+                                                <span className="text-[10px] text-center text-slate-500 font-medium leading-tight max-w-[60px]">{item.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Step 3: Cake Messages */}
+                                <div className="bg-white/70 backdrop-blur-sm p-3 rounded-2xl shadow-sm border border-slate-200">
+                                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 3: Cake Messages</h3>
+                                    <div className="flex items-center gap-3 py-2 px-4 rounded-xl bg-slate-50 border border-slate-100">
+                                        <span className="text-[10px] font-bold text-purple-500 uppercase tracking-wider shrink-0">TOP</span>
+                                        <span className="text-sm font-medium text-slate-700 flex-1 truncate">Happy Birthday, Sarah! 🎉</span>
+                                        <div className="w-4 h-4 rounded-full bg-pink-400 border border-slate-200 shrink-0 shadow-sm" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Mock Add to Cart Bar — its own container */}
+                            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 px-4 py-4">
+                                {/* Rush availability banner */}
+                                {/* Price + Buttons */}
+                                <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                        <span className="text-lg font-bold text-slate-800">₱1,500</span>
+                                        <span className="text-xs text-slate-500 block">8&quot; Round Standard Height</span>
+                                    </div>
+                                    <div className="flex gap-2 flex-1 justify-end">
+                                        <button className="flex items-center gap-1.5 border border-slate-200 bg-white text-slate-600 font-semibold py-3 px-4 rounded-xl text-sm shadow-sm">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                                            Share
+                                        </button>
+                                        <button className="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl text-sm shadow-lg whitespace-nowrap">
+                                            <ShoppingBag size={16} />
+                                            Add to Cart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ===== MINIMALIST CAKES FOR RUSH ORDERS ===== */}
+                <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
+                    <section aria-label="Popular designs" className="py-2 md:py-3">
+                        <PopularDesigns designs={popularDesigns} />
+                    </section>
+                </div>
+
+                {/* ===== RECENT SEARCHES + WHAT IS GENIE.PH (Server-rendered children) ===== */}
+                <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
+                    {children}
+                </div>
+
+                {/* ===== BLOG SECTION ===== */}
+                <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
+                    <section aria-label="Blog" className="py-8 md:py-12">
+                        <div className="flex items-center justify-between mb-4 md:mb-6">
+                            <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-tight">Stories, Blogs and News</h2>
+                            <Link href="/blog" className="group flex items-center gap-1 md:gap-2 text-purple-600 font-semibold hover:text-purple-700 transition-colors text-[13px] md:text-base shrink-0">
+                                View all
+                                <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                            </Link>
+                        </div>
+                        <div className="space-y-4">
+                            {blogPosts.length === 0 ? (
+                                <p className="text-gray-500 text-sm">No blog posts available yet.</p>
+                            ) : (
+                                blogPosts.map((post) => {
+                                    const imageUrl = post.image;
+                                    return (
+                                        <article key={post.slug}>
+                                            <Link
+                                                href={`/blog/${post.slug}`}
+                                                className="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-purple-100 hover:shadow-md hover:border-purple-200 transition-all group flex gap-4 items-center justify-between"
+                                            >
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="text-base md:text-lg font-bold text-gray-900 mb-2 group-hover:text-purple-700 transition-colors leading-snug">
+                                                        {post.title}
+                                                    </h3>
+                                                    <p className="text-gray-500 text-sm leading-relaxed line-clamp-2">
+                                                        {post.excerpt}
+                                                    </p>
+                                                </div>
+                                                {imageUrl && (
+                                                    <div className="shrink-0 w-20 h-20 md:w-28 md:h-28 rounded-xl overflow-hidden shadow-sm relative">
+                                                        <LazyImage
+                                                            src={imageUrl}
+                                                            alt={post.title}
+                                                            fill
+                                                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </Link>
+                                        </article>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </section>
                 </div>
             </main>
 
-
-
-            {/* --- MOBILE BOTTOM NAV --- */}
+            {/* ========== MOBILE BOTTOM NAV ========== */}
             <nav className="md:hidden fixed bottom-0 w-full bg-white/95 backdrop-blur-lg border-t border-gray-100 py-4 px-6 flex justify-between items-center text-gray-500 z-50 pb-safe">
                 <button
                     onClick={() => { setActiveTab('home'); router.push('/'); }}
@@ -785,7 +707,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                     <User size={22} strokeWidth={activeTab === 'profile' ? 2.5 : 2} />
                     <span className="text-[9px] font-bold">Profile</span>
                 </button>
-            </nav >
+            </nav>
 
             {isUploaderOpen ? (
                 <ImageUploader
@@ -798,7 +720,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 />
             ) : null}
 
-            {/* --- MOBILE SIDE MENU DRAWER --- */}
+            {/* ========== MOBILE SIDE MENU DRAWER ========== */}
             {/* Backdrop */}
             <div
                 className={`fixed inset-0 z-50 transition-opacity duration-300 ${isMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
@@ -826,7 +748,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         className="p-2 rounded-full text-slate-500 hover:bg-purple-50 hover:text-purple-700 transition-colors"
                         aria-label="Close menu"
                     >
-                        {/* X icon */}
                         <svg xmlns="http://www.w3.org/2000/svg" width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18" />
                             <line x1="6" y1="6" x2="18" y2="18" />
@@ -836,6 +757,25 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                 {/* Nav Links */}
                 <nav className="flex-1 overflow-y-auto py-4 px-3">
+                    {/* Browse Cakes */}
+                    <Link
+                        href="/search?q=cakes"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex items-center gap-3.5 px-3 py-3.5 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors font-medium text-[15px] group"
+                    >
+                        <span className="text-xl w-7 text-center leading-none">🎂</span>
+                        <span className="group-hover:translate-x-0.5 transition-transform duration-150">Browse Cakes</span>
+                    </Link>
+
+                    {/* Collections */}
+                    <Link
+                        href="/collections"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex items-center gap-3.5 px-3 py-3.5 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors font-medium text-[15px] group"
+                    >
+                        <span className="text-xl w-7 text-center leading-none">🎨</span>
+                        <span className="group-hover:translate-x-0.5 transition-transform duration-150">Collections</span>
+                    </Link>
 
                     {/* Shop by Occasion — collapsible accordion */}
                     <div>
@@ -844,9 +784,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             className="w-full flex items-center gap-3.5 px-3 py-3.5 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors font-medium text-[15px]"
                             aria-expanded={isOccasionOpen}
                         >
-                            <span className="text-xl w-7 text-center leading-none">🎂</span>
+                            <span className="text-xl w-7 text-center leading-none">🎉</span>
                             <span className="flex-1 text-left">Shop by Occasion</span>
-                            {/* Chevron icon rotates when open */}
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 width={16} height={16}
@@ -862,7 +801,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             </svg>
                         </button>
 
-                        {/* Collapsible list of occasions */}
                         <div
                             className="overflow-hidden transition-all duration-300 ease-in-out"
                             style={{ maxHeight: isOccasionOpen ? `${categoriesList.length * 52}px` : '0px' }}
@@ -885,10 +823,11 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                     {/* Other nav links */}
                     {[
+                        { label: 'Our Bakers', href: '/shop', emoji: '🏪' },
+                        { label: 'Blog', href: '/blog', emoji: '📝' },
                         { label: 'How to Order', href: '/how-to-order', emoji: '📋' },
                         { label: 'Payment Options', href: '/payment-options', emoji: '💳' },
                         { label: 'Delivery Rates', href: '/delivery-rates', emoji: '🚚' },
-                        { label: 'Partner Bakeshops', href: '/shop', emoji: '🏪' },
                         { label: 'About Us', href: '/about', emoji: 'ℹ️' },
                         { label: 'Contact', href: '/contact', emoji: '📞' },
                     ].map((item) => (
@@ -906,10 +845,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                 {/* Drawer Footer */}
                 <div className="px-5 py-5 border-t border-purple-50">
-                    <p className="text-xs text-gray-400 text-center">© {new Date().getFullYear()} Genie.ph — Your Cake Wish, Granted.</p>
+                    <p className="text-xs text-gray-400 text-center">&copy; {new Date().getFullYear()} Genie.ph — Your Cake Wish, Granted.</p>
                 </div>
             </aside>
-        </div >
+        </div>
     );
 };
 

@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import LandingClient from './LandingClient';
-import { getRecommendedProducts, getPopularDesigns, getDesignCategories, getHomepageBlogPreviews } from '@/services/supabaseService';
+import { getRecommendedProducts, getPopularDesigns, getHomepageBlogPreviews } from '@/services/supabaseService';
 import { RecommendedProductsSection, IntroContent } from '@/components/landing';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 
@@ -100,22 +100,20 @@ function WebSiteSchema() {
 }
 
 export default async function Home() {
-    const [recommendedProductsRes, popularDesignsRes, categoriesRes, blogsRes] = await Promise.all([
+    const [recommendedProductsRes, popularDesignsRes, blogsRes] = await Promise.all([
         getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err })),
         getPopularDesigns(6, { keyword: 'minimalist', availability: ['rush', 'same-day'] }).catch(err => ({ data: [], error: err })),
-        getDesignCategories().catch(err => ({ data: [], error: err })),
         getHomepageBlogPreviews(3).catch(err => ({ data: [], error: err })),
     ]);
 
     const recommendedProducts = recommendedProductsRes.data || [];
     const popularDesigns = popularDesignsRes.data || [];
-    const categories = categoriesRes.data || [];
     const blogPosts = blogsRes.data || [];
 
     return (
         <>
             <WebSiteSchema />
-            <LandingClient popularDesigns={popularDesigns} categories={categories} blogPosts={blogPosts}>
+            <LandingClient popularDesigns={popularDesigns} blogPosts={blogPosts}>
                 {/* Server-rendered sections for LCP optimization */}
                 {/* <MerchantShowcase merchants={merchants} /> - Hidden for now */}
                 <RecommendedProductsSection products={recommendedProducts} />
