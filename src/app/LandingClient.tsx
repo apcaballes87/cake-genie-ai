@@ -385,7 +385,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 <span className="hidden md:inline-block w-8 h-[2px] bg-purple-400"></span>
                                 Cebu&apos;s Premier Cake Marketplace
                             </p>
-                            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-5 md:mb-6">
+                            <h2 className="text-4xl sm:text-5xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-5 md:mb-6">
                                 Custom cakes
                                 <br />
                                 <span className="text-purple-600 italic">you can order</span>
@@ -511,33 +511,38 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                                 {/* Step 1: Cake Specs + Icing Colors */}
                                 <div className="bg-white/70 backdrop-blur-sm p-3 rounded-2xl shadow-sm border border-slate-200">
-                                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 1: Choose Your Cake Specs</h3>
-                                    <div className="flex gap-2 flex-wrap">
-                                        {/* Cake spec thumbnails */}
+                                    <h3 className="text-[13px] font-semibold text-slate-800 mb-3 px-1">Step 1: Choose Your Cake Specs</h3>
+                                    {/* Cake spec thumbnails — same style as customizing page */}
+                                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide px-1 mb-3">
                                         {[
-                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/1tier.webp', label: '1 Tier' },
-                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/1tier.webp', label: '8" Round' },
-                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakechocolate.webp', label: 'Chocolate' },
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/1tier.webp', label: '1 Tier', selected: true },
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/2tier.webp', label: '2 Tier', selected: false },
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/bento.webp', label: 'Bento', selected: false },
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakevanilla.webp', label: 'Vanilla', selected: true },
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakechocolate.webp', label: 'Chocolate', selected: false },
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakeube.webp', label: 'Ube', selected: false },
                                         ].map((item) => (
-                                            <div key={item.label} className="flex flex-col items-center gap-1 min-w-[56px]">
-                                                <div className="w-14 h-14 rounded-xl border-2 border-purple-400 ring-2 ring-purple-500 ring-offset-1 overflow-hidden relative bg-purple-50/50">
-                                                    <img src={item.src} alt={item.label} className="w-full h-full object-contain" />
+                                            <div key={item.label} className="shrink-0 w-16 flex flex-col items-center text-center">
+                                                <div className={`relative w-full aspect-[5/4] rounded-lg border-2 overflow-hidden transition-all duration-200 ${item.selected ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white'}`}>
+                                                    <img src={item.src} alt={item.label} className="w-full h-full object-cover" />
                                                 </div>
-                                                <span className="text-[10px] text-center text-slate-500 font-medium leading-tight">{item.label}</span>
+                                                <span className="mt-1.5 text-[10px] font-medium text-slate-700 leading-tight">{item.label}</span>
                                             </div>
                                         ))}
-                                        {/* Icing color swatches */}
+                                    </div>
+                                    {/* Icing toolbar — same round button style as customizing page */}
+                                    <div className="flex gap-3 flex-wrap px-1">
                                         {[
-                                            { color: '#f4c2d0', label: 'Body Icing' },
-                                            { color: '#c9a0dc', label: 'Drip' },
-                                            { color: '#e8d5f0', label: 'Base Border' },
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/icing_white.webp', label: 'Body Icing', active: true },
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/drip_white.webp', label: 'Drip', active: false },
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/baseborder_white.webp', label: 'Base Border', active: true },
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/top_white.webp', label: 'Top Border', active: false },
                                         ].map((item) => (
-                                            <div key={item.label} className="flex flex-col items-center gap-1 min-w-[50px]">
-                                                <div
-                                                    className="w-12 h-12 rounded-full border border-slate-200 ring-2 ring-purple-500 ring-offset-1 shadow-sm"
-                                                    style={{ backgroundColor: item.color }}
-                                                />
-                                                <span className="text-[10px] text-center text-slate-500 font-medium leading-tight max-w-[52px]">{item.label}</span>
+                                            <div key={item.label} className="flex flex-col items-center gap-1">
+                                                <div className={`w-12 h-12 p-2 rounded-full shadow-md flex items-center justify-center ${item.active ? 'border-2 border-purple-600 bg-white/80' : 'border border-slate-200 bg-white/80 opacity-60'}`}>
+                                                    <img src={item.src} alt={item.label} className="w-full h-full object-contain" />
+                                                </div>
+                                                <span className="text-[10px] font-medium text-slate-600 whitespace-nowrap">{item.label}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -545,18 +550,20 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                                 {/* Step 2: Cake Toppers */}
                                 <div className="bg-white/70 backdrop-blur-sm p-3 rounded-2xl shadow-sm border border-slate-200">
-                                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 2: Cake Toppers</h3>
-                                    <div className="flex gap-2 flex-wrap">
+                                    <h3 className="text-[13px] font-semibold text-slate-800 mb-3 px-1">Step 2: Cake Toppers</h3>
+                                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide px-1">
                                         {[
-                                            { emoji: '🌸', label: 'Sugar Flowers' },
-                                            { emoji: '🎂', label: 'Number Topper' },
-                                            { emoji: '✨', label: 'Sparkle' },
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/toppers/sugarflowers.webp', label: 'Sugar Flowers', selected: true },
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/toppers/numbercandles.webp', label: 'Number', selected: false },
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/toppers/sprinkles.webp', label: 'Sprinkles', selected: false },
+                                            { src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/toppers/macaron.webp', label: 'Macaron', selected: false },
                                         ].map((item) => (
-                                            <div key={item.label} className="flex flex-col items-center gap-1 min-w-[56px]">
-                                                <div className="w-14 h-14 rounded-xl border border-slate-200 bg-purple-50/50 flex items-center justify-center text-2xl">
-                                                    {item.emoji}
+                                            <div key={item.label} className="shrink-0 w-16 flex flex-col items-center text-center">
+                                                <div className={`relative w-full aspect-[5/4] rounded-lg border-2 overflow-hidden transition-all duration-200 ${item.selected ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white'}`}>
+                                                    <img src={item.src} alt={item.label} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                                    <div className="absolute inset-0 flex items-center justify-center text-2xl">{item.label === 'Sugar Flowers' ? '🌸' : item.label === 'Number' ? '🔢' : item.label === 'Sprinkles' ? '✨' : '🍪'}</div>
                                                 </div>
-                                                <span className="text-[10px] text-center text-slate-500 font-medium leading-tight max-w-[60px]">{item.label}</span>
+                                                <span className="mt-1.5 text-[10px] font-medium text-slate-700 leading-tight">{item.label}</span>
                                             </div>
                                         ))}
                                     </div>
