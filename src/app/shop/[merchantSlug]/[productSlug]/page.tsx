@@ -138,7 +138,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     rel="preload"
                     as="image"
                     href={product.image_url}
-                    crossOrigin="anonymous"
                 />
             )}
 

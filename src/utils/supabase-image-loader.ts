@@ -1,20 +1,8 @@
-export default function supabaseLoader({ src, width, quality }: { src: string; width: number; quality?: number }) {
-  // Non-Supabase URLs: append width param so srcset entries are unique
-  if (!src.includes('supabase.co/storage/v1/object/public/')) {
-    const separator = src.includes('?') ? '&' : '?';
-    return `${src}${separator}w=${width}`;
-  }
-
-  // Convert /object/public/ → /render/image/public/ for Supabase image transformations
-  // https://supabase.com/docs/guides/storage/image-transformations
-  const urlParts = src.split('supabase.co/storage/v1/object/public/');
-  const baseUrl = urlParts[0] + 'supabase.co/storage/v1/render/image/public/';
-  const path = urlParts[1];
-
-  const params = new URLSearchParams();
-  params.set('width', width.toString());
-  params.set('quality', (quality || 80).toString());
-  params.set('resize', 'contain');
-
-  return `${baseUrl}${path}?${params.toString()}`;
+export default function supabaseLoader({ src, width }: { src: string; width: number; quality?: number }) {
+  // Images are already .webp — no server-side transformation needed.
+  // We only append a width query param so that each srcset entry has a unique URL.
+  // The actual image served is the original (Supabase storage ignores unknown params).
+  // This avoids both Vercel (5k/mo) and Supabase (100/mo free) transformation limits.
+  const separator = src.includes('?') ? '&' : '?';
+  return `${src}${separator}w=${width}`;
 }

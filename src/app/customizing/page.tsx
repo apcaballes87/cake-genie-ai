@@ -77,7 +77,6 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
                     rel="preload"
                     as="image"
                     href={proxyImageUrl}
-                    crossOrigin="anonymous"
                 />
             )}
             {/* Client-side customization tool — uses root-level CustomizationProvider from Providers.tsx */}
