@@ -1,46 +1,12 @@
-const OWN_SUPABASE_DOMAINS = [
-  'cqmhanqnfybyxezhobkx.supabase.co',
-  'congofivupobtfudnhni.supabase.co',
-];
-
+/**
+ * Returns the image src as-is. Images are already .webp so no server-side
+ * transformation is needed. Previously this converted URLs to the Supabase
+ * /render/image/ endpoint, but that consumes the free-tier transformation
+ * quota (100/month) and returns larger jpeg/png files anyway.
+ */
 export function getOptimizedSupabaseImageSrc(
   src: string | undefined,
-  originalWidth?: number | `${number}`,
+  _originalWidth?: number | `${number}`,
 ): string | undefined {
-  if (!src || typeof src !== 'string') return src;
-
-  const isOwnSupabase = OWN_SUPABASE_DOMAINS.some((domain) => src.includes(domain));
-  if (!isOwnSupabase) return src;
-
-  try {
-    const url = new URL(src);
-
-    if (
-      url.pathname.includes('/storage/v1/object/public/') &&
-      !url.pathname.includes('/render/image/public/')
-    ) {
-      url.pathname = url.pathname.replace(
-        '/storage/v1/object/public/',
-        '/storage/v1/render/image/public/',
-      );
-
-      if (!url.searchParams.has('width')) {
-        url.searchParams.set('width', originalWidth ? originalWidth.toString() : '800');
-      }
-      if (!url.searchParams.has('resize')) {
-        url.searchParams.set('resize', 'contain');
-      }
-      if (!url.searchParams.has('quality')) {
-        url.searchParams.set('quality', '80');
-      }
-      // Supabase render/image serves the original format by default.
-      // The source images are already .webp so no conversion needed.
-
-      return url.toString();
-    }
-  } catch {
-    return src;
-  }
-
   return src;
 }
