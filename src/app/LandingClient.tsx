@@ -21,7 +21,7 @@ const FEATURED_COLLECTION_SLUGS = [
 ];
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import LazyImage from '@/components/LazyImage';
-import { showError, showLoading } from '@/lib/utils/toast';
+import { showError, showLoading, showInfo } from '@/lib/utils/toast';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { BlogHomepagePreview } from '@/services/supabaseService';
 import { useCart } from '@/contexts/CartContext';
@@ -98,7 +98,9 @@ const DiscountCapture = () => {
 
     useEffect(() => {
         if (urlDiscount) {
-            batchSaveToLocalStorage('cart_discount_code', urlDiscount.toUpperCase());
+            const code = urlDiscount.toUpperCase();
+            batchSaveToLocalStorage('cart_discount_code', code);
+            showInfo(`Discount code ${code} saved! Add items to your cart to apply it.`);
         }
     }, [urlDiscount]);
 
