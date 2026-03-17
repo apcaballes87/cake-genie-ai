@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, Suspense, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import toast from 'react-hot-toast';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -53,6 +53,7 @@ const trustBadges = [
 interface LandingClientProps {
     children?: React.ReactNode;
     popularDesigns?: PopularDesign[];
+    heroProducts?: PopularDesign[];
     blogPosts?: BlogHomepagePreview[];
 }
 
@@ -74,7 +75,7 @@ const DiscountCapture = () => {
     return null;
 };
 
-const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], blogPosts = [] }) => {
+const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], heroProducts = [], blogPosts = [] }) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
@@ -96,13 +97,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
         { id: 'Wedding', name: 'Wedding' },
         { id: 'Baptismal', name: 'Baptismal' },
     ];
-
-    // Pick 4 random minimalist cakes per session for the hero grid
-    const heroProducts = useMemo(() => {
-        if (!popularDesigns || popularDesigns.length === 0) return [];
-        const shuffled = [...popularDesigns].sort(() => Math.random() - 0.5);
-        return shuffled.slice(0, 4);
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -386,7 +380,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-4 pb-4 md:pt-6 md:pb-6 lg:pt-8 lg:pb-8">
                     <div className="flex flex-col md:flex-row gap-8 md:gap-10 items-start">
                         {/* Left: Text Content */}
-                        <div className="flex-1 text-center md:text-left md:pt-2 lg:pt-4">
+                        <div className="w-full md:flex-1 text-center md:text-left md:pt-2 lg:pt-4">
                             <p className="text-xs md:text-sm font-bold text-purple-600 uppercase tracking-[0.2em] mb-4 flex items-center justify-center md:justify-start gap-2">
                                 <span className="hidden md:inline-block w-8 h-[2px] bg-purple-400"></span>
                                 Cebu&apos;s Premier Cake Marketplace
@@ -399,7 +393,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 right now.
                             </h2>
                             <p className="text-sm md:text-base text-gray-600 leading-relaxed mb-8 max-w-lg mx-auto md:mx-0">
-                                Upload any cake photo. Our AI analyzes the design and gives you an accurate price quote in under 30 seconds — then connects you with the best local bakers in Cebu.
+                                Upload any cake photo. Our AI analyzes the design and gives you an accurate price quote in under 10 seconds
                             </p>
                             <div className="flex items-center gap-2 sm:gap-3 justify-center md:justify-start">
                                 <button
@@ -507,7 +501,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         {/* Right: Customizing Page Preview Mock */}
                         <div className="flex-1 w-full max-w-lg lg:max-w-none">
                             <p className="text-xs font-bold text-purple-500 uppercase tracking-[0.15em] mb-4">
-                                What you get
+                                Customize and Add to Cart
                             </p>
 
                             {/* Mock of the actual customizing page — Step cards + Add to Cart bar */}
