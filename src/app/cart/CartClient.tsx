@@ -533,8 +533,9 @@ function CartClient() {
             return;
         }
 
-        // On subsequent subtotal changes, if a code is applied, re-validate it silently.
-        if (appliedDiscount) {
+        // On subsequent subtotal changes, re-validate if a code is applied OR if a
+        // pending code exists (e.g. from localStorage that failed min_order_amount on empty cart).
+        if (appliedDiscount || discountCode) {
             handleApplyDiscount(discountCode, { silent: true });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
