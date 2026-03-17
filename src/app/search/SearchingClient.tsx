@@ -411,7 +411,7 @@ const SearchingClient: React.FC = () => {
                     <div className="mb-6" id="internal-designs-section">
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-2">
-                                Our Designs
+                                Cake Designs with Price
                                 {isInternalLoading && <LoadingSpinner />}
                                 {!isInternalLoading && internalTotal > 0 && (
                                     <span className="text-xs font-normal text-slate-400">
