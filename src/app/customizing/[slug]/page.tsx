@@ -618,15 +618,15 @@ function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { desig
                                         tabIndex={0}
                                     >
                                         {related.original_image_url && (
-                                            <div className="relative aspect-square bg-slate-100 overflow-hidden">
-                                                <LazyImage
-                                                    src={related.original_image_url}
-                                                    alt={related.alt_text || `${related.keywords || 'Custom'} cake design`}
-                                                    className="object-cover group-hover:scale-105 transition-transform duration-200"
-                                                    fill
-                                                    sizes="(max-width: 768px) 50vw, 33vw"
-                                                />
-                                            </div>
+                                            // CSS background prevents Google Images from indexing
+                                            // related-cake thumbnails as belonging to this page.
+                                            // Only the hero <img> above (itemProp="image") is indexable.
+                                            <div
+                                                className="aspect-square bg-slate-100 overflow-hidden bg-cover bg-center group-hover:scale-105 transition-transform duration-200"
+                                                style={{ backgroundImage: `url(${related.original_image_url})` }}
+                                                role="img"
+                                                aria-label={related.alt_text || `${related.keywords || 'Custom'} cake design`}
+                                            />
                                         )}
                                         <div className="p-2">
                                             <p className="text-xs font-medium text-slate-700 line-clamp-1">
