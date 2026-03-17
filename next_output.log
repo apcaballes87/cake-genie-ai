@@ -1,0 +1,56 @@
+$ next dev -p 3002
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   ▲ Next.js 16.0.7 (Turbopack)
+   - Local:         http://localhost:3002
+   - Network:       http://192.168.0.2:3002
+   - Environments: .env.local
+
+ ✓ Starting...
+ ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+ ✓ Ready in 1466ms
+ ○ Compiling / ...
+Error fetching popular designs: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: connect ECONNREFUSED 127.0.0.1:54321 (ECONNREFUSED)\n' +
+    'Error: connect ECONNREFUSED 127.0.0.1:54321\n' +
+    '    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+Error fetching design categories from collections: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: connect ECONNREFUSED 127.0.0.1:54321 (ECONNREFUSED)\n' +
+    'Error: connect ECONNREFUSED 127.0.0.1:54321\n' +
+    '    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+Error fetching homepage blog previews: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: connect ECONNREFUSED 127.0.0.1:54321 (ECONNREFUSED)\n' +
+    'Error: connect ECONNREFUSED 127.0.0.1:54321\n' +
+    '    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+Error fetching recommended products: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '\n' +
+    'Caused by: Error: connect ECONNREFUSED 127.0.0.1:54321 (ECONNREFUSED)\n' +
+    'Error: connect ECONNREFUSED 127.0.0.1:54321\n' +
+    '    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)\n' +
+    '    at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17)',
+  hint: '',
+  code: ''
+}
+ GET / 200 in 8.7s (compile: 5.6s, proxy.ts: 97ms, render: 3.0s)

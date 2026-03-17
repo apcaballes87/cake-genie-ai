@@ -3,6 +3,7 @@ import LandingClient from './LandingClient';
 import { getRecommendedProducts, getPopularDesigns, getDesignCategories, getHomepageBlogPreviews } from '@/services/supabaseService';
 import { RecommendedProductsSection, IntroContent } from '@/components/landing';
 import { LandingFooter } from '@/components/landing/LandingFooter';
+import NewsletterPopup from '@/components/NewsletterPopup';
 
 // ISR: Revalidate every hour for fresh data while maintaining fast loads
 export const revalidate = 3600;
@@ -122,6 +123,7 @@ export default async function Home() {
                 <IntroContent />
             </LandingClient>
             <LandingFooter />
+            <NewsletterPopup />
         </>
     );
 }
