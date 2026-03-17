@@ -69,7 +69,7 @@ export default function NewsletterPopup() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="relative w-full max-w-md bg-[#FFF5F5] rounded-lg shadow-xl overflow-hidden p-8">
+      <div className="relative w-full max-w-md bg-pink-50 rounded-2xl shadow-xl overflow-hidden p-8">
         {/* Close Button */}
         <button
           onClick={closePopup}
@@ -81,26 +81,26 @@ export default function NewsletterPopup() {
 
         {status === 'success' ? (
           <div className="text-center py-8">
-            <h2 className="text-2xl font-bold text-[#2E3159] mb-4">THANK YOU!</h2>
-            <p className="text-lg text-[#2E3159] mb-6">Here is your 20% off discount code:</p>
-            <div className="bg-white border-2 border-dashed border-[#F39C8E] rounded-md py-3 px-6 inline-block mb-6">
-              <span className="text-2xl font-bold tracking-wider text-[#F39C8E]">NEW20</span>
+            <h2 className="text-2xl font-bold text-purple-900 mb-4">THANK YOU!</h2>
+            <p className="text-lg text-purple-900 mb-6">Here is your 20% off discount code:</p>
+            <div className="bg-white border-2 border-dashed border-pink-300 rounded-md py-3 px-6 inline-block mb-6">
+              <span className="text-2xl font-bold tracking-wider text-pink-600">NEW20</span>
             </div>
             <p className="text-sm text-gray-500 mb-6">Use this code at checkout to claim your discount.</p>
             <button
               onClick={closePopup}
-              className="bg-[#2E3159] hover:bg-[#1f213d] text-white font-semibold py-3 px-8 rounded transition-colors w-full"
+              className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-8 rounded transition-colors w-full"
             >
               CONTINUE SHOPPING
             </button>
           </div>
         ) : (
           <div className="text-center">
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#2E3159] leading-tight mb-2">
+            <h2 className="text-2xl sm:text-3xl font-bold text-purple-900 leading-tight mb-2">
               JOIN OUR MAILING LIST AND GET <br className="hidden sm:block" />
               20% OFF YOUR FIRST PURCHASE
             </h2>
-            <p className="text-[#2E3159] mb-6 text-sm sm:text-base">
+            <p className="text-purple-900 mb-6 text-sm sm:text-base">
               Enter your email address below to get your discount code and join our mailing list.
             </p>
 
@@ -111,7 +111,7 @@ export default function NewsletterPopup() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Your email address"
-                  className="w-full border border-[#F39C8E] px-4 py-3 rounded text-center focus:outline-none focus:ring-2 focus:ring-[#F39C8E] bg-white text-[#2E3159]"
+                  className="w-full border border-pink-300 px-4 py-3 rounded text-center focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white text-purple-900"
                   disabled={status === 'loading'}
                 />
                 {status === 'error' && (
@@ -123,14 +123,14 @@ export default function NewsletterPopup() {
                 <button
                   type="submit"
                   disabled={status === 'loading'}
-                  className="flex-1 bg-[#F39C8E] hover:bg-[#e08b7d] text-white font-semibold py-3 px-4 rounded transition-colors disabled:opacity-70 whitespace-nowrap text-sm sm:text-base"
+                  className="flex-1 bg-pink-500 hover:bg-pink-600 text-white font-semibold py-3 px-4 rounded transition-colors disabled:opacity-70 whitespace-nowrap text-sm sm:text-base"
                 >
                   {status === 'loading' ? 'SIGNING UP...' : 'LOVE IT, SIGN ME UP'}
                 </button>
                 <button
                   type="button"
                   onClick={closePopup}
-                  className="flex-1 bg-[#717684] hover:bg-[#5a5e6a] text-white font-semibold py-3 px-4 rounded transition-colors whitespace-nowrap text-sm sm:text-base"
+                  className="flex-1 bg-slate-500 hover:bg-slate-600 text-white font-semibold py-3 px-4 rounded transition-colors whitespace-nowrap text-sm sm:text-base"
                 >
                   NO, I HATE SAVING MONEY
                 </button>

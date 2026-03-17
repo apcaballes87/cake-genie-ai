@@ -7,7 +7,7 @@ $ next dev -p 3002
 
  ✓ Starting...
  ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
- ✓ Ready in 1466ms
+ ✓ Ready in 3.1s
  ○ Compiling / ...
 Error fetching popular designs: {
   message: 'TypeError: fetch failed',
@@ -53,6 +53,4 @@ Error fetching recommended products: {
   hint: '',
   code: ''
 }
- GET / 200 in 8.7s (compile: 5.6s, proxy.ts: 97ms, render: 3.0s)
-[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
-[?25h
+ GET / 200 in 13.5s (compile: 9.7s, proxy.ts: 151ms, render: 3.7s)
