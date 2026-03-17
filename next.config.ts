@@ -107,12 +107,6 @@ const nextConfig: NextConfig = {
         destination: '/customizing/category/christening-cakes',
         permanent: true,
       },
-      // Promo Redirects
-      {
-        source: '/new20',
-        destination: '/?discount=NEW20',
-        permanent: false,
-      },
     ]
   },
   // Remove console.log in production builds for cleaner output
