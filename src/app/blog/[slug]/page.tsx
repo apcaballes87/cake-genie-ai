@@ -9,6 +9,7 @@ import { getRelatedProductsByKeywords } from '@/services/supabaseService';
 import { RelatedProductsSection } from '@/components/blog/RelatedProductsSection';
 import { BlogDesignShowcaseSection } from '@/components/blog/BlogDesignShowcaseSection';
 import LazyImage from '@/components/LazyImage';
+import NewsletterPopup from '@/components/NewsletterPopup';
 import {
   getBlogDesignShowcaseConfigs,
   splitBlogContentByShowcasePlaceholders,
@@ -255,6 +256,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           />
         )}
       </article>
+      <NewsletterPopup />
     </div>
   );
 }
