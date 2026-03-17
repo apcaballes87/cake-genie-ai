@@ -11,6 +11,7 @@ import { CustomizationProvider, CustomizationState } from '@/contexts/Customizat
 // FAQPageSchema deprecated (restricted to gov/healthcare Aug 2023) — using HTML accordions instead
 import { DesignAboutSection } from '@/components/DesignAboutSection'
 import LazyImage from '@/components/LazyImage'
+import NewsletterPopup from '@/components/NewsletterPopup'
 import { v4 as uuidv4 } from 'uuid'
 import { mapProductToDefaultState } from '@/utils/customizationMapper'
 import { upgradeLegacySlug } from '@/lib/utils/urlHelpers'
@@ -919,7 +920,8 @@ export default async function RecentSearchPage({ params }: Props) {
                         initialCaption={captionText}
                         postEditorSlot={<SSRDesignContent design={design} prices={prices} />}
                     />
-                </CustomizationProvider>
+                    <NewsletterPopup />
+            </CustomizationProvider>
             </Suspense>
 
         </>

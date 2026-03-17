@@ -3160,3 +3160,45 @@ export async function getAllBlogSlugs(): Promise<SupabaseServiceResponse<{ slug:
     return { data: null, error: err as Error };
   }
 }
+/**
+ * Subscribes an email to the newsletter.
+ * Handles duplicates gracefully (if already subscribed, returns success).
+ *
+ * @param email - The email to subscribe.
+ * @param source - The source of the subscription (e.g., 'popup').
+ * @returns A promise that resolves to true if successful, false otherwise.
+ */
+export const subscribeToNewsletter = async (email: string, source: string = 'popup'): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('cakegenie_newsletter_subscribers')
+      .insert([
+        {
+          email,
+          source,
+        },
+      ]);
+
+    if (error) {
+      // If the error is a unique constraint violation (code 23505),
+      // it means the email is already subscribed. We can treat this as a success
+      // for the user's perspective, or we could potentially update the is_active flag.
+      if (error.code === '23505') {
+        // Optionally, ensure they are active if they resubscribed
+        await supabase
+          .from('cakegenie_newsletter_subscribers')
+          .update({ is_active: true, updated_at: new Date().toISOString() })
+          .eq('email', email);
+        return true;
+      }
+
+      console.error('Error subscribing to newsletter:', error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Unexpected error subscribing to newsletter:', err);
+    return false;
+  }
+};
