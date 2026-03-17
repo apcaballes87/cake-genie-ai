@@ -110,10 +110,14 @@ export default async function Home() {
     const popularDesigns = popularDesignsRes.data || [];
     const blogPosts = blogsRes.data || [];
 
+    // Shuffle hero products on the server to avoid hydration mismatch
+    const shuffled = [...popularDesigns].sort(() => Math.random() - 0.5);
+    const heroProducts = shuffled.slice(0, 4);
+
     return (
         <>
             <WebSiteSchema />
-            <LandingClient popularDesigns={popularDesigns} blogPosts={blogPosts}>
+            <LandingClient popularDesigns={popularDesigns} heroProducts={heroProducts} blogPosts={blogPosts}>
                 {/* Server-rendered sections for LCP optimization */}
                 {/* <MerchantShowcase merchants={merchants} /> - Hidden for now */}
                 <RecommendedProductsSection products={recommendedProducts} />
