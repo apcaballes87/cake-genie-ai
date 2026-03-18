@@ -300,11 +300,11 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         </div>
                     </div>
 
-                    {/* Desktop Header: Logo + Search | Nav Links | Get a Price */}
+                    {/* Desktop Header: Logo + Search (left) | Nav + Icons (right) */}
                     <div className="hidden md:flex w-full items-center gap-6 py-4">
-                        {/* Left: Logo + Search Bar */}
-                        <div className="flex items-center gap-4 shrink-0">
-                            <Link href="/">
+                        {/* Left: Logo + Search Bar (search grows to fill space) */}
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                            <Link href="/" className="shrink-0">
                                 <img
                                     src={COMMON_ASSETS.logo}
                                     alt="Genie Logo"
@@ -319,13 +319,13 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 placeholder="Search cakes..."
                                 value={searchQuery}
                                 onChange={setSearchQuery}
-                                className="w-64 lg:w-80"
+                                className="flex-1 max-w-sm"
                                 inputClassName="w-full pl-5 pr-12 py-2.5 text-sm bg-white border-slate-200 border rounded-full shadow-sm focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
                             />
                         </div>
 
-                        {/* Center: Nav Links */}
-                        <div className="flex-1 flex items-center justify-center gap-6 lg:gap-8">
+                        {/* Right: Nav Links + Account + Cart */}
+                        <div className="flex items-center gap-5 lg:gap-6 shrink-0">
                             <Link href="/search?q=cakes" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
                                 Browse Cakes
                             </Link>
@@ -338,10 +338,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             <Link href="/blog" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
                                 Blog
                             </Link>
-                        </div>
 
-                        {/* Right: Account + Cart + Get a Price */}
-                        <div className="flex items-center gap-2 shrink-0">
+                            <div className="w-px h-5 bg-gray-200" />
+
                             <button
                                 onClick={() => {
                                     if (isAuthenticated && !user?.is_anonymous) {
@@ -350,14 +349,14 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         router.push('/login');
                                     }
                                 }}
-                                className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                className="p-1.5 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                 aria-label="Account"
                             >
                                 <User size={22} />
                             </button>
                             <button
                                 onClick={() => router.push('/cart')}
-                                className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                className="relative p-1.5 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                 aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
                             >
                                 <ShoppingBag size={22} />
