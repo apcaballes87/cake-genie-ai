@@ -68,39 +68,39 @@ export default function NewsletterPopup() {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="relative w-full max-w-md bg-[#FFF5F5] rounded-lg shadow-xl overflow-hidden p-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-purple-100 overflow-hidden p-8">
         {/* Close Button */}
         <button
           onClick={closePopup}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
+          className="absolute top-4 right-4 text-slate-400 p-2 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
           aria-label="Close"
         >
           <X className="w-5 h-5" />
         </button>
 
         {status === 'success' ? (
-          <div className="text-center py-8">
-            <h2 className="text-2xl font-bold text-[#2E3159] mb-4">THANK YOU!</h2>
-            <p className="text-lg text-[#2E3159] mb-6">Here is your 20% off discount code:</p>
-            <div className="bg-white border-2 border-dashed border-[#F39C8E] rounded-md py-3 px-6 inline-block mb-6">
-              <span className="text-2xl font-bold tracking-wider text-[#F39C8E]">NEW20</span>
+          <div className="text-center py-6">
+            <h2 className="text-2xl font-extrabold text-gray-900 mb-3">THANK YOU!</h2>
+            <p className="text-base text-gray-600 mb-5">Here is your 20% off discount code:</p>
+            <div className="bg-purple-50 border-2 border-dashed border-purple-300 rounded-xl py-3 px-6 inline-block mb-6 shadow-sm">
+              <span className="text-2xl font-bold tracking-wider text-purple-700">NEW20</span>
             </div>
             <p className="text-sm text-gray-500 mb-6">Use this code at checkout to claim your discount.</p>
             <button
               onClick={closePopup}
-              className="bg-[#2E3159] hover:bg-[#1f213d] text-white font-semibold py-3 px-8 rounded transition-colors w-full"
+              className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-all shadow-md active:scale-[0.98] w-full"
             >
               CONTINUE SHOPPING
             </button>
           </div>
         ) : (
           <div className="text-center">
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#2E3159] leading-tight mb-2">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-[1.15] mb-3 tracking-tight">
               JOIN OUR MAILING LIST AND GET <br className="hidden sm:block" />
-              20% OFF YOUR FIRST PURCHASE
+              <span className="text-purple-600 italic">20% OFF</span> YOUR FIRST PURCHASE
             </h2>
-            <p className="text-[#2E3159] mb-6 text-sm sm:text-base">
+            <p className="text-gray-600 mb-6 text-sm sm:text-base leading-relaxed">
               Enter your email address below to get your discount code and join our mailing list.
             </p>
 
@@ -111,28 +111,28 @@ export default function NewsletterPopup() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Your email address"
-                  className="w-full border border-[#F39C8E] px-4 py-3 rounded text-center focus:outline-none focus:ring-2 focus:ring-[#F39C8E] bg-white text-[#2E3159]"
+                  className="w-full border border-slate-200 px-4 py-3.5 rounded-xl text-center focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-slate-50 text-gray-900 transition-shadow"
                   disabled={status === 'loading'}
                 />
                 {status === 'error' && (
-                  <p className="text-red-500 text-sm mt-1">{errorMessage}</p>
+                  <p className="text-red-500 text-sm mt-1.5 font-medium">{errorMessage}</p>
                 )}
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 mt-4">
+              <div className="flex gap-2 sm:gap-3 mt-5 w-full">
                 <button
                   type="submit"
                   disabled={status === 'loading'}
-                  className="flex-1 bg-[#F39C8E] hover:bg-[#e08b7d] text-white font-semibold py-3 px-4 rounded transition-colors disabled:opacity-70 whitespace-nowrap text-sm sm:text-base"
+                  className="flex-1 bg-linear-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-3 px-2 rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-70 whitespace-nowrap text-[12px] sm:text-sm"
                 >
-                  {status === 'loading' ? 'SIGNING UP...' : 'LOVE IT, SIGN ME UP'}
+                  {status === 'loading' ? 'SIGNING UP...' : 'SIGN ME UP'}
                 </button>
                 <button
                   type="button"
                   onClick={closePopup}
-                  className="flex-1 bg-[#717684] hover:bg-[#5a5e6a] text-white font-semibold py-3 px-4 rounded transition-colors whitespace-nowrap text-sm sm:text-base"
+                  className="flex-1 bg-white border border-slate-200 text-slate-600 hover:text-slate-800 hover:bg-slate-50 font-semibold py-3 px-2 rounded-xl transition-all active:scale-[0.98] whitespace-nowrap text-[12px] sm:text-sm"
                 >
-                  NO, I HATE SAVING MONEY
+                  NO THANKS
                 </button>
               </div>
             </form>

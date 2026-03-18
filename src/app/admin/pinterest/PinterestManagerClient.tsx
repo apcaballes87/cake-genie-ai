@@ -502,7 +502,7 @@ export default function PinterestManagerClient() {
       )}
 
       {/* RSS Auto-Publish Section */}
-      <div className="mt-10 p-6 bg-gradient-to-br from-red-50 to-pink-50 rounded-3xl border border-red-100">
+      <div className="mt-10 p-6 bg-linear-to-br from-red-50 to-pink-50 rounded-3xl border border-red-100">
         <div className="flex items-center gap-3 mb-4">
           <div className="bg-red-600 p-2 rounded-xl text-white">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a1 1 0 000 2c5.523 0 10 4.477 10 10a1 1 0 102 0C17 8.373 11.627 3 5 3zm0 4a1 1 0 000 2 6 6 0 016 6 1 1 0 102 0 8 8 0 00-8-8zm0 4a1 1 0 000 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4zm0 4a1 1 0 100 2 1 1 0 000-2z" /></svg>
