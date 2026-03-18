@@ -616,7 +616,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 See a cake you love? We&apos;ll price it for you, in 10 seconds.
                             </h2>
                             <p className="text-sm md:text-base text-gray-600 leading-relaxed mb-8 max-w-xl">
-                                Found the perfect inspo on Pinterest or Instagram? Just upload the screenshot. Our AI reads the design and gives you a real price from real local cakeshops. Customize by changing the icing colors, add toppers and messages. Add to cart once you&apos;re done. Easy. Fast. Convenient.
+                                Upload and get the price instantly. Customize by changing the icing colors, toppers and messages. Price gets instantly updated. Have it delivered as fast as 1 hour. Easy. Fast. Convenient.
                             </p>
 
                             {/* Upload Drop Zone */}
