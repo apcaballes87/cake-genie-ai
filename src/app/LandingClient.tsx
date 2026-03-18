@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -223,6 +223,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
         { id: 'Wedding', name: 'Wedding' },
         { id: 'Baptismal', name: 'Baptismal' },
     ];
+
 
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -466,7 +467,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             </Link>
 
                             <div className="w-px h-5 bg-gray-200" />
-
                             <button
                                 onClick={() => {
                                     if (isAuthenticated && !user?.is_anonymous) {
@@ -491,6 +491,17 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         {itemCount}
                                     </span>
                                 )}
+                            </button>
+                            <button
+                                onClick={() => setIsUploaderOpen(true)}
+                                disabled={isUploading}
+                                className="ml-2 flex items-center gap-2 bg-purple-700 hover:bg-purple-800 disabled:bg-purple-700/70 text-white px-5 py-2.5 rounded-full font-semibold transition-all text-sm whitespace-nowrap shadow-sm disabled:cursor-not-allowed"
+                            >
+                                {isUploading ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                ) : null}
+                                Get a Price
+                                <ArrowRight size={16} />
                             </button>
                         </div>
                     </div>
@@ -568,7 +579,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                             />
                                         </Link>
                                     </div>
-                                    {/* Column 2: 2 images */}
                                     <div className="flex flex-col gap-3 md:gap-4 flex-1">
                                         <Link href={`/customizing/${heroProducts[1].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-[4/3] group block">
                                             <LazyImage
