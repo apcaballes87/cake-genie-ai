@@ -25,8 +25,8 @@ interface PopularDesignsProps {
 const PopularDesignsComponent = ({ designs: initialDesigns }: PopularDesignsProps) => {
     const [designs, setDesigns] = useState<PopularDesign[]>(initialDesigns || []);
     const [isLoading, setIsLoading] = useState(false);
-    const [hasMore, setHasMore] = useState(initialDesigns.length >= 6);
-    const [displayCount, setDisplayCount] = useState(Math.min(initialDesigns.length, 6));
+    const [hasMore, setHasMore] = useState(initialDesigns.length >= 8);
+    const [displayCount, setDisplayCount] = useState(Math.min(initialDesigns.length, 8));
 
     // Create client-side supabase client
     const [supabase] = useState(() => createClient());
