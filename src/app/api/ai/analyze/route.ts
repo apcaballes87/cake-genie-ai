@@ -160,6 +160,10 @@ export async function POST(req: NextRequest) {
                     },
                     required: ['isRejected', 'reason', 'message'],
                 },
+                is_tall_proportion: {
+                    type: Type.BOOLEAN,
+                    description: "Set to true ONLY if the cake in the image is notably tall, meaning its physical width is clearly less than its physical height."
+                },
             },
             required: ['cakeType', 'cakeThickness', 'alt_text', 'seo_title', 'seo_description', 'rejection'],
         };
@@ -188,6 +192,24 @@ export async function POST(req: NextRequest) {
         let result;
         try {
             result = JSON.parse(jsonText);
+
+            // Adjust cake thickness based on custom business logic
+            if (result.is_tall_proportion) {
+                result.cakeThickness = '6 in';
+            } else {
+                switch(result.cakeThickness) {
+                    case '6 in':
+                        result.cakeThickness = '5 in';
+                        break;
+                    case '5 in':
+                        result.cakeThickness = '4 in';
+                        break;
+                    case '4 in':
+                        result.cakeThickness = '3 in';
+                        break;
+                }
+            }
+            delete result.is_tall_proportion;
 
             // Post-process result to fulfill feature-only promise
             // Set all coordinates to 0,0 for now
