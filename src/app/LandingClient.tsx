@@ -63,7 +63,7 @@ const subscribeToHydration = () => () => { };
 interface TierOption    { label: string; src: string; price: number; size: string; }
 interface FlavorOption  { label: string; src: string; }
 interface IcingOption   { label: string; src: string; addonPrice: number; }
-interface TopperOption  { label: string; src: string; }
+interface TopperOption  { label: string; emoji: string; }
 
 interface InteractiveCustomizerProps {
     tiers: TierOption[];
@@ -143,7 +143,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                         {toppers.map((tp) => (
                             <div key={tp.label} className="shrink-0 w-16 flex flex-col items-center text-center" onClick={() => setTopperOn(prev => ({ ...prev, [tp.label]: !prev[tp.label] }))}>
                                 <div className={thumbCls(!!topperOn[tp.label])}>
-                                    <img src={tp.src} alt={tp.label} className="w-full h-full object-cover" />
+                                    <div className="w-full h-full flex items-center justify-center text-2xl">{tp.emoji}</div>
                                 </div>
                                 <span className="mt-1.5 text-[10px] font-medium text-slate-700 leading-tight">{tp.label}</span>
                             </div>
@@ -642,10 +642,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 { label: 'Top Border', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/top_white.webp',        addonPrice: 0 },
                             ];
                             const TOPPERS = [
-                                { label: 'Sugar Flowers', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/toppers/sugarflowers.webp' },
-                                { label: 'Number',        src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/toppers/numbercandles.webp' },
-                                { label: 'Sprinkles',     src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/toppers/sprinkles.webp' },
-                                { label: 'Macaron',       src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/toppers/macaron.webp' },
+                                { label: 'Sugar Flowers', emoji: '🌸' },
+                                { label: 'Number',        emoji: '🔢' },
+                                { label: 'Sprinkles',     emoji: '✨' },
+                                { label: 'Macaron',       emoji: '🍪' },
                             ];
                             return <InteractiveCustomizer tiers={TIERS} flavors={FLAVORS} icings={ICINGS} toppers={TOPPERS} onAddToCart={() => setIsUploaderOpen(true)} />;
                         })()}
