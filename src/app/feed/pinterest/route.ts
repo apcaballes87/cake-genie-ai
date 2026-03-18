@@ -94,20 +94,47 @@ export async function GET(request: NextRequest) {
     description: feedDescription,
     link: baseUrl,
     feedUrl,
-    items: designs.map(design => ({
-      title: formatTitle(design.slug),
-      description: sanitizeXml(
-        design.seo_description ||
-        design.alt_text ||
-        `Beautiful custom cake design. Order online at Genie.ph - Cebu, Philippines.`
-      ),
-      link: `${baseUrl}/customizing/${design.slug}`,
-      imageUrl: sanitizeImageUrl(design.original_image_url),
-      imageWidth: design.image_width || undefined,
-      imageHeight: design.image_height || undefined,
-      pubDate: design.created_at ? new Date(design.created_at).toUTCString() : new Date().toUTCString(),
-      price: design.price,
-    })),
+    items: designs.map(design => {
+      const title = formatTitle(design.slug);
+      
+      let baseDesc = design.seo_description || design.alt_text || 'A beautiful custom cake design.';
+      baseDesc = baseDesc.trim();
+      if (baseDesc && !['.', '!', '?'].includes(baseDesc.slice(-1))) {
+        baseDesc += '.';
+      }
+
+      let richDesc = `${title} 🎂\n\n${baseDesc}`;
+      if (design.price) {
+        richDesc += ` Starting at PHP ${design.price}.`;
+      }
+      richDesc += `\n\nPerfect for your next celebration in Cebu, Philippines! Order online at Genie.ph custom cake shop.`;
+
+      // Extract hashtags from keywords
+      let hashtagString = '#cebucakes #customcakes #genieph #cakedesign #birthdaycake';
+      if (design.keywords && Array.isArray(design.keywords) && design.keywords.length > 0) {
+        const keywordTags = design.keywords
+            .filter((k: any) => typeof k === 'string' && k.length > 2)
+            .slice(0, 5)
+            .map((k: string) => `#${k.replace(/[\s-]/g, '').toLowerCase()}`)
+            .join(' ');
+        if (keywordTags) {
+          hashtagString = `${keywordTags} #cebucakes #genieph`;
+        }
+      }
+      richDesc += `\n\n${hashtagString}`;
+
+      return {
+        title,
+        description: sanitizeXml(richDesc),
+        link: `${baseUrl}/customizing/${design.slug}`,
+        imageUrl: sanitizeImageUrl(design.original_image_url),
+        imageWidth: design.image_width || undefined,
+        imageHeight: design.image_height || undefined,
+        pubDate: design.created_at ? new Date(design.created_at).toUTCString() : new Date().toUTCString(),
+        // price is handled in richDesc now, but we'll keep it for the interface
+        price: design.price,
+      };
+    }),
   });
 
   return new Response(rssXml, {
@@ -171,10 +198,9 @@ function generateRSS(options: RSSFeedOptions): string {
   const itemsXml = items
     .filter(item => item.imageUrl) // Pinterest requires an image
     .map(item => {
-      const priceText = item.price ? ` Starting at PHP ${item.price}.` : '';
       return `    <item>
       <title>${sanitizeXml(item.title)}</title>
-      <description>${item.description}${sanitizeXml(priceText)}</description>
+      <description>${item.description}</description>
       <link>${sanitizeXml(item.link)}</link>
       <guid isPermaLink="true">${sanitizeXml(item.link)}</guid>
       <pubDate>${item.pubDate}</pubDate>
