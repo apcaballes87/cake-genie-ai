@@ -175,7 +175,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             { id: 'icing-edit-top', description: 'Top Icing', label: 'Top Icing', alt: 'Top Icing', imageType: 'top' as const, enabled: true, isTopSpecific: true },
                             { id: 'icing-edit-side', description: 'Side Icing', label: 'Body Icing', alt: 'Body Icing', imageType: 'side' as const, enabled: true },
                             { id: 'icing-edit-gumpasteBaseBoard', description: 'Board', label: 'Board', alt: 'Base Board', imageType: 'gumpasteBaseBoard' as const, enabled: icingDesign.gumpasteBaseBoard },
-                        ].map((item) => {
+                        ].filter(item => item.enabled || (activeCustomization === 'icing' && selectedItemId === item.id)).map((item) => {
                             const isSelected = activeCustomization === 'icing' && selectedItemId === item.id;
                             const isEnabled = item.enabled || isSelected;
 
