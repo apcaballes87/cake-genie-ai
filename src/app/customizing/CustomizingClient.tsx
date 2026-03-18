@@ -49,6 +49,7 @@ import { CustomizingOptionsPanel } from './CustomizingOptionsPanel';
 import { CustomizingPhotosPanel } from './CustomizingPhotosPanel';
 import { CustomizingSidebarPanel } from './CustomizingSidebarPanel';
 import { CustomizingStepSummarySections } from './CustomizingStepSummarySections';
+import { CustomizingAiChatPanel } from './CustomizingAiChatPanel';
 import { CustomizingToppersPanel } from './CustomizingToppersPanel';
 import {
     buildRelatedCollectionsRequestKey,
@@ -383,8 +384,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const lastProcessedDesignRefUrl = useRef<string | null>(null);
     const lastAutoRelatedDesignRequestKeyRef = useRef<string | null>(null);
     const lastRelatedCollectionsRequestKeyRef = useRef<string | null>(null);
-    const aiChatContainerRef = useRef<HTMLFormElement>(null);
-    const aiChatInputRef = useRef<HTMLInputElement>(null);
+    const aiChatMobileContainerRef = useRef<HTMLFormElement>(null);
+    const aiChatDesktopContainerRef = useRef<HTMLFormElement>(null);
+    const aiChatMobileInputRef = useRef<HTMLInputElement>(null);
+    const aiChatDesktopInputRef = useRef<HTMLInputElement>(null);
+
+    const getActiveChatContainer = () => {
+        if (typeof window === 'undefined') return null;
+        return window.innerWidth >= 768 ? aiChatDesktopContainerRef.current : aiChatMobileContainerRef.current;
+    };
+    const getActiveChatInput = () => {
+        if (typeof window === 'undefined') return null;
+        return window.innerWidth >= 768 ? aiChatDesktopInputRef.current : aiChatMobileInputRef.current;
+    };
     const stickyChatContainerRef = useRef<HTMLDivElement>(null);
     const stickyChatInputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -890,7 +902,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setSelectedAiPromptIndex(-1);
 
         requestAnimationFrame(() => {
-            const input = aiChatInputRef.current || stickyChatInputRef.current;
+            const activeChatInput = getActiveChatInput();
+            const input = activeChatInput || stickyChatInputRef.current;
             if (input) {
                 input.focus();
                 const cursorPosition = suggestion.length;
@@ -927,9 +940,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setChatInput(template);
 
         requestAnimationFrame(() => {
-            aiChatInputRef.current?.focus();
+            const activeChatInput = getActiveChatInput();
+            activeChatInput?.focus();
             const cursorPosition = template.length;
-            aiChatInputRef.current?.setSelectionRange(cursorPosition, cursorPosition);
+            activeChatInput?.setSelectionRange(cursorPosition, cursorPosition);
         });
     }, [selectedAiPromptTemplate]);
 
@@ -1000,11 +1014,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     // --- Effects ---
     useEffect(() => {
         const handleClickOutside = (event: PointerEvent) => {
-            const isOutsideTopChat = aiChatContainerRef.current && !aiChatContainerRef.current.contains(event.target as Node);
+            const activeChatContainer = getActiveChatContainer();
+            const isOutsideTopChat = activeChatContainer && !activeChatContainer.contains(event.target as Node);
             const isOutsideStickyChat = stickyChatContainerRef.current && !stickyChatContainerRef.current.contains(event.target as Node);
 
             // Close suggestions if clicked outside both containers
-            if ((!aiChatContainerRef.current || isOutsideTopChat) && (!stickyChatContainerRef.current || isOutsideStickyChat)) {
+            if ((!activeChatContainer || isOutsideTopChat) && (!stickyChatContainerRef.current || isOutsideStickyChat)) {
                 setShowAiPromptSuggestions(false);
                 setSelectedAiPromptIndex(-1);
                 setShowAiPromptColorPicker(false);
@@ -2599,6 +2614,29 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
 
+                        <CustomizingAiChatPanel
+                            className="bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200 mb-2 md:hidden"
+                            containerRef={aiChatMobileContainerRef}
+                            inputRef={aiChatMobileInputRef}
+                            chatInput={chatInput}
+                            selectedAiPromptTemplate={selectedAiPromptTemplate}
+                            selectedAiPromptColor={selectedAiPromptColor}
+                            showAiPromptColorPicker={showAiPromptColorPicker}
+                            showAiPromptSuggestions={false}
+                            filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
+                            selectedAiPromptIndex={selectedAiPromptIndex}
+                            isAiProcessing={isAiProcessing}
+                            isUpdatingDesign={isUpdatingDesign}
+                            onSubmit={handleChatSubmit}
+                            onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
+                            onTemplateClear={handleAiPromptTemplateClear}
+                            onTemplateColorChange={handleAiPromptTemplateColorChange}
+                            onInputChange={handleAiChatInputChange}
+                            onInputInteract={handleAiChatInputInteract}
+                            onInputKeyDown={handleAiPromptInputKeyDown}
+                            onSuggestionSelect={handleAiPromptSuggestionSelect}
+                        />
+
                         <CustomizingStepSummarySections
                             layout="mobile"
                             cakeInfo={cakeInfo}
@@ -2628,6 +2666,28 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     <div className="flex flex-row md:flex-col gap-2 w-[calc(100%+2rem)] md:w-[calc(50%-6px)] -mx-4 md:mx-0 overflow-x-auto md:overflow-visible scrollbar-hide snap-x snap-mandatory scroll-pl-4 pb-60 md:pb-0 -mb-60 md:mb-0 px-4 md:px-0">
                         {/* Availability Section - at top of right column */}
 
+                        <CustomizingAiChatPanel
+                            className="hidden md:block bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200 mb-2"
+                            containerRef={aiChatDesktopContainerRef}
+                            inputRef={aiChatDesktopInputRef}
+                            chatInput={chatInput}
+                            selectedAiPromptTemplate={selectedAiPromptTemplate}
+                            selectedAiPromptColor={selectedAiPromptColor}
+                            showAiPromptColorPicker={showAiPromptColorPicker}
+                            showAiPromptSuggestions={false}
+                            filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
+                            selectedAiPromptIndex={selectedAiPromptIndex}
+                            isAiProcessing={isAiProcessing}
+                            isUpdatingDesign={isUpdatingDesign}
+                            onSubmit={handleChatSubmit}
+                            onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
+                            onTemplateClear={handleAiPromptTemplateClear}
+                            onTemplateColorChange={handleAiPromptTemplateColorChange}
+                            onInputChange={handleAiChatInputChange}
+                            onInputInteract={handleAiChatInputInteract}
+                            onInputKeyDown={handleAiPromptInputKeyDown}
+                            onSuggestionSelect={handleAiPromptSuggestionSelect}
+                        />
 
                         <CustomizingSidebarPanel
                             showLoadingState={isAnalyzing || (isLoading && !isDesignSaved)}

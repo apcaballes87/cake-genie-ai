@@ -103,7 +103,7 @@ export const CustomizingAiChatPanel = React.memo(({
                     onFocus={onInputInteract}
                     onClick={onInputInteract}
                     onKeyDown={onInputKeyDown}
-                    placeholder="✨ Describe changes here..."
+                    placeholder="✨ Tell Genie your cake design wish..."
                     disabled={isAiProcessing || isUpdatingDesign}
                     className="w-full pl-4 pr-12 py-3 bg-white border border-slate-200 rounded-2xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
                 />
@@ -150,12 +150,6 @@ export const CustomizingAiChatPanel = React.memo(({
                 )}
             </button>
         </form>
-
-        <div className="mt-3 px-1 text-center text-[10px] text-slate-500 leading-relaxed font-medium italic">
-            <p>Change your cake design by describing the changes you want</p>
-            <p className="my-1 text-slate-400 not-italic font-bold text-[9px] opacity-80 uppercase tracking-tight">- or -</p>
-            <p>Customize your cake design by doing steps 1 to 4 below</p>
-        </div>
 
         {isAiProcessing && (
             <p className="text-[10px] text-purple-500 font-medium mt-1.5 animate-pulse flex items-center gap-1 px-1">
