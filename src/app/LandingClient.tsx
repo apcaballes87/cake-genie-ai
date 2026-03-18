@@ -319,7 +319,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 placeholder="Search cakes..."
                                 value={searchQuery}
                                 onChange={setSearchQuery}
-                                className="flex-1 max-w-sm ml-2"
+                                className="flex-1 max-w-sm ml-4"
                                 inputClassName="w-full pl-5 pr-12 py-2.5 text-sm bg-white border-slate-200 border rounded-full shadow-sm focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
                             />
                         </div>
