@@ -377,7 +377,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                 {/* ===== HERO SECTION ===== */}
                 <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-4 pb-4 md:pt-6 md:pb-6 lg:pt-8 lg:pb-8">
-                    <div className="flex flex-col md:flex-row gap-8 md:gap-10 items-start">
+                    <div className="flex flex-col md:flex-row gap-8 md:gap-12 lg:gap-16 items-start">
                         {/* Left: Text Content */}
                         <div className="w-full md:flex-1 text-center md:text-left md:pt-2 lg:pt-4">
                             <p className="text-xs md:text-sm font-bold text-purple-600 uppercase tracking-[0.2em] mb-4 flex items-center justify-center md:justify-start gap-2">
@@ -471,7 +471,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                 {/* ===== SEE A CAKE YOU LOVE SECTION ===== */}
                 <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-6 pb-6 md:pt-8 md:pb-8 lg:pt-10 lg:pb-10">
-                    <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
+                    <div className="flex flex-col lg:flex-row gap-8 md:gap-12 lg:gap-16 items-start">
                         {/* Left: Text + Upload Zone */}
                         <div className="flex-1">
                             <p className="text-xs md:text-sm font-bold text-purple-600 uppercase tracking-[0.15em] mb-3">
