@@ -491,17 +491,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     </span>
                                 )}
                             </button>
-                            <button
-                                onClick={() => setIsUploaderOpen(true)}
-                                disabled={isUploading}
-                                className="ml-2 flex items-center gap-2 bg-purple-700 hover:bg-purple-800 disabled:bg-purple-700/70 text-white px-5 py-2.5 rounded-full font-semibold transition-all text-sm whitespace-nowrap shadow-sm disabled:cursor-not-allowed"
-                            >
-                                {isUploading ? (
-                                    <Loader2 size={16} className="animate-spin" />
-                                ) : null}
-                                Get a Price
-                                <ArrowRight size={16} />
-                            </button>
+
                         </div>
                     </div>
                 </div>
