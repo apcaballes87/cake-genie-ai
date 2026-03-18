@@ -393,7 +393,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 right now.
                             </h2>
                             <p className="text-sm md:text-base text-gray-600 leading-relaxed mb-8 max-w-lg mx-auto md:mx-0">
-                                Upload any cake photo. Our AI analyzes the design and gives you an accurate price quote in under 10 seconds
+                                Upload any cake photo. Our AI analyzes the design and gives you an accurate price quote in under 10 seconds. Add to cart and order today — no &ldquo;HM?&rdquo;, no &ldquo;PM SENT&rdquo;, no waiting.
                             </p>
                             <div className="flex items-center gap-2 sm:gap-3 justify-center md:justify-start">
                                 <button
