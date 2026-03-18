@@ -44,9 +44,8 @@ const ImageUploader = dynamic(
 const trustBadges = [
     'METRO CEBU DELIVERY',
     '4.8★ CUSTOMER RATED',
-    'CUSTOM CAKES',
     'INSTANT AI PRICING',
-    '50+ TRUSTED BAKERS',
+    'TRUSTED CAKESHOP PARTNERS',
     'SAME-DAY RUSH ORDERS',
 ];
 
@@ -60,10 +59,10 @@ interface LandingClientProps {
 const subscribeToHydration = () => () => { };
 
 // ─── Interactive Customizer (landing page demo) ───────────────────────────────
-interface TierOption    { label: string; src: string; price: number; size: string; }
-interface FlavorOption  { label: string; src: string; }
-interface IcingOption   { label: string; src: string; addonPrice: number; }
-interface TopperOption  { label: string; emoji: string; }
+interface TierOption { label: string; src: string; price: number; size: string; }
+interface FlavorOption { label: string; src: string; }
+interface IcingOption { label: string; src: string; addonPrice: number; }
+interface TopperOption { label: string; emoji: string; }
 
 interface InteractiveCustomizerProps {
     tiers: TierOption[];
@@ -74,15 +73,15 @@ interface InteractiveCustomizerProps {
 }
 
 const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, flavors, icings, toppers, onAddToCart }) => {
-    const [selectedTier,    setSelectedTier]    = useState(tiers[0].label);
-    const [selectedFlavor,  setSelectedFlavor]  = useState(flavors[0].label);
-    const [icingOn,         setIcingOn]         = useState<Record<string, boolean>>({ 'Body Icing': true, 'Drip': false, 'Base Border': true, 'Top Border': false });
-    const [topperOn,        setTopperOn]        = useState<Record<string, boolean>>({});
+    const [selectedTier, setSelectedTier] = useState(tiers[0].label);
+    const [selectedFlavor, setSelectedFlavor] = useState(flavors[0].label);
+    const [icingOn, setIcingOn] = useState<Record<string, boolean>>({ 'Body Icing': true, 'Drip': false, 'Base Border': true, 'Top Border': false });
+    const [topperOn, setTopperOn] = useState<Record<string, boolean>>({});
 
-    const tier        = tiers.find(t => t.label === selectedTier)!;
-    const icingAddon  = icings.reduce((sum, i) => sum + (icingOn[i.label] ? i.addonPrice : 0), 0);
+    const tier = tiers.find(t => t.label === selectedTier)!;
+    const icingAddon = icings.reduce((sum, i) => sum + (icingOn[i.label] ? i.addonPrice : 0), 0);
     const topperAddon = Object.values(topperOn).filter(Boolean).length * 100;
-    const totalPrice  = tier.price + icingAddon + topperAddon;
+    const totalPrice = tier.price + icingAddon + topperAddon;
 
     const thumbCls = (active: boolean) =>
         `relative w-full aspect-[5/4] rounded-lg border-2 overflow-hidden transition-all duration-200 cursor-pointer ${active ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white hover:border-purple-300'}`;
@@ -171,10 +170,10 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                     </div>
                     <div className="flex gap-2 flex-1 justify-end">
                         <button className="flex items-center gap-1.5 border border-slate-200 bg-white text-slate-600 font-semibold py-3 px-4 rounded-xl text-sm shadow-sm">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
                             Share
                         </button>
-                        <button onClick={onAddToCart} className="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl text-sm shadow-lg whitespace-nowrap">
+                        <button onClick={onAddToCart} className="flex items-center gap-1.5 bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl text-sm shadow-lg whitespace-nowrap">
                             <ShoppingBag size={16} />
                             Add to Cart
                         </button>
@@ -521,7 +520,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 <span className="hidden md:inline-block w-8 h-[2px] bg-purple-400"></span>
                                 Cebu&apos;s Premier Cake Marketplace
                             </p>
-                            <h2 className="text-4xl sm:text-5xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-5 md:mb-6">
+                            <h2 className="text-[39px] sm:text-5xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-5 md:mb-6">
                                 Custom cakes
                                 <br />
                                 <span className="text-purple-600 italic">you can order</span>
@@ -529,7 +528,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 right now.
                             </h2>
                             <p className="text-sm md:text-base text-gray-600 leading-relaxed mb-8 max-w-lg mx-auto md:mx-0">
-                                Upload any cake photo. Our AI analyzes the design and gives you an accurate price quote in under 10 seconds. Add to cart and order today — no &ldquo;HM?&rdquo;, no &ldquo;PM SENT&rdquo;, no waiting.
+                                Upload any cake photo. Our AI analyzes the design and gives you an accurate price quote in under 10 seconds. Add to cart and order today. No &ldquo;HM?&rdquo;, no &ldquo;PM SENT&rdquo;, no waiting.
                             </p>
                             <div className="flex items-center gap-2 sm:gap-3 justify-center md:justify-start">
                                 <button
@@ -561,7 +560,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 <div className="flex gap-3 md:gap-4">
                                     {/* Column 1: 2 images */}
                                     <div className="flex flex-col gap-3 md:gap-4 flex-1">
-                                        <Link href={`/customizing/${heroProducts[0].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-[3/4] group block">
+                                        <Link href={`/customizing/${heroProducts[0].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-3/4 group block">
                                             <LazyImage
                                                 src={heroProducts[0].original_image_url}
                                                 alt={heroProducts[0].alt_text || heroProducts[0].keywords || 'Minimalist cake'}
@@ -570,7 +569,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                                 className="object-cover group-hover:scale-105 transition-transform duration-700"
                                             />
                                         </Link>
-                                        <Link href={`/customizing/${heroProducts[2].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-[4/3] group block">
+                                        <Link href={`/customizing/${heroProducts[2].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-4/3 group block">
                                             <LazyImage
                                                 src={heroProducts[2].original_image_url}
                                                 alt={heroProducts[2].alt_text || heroProducts[2].keywords || 'Minimalist cake'}
@@ -580,7 +579,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         </Link>
                                     </div>
                                     <div className="flex flex-col gap-3 md:gap-4 flex-1">
-                                        <Link href={`/customizing/${heroProducts[1].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-[4/3] group block">
+                                        <Link href={`/customizing/${heroProducts[1].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-4/3 group block">
                                             <LazyImage
                                                 src={heroProducts[1].original_image_url}
                                                 alt={heroProducts[1].alt_text || heroProducts[1].keywords || 'Minimalist cake'}
@@ -589,7 +588,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                                 className="object-cover group-hover:scale-105 transition-transform duration-700"
                                             />
                                         </Link>
-                                        <Link href={`/customizing/${heroProducts[3].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-[3/4] group block">
+                                        <Link href={`/customizing/${heroProducts[3].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-3/4 group block">
                                             <LazyImage
                                                 src={heroProducts[3].original_image_url}
                                                 alt={heroProducts[3].alt_text || heroProducts[3].keywords || 'Minimalist cake'}
@@ -636,26 +635,26 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         {/* Right: Interactive Customizer Preview */}
                         {(() => {
                             const TIERS = [
-                                { label: '1 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/1tier.webp', price: 1500, size: '8" Round 4in Height' },
-                                { label: '2 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/2tier.webp', price: 2500, size: '6"/9" 4in Height per tier' },
-                                { label: 'Bento',  src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/bento.webp',  price: 399,  size: '4" Round 2in Height' },
+                                { label: '1 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/1tier.webp', price: 1500, size: '8" Round 4 in height' },
+                                { label: '2 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/2tier.webp', price: 2500, size: '6"9" 4 in height per tier' },
+                                { label: 'Bento', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/bento.webp', price: 399, size: '4" Round 2 in height' },
                             ];
                             const FLAVORS = [
-                                { label: 'Vanilla',   src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakevanilla.webp' },
+                                { label: 'Vanilla', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakevanilla.webp' },
                                 { label: 'Chocolate', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakechocolate.webp' },
-                                { label: 'Ube',       src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakeube.webp' },
+                                { label: 'Ube', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakeube.webp' },
                             ];
                             const ICINGS = [
                                 { label: 'Body Icing', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/icing_white.webp', addonPrice: 0 },
-                                { label: 'Drip',       src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/drip_white.webp',        addonPrice: 100 },
-                                { label: 'Base Border',src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/baseborder_white.webp', addonPrice: 0 },
-                                { label: 'Top Border', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/top_white.webp',        addonPrice: 0 },
+                                { label: 'Drip', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/drip_white.webp', addonPrice: 100 },
+                                { label: 'Base Border', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/baseborder_white.webp', addonPrice: 0 },
+                                { label: 'Top Border', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/top_white.webp', addonPrice: 0 },
                             ];
                             const TOPPERS = [
                                 { label: 'Sugar Flowers', emoji: '🌸' },
-                                { label: 'Number',        emoji: '🔢' },
-                                { label: 'Sprinkles',     emoji: '✨' },
-                                { label: 'Macaron',       emoji: '🍪' },
+                                { label: 'Number', emoji: '🔢' },
+                                { label: 'Sprinkles', emoji: '✨' },
+                                { label: 'Macaron', emoji: '🍪' },
                             ];
                             return <InteractiveCustomizer tiers={TIERS} flavors={FLAVORS} icings={ICINGS} toppers={TOPPERS} onAddToCart={() => setIsUploaderOpen(true)} />;
                         })()}
