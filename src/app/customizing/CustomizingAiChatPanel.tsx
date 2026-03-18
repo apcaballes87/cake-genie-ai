@@ -105,6 +105,7 @@ export const CustomizingAiChatPanel = React.memo(({
                     onKeyDown={onInputKeyDown}
                     placeholder="✨ Tell Genie your cake design wish..."
                     disabled={isAiProcessing || isUpdatingDesign}
+                    autoComplete="off"
                     className="w-full pl-4 pr-12 py-3 bg-white border border-slate-200 rounded-2xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
                 />
             )}

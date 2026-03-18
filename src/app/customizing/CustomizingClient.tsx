@@ -982,6 +982,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         }
     }, [hasAiChatPromptSuggestions]);
 
+    const handleMainChatInputInteract = useCallback((e?: React.MouseEvent | React.FocusEvent) => {
+        e?.preventDefault();
+        if (stickyChatInputRef.current) {
+            stickyChatInputRef.current.focus();
+        }
+    }, []);
+
     const handleAiPromptInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (e.key === 'Escape') {
             setShowAiPromptSuggestions(false);
@@ -2632,7 +2639,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             onTemplateClear={handleAiPromptTemplateClear}
                             onTemplateColorChange={handleAiPromptTemplateColorChange}
                             onInputChange={handleAiChatInputChange}
-                            onInputInteract={handleAiChatInputInteract}
+                            onInputInteract={handleMainChatInputInteract}
                             onInputKeyDown={handleAiPromptInputKeyDown}
                             onSuggestionSelect={handleAiPromptSuggestionSelect}
                         />
@@ -2684,7 +2691,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             onTemplateClear={handleAiPromptTemplateClear}
                             onTemplateColorChange={handleAiPromptTemplateColorChange}
                             onInputChange={handleAiChatInputChange}
-                            onInputInteract={handleAiChatInputInteract}
+                            onInputInteract={handleMainChatInputInteract}
                             onInputKeyDown={handleAiPromptInputKeyDown}
                             onSuggestionSelect={handleAiPromptSuggestionSelect}
                         />
