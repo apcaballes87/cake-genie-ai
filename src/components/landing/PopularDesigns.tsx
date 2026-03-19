@@ -65,7 +65,7 @@ const PopularDesignsComponent = ({ designs: initialDesigns }: PopularDesignsProp
         <section className="py-4 md:py-6">
             <div className="flex justify-between items-end mb-4 md:mb-6">
                 <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">Minimalist Cakes for Rush Order</h2>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">Customized cakes available for Rush Orders in Cebu</h2>
                     <p className="text-gray-500 text-sm md:text-base">Simple yet elegant designs available for same-day or rush delivery</p>
                 </div>
             </div>

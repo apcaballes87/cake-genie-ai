@@ -44,9 +44,11 @@ const ImageUploader = dynamic(
 const trustBadges = [
     'METRO CEBU DELIVERY',
     '4.8★ CUSTOMER RATED',
-    'INSTANT AI PRICING',
-    'TRUSTED CAKESHOP PARTNERS',
-    'SAME-DAY RUSH ORDERS',
+    'CUSTOM CAKES FOR SPONTANEOUS MOMENTS',
+    'SAME-DAY ORDERS',
+    'YOUR CAKE IN 10 SECONDS',
+    'NO DMs NO WAITING',
+    'YOUR CAKE WISH, GRANTED',
 ];
 
 interface LandingClientProps {
@@ -504,92 +506,107 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 {/* ===== HERO SECTION ===== */}
                 <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-4 pb-4 md:pt-6 md:pb-6 lg:pt-8 lg:pb-8">
                     <div className="flex flex-col md:flex-row gap-8 md:gap-12 lg:gap-16 items-start">
-                        {/* Left: Text Content */}
-                        <div className="w-full md:flex-1 text-center md:text-left md:pt-2 lg:pt-4">
-                            <p className="text-xs md:text-sm font-bold text-purple-600 uppercase tracking-[0.2em] mb-4 flex items-center justify-center md:justify-start gap-2">
-                                <span className="hidden md:inline-block w-8 h-[2px] bg-purple-400"></span>
-                                Cebu&apos;s Premier Cake Marketplace
+                        {/* Mobile Hero View */}
+                        <div className="md:hidden w-full flex flex-col">
+                            {/* Image container with message overlay on the left */}
+                            <div className="relative w-full rounded-3xl overflow-hidden mb-4 shadow-lg">
+                                <img
+                                    src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP"
+                                    alt="Hero"
+                                    className="w-full h-auto block object-cover object-center"
+                                />
+                                <div className="absolute inset-0 p-5 flex flex-col justify-center w-[65%] max-[520px]:w-[85%]">
+                                    <p className="text-[10px] font-bold text-purple-600 uppercase tracking-[0.2em] mb-2 flex whitespace-nowrap">
+                                        Cebu&apos;s Premier Cake Marketplace
+                                    </p>
+                                    <h2 className="text-[38px] max-[520px]:text-[32px] max-[414px]:text-[28px] font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-4 max-[520px]:mb-2">
+                                        Custom cakes{' '}
+                                        <br className="max-[414px]:hidden" />
+                                        <span className="text-purple-600 italic">you can order</span>{' '}
+                                        <br className="max-[414px]:hidden" />
+                                        right now.
+                                    </h2>
+                                    <p className="text-xs text-gray-700 leading-relaxed font-medium max-[454px]:hidden">
+                                        Upload any cake photo. Get your price in seconds. Order it same day. Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;, no more waiting.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Mobile description below image for small screens */}
+                            <p className="hidden max-[454px]:block text-xs text-gray-700 leading-relaxed font-medium text-center mb-5 px-2">
+                                Upload any cake photo. Get your price in seconds. Order it same day. Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;, no more waiting.
                             </p>
-                            <h2 className="text-[39px] sm:text-5xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-5 md:mb-6">
-                                Custom cakes
-                                <br />
-                                <span className="text-purple-600 italic">you can order</span>
-                                <br />
-                                right now.
-                            </h2>
-                            <p className="text-sm md:text-base text-gray-600 leading-relaxed mb-8 max-w-lg mx-auto md:mx-0">
-                                Upload any cake photo. Our AI analyzes the design and gives you an accurate price quote in under 10 seconds. Add to cart and order today. No &ldquo;HM?&rdquo;, no &ldquo;PM SENT&rdquo;, no waiting.
-                            </p>
-                            <div className="flex items-center gap-2 sm:gap-3 justify-center md:justify-start">
+                            
+                            {/* Buttons under the image (1 line) */}
+                            <div className="flex items-center gap-2 w-full">
                                 <button
                                     disabled={isUploading}
-                                    className="flex items-center justify-center gap-1.5 sm:gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/70 text-white px-4 py-2.5 sm:px-6 sm:py-3.5 lg:px-8 lg:py-4 rounded-full font-semibold transition-all shadow-lg active:scale-[0.98] text-xs sm:text-sm lg:text-base whitespace-nowrap disabled:cursor-not-allowed"
+                                    className="flex-1 flex items-center justify-center gap-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/70 text-white px-2 py-3.5 rounded-full font-bold transition-all shadow-md active:scale-[0.98] text-[13px] disabled:cursor-not-allowed whitespace-nowrap"
                                     onClick={() => setIsUploaderOpen(true)}
                                 >
                                     {isUploading ? (
-                                        <Loader2 size={15} className="animate-spin shrink-0" />
+                                        <Loader2 size={16} className="animate-spin shrink-0" />
                                     ) : (
-                                        <Upload size={15} className="shrink-0" />
+                                        <Upload size={16} className="shrink-0" />
                                     )}
-                                    {isUploading ? 'Uploading...' : 'Upload Your Design'}
-                                    <ArrowRight size={14} className="shrink-0" />
+                                    {isUploading ? 'Uploading...' : 'Upload Design'}
                                 </button>
                                 <Link
                                     href="/collections"
-                                    className="flex items-center justify-center gap-1.5 sm:gap-2 bg-white hover:bg-purple-50 text-purple-600 border border-purple-200 px-4 py-2.5 sm:px-6 sm:py-3.5 lg:px-8 lg:py-4 rounded-full font-semibold transition-all active:scale-[0.98] text-xs sm:text-sm lg:text-base whitespace-nowrap"
+                                    className="flex-1 flex items-center justify-center gap-1.5 bg-white hover:bg-purple-50 text-purple-600 border-2 border-purple-200 px-2 py-3 rounded-full font-bold transition-all active:scale-[0.98] text-[13px] shadow-sm whitespace-nowrap"
                                 >
                                     Browse Designs
-                                    <ChevronDown size={14} className="shrink-0" />
+                                    <ChevronDown size={14} className="shrink-0 text-purple-500" />
                                 </Link>
                             </div>
                         </div>
 
-                        {/* Right: Hero Masonry Image Grid */}
-                        {heroProducts.length >= 4 && (
-                            <div className="flex-1 w-full max-w-xl md:max-w-none">
-                                <div className="flex gap-3 md:gap-4">
-                                    {/* Column 1: 2 images */}
-                                    <div className="flex flex-col gap-3 md:gap-4 flex-1">
-                                        <Link href={`/customizing/${heroProducts[0].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-3/4 group block">
-                                            <LazyImage
-                                                src={heroProducts[0].original_image_url}
-                                                alt={heroProducts[0].alt_text || heroProducts[0].keywords || 'Minimalist cake'}
-                                                fill
-                                                priority
-                                                className="object-cover group-hover:scale-105 transition-transform duration-700"
-                                            />
-                                        </Link>
-                                        <Link href={`/customizing/${heroProducts[2].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-4/3 group block">
-                                            <LazyImage
-                                                src={heroProducts[2].original_image_url}
-                                                alt={heroProducts[2].alt_text || heroProducts[2].keywords || 'Minimalist cake'}
-                                                fill
-                                                className="object-cover group-hover:scale-105 transition-transform duration-700"
-                                            />
-                                        </Link>
-                                    </div>
-                                    <div className="flex flex-col gap-3 md:gap-4 flex-1">
-                                        <Link href={`/customizing/${heroProducts[1].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-4/3 group block">
-                                            <LazyImage
-                                                src={heroProducts[1].original_image_url}
-                                                alt={heroProducts[1].alt_text || heroProducts[1].keywords || 'Minimalist cake'}
-                                                fill
-                                                priority
-                                                className="object-cover group-hover:scale-105 transition-transform duration-700"
-                                            />
-                                        </Link>
-                                        <Link href={`/customizing/${heroProducts[3].slug}`} className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-md aspect-3/4 group block">
-                                            <LazyImage
-                                                src={heroProducts[3].original_image_url}
-                                                alt={heroProducts[3].alt_text || heroProducts[3].keywords || 'Minimalist cake'}
-                                                fill
-                                                className="object-cover group-hover:scale-105 transition-transform duration-700"
-                                            />
-                                        </Link>
-                                    </div>
+                        {/* Desktop Hero View: Image with text overlay */}
+                        <div className="hidden md:block w-full relative rounded-3xl overflow-hidden shadow-lg">
+                            <img
+                                src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP"
+                                alt="Hero"
+                                className="w-full h-auto block object-cover object-center"
+                            />
+                            <div className="absolute inset-0 p-10 lg:p-14 flex flex-col justify-center w-[55%] lg:w-[50%]">
+                                <p className="text-xs lg:text-sm font-bold text-purple-600 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                                    <span className="inline-block w-8 h-[2px] bg-purple-400"></span>
+                                    Cebu&apos;s Premier Cake Marketplace
+                                </p>
+                                <h2 className="text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-5">
+                                    Custom cakes
+                                    <br />
+                                    <span className="text-purple-600 italic">you can order</span>
+                                    <br />
+                                    right now.
+                                </h2>
+                                <p className="text-sm lg:text-base text-gray-700 leading-relaxed mb-8 max-w-md">
+                                    Upload any cake photo. Get your price in seconds. Order it same day. Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;, no more waiting.
+                                </p>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        disabled={isUploading}
+                                        className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/70 text-white px-6 py-3.5 lg:px-8 lg:py-4 rounded-full font-semibold transition-all shadow-lg active:scale-[0.98] text-sm lg:text-base whitespace-nowrap disabled:cursor-not-allowed"
+                                        onClick={() => setIsUploaderOpen(true)}
+                                    >
+                                        {isUploading ? (
+                                            <Loader2 size={15} className="animate-spin shrink-0" />
+                                        ) : (
+                                            <Upload size={15} className="shrink-0" />
+                                        )}
+                                        {isUploading ? 'Uploading...' : 'Upload Your Design'}
+                                        <ArrowRight size={14} className="shrink-0" />
+                                    </button>
+                                    <Link
+                                        href="/collections"
+                                        className="flex items-center justify-center gap-2 bg-white hover:bg-purple-50 text-purple-600 border border-purple-200 px-6 py-3.5 lg:px-8 lg:py-4 rounded-full font-semibold transition-all active:scale-[0.98] text-sm lg:text-base whitespace-nowrap"
+                                    >
+                                        Browse Designs
+                                        <ChevronDown size={14} className="shrink-0" />
+                                    </Link>
                                 </div>
                             </div>
-                        )}
+                        </div>
                     </div>
                 </section>
 
@@ -600,25 +617,25 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         {/* Left: Text + Upload Zone */}
                         <div className="flex-1">
                             <p className="text-xs md:text-sm font-bold text-purple-600 uppercase tracking-[0.15em] mb-3">
-                                AI-Powered Instant Pricing
+                                Design It. See It. Order It.
                             </p>
                             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-4">
-                                See a cake you love? We&apos;ll price it for you, in 10 seconds.
+                                Your design. Your price. <span className="text-purple-600">Updated instantly.</span>
                             </h2>
                             <p className="text-sm md:text-base text-gray-600 leading-relaxed mb-8 max-w-xl">
-                                Upload and get the price instantly. Customize by changing the icing colors, toppers and messages. Price gets instantly updated. Have it delivered as fast as 1 hour. Easy. Fast. Convenient.
+                                Upload and get the price instantly. Customize by changing the icing colors, toppers and messages. Price gets instantly updated. Have it delivered as fast as 1 hour. What you see is what you pay. Order it today.
                             </p>
 
                             {/* Upload Drop Zone */}
                             <div
-                                className="border-2 border-dashed border-purple-300 bg-purple-50/50 rounded-2xl p-8 md:p-10 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-all"
+                                className="border-2 border-dashed border-purple-300 bg-purple-50/50 rounded-2xl p-6 md:p-8 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-all"
                                 onClick={() => setIsUploaderOpen(true)}
                             >
-                                <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <Camera size={28} className="text-purple-500" />
+                                <div className="w-11 h-11 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <Camera size={22} className="text-purple-500" />
                                 </div>
-                                <p className="text-base font-semibold text-gray-800 mb-1">Drop your cake photo here</p>
-                                <p className="text-sm text-gray-500">PNG, JPG, WEBP up to 10MB</p>
+                                <p className="text-sm font-semibold text-gray-800 mb-1">Drop your cake photo here</p>
+                                <p className="text-xs text-gray-500">PNG, JPG, WEBP up to 10MB</p>
                             </div>
                         </div>
 
