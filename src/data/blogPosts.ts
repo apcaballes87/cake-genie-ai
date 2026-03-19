@@ -60,7 +60,7 @@ Don't just look at their "best of" highlights. Look for consistency. Does their 
 I always tell my friends: look closely at the edges. If the fondant looks cracked or the "sharp edges" are lumpy, that’s a sign they might be rushing or using lower-quality icing. A true **custom cake Cebu** expert takes pride in the finish. Check if they have experience with the specific style you want—some are great at flowers but struggle with cartoons, and vice versa.
 
 ### 2. Pricing Transparency
-This is the biggest pain point for anyone trying to get a **cake order Cebu**. Most bakers won't post prices because "it depends on the design." While that's true, it shouldn't take three hours to get a quote. One of the reasons **custom cakes Cebu** shoppers are moving to **Genie.ph** is the AI-powered instant pricing. You upload a photo, and boom—you know the cost in 30 seconds. No more waiting for a "PM sent" reply or being ghosted by a busy home baker.
+This is the biggest pain point for anyone trying to get a **cake order Cebu**. Most bakers won't post prices because "it depends on the design." While that's true, it shouldn't take three hours to get a quote. One of the reasons **custom cakes Cebu** shoppers are moving to **Genie.ph** is the AI-powered instant pricing. You upload a photo, and boom—you know the cost in 10 seconds. No more waiting for a "PM sent" reply or being ghosted by a busy home baker.
 
 ### 3. Lead Time and Rush Orders
 Cebuano celebrations often happen last minute (we've all been there!). Most professional custom bakeries in Cebu require 1–2 weeks' notice. However, if you're in a pinch, you need to know who accepts **cake delivery Cebu** rush orders. Some home bakers only do 2 cakes a week, while bigger setups like our partners at Cakes and Memories can often accommodate 24-48 hour turnarounds. Always ask about "express" fees if you're ordering less than 3 days before your event.
@@ -184,7 +184,7 @@ Open the site on your phone or laptop. No complicated forms or app downloads req
 You can look through our gallery of 7,000+ designs if you need ideas for a **custom cake Cebu**. But the real magic is the **Upload** button. Found a cake on Pinterest? Take a screenshot and upload it.
 
 **Step 3: Instant AI Pricing**
-Our AI "Genie" looks at the photo, analyzes the tiers, the type of icing, and the complexity of the decorations. Within 10-30 seconds, you’ll see the price for your **cake order Cebu**. 
+Our AI "Genie" looks at the photo, analyzes the tiers, the type of icing, and the complexity of the decorations. Within 10 seconds, you’ll see the price for your **cake order Cebu**. 
 
 **Step 4: Customize Your Details**
 You aren't stuck with the photo. Want it in Blue instead of Pink? Want Chocolate flavor instead of Vanilla? You can select all your preferences right there to make it a truly **personalized cake Cebu**.
@@ -243,7 +243,7 @@ By combining the artistry of **Cakes and Memories** (one of the **best cake shop
 Whether it's a "Lami kaayo" chocolate cake for a birthday or a stunning floral arrangement for a wedding, we've got you covered.
 
 **Conclusion:** 
-Take the stress out of your next celebration. Skip the messaging. Get your cake price and place your order in 30 seconds at [genie.ph](https://genie.ph). 
+Take the stress out of your next celebration. Skip the messaging. Get your cake price and place your order in 10 seconds at [genie.ph](https://genie.ph). 
 
 Happy celebrating, Cebu!`,
   },

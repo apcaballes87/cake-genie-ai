@@ -7,30 +7,29 @@ export const IntroContent = () => {
         <section className="py-4 md:py-6">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <h2 className="text-[22px] md:text-[28px] font-bold text-gray-900 mb-4">
-                    What is <span className="text-purple-600">Genie.ph</span>?
+                    Spontaneous Celebrations deserve more than a grocery cake.
                 </h2>
                 <div className="prose prose-base md:prose-lg mx-auto text-gray-600 space-y-4 md:space-y-6 leading-relaxed">
                     <p>
-                        <strong>Genie.ph is the premier online marketplace for custom cakes in Cebu, Philippines.</strong> We connect customers directly with the most talented local bakeshops and home bakers in the region. Whether you need a stunning wedding cake, a playful birthday cake, or a chic minimalist design, Genie.ph provides instant AI pricing and a secure way to order custom cakes online.
+                        <strong>Genie.ph is where you order a custom cake the same way you order food — fast, certain, and exactly the way you want it.</strong> Upload a design, see your price in 10 seconds, and get it delivered today across Metro Cebu. No DMs. No back-and-forth. No surprises.
                     </p>
 
-                    <h3 className="text-[18px] md:text-[21px] font-bold text-gray-800 mt-5 mb-2">Why Order Your Cake with Genie.ph?</h3>
                     <ul className="text-left space-y-3 list-none pl-0">
                         <li className="flex items-start">
                             <span className="text-purple-500 mr-2 mt-1">✨</span>
-                            <span><strong>Instant AI Pricing:</strong> Say goodbye to long waiting times for price quotes. With our innovative AI technology, you can simply upload a photo of your desired cake design, and we will provide you with an instant price estimate. It's fast, easy, and transparent.</span>
-                        </li>
-                        <li className="flex items-start">
-                            <span className="text-purple-500 mr-2 mt-1">🏆</span>
-                            <span><strong>Trusted Local Bakers:</strong> We carefully curate our network of partners to ensure you get only the best. Our platform features top-rated cake artists from Cebu City, Mandaue, Lapu-Lapu, and Talisay, known for their craftsmanship and delicious flavors.</span>
+                            <span><strong>See your cake priced in 10 seconds</strong> — upload any photo and know the cost instantly</span>
                         </li>
                         <li className="flex items-start">
                             <span className="text-purple-500 mr-2 mt-1">🎨</span>
-                            <span><strong>Endless Customization:</strong> Your imagination is the only limit. Choose from a wide array of flavors, icing types, and sizes. From trendy bento cakes and vintage heart cakes to classic fondant masterpieces, we help you create a cake that is uniquely yours.</span>
+                            <span><strong>Change anything, watch the price update</strong> — colors, toppers, messages. What you see is what you pay.</span>
                         </li>
                         <li className="flex items-start">
-                            <span className="text-purple-500 mr-2 mt-1">🚚</span>
-                            <span><strong>Hassle-Free Delivery:</strong> We understand that handling cakes requires care. Our reliable delivery service ensures that your custom cake arrives safely at your venue or doorstep, fresh and ready to impress.</span>
+                            <span className="text-purple-500 mr-2 mt-1">🚀</span>
+                            <span><strong>Order it today</strong> — same-day delivery across Metro Cebu City, Mandaue, Lapu-Lapu, and Talisay</span>
+                        </li>
+                        <li className="flex items-start">
+                            <span className="text-purple-500 mr-2 mt-1">🤝</span>
+                            <span><strong>Trusted local bakers</strong> — every order goes to a vetted Cebu baker, not a grocery shelf</span>
                         </li>
                     </ul>
 
@@ -46,7 +45,7 @@ export const IntroContent = () => {
                     </div>
 
                     <p className="mt-5">
-                        Experience the convenience of ordering custom cakes online. Browse our designs or upload your own today and let Genie.ph make your celebration unforgettable.
+                        Your cake wish, granted. Browse our designs or upload your own today.
                     </p>
                 </div>
             </div>
