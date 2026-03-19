@@ -623,7 +623,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 Your design. Your price. <span className="text-purple-600">Updated instantly.</span>
                             </h2>
                             <p className="text-sm md:text-base text-gray-600 leading-relaxed mb-8 max-w-xl">
-                                Upload and get the price instantly. Customize by changing the icing colors, toppers and messages. Price gets instantly updated. Have it delivered as fast as 1 hour. What you see is what you pay. Order it today.
+                                Customize your cake directly by changing icing colors and toppers. Price gets instantly updated. Add to Cart and have it delivered the same day!
                             </p>
 
                             {/* Upload Drop Zone */}
