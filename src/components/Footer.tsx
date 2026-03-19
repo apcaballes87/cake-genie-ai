@@ -25,7 +25,7 @@ export const Footer = () => {
                             <Camera size={24} />
                         </div>
                         <h3 className="font-bold text-lg mb-2 text-purple-700 font-serif italic">Instantly get the price</h3>
-                        <p className="text-gray-600 text-sm mb-4">Upload your cake design and we will instantly give you the price in 30 seconds.</p>
+                        <p className="text-gray-600 text-sm mb-4">Upload your cake design and get your price in 10 seconds.</p>
                         <button onClick={() => router.push('/customizing')} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-full text-sm font-bold transition shadow-sm">
                             Upload here
                         </button>
@@ -128,11 +128,8 @@ export const Footer = () => {
                             />
                             <div className="text-gray-600 text-sm leading-relaxed mb-4 space-y-3">
                                 <p>
-                                    Genie.ph is the premier online marketplace for custom cakes in Cebu, Philippines.
-                                    By leveraging advanced AI design analysis, customers can upload any cake photo and receive
-                                    instant price estimations from over 50 local artisan bakers and bakeshops.
-                                    The platform streamlines the traditionally slow ordering process by automating complexity analysis
-                                    and providing direct baker connections for personalized celebrations.
+                                    Genie.ph is where spontaneous celebrations get the cake they deserve. Custom cakes, ordered in minutes,
+                                    delivered today across Metro Cebu. Your cake wish, granted.
                                 </p>
                                 <p>
                                     Our delivery network covers the entire Metro Cebu area, including Cebu City, Mandaue City,

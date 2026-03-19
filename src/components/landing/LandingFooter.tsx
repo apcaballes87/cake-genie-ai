@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Camera, Cake, Tag, CreditCard, Facebook, Instagram, MessageCircle, Youtube, Star, Check, Mail, Phone, ChevronUp, ShieldCheck, Lock } from 'lucide-react';
 
 const featureCards = [
-  { title: 'Instantly get the price', body: 'Upload your cake design and we will instantly give you the price in 30 seconds.', href: '/customizing', cta: 'Upload here', icon: Camera, accent: 'purple' },
+  { title: 'Instantly get the price', body: 'Upload your cake design and get your price in 10 seconds.', href: '/customizing', cta: 'Upload here', icon: Camera, accent: 'purple' },
   { title: 'Fresh cakes delivered to you', body: 'Homemade delicious cakes freshly baked just in time for your special day', href: '/about', cta: 'About Us', icon: Cake, accent: 'pink' },
   { title: 'Affordable yummy cakes', body: 'All prices of our cake designs are always updated and affordable', href: '/how-to-order', cta: 'How to order', icon: Tag, accent: 'purple' },
   { title: 'Secure payment options', body: 'E-wallets, over-the-counter and bank payments for your convenience', href: '/payment-options', cta: 'Payments', icon: CreditCard, accent: 'pink' },
@@ -58,7 +58,7 @@ export function LandingFooter() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-8">
             <div className="md:col-span-2">
               <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20logo%20long2.webp" alt="Genie Logo" width={150} height={40} className="h-10 w-auto object-contain mb-4" />
-              <div className="text-gray-600 text-sm leading-relaxed mb-4 space-y-3"><p>Genie.ph is the premier online marketplace for custom cakes in Cebu, Philippines. By leveraging advanced AI design analysis, customers can upload any cake photo and receive instant price estimations from over 50 local artisan bakers and bakeshops.</p><p>Our delivery network covers Metro Cebu, including Cebu City, Mandaue City, Lapu-Lapu City, and Talisay City. Genie.ph specializes in custom birthday cakes, minimalist wedding cakes, personalized bento cakes, and edible photo prints with secure online payments via Maya and GCash.</p></div>
+              <div className="text-gray-600 text-sm leading-relaxed mb-4 space-y-3"><p>Genie.ph is where spontaneous celebrations get the cake they deserve. Custom cakes, ordered in minutes, delivered today across Metro Cebu. Your cake wish, granted.</p><p>Our delivery network covers Metro Cebu, including Cebu City, Mandaue City, Lapu-Lapu City, and Talisay City. Genie.ph specializes in custom birthday cakes, minimalist wedding cakes, personalized bento cakes, and edible photo prints with secure online payments via Maya and GCash.</p></div>
               <div className="space-y-2 text-sm text-gray-600 mb-4"><div className="flex items-center gap-2"><Mail size={15} className="text-purple-500 shrink-0" /><span>support@genie.ph</span></div><div className="flex items-center gap-2"><Phone size={15} className="text-pink-500 shrink-0" /><span>+63 908 940 8747</span></div></div>
               <div className="flex flex-wrap items-center gap-3"><div className="px-3 py-1.5 bg-purple-50 rounded-md text-xs font-semibold text-purple-700 flex items-center gap-1.5 border border-purple-100"><ShieldCheck size={14} />DTI Registered</div><div className="px-3 py-1.5 bg-green-50 rounded-md text-xs font-semibold text-green-700 flex items-center gap-1.5 border border-green-100"><Lock size={14} />Secure Checkout</div></div>
             </div>

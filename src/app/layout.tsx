@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import { Inter } from 'next/font/google'
 import './globals.css'
@@ -11,6 +11,13 @@ import TawkToChat from '@/components/TawkToChat'
 import ErrorLogger from '@/components/ErrorLogger'
 
 const inter = Inter({ subsets: ['latin'], display: 'optional' })
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://genie.ph'),

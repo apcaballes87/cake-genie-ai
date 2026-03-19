@@ -63,7 +63,7 @@ const RecommendedProductsGridComponent = ({ initialProducts }: RecommendedProduc
             <div className="flex justify-between items-end mb-4 md:mb-6">
                 <div>
                     <h2 className="text-xl md:text-2xl font-bold text-gray-900">Recent searches by users</h2>
-                    <p className="text-gray-500 text-sm md:text-base">Get the price in 15 seconds!</p>
+                    <p className="text-gray-500 text-sm md:text-base">Get the price in 10 seconds!</p>
                 </div>
             </div>
 
