@@ -34,6 +34,7 @@ interface CustomizingStepSummarySectionsProps {
     onTopperImageReplace: (topperId: string, file: File) => void;
     onSupportElementImageReplace: (elementId: string, file: File) => void;
     openTopperSheet: (section: 'main' | 'support') => void;
+    onIcingTypeChange?: (newType: string) => void;
 }
 
 const getIcingImage = (icingDesign: IcingDesignUI, type: IcingImageType, isTopSpecific = false): string => {
@@ -114,7 +115,9 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     onTopperImageReplace,
     onSupportElementImageReplace,
     openTopperSheet,
+    onIcingTypeChange,
 }: CustomizingStepSummarySectionsProps) {
+    const [showIcingChoice, setShowIcingChoice] = React.useState(true);
     const isDesktop = layout === 'desktop';
     const containerClassName = isDesktop
         ? 'w-full hidden md:flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden gap-2 pb-6 md:pb-4 scrollbar-hide snap-x md:snap-none relative z-60'
@@ -123,6 +126,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
         ? 'shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200'
         : 'shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200';
     const itemsClassName = isDesktop ? 'flex gap-[7px] pt-1 pb-1 w-max md:w-full flex-wrap' : 'flex gap-[7px] pt-1 pb-1 w-max';
+
+    const isFondant = cakeInfo?.type.toLowerCase().includes('fondant');
 
     return (
         <div className={containerClassName}>
@@ -136,7 +141,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             </div>
                             <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">{cakeInfo.type}</span>
                         </button>
-
+                        
                         <button onClick={() => setActiveCustomization('options')} className="group flex flex-col items-center gap-1 min-w-[60px]">
                             <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                 <LazyImage src={CAKE_SIZE_THUMBNAILS[cakeInfo.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]} alt={cakeInfo.size} fill sizes="56px" imageClassName="object-contain" />
@@ -161,6 +166,29 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             </button>
                         ))}
                     </div>
+
+                    {isFondant && showIcingChoice && (
+                        <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col items-center gap-2">
+                            <span className="text-[11px] font-medium text-slate-600">Change Fondant to Soft Icing?</span>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => {
+                                        onIcingTypeChange?.('soft_icing');
+                                        setShowIcingChoice(false);
+                                    }}
+                                    className="px-4 py-1.5 rounded-full bg-purple-600 text-white text-[11px] font-bold hover:bg-purple-700 transition-colors shadow-sm"
+                                >
+                                    Yes
+                                </button>
+                                <button
+                                    onClick={() => setShowIcingChoice(false)}
+                                    className="px-4 py-1.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-bold hover:bg-slate-200 transition-colors border border-slate-200"
+                                >
+                                    No
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 

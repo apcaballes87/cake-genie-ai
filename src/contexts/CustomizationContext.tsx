@@ -11,6 +11,8 @@ import {
     IcingDesignUI,
     CakeInfoUI,
     CakeType,
+    CakeSize,
+    CakeThickness,
     CakeFlavor,
     IcingColorDetails,
     MainTopperType,
@@ -62,6 +64,7 @@ interface CustomizationContextType {
     getSyncedAnalysisResult: () => HybridAnalysisResult | null;
     clearDirtyState: () => void;
     applyFullCustomizationState: (state: CustomizationState) => void;
+    handleSwitchToSoftIcing: () => void;
     seoMetadata: CacheSEOMetadata | null;
     setSEOMetadata: (metadata: CacheSEOMetadata | null) => void;
     chatHistory: string[];
@@ -589,6 +592,40 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         }
     }, [updateSupportElement]);
 
+    const handleSwitchToSoftIcing = useCallback(() => {
+        const cleanup = (str: string) => str.replace(/\s?fondant/gi, '').trim();
+
+        setCakeInfo(prev => {
+            if (!prev) return prev;
+            const newType = cleanup(prev.type) as CakeType;
+            const newSize = cleanup(prev.size) as CakeSize;
+            const newThickness = cleanup(prev.thickness) as CakeThickness;
+
+            return {
+                ...prev,
+                type: newType,
+                size: newSize,
+                thickness: newThickness
+            };
+        });
+
+        setIcingDesign(prev => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                base: 'soft_icing' as const
+            };
+        });
+
+        setIsCustomizationDirty(true);
+        setDirtyFields(prev => {
+            const next = new Set(prev);
+            next.add('cakeInfo');
+            next.add('icingDesign.base');
+            return next;
+        });
+    }, []);
+
     // Function to sync analysisResult with current state (used after successful design update)
     const syncAnalysisResultWithCurrentState = useCallback(() => {
         setAnalysisResult(prev => {
@@ -785,6 +822,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         getSyncedAnalysisResult,
         clearDirtyState,
         applyFullCustomizationState,
+        handleSwitchToSoftIcing,
         seoMetadata,
         setSEOMetadata,
         chatHistory,
@@ -824,6 +862,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         getSyncedAnalysisResult,
         clearDirtyState,
         applyFullCustomizationState,
+        handleSwitchToSoftIcing,
         seoMetadata,
         chatHistory,
         addChatEntry,

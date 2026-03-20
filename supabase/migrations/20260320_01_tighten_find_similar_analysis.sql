@@ -6,7 +6,7 @@ BEGIN
   RETURN QUERY
   SELECT *
   FROM cakegenie_analysis_cache
-  WHERE public.hamming_distance(p_hash, new_hash) BETWEEN 0 AND 2
+  WHERE public.hamming_distance(p_hash, new_hash) BETWEEN 0 AND 1
   ORDER BY public.hamming_distance(p_hash, new_hash) ASC
   LIMIT 1;
 END;
