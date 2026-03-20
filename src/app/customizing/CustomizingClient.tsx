@@ -15,7 +15,7 @@ import { SegmentationBottomSheet } from '../../components/SegmentationBottomShee
 import { CustomizationSkeleton } from '../../components/LoadingSkeletons';
 import { BackIcon, UserCircleIcon, LogOutIcon, MapPinIcon, PackageIcon, TrashIcon } from '../../components/icons';
 import { ShoppingBag } from 'lucide-react';
-import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType, AvailabilitySettings, IcingColorDetails, AnalysisItem, ClusteredMarker, CartItem } from '../../types';
+import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType, CakeSize, CakeThickness, AvailabilitySettings, IcingColorDetails, AnalysisItem, ClusteredMarker, CartItem } from '../../types';
 import { CakeGenieCartItem, CakeGenieMerchant, CakeGenieMerchantProduct } from '../../lib/database.types';
 import { SearchAutocomplete } from '../../components/SearchAutocomplete';
 import { AvailabilityType } from '../../lib/utils/availability';
@@ -314,6 +314,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         getSyncedAnalysisResult,
         clearDirtyState,
         applyFullCustomizationState,
+        handleSwitchToSoftIcing,
         chatHistory, addChatEntry,
     } = useCakeCustomization();
 
@@ -1342,10 +1343,14 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, [isImageManagementLoading, hookImageUpload, clearImages, clearCustomization]);
 
     // Handle "Customize This Design" flow (loading from URL ref) - Shopify/external integrations
+    // NOTE: We read from window.location.search directly (not useSearchParams) because
+    // Next.js can cache/stale the React hook value on cross-domain navigations (e.g., from cakesandmemories.com).
+    // This is the same fix applied to the Shopify CSE handler above.
     useEffect(() => {
-        const refUrl = searchParams.get('ref');
-        const fromSaved = searchParams.get('fromSaved') === 'true';
-        const fromMerchant = searchParams.get('fromMerchant') === 'true';
+        const urlParams = new URLSearchParams(window.location.search);
+        const refUrl = urlParams.get('ref');
+        const fromSaved = urlParams.get('fromSaved') === 'true';
+        const fromMerchant = urlParams.get('fromMerchant') === 'true';
 
         if (!refUrl) {
             lastProcessedDesignRefUrl.current = null;
@@ -1396,10 +1401,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             setActiveTab('original');
 
             // Remove fromSaved param to prevent infinite loop (since we just cleared images)
-            // We use replace to update URL without adding to history
-            const newParams = new URLSearchParams(searchParams.toString());
-            newParams.delete('fromSaved');
-            router.replace(`${pathname}?${newParams.toString()}`);
+            // Use window.history.replaceState to avoid Next.js router cache issues
+            const savedCleanParams = new URLSearchParams(window.location.search);
+            savedCleanParams.delete('fromSaved');
+            const savedCleanUrl = savedCleanParams.toString() ? `${pathname}?${savedCleanParams.toString()}` : pathname;
+            window.history.replaceState({}, '', savedCleanUrl);
 
             try {
                 const savedData = localStorage.getItem('cakegenie_restore_saved');
@@ -1532,9 +1538,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             clearCustomization();
 
             // Remove fromMerchant param to prevent infinite loop
-            const newParams = new URLSearchParams(searchParams.toString());
-            newParams.delete('fromMerchant');
-            router.replace(`${pathname}?${newParams.toString()}`);
+            // Use window.history.replaceState to avoid Next.js router cache issues
+            const merchantCleanParams = new URLSearchParams(window.location.search);
+            merchantCleanParams.delete('fromMerchant');
+            const merchantCleanUrl = merchantCleanParams.toString() ? `${pathname}?${merchantCleanParams.toString()}` : pathname;
+            window.history.replaceState({}, '', merchantCleanUrl);
 
             try {
                 const merchantData = localStorage.getItem('cakegenie_merchant_product');
@@ -2011,6 +2019,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const onCakeInfoChange = handleCakeInfoChange;
     const onTopperImageReplace = handleTopperImageReplace;
     const onSupportElementImageReplace = handleSupportElementImageReplace;
+    const handleIcingTypeChange = useCallback((_newBase: string) => {
+        handleSwitchToSoftIcing();
+    }, [handleSwitchToSoftIcing]);
 
     const availability = AVAILABILITY_MAP[availabilityType];
     // Temporary state backups for modals (to discard changes on cancel)
@@ -2666,6 +2677,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             onTopperImageReplace={onTopperImageReplace}
                             onSupportElementImageReplace={onSupportElementImageReplace}
                             openTopperSheet={openTopperSheet}
+                            onIcingTypeChange={handleIcingTypeChange}
                         />
 
                     </div>
