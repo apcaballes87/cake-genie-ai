@@ -96,7 +96,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
 }) => {
     const show = Boolean(price !== null || error || isAnalyzing || warningMessage || hasPendingDesignChanges || isApplyingChanges || availability);
 
-    const showAvailability = Boolean(availability && !isAnalyzing);
+    const showAvailability = Boolean(availability && !isAnalyzing && !error);
 
 
     const [isCompact, setIsCompact] = React.useState(false);
@@ -219,14 +219,14 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             {/* Top Section: Warnings & Availability (z-60) */}
             <div className={`fixed bottom-0 left-0 right-0 z-85 pointer-events-none transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}>
                 <div className="pointer-events-auto">
-                    <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${(warningMessage || (showAvailability && availability)) ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                    <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${(!error && (warningMessage || (showAvailability && availability))) ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                         <div className="rounded-t-2xl relative overflow-hidden">
                             {renderAvailabilityNotification()}
                         </div>
                     </div>
                     {/* Bridge: 16px of matching color outside overflow-hidden, fills the transparent
                         rounded-corner area at the top of the main bar (border-radius = 1rem = 16px) */}
-                    <div className={`h-4 transition-opacity duration-500 ease-in-out ${(warningMessage || (showAvailability && availability)) ? 'opacity-100' : 'opacity-0'} ${notificationBridgeColor}`} />
+                    <div className={`h-4 transition-opacity duration-500 ease-in-out ${(!error && (warningMessage || (showAvailability && availability))) ? 'opacity-100' : 'opacity-0'} ${notificationBridgeColor}`} />
                 </div>
                 {/* Spacer: 114px + 16px bridge above = 130px total gap above the main bar */}
                 <div className="h-[114px]" />

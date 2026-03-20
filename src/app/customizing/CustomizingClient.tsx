@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import React, { Dispatch, SetStateAction, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { useSmartBack } from '@/hooks/useSmartBack';
@@ -59,6 +60,10 @@ import {
     shouldLogShopifyCseMount,
 } from './customizingClientGuards';
 
+const ImageUploader = dynamic(
+    () => import('@/components/ImageUploader').then((mod) => mod.ImageUploader),
+    { ssr: false }
+);
 
 // Hooks
 import { useCakeCustomization, type CustomizationState } from '@/contexts/CustomizationContext';
@@ -346,6 +351,31 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [selectedAiPromptTemplate, setSelectedAiPromptTemplate] = useState<ParsedAiChatPromptTemplate | null>(null);
     const [selectedAiPromptColor, setSelectedAiPromptColor] = useState('');
     const [showAiPromptColorPicker, setShowAiPromptColorPicker] = useState(false);
+
+    const handleImageSelect = useCallback((file: File) => {
+        setIsUploaderOpen(false);
+        setIsAnalyzing(true);
+        setAnalysisError(null);
+
+        // Clear previous state to avoid mixing old analysis with new one
+        clearCustomization();
+        clearImages();
+
+        // Use the hook to upload and analyze
+        hookImageUpload(
+            file,
+            (result: HybridAnalysisResult) => {
+                console.log('Analysis successful:', result);
+                setIsAnalyzing(false);
+            },
+            (err: Error) => {
+                console.warn('Analysis failed:', err.message);
+                setIsAnalyzing(false);
+                setAnalysisError(err.message);
+            }
+        );
+    }, [clearCustomization, clearImages, setAnalysisError, setIsAnalyzing, hookImageUpload]);
+
 
     // Preloaded image from SSR for Shopify CSE handoff - shows immediately while processing
     const [preloadedHeroImage, setPreloadedHeroImage] = useState<string | null>(preloadImageUrl || null);
@@ -2734,7 +2764,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             showLoadingState={isAnalyzing || (isLoading && !isDesignSaved)}
                             showContentState={Boolean(cakeInfo)}
                             analysisError={analysisError}
-                            onUploadAnother={() => { clearImages(); clearCustomization(); }}
+                            onUploadAnother={() => setIsUploaderOpen(true)}
                             onGoBackHome={() => router.push('/')}
                             stepSummaryProps={{
                                 cakeInfo,
@@ -2964,6 +2994,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     isOpen={isShareModalOpen}
                     onClose={closeShareModal}
                     shareData={shareData}
+                />
+                <ImageUploader
+                    isOpen={isUploaderOpen}
+                    onClose={() => setIsUploaderOpen(false)}
+                    onImageSelect={handleImageSelect}
                 />
             </div>
         </>
