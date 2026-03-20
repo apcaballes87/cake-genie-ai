@@ -190,6 +190,69 @@ export function upgradeLegacySlug(slug: string): string {
   return newSlug;
 }
 
+/**
+ * Returns an array of possible legacy DB slugs for a given "modern" slug.
+ *
+ * Modern slugs may have `-cake-` before the hash and/or color names instead
+ * of hex codes. The DB may store the slug without these transformations.
+ *
+ * Returns candidates in priority order (most likely match first):
+ * 1. Strip `-cake-` only (most common case)
+ * 2. Strip `-cake-` AND convert color names → hex codes
+ *
+ * Only returns candidates that differ from the input slug.
+ *
+ * Example: `wedding-cake-ivory-2-tier-cake-e7e7`
+ *   → [`wedding-cake-ivory-2-tier-e7e7`, `wedding-cake-fffff0-2-tier-e7e7`]
+ */
+export function downgradeCakeSlug(slug: string): string[] {
+  if (!slug) return [];
+
+  const candidates: string[] = [];
+
+  // Candidate 1: Strip `-cake-` before the trailing hash only
+  const hashMatch = slug.match(/-cake-([a-f0-9]{4,16})$/);
+  let strippedSlug = slug;
+  if (hashMatch) {
+    const hash = hashMatch[1];
+    strippedSlug = slug.replace(`-cake-${hash}`, `-${hash}`);
+    if (strippedSlug !== slug) {
+      candidates.push(strippedSlug);
+    }
+  }
+
+  // Candidate 2: Also convert color names back to hex codes
+  const parts = strippedSlug.split('-');
+  let hasColorConversion = false;
+  for (let i = 0; i < parts.length; i++) {
+    // Handle hyphenated color names like "sky-blue" → "87ceeb" first
+    if (i < parts.length - 1) {
+      const compound = `${parts[i]}-${parts[i + 1]}`;
+      const compoundColor = SIMPLE_COLORS.find(c => c.name === compound);
+      if (compoundColor) {
+        parts[i] = compoundColor.hex;
+        parts.splice(i + 1, 1);
+        hasColorConversion = true;
+        continue;
+      }
+    }
+    const color = SIMPLE_COLORS.find(c => c.name === parts[i]);
+    if (color) {
+      parts[i] = color.hex;
+      hasColorConversion = true;
+    }
+  }
+
+  if (hasColorConversion) {
+    const hexSlug = parts.join('-');
+    if (hexSlug !== slug && !candidates.includes(hexSlug)) {
+      candidates.push(hexSlug);
+    }
+  }
+
+  return candidates;
+}
+
 export function isValidRedirect(path: string | null): boolean {
   return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//');
 }
