@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import CustomizingClient from '../CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { getCakeBasePriceOptions, getRelatedProductsByKeywords } from '@/services/supabaseService'
-import { CakeType, BasePriceInfo, HybridAnalysisResult, CakeInfoUI, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI } from '@/types'
+import { CakeType, CakeThickness, BasePriceInfo, HybridAnalysisResult, CakeInfoUI, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI } from '@/types'
 import { CustomizationProvider, CustomizationState } from '@/contexts/CustomizationContext'
 // FAQPageSchema deprecated (restricted to gov/healthcare Aug 2023) — using HTML accordions instead
 import { DesignAboutSection } from '@/components/DesignAboutSection'
@@ -16,6 +16,18 @@ import { v4 as uuidv4 } from 'uuid'
 import { mapProductToDefaultState } from '@/utils/customizationMapper'
 import { upgradeLegacySlug, downgradeCakeSlug } from '@/lib/utils/urlHelpers'
 import { generateDesignDetails, generateDynamicFAQ } from '@/utils/designContentUtils'
+
+// Minimum base price (1 Tier / 4in / 6" Round = ₱1,099) used as fallback
+// when a design has no valid cakeType or cached price.
+const FALLBACK_MIN_PRICE = 1099;
+const VALID_CAKE_TYPES: CakeType[] = ['1 Tier', '2 Tier', '3 Tier', '1 Tier Fondant', '2 Tier Fondant', '3 Tier Fondant', 'Square', 'Rectangle', 'Bento', 'Square Fondant', 'Rectangle Fondant'];
+const CAKE_TYPE_THICKNESS_MAP: Record<string, CakeThickness> = {
+    '1 Tier': '4 in', '2 Tier': '4 in', '3 Tier': '4 in',
+    'Square': '3 in', 'Rectangle': '3 in',
+    '1 Tier Fondant': '5 in', '2 Tier Fondant': '5 in', '3 Tier Fondant': '5 in',
+    'Square Fondant': '5 in', 'Rectangle Fondant': '5 in',
+    'Bento': '2 in',
+};
 
 // ISR: Cache pages for 1 hour, then revalidate in the background.
 // Reduces TTFB for 8k+ pages and gives Google a faster crawl experience.
@@ -155,7 +167,7 @@ export async function generateMetadata(
             features.push(`Decorated with ${topNames}`)
         }
 
-        description = `Customize this ${tagsPrefix}${design.keywords || 'custom'} cake design. ${features.join('. ')}. Starting at ₱${design.price?.toLocaleString() || '0'}.`
+        description = `Customize this ${tagsPrefix}${design.keywords || 'custom'} cake design. ${features.join('. ')}. Starting at ₱${(design.price && design.price > 0) ? Math.round(design.price).toLocaleString() : FALLBACK_MIN_PRICE.toLocaleString()}.`
     }
 
     if (!description) {
@@ -216,7 +228,7 @@ export async function generateMetadata(
         other: {
             thumbnail: design.original_image_url || '',
             // product:* meta tags for e-commerce enrichment (og:type set via openGraph.type above)
-            'product:price:amount': design.price?.toString() || '',
+            'product:price:amount': (design.price && design.price > 0) ? Math.round(design.price).toString() : FALLBACK_MIN_PRICE.toString(),
             'product:price:currency': 'PHP',
         },
     }
@@ -333,7 +345,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
     } else {
         baseOffersWrapper = {
             '@type': 'Offer',
-            price: design.price ? Math.round(design.price).toString() : '0',
+            price: (design.price && design.price > 0) ? Math.round(design.price).toString() : FALLBACK_MIN_PRICE.toString(),
             priceCurrency: 'PHP',
             availability: 'https://schema.org/InStock',
             itemCondition: 'https://schema.org/NewCondition',
@@ -810,13 +822,15 @@ export default async function RecentSearchPage({ params }: Props) {
     }
 
     const seoAnalysis = design.analysis_json || {};
-    const seoCakeType = (seoAnalysis.cakeType as CakeType) || 'custom';
+    const seoCakeType: CakeType = VALID_CAKE_TYPES.includes(seoAnalysis.cakeType as CakeType)
+        ? (seoAnalysis.cakeType as CakeType)
+        : '1 Tier';
 
     // Fetch SEO data in parallel to reduce server wait time without changing rendered content.
     let prices: BasePriceInfo[] = [];
     let relatedDesigns: any[] = [];
     const [pricesResult, relatedDesignsResult] = await Promise.allSettled([
-        getCakeBasePriceOptions(seoCakeType, '4 in'),
+        getCakeBasePriceOptions(seoCakeType, CAKE_TYPE_THICKNESS_MAP[seoCakeType] || '4 in'),
         getRelatedProductsByKeywords(design.keywords, slug, 6, 0),
     ]);
 
