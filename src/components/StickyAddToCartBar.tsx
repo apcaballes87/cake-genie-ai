@@ -94,7 +94,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
 }) => {
     const show = Boolean(price !== null || error || isAnalyzing || warningMessage || hasPendingDesignChanges || isApplyingChanges || availability);
 
-    const showAvailability = Boolean(availability);
+    const showAvailability = Boolean(availability && !isAnalyzing);
 
 
     const [isCompact, setIsCompact] = React.useState(false);
