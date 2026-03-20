@@ -445,7 +445,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         itemParams: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
         options?: { skipOptimistic?: boolean }
     ) => {
-        const tempId = `temp-${Date.now()}`;
+        const tempId = uuidv4();
         const now = new Date().toISOString();
 
         const expiresAt = new Date();
@@ -503,7 +503,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         initialItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
         uploadTask: Promise<{ originalImageUrl: string; finalImageUrl: string }>
     ) => {
-        const tempId = `temp-${Date.now()}`;
+        const tempId = uuidv4();
         const now = new Date().toISOString();
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 7);

@@ -1251,7 +1251,7 @@ export async function addManyToCart(
 
     const results = new Array(items.length);
     for (let i = 0; i < items.length; i++) {
-        results[i] = addToCart(items[i]).catch(() => ({ data: null, error: new Error('Unknown catch block error') }));
+        results[i] = addToCart(itemsToInsert[i]).catch(() => ({ data: null, error: new Error('Unknown catch block error') }));
     }
 
     const settledResults = await Promise.all(results);
