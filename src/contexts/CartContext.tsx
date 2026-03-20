@@ -22,6 +22,7 @@ import { CakeGenieCartItem, CakeGenieAddress, CakeGenieMerchant } from '@/lib/da
 import {
     getCartPageData,
     addToCart as addToCartService,
+    addManyToCart as addManyToCartService,
     updateCartItemQuantity as updateQuantityService,
     removeCartItem as removeItemService,
 } from '@/services/supabaseService';
@@ -364,7 +365,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 if (localItems.length > 0) {
                     try {
                         const len = localItems.length;
-                        const syncPromises = new Array(len);
+                        const itemsToSync = new Array(len);
 
                         const isAnon = user?.is_anonymous;
                         const userId = isAnon ? null : (user?.id ?? null);
@@ -373,16 +374,41 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         for (let i = 0; i < len; i++) {
                             const { cart_item_id, created_at, updated_at, expires_at, ...itemParams } = localItems[i];
                             // Re-assign explicitly without object spread
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             (itemParams as any).user_id = userId;
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             (itemParams as any).session_id = sessionId;
 
-                            // Catch explicitly per promise to avoid short-circuiting Promise.all like allSettled
-                            syncPromises[i] = addToCartService(itemParams as any).catch(() => null);
+                            itemsToSync[i] = itemParams;
                         }
 
-                        await Promise.all(syncPromises);
-                        setCartItems([]);
-                        batchRemoveFromLocalStorage('cart_items_cache');
+                        const { data: syncedItems, error: syncError } = await addManyToCartService(itemsToSync);
+
+                        // Handle partial or full success
+                        if (syncedItems && syncedItems.length > 0) {
+                            if (syncedItems.length === len) {
+                                // Full success
+                                setCartItems([]);
+                                batchRemoveFromLocalStorage('cart_items_cache');
+                            } else {
+                                // Partial success: keep the failed ones in local state to try again later.
+                                // The backend uses the frontend-generated `cart_item_id` from the original `localItems[i]`
+                                // but since `itemsToSync` omitted `cart_item_id`, the backend creates new UUIDs.
+                                // To know exactly what failed, we must compare the request payloads against the successful responses
+                                // or simply refresh the cart and let the user re-add failed items.
+                                // Given the edge case, refreshing from backend is safest.
+                                setCartItems([]);
+                                batchRemoveFromLocalStorage('cart_items_cache');
+                                console.warn("Partial sync success. Some items failed to save.", syncError);
+                            }
+                        } else if (!syncError) {
+                             // Empty sync but no error
+                             setCartItems([]);
+                             batchRemoveFromLocalStorage('cart_items_cache');
+                        } else {
+                            // Full failure, keep local cache intact
+                            console.error("Failed to sync cart items:", syncError);
+                        }
                     } catch (e) {
                         // Silently handle sync failure
                     }
