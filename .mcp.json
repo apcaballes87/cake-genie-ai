@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "keyword-discovery": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/home/user/cake-genie-ai/mcp-gsc/dist/index.js"]
+    }
+  }
+}
