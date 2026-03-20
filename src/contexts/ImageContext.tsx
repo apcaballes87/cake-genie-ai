@@ -14,50 +14,112 @@ import { hasBoundingBoxData } from '@/lib/utils/analysisUtils'
 import { COMMON_ASSETS } from '@/constants'
 import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers'
 
+/** Sentinel value returned when pHash generation fails or produces a degenerate hash. */
+const PHASH_FAILED = null;
+
 /**
  * Generates a perceptual hash (pHash) for an image.
  * This creates a fingerprint based on visual content, not binary data.
  * @param imageSrc The data URI of the image.
- * @returns A promise that resolves to a 16-character hex string representing the hash.
+ * @returns A 16-character hex string, or null if the hash could not be reliably computed.
+ *
+ * Returns null (instead of a degenerate hash) when:
+ *  - The canvas fails to render the image (blank/transparent canvas)
+ *  - All pixels have the same luminance (solid-color image)
+ *  - The image fails to load or the canvas context is unavailable
+ *
+ * A null hash means "do not use cache" — the caller must skip both
+ * cache lookup and cache storage to avoid false matches.
  */
-async function generatePerceptualHash(imageSrc: string): Promise<string> {
-    return new Promise((resolve, reject) => {
+async function generatePerceptualHash(imageSrc: string): Promise<string | null> {
+    return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const size = 8; // Create an 8x8 grayscale image
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return reject('Could not get canvas context');
-
-            ctx.drawImage(img, 0, 0, size, size);
-            const imageData = ctx.getImageData(0, 0, size, size);
-            const grayscale = new Array(size * size);
-            let totalLuminance = 0;
-
-            for (let i = 0; i < imageData.data.length; i += 4) {
-                const r = imageData.data[i];
-                const g = imageData.data[i + 1];
-                const b = imageData.data[i + 2];
-                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-                grayscale[i / 4] = luminance;
-                totalLuminance += luminance;
-            }
-
-            const avgLuminance = totalLuminance / (size * size);
-            let hash = 0n; // Use BigInt for bitwise operations
-
-            for (let i = 0; i < grayscale.length; i++) {
-                if (grayscale[i] > avgLuminance) {
-                    hash |= 1n << BigInt(i);
+            try {
+                const canvas = document.createElement('canvas');
+                const size = 8; // Create an 8x8 grayscale image
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    console.warn('⚠️ pHash: Could not get canvas context');
+                    return resolve(PHASH_FAILED);
                 }
-            }
 
-            // Convert BigInt to a 16-character hex string
-            resolve(hash.toString(16).padStart(16, '0'));
+                ctx.drawImage(img, 0, 0, size, size);
+                const imageData = ctx.getImageData(0, 0, size, size);
+                const pixels = imageData.data;
+                const numPixels = size * size;
+                const grayscale = new Array(numPixels);
+                let totalLuminance = 0;
+
+                // Check if the canvas actually rendered anything.
+                // A blank/transparent canvas has all RGBA = (0,0,0,0).
+                let allZero = true;
+
+                for (let i = 0; i < pixels.length; i += 4) {
+                    const r = pixels[i];
+                    const g = pixels[i + 1];
+                    const b = pixels[i + 2];
+                    const a = pixels[i + 3];
+
+                    if (r !== 0 || g !== 0 || b !== 0 || a !== 0) {
+                        allZero = false;
+                    }
+
+                    const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+                    grayscale[i / 4] = luminance;
+                    totalLuminance += luminance;
+                }
+
+                // GUARD: Blank canvas — image failed to render (CORS, memory, decode failure)
+                if (allZero) {
+                    console.warn('⚠️ pHash: Canvas rendered blank — image likely failed to decode. Skipping cache.');
+                    return resolve(PHASH_FAILED);
+                }
+
+                const avgLuminance = totalLuminance / numPixels;
+
+                // GUARD: All pixels identical luminance — solid color, hash would be all-zeros
+                // Check variance: if max-min luminance spread is < 1, it's effectively uniform
+                let minLum = Infinity;
+                let maxLum = -Infinity;
+                for (let i = 0; i < numPixels; i++) {
+                    if (grayscale[i] < minLum) minLum = grayscale[i];
+                    if (grayscale[i] > maxLum) maxLum = grayscale[i];
+                }
+                if (maxLum - minLum < 1) {
+                    console.warn('⚠️ pHash: All pixels same luminance (solid color). Skipping cache.');
+                    return resolve(PHASH_FAILED);
+                }
+
+                let hash = 0n; // Use BigInt for bitwise operations
+
+                for (let i = 0; i < grayscale.length; i++) {
+                    if (grayscale[i] > avgLuminance) {
+                        hash |= 1n << BigInt(i);
+                    }
+                }
+
+                const hashStr = hash.toString(16).padStart(16, '0');
+
+                // GUARD: Final sanity check — reject all-zero hash (shouldn't happen after above checks, but belt-and-suspenders)
+                if (hashStr === '0000000000000000') {
+                    console.warn('⚠️ pHash: Computed all-zero hash. Skipping cache.');
+                    return resolve(PHASH_FAILED);
+                }
+
+                resolve(hashStr);
+            } catch (err) {
+                // Canvas operations can throw (e.g. SecurityError on tainted canvas)
+                console.warn('⚠️ pHash: Canvas operation failed:', err);
+                resolve(PHASH_FAILED);
+            }
         };
-        img.onerror = () => reject(new Error('Failed to load image for hashing.'));
+        img.onerror = () => {
+            console.warn('⚠️ pHash: Image failed to load');
+            resolve(PHASH_FAILED);
+        };
         img.src = imageSrc;
     });
 }
@@ -420,13 +482,13 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             // Validation result gates the cache hit — a rejected image must NEVER
             // return a cached result, even if pHash collides with a valid cached entry.
             const pHash = await generatePerceptualHash(imageSrc);
-            console.log(`🔍 Starting pHash cache lookup for hash: ${pHash}`);
-            const shouldUseSimilarCacheLookup = !knownSeoMetadata;
+            console.log(`🔍 pHash result: ${pHash ?? 'FAILED (null) — cache will be skipped'}`);
+            const shouldUseSimilarCacheLookup = !knownSeoMetadata && pHash !== null;
 
             const [validationClassification, cacheHitRaw] = await Promise.all([
                 // Validation — always runs, even on potential cache hits
                 validateCakeImage(compressedImageData.data, compressedImageData.mimeType).catch(() => 'valid_single_cake' as const),
-                // Cache lookup — only when not using known SEO metadata
+                // Cache lookup — only when hash is valid and not using known SEO metadata
                 shouldUseSimilarCacheLookup
                     ? findSimilarAnalysisByHash(pHash, options?.imageUrl)
                     : Promise.resolve(null),
@@ -561,14 +623,22 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                         options.onCoordinatesEnriched(enrichedResult);
                     }
 
-                    await cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache);
-                    console.log(`✅ Analysis result cached successfully with pHash: ${pHash}`);
-                    setIsAnalysisCached(true);
+                    if (pHash) {
+                        await cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache);
+                        console.log(`✅ Analysis result cached successfully with pHash: ${pHash}`);
+                        setIsAnalysisCached(true);
+                    } else {
+                        console.warn('⚠️ Skipping cache save — pHash was null (degenerate)');
+                    }
                 }).catch(async enrichmentError => {
                     // Still cache the fast result even if enrichment fails
-                    await cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache);
-                    console.log(`✅ Analysis result (fast profile) cached successfully with pHash: ${pHash}`);
-                    setIsAnalysisCached(true);
+                    if (pHash) {
+                        await cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache);
+                        console.log(`✅ Analysis result (fast profile) cached successfully with pHash: ${pHash}`);
+                        setIsAnalysisCached(true);
+                    } else {
+                        console.warn('⚠️ Skipping cache save — pHash was null (degenerate)');
+                    }
                 });
 
             } catch (error) {
