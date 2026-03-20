@@ -14,7 +14,7 @@ import LazyImage from '@/components/LazyImage'
 import NewsletterPopup from '@/components/NewsletterPopup'
 import { v4 as uuidv4 } from 'uuid'
 import { mapProductToDefaultState } from '@/utils/customizationMapper'
-import { upgradeLegacySlug } from '@/lib/utils/urlHelpers'
+import { upgradeLegacySlug, downgradeCakeSlug } from '@/lib/utils/urlHelpers'
 import { generateDesignDetails, generateDynamicFAQ } from '@/utils/designContentUtils'
 
 // ISR: Cache pages for 1 hour, then revalidate in the background.
@@ -24,6 +24,22 @@ export const revalidate = 3600;
 // Helper to fetch design by exact slug
 const getDesign = cache(async (slug: string) => {
     const supabase = await createClient()
+
+    // Before exact match: check if a legacy (downgraded) version of this slug exists.
+    // If both "modern" (color-name + cake) and "legacy" (hex, no cake) slugs exist in the DB,
+    // consolidate to the legacy version to resolve Google's "duplicate without user-selected canonical."
+    const downgradedCandidates = downgradeCakeSlug(slug);
+    for (const candidate of downgradedCandidates) {
+        const { data: downgradedData } = await supabase
+            .from('cakegenie_analysis_cache')
+            .select('slug')
+            .eq('slug', candidate)
+            .single();
+
+        if (downgradedData) {
+            permanentRedirect(`/customizing/${candidate}`);
+        }
+    }
 
     const { data: cacheData } = await supabase
         .from('cakegenie_analysis_cache')
@@ -100,6 +116,7 @@ export async function generateMetadata(
         return {
             title: 'Design Not Found',
             description: 'The requested custom cake design could not be found in our catalogue.',
+            robots: { index: false, follow: false },
         }
     }
 
@@ -145,7 +162,11 @@ export async function generateMetadata(
         description = `Customize this ${tagsPrefix}${design.keywords || 'custom'} cake design on Genie.ph. Get instant pricing from local bakers in Cebu and Cavite. ${design.alt_text || ''}`
     }
 
-    const canonicalUrl = `https://genie.ph/customizing/${slug}`
+    // Use the shortest slug form for the canonical URL: strip "-cake-" before
+    // the trailing hash so Google consolidates duplicates that differ only by
+    // the presence of "cake" in the slug (e.g., "...-cake-ffdf" → "...-ffdf").
+    const canonicalSlug = slug.replace(/-cake-([a-f0-9]{4,16})$/, '-$1')
+    const canonicalUrl = `https://genie.ph/customizing/${canonicalSlug}`
 
     return {
         title,
