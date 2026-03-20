@@ -357,91 +357,105 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 return;
             }
 
-            // --- STEP 1: CHECK CACHE FIRST (FAST PATH pHash) ---
+            // --- STEP 1: COMPRESS IMAGE + pHash CACHE LOOKUP (in parallel) ---
+            // Compression and pHash generation run concurrently to minimize latency.
+            // IMPORTANT: Validation MUST happen before we honour any cache hit —
+            // a pHash collision could otherwise return a cached result for an image
+            // that should be rejected (e.g. multiple cakes → Stranger Things cake bug).
             let uploadedImageUrl = options?.imageUrl; // Use existing URL if from web search
             let compressedImageData = imageData; // Default to original
             let finalImageBlobToCache: Blob | undefined;
 
+            // Compress first — we need compressed data for both validation and pHash
+            try {
+                const imageBlob = dataURItoBlob(imageSrc);
+                const fileToUpload = new File([imageBlob], file.name, { type: file.type });
+                finalImageBlobToCache = fileToUpload; // Default
+
+                const compressedFile = await compressImage(fileToUpload, {
+                    maxSizeMB: 0.5,
+                    maxWidthOrHeight: 1024,
+                    fileType: 'image/webp',
+                });
+                finalImageBlobToCache = compressedFile;
+
+                // Convert compressed file to base64 for AI
+                compressedImageData = await fileToBase64(compressedFile);
+
+                // Fallback resizing — guarantees we never send a massive payload to Gemini
+                if (compressedImageData.data.length > 2 * 1024 * 1024) { // > ~1.5MB base64
+                    try {
+                        const img = new Image();
+                        img.src = imageSrc;
+                        await new Promise((resolve) => { img.onload = resolve; });
+
+                        const canvas = document.createElement('canvas');
+                        const MAX_DIMENSION = 1024;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > MAX_DIMENSION) { height *= MAX_DIMENSION / width; width = MAX_DIMENSION; }
+                        } else {
+                            if (height > MAX_DIMENSION) { width *= MAX_DIMENSION / height; height = MAX_DIMENSION; }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx?.drawImage(img, 0, 0, width, height);
+
+                        const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        compressedImageData = { data: resizedDataUrl.split(',')[1], mimeType: 'image/jpeg' };
+                    } catch (resizeErr) {
+                        // Silently handle resize failure
+                    }
+                }
+            } catch (compressionErr) {
+                // Silently handle compression failure — continue with original imageData
+            }
+
+            // --- STEP 2: VALIDATE + pHash LOOKUP IN PARALLEL ---
+            // Run image validation and cache lookup simultaneously.
+            // Validation result gates the cache hit — a rejected image must NEVER
+            // return a cached result, even if pHash collides with a valid cached entry.
             const pHash = await generatePerceptualHash(imageSrc);
             console.log(`🔍 Starting pHash cache lookup for hash: ${pHash}`);
             const shouldUseSimilarCacheLookup = !knownSeoMetadata;
 
-            console.log(`🔍 Calling find_similar_analysis RPC with pHash: ${pHash}`);
-            let cacheHit = shouldUseSimilarCacheLookup
-                ? await findSimilarAnalysisByHash(pHash, options?.imageUrl)
-                : null;
+            const [validationClassification, cacheHitRaw] = await Promise.all([
+                // Validation — always runs, even on potential cache hits
+                validateCakeImage(compressedImageData.data, compressedImageData.mimeType).catch(() => 'valid_single_cake' as const),
+                // Cache lookup — only when not using known SEO metadata
+                shouldUseSimilarCacheLookup
+                    ? findSimilarAnalysisByHash(pHash, options?.imageUrl)
+                    : Promise.resolve(null),
+            ]);
+
+            // Gate: reject invalid images before honouring cache or running AI
+            const rejectionMessages: Record<string, string> = {
+                not_a_cake: "This image doesn't appear to be a cake. Please upload a cake image.",
+                non_food: "This image doesn't appear to be a cake. Please upload a cake image.",
+                multiple_cakes: "Please upload a single cake image. This image contains multiple cakes.",
+                only_cupcakes: "We currently don't process cupcake-only images. Please upload a cake design.",
+                complex_sculpture: "This cake design is too complex for online pricing. Please contact us for a custom quote.",
+                large_wedding_cake: "Large wedding cakes require in-store consultation for accurate pricing.",
+            };
+
+            if (validationClassification !== 'valid_single_cake') {
+                const message = rejectionMessages[validationClassification] ?? "This image is not suitable for processing. Please upload a valid cake image.";
+                console.log(`🚫 Validation rejected image: ${validationClassification}`);
+                onError(new Error(message));
+                return;
+            }
+
+            // Validation passed — honour cache hit if present
+            const cacheHit = cacheHitRaw;
 
             if (cacheHit) {
                 console.log(`✅ pHash Cache HIT! Found matching analysis for hash: ${pHash}`);
             } else if (shouldUseSimilarCacheLookup) {
                 console.log('⚫️ Cache MISS. No matching pHash found in database.');
-            }
-
-            // --- STEP 2: COMPRESS IMAGE FOR AI & STORAGE (ONLY ON CACHE MISS) ---
-            if (!cacheHit) {
-                try {
-                    // Compress image for both AI analysis and storage. 1024x1024 is optimal for Gemini.
-                    const imageBlob = dataURItoBlob(imageSrc);
-                    const fileToUpload = new File([imageBlob], file.name, { type: file.type });
-                    finalImageBlobToCache = fileToUpload; // Default
-
-                    const compressedFile = await compressImage(fileToUpload, {
-                        maxSizeMB: 0.5,
-                        maxWidthOrHeight: 1024,
-                        fileType: 'image/webp',
-                    });
-                    finalImageBlobToCache = compressedFile;
-
-                    // Convert compressed file to base64 for AI
-                    compressedImageData = await fileToBase64(compressedFile);
-
-                    // --- STEP 2.5: FALLBACK RESIZING (Keyhole) ---
-                    // If compression failed or result is still too large (>1MB), force resize via Canvas
-                    // This guarantees we never send a massive payload to Gemini
-                    if (compressedImageData.data.length > 2 * 1024 * 1024) { // > ~1.5MB base64
-                        try {
-                            const img = new Image();
-                            img.src = imageSrc;
-                            await new Promise((resolve) => { img.onload = resolve; });
-
-                            const canvas = document.createElement('canvas');
-                            const MAX_DIMENSION = 1024; // Force max dimension
-                            let width = img.width;
-                            let height = img.height;
-
-                            if (width > height) {
-                                if (width > MAX_DIMENSION) {
-                                    height *= MAX_DIMENSION / width;
-                                    width = MAX_DIMENSION;
-                                }
-                            } else {
-                                if (height > MAX_DIMENSION) {
-                                    width *= MAX_DIMENSION / height;
-                                    height = MAX_DIMENSION;
-                                }
-                            }
-
-                            canvas.width = width;
-                            canvas.height = height;
-                            const ctx = canvas.getContext('2d');
-                            ctx?.drawImage(img, 0, 0, width, height);
-
-                            const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.8); // Force JPEG 80%
-                            const resizedBase64 = resizedDataUrl.split(',')[1];
-
-                            compressedImageData = {
-                                data: resizedBase64,
-                                mimeType: 'image/jpeg'
-                            };
-
-                        } catch (resizeErr) {
-                            // Silently handle resize failure
-                        }
-                    }
-
-                } catch (compressionErr) {
-                    // Silently handle compression failure
-                }
             }
 
             // --- PROCESS CACHE HIT (IF ANY) ---
@@ -506,34 +520,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
                 return; // Skip compression and AI call entirely!
             }
-            // --- END OF COMPRESSION LOGIC AND CACHE CHECKS --- 
-
-            // --- STEP 2.5: IMAGE VALIDATION GATE ---
-            // Reject invalid images before spending AI quota on analysis
-            try {
-                const classification = await validateCakeImage(
-                    compressedImageData.data,
-                    compressedImageData.mimeType
-                );
-
-                const rejectionMessages: Record<string, string> = {
-                    not_a_cake: "This image doesn't appear to be a cake. Please upload a cake image.",
-                    non_food: "This image doesn't appear to be a cake. Please upload a cake image.",
-                    multiple_cakes: "Please upload a single cake image. This image contains multiple cakes.",
-                    only_cupcakes: "We currently don't process cupcake-only images. Please upload a cake design.",
-                    complex_sculpture: "This cake design is too complex for online pricing. Please contact us for a custom quote.",
-                    large_wedding_cake: "Large wedding cakes require in-store consultation for accurate pricing.",
-                };
-
-                if (classification !== 'valid_single_cake') {
-                    const message = rejectionMessages[classification] ?? "This image is not suitable for processing. Please upload a valid cake image.";
-                    onError(new Error(message));
-                    return;
-                }
-            } catch (validationErr) {
-                // If validation itself fails, continue — don't block the user
-            }
-            // --- END OF VALIDATION GATE ---
+            // --- END OF COMPRESSION LOGIC AND CACHE CHECKS ---
 
             // --- STEP 3: TWO-PHASE AI ANALYSIS ---
 
