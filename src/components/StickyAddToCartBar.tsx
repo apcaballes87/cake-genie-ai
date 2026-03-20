@@ -51,6 +51,7 @@ interface StickyAddToCartBarProps {
     onTemplateColorPickerToggle?: () => void;
     onTemplateClear?: () => void;
     onTemplateColorChange?: (color: string) => void | Promise<void>;
+    hideAiChat?: boolean;
 }
 
 const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
@@ -91,6 +92,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     onTemplateColorPickerToggle,
     onTemplateClear,
     onTemplateColorChange,
+    hideAiChat = false,
 }) => {
     const show = Boolean(price !== null || error || isAnalyzing || warningMessage || hasPendingDesignChanges || isApplyingChanges || availability);
 
@@ -129,7 +131,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             );
         }
         if (isLoading) return <span className="text-sm text-slate-500">Calculating...</span>;
-        if (error) return <span className="text-sm font-semibold text-red-600">Pricing Error</span>;
+        if (error) return <span className="text-sm font-semibold text-red-600">{error.includes('AI') ? 'Analysis Error' : 'Pricing Error'}</span>;
         if (price !== null) {
             return (
                 <div className="text-left">
@@ -233,7 +235,8 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             {/* Bottom Section: Main Action Bar (z-90) */}
             <div className={`fixed bottom-0 left-0 right-0 z-90 pointer-events-none transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}>
                 <div className="relative pointer-events-auto bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[20px] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] border-t border-slate-200">
-                    <div className="max-w-4xl mx-auto mb-2 relative bg-white border border-slate-200 rounded-2xl p-0 shadow-inner transition-all" ref={containerRef}>
+                    {!hideAiChat && (
+                        <div className="max-w-4xl mx-auto mb-2 relative bg-white border border-slate-200 rounded-2xl p-0 shadow-inner transition-all" ref={containerRef}>
                         {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isApplyingChanges && (
                             <div className="absolute left-0 right-0 bottom-full mb-3 z-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
                                 <div className="max-h-35 overflow-y-auto py-1">
@@ -357,6 +360,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                             </div>
                         )}
                     </div>
+                    )}
                     <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
                         <div className="min-w-[100px] min-h-[44px] flex items-center relative">
                             {renderPrice()}
