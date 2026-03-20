@@ -175,6 +175,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                     onClick={() => {
                                         onIcingTypeChange?.('soft_icing');
                                         setShowIcingChoice(false);
+                                        setActiveCustomization('options');
                                     }}
                                     className="px-4 py-1.5 rounded-full bg-purple-600 text-white text-[11px] font-bold hover:bg-purple-700 transition-colors shadow-sm"
                                 >
