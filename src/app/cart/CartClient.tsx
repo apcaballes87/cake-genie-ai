@@ -740,26 +740,26 @@ function CartClient() {
         }
     };
 
-    const getMissingRequirements = () => {
-        const missing: string[] = [];
-        if (!eventDate) missing.push('Date of Event');
-        if (!eventTime) missing.push('Time of Event');
+    const getMissingRequirements = (): { label: string; scrollId: string }[] => {
+        const missing: { label: string; scrollId: string }[] = [];
+        if (!eventDate) missing.push({ label: 'Date of Event', scrollId: 'cart-date-section' });
+        if (!eventTime) missing.push({ label: 'Time of Event', scrollId: 'cart-time-section' });
 
         // Address is only required for delivery orders
         if (fulfillmentType === 'delivery') {
-            if (isAnonymous && !guestEmail) missing.push('Email Address');
+            if (isAnonymous && !guestEmail) missing.push({ label: 'Email Address', scrollId: 'guestEmail' });
 
             if (isAddingAddress || (isAnonymous && !guestAddress)) {
-                if (!isPendingAddressValid) missing.push('Delivery Address');
+                if (!isPendingAddressValid) missing.push({ label: 'Delivery Address', scrollId: 'cart-address-section' });
             } else {
-                if (!isAnonymous && !selectedAddress) missing.push('Delivery Address');
-                if (isAnonymous && !guestAddress) missing.push('Delivery Address');
+                if (!isAnonymous && !selectedAddress) missing.push({ label: 'Delivery Address', scrollId: 'cart-address-section' });
+                if (isAnonymous && !guestAddress) missing.push({ label: 'Delivery Address', scrollId: 'cart-address-section' });
             }
         } else {
             // For pickup, still require email for anonymous users (for order receipt)
-            if (isAnonymous && !guestEmail) missing.push('Email Address');
-            if (!pickupRecipientName) missing.push('Contact Name');
-            if (!pickupRecipientPhone) missing.push('Contact Number');
+            if (isAnonymous && !guestEmail) missing.push({ label: 'Email Address', scrollId: 'guestEmailPickup' });
+            if (!pickupRecipientName) missing.push({ label: 'Contact Name', scrollId: 'pickupRecipientName' });
+            if (!pickupRecipientPhone) missing.push({ label: 'Contact Number', scrollId: 'pickupRecipientPhone' });
         }
 
         return missing;
@@ -773,7 +773,7 @@ function CartClient() {
 
         const missing = getMissingRequirements();
         if (missing.length > 0) {
-            showError(`Please fill in: ${missing.join(', ')}`);
+            showError(`Please fill in: ${missing.map(m => m.label).join(', ')}`);
             return;
         }
 
@@ -953,7 +953,7 @@ function CartClient() {
 
         const missing = getMissingRequirements();
         if (missing.length > 0) {
-            showError(`Please fill in: ${missing.join(', ')}`);
+            showError(`Please fill in: ${missing.map(m => m.label).join(', ')}`);
             return;
         }
 
@@ -1231,7 +1231,7 @@ function CartClient() {
 
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-1 gap-4">
-                                        <div>
+                                        <div id="cart-date-section">
                                             <div className="flex items-center gap-2 mb-1 relative z-10">
                                                 <label htmlFor="eventDate" className="block text-sm font-medium text-slate-600">Date of Event</label>
                                                 <div className="relative" ref={monthPickerRef}>
@@ -1340,7 +1340,7 @@ function CartClient() {
                                                 </div>
                                             )}
                                         </div>
-                                        <div>
+                                        <div id="cart-time-section">
                                             <label htmlFor="eventTime" className="block text-sm font-medium text-slate-600 mb-1">Time of Event</label>
                                             <div className="relative">
                                                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -1518,31 +1518,29 @@ function CartClient() {
                                             )}
 
                                             {!isAuthenticated && (
-                                                <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 space-y-6">
+                                                <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
                                                     <div className="text-center space-y-3">
-                                                        <h3 className="font-semibold text-slate-800">Have an account?</h3>
-                                                        <p className="text-sm text-slate-600">Sign in to access your saved order history.</p>
-                                                        <button
-                                                            onClick={() => router.push('/login')}
-                                                            className="w-full bg-white border border-slate-300 text-slate-700 font-semibold py-2.5 px-6 rounded-lg shadow-sm hover:bg-slate-50 hover:shadow transition-all text-sm"
-                                                        >
-                                                            Sign In / Create Account
-                                                        </button>
-                                                    </div>
-                                                    <div className="relative flex items-center py-2">
-                                                        <div className="grow border-t border-slate-300"></div>
-                                                        <span className="shrink-0 mx-4 text-slate-400 text-xs font-medium uppercase tracking-wider">Or continue as guest</span>
-                                                        <div className="grow border-t border-slate-300"></div>
-                                                    </div>
-                                                    <div className="text-center space-y-3">
+                                                        <h3 className="font-semibold text-slate-800">Almost there!</h3>
+                                                        <p className="text-sm text-slate-600">Enter your email so we can send your receipt and order updates.</p>
                                                         <button
                                                             onClick={handleGuestCheckout}
                                                             disabled={isGuestLoading}
                                                             className="w-full bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all text-sm disabled:opacity-70 disabled:hover:scale-100 flex justify-center items-center"
                                                         >
-                                                            {isGuestLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Setting up guest session...</> : 'Continue as Guest'}
+                                                            {isGuestLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Setting up...</> : 'Continue as Guest'}
                                                         </button>
                                                     </div>
+                                                    <p className="text-xs text-center text-slate-400">
+                                                        Have an account?{' '}
+                                                        <button
+                                                            onClick={() => router.push('/login')}
+                                                            className="text-pink-600 font-semibold hover:underline"
+                                                            tabIndex={0}
+                                                            aria-label="Sign in to your account"
+                                                        >
+                                                            Sign In
+                                                        </button>
+                                                    </p>
                                                 </div>
                                             )}
 
@@ -1553,7 +1551,7 @@ function CartClient() {
                                         </div>
                                     ) : (
                                         /* ---- DELIVERY UI (existing) ---- */
-                                        <>
+                                        <div id="cart-address-section">
                                             {isAddressesLoading ? (
                                                 <div className="flex justify-center items-center h-24"><Loader2 className="w-6 h-6 animate-spin text-purple-500" /></div>
                                             ) : isAuthenticated ? (
@@ -1666,35 +1664,30 @@ function CartClient() {
                                                     )}
                                                 </>
                                             ) : (
-                                                <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 space-y-6">
+                                                <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
                                                     <div className="text-center space-y-3">
-                                                        <h3 className="font-semibold text-slate-800">Have an account?</h3>
-                                                        <p className="text-sm text-slate-600">Sign in to access your saved addresses and loyalty points.</p>
-                                                        <button
-                                                            onClick={() => router.push('/login')}
-                                                            className="w-full bg-white border border-slate-300 text-slate-700 font-semibold py-2.5 px-6 rounded-lg shadow-sm hover:bg-slate-50 hover:shadow transition-all text-sm"
-                                                        >
-                                                            Sign In / Create Account
-                                                        </button>
-                                                    </div>
-
-                                                    <div className="relative flex items-center py-2">
-                                                        <div className="grow border-t border-slate-300"></div>
-                                                        <span className="shrink-0 mx-4 text-slate-400 text-xs font-medium uppercase tracking-wider">Or continue as guest</span>
-                                                        <div className="grow border-t border-slate-300"></div>
-                                                    </div>
-
-                                                    <div className="text-center space-y-3">
-                                                        <h3 className="font-semibold text-slate-800">New to Cake Genie?</h3>
-                                                        <p className="text-sm text-slate-600">You can checkout without creating an account.</p>
+                                                        <h3 className="font-semibold text-slate-800">Where should we deliver?</h3>
+                                                        <p className="text-sm text-slate-600">Continue as guest to enter your delivery address and email.</p>
                                                         <button
                                                             onClick={handleGuestCheckout}
                                                             disabled={isGuestLoading}
                                                             className="w-full bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all text-sm disabled:opacity-70 disabled:hover:scale-100 flex justify-center items-center"
                                                         >
-                                                            {isGuestLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Setting up guest session...</> : 'Continue as Guest'}
+                                                            {isGuestLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Setting up...</> : 'Continue as Guest'}
                                                         </button>
                                                     </div>
+                                                    <p className="text-xs text-center text-slate-400">
+                                                        Have an account?{' '}
+                                                        <button
+                                                            onClick={() => router.push('/login')}
+                                                            className="text-pink-600 font-semibold hover:underline"
+                                                            tabIndex={0}
+                                                            aria-label="Sign in to your account"
+                                                        >
+                                                            Sign In
+                                                        </button>
+                                                        {' '}to use saved addresses.
+                                                    </p>
                                                 </div>
                                             )}
 
@@ -1702,7 +1695,7 @@ function CartClient() {
                                                 <label htmlFor="deliveryInstructions" className="block text-sm font-medium text-slate-600 mb-1">Delivery Instructions (Optional)</label>
                                                 <textarea id="deliveryInstructions" value={deliveryInstructions} onChange={(e) => setDeliveryInstructions(e.target.value)} className={inputStyle} placeholder="e.g., landmark, contact person" rows={2}></textarea>
                                             </div>
-                                        </>
+                                        </div>
                                     )}
                                 </div>
 
@@ -1781,7 +1774,14 @@ function CartClient() {
 
                                         <div className="flex justify-between text-sm text-gray-600">
                                             <span>{fulfillmentType === 'pickup' ? 'Pick-Up Fee:' : 'Delivery Fee:'}</span>
-                                            <span>{fulfillmentType === 'pickup' ? 'Free' : `₱${deliveryFee.toFixed(2)}`}</span>
+                                            <span>
+                                                {fulfillmentType === 'pickup'
+                                                    ? 'Free'
+                                                    : (!selectedAddress && !guestAddress && !pendingAddressData?.city && !derivedCity)
+                                                        ? <span className="text-slate-400 italic">Depends on area</span>
+                                                        : `₱${deliveryFee.toFixed(2)}`
+                                                }
+                                            </span>
                                         </div>
 
                                         {appliedDiscount && (
@@ -1818,8 +1818,28 @@ function CartClient() {
                                     )}
 
                                     {getMissingRequirements().length > 0 && (
-                                        <div className="text-center p-2 mb-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium animate-fade-in">
-                                            Please complete: {getMissingRequirements().join(', ')}
+                                        <div className="text-center p-3 mb-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium animate-fade-in">
+                                            <p className="mb-1.5">Please complete the following:</p>
+                                            <div className="flex flex-wrap justify-center gap-1.5">
+                                                {getMissingRequirements().map(item => (
+                                                    <button
+                                                        key={item.scrollId}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const el = document.getElementById(item.scrollId);
+                                                            if (el) {
+                                                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                                el.classList.add('ring-2', 'ring-red-400', 'ring-offset-2');
+                                                                setTimeout(() => el.classList.remove('ring-2', 'ring-red-400', 'ring-offset-2'), 2000);
+                                                            }
+                                                        }}
+                                                        className="px-2.5 py-1 bg-red-100 hover:bg-red-200 rounded-full text-red-700 font-semibold transition-colors underline underline-offset-2 cursor-pointer"
+                                                        aria-label={`Scroll to ${item.label}`}
+                                                    >
+                                                        {item.label}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
 
@@ -1848,6 +1868,7 @@ function CartClient() {
                                             )}
                                         </button>
 
+                                        {/* Split with Friends — hidden for now, re-enable by removing the hidden class */}
                                         <button
                                             onClick={() => setIsSplitModalOpen(true)}
                                             disabled={
@@ -1855,15 +1876,15 @@ function CartClient() {
                                                 isCreatingPayment ||
                                                 getMissingRequirements().length > 0
                                             }
-                                            className="flex-1 py-4 px-4 bg-white border-2 border-pink-500 text-pink-500 font-bold rounded-full hover:bg-pink-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="hidden flex-1 py-4 px-4 bg-white border-2 border-pink-500 text-pink-500 font-bold rounded-full hover:bg-pink-50 transition-colors items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <Users className="w-5 h-5" />
                                             <span>Split with Friends</span>
                                         </button>
                                     </div>
 
-                                    {/* Split with Friends explanation */}
-                                    <p className="text-xs text-center text-slate-500 mt-2">
+                                    {/* Split with Friends explanation — hidden for now */}
+                                    <p className="hidden text-xs text-center text-slate-500 mt-2">
                                         Share a payment link with friends, they chip in via GCash
                                     </p>
                                 </div>

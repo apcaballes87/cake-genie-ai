@@ -5,10 +5,11 @@ import { createPortal } from 'react-dom';
 import { useAddAddress, useUpdateAddress } from '@/hooks/useAddresses';
 import { showSuccess, showError } from '@/lib/utils/toast';
 import { CakeGenieAddress } from '@/lib/database.types';
-import { Loader2, MapPin, X } from 'lucide-react';
+import { Loader2, MapPin, X, AlertTriangle } from 'lucide-react';
 import { GOOGLE_MAPS_API_KEY } from '@/config';
 import { GoogleMap } from '@react-google-maps/api';
 import { useGoogleMapsLoader, GoogleMapsLoaderProvider } from '@/contexts/GoogleMapsLoaderContext';
+import { CITIES_AND_BARANGAYS } from '@/constants';
 import LazyImage from './LazyImage';
 
 declare const google: any;
@@ -44,6 +45,17 @@ const SERVICEABLE_AREAS = [
     'Cebu City', 'Mandaue City', 'Talisay City', 'Lapu-Lapu City', 'Cordova', 'Liloan',
     'Mandaue', 'Talisay', 'Lapu-lapu', 'Consolacion'
 ];
+
+// Approximate city-center coordinates for manual address mode (when Google Maps is unavailable)
+const CITY_CENTER_COORDS: Record<string, { lat: number; lng: number }> = {
+    'Cebu City': { lat: 10.3157, lng: 123.8854 },
+    'Mandaue City': { lat: 10.3236, lng: 123.9223 },
+    'Talisay City': { lat: 10.2447, lng: 123.8494 },
+    'Lapu-lapu City': { lat: 10.3103, lng: 123.9494 },
+    'Cordova': { lat: 10.2546, lng: 123.9528 },
+    'Liloan': { lat: 10.4000, lng: 123.9980 },
+    'Consolacion': { lat: 10.3770, lng: 123.9617 },
+};
 
 const checkServiceability = (components: google.maps.GeocoderAddressComponent[]): { isServiceable: boolean; city: string | null } => {
     if (!components) return { isServiceable: false, city: null };
@@ -341,6 +353,10 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
     const addAddressMutation = useAddAddress();
     const updateAddressMutation = useUpdateAddress();
     const [isPickerModalOpen, setIsPickerModalOpen] = useState(false);
+    const { isLoaded, loadError } = useGoogleMapsLoader();
+
+    // Manual mode activates when Google Maps fails to load
+    const isManualMode = !!loadError;
 
     // Form state
     const [recipientName, setRecipientName] = useState('');
@@ -358,7 +374,10 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
     // Report changes to parent
     useEffect(() => {
         if (onFormChange) {
-            const isValid = !!(recipientName && recipientPhone && streetAddress && latitude && longitude);
+            // In manual mode, lat/lng are optional (we use approximate city-center coords)
+            const isValid = isManualMode
+                ? !!(recipientName && recipientPhone && streetAddress && city)
+                : !!(recipientName && recipientPhone && streetAddress && latitude && longitude);
             const data: Partial<CakeGenieAddress> = {
                 recipient_name: recipientName,
                 recipient_phone: recipientPhone,
@@ -377,7 +396,7 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
             };
             onFormChange(data, isValid);
         }
-    }, [recipientName, recipientPhone, streetAddress, addressLabel, isDefault, latitude, longitude, city, onFormChange]);
+    }, [recipientName, recipientPhone, streetAddress, addressLabel, isDefault, latitude, longitude, city, isManualMode, onFormChange]);
 
     useEffect(() => {
         if (initialData) {
@@ -405,16 +424,29 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        if (!recipientName || !recipientPhone || !streetAddress || !latitude || !longitude) {
-            showError("Please fill in recipient details and set a location on the map.");
-            return;
+
+        // In manual mode, validate without lat/lng
+        if (isManualMode) {
+            if (!recipientName || !recipientPhone || !streetAddress || !city) {
+                showError("Please fill in all required fields including your city.");
+                return;
+            }
+        } else {
+            if (!recipientName || !recipientPhone || !streetAddress || !latitude || !longitude) {
+                showError("Please fill in recipient details and set a location on the map.");
+                return;
+            }
         }
+
+        // Use approximate city-center coords when in manual mode and no exact coords set
+        const finalLatitude = latitude ?? (isManualMode && city ? (CITY_CENTER_COORDS[city]?.lat ?? null) : null);
+        const finalLongitude = longitude ?? (isManualMode && city ? (CITY_CENTER_COORDS[city]?.lng ?? null) : null);
 
         const newAddressData: Omit<CakeGenieAddress, 'address_id' | 'created_at' | 'updated_at' | 'user_id'> = {
             recipient_name: recipientName, recipient_phone: recipientPhone, street_address: streetAddress,
             barangay: '', city: city, province: 'Cebu', postal_code: '',
             address_label: addressLabel || '', landmark: null, is_default: isDefault,
-            country: 'Philippines', latitude, longitude
+            country: 'Philippines', latitude: finalLatitude, longitude: finalLongitude
         };
 
         // GUEST MODE: Skip database save, just return the data
@@ -471,17 +503,68 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
 
                 <div>
                     <label className="block text-sm font-medium text-slate-600 mb-1">Address <span className="text-red-500">*</span></label>
-                    <button type="button" onClick={() => setIsPickerModalOpen(true)} className={`${inputStyle} text-left`}>
-                        {streetAddress ? (
-                            <div className="flex items-start gap-3">
-                                <MapPin className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
-                                <span className="text-slate-800">{streetAddress}</span>
+
+                    {isManualMode ? (
+                        /* Manual mode: city dropdown + text address (Google Maps unavailable) */
+                        <>
+                            <div className="flex items-center gap-2 p-2.5 mb-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+                                <AlertTriangle className="w-4 h-4 shrink-0" />
+                                <span>Map service is unavailable. Please enter your address manually.</span>
                             </div>
-                        ) : (
-                            <span className="text-slate-400">Set delivery location on map</span>
-                        )}
-                    </button>
-                    {latitude && longitude && <StaticMap latitude={latitude} longitude={longitude} />}
+                            <div className="mb-3">
+                                <label htmlFor="manualCity" className="block text-sm font-medium text-slate-600 mb-1">City <span className="text-red-500">*</span></label>
+                                <select
+                                    id="manualCity"
+                                    value={city}
+                                    onChange={e => {
+                                        const selectedCity = e.target.value;
+                                        setCity(selectedCity);
+                                        // Set approximate coords for delivery fee calculation
+                                        const coords = CITY_CENTER_COORDS[selectedCity];
+                                        if (coords) {
+                                            setLatitude(coords.lat);
+                                            setLongitude(coords.lng);
+                                        }
+                                    }}
+                                    className={inputStyle}
+                                    aria-label="Select your city"
+                                    required
+                                >
+                                    <option value="">Select your city</option>
+                                    {Object.keys(CITIES_AND_BARANGAYS).map(cityName => (
+                                        <option key={cityName} value={cityName}>{cityName}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="manualStreetAddress" className="block text-sm font-medium text-slate-600 mb-1">Street Address <span className="text-red-500">*</span></label>
+                                <textarea
+                                    id="manualStreetAddress"
+                                    value={streetAddress}
+                                    onChange={e => setStreetAddress(e.target.value)}
+                                    className={inputStyle}
+                                    rows={2}
+                                    placeholder="e.g., Unit 5B, The Padgett Place, Molave St, Brgy. Guadalupe"
+                                    required
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        /* Normal mode: map picker button */
+                        <>
+                            <button type="button" onClick={() => setIsPickerModalOpen(true)} className={`${inputStyle} text-left`}>
+                                {streetAddress ? (
+                                    <div className="flex items-start gap-3">
+                                        <MapPin className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
+                                        <span className="text-slate-800">{streetAddress}</span>
+                                    </div>
+                                ) : (
+                                    <span className="text-slate-400">Set delivery location on map</span>
+                                )}
+                            </button>
+                            {latitude && longitude && <StaticMap latitude={latitude} longitude={longitude} />}
+                        </>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
