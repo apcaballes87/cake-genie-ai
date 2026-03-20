@@ -593,23 +593,21 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
     }, [updateSupportElement]);
 
     const handleSwitchToSoftIcing = useCallback(() => {
-        if (!cakeInfo) {
-            console.log('[handleSwitchToSoftIcing] cakeInfo is null, aborting');
-            return;
-        }
-
         const cleanup = (str: string) => str.replace(/\s?fondant/gi, '').trim();
-        const newType = cleanup(cakeInfo.type) as CakeType;
 
-        console.log('[handleSwitchToSoftIcing] called', {
-            currentType: cakeInfo.type,
-            newType,
-            currentSize: cakeInfo.size,
+        setCakeInfo(prev => {
+            if (!prev) return prev;
+            const newType = cleanup(prev.type) as CakeType;
+            const newSize = cleanup(prev.size) as CakeSize;
+            const newThickness = cleanup(prev.thickness) as CakeThickness;
+
+            return {
+                ...prev,
+                type: newType,
+                size: newSize,
+                thickness: newThickness
+            };
         });
-
-        // Use handleCakeInfoChange so that DEFAULT_SIZE_MAP and DEFAULT_THICKNESS_MAP
-        // cascade correctly for the new (non-fondant) type
-        handleCakeInfoChange({ type: newType });
 
         setIcingDesign(prev => {
             if (!prev) return prev;
@@ -622,10 +620,11 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         setIsCustomizationDirty(true);
         setDirtyFields(prev => {
             const next = new Set(prev);
+            next.add('cakeInfo');
             next.add('icingDesign.base');
             return next;
         });
-    }, [cakeInfo, handleCakeInfoChange]);
+    }, []);
 
     // Function to sync analysisResult with current state (used after successful design update)
     const syncAnalysisResultWithCurrentState = useCallback(() => {
