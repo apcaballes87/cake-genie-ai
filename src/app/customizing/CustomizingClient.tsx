@@ -1156,13 +1156,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             }
                         },
                         (error) => {
-                            if (error instanceof Error && error.message.startsWith('AI_REJECTION:')) {
-                                setAnalysisError(error.message);
-                                showError(error.message.replace('AI_REJECTION: ', ''));
-                            } else {
-                                setAnalysisError("Failed to load product");
-                                showError("Failed to load product");
-                            }
+                            const message = error instanceof Error ? error.message : "Failed to load product";
+                            setAnalysisError(message);
+                            showError(message.replace('AI_REJECTION: ', ''));
                             setIsAnalyzing(false);
                             isLoadingDesignRef.current = false;
                         },
@@ -1219,13 +1215,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         isLoadingDesignRef.current = false;
                     },
                     (error) => {
-                        if (error instanceof Error && error.message.startsWith('AI_REJECTION:')) {
-                            setAnalysisError(error.message);
-                            showError(error.message.replace('AI_REJECTION: ', ''));
-                        } else {
-                            setAnalysisError("Failed to load product");
-                            showError("Failed to load product");
-                        }
+                        const message = error instanceof Error ? error.message : "Failed to load product";
+                        setAnalysisError(message);
+                        showError(message.replace('AI_REJECTION: ', ''));
                         setIsAnalyzing(false);
                         isLoadingDesignRef.current = false;
                     },
@@ -1326,9 +1318,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         showSuccess("Design loaded!");
                     },
                     (error: Error) => {
+                        setAnalysisError(error.message);
+                        showError("Failed to analyze image: " + error.message.replace('AI_REJECTION: ', ''));
                         setIsAnalyzing(false);
                         isLoadingShopifyCseRef.current = false;
-                        showError("Failed to analyze image: " + error.message);
                     }
                 );
 
@@ -1480,18 +1473,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     },
 
                                     (err) => {
-                                        if (err instanceof Error) {
-                                            if (err.message.startsWith('AI_REJECTION:')) {
-                                                const message = err.message;
-                                                setAnalysisError(message);
-                                                showError(message.replace('AI_REJECTION: ', ''));
-                                                // Optional: Redirect or reset state if needed
-                                            } else {
-                                                showError('Failed to analyze image. Please try again.');
-                                            }
-                                        } else {
-                                            showError('Failed to analyze image. Please try again.');
-                                        }
+                                        const message = err instanceof Error ? err.message : 'Failed to analyze image. Please try again.';
+                                        setAnalysisError(message);
+                                        showError(message.replace('AI_REJECTION: ', ''));
                                         setIsAnalyzing(false);
                                         isLoadingDesignRef.current = false; // Reset guard
                                     },
@@ -1593,8 +1577,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     },
 
                                     (error) => {
-                                        setAnalysisError("Failed to load product");
-                                        showError("Failed to load product");
+                                        const message = error instanceof Error ? error.message : "Failed to load product";
+                                        setAnalysisError(message);
+                                        showError(message.replace('AI_REJECTION: ', ''));
                                         setIsAnalyzing(false);
                                         isLoadingDesignRef.current = false;
                                     },
@@ -1742,12 +1727,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         isLoadingDesignRef.current = false;
                     },
                     (err) => {
-                        if (err instanceof Error && err.message.startsWith('AI_REJECTION:')) {
-                            setAnalysisError(err.message);
-                            showError(err.message.replace('AI_REJECTION: ', ''));
-                        } else {
-                            showError("Failed to analyze the shared design.");
-                        }
+                        const message = err instanceof Error ? err.message : "Failed to analyze the shared design.";
+                        setAnalysisError(message);
+                        showError(message.replace('AI_REJECTION: ', ''));
                         setIsAnalyzing(false);
                         isLoadingDesignRef.current = false;
                     },
