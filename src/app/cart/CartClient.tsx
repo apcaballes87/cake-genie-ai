@@ -1797,14 +1797,7 @@ function CartClient() {
                                         </div>
                                     </div>
 
-                                    <div className="pt-4">
-                                        <h3 className="text-sm font-semibold text-gray-500 mb-3 text-center">We Accept</h3>
-                                        <div className="flex flex-wrap gap-2 items-center justify-center">
-                                            {paymentMethods.map(method => (
-                                                <img key={method.name} src={method.logoUrl} alt={method.name} title={method.name} width={64} height={40} className="h-10 w-16 object-contain rounded-md bg-white p-1 border border-slate-200 shadow-sm" />
-                                            ))}
-                                        </div>
-                                    </div>
+
 
                                     {fulfillmentType === 'delivery' && (
                                         <p className="text-xs text-center text-slate-500 pt-1">
@@ -1881,6 +1874,13 @@ function CartClient() {
                                             <Users className="w-5 h-5" />
                                             <span>Split with Friends</span>
                                         </button>
+                                    </div>
+
+                                    {/* Payment method logos moved under the button */}
+                                    <div className="flex flex-wrap gap-2 items-center justify-center pt-2">
+                                        {paymentMethods.map(method => (
+                                            <img key={method.name} src={method.logoUrl} alt={method.name} title={method.name} width={48} height={30} className="h-8 w-12 object-contain rounded-md bg-white p-1 border border-slate-200 shadow-sm opacity-80" />
+                                        ))}
                                     </div>
 
                                     {/* Split with Friends explanation — hidden for now */}
