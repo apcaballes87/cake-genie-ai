@@ -593,10 +593,19 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
     }, [updateSupportElement]);
 
     const handleSwitchToSoftIcing = useCallback(() => {
-        if (!cakeInfo) return;
+        if (!cakeInfo) {
+            console.log('[handleSwitchToSoftIcing] cakeInfo is null, aborting');
+            return;
+        }
 
         const cleanup = (str: string) => str.replace(/\s?fondant/gi, '').trim();
         const newType = cleanup(cakeInfo.type) as CakeType;
+
+        console.log('[handleSwitchToSoftIcing] called', {
+            currentType: cakeInfo.type,
+            newType,
+            currentSize: cakeInfo.size,
+        });
 
         // Use handleCakeInfoChange so that DEFAULT_SIZE_MAP and DEFAULT_THICKNESS_MAP
         // cascade correctly for the new (non-fondant) type

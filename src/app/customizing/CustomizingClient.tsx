@@ -2632,85 +2632,128 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
 
-                        <CustomizingAiChatPanel
-                            className="bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200 mb-2 md:hidden"
-                            containerRef={aiChatMobileContainerRef}
-                            inputRef={aiChatMobileInputRef}
-                            chatInput={chatInput}
-                            selectedAiPromptTemplate={selectedAiPromptTemplate}
-                            selectedAiPromptColor={selectedAiPromptColor}
-                            showAiPromptColorPicker={showAiPromptColorPicker}
-                            showAiPromptSuggestions={false}
-                            filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
-                            selectedAiPromptIndex={selectedAiPromptIndex}
-                            isAiProcessing={isAiProcessing}
-                            isUpdatingDesign={isUpdatingDesign}
-                            onSubmit={handleChatSubmit}
-                            onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
-                            onTemplateClear={handleAiPromptTemplateClear}
-                            onTemplateColorChange={handleAiPromptTemplateColorChange}
-                            onInputChange={handleAiChatInputChange}
-                            onInputInteract={handleMainChatInputInteract}
-                            onInputKeyDown={handleAiPromptInputKeyDown}
-                            onSuggestionSelect={handleAiPromptSuggestionSelect}
-                        />
+                        {!analysisError && (
+                            <CustomizingAiChatPanel
+                                className="bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200 mb-2 md:hidden"
+                                containerRef={aiChatMobileContainerRef}
+                                inputRef={aiChatMobileInputRef}
+                                chatInput={chatInput}
+                                selectedAiPromptTemplate={selectedAiPromptTemplate}
+                                selectedAiPromptColor={selectedAiPromptColor}
+                                showAiPromptColorPicker={showAiPromptColorPicker}
+                                showAiPromptSuggestions={false}
+                                filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
+                                selectedAiPromptIndex={selectedAiPromptIndex}
+                                isAiProcessing={isAiProcessing}
+                                isUpdatingDesign={isUpdatingDesign}
+                                onSubmit={handleChatSubmit}
+                                onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
+                                onTemplateClear={handleAiPromptTemplateClear}
+                                onTemplateColorChange={handleAiPromptTemplateColorChange}
+                                onInputChange={handleAiChatInputChange}
+                                onInputInteract={handleMainChatInputInteract}
+                                onInputKeyDown={handleAiPromptInputKeyDown}
+                                onSuggestionSelect={handleAiPromptSuggestionSelect}
+                            />
+                        )}
 
-                        <CustomizingStepSummarySections
-                            layout="mobile"
-                            cakeInfo={cakeInfo}
-                            icingDesign={icingDesign}
-                            cakeMessages={cakeMessages}
-                            mainToppers={mainToppers}
-                            supportElements={supportElements}
-                            markerMap={markerMap}
-                            itemPrices={itemPrices}
-                            isAdmin={isAdmin}
-                            isAnalyzing={isAnalyzing}
-                            isRejectionError={isRejectionError}
-                            activeCustomization={activeCustomization}
-                            selectedItemId={selectedItem?.id ?? null}
-                            setActiveCustomization={setActiveCustomization}
-                            setSelectedItem={setSelectedItem}
-                            removeCakeMessage={removeCakeMessage}
-                            updateMainTopper={updateMainTopper}
-                            updateSupportElement={updateSupportElement}
-                            onTopperImageReplace={onTopperImageReplace}
-                            onSupportElementImageReplace={onSupportElementImageReplace}
-                            openTopperSheet={openTopperSheet}
-                            onIcingTypeChange={handleIcingTypeChange}
-                        />
+                        <div className="md:hidden">
+                            {analysisError ? (
+                                <div className="text-center p-6 bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-red-200 flex flex-col items-center justify-center gap-4 mt-2">
+                                    <div className="text-red-500 bg-red-50 p-3 rounded-full">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M12 8V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M12 16H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                    </div>
+                                    <h2 className="text-lg font-bold text-slate-800">Analysis Error</h2>
+                                    <p className="text-slate-600 mb-2">{analysisError.replace('AI_REJECTION: ', '')}</p>
+                                    
+                                    <div className="bg-orange-50 text-orange-800 text-sm p-4 rounded-xl text-left space-y-2 mb-2 w-full">
+                                        <p className="font-semibold text-orange-900 border-b border-orange-200 pb-1 mb-2">Tips for better results:</p>
+                                        <ul className="list-disc pl-4 space-y-1">
+                                            <li>Only add images with 1 cake</li>
+                                            <li>We only process cakes 1 to 3 tiers (for now)</li>
+                                            <li>Use clear, well-lit images</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div className="flex flex-col gap-2 w-full mt-2">
+                                        <button 
+                                            onClick={() => { clearImages(); clearCustomization(); }}
+                                            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-xl transition-colors w-full"
+                                        >
+                                            Upload Another
+                                        </button>
+                                        <button 
+                                            onClick={() => router.push('/')}
+                                            className="bg-white hover:bg-slate-50 text-slate-700 font-bold py-3 px-4 rounded-xl border border-slate-200 transition-colors w-full"
+                                        >
+                                            Go Back Home
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <CustomizingStepSummarySections
+                                    layout="mobile"
+                                    cakeInfo={cakeInfo}
+                                    icingDesign={icingDesign}
+                                    cakeMessages={cakeMessages}
+                                    mainToppers={mainToppers}
+                                    supportElements={supportElements}
+                                    markerMap={markerMap}
+                                    itemPrices={itemPrices}
+                                    isAdmin={isAdmin}
+                                    isAnalyzing={isAnalyzing}
+                                    isRejectionError={isRejectionError}
+                                    activeCustomization={activeCustomization}
+                                    selectedItemId={selectedItem?.id ?? null}
+                                    setActiveCustomization={setActiveCustomization}
+                                    setSelectedItem={setSelectedItem}
+                                    removeCakeMessage={removeCakeMessage}
+                                    updateMainTopper={updateMainTopper}
+                                    updateSupportElement={updateSupportElement}
+                                    onTopperImageReplace={onTopperImageReplace}
+                                    onSupportElementImageReplace={onSupportElementImageReplace}
+                                    openTopperSheet={openTopperSheet}
+                                    onIcingTypeChange={handleIcingTypeChange}
+                                />
+                            )}
+                        </div>
 
                     </div>
                     {/* RIGHT COLUMN: Availability at top, then Feature List */}
                     <div className="flex flex-row md:flex-col gap-2 w-[calc(100%+2rem)] md:w-[calc(50%-6px)] -mx-4 md:mx-0 overflow-x-auto md:overflow-visible scrollbar-hide snap-x snap-mandatory scroll-pl-4 pb-60 md:pb-0 -mb-60 md:mb-0 px-4 md:px-0">
                         {/* Availability Section - at top of right column */}
 
-                        <CustomizingAiChatPanel
-                            className="hidden md:block bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200 mb-2"
-                            containerRef={aiChatDesktopContainerRef}
-                            inputRef={aiChatDesktopInputRef}
-                            chatInput={chatInput}
-                            selectedAiPromptTemplate={selectedAiPromptTemplate}
-                            selectedAiPromptColor={selectedAiPromptColor}
-                            showAiPromptColorPicker={showAiPromptColorPicker}
-                            showAiPromptSuggestions={false}
-                            filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
-                            selectedAiPromptIndex={selectedAiPromptIndex}
-                            isAiProcessing={isAiProcessing}
-                            isUpdatingDesign={isUpdatingDesign}
-                            onSubmit={handleChatSubmit}
-                            onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
-                            onTemplateClear={handleAiPromptTemplateClear}
-                            onTemplateColorChange={handleAiPromptTemplateColorChange}
-                            onInputChange={handleAiChatInputChange}
-                            onInputInteract={handleMainChatInputInteract}
-                            onInputKeyDown={handleAiPromptInputKeyDown}
-                            onSuggestionSelect={handleAiPromptSuggestionSelect}
-                        />
+                        {!analysisError && (
+                            <CustomizingAiChatPanel
+                                className="hidden md:block bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200 mb-2"
+                                containerRef={aiChatDesktopContainerRef}
+                                inputRef={aiChatDesktopInputRef}
+                                chatInput={chatInput}
+                                selectedAiPromptTemplate={selectedAiPromptTemplate}
+                                selectedAiPromptColor={selectedAiPromptColor}
+                                showAiPromptColorPicker={showAiPromptColorPicker}
+                                showAiPromptSuggestions={false}
+                                filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
+                                selectedAiPromptIndex={selectedAiPromptIndex}
+                                isAiProcessing={isAiProcessing}
+                                isUpdatingDesign={isUpdatingDesign}
+                                onSubmit={handleChatSubmit}
+                                onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
+                                onTemplateClear={handleAiPromptTemplateClear}
+                                onTemplateColorChange={handleAiPromptTemplateColorChange}
+                                onInputChange={handleAiChatInputChange}
+                                onInputInteract={handleMainChatInputInteract}
+                                onInputKeyDown={handleAiPromptInputKeyDown}
+                                onSuggestionSelect={handleAiPromptSuggestionSelect}
+                            />
+                        )}
 
                         <CustomizingSidebarPanel
                             showLoadingState={isAnalyzing || (isLoading && !isDesignSaved)}
-                            showContentState={Boolean(cakeInfo || analysisError)}
+                            showContentState={Boolean(cakeInfo)}
+                            analysisError={analysisError}
+                            onUploadAnother={() => { clearImages(); clearCustomization(); }}
+                            onGoBackHome={() => router.push('/')}
                             stepSummaryProps={{
                                 cakeInfo,
                                 icingDesign,
@@ -2891,7 +2934,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     price={finalPrice}
                     isLoading={isFetchingBasePrice}
                     isAdding={isAddingToCart}
-                    error={basePriceError}
+                    error={basePriceError || analysisError || null}
                     onAddToCartClick={onAddToCart}
                     onShareClick={onShare}
                     isSharing={isSharing}
@@ -2924,6 +2967,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
                     onTemplateClear={handleAiPromptTemplateClear}
                     onTemplateColorChange={handleAiPromptTemplateColorChange}
+                    hideAiChat={!!analysisError}
                 />
                 <ReportModal
                     isOpen={isReportModalOpen}
