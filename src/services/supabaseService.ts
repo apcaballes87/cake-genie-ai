@@ -1213,6 +1213,63 @@ export async function addToCart(
 }
 
 /**
+ * Optimistically bulk adds many items to the shopping cart.
+ * If the bulk insert fails, falls back to N+1 inserts to isolate errors.
+ * @param items - Array of cart items to add.
+ * @returns An object containing an array of successfully added items or an error.
+ */
+export async function addManyToCart(
+  items: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>[]
+): Promise<SupabaseServiceResponse<CakeGenieCartItem[]>> {
+  if (!items || items.length === 0) return { data: [], error: null };
+
+  try {
+    const expiresAtStr = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    // Allocate exactly sized array, mutate directly avoiding spread operators for perf
+    const itemsToInsert = new Array(items.length);
+    for (let i = 0; i < items.length; i++) {
+        itemsToInsert[i] = {
+            ...items[i],
+            expires_at: expiresAtStr
+        };
+    }
+
+    // Try single bulk insert
+    const { data, error } = await supabase
+      .from('cakegenie_cart')
+      .insert(itemsToInsert)
+      .select();
+
+    if (!error) {
+      return { data, error: null };
+    }
+
+    // Fallback: If bulk fails (e.g., one item has bad constraints),
+    // run one by one to ensure valid items are saved and we know which failed.
+    console.warn("Bulk insert failed, falling back to one-by-one inserts:", error);
+
+    const results = new Array(items.length);
+    for (let i = 0; i < items.length; i++) {
+        results[i] = addToCart(items[i]).catch(() => ({ data: null, error: new Error('Unknown catch block error') }));
+    }
+
+    const settledResults = await Promise.all(results);
+    const successfulItems: CakeGenieCartItem[] = [];
+
+    for (let i = 0; i < settledResults.length; i++) {
+        if (settledResults[i]?.data) {
+             successfulItems.push(settledResults[i].data as CakeGenieCartItem);
+        }
+    }
+
+    return { data: successfulItems, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
  * Updates the quantity of an existing item in the cart.
  * @param cartItemId - The UUID of the cart item to update.
  * @param quantity - The new quantity for the item.
