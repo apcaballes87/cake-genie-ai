@@ -2,7 +2,7 @@ import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.type
 import { BasePriceInfo } from '@/types';
 
 // JSON-LD Schema for Product (Schema.org)
-export function ProductSchema({ product, merchant, prices, ratingValue, reviewCount }: { product: CakeGenieMerchantProduct; merchant: CakeGenieMerchant; prices?: BasePriceInfo[]; ratingValue?: string; reviewCount?: string }) {
+export function ProductSchema({ product, merchant, prices, ratingValue, reviewCount, imageWidth, imageHeight }: { product: CakeGenieMerchantProduct; merchant: CakeGenieMerchant; prices?: BasePriceInfo[]; ratingValue?: string; reviewCount?: string; imageWidth?: number | null; imageHeight?: number | null }) {
     // Sanitize string to prevent script injection in JSON-LD
     const sanitize = (str: string | undefined | null) => str ? str.replace(/<\/script/g, '<\\/script') : '';
     const pageUrl = `https://genie.ph/shop/${merchant.slug}/${product.slug}`;
@@ -74,8 +74,8 @@ export function ProductSchema({ product, merchant, prices, ratingValue, reviewCo
         '@type': 'ImageObject',
         url: product.image_url,
         contentUrl: product.image_url,
-        width: 1200, // Best practice estimate if actual not valid, or valid if available
-        height: 1200,
+        width: imageWidth || 1200,
+        height: imageHeight || 1200,
         caption: sanitize(product.alt_text || product.title),
         creditText: sanitize(merchant.business_name),
         creator: {
