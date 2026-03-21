@@ -16,17 +16,65 @@ import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
 const PHASH_FAILED = null;
 
 /**
- * Generates a perceptual hash (pHash) for an image.
- * Returns null if the hash could not be reliably computed (blank canvas, solid color, CORS error).
- * A null hash means "do not use cache" — skip both lookup and storage.
+ * Generates a perceptual hash (pHash) for an image with a specific scale factor.
+ * Creates a scaled-down version of the image before processing.
+ * @param imageSrc The data URI of the image.
+ * @param scale Scale factor (0-1). 1 = original size, 0.5 = half size, 0.25 = quarter size.
+ * @returns A 16-character hex string, or null if the hash could not be reliably computed.
  */
-async function generatePerceptualHash(imageSrc: string): Promise<string | null> {
+async function generatePerceptualHashWithScale(imageSrc: string, scale: number = 1): Promise<string | null> {
     return new Promise((resolve) => {
         const img = new Image();
-        img.onload = () => {
+
+        img.onload = async () => {
             try {
+                // Strategy 1: Wait for decode (prevents "image not fully decoded" errors on mobile)
+                if (img.decode) {
+                    try {
+                        await img.decode();
+                    } catch (decodeErr) {
+                        console.warn('⚠️ pHash: decode() failed, proceeding anyway:', decodeErr);
+                    }
+                }
+
+                // Strategy 2: Resize before processing to reduce memory usage
+                const MAX_DIMENSION = 1024;
+                let width = img.naturalWidth;
+                let height = img.naturalHeight;
+
+                // Apply scale factor
+                if (scale < 1) {
+                    width = Math.floor(width * scale);
+                    height = Math.floor(height * scale);
+                }
+
+                // Limit max dimension to reduce memory usage
+                if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+                    if (width > height) {
+                        height = Math.floor((height / width) * MAX_DIMENSION);
+                        width = MAX_DIMENSION;
+                    } else {
+                        width = Math.floor((width / height) * MAX_DIMENSION);
+                        height = MAX_DIMENSION;
+                    }
+                }
+
+                // Strategy 3: Use createImageBitmap if available (more efficient memory handling)
+                let source: HTMLImageElement | ImageBitmap = img;
+                if (typeof createImageBitmap !== 'undefined' && scale === 1) {
+                    try {
+                        source = await createImageBitmap(img, {
+                            resizeWidth: 8,
+                            resizeHeight: 8,
+                            resizeQuality: 'low'
+                        });
+                    } catch (bitmapErr) {
+                        console.warn('⚠️ pHash: createImageBitmap failed, using img:', bitmapErr);
+                    }
+                }
+
                 const canvas = document.createElement('canvas');
-                const size = 8;
+                const size = 8; // Create an 8x8 grayscale image
                 canvas.width = size;
                 canvas.height = size;
                 const ctx = canvas.getContext('2d');
@@ -35,7 +83,27 @@ async function generatePerceptualHash(imageSrc: string): Promise<string | null> 
                     return resolve(PHASH_FAILED);
                 }
 
-                ctx.drawImage(img, 0, 0, size, size);
+                // If scaling, create a temporary canvas for the scaled image
+                if (scale < 1) {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = width;
+                    tempCanvas.height = height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    if (!tempCtx) {
+                        console.warn('⚠️ pHash: Could not get temp canvas context');
+                        return resolve(PHASH_FAILED);
+                    }
+                    tempCtx.drawImage(img, 0, 0, width, height);
+                    ctx.drawImage(tempCanvas, 0, 0, size, size);
+                } else {
+                    ctx.drawImage(source, 0, 0, size, size);
+                }
+
+                // Clean up bitmap if used
+                if (source instanceof ImageBitmap) {
+                    source.close();
+                }
+
                 const imageData = ctx.getImageData(0, 0, size, size);
                 const pixels = imageData.data;
                 const numPixels = size * size;
@@ -55,7 +123,7 @@ async function generatePerceptualHash(imageSrc: string): Promise<string | null> 
                 }
 
                 if (allZero) {
-                    console.warn('⚠️ pHash: Canvas rendered blank — image likely failed to decode. Skipping cache.');
+                    console.warn(`⚠️ pHash: Canvas rendered blank at scale ${scale} — image likely failed to decode. Skipping cache.`);
                     return resolve(PHASH_FAILED);
                 }
 
@@ -68,7 +136,7 @@ async function generatePerceptualHash(imageSrc: string): Promise<string | null> 
                     if (grayscale[i] > maxLum) maxLum = grayscale[i];
                 }
                 if (maxLum - minLum < 1) {
-                    console.warn('⚠️ pHash: All pixels same luminance (solid color). Skipping cache.');
+                    console.warn(`⚠️ pHash: All pixels same luminance at scale ${scale} (solid color). Skipping cache.`);
                     return resolve(PHASH_FAILED);
                 }
 
@@ -81,22 +149,68 @@ async function generatePerceptualHash(imageSrc: string): Promise<string | null> 
 
                 const hashStr = hash.toString(16).padStart(16, '0');
                 if (hashStr === '0000000000000000') {
-                    console.warn('⚠️ pHash: Computed all-zero hash. Skipping cache.');
+                    console.warn(`⚠️ pHash: Computed all-zero hash at scale ${scale}. Skipping cache.`);
                     return resolve(PHASH_FAILED);
                 }
 
                 resolve(hashStr);
             } catch (err) {
-                console.warn('⚠️ pHash: Canvas operation failed:', err);
+                console.warn(`⚠️ pHash: Canvas operation failed at scale ${scale}:`, err);
                 resolve(PHASH_FAILED);
             }
         };
+
         img.onerror = () => {
-            console.warn('⚠️ pHash: Image failed to load');
+            console.warn(`⚠️ pHash: Image failed to load at scale ${scale}`);
             resolve(PHASH_FAILED);
         };
+
         img.src = imageSrc;
     });
+}
+
+/**
+ * Generates a perceptual hash (pHash) for an image with progressive retry.
+ * If the first attempt fails, retries with half resolution, then quarter resolution.
+ * @param imageSrc The data URI of the image.
+ * @returns A 16-character hex string, or null if all attempts failed.
+ *
+ * Returns null (instead of a degenerate hash) when:
+ *  - The canvas fails to render the image (blank/transparent canvas)
+ *  - All pixels have the same luminance (solid-color image)
+ *  - The image fails to load or the canvas context is unavailable
+ *  - All retry attempts failed
+ *
+ * A null hash means "do not use cache" — the caller must skip both
+ * cache lookup and cache storage to avoid false matches.
+ */
+async function generatePerceptualHash(imageSrc: string): Promise<string | null> {
+    // Attempt 1: Full resolution (with decode + resize + createImageBitmap)
+    let hash = await generatePerceptualHashWithScale(imageSrc, 1);
+    if (hash !== null) {
+        console.log('✅ pHash: Success on first attempt');
+        return hash;
+    }
+
+    // Attempt 2: Half resolution
+    console.log('🔄 pHash: First attempt failed, retrying with half resolution...');
+    hash = await generatePerceptualHashWithScale(imageSrc, 0.5);
+    if (hash !== null) {
+        console.log('✅ pHash: Success on second attempt (half resolution)');
+        return hash;
+    }
+
+    // Attempt 3: Quarter resolution
+    console.log('🔄 pHash: Second attempt failed, retrying with quarter resolution...');
+    hash = await generatePerceptualHashWithScale(imageSrc, 0.25);
+    if (hash !== null) {
+        console.log('✅ pHash: Success on third attempt (quarter resolution)');
+        return hash;
+    }
+
+    // All attempts failed
+    console.warn('⚠️ pHash: All retry attempts failed, skipping cache');
+    return null;
 }
 
 
@@ -211,7 +325,7 @@ export const useImageManagement = () => {
                             const blobToPass = cacheHit.seoMetadata.original_image_url ? undefined : bgBlob;
 
                             // Update cache with bbox data (only if pHash is valid)
-                            if (pHash) cacheAnalysisResult(pHash, enrichedResult, undefined, blobToPass);
+                            if (pHash) cacheAnalysisResult(pHash!, enrichedResult, undefined, blobToPass);
 
                             // Notify UI of enriched coordinates
                             if (options?.onCoordinatesEnriched) {
@@ -273,10 +387,10 @@ export const useImageManagement = () => {
                     }
 
                     // Cache the fully enriched result (only if pHash is valid)
-                    if (pHash) cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache);
+                    if (pHash) cacheAnalysisResult(pHash!, enrichedResult, uploadedImageUrl, finalImageBlobToCache);
                 }).catch(enrichmentError => {
                     // Still cache the fast result even if enrichment fails
-                    if (pHash) cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache);
+                    if (pHash) cacheAnalysisResult(pHash!, fastResult, uploadedImageUrl, finalImageBlobToCache);
                 });
 
             } catch (error) {
@@ -424,7 +538,7 @@ export const useImageManagement = () => {
 
         const slug = options.slug;
         const storageFolder = 'customizations';
-        
+
         // 1. Handle Original Image
         let originalImageUrl = originalImagePreview;
         let originalImageFileName = '';
@@ -432,16 +546,16 @@ export const useImageManagement = () => {
         if (!isPermanentUrl(originalImagePreview)) {
             const originalImageBlob = dataURItoBlob(originalImagePreview);
             // Use slug if available, else random UUID
-            originalImageFileName = slug 
-                ? `${storageFolder}/${userId}/${slug}.webp` 
+            originalImageFileName = slug
+                ? `${storageFolder}/${userId}/${slug}.webp`
                 : `${storageFolder}/${userId}/${uuidv4()}.webp`;
-            
+
             const { error: originalUploadError } = await supabase.storage
                 .from('cakegenie')
                 .upload(originalImageFileName, originalImageBlob, { contentType: 'image/webp', upsert: true });
-            
+
             if (originalUploadError) throw new Error(`Failed to upload original image: ${originalUploadError.message}`);
-            
+
             const { data: urlData } = supabase.storage.from('cakegenie').getPublicUrl(originalImageFileName);
             if (!urlData?.publicUrl) throw new Error("Could not get original image public URL.");
             originalImageUrl = urlData.publicUrl;
@@ -455,9 +569,9 @@ export const useImageManagement = () => {
             const editedImageBlob = dataURItoBlob(imageToUpload);
             const editedImageFile = new File([editedImageBlob], 'edited-design.webp', { type: 'image/webp' });
             const compressedEditedFile = await compressImage(editedImageFile, { maxSizeMB: 1, fileType: 'image/webp' });
-            
-            const editedImageFileName = slug 
-                ? `${storageFolder}/${userId}/${slug}_edited.webp` 
+
+            const editedImageFileName = slug
+                ? `${storageFolder}/${userId}/${slug}_edited.webp`
                 : `${storageFolder}/${userId}/${uuidv4()}.webp`;
 
             const { error: editedUploadError } = await supabase.storage
