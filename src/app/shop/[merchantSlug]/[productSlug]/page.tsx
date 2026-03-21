@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import CustomizingClient from '@/app/customizing/CustomizingClient';
 import { CustomizingPageSkeleton } from '@/components/LoadingSkeletons';
-import { getMerchantBySlug, getMerchantProductBySlug, getCakeBasePriceOptions, getAnalysisByExactHash } from '@/services/supabaseService';
+import { getMerchantBySlug, getMerchantProductBySlug, getCakeBasePriceOptions, getAnalysisByExactHash, getImageDimensionsByHash } from '@/services/supabaseService';
 import { BasePriceInfo, CakeType, ProductPageProps, CakeThickness } from '@/types';
 import { ProductSchema } from '@/components/SEOSchemas';
 import { CustomizationProvider } from '@/contexts/CustomizationContext';
@@ -91,14 +91,19 @@ export default async function ProductPage({ params }: ProductPageProps) {
         notFound();
     }
 
-    // 1. Fetch Analysis Result (if p_hash exists)
+    // 1. Fetch Analysis Result and Image Dimensions (if p_hash exists)
     let initialCustomizationState = undefined;
+    let imageDims: { image_width: number | null; image_height: number | null } | null = null;
     if (product.p_hash) {
         try {
-            const analysisResult = await getAnalysisByExactHash(product.p_hash);
+            const [analysisResult, dims] = await Promise.all([
+                getAnalysisByExactHash(product.p_hash),
+                getImageDimensionsByHash(product.p_hash),
+            ]);
             if (analysisResult) {
                 initialCustomizationState = mapAnalysisToState(analysisResult);
             }
+            imageDims = dims;
         } catch (e) {
             console.error('Error fetching analysis for SSR:', e);
         }
@@ -132,7 +137,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
     return (
         <>
-            <ProductSchema product={product} merchant={merchant} prices={prices} />
+            <ProductSchema product={product} merchant={merchant} prices={prices} imageWidth={imageDims?.image_width} imageHeight={imageDims?.image_height} />
             {product.image_url && (
                 <link
                     rel="preload"

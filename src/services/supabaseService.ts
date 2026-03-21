@@ -399,6 +399,21 @@ export async function getAnalysisByExactHash(pHash: string): Promise<HybridAnaly
   }
 }
 
+/** Fetch image dimensions from analysis cache by pHash */
+export async function getImageDimensionsByHash(pHash: string): Promise<{ image_width: number | null; image_height: number | null } | null> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .select('image_width, image_height')
+      .eq('p_hash', pHash)
+      .single();
+    if (error) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Converts an image Blob to a WebP Blob using the browser's Canvas API.
  * This should only be called on the client side.
