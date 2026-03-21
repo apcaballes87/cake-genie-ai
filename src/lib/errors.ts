@@ -18,7 +18,9 @@ export type ErrorCode =
     | 'IMAGE_ANALYSIS_FAILED'
     | 'NETWORK_ERROR'
     | 'VALIDATION_ERROR'
-    | 'UNKNOWN_ERROR';
+    | 'UNKNOWN_ERROR'
+    | 'CONFLICT'
+    | 'DATABASE_ERROR';
 
 /**
  * Custom application error class with additional context.
