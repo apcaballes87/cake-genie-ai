@@ -391,6 +391,16 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (shouldDeferImageBootstrap || hasInMemoryImageState) return;
 
+        // When arriving via a ref param (e.g. new upload from landing page),
+        // skip restoring old images from IndexedDB — the ref handler will
+        // load the new image instead.
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('ref') || urlParams.get('source') === 'shopify_cse') {
+                return;
+            }
+        }
+
         const loadImages = async () => {
             try {
                 const { getFromIndexedDB } = await import('@/lib/utils/storage');
