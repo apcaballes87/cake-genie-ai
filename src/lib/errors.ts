@@ -18,7 +18,9 @@ export type ErrorCode =
     | 'IMAGE_ANALYSIS_FAILED'
     | 'NETWORK_ERROR'
     | 'VALIDATION_ERROR'
-    | 'UNKNOWN_ERROR';
+    | 'UNKNOWN_ERROR'
+    | 'CONFLICT'
+    | 'DATABASE_ERROR';
 
 /**
  * Custom application error class with additional context.
@@ -66,6 +68,8 @@ export class AppError extends Error {
             NETWORK_ERROR: 'Network error. Please check your connection.',
             VALIDATION_ERROR: 'Please check your input and try again.',
             UNKNOWN_ERROR: 'An unexpected error occurred. Please try again.',
+            CONFLICT: 'A conflict occurred. This item might already exist.',
+            DATABASE_ERROR: 'A database error occurred. Please try again later.',
         };
         return messages[this.code] || messages.UNKNOWN_ERROR;
     }
