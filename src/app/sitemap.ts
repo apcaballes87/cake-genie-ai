@@ -132,7 +132,9 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
                 .order('created_at', { ascending: false })
                 .range(offset, offset + CHUNK_SIZE - 1);
 
-            return (customizedCakes || []).map((cake: any) => ({
+            return (customizedCakes || [])
+                .filter((cake: any) => !/[a-f0-9]{16}$/.test(cake.slug))
+                .map((cake: any) => ({
                 url: `${baseUrl}/customizing/${cake.slug}`,
                 lastModified: new Date(cake.created_at),
                 changeFrequency: 'weekly' as const,
