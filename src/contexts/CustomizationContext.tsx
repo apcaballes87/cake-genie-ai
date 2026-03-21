@@ -149,6 +149,16 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         // If initialData is provided, we skip loading from localStorage to respect server source of truth
         if (initialData || shouldDeferCustomizationPersistence || hasInMemoryCustomizationState) return;
 
+        // When arriving via a ref param (e.g. new upload from landing page) or
+        // shopify_cse, skip restoring old customization from localStorage —
+        // the ref/shopify handler will load the new state instead.
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('ref') || urlParams.get('source') === 'shopify_cse') {
+                return;
+            }
+        }
+
         const savedAnalysis = localStorage.getItem('cakegenie_analysis');
         const savedCustomization = localStorage.getItem('cakegenie_customization');
 

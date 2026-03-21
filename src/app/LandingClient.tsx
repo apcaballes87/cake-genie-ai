@@ -273,6 +273,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                 if (publicUrl) {
                     const encodedUrl = encodeURIComponent(publicUrl);
+                    // Clear stale image data before navigating so the customizing page
+                    // doesn't briefly show a previously-uploaded image from IndexedDB.
+                    const { clearIndexedDB } = await import('@/lib/utils/storage');
+                    await clearIndexedDB();
                     router.push(`/customizing?ref=${encodedUrl}&source=landing`);
                 }
             } finally {
