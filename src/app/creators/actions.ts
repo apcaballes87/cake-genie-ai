@@ -34,20 +34,20 @@ export type CreatorSubmission = {
 };
 
 export async function submitCreatorApplication(data: CreatorSubmission) {
-    return wrapError(async () => {
+    try {
         // 1. Basic Validation
         if (!data.name || !data.email || !data.contact_number || !data.address) {
-            throw new AppError(ErrorCode.VALIDATION_ERROR, 'Please fill in all required personal details.');
+            throw new AppError('Please fill in all required personal details.', 'VALIDATION_ERROR');
         }
 
         if (!data.agreed_to_terms) {
-            throw new AppError(ErrorCode.VALIDATION_ERROR, 'You must agree to the terms to proceed.');
+            throw new AppError('You must agree to the terms to proceed.', 'VALIDATION_ERROR');
         }
 
         // 2. Validate at least one social handle
         const hasSocialHandle = !!(data.tiktok_handle || data.instagram_handle || data.youtube_handle || data.facebook_handle);
         if (!hasSocialHandle) {
-            throw new AppError(ErrorCode.VALIDATION_ERROR, 'Please provide at least one social media handle.');
+            throw new AppError('Please provide at least one social media handle.', 'VALIDATION_ERROR');
         }
 
         // 3. Clean up the promo code
@@ -55,7 +55,7 @@ export async function submitCreatorApplication(data: CreatorSubmission) {
         const cleanPromoCode = data.promo_code.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
         if (!cleanPromoCode) {
-             throw new AppError(ErrorCode.VALIDATION_ERROR, 'Invalid promo code selected.');
+             throw new AppError('Invalid promo code selected.', 'VALIDATION_ERROR');
         }
 
         // 4. Check for promo code uniqueness
@@ -66,13 +66,13 @@ export async function submitCreatorApplication(data: CreatorSubmission) {
             .single();
 
         if (existing) {
-            throw new AppError(ErrorCode.CONFLICT, 'This promo code is already taken. Please select a different one or append numbers to it.');
+            throw new AppError('This promo code is already taken. Please select a different one or append numbers to it.', 'CONFLICT');
         }
 
         // Ignore single row not found error (which is what we want)
         if (checkError && checkError.code !== 'PGRST116') {
              console.error('Error checking promo code:', JSON.stringify(checkError, Object.getOwnPropertyNames(checkError), 2));
-             throw new AppError(ErrorCode.DATABASE_ERROR, 'Failed to verify promo code availability.');
+             throw new AppError('Failed to verify promo code availability.', 'DATABASE_ERROR');
         }
 
         // 5. Insert into Database
@@ -87,11 +87,11 @@ export async function submitCreatorApplication(data: CreatorSubmission) {
              console.error('Error inserting creator:', JSON.stringify(insertError, Object.getOwnPropertyNames(insertError), 2));
              // Handle unique constraint violation specifically just in case of race condition
              if (insertError.code === '23505' && insertError.message.includes('promo_code')) {
-                 throw new AppError(ErrorCode.CONFLICT, 'This promo code is already taken. Please select a different one.');
+                 throw new AppError('This promo code is already taken. Please select a different one.', 'CONFLICT');
              }
-             throw new AppError(ErrorCode.DATABASE_ERROR, 'Failed to submit application. Please try again later.');
+             throw new AppError('Failed to submit application. Please try again later.', 'DATABASE_ERROR');
         }
 
         return { success: true };
-    });
+    } catch (error) { throw wrapError(error, 'Failed to submit application', 'DATABASE_ERROR'); }
 }
