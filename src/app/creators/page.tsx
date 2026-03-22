@@ -143,6 +143,13 @@ export default function CreatorsLandingPage() {
                                     <p className="text-sm text-gray-600">Earn 20% commission on cakes sold through your unique promo code. Plus, your audience gets 20% off!</p>
                                 </div>
                             </li>
+                            <li className="flex gap-3">
+                                <div className="mt-0.5 shrink-0 w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center text-pink-600 font-bold">4</div>
+                                <div>
+                                    <h4 className="font-semibold text-gray-900">Monthly Cake Giveaway</h4>
+                                    <p className="text-sm text-gray-600">One lucky creator wins a free custom cake of their choice (up to ₱3,000 value) every single month!</p>
+                                </div>
+                            </li>
                         </ul>
                     </div>
                 </div>
