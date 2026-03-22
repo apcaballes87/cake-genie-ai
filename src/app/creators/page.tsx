@@ -98,7 +98,17 @@ export default function CreatorsLandingPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 pt-20 pb-12">
+        <div className="min-h-screen bg-gray-50 pb-12">
+            {/* Hero Image */}
+            <div className="w-full relative h-[30vh] sm:h-[40vh] md:h-[50vh] lg:h-[60vh] max-h-[600px] mb-12">
+                <img 
+                    src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/creators-collab-ugc-hero-image.webp" 
+                    alt="Genie.ph Creator Collaboration" 
+                    className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-gray-50 mix-blend-multiply opacity-20" />
+            </div>
+
             {/* Header Section */}
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6 mb-12">
                 <span className="inline-block px-4 py-1.5 rounded-full bg-pink-100 text-pink-700 font-semibold text-sm tracking-wide uppercase">
