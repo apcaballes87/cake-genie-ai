@@ -1,11 +1,15 @@
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { Camera, Cake, Tag, CreditCard, Facebook, Instagram, MessageCircle, Youtube, Star, Check, Mail, Phone, ChevronUp, ShieldCheck, Lock } from 'lucide-react';
+import { Camera, Cake, Tag, CreditCard, Facebook, Instagram, MessageCircle, Youtube, Star, Check, Mail, Phone, ChevronUp, ShieldCheck, Lock, X } from 'lucide-react';
+import LazyImage from '@/components/LazyImage';
 
 const featureCards = [
   { title: 'Instantly get the price', body: 'Upload your cake design and get your price in 10 seconds.', href: '/customizing', cta: 'Upload here', icon: Camera, accent: 'purple' },
   { title: 'Fresh cakes delivered to you', body: 'Homemade delicious cakes freshly baked just in time for your special day', href: '/about', cta: 'About Us', icon: Cake, accent: 'pink' },
   { title: 'Affordable yummy cakes', body: 'All prices of our cake designs are always updated and affordable', href: '/how-to-order', cta: 'How to order', icon: Tag, accent: 'purple' },
-  { title: 'Secure payment options', body: 'E-wallets, over-the-counter and bank payments for your convenience', href: '/payment-options', cta: 'Payments', icon: CreditCard, accent: 'pink' },
+  { title: 'Secure payment options', body: 'E-wallets, over-the-counter and bank payments for your convenience', href: 'https://checkout.xendit.co/od/genieph', cta: 'Payments', icon: CreditCard, accent: 'pink' },
 ] as const;
 
 const socialLinks = [
@@ -19,6 +23,7 @@ const exploreLinks = ['/customizing|Customize a Cake', '/shop|Shop', '/collectio
 const helpLinks = ['/contact|Contact Us', '/faq|FAQ', '/how-to-order|How to Order', '/delivery-rates|Delivery Rates', '/terms|Terms of Service', '/privacy|Privacy Policy', '/return-policy|Return Policy'];
 
 export function LandingFooter() {
+  const [showDtiModal, setShowDtiModal] = useState(false);
   const year = new Date().getFullYear();
 
   return (
@@ -26,12 +31,18 @@ export function LandingFooter() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
           {featureCards.map(({ title, body, href, cta, icon: Icon, accent }) => (
-            <article key={title} className="bg-white p-4 md:p-6 rounded-2xl text-center hover:shadow-lg transition duration-300 border border-purple-100">
-              <div className={`w-12 h-12 ${accent === 'pink' ? 'bg-pink-100 text-pink-600' : 'bg-purple-100 text-purple-600'} rounded-full flex items-center justify-center mx-auto mb-4`}><Icon size={24} /></div>
-              <h3 className={`font-bold text-lg mb-2 font-serif italic ${accent === 'pink' ? 'text-pink-600' : 'text-purple-700'}`}>{title}</h3>
-              <p className="text-gray-600 text-sm mb-4">{body}</p>
-              <Link href={href} className={`inline-flex ${accent === 'pink' ? 'bg-pink-600 hover:bg-pink-700' : 'bg-purple-600 hover:bg-purple-700'} text-white px-6 py-2 rounded-full text-sm font-bold transition shadow-sm`}>{cta}</Link>
-            </article>
+              <a 
+                key={title} 
+                href={href} 
+                target={href.startsWith('http') ? "_blank" : undefined}
+                rel={href.startsWith('http') ? "noopener noreferrer" : undefined}
+                className="bg-white p-4 md:p-6 rounded-2xl text-center hover:shadow-lg transition duration-300 border border-purple-100 block group"
+              >
+                <div className={`w-12 h-12 ${accent === 'pink' ? 'bg-pink-100 text-pink-600' : 'bg-purple-100 text-purple-600'} rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform`}><Icon size={24} /></div>
+                <h3 className={`font-bold text-lg mb-2 font-serif italic ${accent === 'pink' ? 'text-pink-600' : 'text-purple-700'}`}>{title}</h3>
+                <p className="text-gray-600 text-sm mb-4">{body}</p>
+                <div className={`inline-flex ${accent === 'pink' ? 'bg-pink-600 group-hover:bg-pink-700' : 'bg-purple-600 group-hover:bg-purple-700'} text-white px-6 py-2 rounded-full text-sm font-bold transition shadow-sm`}>{cta}</div>
+              </a>
           ))}
         </div>
       </div>
@@ -60,7 +71,39 @@ export function LandingFooter() {
               <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20logo%20long2.webp" alt="Genie Logo" width={150} height={40} className="h-10 w-auto object-contain mb-4" />
               <div className="text-gray-600 text-sm leading-relaxed mb-4 space-y-3"><p>Genie.ph is where spontaneous celebrations get the cake they deserve. Custom cakes, ordered in minutes, delivered today across Metro Cebu. Your cake wish, granted.</p><p>Our delivery network covers Metro Cebu, including Cebu City, Mandaue City, Lapu-Lapu City, and Talisay City. Genie.ph specializes in custom birthday cakes, minimalist wedding cakes, personalized bento cakes, and edible photo prints with secure online payments via Maya and GCash.</p></div>
               <div className="space-y-2 text-sm text-gray-600 mb-4"><div className="flex items-center gap-2"><Mail size={15} className="text-purple-500 shrink-0" /><span>support@genie.ph</span></div><div className="flex items-center gap-2"><Phone size={15} className="text-pink-500 shrink-0" /><span>+63 908 940 8747</span></div></div>
-              <div className="flex flex-wrap items-center gap-3"><div className="px-3 py-1.5 bg-purple-50 rounded-md text-xs font-semibold text-purple-700 flex items-center gap-1.5 border border-purple-100"><ShieldCheck size={14} />DTI Registered</div><div className="px-3 py-1.5 bg-green-50 rounded-md text-xs font-semibold text-green-700 flex items-center gap-1.5 border border-green-100"><Lock size={14} />Secure Checkout</div></div>
+              <div className="flex flex-wrap items-center gap-3">
+                <button 
+                  onClick={() => setShowDtiModal(true)}
+                  className="px-3 py-1.5 bg-purple-50 rounded-md text-xs font-semibold text-purple-700 flex items-center gap-1.5 border border-purple-100 hover:bg-purple-100 transition-colors cursor-pointer"
+                  aria-label="View DTI Registration"
+                >
+                  <ShieldCheck size={14} />
+                  DTI Registered
+                </button>
+                <a 
+                  href="https://checkout.xendit.co/od/genieph"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 bg-green-50 rounded-md text-xs font-semibold text-green-700 flex items-center gap-1.5 border border-green-100 hover:bg-green-100 transition-colors" 
+                  aria-label="Secure Checkout"
+                >
+                  <Lock size={14} />
+                  Secure Checkout
+                </a>
+                <a 
+                  href="https://www.facebook.com/photo/?fbid=122301349718225955&set=pcb.122301048476225955"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:opacity-80 transition-opacity flex items-center justify-center h-[34px]"
+                  aria-label="Backed by Stellar"
+                >
+                  <img 
+                    src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/backed%20by%20stellar.webp" 
+                    alt="Backed by Stellar" 
+                    className="h-full w-auto object-contain"
+                  />
+                </a>
+              </div>
             </div>
             <nav aria-label="Explore links"><h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Explore</h4><ul className="space-y-2.5 text-sm text-gray-600">{exploreLinks.map((item) => { const [href, label] = item.split('|'); return <li key={href}><Link href={href} className="hover:text-purple-600 transition-colors">{label}</Link></li>; })}</ul></nav>
             <nav aria-label="Help links"><h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Help</h4><ul className="space-y-2.5 text-sm text-gray-600">{helpLinks.map((item) => { const [href, label] = item.split('|'); return <li key={href}><Link href={href} className="hover:text-purple-600 transition-colors">{label}</Link></li>; })}</ul></nav>
@@ -70,8 +113,29 @@ export function LandingFooter() {
             <p className="text-xs text-gray-400">© {year} Genie.ph. All rights reserved.</p>
             <a href="#top" className="bg-purple-600 text-white p-2.5 rounded-xl hover:bg-purple-700 transition shadow-md" aria-label="Back to top"><ChevronUp size={20} /></a>
           </div>
-        </div>
       </div>
+    </div>
+       {/* DTI Zoom Modal */}
+       {showDtiModal && (
+        <div
+          className="fixed inset-0 z-100 flex items-start justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
+          onClick={() => setShowDtiModal(false)}
+        >
+          <div className="relative w-full max-w-5xl my-8 bg-white rounded-lg shadow-2xl p-1 animate-in fade-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
+            <button
+              className="absolute -top-12 right-0 md:-right-12 md:top-0 text-white p-2 bg-black/30 rounded-full hover:bg-black/50 transition-colors z-110"
+              onClick={() => setShowDtiModal(false)}
+            >
+              <X size={24} />
+            </button>
+            <img
+              src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/business%20permits/DTI%20Alalai%20ITS.jpg"
+              alt="DTI Registered Document"
+              className="w-full h-auto block rounded-sm shadow-inner"
+            />
+          </div>
+        </div>
+      )}
     </footer>
   );
 }

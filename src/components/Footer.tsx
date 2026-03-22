@@ -3,10 +3,12 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Camera, Cake, Tag, CreditCard, Facebook, Instagram, MessageCircle, Youtube, Star, Check, Mail, Phone, ChevronUp, ShieldCheck, Lock } from 'lucide-react';
+import { Camera, Cake, Tag, CreditCard, Facebook, Instagram, MessageCircle, Youtube, Star, Check, Mail, Phone, ChevronUp, ShieldCheck, Lock, X } from 'lucide-react';
+import LazyImage from './LazyImage';
 
 export const Footer = () => {
     const router = useRouter();
+    const [showDtiModal, setShowDtiModal] = React.useState(false);
 
     const scrollToTop = () => {
         if (typeof window !== 'undefined') {
@@ -59,9 +61,14 @@ export const Footer = () => {
                         </div>
                         <h3 className="font-bold text-lg mb-2 text-pink-600 font-serif italic">Secure payment options</h3>
                         <p className="text-gray-600 text-sm mb-4">E-wallets, over-the-counter and bank payments for your convenience</p>
-                        <button className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2 rounded-full text-sm font-bold transition shadow-sm">
+                        <a 
+                            href="https://checkout.xendit.co/od/genieph" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2 rounded-full text-sm font-bold transition shadow-sm inline-block"
+                        >
                             Payments
-                        </button>
+                        </a>
                     </article>
                 </div>
             </div>
@@ -150,14 +157,37 @@ export const Footer = () => {
                             </div>
                             {/* Trust Badges */}
                             <div className="flex flex-wrap items-center gap-3">
-                                <div className="px-3 py-1.5 bg-purple-50 rounded-md text-xs font-semibold text-purple-700 flex items-center gap-1.5 border border-purple-100" aria-label="DTI Registered">
+                                <button 
+                                    onClick={() => setShowDtiModal(true)}
+                                    className="px-3 py-1.5 bg-purple-50 rounded-md text-xs font-semibold text-purple-700 flex items-center gap-1.5 border border-purple-100 hover:bg-purple-100 transition-colors cursor-pointer" 
+                                    aria-label="View DTI Registration"
+                                >
                                     <ShieldCheck size={14} />
                                     DTI Registered
-                                </div>
-                                <div className="px-3 py-1.5 bg-green-50 rounded-md text-xs font-semibold text-green-700 flex items-center gap-1.5 border border-green-100" aria-label="Secure Checkout">
+                                </button>
+                                <a 
+                                    href="https://checkout.xendit.co/od/genieph"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-3 py-1.5 bg-green-50 rounded-md text-xs font-semibold text-green-700 flex items-center gap-1.5 border border-green-100 hover:bg-green-100 transition-colors" 
+                                    aria-label="Secure Checkout"
+                                >
                                     <Lock size={14} />
                                     Secure Checkout
-                                </div>
+                                </a>
+                                <a 
+                                    href="https://www.facebook.com/photo/?fbid=122301349718225955&set=pcb.122301048476225955"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:opacity-80 transition-opacity flex items-center justify-center h-[34px]"
+                                    aria-label="Backed by Stellar"
+                                >
+                                    <img 
+                                        src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/backed%20by%20stellar.webp" 
+                                        alt="Backed by Stellar" 
+                                        className="h-full w-auto object-contain"
+                                    />
+                                </a>
                             </div>
                         </div>
 
@@ -207,6 +237,27 @@ export const Footer = () => {
                 </div>
             </div>
 
+            {/* DTI Zoom Modal */}
+            {showDtiModal && (
+                <div
+                    className="fixed inset-0 z-100 flex items-start justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
+                    onClick={() => setShowDtiModal(false)}
+                >
+                    <div className="relative w-full max-w-5xl my-8 bg-white rounded-lg shadow-2xl p-1 animate-in fade-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
+                        <button
+                            className="absolute -top-12 right-0 md:-right-12 md:top-0 text-white p-2 bg-black/30 rounded-full hover:bg-black/50 transition-colors z-110"
+                            onClick={() => setShowDtiModal(false)}
+                        >
+                            <X size={24} />
+                        </button>
+                        <img
+                            src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/business%20permits/DTI%20Alalai%20ITS.jpg"
+                            alt="DTI Registered Document"
+                            className="w-full h-auto block rounded-sm shadow-inner"
+                        />
+                    </div>
+                </div>
+            )}
         </footer>
     );
 };
