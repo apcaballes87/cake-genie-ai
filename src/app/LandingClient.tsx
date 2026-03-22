@@ -211,6 +211,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     const [isOccasionOpen, setIsOccasionOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [reviewZoomSrc, setReviewZoomSrc] = useState<string | null>(null);
+    const [isInteracting, setIsInteracting] = useState(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
     const uploadToastId = useRef<string | null>(null);
     const isMounted = React.useSyncExternalStore(subscribeToHydration, () => true, () => false);
 
@@ -319,6 +321,27 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    useEffect(() => {
+        const setScroll = () => {
+            if (reviewZoomSrc || isInteracting || !scrollRef.current) return;
+            const container = scrollRef.current;
+            container.scrollLeft += 0.5; // ~30px per second
+
+            if (container.scrollLeft >= container.scrollWidth / 2) {
+                container.scrollLeft = 0;
+            }
+        };
+
+        let frameId: number;
+        const animate = () => {
+            setScroll();
+            frameId = requestAnimationFrame(animate);
+        };
+
+        frameId = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(frameId);
+    }, [reviewZoomSrc, isInteracting]);
 
     const scrollThreshold = 50;
 
@@ -630,20 +653,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                 {/* ===== REVIEWS MARQUEE ===== */}
                 <section aria-label="Customer reviews" className="w-full overflow-hidden py-2 md:py-3">
-                    <style jsx>{`
-                        @keyframes reviews-ltr {
-                            0% { transform: translateX(0); }
-                            100% { transform: translateX(-50%); }
-                        }
-                        .reviews-ltr {
-                            animation: reviews-ltr 70s linear infinite;
-                        }
-                        .reviews-paused {
-                            animation-play-state: paused;
-                        }
-                    `}</style>
-
-                    <div className="relative">
+                    <div className="relative group">
                         <div
                             className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 md:w-28"
                             style={{ background: 'linear-gradient(to right, rgba(250,245,255,1), transparent)' }}
@@ -652,7 +662,16 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 md:w-28"
                             style={{ background: 'linear-gradient(to left, rgba(240,238,255,1), transparent)' }}
                         />
-                        <div className={`reviews-ltr flex gap-9 whitespace-nowrap w-max${reviewZoomSrc ? ' reviews-paused' : ''}`}>
+                        <div 
+                            ref={scrollRef}
+                            className="flex gap-9 whitespace-nowrap overflow-x-auto scrollbar-hide py-2"
+                            onMouseDown={() => setIsInteracting(true)}
+                            onMouseUp={() => setIsInteracting(false)}
+                            onMouseLeave={() => setIsInteracting(false)}
+                            onTouchStart={() => setIsInteracting(true)}
+                            onTouchEnd={() => setIsInteracting(false)}
+                        >
+                            <div className="flex gap-9 whitespace-nowrap min-w-max pr-9">
                             {[1, 2, 3, 4, 1, 2, 3, 4].map((n, i) => (
                                 <div
                                     key={i}
@@ -671,6 +690,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     />
                                 </div>
                             ))}
+                            </div>
                         </div>
                     </div>
                 </section>
