@@ -20,32 +20,35 @@ export default function CreatorsLandingPage() {
         tiktok_followers: undefined,
         instagram_handle: '',
         instagram_followers: undefined,
-        youtube_handle: '',
-        youtube_followers: undefined,
         facebook_handle: '',
         facebook_followers: undefined,
         promo_code: '',
         agreed_to_terms: false,
     });
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value, type, checked } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : type === 'number' ? (value ? parseInt(value) : undefined) : value,
-        }));
+    const generatePromoCode = (handle: string) => {
+        return handle.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
     };
 
-    const handleGeneratePromo = () => {
-        // Find the first available handle to generate a promo code suggestion
-        const handle = formData.tiktok_handle || formData.instagram_handle || formData.youtube_handle || formData.facebook_handle;
-        if (handle) {
-             const cleanHandle = handle.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-             setFormData(prev => ({ ...prev, promo_code: `${cleanHandle}20` }));
-        } else {
-            setErrorMsg('Please enter at least one social media handle first.');
-            setTimeout(() => setErrorMsg(null), 3000);
-        }
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value, type, checked } = e.target;
+
+        setFormData((prev) => {
+            const nextData = {
+                ...prev,
+                [name]: type === 'checkbox' ? checked : type === 'number' ? (value ? parseInt(value) : undefined) : value,
+            };
+
+            // Auto-generate promo code if a handle changed
+            if (['tiktok_handle', 'instagram_handle', 'facebook_handle'].includes(name)) {
+                const handleToUse = nextData.tiktok_handle || nextData.instagram_handle || nextData.facebook_handle;
+                if (handleToUse) {
+                    nextData.promo_code = generatePromoCode(handleToUse);
+                }
+            }
+
+            return nextData;
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -103,7 +106,7 @@ export default function CreatorsLandingPage() {
                     Join the <span className="text-pink-600">Genie.ph</span> Creator Network
                 </h1>
                 <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
-                    Create content, share delicious cakes, and earn exclusive perks. We're looking for passionate creators to showcase the best custom cakes in Cebu!
+                    Genie.ph is a Cebu-based startup and marketplace connecting you to the best local bakers. Our platform provides instant price quotes for any cake design. Just upload a photo, get a price in seconds, and watch it update as you customize. Join us in sharing how easy it is to bring dream cakes to life!
                 </p>
             </div>
 
@@ -118,21 +121,21 @@ export default function CreatorsLandingPage() {
                         </h3>
                         <ul className="space-y-4">
                             <li className="flex gap-3">
-                                <div className="mt-0.5 flex-shrink-0 w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center text-pink-600 font-bold">1</div>
+                                <div className="mt-0.5 shrink-0 w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center text-pink-600 font-bold">1</div>
                                 <div>
                                     <h4 className="font-semibold text-gray-900">Free Bento Cake</h4>
                                     <p className="text-sm text-gray-600">Receive a complimentary bento cake for your content creation.</p>
                                 </div>
                             </li>
                             <li className="flex gap-3">
-                                <div className="mt-0.5 flex-shrink-0 w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center text-pink-600 font-bold">2</div>
+                                <div className="mt-0.5 shrink-0 w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center text-pink-600 font-bold">2</div>
                                 <div>
                                     <h4 className="font-semibold text-gray-900">50% Off Voucher</h4>
                                     <p className="text-sm text-gray-600">Get a massive discount on your next personal custom cake order.</p>
                                 </div>
                             </li>
                             <li className="flex gap-3">
-                                <div className="mt-0.5 flex-shrink-0 w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center text-pink-600 font-bold">3</div>
+                                <div className="mt-0.5 shrink-0 w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center text-pink-600 font-bold">3</div>
                                 <div>
                                     <h4 className="font-semibold text-gray-900">20% Commission</h4>
                                     <p className="text-sm text-gray-600">Earn 20% commission on cakes sold through your unique promo code. Plus, your audience gets 20% off!</p>
@@ -234,7 +237,7 @@ export default function CreatorsLandingPage() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">TikTok Followers</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">TikTok Followers (optional)</label>
                                         <input
                                             type="number"
                                             name="tiktok_followers"
@@ -263,7 +266,7 @@ export default function CreatorsLandingPage() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Instagram Followers</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Instagram Followers (optional)</label>
                                         <input
                                             type="number"
                                             name="instagram_followers"
@@ -275,33 +278,6 @@ export default function CreatorsLandingPage() {
                                     </div>
                                 </div>
 
-                                {/* YouTube */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">YouTube Channel</label>
-                                        <div className="relative">
-                                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">@</span>
-                                            <input
-                                                type="text"
-                                                name="youtube_handle"
-                                                value={formData.youtube_handle}
-                                                onChange={handleInputChange}
-                                                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all"
-                                                placeholder="channel_name"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">YouTube Subscribers</label>
-                                        <input
-                                            type="number"
-                                            name="youtube_followers"
-                                            value={formData.youtube_followers || ''}
-                                            onChange={handleInputChange}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all"
-                                        />
-                                    </div>
-                                </div>
 
                                 {/* Facebook */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -317,7 +293,7 @@ export default function CreatorsLandingPage() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Facebook Followers</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Facebook Followers (optional)</label>
                                         <input
                                             type="number"
                                             name="facebook_followers"
@@ -329,34 +305,31 @@ export default function CreatorsLandingPage() {
                                 </div>
                             </div>
 
-                            {/* Promo Code Generation */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Custom Promo Code</h3>
                                 <div className="bg-pink-50 p-4 rounded-lg border border-pink-100">
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Choose your unique 20% off promo code *
+                                        Your unique 20% off promo code (automatically generated) *
                                     </label>
                                     <div className="flex gap-2">
                                         <input
                                             required
+                                            readOnly
                                             type="text"
                                             name="promo_code"
                                             value={formData.promo_code}
-                                            onChange={handleInputChange}
-                                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all uppercase font-mono"
-                                            placeholder="e.g. JUAN20"
+                                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed outline-none uppercase font-mono"
+                                            placeholder="Automatically generated from your handle"
                                         />
-                                        <button
-                                            type="button"
-                                            onClick={handleGeneratePromo}
-                                            className="px-4 py-2 bg-white border border-pink-200 text-pink-600 rounded-lg font-medium hover:bg-pink-50 transition-colors whitespace-nowrap"
-                                        >
-                                            Auto-generate
-                                        </button>
                                     </div>
-                                    <p className="text-xs text-gray-500 mt-2">
-                                        We recommend using your main social handle followed by "20" (e.g., if your handle is @juan, use JUAN20).
-                                    </p>
+                                    <div className="mt-4 space-y-2">
+                                        <p className="text-sm font-medium text-pink-700">How it works:</p>
+                                        <ul className="text-xs text-gray-600 space-y-1.5 list-disc pl-4">
+                                            <li>Your audience gets <strong>20% OFF</strong> when they use your code at checkout.</li>
+                                            <li>You get <strong>20% COMMISSION</strong> for every successful order using your code.</li>
+                                            <li>Share your unique link: <code className="bg-pink-100 px-1 rounded text-pink-700">genie.ph/YOURCODE</code></li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
 
