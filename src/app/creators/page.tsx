@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { submitCreatorApplication, type CreatorSubmission } from './actions';
 import { isAppError, getErrorMessage } from '@/lib/errors';
 import { Camera, Gift, Percent, Video } from 'lucide-react';
+import { Footer } from '@/components/Footer';
 
 export default function CreatorsLandingPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -98,8 +99,9 @@ export default function CreatorsLandingPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-12">
-            {/* Hero Image */}
+        <div className="flex flex-col min-h-screen bg-gray-50">
+            <main className="flex-grow pb-12">
+                {/* Hero Image */}
             <div className="w-full relative h-[30vh] sm:h-[40vh] md:h-[50vh] lg:h-[60vh] max-h-[600px] mb-12">
                 <img 
                     src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/creators-collab-ugc-hero-image.webp" 
@@ -432,6 +434,8 @@ export default function CreatorsLandingPage() {
                     </div>
                 </div>
             </div>
+            </main>
+            <Footer />
         </div>
     );
 }
