@@ -23,9 +23,6 @@ export type CreatorSubmission = {
     instagram_handle?: string;
     instagram_followers?: number;
 
-    youtube_handle?: string;
-    youtube_followers?: number;
-
     facebook_handle?: string;
     facebook_followers?: number;
 
@@ -45,7 +42,7 @@ export async function submitCreatorApplication(data: CreatorSubmission) {
         }
 
         // 2. Validate at least one social handle
-        const hasSocialHandle = !!(data.tiktok_handle || data.instagram_handle || data.youtube_handle || data.facebook_handle);
+        const hasSocialHandle = !!(data.tiktok_handle || data.instagram_handle || data.facebook_handle);
         if (!hasSocialHandle) {
             throw new AppError('Please provide at least one social media handle.', 'VALIDATION_ERROR');
         }
