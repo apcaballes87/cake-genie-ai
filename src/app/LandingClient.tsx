@@ -32,7 +32,8 @@ import {
     Loader2,
     Camera,
     ArrowRight,
-    ChevronDown
+    ChevronDown,
+    X
 } from 'lucide-react';
 
 const ImageUploader = dynamic(
@@ -209,6 +210,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isOccasionOpen, setIsOccasionOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [reviewZoomSrc, setReviewZoomSrc] = useState<string | null>(null);
     const uploadToastId = useRef<string | null>(null);
     const isMounted = React.useSyncExternalStore(subscribeToHydration, () => true, () => false);
 
@@ -319,6 +321,20 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     }, []);
 
     const scrollThreshold = 50;
+
+    useEffect(() => {
+        if (reviewZoomSrc) {
+            document.body.style.overflow = 'hidden';
+            const handleEsc = (e: KeyboardEvent) => {
+                if (e.key === 'Escape') setReviewZoomSrc(null);
+            };
+            window.addEventListener('keydown', handleEsc);
+            return () => {
+                document.body.style.overflow = '';
+                window.removeEventListener('keydown', handleEsc);
+            };
+        }
+    }, [reviewZoomSrc]);
 
     return (
         <div id="top" className="font-sans bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100 min-h-screen pb-24 md:pb-0 text-gray-800 flex flex-col">
@@ -458,11 +474,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                         {/* Right: Nav Links + Account + Cart */}
                         <div className="flex items-center gap-5 lg:gap-6 shrink-0">
-                            <Link href="/search?q=cakes" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
-                                Browse Cakes
-                            </Link>
                             <Link href="/collections" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
-                                Collections
+                                Browse Cakes
                             </Link>
                             <Link href="/shop" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
                                 Our Bakers
@@ -614,6 +627,53 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                     </div>
                 </section>
 
+
+                {/* ===== REVIEWS MARQUEE ===== */}
+                <section aria-label="Customer reviews" className="w-full overflow-hidden py-2 md:py-3">
+                    <style jsx>{`
+                        @keyframes reviews-ltr {
+                            0% { transform: translateX(0); }
+                            100% { transform: translateX(-50%); }
+                        }
+                        .reviews-ltr {
+                            animation: reviews-ltr 70s linear infinite;
+                        }
+                        .reviews-paused {
+                            animation-play-state: paused;
+                        }
+                    `}</style>
+
+                    <div className="relative">
+                        <div
+                            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 md:w-28"
+                            style={{ background: 'linear-gradient(to right, rgba(250,245,255,1), transparent)' }}
+                        />
+                        <div
+                            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 md:w-28"
+                            style={{ background: 'linear-gradient(to left, rgba(240,238,255,1), transparent)' }}
+                        />
+                        <div className={`reviews-ltr flex gap-9 whitespace-nowrap w-max${reviewZoomSrc ? ' reviews-paused' : ''}`}>
+                            {[1, 2, 3, 4, 1, 2, 3, 4].map((n, i) => (
+                                <div
+                                    key={i}
+                                    className="shrink-0 p-2 bg-white rounded-2xl shadow-md cursor-zoom-in"
+                                    onClick={() => setReviewZoomSrc(`https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/REVIEW-SAMPLES/genieph-reviews-${n}.webp`)}
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={`View review ${n} in full size`}
+                                    onKeyDown={(e) => e.key === 'Enter' && setReviewZoomSrc(`https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/REVIEW-SAMPLES/genieph-reviews-${n}.webp`)}
+                                >
+                                    <img
+                                        src={`https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/REVIEW-SAMPLES/genieph-reviews-${n}.webp`}
+                                        alt={`Customer review ${n}`}
+                                        className="h-[68px] md:h-[86px] w-auto rounded-xl object-cover"
+                                        loading="lazy"
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
 
                 {/* ===== SEE A CAKE YOU LOVE SECTION ===== */}
                 <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-6 pb-6 md:pt-8 md:pb-8 lg:pt-10 lg:pb-10">
@@ -788,6 +848,34 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 />
             ) : null}
 
+            {/* ========== REVIEW ZOOM MODAL ========== */}
+            {reviewZoomSrc && (
+                <div 
+                    className="fixed inset-0 z-100 flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-200"
+                    role="dialog"
+                    aria-modal="true"
+                >
+                    <div 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        onClick={() => setReviewZoomSrc(null)}
+                    />
+                    <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center animate-in zoom-in-95 duration-300">
+                        <button
+                            onClick={() => setReviewZoomSrc(null)}
+                            className="absolute -top-12 right-0 p-2 text-white/80 hover:text-white transition-colors"
+                            aria-label="Close zoom"
+                        >
+                            <X size={32} />
+                        </button>
+                        <img
+                            src={reviewZoomSrc}
+                            alt="Zoomed customer review"
+                            className="w-full h-full object-contain rounded-2xl shadow-2xl"
+                        />
+                    </div>
+                </div>
+            )}
+
             {/* ========== MOBILE SIDE MENU DRAWER ========== */}
             {/* Backdrop */}
             <div
@@ -827,22 +915,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 <nav className="flex-1 overflow-y-auto py-4 px-3">
                     {/* Browse Cakes */}
                     <Link
-                        href="/search?q=cakes"
+                        href="/collections"
                         onClick={() => setIsMenuOpen(false)}
                         className="flex items-center gap-3.5 px-3 py-3.5 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors font-medium text-[15px] group"
                     >
                         <span className="text-xl w-7 text-center leading-none">🎂</span>
                         <span className="group-hover:translate-x-0.5 transition-transform duration-150">Browse Cakes</span>
-                    </Link>
-
-                    {/* Collections */}
-                    <Link
-                        href="/collections"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="flex items-center gap-3.5 px-3 py-3.5 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors font-medium text-[15px] group"
-                    >
-                        <span className="text-xl w-7 text-center leading-none">🎨</span>
-                        <span className="group-hover:translate-x-0.5 transition-transform duration-150">Collections</span>
                     </Link>
 
                     {/* Shop by Occasion — collapsible accordion */}
