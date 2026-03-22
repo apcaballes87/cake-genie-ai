@@ -27,6 +27,18 @@ const faqs = [
                 q: 'Is there a minimum order amount?',
                 a: 'Minimum order amounts vary by merchant. Most of our partner bakeries have a minimum starting price based on the cake type. Bento cakes typically start around \u20B1350, while standard tiered cakes start from \u20B1800 and up depending on size and design complexity.'
             },
+            {
+                q: 'Is the AI price the final price I pay?',
+                a: 'Yes. The price you see is the price you pay at checkout. It\'s calculated based on your selected cake size, design complexity, icing type, and toppers — the same factors your baker uses to price an order manually. Once your baker confirms the order, the price is locked.'
+            },
+            {
+                q: 'What if the baker can\'t make my cake at that price?',
+                a: 'In rare cases where a design has unusual complexity not captured in the AI analysis, your baker will contact you before proceeding. You\'ll always have the option to adjust or cancel — no charge until you confirm.'
+            },
+            {
+                q: 'How accurate is the AI pricing?',
+                a: 'Our AI is trained on hundreds of actual cake orders from Cebu bakeries. It\'s designed to price cakes the way an experienced baker would — factoring in size, design complexity, and materials. For standard minimalist and 1-tier cakes, pricing is highly accurate. For very complex multi-tier designs, the baker may add a small adjustment, but you\'ll always be notified first.'
+            },
         ]
     },
     {
