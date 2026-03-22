@@ -664,7 +664,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     onKeyDown={(e) => e.key === 'Enter' && setReviewZoomSrc(`https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/REVIEW-SAMPLES/genieph-reviews-${n}.webp`)}
                                 >
                                     <img
-                                        src={`https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/REVIEW-SAMPLES/genieph-reviews-${n}.webp`}
+                                        src={`https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/REVIEW-SAMPLES/genieph-reviews-${n}a.webp`}
                                         alt={`Customer review ${n}`}
                                         className="h-[68px] md:h-[86px] w-auto rounded-xl object-cover"
                                         loading="lazy"
