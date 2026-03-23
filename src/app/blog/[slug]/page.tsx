@@ -185,7 +185,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
         {/* Featured Image */}
         {post.image && (
-          <div className="mb-8">
+          <figure className="mb-8">
             <LazyImage
               src={post.image}
               alt={post.title}
@@ -196,7 +196,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               className="w-full rounded-xl shadow-md"
               imageClassName="h-auto w-full rounded-xl"
             />
-          </div>
+            <figcaption className="mt-2 text-sm text-gray-500">
+              {post.title}
+            </figcaption>
+          </figure>
         )}
 
         {/* Post Content + inline showcase blocks */}
