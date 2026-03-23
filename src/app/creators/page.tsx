@@ -18,7 +18,6 @@ export default function CreatorsLandingPage() {
         contact_number: '',
         address: '',
         content_niche: '',
-        best_video_url: '',
         tiktok_handle: '',
         tiktok_followers: undefined,
         instagram_handle: '',
@@ -237,31 +236,18 @@ export default function CreatorsLandingPage() {
                             {/* Content Details */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Content Profile</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Content Niche / Type *</label>
-                                        <input
-                                            required
-                                            type="text"
-                                            name="content_niche"
-                                            value={formData.content_niche}
-                                            onChange={handleInputChange}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all"
-                                            placeholder="e.g. Food, Lifestyle, Events, Parenting"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Link to best-performing video *</label>
-                                        <input
-                                            required
-                                            type="url"
-                                            name="best_video_url"
-                                            value={formData.best_video_url}
-                                            onChange={handleInputChange}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all"
-                                            placeholder="https://tiktok.com/..."
-                                        />
-                                    </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Content Niche / Type *</label>
+                                    <input
+                                        required
+                                        type="text"
+                                        name="content_niche"
+                                        value={formData.content_niche}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all"
+                                        placeholder="e.g. Food, Lifestyle, Events, Parenting"
+                                    />
+                                    <p className="mt-1.5 text-xs text-gray-500 italic">Helps us prioritize fit.</p>
                                 </div>
                             </div>
 

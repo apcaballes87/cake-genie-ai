@@ -18,7 +18,6 @@ export type CreatorSubmission = {
     address: string;
 
     content_niche: string;
-    best_video_url: string;
 
     tiktok_handle?: string;
     tiktok_followers?: number;
