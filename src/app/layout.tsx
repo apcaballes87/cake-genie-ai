@@ -89,15 +89,15 @@ function OrganizationSchema() {
     email: 'hello@genie.ph',
     address: {
       '@type': 'PostalAddress',
-      streetAddress: 'Skyview Park, Nivel Hills',
+      streetAddress: 'Park Tower One, Cebu Business Park',
       addressLocality: 'Cebu City',
       addressRegion: 'Cebu',
       addressCountry: 'PH'
     },
     geo: {
       '@type': 'GeoCoordinates',
-      latitude: 10.3157,
-      longitude: 123.8854
+      latitude: 10.3175,
+      longitude: 123.9046
     },
     sameAs: [
       'https://web.facebook.com/geniephilippines',

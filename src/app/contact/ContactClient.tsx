@@ -69,7 +69,7 @@ const ContactClient: React.FC = () => {
                         <ContactInfoItem icon={<Globe size={20} />} label="Website" value="genie.ph" href="https://genie.ph" />
                         <ContactInfoItem icon={<Mail size={20} />} label="Email" value="support@genie.ph" href="mailto:support@genie.ph" />
                         <ContactInfoItem icon={<Phone size={20} />} label="Contact" value="0908 940 8747" href="tel:09089408747" />
-                        <ContactInfoItem icon={<MapPin size={20} />} label="Address" value="Skyview Park, Nivel Hills, Cebu City" />
+                        <ContactInfoItem icon={<MapPin size={20} />} label="Address" value="Park Tower One, Cebu Business Park, Cebu City" href="https://maps.app.goo.gl/pnfoibK2gjaAD6DA7" />
                         <ContactInfoItem icon={<Clock size={20} />} label="Business Hours" value="Mon - Sat: 9:00 AM - 6:00 PM" />
                     </div>
                 </div>

@@ -3,7 +3,7 @@ import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
 
 export const metadata = buildMarketingPageMetadata({
     title: 'Contact Us for Cebu Custom Cake Orders',
-    description: 'Get in touch with Genie.ph for custom cake orders in Cebu. Visit us at Skyview Park, Nivel Hills, Cebu City or call +63-908-940-8747.',
+    description: 'Get in touch with Genie.ph for custom cake orders in Cebu. Visit us at Park Tower One, Cebu Business Park, Cebu City or call +63-908-940-8747.',
     canonicalPath: 'https://genie.ph/contact',
 })
 
@@ -21,15 +21,15 @@ function ContactPageSchema() {
         email: 'hello@genie.ph',
         address: {
             '@type': 'PostalAddress',
-            streetAddress: 'Skyview Park, Nivel Hills',
+            streetAddress: 'Park Tower One, Cebu Business Park',
             addressLocality: 'Cebu City',
             addressRegion: 'Cebu',
             addressCountry: 'PH'
         },
         geo: {
             '@type': 'GeoCoordinates',
-            latitude: 10.3157,
-            longitude: 123.8854
+            latitude: 10.3175,
+            longitude: 123.9046
         },
         areaServed: {
             '@type': 'AdministrativeArea',

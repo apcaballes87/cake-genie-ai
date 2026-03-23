@@ -105,7 +105,7 @@ const faqs = [
             },
             {
                 q: 'How do I contact customer support?',
-                a: 'You can reach our customer support team through: live chat on our website (available during business hours), phone at +63-908-940-8747, or visit our office at Skyview Park, Nivel Hills, Cebu City. We are available in both English and Filipino.'
+                a: 'You can reach our customer support team through: live chat on our website (available during business hours), phone at +63-908-940-8747, or visit our office at Park Tower One, Cebu Business Park, Cebu City. We are available in both English and Filipino.'
             },
         ]
     },
