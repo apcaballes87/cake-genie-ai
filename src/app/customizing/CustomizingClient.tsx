@@ -505,14 +505,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             if (originalImageData) setPreviousImageData(originalImageData);
             syncAnalysisResultWithCurrentState();
             clearDirtyState();
-
-            const mimeMatch = editedImageResult.match(/^data:([^;]+);base64,(.+)$/);
-            if (mimeMatch) {
-                setOriginalImageData({
-                    data: mimeMatch[2],
-                    mimeType: mimeMatch[1]
-                });
-            }
         },
     });
 
