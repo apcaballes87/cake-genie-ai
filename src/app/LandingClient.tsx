@@ -170,7 +170,6 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                     <div>
                         <span className="text-lg font-bold text-slate-800">₱{totalPrice.toLocaleString()}</span>
                         <span className="text-xs text-slate-500 block">{tier.size}</span>
-                        <span className="text-[10px] text-gray-500 mt-0.5 block">✓ Baker-confirmed · No hidden charges · Locked on checkout</span>
                     </div>
                     <div className="flex gap-2 flex-1 justify-end">
                         <button className="flex items-center gap-1.5 border border-slate-200 bg-white text-slate-600 font-semibold py-3 px-4 rounded-xl text-sm shadow-sm">
@@ -183,33 +182,6 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                         </button>
                     </div>
                 </div>
-                {/* Trust one-liner */}
-                <div className="mt-3 flex items-start gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-                    <span className="text-xs shrink-0">🔒</span>
-                    <p className="text-[11px] text-slate-500 leading-relaxed">
-                        Your baker reviews this order before accepting. Price is locked. No surprises.
-                    </p>
-                </div>
-                {/* Collapsible pricing explanation */}
-                <details className="mt-2">
-                    <summary className="cursor-pointer text-[11px] text-purple-600 font-medium hover:text-purple-700 list-none flex items-center gap-1 select-none">
-                        <span>How is this price calculated?</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
-                    </summary>
-                    <div className="mt-2 bg-purple-50 rounded-xl p-3 text-[11px] text-slate-600 leading-relaxed space-y-1">
-                        <p>Our AI analyzes your cake photo and checks:</p>
-                        <ul className="space-y-0.5 pl-1">
-                            <li>• Number of tiers and cake size</li>
-                            <li>• Icing type (soft icing, fondant, buttercream)</li>
-                            <li>• Design complexity (simple, moderate, detailed)</li>
-                            <li>• Toppers (flowers, macarons, number candles, etc.)</li>
-                            <li>• Delivery zone in Metro Cebu</li>
-                        </ul>
-                        <p className="mt-2 pt-2 border-t border-purple-200">
-                            These factors match exactly what our bakers use to price custom orders — we just do it in seconds instead of hours.
-                        </p>
-                    </div>
-                </details>
             </div>
         </div>
     );
@@ -732,10 +704,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 Design It. See It. Order It.
                             </p>
                             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-4">
-                                See a cake you love? <span className="text-purple-600">We&apos;ll price it instantly.</span>
+                                Your design. Your price. <span className="text-purple-600">Updated instantly.</span>
                             </h2>
                             <p className="text-sm md:text-base text-gray-600 leading-relaxed mb-8 max-w-xl">
-                                Our AI reads your cake photo the same way a baker would — tier count, design complexity, icing type, and toppers. The price you see is what you pay. Confirmed by your baker before baking starts.
+                                Customize your cake directly by changing icing colors and toppers. Price gets instantly updated. Add to Cart and have it delivered the same day!
                             </p>
 
                             {/* Upload Drop Zone */}
