@@ -15,7 +15,8 @@ import NewsletterPopup from '@/components/NewsletterPopup'
 import { v4 as uuidv4 } from 'uuid'
 import { mapProductToDefaultState } from '@/utils/customizationMapper'
 import { upgradeLegacySlug, downgradeCakeSlug } from '@/lib/utils/urlHelpers'
-import { generateDesignDetails, generateDynamicFAQ } from '@/utils/designContentUtils'
+import { generateDesignDetails, generateDynamicFAQ, generateRichAltText } from '@/utils/designContentUtils'
+import { getSupabaseRenderUrl } from '@/utils/supabase-image-loader'
 
 // Minimum base price (1 Tier / 4in / 6" Round = ₱1,099) used as fallback
 // when a design has no valid cakeType or cached price.
@@ -207,7 +208,7 @@ export async function generateMetadata(
                     url: design.original_image_url,
                     width: design.image_width || 1200,
                     height: design.image_height || 1200,
-                    alt: design.alt_text || design.keywords || 'Custom cake design',
+                    alt: generateRichAltText(design),
                 },
             ] : [],
             type: 'website',
@@ -221,12 +222,14 @@ export async function generateMetadata(
                     url: design.original_image_url,
                     width: design.image_width || 1200,
                     height: design.image_height || 1200,
-                    alt: design.alt_text || design.keywords || 'Custom cake design',
+                    alt: generateRichAltText(design),
                 }
             ] : [],
         },
         other: {
             thumbnail: design.original_image_url || '',
+            // Explicit og:image:alt for Pinterest and crawlers that read it separately
+            'og:image:alt': design.alt_text || design.keywords || 'Custom cake design',
             // product:* meta tags for e-commerce enrichment (og:type set via openGraph.type above)
             'product:price:amount': (design.price && design.price > 0) ? Math.round(design.price).toString() : FALLBACK_MIN_PRICE.toString(),
             'product:price:currency': 'PHP',
@@ -252,7 +255,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         contentUrl: imageUrl,
         ...(design.image_width && { width: design.image_width }),
         ...(design.image_height && { height: design.image_height }),
-        name: sanitize(design.alt_text || title || 'Custom Cake Design'),
+        name: sanitize(generateRichAltText(design)),
         caption: sanitize(design.seo_description || `Custom ${keywords} cake design`),
         creditText: 'Genie.ph',
         creator: {
@@ -367,6 +370,21 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         ...baseOffersWrapper
     };
 
+    // Build a second ImageObject when a customized variant exists
+    const customizedImageUrl = design.customized_image_url;
+    const customizedImageObject = (customizedImageUrl && customizedImageUrl !== imageUrl) ? {
+        '@type': 'ImageObject',
+        url: customizedImageUrl,
+        contentUrl: customizedImageUrl,
+        name: sanitize(`Customized ${title}`),
+        creditText: 'Genie.ph',
+    } : null;
+
+    // Use array when both original + customized images are available
+    const schemaImage = imageObject && customizedImageObject
+        ? [imageObject, customizedImageObject]
+        : imageObject || (imageUrl || undefined);
+
     // Product schema with SoftwareApplication link
     const productSchema = {
         '@context': 'https://schema.org',
@@ -377,7 +395,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         sku: productMpn,
         mpn: productMpn,
         description: sanitize(design.seo_description || `Custom ${keywords} cake design`),
-        image: imageObject || (imageUrl || undefined),
+        image: schemaImage,
         brand: {
             '@type': 'Brand',
             name: 'Genie.ph'
@@ -477,7 +495,7 @@ function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { desig
     // Clean title: use keywords + "Cake Designs" if seo_title is missing
     const baseTitle = design.seo_title || `${keywords} Cake Designs`;
     const title = baseTitle.replace(/\s*\|\s*Genie\.ph\s*$/i, '');
-    const altText = design.alt_text || design.seo_title || `${keywords} cake design`;
+    const altText = generateRichAltText(design);
     const displayPrice = prices?.[0]?.price || design.price;
 
     // Extract product details from analysis
@@ -519,7 +537,7 @@ function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { desig
                         <LazyImage
                             src={design.original_image_url}
                             alt={altText}
-                            title={title}
+                            title={altText}
                             fill
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-contain"
@@ -528,6 +546,17 @@ function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { desig
                         <figcaption className="absolute bottom-0 left-0 right-0 text-xs text-slate-500 p-3 text-center bg-white/50 backdrop-blur-sm">
                             {captionText}
                         </figcaption>
+                        {/* Noscript fallback for non-JS crawlers */}
+                        <noscript>
+                            <img
+                                src={design.original_image_url}
+                                alt={altText}
+                                width={design.image_width || 1200}
+                                height={design.image_height || 1200}
+                                style={{ width: '100%', height: 'auto' }}
+                                loading="eager"
+                            />
+                        </noscript>
                     </figure>
                 )}
 
@@ -928,14 +957,19 @@ export default async function RecentSearchPage({ params }: Props) {
         <>
             <DesignSchema design={design} prices={prices} />
 
-            {/* Preload hero image for faster LCP */}
-            {design.original_image_url && (
-                <link
-                    rel="preload"
-                    as="image"
-                    href={design.original_image_url}
-                />
-            )}
+            {/* Preload hero image for faster LCP with responsive srcset */}
+            {design.original_image_url && (() => {
+                const renderUrl = getSupabaseRenderUrl(design.original_image_url);
+                return (
+                    <link
+                        rel="preload"
+                        as="image"
+                        href={design.original_image_url}
+                        imageSrcSet={renderUrl ? `${renderUrl}?width=640&resize=contain&quality=75 640w, ${renderUrl}?width=828&resize=contain&quality=75 828w, ${renderUrl}?width=1200&resize=contain&quality=75 1200w` : undefined}
+                        imageSizes={renderUrl ? "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" : undefined}
+                    />
+                );
+            })()}
 
             <SSRCakeDetails
                 design={design}
