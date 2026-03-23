@@ -1166,7 +1166,7 @@ function CartClient() {
                     <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-fade-in-fast { animation: fadeInFast 0.2s ease-out; } @keyframes fadeInFast { from { opacity: 0; } to { opacity: 1; } } `}</style>
 
                     <div className="flex justify-between items-center px-4 pt-4 pb-3 border-b border-slate-200">
-                        <h1 className="text-2xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">Your Bag</h1>
+                        <h1 className="text-2xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">Your Cart</h1>
                         <button onClick={handleClose} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Close cart">
                             <CloseIcon />
                         </button>
@@ -1182,7 +1182,7 @@ function CartClient() {
                         </div>
                     ) : allItems.length === 0 ? (
                         <div className="text-center py-16 px-4">
-                            <p className="text-slate-500">Your bag is empty.</p>
+                            <p className="text-slate-500">Your cart is empty.</p>
                             <button onClick={handleContinueShopping} className="mt-4 text-purple-600 font-semibold hover:underline">
                                 Continue Shopping
                             </button>
@@ -1192,14 +1192,16 @@ function CartClient() {
                             <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
                                 {Object.entries(groupedItems).map(([merchantName, items]) => (
                                     <div key={merchantName} className="mb-6 last:mb-0">
-                                        <div className="flex items-center gap-2 mb-3 pb-1 border-b border-slate-100">
-                                            <div className="bg-slate-100 p-1.5 rounded-full">
-                                                <Users size={16} className="text-slate-500" />
+                                        {merchantName !== 'Cake Genie' && (
+                                            <div className="flex items-center gap-2 mb-3 pb-1 border-b border-slate-100">
+                                                <div className="bg-slate-100 p-1.5 rounded-full">
+                                                    <Users size={16} className="text-slate-500" />
+                                                </div>
+                                                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+                                                    {merchantName}
+                                                </h3>
                                             </div>
-                                            <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
-                                                {merchantName}
-                                            </h3>
-                                        </div>
+                                        )}
                                         <div className="space-y-3">
                                             {items.map(item => (
                                                 <CartItemCard
@@ -1877,10 +1879,24 @@ function CartClient() {
                                     </div>
 
                                     {/* Payment method logos moved under the button */}
-                                    <div className="flex flex-wrap gap-2 items-center justify-center pt-2">
-                                        {paymentMethods.map(method => (
-                                            <img key={method.name} src={method.logoUrl} alt={method.name} title={method.name} width={48} height={30} className="h-8 w-12 object-contain rounded-md bg-white p-1 border border-slate-200 shadow-sm opacity-80" />
-                                        ))}
+                                    <div className="flex flex-col gap-4 items-center justify-center pt-2">
+                                        <div className="flex flex-wrap gap-2 items-center justify-center">
+                                            {paymentMethods.map(method => (
+                                                <img key={method.name} src={method.logoUrl} alt={method.name} title={method.name} width={48} height={30} className="h-8 w-12 object-contain rounded-md bg-white p-1 border border-slate-200 shadow-sm opacity-80" />
+                                            ))}
+                                        </div>
+                                        <div className="flex flex-wrap gap-6 items-center justify-center">
+                                            <img
+                                                src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/xendit-blue.webp"
+                                                alt="Xendit"
+                                                className="h-10 w-auto object-contain"
+                                            />
+                                            <img
+                                                src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/securepayment-green.webp"
+                                                alt="Secure Payment"
+                                                className="h-10 w-auto object-contain"
+                                            />
+                                        </div>
                                     </div>
 
                                     {/* Split with Friends explanation — hidden for now */}

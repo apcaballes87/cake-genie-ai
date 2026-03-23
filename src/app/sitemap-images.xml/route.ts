@@ -62,7 +62,8 @@ export async function GET() {
         offset += BATCH_SIZE;
     }
 
-    const entries = allItems
+    // --- Customizing entries ---
+    const customizingEntries = allItems
         // Exclude old 16-char hex-hash slugs (same filter as main sitemap)
         .filter((item: any) => !LEGACY_SLUG_RE.test(item.slug))
         .map((item: any) => {
@@ -88,8 +89,74 @@ export async function GET() {
     </image:image>
   </url>`;
         })
-        .filter(Boolean)
-        .join('\n');
+        .filter(Boolean);
+
+    // --- Product entries ---
+    // Products need merchant slug from the merchants table (joined via merchant_id)
+    const productItems: any[] = [];
+    offset = 0;
+    hasMore = true;
+    while (hasMore) {
+        const { data } = await supabase
+            .from('cakegenie_merchant_products')
+            .select('slug, title, image_url, alt_text, short_description, merchant:cakegenie_merchants!merchant_id(slug)')
+            .eq('is_active', true)
+            .not('image_url', 'is', null)
+            .range(offset, offset + BATCH_SIZE - 1);
+
+        const batch = data || [];
+        productItems.push(...batch);
+        hasMore = batch.length === BATCH_SIZE;
+        offset += BATCH_SIZE;
+    }
+
+    const productEntries = productItems
+        .map((item: any) => {
+            const imageLoc = sanitizeUrl(item.image_url);
+            const merchantSlug = item.merchant?.slug;
+            if (!imageLoc || !merchantSlug) return '';
+
+            const title = escapeXml(item.title || 'Custom Cake');
+            const caption = escapeXml(item.alt_text || item.short_description || `${item.title} — order custom cakes on Genie.ph`);
+
+            return `  <url>
+    <loc>${baseUrl}/shop/${merchantSlug}/${item.slug}</loc>
+    <image:image>
+      <image:loc>${imageLoc}</image:loc>
+      <image:title>${title}</image:title>
+      <image:caption>${caption}</image:caption>
+    </image:image>
+  </url>`;
+        })
+        .filter(Boolean);
+
+    // --- Blog entries ---
+    const { data: blogPosts } = await supabase
+        .from('blogs')
+        .select('slug, title, image, excerpt')
+        .not('image', 'is', null)
+        .eq('is_published', true);
+
+    const blogEntries = (blogPosts || [])
+        .map((post: any) => {
+            const imageLoc = sanitizeUrl(post.image);
+            if (!imageLoc) return '';
+
+            const title = escapeXml(post.title || 'Blog Post');
+            const caption = escapeXml(post.excerpt || `${post.title} — read more on Genie.ph`);
+
+            return `  <url>
+    <loc>${baseUrl}/blog/${post.slug}</loc>
+    <image:image>
+      <image:loc>${imageLoc}</image:loc>
+      <image:title>${title}</image:title>
+      <image:caption>${caption}</image:caption>
+    </image:image>
+  </url>`;
+        })
+        .filter(Boolean);
+
+    const entries = [...customizingEntries, ...productEntries, ...blogEntries].join('\n');
 
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"

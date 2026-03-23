@@ -158,7 +158,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             {/* SEO Content: Rendered visibly for crawlers and users */}
             <div className="bg-white relative z-0 container mx-auto px-4 py-8 max-w-4xl">
                 {/* LCP Optimization: Render main image visibly (can be styled to look good or hidden if needed, but better to be part of content) */}
-                <div className="mb-6">
+                <figure className="mb-6">
                     {/* eslint-disable-next-line @next/next/no-img-element -- Intentional SEO/LCP image markup for the primary product image. */}
                     <img
                         src={product.image_url || ''}
@@ -170,7 +170,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
                         fetchPriority="high"
                         itemProp="image"
                     />
-                </div>
+                    <figcaption className="mt-2 text-sm text-slate-500">
+                        {product.alt_text || `${product.title} — Custom cake from ${merchant.business_name}`}
+                    </figcaption>
+                </figure>
 
                 <div className="prose prose-slate max-w-none">
                     <h1 className="text-3xl font-bold text-slate-900 mb-4">{product.title}</h1>
