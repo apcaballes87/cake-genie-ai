@@ -180,3 +180,42 @@ export function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { que
 
     return faqs;
 }
+
+/**
+ * Generates descriptive rich alt text (120-150 chars) from the design analysis.
+ * Prioritizes the AI-generated alt_text from the database if available.
+ * Fallback Pattern: "{keywords} {occasion} cake, {cakeType} {icingBase} in {colors}, with {toppers}"
+ */
+export function generateRichAltText(design: any): string {
+    // 1. Prioritize existing AI-generated alt text from the database (most natural)
+    if (design.alt_text && design.alt_text.length > 15) {
+        return design.alt_text;
+    }
+
+    // 2. Fallback to generating a structured string from analysis_json
+    const analysis = design.analysis_json || {};
+    const keywords = design.keywords || 'Custom';
+    const occasion = design.tags?.[0] ? design.tags[0].replace(/cake/i, '').trim() : '';
+    const prefix = `${keywords} ${occasion} cake`.replace(/\s+/g, ' ').trim();
+
+    const cakeType = (analysis.cakeType || '').toLowerCase();
+    const icingBase = (analysis.icing_design?.base || 'icing').replace(/[-_]/g, ' ');
+    const topColor = hexToColorNameProse(analysis.icing_design?.colors?.top || '');
+    const sideColor = hexToColorNameProse(analysis.icing_design?.colors?.side || '');
+    const colors = topColor && sideColor && topColor !== sideColor ? `${topColor} and ${sideColor}` : topColor;
+    const middle = `${cakeType} ${icingBase}${colors ? ` in ${colors}` : ''}`.trim();
+
+    const decos = [
+        ...(analysis.main_toppers || []), ...(analysis.support_elements || [])
+    ].map((d: any) => d.description || d.type?.replace(/_/g, ' ')).filter(Boolean);
+    const toppers = decos.length > 0 ? `with ${decos.slice(0, 2).join(' and ')}${decos.length > 2 ? ' accents' : ''}` : '';
+
+    const generated = [prefix, middle, toppers].filter(Boolean).join(', ').replace(/\s+/g, ' ').trim();
+    const capitalized = generated.charAt(0).toUpperCase() + generated.slice(1);
+
+    if (decos.length > 0 || colors) return capitalized;
+    
+    // 3. Absolute fallback
+    return `${keywords} cake design`;
+}
+
