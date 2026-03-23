@@ -21,11 +21,15 @@ interface CustomizingSupplementalContentProps {
     showClientFallback: boolean;
 }
 
-const getRecentSearchTitle = (recentSearchDesign?: RecentSearchDesignMeta) => (
-    recentSearchDesign?.seo_title?.replace(/\s*\|\s*Genie\.ph\s*$/i, '')
-    || recentSearchDesign?.keywords
-    || 'Custom Design'
-);
+const getRecentSearchTitle = (recentSearchDesign?: RecentSearchDesignMeta) => {
+    const raw = recentSearchDesign?.seo_title?.replace(/\s*\|\s*Genie\.ph\s*$/i, '')
+        || recentSearchDesign?.keywords
+        || 'Custom Design';
+    // Ensure "Cake Design" is present — matches what Filipino users search in Google Images
+    if (/cake\s*design/i.test(raw)) return raw;
+    if (/cake\s*$/i.test(raw)) return `${raw} Design`;
+    return `${raw} Cake Design`;
+};
 
 export const CustomizingPageMetaHeader = React.memo(({
     product,

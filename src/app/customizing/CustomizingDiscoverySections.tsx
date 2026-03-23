@@ -4,7 +4,6 @@ import React from 'react';
 import Link from 'next/link';
 import Masonry from 'react-masonry-css';
 import { Star } from 'lucide-react';
-import LazyImage from '@/components/LazyImage';
 import { ProductCard, type ProductCardProps } from '@/components/ProductCard';
 
 export type CustomizingRelatedDesign = ProductCardProps & {
@@ -55,7 +54,7 @@ const RelatedDesignsSection = React.memo(({
             >
                 {relatedDesigns.map((related, i) => (
                     <div key={`${related.slug}-${i}`} className="mb-3">
-                        <ProductCard {...related} />
+                        <ProductCard {...related} backgroundOnly />
                     </div>
                 ))}
             </Masonry>
@@ -110,12 +109,13 @@ const RelatedCollectionsSection = React.memo(({
                     >
                         <div className="aspect-4/5 relative overflow-hidden">
                             {collection.sample_image && (
-                                <LazyImage
-                                    src={collection.sample_image}
-                                    alt={collection.name}
-                                    fill
-                                    containerClassName="absolute inset-0"
-                                    imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
+                                /* CSS background instead of <img> — prevents Google Images
+                                   from indexing collection thumbnails as this page's images */
+                                <div
+                                    className="absolute inset-0 w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+                                    style={{ backgroundImage: `url(${collection.sample_image})` }}
+                                    role="img"
+                                    aria-label={collection.name}
                                 />
                             )}
                             <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
