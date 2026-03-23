@@ -11,13 +11,13 @@ export const IntroContent = () => {
                 </h2>
                 <div className="prose prose-base md:prose-lg mx-auto text-gray-600 space-y-4 md:space-y-6 leading-relaxed">
                     <p>
-                        <strong>Genie.ph is where you order a custom cake the same way you order food — fast, certain, and exactly the way you want it.</strong> Upload a design, see your instant AI-checked price, and get it delivered today across Metro Cebu. No DMs. No back-and-forth. No surprises.
+                        <strong>Genie.ph is where you order a custom cake the same way you order food — fast, certain, and exactly the way you want it.</strong> Upload a design, see your price in 10 seconds, and get it delivered today across Metro Cebu. No DMs. No back-and-forth. No surprises.
                     </p>
 
                     <ul className="text-left space-y-3 list-none pl-0">
                         <li className="flex items-start">
                             <span className="text-purple-500 mr-2 mt-1">✨</span>
-                            <span><strong>See your cake priced instantly</strong> — upload any photo and know the cost, confirmed by your baker before baking starts</span>
+                            <span><strong>See your cake priced in 10 seconds</strong> — upload any photo and know the cost instantly</span>
                         </li>
                         <li className="flex items-start">
                             <span className="text-purple-500 mr-2 mt-1">🎨</span>

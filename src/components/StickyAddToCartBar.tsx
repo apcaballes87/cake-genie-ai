@@ -98,20 +98,9 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
 
     const showAvailability = Boolean(availability && !isAnalyzing && !error);
 
+
     const [isCompact, setIsCompact] = React.useState(false);
     const buttonsRef = React.useRef<HTMLDivElement>(null);
-    const [showPriceBreakdown, setShowPriceBreakdown] = React.useState(false);
-    const [priceJustUpdated, setPriceJustUpdated] = React.useState(false);
-    const prevIsLoading = React.useRef(isLoading);
-
-    React.useEffect(() => {
-        if (prevIsLoading.current && !isLoading && price !== null) {
-            setPriceJustUpdated(true);
-            const t = setTimeout(() => setPriceJustUpdated(false), 1500);
-            return () => clearTimeout(t);
-        }
-        prevIsLoading.current = isLoading;
-    }, [isLoading, price]);
 
     React.useEffect(() => {
         const currentRef = buttonsRef.current;
@@ -141,45 +130,16 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                 </div>
             );
         }
-        if (isLoading) return <span className="text-sm text-slate-500">Updating price...</span>;
+        if (isLoading) return <span className="text-sm text-slate-500">Calculating...</span>;
         if (error) return <span className="text-sm font-semibold text-red-600">{error.includes('AI') ? 'Analysis Error' : 'Pricing Error'}</span>;
         if (price !== null) {
             return (
-                <div className="text-left relative">
-                    {priceJustUpdated ? (
-                        <span className="text-sm font-semibold text-green-600 animate-pulse">✓ Price updated</span>
-                    ) : (
-                        <div className="flex items-center gap-1">
-                            <span className="text-lg font-bold text-slate-800">₱{price.toLocaleString()}</span>
-                            <button
-                                type="button"
-                                onClick={() => setShowPriceBreakdown(v => !v)}
-                                className="text-slate-400 hover:text-slate-600 text-xs leading-none align-middle"
-                                aria-label="Price breakdown"
-                            >
-                                ⓘ
-                            </button>
-                        </div>
-                    )}
-                    {showPriceBreakdown && !priceJustUpdated && (
-                        <div className="absolute bottom-full left-0 mb-2 w-64 bg-white border border-slate-200 rounded-xl shadow-xl p-3 text-[11px] text-slate-600 z-50">
-                            <p className="font-semibold mb-1">This price includes:</p>
-                            <ul className="space-y-0.5 list-none">
-                                <li>• Base cake (size + flavor selected)</li>
-                                <li>• All icing colors and decorations shown</li>
-                                <li>• Toppers selected above</li>
-                                <li>• Free Metro Cebu delivery</li>
-                            </ul>
-                            <p className="mt-2 text-slate-400">Not included: Rush delivery surcharge (if applicable)</p>
-                        </div>
-                    )}
-                    {!priceJustUpdated && (cakeInfo && cakeInfo.size && cakeInfo.thickness ? (
+                <div className="text-left">
+                    <span className="text-lg font-bold text-slate-800">₱{price.toLocaleString()}</span>
+                    {cakeInfo && cakeInfo.size && cakeInfo.thickness ? (
                         <span className="text-xs text-slate-500 block whitespace-nowrap">{`${cakeInfo.size} ${cakeInfo.thickness.replace(' in', '" Height')}`}</span>
                     ) : (
                         <span className="text-xs text-slate-500 block">Final Price</span>
-                    ))}
-                    {!priceJustUpdated && (
-                        <span className="text-[10px] text-slate-400 block mt-0.5">AI-priced · Baker-confirmed before baking</span>
                     )}
                 </div>
             );
@@ -400,22 +360,6 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                             </div>
                         )}
                     </div>
-                    )}
-                    {/* Trust strip */}
-                    {price !== null && !isAnalyzing && !error && (
-                        <div className="max-w-4xl mx-auto flex items-center justify-center gap-3 mb-2 flex-wrap">
-                            <span className="text-[10px] text-slate-500 flex items-center gap-1">🔒 Secure Checkout</span>
-                            <span className="text-[10px] text-slate-400">·</span>
-                            <span className="text-[10px] text-slate-500 flex items-center gap-1">✓ Baker Reviews Before Baking</span>
-                            <span className="text-[10px] text-slate-400">·</span>
-                            <a href="sms:+639089408747" className="text-[10px] text-purple-500 flex items-center gap-1">📞 Need help? Text us</a>
-                        </div>
-                    )}
-                    {/* Disclaimer */}
-                    {price !== null && !isAnalyzing && !error && (
-                        <p className="max-w-4xl mx-auto text-[10px] text-center text-slate-400 mb-1.5">
-                            ⓘ Final cake may vary slightly from design photo. Your baker will confirm before baking.
-                        </p>
                     )}
                     <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
                         <div className="min-w-[100px] min-h-[44px] flex items-center relative">
