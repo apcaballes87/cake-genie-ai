@@ -69,10 +69,12 @@ export async function GET() {
             const imageLoc = sanitizeUrl(item.original_image_url);
             if (!imageLoc) return '';
 
-            // Title logic: strip suffix or fallback to keywords
-            const title = item.seo_title
+            // Title logic: strip suffix and ensure "Cake Design" is always present
+            // "Cake Design" matches what Filipino users search in Google Images
+            const rawTitle = item.seo_title
                 ? item.seo_title.replace(' | Genie.ph', '').trim()
                 : `${item.keywords ? item.keywords.split(',')[0].trim() : 'Custom'} Cake Design`;
+            const title = /cake\s*design/i.test(rawTitle) ? rawTitle : /cake\s*$/i.test(rawTitle) ? `${rawTitle} Design` : `${rawTitle} Cake Design`;
 
             // Caption logic: alt_text or fallback with mandatory suffix
             const caption = item.alt_text || `${title} — customize this cake design and get instant pricing on Genie.ph`;

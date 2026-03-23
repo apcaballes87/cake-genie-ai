@@ -138,9 +138,14 @@ export async function generateMetadata(
     const priceDisplay = design.price ? ` | Php ${Math.round(design.price).toLocaleString()}` : ''
     // Strip existing "| Genie.ph" suffix — the root layout template already appends it
     const baseSeoTitle = design.seo_title?.replace(/\s*\|\s*Genie\.ph\s*$/i, '') || ''
+    // Ensure title always contains "Cake Design" for image search matching
+    // Filipino users frequently search "{theme} cake design" or "{theme} cake design with price"
+    const hasCakeDesignKeyword = baseSeoTitle && /cake\s*design/i.test(baseSeoTitle);
+    const endsWithCake = baseSeoTitle && /cake\s*$/i.test(baseSeoTitle);
+    const cakeDesignSuffix = hasCakeDesignKeyword ? '' : endsWithCake ? ' Design' : ' Cake Design';
     const title = baseSeoTitle
-        ? `${baseSeoTitle}${priceDisplay}`
-        : `${tagsPrefix}${design.keywords || 'Custom'} Cake Designs & Photos${priceDisplay}`
+        ? `${baseSeoTitle}${cakeDesignSuffix}${priceDisplay ? ` with Price${priceDisplay}` : ''}`
+        : `${tagsPrefix}${design.keywords || 'Custom'} Cake Design with Price${priceDisplay}`
 
     // Description with rich fallback chain:
     // 1. Use seo_description if available
@@ -492,9 +497,10 @@ function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { desig
     const keywords = design.keywords || 'Custom';
     const analysis = design.analysis_json || {};
 
-    // Clean title: use keywords + "Cake Designs" if seo_title is missing
-    const baseTitle = design.seo_title || `${keywords} Cake Designs`;
-    const title = baseTitle.replace(/\s*\|\s*Genie\.ph\s*$/i, '');
+    // Clean title: use keywords + "Cake Design" if seo_title is missing
+    // Always include "Cake Design" — matches what Filipino users search in Google Images
+    const rawTitle = (design.seo_title || `${keywords} Cake Design`).replace(/\s*\|\s*Genie\.ph\s*$/i, '');
+    const title = /cake\s*design/i.test(rawTitle) ? rawTitle : /cake\s*$/i.test(rawTitle) ? `${rawTitle} Design` : `${rawTitle} Cake Design`;
     const altText = generateRichAltText(design);
     const displayPrice = prices?.[0]?.price || design.price;
 
@@ -544,7 +550,7 @@ function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { desig
                             itemProp="image"
                         />
                         <figcaption className="absolute bottom-0 left-0 right-0 text-xs text-slate-500 p-3 text-center bg-white/50 backdrop-blur-sm">
-                            {captionText}
+                            {altText} — {captionText}
                         </figcaption>
                         {/* Noscript fallback for non-JS crawlers */}
                         <noscript>

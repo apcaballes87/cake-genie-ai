@@ -182,9 +182,10 @@ export function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { que
 }
 
 /**
- * Generates descriptive rich alt text (120-150 chars) from the design analysis.
+ * Generates descriptive rich alt text from the design analysis.
  * Prioritizes the AI-generated alt_text from the database if available.
- * Fallback Pattern: "{keywords} {occasion} cake, {cakeType} {icingBase} in {colors}, with {toppers}"
+ * Auto-generated backup pattern mirrors cakesandmemories.com style:
+ *   "{keywords} {occasion} cake design — {tier} {icingBase} cake in {colors} with {toppers list}"
  */
 export function generateRichAltText(design: any): string {
     // 1. Prioritize existing AI-generated alt text from the database (most natural)
@@ -192,29 +193,70 @@ export function generateRichAltText(design: any): string {
         return design.alt_text;
     }
 
-    // 2. Fallback to generating a structured string from analysis_json
+    // 2. Auto-generated backup: build rich, specific alt text from analysis data.
+    //    Many of the 8K+ designs hit this path when alt_text is empty.
     const analysis = design.analysis_json || {};
     const keywords = design.keywords || 'Custom';
-    const occasion = design.tags?.[0] ? design.tags[0].replace(/cake/i, '').trim() : '';
-    const prefix = `${keywords} ${occasion} cake`.replace(/\s+/g, ' ').trim();
+    const tags = design.tags || [];
+    const occasion = tags[0] ? tags[0].replace(/cake/i, '').trim() : '';
 
-    const cakeType = (analysis.cakeType || '').toLowerCase();
+    // Human-readable tier names (e.g., "single-tier" instead of "1 tier")
+    const tierMap: Record<string, string> = {
+        '1 tier': 'single-tier', '2 tier': 'two-tier', '3 tier': 'three-tier',
+        '1 tier fondant': 'single-tier fondant', '2 tier fondant': 'two-tier fondant', '3 tier fondant': 'three-tier fondant',
+        'bento': 'bento', 'square': 'square', 'rectangle': 'rectangle',
+        'square fondant': 'square fondant', 'rectangle fondant': 'rectangle fondant',
+    };
+    const rawCakeType = (analysis.cakeType || '').toLowerCase();
+    const cakeType = tierMap[rawCakeType] || rawCakeType;
     const icingBase = (analysis.icing_design?.base || 'icing').replace(/[-_]/g, ' ');
+
     const topColor = hexToColorNameProse(analysis.icing_design?.colors?.top || '');
     const sideColor = hexToColorNameProse(analysis.icing_design?.colors?.side || '');
     const colors = topColor && sideColor && topColor !== sideColor ? `${topColor} and ${sideColor}` : topColor;
-    const middle = `${cakeType} ${icingBase}${colors ? ` in ${colors}` : ''}`.trim();
 
-    const decos = [
-        ...(analysis.main_toppers || []), ...(analysis.support_elements || [])
-    ].map((d: any) => d.description || d.type?.replace(/_/g, ' ')).filter(Boolean);
-    const toppers = decos.length > 0 ? `with ${decos.slice(0, 2).join(' and ')}${decos.length > 2 ? ' accents' : ''}` : '';
+    // Build decoration list (expanded to 4 items for richer descriptions)
+    const mainTopperDescs = (analysis.main_toppers || [])
+        .map((d: any) => d.description || d.type?.replace(/_/g, ' ')).filter(Boolean);
+    const supportDescs = (analysis.support_elements || [])
+        .map((d: any) => d.description || d.type?.replace(/_/g, ' ')).filter(Boolean);
+    const allDecos = [...mainTopperDescs, ...supportDescs].slice(0, 4);
 
-    const generated = [prefix, middle, toppers].filter(Boolean).join(', ').replace(/\s+/g, ' ').trim();
+    // Build message mention (e.g., 'custom "Happy Birthday" message')
+    const messages = (analysis.cake_messages || [])
+        .map((m: any) => m.text).filter(Boolean);
+    const messagePart = messages.length > 0
+        ? `custom "${messages[0]}" message`
+        : '';
+
+    // Assemble: "{Keywords} {occasion} cake design — {tier} {icing} cake in {colors} with {decos}"
+    const parts: string[] = [];
+
+    // Opening: always include "cake design" for search matching
+    const prefix = `${keywords}${occasion ? ` ${occasion}` : ''} cake design`.replace(/\s+/g, ' ').trim();
+    parts.push(prefix);
+
+    // Cake description
+    const cakeDesc = `${cakeType} ${icingBase} cake${colors ? ` in ${colors}` : ''}`.trim();
+    if (cakeType || colors) parts.push(cakeDesc);
+
+    // Decorations
+    if (allDecos.length > 0 || messagePart) {
+        const decoItems = [...allDecos];
+        if (messagePart) decoItems.push(messagePart);
+        if (decoItems.length === 1) {
+            parts.push(`with ${decoItems[0]}`);
+        } else {
+            const last = decoItems.pop();
+            parts.push(`with ${decoItems.join(', ')}, and ${last}`);
+        }
+    }
+
+    const generated = parts.join(' — ').replace(/\s+/g, ' ').trim();
     const capitalized = generated.charAt(0).toUpperCase() + generated.slice(1);
 
-    if (decos.length > 0 || colors) return capitalized;
-    
+    if (allDecos.length > 0 || colors || messagePart) return capitalized;
+
     // 3. Absolute fallback
     return `${keywords} cake design`;
 }

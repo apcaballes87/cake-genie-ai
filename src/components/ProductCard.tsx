@@ -30,11 +30,14 @@ export interface ProductCardProps {
     priority?: boolean;
     image_width?: number | null;
     image_height?: number | null;
+    /** Render image as CSS background instead of <img> to prevent Google Images indexing.
+     *  Use on related/discovery sections so only the hero image is indexed per page. */
+    backgroundOnly?: boolean;
 }
 
 type ProductCardContentProps = Pick<
     ProductCardProps,
-    'original_image_url' | 'price' | 'availability' | 'priority' | 'image_width' | 'image_height'
+    'original_image_url' | 'price' | 'availability' | 'priority' | 'image_width' | 'image_height' | 'backgroundOnly'
 > & {
     title: string;
 };
@@ -83,6 +86,7 @@ const ProductCardContent = ({
     priority = false,
     image_width,
     image_height,
+    backgroundOnly = false,
     title,
 }: ProductCardContentProps) => {
     const avail = availability || 'normal';
@@ -94,16 +98,27 @@ const ProductCardContent = ({
                     className={`relative w-full ${image_width && image_height ? '' : 'aspect-4/5'}`}
                     style={image_width && image_height ? { aspectRatio: `${image_width} / ${image_height}` } : undefined}
                 >
-                    <LazyImage
-                        src={original_image_url}
-                        alt={title}
-                        title={title}
-                        fill
-                        sizes="(max-width: 490px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 17vw"
-                        imageClassName="object-cover group-hover:scale-105 transition-transform duration-500 genie-internal-image"
-                        priority={priority}
-                        loading={priority ? 'eager' : 'lazy'}
-                    />
+                    {backgroundOnly ? (
+                        /* CSS background: invisible to Google Images — prevents related designs
+                           from being indexed as this page's images. Only the hero <img> is indexed. */
+                        <div
+                            className="absolute inset-0 w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-500"
+                            style={{ backgroundImage: `url(${original_image_url})` }}
+                            role="img"
+                            aria-label={title}
+                        />
+                    ) : (
+                        <LazyImage
+                            src={original_image_url}
+                            alt={title}
+                            title={title}
+                            fill
+                            sizes="(max-width: 490px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 17vw"
+                            imageClassName="object-cover group-hover:scale-105 transition-transform duration-500 genie-internal-image"
+                            priority={priority}
+                            loading={priority ? 'eager' : 'lazy'}
+                        />
+                    )}
 
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
 
