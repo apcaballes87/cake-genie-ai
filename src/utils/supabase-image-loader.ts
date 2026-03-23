@@ -23,7 +23,7 @@ export default function supabaseLoader({ src, width, quality }: { src: string; w
     const url = new URL(src);
     if (url.hostname.endsWith('.supabase.co') && url.pathname.includes('/storage/v1/object/public/')) {
       const renderPath = url.pathname.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
-      return `${url.origin}${renderPath}?width=${width}&resize=contain&quality=${quality || 75}&format=webp`;
+      return `${url.origin}${renderPath}?width=${width}&resize=contain&quality=${quality || 75}`;
     }
   } catch {
     // Malformed URL — fall through to passthrough
