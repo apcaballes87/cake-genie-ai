@@ -42,15 +42,6 @@ const ImageUploader = dynamic(
 );
 
 
-const trustBadges = [
-    'METRO CEBU DELIVERY',
-    '4.8★ CUSTOMER RATED',
-    'CUSTOM CAKES FOR SPONTANEOUS MOMENTS',
-    'SAME-DAY ORDERS',
-    'YOUR CAKE IN 10 SECONDS',
-    'NO DMs NO WAITING',
-    'YOUR CAKE WISH, GRANTED',
-];
 
 interface LandingClientProps {
     children?: React.ReactNode;
@@ -366,25 +357,11 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 <DiscountCapture />
             </Suspense>
 
-            {/* ========== TRUST BANNER MARQUEE ========== */}
-            <div className="w-full overflow-hidden bg-purple-600 py-[4.5px]">
-                <style jsx>{`
-                    @keyframes marquee {
-                        0% { transform: translateX(0); }
-                        100% { transform: translateX(-50%); }
-                    }
-                    .trust-marquee {
-                        animation: marquee 25s linear infinite;
-                    }
-                `}</style>
-                <div className="trust-marquee flex whitespace-nowrap">
-                    {[...trustBadges, ...trustBadges].map((badge, i) => (
-                        <span key={i} className="inline-flex items-center text-white text-[9px] md:text-[10px] font-bold tracking-wider mx-6 md:mx-10">
-                            {badge}
-                            <span className="ml-6 md:ml-10 text-purple-300">&#9830;</span>
-                        </span>
-                    ))}
-                </div>
+            {/* ========== STATIC TRUST BANNER ========== */}
+            <div className="w-full bg-purple-600 py-[4.5px] flex justify-center items-center">
+                <span className="inline-flex items-center text-white text-[10px] md:text-[11px] font-bold tracking-wider uppercase">
+                    CUSTOM CAKES FOR RUSH ORDERS IN CEBU
+                </span>
             </div>
 
             {/* ========== HEADER ========== */}
