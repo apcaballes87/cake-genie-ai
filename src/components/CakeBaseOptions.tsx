@@ -191,52 +191,6 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                 </div>
             </div>
 
-            <div className="space-y-2 pt-1">
-                {tierLabels.map((label, index) => {
-                    return (
-                        <div key={index}>
-                            <div className="flex items-center gap-3">
-                                <span className="text-sm font-medium text-slate-800">{label}</span>
-                            </div>
-                            <div className="mt-1.5">
-                                <div className="relative">
-                                    <div className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide">
-                                        {FLAVOR_OPTIONS.map(flavor => {
-                                            const isBento = cakeInfo.type === 'Bento';
-                                            const isFlavorDisabled = isBento && (flavor === 'Ube Cake' || flavor === 'Mocha Cake');
-                                            return (
-                                                <button
-                                                    key={flavor}
-                                                    type="button"
-                                                    disabled={isFlavorDisabled}
-                                                    onClick={() => {
-                                                        if (isFlavorDisabled) return;
-                                                        const newFlavors = [...cakeInfo.flavors];
-                                                        newFlavors[index] = flavor;
-                                                        onCakeInfoChange({ flavors: newFlavors });
-                                                    }}
-                                                    className={`group shrink-0 w-16 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 transition-opacity ${isFlavorDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                >
-                                                    <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.flavors[index] === flavor ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
-                                                        <LazyImage
-                                                            src={FLAVOR_THUMBNAILS[flavor]}
-                                                            alt={flavor}
-                                                            fill
-                                                            sizes="64px"
-                                                            imageClassName={`object-cover transition-all ${isFlavorDisabled ? 'filter grayscale' : ''}`}
-                                                        />
-                                                    </div>
-                                                    <span className="mt-2 text-[10px] font-medium text-slate-700 leading-tight">{flavor}</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
         </div>
     );
 };
