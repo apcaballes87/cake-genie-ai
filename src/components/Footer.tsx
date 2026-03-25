@@ -191,40 +191,42 @@ export const Footer = () => {
                             </div>
                         </div>
 
-                        {/* Col 2: Explore */}
-                        <nav aria-label="Explore links">
-                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Explore</h4>
-                            <ul className="space-y-2.5 text-sm text-gray-600">
-                                <li><Link href="/customizing" className="hover:text-purple-600 transition-colors">Customize a Cake</Link></li>
-                                <li><Link href="/shop" className="hover:text-purple-600 transition-colors">Shop</Link></li>
-                                <li><Link href="/collections" className="hover:text-purple-600 transition-colors">Collections</Link></li>
-                                <li><Link href="/blog" className="hover:text-purple-600 transition-colors">Blog</Link></li>
-                                <li><Link href="/about" className="hover:text-purple-600 transition-colors">About Us</Link></li>
-                                <li><Link href="/compare" className="hover:text-purple-600 transition-colors">Compare</Link></li>
-                                <li><Link href="/sitemap-html" className="hover:text-purple-600 transition-colors">HTML Sitemap</Link></li>
-                            </ul>
-                        </nav>
+                        <div className="grid grid-cols-2 md:contents gap-8">
+                            {/* Col 2: Explore */}
+                            <nav aria-label="Explore links">
+                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Explore</h4>
+                                <ul className="space-y-2.5 text-sm text-gray-600">
+                                    <li><Link href="/customizing" className="hover:text-purple-600 transition-colors">Customize a Cake</Link></li>
+                                    <li><Link href="/shop" className="hover:text-purple-600 transition-colors">Shop</Link></li>
+                                    <li><Link href="/collections" className="hover:text-purple-600 transition-colors">Collections</Link></li>
+                                    <li><Link href="/blog" className="hover:text-purple-600 transition-colors">Blog</Link></li>
+                                    <li><Link href="/about" className="hover:text-purple-600 transition-colors">About Us</Link></li>
+                                    <li><Link href="/compare" className="hover:text-purple-600 transition-colors">Compare</Link></li>
+                                    <li><Link href="/sitemap-html" className="hover:text-purple-600 transition-colors">HTML Sitemap</Link></li>
+                                </ul>
+                            </nav>
 
-                        {/* Col 3: Help */}
-                        <nav aria-label="Help links">
-                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Help</h4>
-                            <ul className="space-y-2.5 text-sm text-gray-600">
-                                <li><Link href="/contact" className="hover:text-purple-600 transition-colors">Contact Us</Link></li>
-                                <li><Link href="/faq" className="hover:text-purple-600 transition-colors">FAQ</Link></li>
-                                <li><Link href="/how-to-order" className="hover:text-purple-600 transition-colors">How to Order</Link></li>
-                                <li><Link href="/delivery-rates" className="hover:text-purple-600 transition-colors">Delivery Rates</Link></li>
-                                <li><Link href="/terms" className="hover:text-purple-600 transition-colors">Terms of Service</Link></li>
-                                <li><Link href="/privacy" className="hover:text-purple-600 transition-colors">Privacy Policy</Link></li>
-                                <li><Link href="/return-policy" className="hover:text-purple-600 transition-colors">Return Policy</Link></li>
-                            </ul>
-                        </nav>
+                            {/* Col 3: Help */}
+                            <nav aria-label="Help links">
+                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Help</h4>
+                                <ul className="space-y-2.5 text-sm text-gray-600">
+                                    <li><Link href="/contact" className="hover:text-purple-600 transition-colors">Contact Us</Link></li>
+                                    <li><Link href="/faq" className="hover:text-purple-600 transition-colors">FAQ</Link></li>
+                                    <li><Link href="/how-to-order" className="hover:text-purple-600 transition-colors">How to Order</Link></li>
+                                    <li><Link href="/delivery-rates" className="hover:text-purple-600 transition-colors">Delivery Rates</Link></li>
+                                    <li><Link href="/terms" className="hover:text-purple-600 transition-colors">Terms of Service</Link></li>
+                                    <li><Link href="/privacy" className="hover:text-purple-600 transition-colors">Privacy Policy</Link></li>
+                                    <li><Link href="/return-policy" className="hover:text-purple-600 transition-colors">Return Policy</Link></li>
+                                </ul>
+                            </nav>
+                        </div>
 
                     </div>
 
                     {/* Bottom Bar */}
                     <div className="mt-12 pt-6 border-t border-purple-200 flex flex-col md:flex-row items-center justify-between gap-4">
                         <p className="text-xs text-gray-400">
-                            © {new Date().getFullYear()} Genie.ph. All rights reserved.
+                            © 2025 Genie.ph | Alalai Information Technology Solutions
                         </p>
                         <button
                             onClick={scrollToTop}

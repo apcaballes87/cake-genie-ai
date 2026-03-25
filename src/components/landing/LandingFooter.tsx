@@ -105,12 +105,14 @@ export function LandingFooter() {
                 </a>
               </div>
             </div>
-            <nav aria-label="Explore links"><h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Explore</h4><ul className="space-y-2.5 text-sm text-gray-600">{exploreLinks.map((item) => { const [href, label] = item.split('|'); return <li key={href}><Link href={href} className="hover:text-purple-600 transition-colors">{label}</Link></li>; })}</ul></nav>
-            <nav aria-label="Help links"><h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Help</h4><ul className="space-y-2.5 text-sm text-gray-600">{helpLinks.map((item) => { const [href, label] = item.split('|'); return <li key={href}><Link href={href} className="hover:text-purple-600 transition-colors">{label}</Link></li>; })}</ul></nav>
+            <div className="grid grid-cols-2 md:contents gap-8">
+              <nav aria-label="Explore links"><h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Explore</h4><ul className="space-y-2.5 text-sm text-gray-600">{exploreLinks.map((item) => { const [href, label] = item.split('|'); return <li key={href}><Link href={href} className="hover:text-purple-600 transition-colors">{label}</Link></li>; })}</ul></nav>
+              <nav aria-label="Help links"><h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Help</h4><ul className="space-y-2.5 text-sm text-gray-600">{helpLinks.map((item) => { const [href, label] = item.split('|'); return <li key={href}><Link href={href} className="hover:text-purple-600 transition-colors">{label}</Link></li>; })}</ul></nav>
+            </div>
           </div>
 
           <div className="mt-12 pt-6 border-t border-purple-200 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-gray-400">© {year} Genie.ph. All rights reserved.</p>
+            <p className="text-xs text-gray-400">© 2025 Genie.ph | Alalai Information Technology Solutions</p>
             <a href="#top" className="bg-purple-600 text-white p-2.5 rounded-xl hover:bg-purple-700 transition shadow-md" aria-label="Back to top"><ChevronUp size={20} /></a>
           </div>
       </div>

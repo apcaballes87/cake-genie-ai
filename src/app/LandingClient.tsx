@@ -558,7 +558,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             <div className="flex items-center gap-2 w-full">
                                 <button
                                     disabled={isUploading}
-                                    className="flex-1 flex items-center justify-center gap-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/70 text-white px-2 py-3.5 rounded-full font-bold transition-all shadow-md active:scale-[0.98] text-[13px] disabled:cursor-not-allowed whitespace-nowrap"
+                                    className="flex-1 flex items-center justify-center gap-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/70 text-white px-4 py-3.5 rounded-full font-bold transition-all shadow-md active:scale-[0.98] text-[10px] min-[375px]:text-xs min-[414px]:text-[13px] disabled:cursor-not-allowed whitespace-nowrap"
                                     onClick={() => setIsUploaderOpen(true)}
                                 >
                                     {isUploading ? (
@@ -566,7 +566,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     ) : (
                                         <Upload size={16} className="shrink-0" />
                                     )}
-                                    {isUploading ? 'Uploading...' : 'Upload Design'}
+                                    {isUploading ? 'Uploading...' : 'Upload Your Design - Get Instant Pricing'}
                                 </button>
                             </div>
                         </div>
@@ -596,7 +596,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 <div className="flex items-center gap-3">
                                     <button
                                         disabled={isUploading}
-                                        className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/70 text-white px-6 py-3.5 lg:px-8 lg:py-4 rounded-full font-semibold transition-all shadow-lg active:scale-[0.98] text-sm lg:text-base whitespace-nowrap disabled:cursor-not-allowed"
+                                        className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/70 text-white px-6 py-3.5 lg:px-8 lg:py-4 rounded-full font-bold transition-all shadow-lg active:scale-[0.98] text-sm lg:text-base whitespace-nowrap disabled:cursor-not-allowed"
                                         onClick={() => setIsUploaderOpen(true)}
                                     >
                                         {isUploading ? (
@@ -604,7 +604,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         ) : (
                                             <Upload size={15} className="shrink-0" />
                                         )}
-                                        {isUploading ? 'Uploading...' : 'Upload Your Design'}
+                                        {isUploading ? 'Uploading...' : 'Upload Your Design - Get Instant Pricing'}
                                         <ArrowRight size={14} className="shrink-0" />
                                     </button>
                                 </div>
@@ -667,11 +667,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 Design It. See It. Order It.
                             </p>
                             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-4">
-                                Your design. Your price. <span className="text-purple-600">Updated instantly.</span>
+                                Your design. Your price. Updated instantly. <span className="text-purple-600">Same-day Delivery.</span>
                             </h2>
-                            <p className="text-sm md:text-base text-gray-600 leading-relaxed mb-8 max-w-xl">
-                                Customize your cake directly by changing icing colors and toppers. Price gets instantly updated. Add to Cart and have it delivered the same day!
-                            </p>
 
                             {/* Upload Drop Zone */}
                             <div
