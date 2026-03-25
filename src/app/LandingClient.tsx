@@ -533,8 +533,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     className="w-full h-auto block object-cover object-center"
                                 />
                                 <div className="absolute inset-0 p-5 flex flex-col justify-center w-[65%] max-[520px]:w-[85%]">
-                                    <p className="text-[10px] font-bold text-purple-600 uppercase tracking-[0.2em] mb-2 flex whitespace-nowrap">
-                                        Cebu&apos;s Premier Cake Marketplace
+                                    <p className="text-[10px] font-bold text-purple-600 uppercase tracking-[0.15em] mb-2 flex whitespace-nowrap">
+                                        Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;, no more waiting.
                                     </p>
                                     <h2 className="text-[38px] max-[520px]:text-[32px] max-[414px]:text-[28px] font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-4 max-[520px]:mb-2">
                                         Custom cakes{' '}
@@ -544,14 +544,14 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         right now.
                                     </h2>
                                     <p className="text-xs text-gray-700 leading-relaxed font-medium max-[454px]:hidden">
-                                        Upload any cake photo. Get your price in seconds. Order it same day. Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;, no more waiting.
+                                    Upload any cake photo. Get your price in seconds. Order it same day.
                                     </p>
                                 </div>
                             </div>
 
                             {/* Mobile description below image for small screens */}
                             <p className="hidden max-[454px]:block text-xs text-gray-700 leading-relaxed font-medium text-center mb-5 px-2">
-                                Upload any cake photo. Get your price in seconds. Order it same day. Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;, no more waiting.
+                                Upload any cake photo. Get your price in seconds. Order it same day.
                             </p>
                             
                             {/* Buttons under the image (1 line) */}
@@ -579,9 +579,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 className="w-full h-auto block object-cover object-center"
                             />
                             <div className="absolute inset-0 p-10 lg:p-14 flex flex-col justify-center w-[55%] lg:w-[50%]">
-                                <p className="text-xs lg:text-sm font-bold text-purple-600 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                                <p className="text-xs lg:text-sm font-bold text-purple-600 uppercase tracking-[0.15em] mb-3 flex items-center gap-2">
                                     <span className="inline-block w-8 h-[2px] bg-purple-400"></span>
-                                    Cebu&apos;s Premier Cake Marketplace
+                                    Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;, no more waiting.
                                 </p>
                                 <h2 className="text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-5">
                                     Custom cakes
@@ -591,7 +591,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     right now.
                                 </h2>
                                 <p className="text-sm lg:text-base text-gray-700 leading-relaxed mb-8 max-w-md">
-                                    Upload any cake photo. Get your price in seconds. Order it same day. Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;, no more waiting.
+                                    Upload any cake photo. Get your price in seconds. Order it same day.
                                 </p>
                                 <div className="flex items-center gap-3">
                                     <button
@@ -663,9 +663,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                     <div className="flex flex-col lg:flex-row gap-8 md:gap-12 lg:gap-16 items-start">
                         {/* Left: Text + Upload Zone */}
                         <div className="flex-1">
-                            <p className="text-xs md:text-sm font-bold text-purple-600 uppercase tracking-[0.15em] mb-3">
-                                Design It. See It. Order It.
-                            </p>
+
                             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-4">
                                 Your design. Your price. Updated instantly. <span className="text-purple-600">Same-day Delivery.</span>
                             </h2>
