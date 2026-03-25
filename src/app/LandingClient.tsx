@@ -359,8 +359,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
             {/* ========== STATIC TRUST BANNER ========== */}
             <div className="w-full bg-purple-600 py-[4.5px] flex justify-center items-center">
-                <span className="inline-flex items-center text-white text-[10px] md:text-[11px] font-bold tracking-wider uppercase">
-                    CUSTOM CAKES FOR RUSH ORDERS IN CEBU
+                <span className="inline-flex items-center text-white text-[10px] md:text-[11px] font-bold tracking-wider">
+                    Place your order by 4PM for same-day delivery 💖
                 </span>
             </div>
 
