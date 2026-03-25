@@ -1,14 +1,11 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // Only our own Supabase domains need optimization via next/image.
-  // All other external domains are handled by LazyImage with unoptimized={true}.
-  // Use Supabase image transformations instead of Vercel's Image Optimization
-  // to avoid the 5,000/month free-tier limit on Vercel.
+  // Image transformations DISABLED — Supabase quota exceeded (100/month Pro Plan).
+  // Images are already .webp so no server-side transforms needed.
+  // unoptimized: serves original URLs without any image optimization pipeline.
   images: {
-    loader: 'custom',
-    loaderFile: './src/utils/supabase-image-loader.ts',
-    minimumCacheTTL: 2592000,
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',

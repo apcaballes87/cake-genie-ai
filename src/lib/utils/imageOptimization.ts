@@ -50,24 +50,21 @@ export async function compressThumbnail(file: File): Promise<File> {
 }
 
 /**
- * Get optimized image URL from Supabase Storage with transforms
+ * Get image URL from Supabase Storage (transforms disabled to stay within quota).
+ * Returns the plain public storage URL.
  */
 export function getOptimizedImageUrl(
   supabaseUrl: string,
   bucketName: string,
   filePath: string,
-  options: {
+  _options: {
     width?: number;
     height?: number;
     quality?: number;
     format?: 'webp' | 'jpeg' | 'png';
   } = {}
 ): string {
-  const { width = 800, height = 800, quality = 80, format = 'webp' } = options;
-
-  // Supabase storage transform URL format
-  const transformParams = `width=${width}&height=${height}&quality=${quality}&format=${format}`;
-  return `${supabaseUrl}/storage/v1/render/image/public/${bucketName}/${filePath}?${transformParams}`;
+  return `${supabaseUrl}/storage/v1/object/public/${bucketName}/${filePath}`;
 }
 
 /**
