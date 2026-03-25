@@ -591,13 +591,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     )}
                                     {isUploading ? 'Uploading...' : 'Upload Design'}
                                 </button>
-                                <Link
-                                    href="/collections"
-                                    className="flex-1 flex items-center justify-center gap-1.5 bg-white hover:bg-purple-50 text-purple-600 border-2 border-purple-200 px-2 py-3 rounded-full font-bold transition-all active:scale-[0.98] text-[13px] shadow-sm whitespace-nowrap"
-                                >
-                                    Browse Designs
-                                    <ChevronDown size={14} className="shrink-0 text-purple-500" />
-                                </Link>
                             </div>
                         </div>
 
@@ -637,13 +630,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         {isUploading ? 'Uploading...' : 'Upload Your Design'}
                                         <ArrowRight size={14} className="shrink-0" />
                                     </button>
-                                    <Link
-                                        href="/collections"
-                                        className="flex items-center justify-center gap-2 bg-white hover:bg-purple-50 text-purple-600 border border-purple-200 px-6 py-3.5 lg:px-8 lg:py-4 rounded-full font-semibold transition-all active:scale-[0.98] text-sm lg:text-base whitespace-nowrap"
-                                    >
-                                        Browse Designs
-                                        <ChevronDown size={14} className="shrink-0" />
-                                    </Link>
                                 </div>
                             </div>
                         </div>
