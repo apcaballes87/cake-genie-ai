@@ -28,6 +28,6 @@ export default function robots(): MetadataRoute.Robots {
                 disallow: ['/admin/', '/api/', '/account/'],
             },
         ],
-        sitemap: 'https://genie.ph/sitemap.xml',
+        sitemap: ['https://genie.ph/sitemap.xml', 'https://genie.ph/sitemap-images.xml'],
     }
 }

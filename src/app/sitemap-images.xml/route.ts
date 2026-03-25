@@ -86,6 +86,7 @@ export async function GET() {
       <image:loc>${imageLoc}</image:loc>
       <image:title>${escapeXml(title)}</image:title>
       <image:caption>${escapeXml(caption)}</image:caption>
+      <image:geo_location>Cebu, Philippines</image:geo_location>
     </image:image>
   </url>`;
         })
@@ -125,6 +126,7 @@ export async function GET() {
       <image:loc>${imageLoc}</image:loc>
       <image:title>${title}</image:title>
       <image:caption>${caption}</image:caption>
+      <image:geo_location>Cebu, Philippines</image:geo_location>
     </image:image>
   </url>`;
         })
@@ -151,6 +153,7 @@ export async function GET() {
       <image:loc>${imageLoc}</image:loc>
       <image:title>${title}</image:title>
       <image:caption>${caption}</image:caption>
+      <image:geo_location>Cebu, Philippines</image:geo_location>
     </image:image>
   </url>`;
         })
