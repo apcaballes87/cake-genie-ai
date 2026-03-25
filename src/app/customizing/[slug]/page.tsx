@@ -16,7 +16,6 @@ import { v4 as uuidv4 } from 'uuid'
 import { mapProductToDefaultState } from '@/utils/customizationMapper'
 import { upgradeLegacySlug, downgradeCakeSlug } from '@/lib/utils/urlHelpers'
 import { generateDesignDetails, generateDynamicFAQ, generateRichAltText } from '@/utils/designContentUtils'
-import { getSupabaseRenderUrl } from '@/utils/supabase-image-loader'
 
 // Minimum base price (1 Tier / 4in / 6" Round = ₱1,099) used as fallback
 // when a design has no valid cakeType or cached price.
@@ -963,19 +962,14 @@ export default async function RecentSearchPage({ params }: Props) {
         <>
             <DesignSchema design={design} prices={prices} />
 
-            {/* Preload hero image for faster LCP with responsive srcset */}
-            {design.original_image_url && (() => {
-                const renderUrl = getSupabaseRenderUrl(design.original_image_url);
-                return (
-                    <link
-                        rel="preload"
-                        as="image"
-                        href={design.original_image_url}
-                        imageSrcSet={renderUrl ? `${renderUrl}?width=640&resize=contain&quality=75 640w, ${renderUrl}?width=828&resize=contain&quality=75 828w, ${renderUrl}?width=1200&resize=contain&quality=75 1200w` : undefined}
-                        imageSizes={renderUrl ? "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" : undefined}
-                    />
-                );
-            })()}
+            {/* Preload hero image for faster LCP */}
+            {design.original_image_url && (
+                <link
+                    rel="preload"
+                    as="image"
+                    href={design.original_image_url}
+                />
+            )}
 
             <SSRCakeDetails
                 design={design}

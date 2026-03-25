@@ -33,7 +33,7 @@ describe('BlogDesignShowcaseSection', () => {
 
     const linkedImage = screen.getByAltText('Pink minimalist birthday cake with pearl accents');
     expect(linkedImage).toHaveAttribute('title', 'Pink minimalist birthday cake with pearl accents');
-    expect(linkedImage.getAttribute('src')).toContain('/storage/v1/render/image/public/');
+    expect(linkedImage.getAttribute('src')).toContain('/storage/v1/object/public/');
 
     const designLink = screen.getByRole('link', {
       name: 'Pink minimalist birthday cake with pearl accents',
