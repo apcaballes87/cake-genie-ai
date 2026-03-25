@@ -579,8 +579,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 className="w-full h-auto block object-cover object-center"
                             />
                             <div className="absolute inset-0 p-10 lg:p-14 flex flex-col justify-center w-[55%] lg:w-[50%]">
-                                <p className="text-xs lg:text-sm font-bold text-purple-600 uppercase tracking-[0.15em] mb-3 flex items-center gap-2">
-                                    <span className="inline-block w-8 h-[2px] bg-purple-400"></span>
+                                <p className="text-xs lg:text-sm font-bold text-purple-600 uppercase tracking-[0.15em] mb-3">
                                     Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;, no more waiting.
                                 </p>
                                 <h2 className="text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-5">
