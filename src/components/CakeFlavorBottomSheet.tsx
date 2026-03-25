@@ -67,14 +67,16 @@ export const CakeFlavorBottomSheet: React.FC<CakeFlavorBottomSheetProps> = ({
             wrapperClassName="md:max-w-7xl md:mx-auto md:justify-end md:px-6"
             actionButton={actionButton}
         >
-            <div className="space-y-4">
+            <div className="space-y-4 pb-10">
                 {tierLabels.map((label, index) => {
                     const selectedFlavor = flavors[index] || flavors[0];
                     return (
                         <div key={index}>
-                            <div className="flex items-center gap-3 mb-2">
-                                <span className="text-sm font-medium text-slate-800">{label}</span>
-                            </div>
+                            {tierLabels.length > 1 && (
+                                <div className="flex items-center gap-3 mb-2">
+                                    <span className="text-sm font-medium text-slate-800">{label}</span>
+                                </div>
+                            )}
                             <div className="relative">
                                 <div ref={flavorScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide">
                                     {FLAVOR_OPTIONS.map(flavor => {
