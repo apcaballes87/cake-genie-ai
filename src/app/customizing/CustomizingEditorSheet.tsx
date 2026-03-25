@@ -24,6 +24,7 @@ interface CustomizingEditorSheetProps {
 
 function getEditorTitle(activeCustomization: string | null, activeTopperSection: 'main' | 'support' | null) {
     if (activeCustomization === 'options') return 'Cake Options';
+    if (activeCustomization === 'flavor') return 'Cake Flavor';
     if (activeCustomization === 'icing') return 'Icing Colors';
     if (activeCustomization === 'messages') return 'Cake Messages';
     if (activeCustomization === 'toppers') {

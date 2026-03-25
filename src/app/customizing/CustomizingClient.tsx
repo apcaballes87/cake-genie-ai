@@ -47,6 +47,7 @@ import { CustomizingIcingEditorPanel } from './CustomizingIcingEditorPanel';
 import { CustomizingInstructionsPanel } from './CustomizingInstructionsPanel';
 import { CustomizingMessagesPanel } from './CustomizingMessagesPanel';
 import { CustomizingOptionsPanel } from './CustomizingOptionsPanel';
+import { CakeFlavorBottomSheet } from '@/components/CakeFlavorBottomSheet';
 import { CustomizingPhotosPanel } from './CustomizingPhotosPanel';
 import { CustomizingSidebarPanel } from './CustomizingSidebarPanel';
 import { CustomizingStepSummarySections } from './CustomizingStepSummarySections';
@@ -2665,11 +2666,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             {analysisError ? (
                                 <div className="text-center p-6 bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-red-200 flex flex-col items-center justify-center gap-4 mt-2">
                                     <div className="text-red-500 bg-red-50 p-3 rounded-full">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M12 8V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M12 16H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M12 8V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M12 16H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                                     </div>
                                     <h2 className="text-lg font-bold text-slate-800">Analysis Error</h2>
                                     <p className="text-slate-600 mb-2">{analysisError.replace('AI_REJECTION: ', '')}</p>
-                                    
+
                                     <div className="bg-orange-50 text-orange-800 text-sm p-4 rounded-xl text-left space-y-2 mb-2 w-full">
                                         <p className="font-semibold text-orange-900 border-b border-orange-200 pb-1 mb-2">Tips for better results:</p>
                                         <ul className="list-disc pl-4 space-y-1">
@@ -2678,15 +2679,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             <li>Use clear, well-lit images</li>
                                         </ul>
                                     </div>
-                                    
+
                                     <div className="flex flex-col gap-2 w-full mt-2">
-                                        <button 
+                                        <button
                                             onClick={() => { clearImages(); clearCustomization(); }}
                                             className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-xl transition-colors w-full"
                                         >
                                             Upload Another
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => router.push('/')}
                                             className="bg-white hover:bg-slate-50 text-slate-700 font-bold py-3 px-4 rounded-xl border border-slate-200 transition-colors w-full"
                                         >
@@ -2909,6 +2910,16 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         onAdditionalInstructionsChange={onAdditionalInstructionsChange}
                     />
                 </CustomizingEditorSheet>
+
+                <CakeFlavorBottomSheet
+                    isOpen={activeCustomization === 'flavor'}
+                    onClose={() => setActiveCustomization(null)}
+                    flavors={cakeInfo?.flavors || []}
+                    cakeType={cakeInfo?.type || ''}
+                    onFlavorChange={(newFlavors) => {
+                        onCakeInfoChange({ flavors: newFlavors });
+                    }}
+                />
 
                 {!slug && analysisResult && (
                     <CustomizingPostAnalysisContent
