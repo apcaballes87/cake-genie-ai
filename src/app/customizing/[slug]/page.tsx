@@ -252,13 +252,14 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
     const imageUrl = design.original_image_url;
     const pageUrl = `https://genie.ph/customizing/${design.slug || ''}`;
 
-    // ImageObject for better image indexing
+    // ImageObject for better image indexing — includes licensing metadata for Google Images "Licensable" badge
     const imageObject = imageUrl ? {
         '@type': 'ImageObject',
         url: imageUrl,
         contentUrl: imageUrl,
         ...(design.image_width && { width: design.image_width }),
         ...(design.image_height && { height: design.image_height }),
+        encodingFormat: 'image/webp',
         name: sanitize(generateRichAltText(design)),
         caption: sanitize(design.seo_description || `Custom ${keywords} cake design`),
         creditText: 'Genie.ph',
@@ -266,9 +267,14 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
             '@type': 'Organization',
             name: 'Genie.ph'
         },
+        copyrightHolder: {
+            '@type': 'Organization',
+            name: 'Genie.ph'
+        },
         license: 'https://genie.ph/terms',
-        acquireLicensePage: 'https://genie.ph/customizing',
-        copyrightNotice: '© ' + new Date().getFullYear() + ' Genie.ph'
+        acquireLicensePage: 'https://genie.ph/terms#image-licensing',
+        copyrightNotice: '© ' + new Date().getFullYear() + ' Genie.ph',
+        representativeOfPage: false
     } : null;
 
     // Standard Shipping Details (Free Delivery)
@@ -427,7 +433,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         mainEntity: {
             '@id': pageUrl // Reference the Product by URL instead of duplicating
         },
-        ...(imageObject && { primaryImageOfPage: imageObject }),
+        ...(imageObject && { primaryImageOfPage: { ...imageObject, representativeOfPage: true } }),
         ...(imageUrl && { thumbnailUrl: imageUrl })
     };
 

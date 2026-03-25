@@ -69,19 +69,28 @@ export function ProductSchema({ product, merchant, prices, ratingValue, reviewCo
         reviewCount
     } : undefined;
 
-    // Enhanced ImageObject
+    // Enhanced ImageObject with licensing metadata for Google Images "Licensable" badge
     const imageObject = product.image_url ? {
         '@type': 'ImageObject',
         url: product.image_url,
         contentUrl: product.image_url,
         width: imageWidth || 1200,
         height: imageHeight || 1200,
+        encodingFormat: 'image/webp',
         caption: sanitize(product.alt_text || product.title),
         creditText: sanitize(merchant.business_name),
         creator: {
             '@type': 'Organization',
             name: sanitize(merchant.business_name)
-        }
+        },
+        copyrightHolder: {
+            '@type': 'Organization',
+            name: sanitize(merchant.business_name)
+        },
+        copyrightNotice: `© ${new Date().getFullYear()} ${sanitize(merchant.business_name)}`,
+        license: 'https://genie.ph/terms',
+        acquireLicensePage: 'https://genie.ph/terms#image-licensing',
+        representativeOfPage: false
     } : undefined;
 
     // Standard Shipping Details (Placeholder for now as dynamic calculation isn't available here)
@@ -159,7 +168,7 @@ export function ProductSchema({ product, merchant, prices, ratingValue, reviewCo
         mainEntity: {
             '@id': pageUrl
         },
-        ...(imageObject && { primaryImageOfPage: imageObject }),
+        ...(imageObject && { primaryImageOfPage: { ...imageObject, representativeOfPage: true } }),
         ...(product.image_url && { thumbnailUrl: product.image_url })
     };
 
@@ -240,6 +249,9 @@ export function BlogPostingSchema({
     authorName,
     authorUrl,
     image,
+    imageWidth,
+    imageHeight,
+    imageAlt,
     description,
     url
 }: {
@@ -249,11 +261,32 @@ export function BlogPostingSchema({
     authorName: string;
     authorUrl?: string;
     image?: string;
+    imageWidth?: number;
+    imageHeight?: number;
+    imageAlt?: string;
     description: string;
     url?: string;
 }) {
     // Sanitize string to prevent script injection in JSON-LD
     const sanitize = (str: string | undefined | null) => str ? str.replace(/<\/script/g, '<\\/script') : '';
+
+    // Full ImageObject with licensing metadata instead of bare URL
+    const imageObject = image ? {
+        '@type': 'ImageObject',
+        url: image,
+        contentUrl: image,
+        ...(imageWidth && { width: imageWidth }),
+        ...(imageHeight && { height: imageHeight }),
+        caption: sanitize(imageAlt || headline),
+        creditText: 'Genie.ph',
+        copyrightHolder: {
+            '@type': 'Organization',
+            name: 'Genie.ph'
+        },
+        copyrightNotice: `© ${new Date().getFullYear()} Genie.ph`,
+        license: 'https://genie.ph/terms',
+        acquireLicensePage: 'https://genie.ph/terms#image-licensing'
+    } : undefined;
 
     const schema = {
         '@context': 'https://schema.org',
@@ -266,7 +299,7 @@ export function BlogPostingSchema({
             name: sanitize(authorName),
             ...(authorUrl && { url: sanitize(authorUrl) })
         },
-        image: image ? [image] : [],
+        image: imageObject ? [imageObject] : [],
         description: sanitize(description),
         ...(url && {
             url: sanitize(url),
