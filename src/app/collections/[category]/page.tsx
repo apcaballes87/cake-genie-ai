@@ -36,14 +36,17 @@ export async function generateMetadata(
     const { data: designs } = await getDesignsByKeyword(category, 1);
     const firstImage = designs?.[0]?.original_image_url;
 
+    // Avoid "Kuromi Cake Cake Ideas" — strip trailing "Cake" before appending
+    const titleForMeta = title.replace(/\s+cake$/i, '').trim();
+
     return {
-        title: { absolute: `${title} Cake Ideas & Designs | Genie.ph` },
+        title: { absolute: `${titleForMeta} Cake Ideas & Designs | Genie.ph` },
         description: desc,
         alternates: {
             canonical: `https://genie.ph/collections/${category}`,
         },
         openGraph: {
-            title: `${title} Cake Designs`,
+            title: `${titleForMeta} Cake Designs`,
             description: desc,
             url: `https://genie.ph/collections/${category}`,
             type: 'website',
@@ -52,13 +55,13 @@ export async function generateMetadata(
                     url: firstImage,
                     width: 1200,
                     height: 1200,
-                    alt: `${title} cake design collection — browse ${title.toLowerCase()} cake ideas on Genie.ph`,
+                    alt: `${titleForMeta} cake design collection — browse ${titleForMeta.toLowerCase()} cake ideas on Genie.ph`,
                 }],
             } : {}),
         },
         twitter: {
             card: 'summary_large_image',
-            title: `${title} Cake Ideas & Designs | Genie.ph`,
+            title: `${titleForMeta} Cake Ideas & Designs | Genie.ph`,
             description: desc,
             ...(firstImage ? {
                 images: [firstImage],

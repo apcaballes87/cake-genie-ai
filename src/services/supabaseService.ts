@@ -815,14 +815,21 @@ export async function getAllRecentDesigns(limit: number = 24, offset: number = 0
  */
 export async function getCollectionBySlug(slug: string): Promise<SupabaseServiceResponse<any>> {
   try {
+    // Try exact slug first, then with "-cake" suffix (368/389 collections use this pattern)
+    const slugsToTry = [slug, ...(slug.endsWith('-cake') ? [] : [`${slug}-cake`])];
+
     const { data, error } = await supabase
       .from('cakegenie_collections')
       .select('*')
-      .eq('slug', slug)
+      .in('slug', slugsToTry)
+      .limit(1)
       .single();
 
     if (error) {
-      console.error('Error fetching collection by slug:', error);
+      // Only log if it's not a simple "no rows" result
+      if (error.code !== 'PGRST116') {
+        console.error('Error fetching collection by slug:', error);
+      }
       return { data: null, error };
     }
 
