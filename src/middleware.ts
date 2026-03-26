@@ -30,12 +30,13 @@ export async function middleware(request: NextRequest) {
         if (!supabaseUrl || !supabaseKey) return NextResponse.next()
 
         const res = await fetch(
-            `${supabaseUrl}/rest/v1/discount_codes?code=eq.${encodeURIComponent(segment.toUpperCase())}&is_active=eq.true&select=code&limit=1`,
+            `${supabaseUrl}/rest/v1/discount_codes?code=ilike.${encodeURIComponent(segment)}&is_active=eq.true&select=code&limit=1`,
             {
                 headers: {
                     'apikey': supabaseKey,
                     'Authorization': `Bearer ${supabaseKey}`,
                 },
+                cache: 'no-store',
             }
         )
 
