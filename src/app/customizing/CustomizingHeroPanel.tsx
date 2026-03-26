@@ -219,7 +219,7 @@ export const CustomizingHeroPanel = memo(function CustomizingHeroPanel({
                             />
 
                             {showPriceGuarantee ? (
-                                <div className={`absolute ${canUndo ? 'top-14' : 'top-3'} right-3 md:top-3 md:right-auto md:left-1/2 md:-translate-x-1/2 z-20 transition-all duration-300`}>
+                                <div className="absolute bottom-3 left-3 z-20 transition-all duration-300">
                                     <div className="bg-green-600/90 backdrop-blur-sm text-white rounded-full px-3 py-1 shadow-md text-center whitespace-nowrap">
                                         <div className="flex items-center justify-center gap-1 text-[11px] font-semibold">
                                             <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
