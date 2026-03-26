@@ -12,6 +12,8 @@ interface CakeBaseOptionsProps {
     onCakeInfoChange: (updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => void;
     isAnalyzing: boolean;
     addOnPricing: number;
+    hidePrices?: boolean;
+    compact?: boolean;
 }
 
 const cakeTypeDisplayMap: Record<CakeType, string> = {
@@ -26,7 +28,9 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
     basePriceOptions,
     onCakeInfoChange,
     isAnalyzing,
-    addOnPricing
+    addOnPricing,
+    hidePrices = false,
+    compact = false,
 }) => {
     const cakeTypeScrollContainerRef = useRef<HTMLDivElement>(null);
     const cakeThicknessScrollContainerRef = useRef<HTMLDivElement>(null);
@@ -79,10 +83,17 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
 
     if (isAnalyzing) return <CakeBaseSkeleton />;
 
+    const thumbWidth = compact ? 'w-[54px]' : 'w-16';
+    const thumbSizes = compact ? '54px' : '64px';
+    const labelSize = compact ? 'text-[11px]' : 'text-sm';
+    const thumbText = compact ? 'text-[8px]' : 'text-[10px]';
+    const sectionGap = compact ? 'space-y-1.5' : 'space-y-3';
+    const labelMargin = compact ? 'mb-1' : 'mb-1.5';
+
     return (
-        <div className="space-y-3">
+        <div className={sectionGap}>
             <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Cake Type</label>
+                <label className={`block ${labelSize} font-medium text-slate-700 ${labelMargin}`}>Cake Type</label>
                 <div className="relative">
                     <div ref={cakeTypeScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
                         {CAKE_TYPES.map(type => (
@@ -91,18 +102,18 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                 data-caketype={type}
                                 type="button"
                                 onClick={() => onCakeInfoChange({ type })}
-                                className="group shrink-0 w-16 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
+                                className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2`}
                             >
                                 <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.type === type ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
                                     <LazyImage
                                         src={CAKE_TYPE_THUMBNAILS[type]}
                                         alt={cakeTypeDisplayMap[type]}
                                         fill
-                                        sizes="64px"
+                                        sizes={thumbSizes}
                                         imageClassName="object-cover"
                                     />
                                 </div>
-                                <span className="mt-2 text-[10px] font-medium text-slate-700 leading-tight">{cakeTypeDisplayMap[type]}</span>
+                                <span className={`mt-1.5 ${thumbText} font-medium text-slate-700 leading-tight`}>{cakeTypeDisplayMap[type]}</span>
                             </button>
                         ))}
                     </div>
@@ -110,11 +121,11 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
             </div>
             {basePriceOptions && basePriceOptions.length > 0 && (
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Size (Diameter)</label>
+                    <label className={`block ${labelSize} font-medium text-slate-700 ${labelMargin}`}>Size (Diameter)</label>
                     {basePriceOptions.length === 1 ? (
                         <div className="p-3 bg-purple-50 border-2 border-purple-200 rounded-lg flex items-center justify-between">
                             <span className="text-sm font-semibold text-purple-800">{basePriceOptions[0].size}</span>
-                            <span className="text-sm font-bold text-purple-800">₱{basePriceOptions[0].price.toLocaleString()}</span>
+                            {!hidePrices && <span className="text-sm font-bold text-purple-800">₱{basePriceOptions[0].price.toLocaleString()}</span>}
                         </div>
                     ) : (
                         <div className="relative">
@@ -125,17 +136,17 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                         data-cakesize={option.size}
                                         type="button"
                                         onClick={() => onCakeInfoChange({ size: option.size })}
-                                        className="group shrink-0 w-16 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
+                                        className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2`}
                                     >
                                         <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.size === option.size ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
                                             <LazyImage
                                                 src={CAKE_SIZE_THUMBNAILS[option.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
                                                 alt={option.size}
                                                 fill
-                                                sizes="64px"
+                                                sizes={thumbSizes}
                                                 imageClassName="object-cover"
                                             />
-                                            <div className="absolute inset-x-0 top-0 pt-4 text-black text-[10px] font-bold text-center leading-tight">
+                                            <div className={`absolute inset-x-0 top-0 pt-4 text-black ${thumbText} font-bold text-center leading-tight`}>
                                                 {(() => {
                                                     const sizePart = option.size?.split(' ')[0] || '';
                                                     const tiers = sizePart?.match(/\d+"/g) || [];
@@ -151,9 +162,9 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                                 })()}
                                             </div>
                                         </div>
-                                        <div className="flex flex-col items-center mt-2">
-                                            <span className="text-[10px] font-semibold text-slate-800 leading-tight">{option.size}</span>
-                                            <span className="text-[10px] font-bold text-purple-700 leading-tight">₱{roundDownToNearest99(option.price + addOnPricing, option.price).toLocaleString()}</span>
+                                        <div className="flex flex-col items-center mt-1.5">
+                                            <span className={`${thumbText} font-semibold text-slate-800 leading-tight`}>{option.size}</span>
+                                            {!hidePrices && <span className={`${thumbText} font-bold text-purple-700 leading-tight`}>₱{roundDownToNearest99(option.price + addOnPricing, option.price).toLocaleString()}</span>}
                                         </div>
                                     </button>
                                 ))}
@@ -164,7 +175,7 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
             )}
 
             <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Cake Height (All tiers)</label>
+                <label className={`block ${labelSize} font-medium text-slate-700 ${labelMargin}`}>Cake Height (All tiers)</label>
                 <div className="relative">
                     <div ref={cakeThicknessScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
                         {currentThicknessOptions.map(thickness => (
@@ -173,18 +184,18 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                 data-cakethickness={thickness}
                                 type="button"
                                 onClick={() => onCakeInfoChange({ thickness })}
-                                className="group shrink-0 w-16 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
+                                className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2`}
                             >
                                 <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.thickness === thickness ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
                                     <LazyImage
                                         src={CAKE_THICKNESS_THUMBNAILS[thickness]}
                                         alt={`${thickness} height`}
                                         fill
-                                        sizes="64px"
+                                        sizes={thumbSizes}
                                         imageClassName="object-cover"
                                     />
                                 </div>
-                                <span className="mt-2 text-[10px] font-semibold text-slate-800 leading-tight">{thickness}</span>
+                                <span className={`mt-1.5 ${thumbText} font-semibold text-slate-800 leading-tight`}>{thickness}</span>
                             </button>
                         ))}
                     </div>
