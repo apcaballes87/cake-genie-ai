@@ -17,6 +17,15 @@ export function generateDesignDetails(design: any, prices?: BasePriceInfo[]): st
     const availability = design.availability || 'normal';
     const tags = design.tags || [];
 
+    // Map tier to layer synonym so page text naturally contains both terms
+    // ("1 tier" and "1 layer") — Filipino users search both interchangeably
+    const layerSynonymMap: Record<string, string> = {
+        '1 tier': '1 layer (single tier)', '2 tier': '2 layer (two tier)', '3 tier': '3 layer (three tier)',
+        '1 tier fondant': '1 layer fondant', '2 tier fondant': '2 layer fondant', '3 tier fondant': '3 layer fondant',
+    };
+    const cakeTypeDisplay = cakeType.toLowerCase();
+    const cakeTypeWithSynonym = layerSynonymMap[cakeTypeDisplay] || cakeTypeDisplay;
+
     const sentences: string[] = [];
 
     // Sentence 1: Introduce the cake with its type and icing base
@@ -28,11 +37,11 @@ export function generateDesignDetails(design: any, prices?: BasePriceInfo[]): st
         : topColor ? `in ${topColor}` : 'with a custom color palette';
 
     if (tags.length >= 2) {
-        sentences.push(`Designed specifically for ${tags[0]} or ${tags[1]} events, this ${keywords} cake is a stunning ${cakeType.toLowerCase()} piece finished with ${icingBase} ${colorDesc}.`);
+        sentences.push(`Designed specifically for ${tags[0]} or ${tags[1]} events, this ${keywords} cake is a stunning ${cakeTypeWithSynonym} piece finished with ${icingBase} ${colorDesc}.`);
     } else if (tags.length === 1) {
-        sentences.push(`A popular choice for ${tags[0]} celebrations, this ${cakeType.toLowerCase()} ${keywords} cake features ${icingBase} ${colorDesc}.`);
+        sentences.push(`A popular choice for ${tags[0]} celebrations, this ${cakeTypeWithSynonym} ${keywords} cake features ${icingBase} ${colorDesc}.`);
     } else {
-        sentences.push(`This ${keywords} cake is a ${cakeType.toLowerCase()} design with ${icingBase} featuring ${colorDesc}.`);
+        sentences.push(`This ${keywords} cake is a ${cakeTypeWithSynonym} design with ${icingBase} featuring ${colorDesc}.`);
     }
 
     // Sentence 2: Describe the main toppers (the hero elements)
@@ -200,10 +209,12 @@ export function generateRichAltText(design: any): string {
     const tags = design.tags || [];
     const occasion = tags[0] ? tags[0].replace(/cake/i, '').trim() : '';
 
-    // Human-readable tier names (e.g., "single-tier" instead of "1 tier")
+    // Search-friendly tier names — match how Filipino users actually search:
+    // GSC data shows top queries use "1 layer cake design", "2 tier cake", "1 tier cake"
+    // NOT "single-tier" or "two-tier" which get zero search volume in PH
     const tierMap: Record<string, string> = {
-        '1 tier': 'single-tier', '2 tier': 'two-tier', '3 tier': 'three-tier',
-        '1 tier fondant': 'single-tier fondant', '2 tier fondant': 'two-tier fondant', '3 tier fondant': 'three-tier fondant',
+        '1 tier': '1 layer', '2 tier': '2 tier', '3 tier': '3 tier',
+        '1 tier fondant': '1 layer fondant', '2 tier fondant': '2 tier fondant', '3 tier fondant': '3 tier fondant',
         'bento': 'bento', 'square': 'square', 'rectangle': 'rectangle',
         'square fondant': 'square fondant', 'rectangle fondant': 'rectangle fondant',
     };
