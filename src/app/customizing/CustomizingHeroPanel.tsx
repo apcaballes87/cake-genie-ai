@@ -2,7 +2,7 @@
 
 import { memo, useRef, useState, type RefObject } from 'react';
 import LazyImage from '@/components/LazyImage';
-import { Heart } from 'lucide-react';
+import { Heart, ShieldCheck } from 'lucide-react';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorIcon, ImageIcon, ResetIcon, SaveIcon, Loader2, ReportIcon } from '../../components/icons';
 
@@ -31,6 +31,7 @@ interface CustomizingHeroPanelProps {
     isReporting: boolean;
     isSaving: boolean;
     showFooterActions: boolean;
+    showPriceGuarantee: boolean;
     onOriginalTabSelect: () => void;
     onCustomizedTabSelect: () => void;
     onToggleSaveDesign: () => void | Promise<void>;
@@ -112,6 +113,7 @@ export const CustomizingHeroPanel = memo(function CustomizingHeroPanel({
     isReporting,
     isSaving,
     showFooterActions,
+    showPriceGuarantee,
     onOriginalTabSelect,
     onCustomizedTabSelect,
     onToggleSaveDesign,
@@ -215,6 +217,18 @@ export const CustomizingHeroPanel = memo(function CustomizingHeroPanel({
                                     }
                                 }}
                             />
+
+                            {showPriceGuarantee ? (
+                                <div className="absolute top-3 right-3 md:right-auto md:left-1/2 md:-translate-x-1/2 z-10">
+                                    <div className="bg-green-600/90 backdrop-blur-sm text-white rounded-full px-3 py-1 shadow-md text-center">
+                                        <div className="flex items-center justify-center gap-1 text-[11px] font-semibold">
+                                            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                                            Guaranteed Price
+                                        </div>
+                                        <p className="text-[8px] text-green-100 font-medium">Based on real cakeshop pricing</p>
+                                    </div>
+                                </div>
+                            ) : null}
 
                             {showSaveDesignButton ? (
                                 <div className="absolute top-3 left-3 z-10">
