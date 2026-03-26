@@ -33,6 +33,8 @@ export interface ProductCardProps {
     /** Render image as CSS background instead of <img> to prevent Google Images indexing.
      *  Use on related/discovery sections so only the hero image is indexed per page. */
     backgroundOnly?: boolean;
+    /** Collection context for richer alt text on gallery pages (e.g. "Kuromi" for the Kuromi collection) */
+    collectionContext?: string;
 }
 
 type ProductCardContentProps = Pick<
@@ -48,17 +50,39 @@ type ProductCardShellProps = {
     onSaveClick: (e: React.MouseEvent<HTMLButtonElement>) => Promise<void>;
 };
 
-const buildProductTitle = (keywords?: string | null) => {
+const buildProductTitle = (keywords?: string | null, collectionContext?: string) => {
     const firstKeyword = keywords ? keywords.split(',')[0] : 'Custom Cake';
     const baseTitle = firstKeyword.trim().toLowerCase().endsWith('cake')
         ? firstKeyword.trim()
         : `${firstKeyword.trim()} Cake`;
 
-    return baseTitle
+    const titleCase = baseTitle
         .toLowerCase()
         .split(' ')
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
+
+    // Enrich with collection context for better image alt text
+    // e.g. "Kuromi Cake" + collection "birthday" → "Kuromi Birthday Cake Design"
+    if (collectionContext) {
+        // Strip trailing "cake" from context to avoid "Debut Cake Cake" doubling
+        const ctxClean = collectionContext.replace(/\s*cake\s*$/i, '').trim();
+        if (ctxClean) {
+            const ctxLower = ctxClean.toLowerCase();
+            const titleLower = titleCase.toLowerCase();
+            // Only append if collection context isn't already in the title
+            if (!titleLower.includes(ctxLower) && !ctxLower.includes(titleLower.replace(/\s*cake\s*$/, ''))) {
+                // Insert collection context before "Cake" for natural phrasing
+                const cakeIdx = titleLower.lastIndexOf('cake');
+                if (cakeIdx > 0) {
+                    const ctxCap = ctxClean.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                    return `${titleCase.slice(0, cakeIdx)}${ctxCap} ${titleCase.slice(cakeIdx)} Design`;
+                }
+            }
+        }
+    }
+
+    return titleCase;
 };
 
 const buildCustomizationSnapshot = (analysis_json?: ProductCardProps['analysis_json']) => (
@@ -196,7 +220,7 @@ const useProductCardCommon = ({ p_hash, original_image_url, analysis_json }: Pro
 };
 
 const LinkedProductCard = (props: ProductCardProps & { slug: string }) => {
-    const title = buildProductTitle(props.keywords);
+    const title = buildProductTitle(props.keywords, props.collectionContext);
     const { isSaved, handleSaveClick } = useProductCardCommon(props);
 
     return (
@@ -209,7 +233,7 @@ const LinkedProductCard = (props: ProductCardProps & { slug: string }) => {
 };
 
 const InteractiveProductCard = (props: ProductCardProps) => {
-    const title = buildProductTitle(props.keywords);
+    const title = buildProductTitle(props.keywords, props.collectionContext);
     const { router, isSaved, handleSaveClick } = useProductCardCommon(props);
     const { handleImageUpload: hookImageUpload, clearImages } = useImageManagement();
     const {

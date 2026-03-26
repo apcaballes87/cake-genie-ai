@@ -10,9 +10,11 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 interface DesignGridWithLoadMoreProps {
     initialDesigns: any[];
     keyword: string;
+    /** Collection title for enriching image alt text with gallery context */
+    collectionTitle?: string;
 }
 
-export const DesignGridWithLoadMore: React.FC<DesignGridWithLoadMoreProps> = ({ initialDesigns, keyword }) => {
+export const DesignGridWithLoadMore: React.FC<DesignGridWithLoadMoreProps> = ({ initialDesigns, keyword, collectionTitle }) => {
     const [designs, setDesigns] = useState<any[]>(initialDesigns);
     const [offset, setOffset] = useState(30);
     const [hasMore, setHasMore] = useState(true); // Assume true initially if we have 30 items, or check length
@@ -76,6 +78,7 @@ export const DesignGridWithLoadMore: React.FC<DesignGridWithLoadMoreProps> = ({ 
                             analysis_json={design.analysis_json}
                             image_width={design.image_width}
                             image_height={design.image_height}
+                            collectionContext={collectionTitle}
                         />
                     </div>
                 ))}
