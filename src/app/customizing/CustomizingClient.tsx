@@ -61,6 +61,10 @@ import {
     shouldLogShopifyCseMount,
 } from './customizingClientGuards';
 
+const PreSelectionModal = dynamic(
+    () => import('@/components/PreSelectionModal').then((mod) => mod.PreSelectionModal),
+    { ssr: false }
+);
 const ImageUploader = dynamic(
     () => import('@/components/ImageUploader').then((mod) => mod.ImageUploader),
     { ssr: false }
@@ -335,6 +339,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     // --- Local State ---
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
+    const [isPreSelectionModalOpen, setIsPreSelectionModalOpen] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [isReporting, setIsReporting] = useState(false);
     const [reportStatus, setReportStatus] = useState<'success' | 'error' | null>(null);
@@ -357,6 +362,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setIsUploaderOpen(false);
         setIsAnalyzing(true);
         setAnalysisError(null);
+        setIsPreSelectionModalOpen(true);
 
         // Clear previous state to avoid mixing old analysis with new one
         clearCustomization();
@@ -373,9 +379,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 console.warn('Analysis failed:', err.message);
                 setIsAnalyzing(false);
                 setAnalysisError(err.message);
+                setIsPreSelectionModalOpen(false);
             }
         );
     }, [clearCustomization, clearImages, setAnalysisError, setIsAnalyzing, hookImageUpload]);
+
+    const handlePreSelectionApply = useCallback((preSelectedCakeInfo: CakeInfoUI) => {
+        handleCakeInfoChange(preSelectedCakeInfo);
+        setIsPreSelectionModalOpen(false);
+    }, [handleCakeInfoChange]);
+
+    const handlePreSelectionClose = useCallback(() => {
+        setIsPreSelectionModalOpen(false);
+    }, []);
 
 
     // Preloaded image from SSR for Shopify CSE handoff - shows immediately while processing
@@ -3003,6 +3019,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     isOpen={isUploaderOpen}
                     onClose={() => setIsUploaderOpen(false)}
                     onImageSelect={handleImageSelect}
+                />
+                <PreSelectionModal
+                    isOpen={isPreSelectionModalOpen}
+                    onClose={handlePreSelectionClose}
+                    onApply={handlePreSelectionApply}
                 />
             </div>
         </>
