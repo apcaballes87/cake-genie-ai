@@ -67,7 +67,7 @@ export const CakeFlavorBottomSheet: React.FC<CakeFlavorBottomSheetProps> = ({
             wrapperClassName="md:max-w-7xl md:mx-auto md:justify-end md:px-6"
             actionButton={actionButton}
         >
-            <div className="space-y-4 pb-12">
+            <div className="space-y-4 pb-32">
                 {tierLabels.map((label, index) => {
                     const selectedFlavor = flavors[index] || flavors[0];
                     return (
