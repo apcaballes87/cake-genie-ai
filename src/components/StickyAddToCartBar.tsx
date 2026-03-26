@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 import { Loader2, AlertTriangleIcon, CartIcon } from './icons';
-import { X } from 'lucide-react';
+import { X, ShieldCheck } from 'lucide-react';
 import { ShareButton } from './ShareButton';
 import { CakeInfoUI } from '@/types';
 import { AvailabilityType } from '@/lib/utils/availability';
@@ -125,7 +125,10 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                     <Loader2 className="w-5 h-5 animate-spin text-purple-500" />
                     <div className="text-left">
                         <span className="text-sm font-semibold text-slate-700">Analyzing...</span>
-                        <span className="text-xs text-slate-500 block">Getting Price</span>
+                        <div className="flex items-center gap-1">
+                            <ShieldCheck className="w-2.5 h-2.5 text-green-600" />
+                            <span className="text-[9px] text-green-600 font-bold uppercase tracking-wider">Price Guaranteed</span>
+                        </div>
                     </div>
                 </div>
             );
