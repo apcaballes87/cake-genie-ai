@@ -358,6 +358,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [selectedAiPromptColor, setSelectedAiPromptColor] = useState('');
     const [showAiPromptColorPicker, setShowAiPromptColorPicker] = useState(false);
 
+    // Open pre-selection modal when arriving from search with analysis already in progress
+    // (analysis was started in SearchingClient before navigating here)
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('from') === 'search' && isAnalyzing && !isPreSelectionModalOpen) {
+            setIsPreSelectionModalOpen(true);
+        }
+    }, []); // Run once on mount
+
     const handleImageSelect = useCallback((file: File) => {
         setIsUploaderOpen(false);
         setIsAnalyzing(true);
@@ -1112,6 +1121,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         isLoadingDesignRef.current = true;
         // Loading item from props
 
+        // Show pre-selection modal for search arrivals (user can pick cake specs while loading)
+        const isFromSearch = urlParams.get('from') === 'search';
+        if (isFromSearch) {
+            setIsPreSelectionModalOpen(true);
+        }
+
         // Clear any existing stale data
         // 1. Reset Image Context (always needed as it persists across products if provider is higher up)
         clearImages();
@@ -1124,6 +1139,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         if (!hasSSRData) {
             clearCustomization();
             setIsAnalyzing(true);
+            setIsPreSelectionModalOpen(true);
         }
 
         const shouldReuseSsrAnalysis = shouldHydrateImageFromExistingAnalysis({ hasSsrData: hasSSRData });
@@ -1199,6 +1215,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             setAnalysisError(message);
                             showError(message.replace('AI_REJECTION: ', ''));
                             setIsAnalyzing(false);
+                            setIsPreSelectionModalOpen(false);
                             isLoadingDesignRef.current = false;
                         },
                         // Pass analysisData as precomputed if available to skip AI
@@ -1211,6 +1228,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     // Fallback to old full flow if fast path crashes
                     isLoadingDesignRef.current = false; // Reset lock to allow retry or old flow
                     setIsAnalyzing(false);
+                    setIsPreSelectionModalOpen(false);
                 });
 
             return;
@@ -1258,6 +1276,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         setAnalysisError(message);
                         showError(message.replace('AI_REJECTION: ', ''));
                         setIsAnalyzing(false);
+                        setIsPreSelectionModalOpen(false);
                         isLoadingDesignRef.current = false;
                     },
                     { imageUrl: targetImageUrl!, knownSeoMetadata: knownSeoMetadata || undefined }
@@ -1266,6 +1285,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             } catch (err) {
                 showError("Failed to load product.");
                 setIsAnalyzing(false);
+                setIsPreSelectionModalOpen(false);
                 isLoadingDesignRef.current = false;
             }
         };
@@ -1316,6 +1336,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 clearCustomization();
                 setActiveTab('original');
                 setIsAnalyzing(true);
+                setIsPreSelectionModalOpen(true);
                 showInfo("Loading your cake design...");
 
                 // Reject blob URLs (dead after navigation)
@@ -1360,12 +1381,14 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         setAnalysisError(error.message);
                         showError("Failed to analyze image: " + error.message.replace('AI_REJECTION: ', ''));
                         setIsAnalyzing(false);
+                        setIsPreSelectionModalOpen(false);
                         isLoadingShopifyCseRef.current = false;
                     }
                 );
 
             } catch (err: any) {
                 setIsAnalyzing(false);
+                setIsPreSelectionModalOpen(false);
                 isLoadingShopifyCseRef.current = false;
                 showError("Failed to load image. Please try again.");
             }
@@ -1655,6 +1678,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
         // Show loading state immediately
         setIsAnalyzing(true);
+        setIsPreSelectionModalOpen(true);
         showInfo("Loading your cake design...");
 
         // Save the image ref we're about to analyze (so we can restore on return)
@@ -1770,6 +1794,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         setAnalysisError(message);
                         showError(message.replace('AI_REJECTION: ', ''));
                         setIsAnalyzing(false);
+                        setIsPreSelectionModalOpen(false);
                         isLoadingDesignRef.current = false;
                     },
                     { imageUrl: decodedUrl } // Pass original URL
@@ -1784,6 +1809,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 }
                 showError(msg);
                 setIsAnalyzing(false);
+                setIsPreSelectionModalOpen(false);
                 isLoadingDesignRef.current = false;
             }
         };
@@ -3007,7 +3033,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     onSubmit={handleReport}
                     isSubmitting={isReporting}
                     editedImage={editedImage}
-                    details={analysisResult ? buildCartItemDetails() : null}
+                    details={analysisResult && cakeInfo && icingDesign ? buildCartItemDetails() : null}
                     cakeInfo={cakeInfo}
                 />
                 <ShareModal
@@ -3022,6 +3048,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 />
                 <PreSelectionModal
                     isOpen={isPreSelectionModalOpen}
+                    isAnalyzing={isAnalyzing}
                     onClose={handlePreSelectionClose}
                     onApply={handlePreSelectionApply}
                 />

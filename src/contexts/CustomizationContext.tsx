@@ -305,7 +305,14 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         options?: { isSystemCorrection?: boolean }
     ) => {
         setCakeInfo(prev => {
-            if (!prev) return null;
+            // If prev is null, check if updates contain a complete CakeInfoUI (e.g., from pre-selection modal)
+            if (!prev) {
+                const hasAllFields = updates.type && updates.thickness && updates.size && updates.flavors;
+                if (hasAllFields) {
+                    return updates as CakeInfoUI;
+                }
+                return null;
+            }
 
             const newState = { ...prev, ...updates };
 
