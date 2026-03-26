@@ -2626,6 +2626,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             isReporting={isReporting}
                             isSaving={isSaving}
                             showFooterActions={Boolean(cakeInfo || analysisError)}
+                            showPriceGuarantee={finalPrice !== null && !isAnalyzing}
                             onOriginalTabSelect={() => setActiveTab('original')}
                             onCustomizedTabSelect={handleCustomizedTabClick}
                             onToggleSaveDesign={handleToggleSavedDesign}
