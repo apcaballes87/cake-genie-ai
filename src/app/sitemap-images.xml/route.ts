@@ -159,7 +159,54 @@ export async function GET() {
         })
         .filter(Boolean);
 
-    const entries = [...customizingEntries, ...productEntries, ...blogEntries].join('\n');
+    // --- Collection entries ---
+    // Each collection page gets its top design images in the image sitemap
+    const { data: collections } = await supabase
+        .from('cakegenie_collections')
+        .select('slug, name, description');
+
+    const collectionEntries: string[] = [];
+    if (collections && collections.length > 0) {
+        // Build a map of collection images from the already-fetched analysis cache
+        // Group designs by their tags to find images for each collection
+        for (const col of collections) {
+            // Find up to 5 designs that match this collection's slug/name in keywords
+            const matchingDesigns = allItems
+                .filter((item: any) => {
+                    const kw = (item.keywords || '').toLowerCase();
+                    const colName = (col.name || col.slug || '').toLowerCase().replace(/-/g, ' ');
+                    return kw.includes(colName) || kw.includes(col.slug.replace(/-/g, ' '));
+                })
+                .slice(0, 5);
+
+            if (matchingDesigns.length === 0) continue;
+
+            const imageEntries = matchingDesigns
+                .map((item: any) => {
+                    const imageLoc = sanitizeUrl(item.original_image_url);
+                    if (!imageLoc) return '';
+                    const kw = item.keywords ? item.keywords.split(',')[0].trim() : col.name;
+                    const title = escapeXml(`${kw} ${col.name} cake design`);
+                    const caption = escapeXml(`${kw} cake design — browse the ${col.name} collection on Genie.ph`);
+                    return `    <image:image>
+      <image:loc>${imageLoc}</image:loc>
+      <image:title>${title}</image:title>
+      <image:caption>${caption}</image:caption>
+      <image:geo_location>Cebu, Philippines</image:geo_location>
+    </image:image>`;
+                })
+                .filter(Boolean);
+
+            if (imageEntries.length > 0) {
+                collectionEntries.push(`  <url>
+    <loc>${baseUrl}/collections/${col.slug}</loc>
+${imageEntries.join('\n')}
+  </url>`);
+            }
+        }
+    }
+
+    const entries = [...customizingEntries, ...productEntries, ...blogEntries, ...collectionEntries].join('\n');
 
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"

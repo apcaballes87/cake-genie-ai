@@ -32,6 +32,10 @@ export async function generateMetadata(
         desc = `Browse our collection of ${title.toLowerCase()} designs. Get instant AI pricing for any of these custom cakes from trusted local bakers.`
     }
 
+    // Fetch designs to get the first image for og:image
+    const { data: designs } = await getDesignsByKeyword(category, 1);
+    const firstImage = designs?.[0]?.original_image_url;
+
     return {
         title: { absolute: `${title} Cake Ideas & Designs | Genie.ph` },
         description: desc,
@@ -43,11 +47,22 @@ export async function generateMetadata(
             description: desc,
             url: `https://genie.ph/collections/${category}`,
             type: 'website',
+            ...(firstImage ? {
+                images: [{
+                    url: firstImage,
+                    width: 1200,
+                    height: 1200,
+                    alt: `${title} cake design collection — browse ${title.toLowerCase()} cake ideas on Genie.ph`,
+                }],
+            } : {}),
         },
         twitter: {
             card: 'summary_large_image',
             title: `${title} Cake Ideas & Designs | Genie.ph`,
             description: desc,
+            ...(firstImage ? {
+                images: [firstImage],
+            } : {}),
         },
     }
 }
@@ -72,13 +87,89 @@ export default async function CategoryPage({ params }: Props) {
         return notFound();
     }
 
+    // Build JSON-LD: CollectionPage + ImageGallery + BreadcrumbList
+    const pageUrl = `https://genie.ph/collections/${category}`;
+    const titleCap = readableTitle.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+    // Top 12 designs for ImageGallery schema (enough for rich results, not too heavy)
+    const titleLower = titleCap.toLowerCase();
+    // Core name without "cake" suffix for overlap detection (e.g. "debut" from "Debut Cake")
+    const titleCore = titleLower.replace(/\s*cake\s*$/i, '').trim();
+    const galleryImages = designs.slice(0, 12).map((d: any, i: number) => {
+        const kw = typeof d.keywords === 'string' ? d.keywords.split(',')[0].trim() : 'Custom';
+        // Avoid doubling: if keyword already contains the core collection name, don't append it
+        const kwLower = kw.toLowerCase();
+        const imageName = kwLower.includes(titleCore) || titleCore.includes(kwLower)
+            ? `${kw} cake design`
+            : `${kw} ${titleCap} cake design`;
+        return {
+            '@type': 'ImageObject',
+            url: d.original_image_url,
+            contentUrl: d.original_image_url,
+            name: imageName,
+            caption: `${kw} cake design — customize and order on Genie.ph`,
+            ...(d.image_width ? { width: d.image_width } : {}),
+            ...(d.image_height ? { height: d.image_height } : {}),
+            creditText: 'Genie.ph',
+            copyrightHolder: { '@type': 'Organization', name: 'Genie.ph' },
+            license: 'https://genie.ph/terms',
+            acquireLicensePage: 'https://genie.ph/terms',
+        };
+    });
+
+    const jsonLd = [
+        // CollectionPage + ImageGallery
+        {
+            '@context': 'https://schema.org',
+            '@type': 'CollectionPage',
+            '@id': pageUrl,
+            name: `${titleCap} Cake Ideas & Designs`,
+            description: description || `Browse ${titleCap.toLowerCase()} cake designs. Get instant AI pricing for any of these custom cakes.`,
+            url: pageUrl,
+            isPartOf: { '@type': 'WebSite', name: 'Genie.ph', url: 'https://genie.ph' },
+            mainEntity: {
+                '@type': 'ImageGallery',
+                name: titleLower.includes('cake') ? `${titleCap} Design Collection` : `${titleCap} Cake Design Collection`,
+                about: `${titleCap} cake designs available for customization and ordering in Cebu, Philippines`,
+                numberOfItems: designs.length,
+                image: galleryImages,
+            },
+            ...(designs[0]?.original_image_url ? {
+                primaryImageOfPage: {
+                    '@type': 'ImageObject',
+                    url: designs[0].original_image_url,
+                    representativeOfPage: true,
+                },
+            } : {}),
+        },
+        // BreadcrumbList
+        {
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+                { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://genie.ph' },
+                { '@type': 'ListItem', position: 2, name: 'Collections', item: 'https://genie.ph/collections' },
+                { '@type': 'ListItem', position: 3, name: `${titleCap} Designs`, item: pageUrl },
+            ],
+        },
+    ];
+
     return (
-        <CategoryClient
-            designs={designs}
-            keyword={category} // Service expects the slug or keyword
-            readableTitle={readableTitle}
-            category={category}
-            description={description}
-        />
+        <>
+            {jsonLd.map((schema, i) => (
+                <script
+                    key={`collection-ld-${i}`}
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+                />
+            ))}
+            <CategoryClient
+                designs={designs}
+                keyword={category}
+                readableTitle={readableTitle}
+                category={category}
+                description={description}
+            />
+        </>
     )
 }

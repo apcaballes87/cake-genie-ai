@@ -135,7 +135,7 @@ const CategoryClient: React.FC<CategoryClientProps> = ({
                     </div>
 
                     {/* Designs Grid with Load More & Google Search */}
-                    <DesignGridWithLoadMore initialDesigns={designs} keyword={keyword} />
+                    <DesignGridWithLoadMore initialDesigns={designs} keyword={keyword} collectionTitle={readableTitle} />
             </div>
 
 
