@@ -108,34 +108,6 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                     </div>
                 </div>
             </div>
-            <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Cake Height (All tiers)</label>
-                <div className="relative">
-                    <div ref={cakeThicknessScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
-                        {currentThicknessOptions.map(thickness => (
-                            <button
-                                key={thickness}
-                                data-cakethickness={thickness}
-                                type="button"
-                                onClick={() => onCakeInfoChange({ thickness })}
-                                className="group shrink-0 w-16 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
-                            >
-                                <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.thickness === thickness ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
-                                    <LazyImage
-                                        src={CAKE_THICKNESS_THUMBNAILS[thickness]}
-                                        alt={`${thickness} height`}
-                                        fill
-                                        sizes="64px"
-                                        imageClassName="object-cover"
-                                    />
-                                </div>
-                                <span className="mt-2 text-[10px] font-semibold text-slate-800 leading-tight">{thickness}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
             {basePriceOptions && basePriceOptions.length > 0 && (
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Size (Diameter)</label>
@@ -190,6 +162,34 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                     )}
                 </div>
             )}
+
+            <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Cake Height (All tiers)</label>
+                <div className="relative">
+                    <div ref={cakeThicknessScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
+                        {currentThicknessOptions.map(thickness => (
+                            <button
+                                key={thickness}
+                                data-cakethickness={thickness}
+                                type="button"
+                                onClick={() => onCakeInfoChange({ thickness })}
+                                className="group shrink-0 w-16 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
+                            >
+                                <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.thickness === thickness ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
+                                    <LazyImage
+                                        src={CAKE_THICKNESS_THUMBNAILS[thickness]}
+                                        alt={`${thickness} height`}
+                                        fill
+                                        sizes="64px"
+                                        imageClassName="object-cover"
+                                    />
+                                </div>
+                                <span className="mt-2 text-[10px] font-semibold text-slate-800 leading-tight">{thickness}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
 
         </div>
     );
