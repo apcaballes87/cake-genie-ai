@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useCallback, useEffect } from 'react';
 import { CloseIcon, Loader2 } from './icons';
+import { ShieldCheck } from 'lucide-react';
 import { CakeBaseOptions } from './CakeBaseOptions';
 import { CakeFlavorBottomSheet } from './CakeFlavorBottomSheet';
 import { usePricing } from '@/hooks/usePricing';
@@ -111,16 +112,28 @@ export const PreSelectionModal: React.FC<PreSelectionModalProps> = ({ isOpen, on
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between p-6 pb-3 shrink-0">
-                        <div>
-                            <h2 className="text-lg font-semibold text-slate-800">Select Your Cake Options</h2>
-                            <div className="flex items-center gap-2 mt-1">
-                                <Loader2 className="animate-spin w-3.5 h-3.5 text-purple-500" />
-                                <span className="text-xs text-slate-500">Analyzing your design...</span>
+                        <div className="flex items-start gap-4 flex-1">
+                            <div className="flex-1">
+                                <h2 className="text-lg font-semibold text-slate-800">Select Your Cake Options</h2>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <Loader2 className="animate-spin w-3.5 h-3.5 text-purple-500" />
+                                    <span className="text-xs text-slate-500">Analyzing your design...</span>
+                                </div>
+                            </div>
+                            
+                            {/* Trust Badge */}
+                            <div className="bg-green-600/90 text-white px-2.5 py-1 rounded-full shadow-md flex items-center gap-1.5 shrink-0 mt-1 scale-90 sm:scale-100 origin-right transition-transform">
+                                <ShieldCheck className="w-3.5 h-3.5" />
+                                <div className="flex flex-col -space-y-0.5">
+                                    <span className="text-[10px] font-bold leading-tight whitespace-nowrap">Guaranteed Price</span>
+                                    <span className="text-[7px] text-green-100 font-medium uppercase tracking-wider whitespace-nowrap">Real cakeshop data</span>
+                                </div>
                             </div>
                         </div>
+                        
                         <button
                             onClick={handleClose}
-                            className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors"
+                            className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors ml-2"
                             aria-label="Close"
                         >
                             <CloseIcon />
