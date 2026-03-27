@@ -1293,9 +1293,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         fetchProductImage();
     }, [product, recentSearchDesign, originalImageData, isImageManagementLoading, hookImageUpload, loadImageWithoutAnalysis, setIsAnalyzing, clearImages, clearCustomization, analysisResult, analysisId, persistedSlug, setCurrentSlug, setPendingAnalysisData, knownSeoMetadata, setAnalysisError]);
 
-    // Handle image loading from external site (cakesandmemories.com Shopify CSE)
+    // Handle image loading from external site (cakesandmemories.com Shopify CSE, Chrome Extension)
     // Uses URL query params because sessionStorage is per-origin and doesn't survive cross-domain redirects.
     // Expected URL: /customizing?source=shopify_cse&image_url=ENCODED_URL&image_name=cake.jpg&image_type=image/jpeg
+    // OR: /customizing?source=chrome_extension&image_url=ENCODED_URL&image_name=cake.jpg&image_type=image/jpeg
     // NOTE: We read from window.location.search directly (not useSearchParams) because
     // Next.js can cache/stale the React hook value on subsequent cross-domain navigations.
     useEffect(() => {
@@ -1306,9 +1307,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 const sourceParam = urlParams.get('source');
                 const imageUrlParam = urlParams.get('image_url');
 
-                // Not a Shopify CSE handoff — bail
-                // Match both shopify and shopify_cse as valid external origins
-                if (sourceParam !== 'shopify_cse' && sourceParam !== 'shopify') {
+                // Not an external source handoff — bail
+                // Match shopify_cse, shopify, and chrome_extension as valid external origins
+                const isExternalSource = sourceParam === 'shopify_cse' || sourceParam === 'shopify' || sourceParam === 'chrome_extension';
+                if (!isExternalSource) {
                     return;
                 }
 
@@ -1345,7 +1347,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 if (!imageUrl) {
                     setIsAnalyzing(false);
                     isLoadingShopifyCseRef.current = false;
-                    showError("Image link expired. Please try again from the shop.");
+                    showError("Image link expired. Please try again.");
                     return;
                 }
 

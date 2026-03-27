@@ -48,9 +48,9 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
     const imageUrl = typeof searchParams.image_url === 'string' ? searchParams.image_url : null;
     const source = typeof searchParams.source === 'string' ? searchParams.source : null;
 
-    // Only preload for Shopify CSE handoff - external images go through proxy
-    const isShopifyCse = source === 'shopify_cse' && imageUrl;
-    const proxyImageUrl = isShopifyCse ? `/api/proxy-image?url=${encodeURIComponent(imageUrl)}` : null;
+    // Preload for external sources (Shopify CSE, Chrome Extension) - external images go through proxy
+    const isExternalSource = (source === 'shopify_cse' || source === 'chrome_extension') && imageUrl;
+    const proxyImageUrl = isExternalSource ? `/api/proxy-image?url=${encodeURIComponent(imageUrl)}` : null;
 
     const jsonLd = {
         '@context': 'https://schema.org',
