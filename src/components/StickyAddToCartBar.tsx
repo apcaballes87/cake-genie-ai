@@ -155,10 +155,10 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         if (warningMessage) {
             return (
                 <div
-                    className={`bg-red-50 border-b border-red-200 rounded-t-2xl group relative transition-colors ${onWarningClick ? 'cursor-pointer hover:bg-red-100' : ''}`}
+                    className={`bg-red-50 rounded-t-2xl group relative transition-colors ${onWarningClick ? 'cursor-pointer hover:bg-red-100' : ''}`}
                     onClick={onWarningClick}
                 >
-                    <div className={`max-w-4xl mx-auto flex items-center justify-center gap-2 text-red-800 text-xs sm:text-sm font-bold p-2 ${!onWarningClick ? 'cursor-help' : ''}`}>
+                    <div className={`max-w-4xl mx-auto flex items-center justify-center gap-2 text-red-800 text-[10px] sm:text-[11px] font-bold p-1 ${!onWarningClick ? 'cursor-help' : ''}`}>
                         <AlertTriangleIcon className="w-5 h-5 text-red-600 shrink-0" />
                         <span>{warningMessage}</span>
                     </div>
@@ -178,8 +178,8 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
 
         if (availability === 'rush') {
             return (
-                <div className="bg-green-100 border-b border-green-200 rounded-t-2xl">
-                    <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-green-800 text-xs sm:text-sm font-bold p-2">
+                <div className="bg-green-100 rounded-t-2xl">
+                    <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-green-800 text-[10px] sm:text-[11px] font-bold p-1">
                         <span>⚡</span>
                         <span>Rush Order Available! Ready in 30 mins</span>
                     </div>
@@ -188,8 +188,8 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         }
         if (availability === 'same-day') {
             return (
-                <div className="bg-blue-100 border-b border-blue-200 rounded-t-2xl">
-                    <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-blue-800 text-xs sm:text-sm font-bold p-2">
+                <div className="bg-blue-100 rounded-t-2xl">
+                    <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-blue-800 text-[10px] sm:text-[11px] font-bold p-1">
                         <span>🕐</span>
                         <span>Same-Day Order! Ready in 3 hours</span>
                     </div>
@@ -198,8 +198,8 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         }
         if (availability === 'normal') {
             return (
-                <div className="bg-slate-100 border-b border-slate-200 rounded-t-2xl">
-                    <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-slate-700 text-xs sm:text-sm font-bold p-2">
+                <div className="bg-slate-100 rounded-t-2xl">
+                    <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-slate-700 text-[10px] sm:text-[11px] font-bold p-1">
                         <span>📅</span>
                         <span>Standard order. Requires 1-day lead time</span>
                     </div>
@@ -227,11 +227,11 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                             {renderAvailabilityNotification()}
                         </div>
                     </div>
-                    {/* Bridge: 16px of matching color outside overflow-hidden, fills the transparent
+                    {/* Bridge: 14px of matching color outside overflow-hidden, fills the transparent
                         rounded-corner area at the top of the main bar (border-radius = 1rem = 16px) */}
-                    <div className={`h-4 transition-opacity duration-500 ease-in-out ${(!error && (warningMessage || (showAvailability && availability))) ? 'opacity-100' : 'opacity-0'} ${notificationBridgeColor}`} />
+                    <div className={`h-[14px] transition-opacity duration-500 ease-in-out ${(!error && (warningMessage || (showAvailability && availability))) ? 'opacity-100' : 'opacity-0'} ${notificationBridgeColor}`} />
                 </div>
-                {/* Spacer: 114px + 16px bridge above = 130px total gap above the main bar */}
+                {/* Spacer: 114px + 14px bridge above = 128px total gap above the main bar */}
                 <div className="h-[114px]" />
             </div>
 
