@@ -272,11 +272,11 @@ interface CustomizingClientProps {
     seoContentSlot?: React.ReactNode;
     postEditorSlot?: React.ReactNode;
     initialCaption?: string;
-    // Preloaded image URL from SSR for Shopify CSE handoff - enables instant display
-    preloadImageUrl?: string | null;
+    preloadSource?: string;
+    preloadImageUrl?: string;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadImageUrl }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const params = useParams();

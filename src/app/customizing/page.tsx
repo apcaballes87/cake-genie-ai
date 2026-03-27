@@ -82,8 +82,8 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
             {/* Client-side customization tool — uses root-level CustomizationProvider from Providers.tsx */}
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                 <CustomizingClient
-                    // Pass the preloading image URL to client for immediate use
-                    preloadImageUrl={proxyImageUrl}
+                    preloadSource={source || undefined}
+                    preloadImageUrl={proxyImageUrl || undefined}
                 />
             </Suspense>
         </>
