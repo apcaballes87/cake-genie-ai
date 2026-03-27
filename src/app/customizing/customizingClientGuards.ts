@@ -31,7 +31,7 @@ export function shouldLoadPropDesign({
   hasLoadedImage,
   isLoadingDesign,
 }: PropDesignLoadGuardArgs): boolean {
-  if (sourceParam === 'shopify_cse') return false
+  if (sourceParam === 'shopify_cse' || sourceParam === 'chrome_extension') return false
   if (isResetting) return false
   if (!targetImageUrl) return false
 
