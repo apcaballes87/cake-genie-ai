@@ -95,6 +95,7 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
 
     const autocompleteElementRef = useRef<any | null>(null);
     const autocompleteContainerRef = useRef<HTMLDivElement | null>(null);
+    const mapRef = useRef<any | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -213,9 +214,10 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                         return;
                     }
 
-                    if (place.location) {
-                        map.panTo(place.location);
-                        map.setZoom(17);
+                    const currentMap = mapRef.current;
+                    if (place.location && currentMap) {
+                        currentMap.panTo(place.location);
+                        currentMap.setZoom(17);
                         if (place.formattedAddress) {
                             setCompleteAddress(place.formattedAddress);
                             setSuggestedAddress(place.formattedAddress);
@@ -303,7 +305,7 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                                 mapContainerStyle={{ width: '100%', height: '100%' }}
                                 center={center}
                                 zoom={15}
-                                onLoad={setMap}
+                                onLoad={(m) => { setMap(m); mapRef.current = m; }}
                                 onIdle={onMapIdle}
                                 options={{
                                     disableDefaultUI: true,
