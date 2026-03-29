@@ -81,11 +81,11 @@ function MerchantSchema({ merchant, products }: { merchant: CakeGenieMerchant; p
         name: merchant.business_name,
         description: merchant.description,
         image: merchant.cover_image_url || merchant.profile_image_url,
-        telephone: merchant.phone,
+        ...(merchant.phone && { telephone: merchant.phone }),
         address: {
             '@type': 'PostalAddress',
-            streetAddress: merchant.address,
-            addressLocality: merchant.city,
+            ...(merchant.address && { streetAddress: merchant.address }),
+            ...(merchant.city && { addressLocality: merchant.city }),
             addressCountry: 'PH'
         },
         areaServed: {
