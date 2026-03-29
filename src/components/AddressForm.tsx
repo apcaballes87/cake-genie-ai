@@ -185,21 +185,35 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
     useEffect(() => {
         if (isLoaded && autocompleteContainerRef.current && map && !autocompleteElementRef.current) {
             try {
-                const mapCenter = map.getCenter();
-                if (!mapCenter || !window.google?.maps?.places) return;
+                if (!window.google?.maps?.places) return;
 
-                const bounds = map.getBounds();
+                // Bias results within 15km of Cebu City center
+                const cebuCityCenter = new window.google.maps.LatLng(10.3157, 123.8854);
+                const cebuCircle = new window.google.maps.Circle({
+                    center: cebuCityCenter,
+                    radius: 15000, // 15km
+                });
 
                 // New Places API: PlaceAutocompleteElement
                 const autocompleteElement = new window.google.maps.places.PlaceAutocompleteElement({
                     types: ['address'],
                     componentRestrictions: { country: 'ph' },
-                    locationBias: bounds || undefined,
+                    locationRestriction: cebuCircle.getBounds(),
                 });
 
                 autocompleteElement.addEventListener('gmp-select', async (event: any) => {
                     const place = event.place;
-                    if (place?.location) {
+                    if (!place) return;
+
+                    // Fetch place fields to get location data
+                    try {
+                        await place.fetchFields({ fields: ['location', 'formattedAddress', 'addressComponents'] });
+                    } catch (fetchErr) {
+                        console.error('Failed to fetch place fields:', fetchErr);
+                        return;
+                    }
+
+                    if (place.location) {
                         map.panTo(place.location);
                         map.setZoom(17);
                         if (place.formattedAddress) {
