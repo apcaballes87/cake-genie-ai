@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { notifyIndexNow } from './indexNowService';
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
-import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem, OrderContribution, CakeGenieSavedItem, CustomizationDetails, CakeGenieMerchant, CakeGenieMerchantProduct, MerchantStaff, MerchantPayout, MerchantDashboardStats, MerchantStaffRole } from '@/lib/database.types';
+import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem, OrderContribution, CakeGenieSavedItem, CustomizationDetails, CakeGenieMerchant, CakeGenieMerchantProduct, MerchantStaff, MerchantPayout, MerchantDashboardStats, MerchantStaffRole, CakeGenieReview } from '@/lib/database.types';
 
 import { compressImage, validateImageFile } from '@/lib/utils/imageOptimization';
 import { calculatePriceFromDatabase } from './pricingService.database';
@@ -3281,3 +3281,356 @@ export const subscribeToNewsletter = async (email: string, source: string = 'pop
     return false;
   }
 };
+
+// ============================================================================
+// REVIEW FUNCTIONS
+// ============================================================================
+
+/**
+ * Submits a new review for an order or order item.
+ * Only allows reviews for delivered orders.
+ */
+export async function submitReview(params: {
+  orderId: string;
+  orderItemId?: string;
+  userId: string | null;
+  merchantId: string;
+  productId?: string;
+  rating: number;
+  title?: string;
+  comment?: string;
+  photos?: string[];
+}): Promise<SupabaseServiceResponse<CakeGenieReview>> {
+  try {
+    // Verify the order is delivered
+    const { data: order, error: orderError } = await supabase
+      .from('cakegenie_orders')
+      .select('order_status, user_id')
+      .eq('order_id', params.orderId)
+      .single();
+
+    if (orderError || !order) {
+      return { data: null, error: orderError || new Error('Order not found') };
+    }
+
+    // Check if order is delivered or allow for testing (optional)
+    if (order.order_status !== 'delivered') {
+      return { data: null, error: new Error('You can only review delivered orders') };
+    }
+
+    // Verify user owns this order or order is guest with matching email
+    if (order.user_id && params.userId && order.user_id !== params.userId) {
+      return { data: null, error: new Error('You can only review your own orders') };
+    }
+
+    // Check if a review already exists for this order/item
+    const { data: existingReview } = await supabase
+      .from('cakegenie_reviews')
+      .select('review_id')
+      .eq('order_id', params.orderId)
+      .eq('order_item_id', params.orderItemId || null)
+      .maybeSingle();
+
+    if (existingReview) {
+      return { data: null, error: new Error('You have already reviewed this item') };
+    }
+
+    // Insert the review (auto-approved and visible by default)
+    const { data, error } = await supabase
+      .from('cakegenie_reviews')
+      .insert({
+        order_id: params.orderId,
+        order_item_id: params.orderItemId || null,
+        user_id: params.userId,
+        merchant_id: params.merchantId,
+        product_id: params.productId || null,
+        rating: params.rating,
+        title: params.title || null,
+        comment: params.comment || null,
+        photos: params.photos || [],
+        is_approved: true,
+        is_visible: true,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches reviews for a specific merchant (for shop page display).
+ */
+export async function getMerchantReviews(
+  merchantId: string,
+  options?: {
+    limit?: number;
+    offset?: number;
+    onlyVisible?: boolean;
+  }
+): Promise<SupabaseServiceResponse<CakeGenieReview[]>> {
+  try {
+    let query = supabase
+      .from('cakegenie_reviews')
+      .select(`
+        *,
+        user:cakegenie_users(first_name, email)
+      `)
+      .eq('merchant_id', merchantId)
+      .order('created_at', { ascending: false });
+
+    if (options?.onlyVisible !== false) {
+      query = query.eq('is_visible', true).eq('is_approved', true);
+    }
+
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+
+    if (options?.offset) {
+      query = query.range(options.offset, options.offset + (options.limit || 20) - 1);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches reviews for a specific product.
+ */
+export async function getProductReviews(
+  productId: string,
+  options?: {
+    limit?: number;
+    offset?: number;
+    onlyVisible?: boolean;
+  }
+): Promise<SupabaseServiceResponse<CakeGenieReview[]>> {
+  try {
+    let query = supabase
+      .from('cakegenie_reviews')
+      .select(`
+        *,
+        user:cakegenie_users(first_name, email)
+      `)
+      .eq('product_id', productId)
+      .order('created_at', { ascending: false });
+
+    if (options?.onlyVisible !== false) {
+      query = query.eq('is_visible', true).eq('is_approved', true);
+    }
+
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+
+    if (options?.offset) {
+      query = query.range(options.offset, options.offset + (options.limit || 20) - 1);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches all reviews for a merchant (including hidden) - for merchant dashboard.
+ */
+export async function getMerchantAllReviews(
+  merchantId: string,
+  options?: {
+    limit?: number;
+    offset?: number;
+    includeUnapproved?: boolean;
+  }
+): Promise<SupabaseServiceResponse<CakeGenieReview[]>> {
+  try {
+    let query = supabase
+      .from('cakegenie_reviews')
+      .select(`
+        *,
+        user:cakegenie_users(first_name, email),
+        cakegenie_orders(order_number)
+      `)
+      .eq('merchant_id', merchantId)
+      .order('created_at', { ascending: false });
+
+    if (options?.includeUnapproved === false) {
+      query = query.eq('is_approved', true);
+    }
+
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+
+    if (options?.offset) {
+      query = query.range(options.offset, options.offset + (options.limit || 20) - 1);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Updates review visibility and approval status (for merchant moderation).
+ */
+export async function updateReviewModeration(
+  reviewId: string,
+  merchantId: string,
+  updates: {
+    isApproved?: boolean;
+    isVisible?: boolean;
+  }
+): Promise<SupabaseServiceResponse<CakeGenieReview>> {
+  try {
+    // Verify the review belongs to this merchant
+    const { data: existing } = await supabase
+      .from('cakegenie_reviews')
+      .select('review_id')
+      .eq('review_id', reviewId)
+      .eq('merchant_id', merchantId)
+      .single();
+
+    if (!existing) {
+      return { data: null, error: new Error('Review not found or access denied') };
+    }
+
+    const { data, error } = await supabase
+      .from('cakegenie_reviews')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('review_id', reviewId)
+      .select()
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Adds a merchant response to a review.
+ */
+export async function respondToReview(
+  reviewId: string,
+  merchantId: string,
+  response: string
+): Promise<SupabaseServiceResponse<CakeGenieReview>> {
+  try {
+    // Verify the review belongs to this merchant
+    const { data: existing } = await supabase
+      .from('cakegenie_reviews')
+      .select('review_id')
+      .eq('review_id', reviewId)
+      .eq('merchant_id', merchantId)
+      .single();
+
+    if (!existing) {
+      return { data: null, error: new Error('Review not found or access denied') };
+    }
+
+    const { data, error } = await supabase
+      .from('cakegenie_reviews')
+      .update({
+        merchant_response: response,
+        merchant_response_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('review_id', reviewId)
+      .select()
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Gets review statistics for a merchant.
+ */
+export async function getMerchantReviewStats(
+  merchantId: string
+): Promise<SupabaseServiceResponse<{
+  total: number;
+  averageRating: number;
+  ratingDistribution: { rating: number; count: number }[];
+}>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_reviews')
+      .select('rating')
+      .eq('merchant_id', merchantId)
+      .eq('is_approved', true)
+      .eq('is_visible', true);
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    const total = data?.length || 0;
+    const averageRating = total > 0
+      ? data!.reduce((sum, r) => sum + r.rating, 0) / total
+      : 0;
+
+    // Calculate rating distribution
+    const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    data?.forEach(r => {
+      if (distribution[r.rating] !== undefined) {
+        distribution[r.rating]++;
+      }
+    });
+
+    const ratingDistribution = Object.entries(distribution).map(([rating, count]) => ({
+      rating: parseInt(rating),
+      count,
+    }));
+
+    return {
+      data: { total, averageRating, ratingDistribution },
+      error: null,
+    };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}

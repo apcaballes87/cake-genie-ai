@@ -6,13 +6,14 @@ import { useAuth } from '@/hooks';
 import { showSuccess, showError } from '@/lib/utils/toast';
 import { CakeGenieOrder, CakeGenieOrderItem, PaymentStatus, OrderStatus } from '@/lib/database.types';
 import { useOrders, useUploadPaymentProof, useOrderDetails, useCancelOrder } from '@/hooks/useOrders';
-import { Loader2, ArrowLeft, ChevronDown, Package, Clock, CreditCard, CheckCircle, UploadCloud, Trash2, X, Users } from 'lucide-react';
+import { Loader2, ArrowLeft, ChevronDown, Package, Clock, CreditCard, CheckCircle, UploadCloud, Trash2, X, Users, Star } from 'lucide-react';
 import { OrdersSkeleton, Skeleton } from '@/components/LoadingSkeletons';
 import { ImageZoomModal } from '@/components/ImageZoomModal';
 import DetailItem from '@/components/UI/DetailItem';
 import LazyImage from '@/components/LazyImage';
 import BillShareCard from '@/components/BillShareCard';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import ReviewForm from '@/components/ReviewForm';
 import { createXenditPayment } from '@/services/xenditService';
 
 
@@ -209,10 +210,12 @@ const PayOrderButton: React.FC<{ order: EnrichedOrder }> = ({ order }) => {
 
 // --- Order Details Expansion ---
 
-const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrder: EnrichedOrder) => void; }> = ({ order, onOrderUpdate }) => {
+const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrder: EnrichedOrder) => void; onReviewSubmitted?: () => void }> = ({ order, onOrderUpdate, onReviewSubmitted }) => {
     const { user } = useAuth();
     const { data: details, isLoading } = useOrderDetails(order.order_id, user?.id, true);
     const [zoomedItem, setZoomedItem] = useState<CakeGenieOrderItem | null>(null);
+    const [showReviewForm, setShowReviewForm] = useState(false);
+    const [selectedItemForReview, setSelectedItemForReview] = useState<any>(null);
 
     if (isLoading) {
         return <div className="p-4"><Skeleton className="h-24 w-full" /></div>;
@@ -352,6 +355,41 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                 )}
                 {details.payment_proof_url && details.payment_status !== 'pending' && (
                     <a href={details.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-pink-600 hover:underline text-center block mt-2">View Submitted Proof</a>
+                )}
+
+                {/* Leave Review Button for Delivered Orders */}
+                {details.order_status === 'delivered' && details.cakegenie_order_items && details.cakegenie_order_items.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                        <button
+                            onClick={() => {
+                                setSelectedItemForReview(details.cakegenie_order_items[0]);
+                                setShowReviewForm(true);
+                            }}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:from-pink-600 hover:to-purple-700 transition-all"
+                        >
+                            <Star className="w-5 h-5" />
+                            Leave a Review
+                        </button>
+                    </div>
+                )}
+
+                {/* Review Form Modal */}
+                {showReviewForm && selectedItemForReview && user && (
+                    <ReviewForm
+                        isOpen={showReviewForm}
+                        onClose={() => {
+                            setShowReviewForm(false);
+                            setSelectedItemForReview(null);
+                        }}
+                        orderId={details.order_id}
+                        orderItemId={selectedItemForReview.item_id}
+                        merchantId={details.merchant_id || ''}
+                        productId={selectedItemForReview.product_id}
+                        userId={user.id}
+                        orderNumber={details.order_number}
+                        itemName={selectedItemForReview.cake_type}
+                        onReviewSubmitted={onReviewSubmitted}
+                    />
                 )}
             </div>
             <ImageZoomModal
@@ -531,7 +569,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
                         </div>
                     )}
 
-                    <OrderDetails order={order} onOrderUpdate={onOrderUpdate} />
+                    <OrderDetails order={order} onOrderUpdate={onOrderUpdate} onReviewSubmitted={() => onOrderUpdate(order)} />
                 </div>
             )}
         </div>
