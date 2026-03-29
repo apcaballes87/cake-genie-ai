@@ -196,7 +196,6 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                 });
 
                 const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-                    types: ['address'],
                     componentRestrictions: { country: 'ph' },
                     bounds: cebuCircle.getBounds(),
                     strictBounds: true,
