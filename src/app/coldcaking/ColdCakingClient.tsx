@@ -179,7 +179,7 @@ const ColdCakingClient: React.FC = () => {
         try {
             // 1. Get the base cake image as base64 (cache it)
             if (!baseCakeImageRef.current) {
-                baseCakeImageRef.current = await imageUrlToBase64(DEFAULT_CAKE_IMAGE_URL);
+                baseCakeImageRef.current = await imageUrlToBase64(DEFAULT_PREVIEW_IMAGE_URL);
             }
 
             // 2. Get the uploaded image as base64
@@ -319,17 +319,6 @@ const ColdCakingClient: React.FC = () => {
             <main className="flex-1">
                 <ColdCakingHero onUploadClick={() => setIsUploaderOpen(true)} />
 
-                {/* Combining Status */}
-                {isCombining && (
-                    <div className="w-full max-w-7xl mx-auto px-4 py-8">
-                        <div className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-8 text-center">
-                            <LoadingSpinner />
-                            <p className="mt-4 text-sm font-semibold text-slate-700">Creating your cold cake design...</p>
-                            <p className="text-xs text-slate-500 mt-1">Printing your image onto the cake with AI</p>
-                        </div>
-                    </div>
-                )}
-
                 {/* Combine Error */}
                 {combineError && (
                     <div className="w-full max-w-7xl mx-auto px-4 py-4">
@@ -345,9 +334,9 @@ const ColdCakingClient: React.FC = () => {
                     </div>
                 )}
 
-                {/* Full Customizer */}
-                {showCustomizer && !isCombining && (
-                    <div id="coldcaking-customizer" className="coldcaking-customizer-wrapper">
+                {/* Full Customizer — always mounted to preserve steps 1-4 state */}
+                {showCustomizer && (
+                    <div id="coldcaking-customizer" className="relative coldcaking-customizer-wrapper">
                         <style>{`
                             /* Hide the customizer's own header (back button, search bar, cart button) */
                             .coldcaking-customizer-wrapper > div:has(button[aria-label="Go back"]) {
@@ -369,6 +358,14 @@ const ColdCakingClient: React.FC = () => {
                             .coldcaking-customizer-wrapper > div > div.w-full.pb-28 {
                                 display: none !important;
                             }
+                            /* Hide Guaranteed Price green pill */
+                            .coldcaking-customizer-wrapper div[class*="bg-green-600"] {
+                                display: none !important;
+                            }
+                            /* Hide Original/Customized tab switcher */
+                            .coldcaking-customizer-wrapper div[class*="bg-slate-100"][class*="space-x-1"] {
+                                display: none !important;
+                            }
                             /* Hide 2 Tier and 3 Tier cake type options */
                             .coldcaking-customizer-wrapper button[data-caketype="2 Tier"],
                             .coldcaking-customizer-wrapper button[data-caketype="3 Tier"],
@@ -377,6 +374,14 @@ const ColdCakingClient: React.FC = () => {
                                 display: none !important;
                             }
                         `}</style>
+                        {/* Combining overlay — shown on top while Gemini is processing */}
+                        {isCombining && (
+                            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-md">
+                                <LoadingSpinner />
+                                <p className="mt-4 text-sm font-semibold text-slate-700">Creating your cold cake design...</p>
+                                <p className="text-xs text-slate-500 mt-1">Printing your image onto the cake with AI</p>
+                            </div>
+                        )}
                         <CustomizingClient />
                     </div>
                 )}

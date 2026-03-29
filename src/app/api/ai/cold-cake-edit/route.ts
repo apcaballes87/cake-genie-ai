@@ -9,6 +9,8 @@ const SYSTEM_INSTRUCTION = `You are an expert cake designer specializing in edib
 Your task is to seamlessly place the provided overlay image onto the top surface of the cake as an edible photo print.
 The result should look like a real edible photo cake — the image should appear printed on the frosting surface,
 conforming to the cake's shape and perspective. Maintain photorealistic quality.
+If the cake is circular, crop or reshape the overlay image into a circle so it fits seamlessly on the round surface.
+If the cake is rectangular or square, reshape the overlay image to match that shape and place it on top.
 Do NOT add any text, watermarks, or additional decorations. Only place the overlay image on the cake surface.`;
 
 function extractGeneratedImage(response: any) {
@@ -67,7 +69,7 @@ export async function POST(req: NextRequest) {
             },
             // Prompt
             {
-                text: 'The first image is the base cake. The second image is what the customer wants printed on the cake. Add the second image on top of the cake as an edible photo cake design. Make it look like a real edible photo print on the frosting surface.',
+                text: 'The first image is the base cake. The second image is what the customer wants printed on the cake. Add the second image on top of the cake as an edible photo cake design. Make it look like a real edible photo print on the frosting surface. If the cake is circular, make the printed image circular to match. If the cake is rectangular or square, make the printed image match that shape.',
             },
         ];
 
