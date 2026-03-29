@@ -57,14 +57,16 @@ const CITY_CENTER_COORDS: Record<string, { lat: number; lng: number }> = {
     'Consolacion': { lat: 10.3770, lng: 123.9617 },
 };
 
-const checkServiceability = (components: google.maps.GeocoderAddressComponent[]): { isServiceable: boolean; city: string | null } => {
+const checkServiceability = (components: any[]): { isServiceable: boolean; city: string | null } => {
     if (!components) return { isServiceable: false, city: null };
 
     let detectedCity: string | null = null;
 
     for (const c of components) {
         if (c.types.includes('locality') || c.types.includes('administrative_area_level_2')) {
-            const name = c.long_name;
+            // New API uses longText, legacy uses long_name
+            const name = c.longText || c.long_name;
+            if (!name) continue;
             const matchedArea = SERVICEABLE_AREAS.find(area =>
                 name.toLowerCase().includes(area.toLowerCase())
             );
@@ -91,8 +93,8 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
     const [detectedCity, setDetectedCity] = useState<string | null>(null);
     const [mounted, setMounted] = useState(false);
 
-    const autocompleteRef = useRef<any | null>(null);
-    const inputRef = useRef<HTMLInputElement | null>(null);
+    const autocompleteElementRef = useRef<any | null>(null);
+    const autocompleteContainerRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -176,41 +178,45 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
     // Reset autocomplete ref when modal closes so it re-initializes on next open
     useEffect(() => {
         if (!isOpen) {
-            autocompleteRef.current = null;
+            autocompleteElementRef.current = null;
         }
     }, [isOpen]);
 
     useEffect(() => {
-        if (isLoaded && inputRef.current && map && !autocompleteRef.current) {
+        if (isLoaded && autocompleteContainerRef.current && map && !autocompleteElementRef.current) {
             try {
-                // Remove stale pac-container elements from previous initializations
-                document.querySelectorAll('.pac-container').forEach(el => el.remove());
-
-                // Calculate bounds based on current map center with 7km radius
                 const mapCenter = map.getCenter();
                 if (!mapCenter || !window.google?.maps?.places) return;
 
-                const circle = new window.google.maps.Circle({
-                    center: mapCenter,
-                    radius: 7000, // 7km in meters
+                const bounds = map.getBounds();
+
+                // New Places API: PlaceAutocompleteElement
+                const autocompleteElement = new window.google.maps.places.PlaceAutocompleteElement({
+                    types: ['address'],
+                    componentRestrictions: { country: 'ph' },
+                    locationBias: bounds || undefined,
                 });
 
-                const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-                    componentRestrictions: { country: "ph" },
-                    fields: ["address_components", "geometry", "name"],
-                    bounds: circle.getBounds(),
-                    strictBounds: false,
-                });
-
-                autocomplete.addListener("place_changed", () => {
-                    const place = autocomplete.getPlace();
-                    if (place.geometry?.location) {
-                        map?.panTo(place.geometry.location);
-                        map?.setZoom(17);
+                autocompleteElement.addEventListener('gmp-select', async (event: any) => {
+                    const place = event.place;
+                    if (place?.location) {
+                        map.panTo(place.location);
+                        map.setZoom(17);
+                        if (place.formattedAddress) {
+                            setCompleteAddress(place.formattedAddress);
+                            setSuggestedAddress(place.formattedAddress);
+                        }
+                        if (place.addressComponents) {
+                            const { isServiceable: isAllowed, city } = checkServiceability(place.addressComponents);
+                            setIsServiceable(isAllowed);
+                            setDetectedCity(city);
+                        }
                     }
                 });
 
-                autocompleteRef.current = autocomplete;
+                autocompleteContainerRef.current.innerHTML = '';
+                autocompleteContainerRef.current.appendChild(autocompleteElement);
+                autocompleteElementRef.current = autocompleteElement;
             } catch (err) {
                 console.error('Failed to initialize Places Autocomplete:', err);
             }
@@ -298,16 +304,9 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                             </div>
                             <div className="absolute top-4 left-0 right-0 flex justify-center px-4 pointer-events-none z-10">
                                 <div className="relative w-full max-w-lg pointer-events-auto">
-                                    <input
-                                        ref={inputRef}
-                                        type="text"
-                                        placeholder="Search for a building or street..."
-                                        autoComplete="off"
-                                        name={`map-search-${Date.now()}`}
-                                        aria-autocomplete="none"
-                                        readOnly
-                                        onFocus={e => e.currentTarget.readOnly = false}
-                                        className="w-full px-4 py-3 bg-white rounded-full shadow-lg border border-slate-300 focus:ring-2 focus:ring-pink-500 focus:outline-none text-sm"
+                                    <div
+                                        ref={autocompleteContainerRef}
+                                        className="w-full"
                                     />
                                 </div>
                             </div>
