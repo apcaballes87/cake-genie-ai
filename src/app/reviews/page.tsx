@@ -1,6 +1,7 @@
 import ReviewsClient from './ReviewsClient'
 import { buildNoIndexPageMetadata } from '@/lib/utils/metadata'
 import { createClient } from '@/lib/supabase/server'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 export const metadata = buildNoIndexPageMetadata({
     title: 'Customer Reviews and Testimonials',
@@ -9,7 +10,7 @@ export const metadata = buildNoIndexPageMetadata({
 })
 
 async function getReviews() {
-  const supabase = createClient();
+  const supabase: SupabaseClient = await createClient();
   
   const { data, error } = await supabase
     .from('cakegenie_reviews')
@@ -18,7 +19,6 @@ async function getReviews() {
       cakegenie_merchants(business_name)
     `)
     .eq('is_published', true)
-    .eq('is_verified', true)
     .order('created_at', { ascending: false })
     .limit(20);
 
