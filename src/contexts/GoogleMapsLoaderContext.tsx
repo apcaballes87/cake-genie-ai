@@ -19,7 +19,6 @@ export const GoogleMapsLoaderProvider: React.FC<{ children: ReactNode }> = ({ ch
         id: 'google-map-script', // Use a single, consistent ID for the whole app
         googleMapsApiKey: GOOGLE_MAPS_API_KEY,
         libraries: LIBRARIES,
-        version: 'weekly',
     });
 
     const [timedOut, setTimedOut] = useState(false);
