@@ -1651,9 +1651,9 @@ function CartClient() {
                                                             <AddressForm
                                                                 userId={user.id}
                                                                 onSuccess={isAnonymous ? handleGuestAddressSuccess : handleNewAddressSuccess}
-                                                                onCancel={() => !user.is_anonymous && setIsAddingAddress(false)}
+                                                                onCancel={() => setIsAddingAddress(false)}
                                                                 isGuest={isAnonymous}
-                                                                hideActions={true}
+                                                                hideActions={!isAnonymous}
                                                                 onFormChange={handleFormChange}
                                                             />
                                                         </div>

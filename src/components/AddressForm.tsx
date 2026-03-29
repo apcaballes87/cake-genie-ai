@@ -173,6 +173,13 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
         }, 1000); // 1 second debounce
     }, [map, handleReverseGeocode]);
 
+    // Reset autocomplete ref when modal closes so it re-initializes on next open
+    useEffect(() => {
+        if (!isOpen) {
+            autocompleteRef.current = null;
+        }
+    }, [isOpen]);
+
     useEffect(() => {
         if (isLoaded && inputRef.current && map && !autocompleteRef.current) {
             try {
