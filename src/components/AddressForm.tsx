@@ -94,7 +94,6 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
 
     const autocompleteElementRef = useRef<any | null>(null);
     const autocompleteContainerRef = useRef<HTMLDivElement | null>(null);
-    const inputRef = useRef<HTMLInputElement | null>(null);
     const mapRef = useRef<any | null>(null);
 
     useEffect(() => {
@@ -176,54 +175,74 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
         }, 1000); // 1 second debounce
     }, [map, handleReverseGeocode]);
 
-    // Reset autocomplete ref when modal closes so it re-initializes on next open
+    // Remove autocomplete web component when modal closes so it re-initializes on next open
     useEffect(() => {
         if (!isOpen) {
+            if (autocompleteElementRef.current?.parentNode) {
+                autocompleteElementRef.current.parentNode.removeChild(autocompleteElementRef.current);
+            }
             autocompleteElementRef.current = null;
         }
     }, [isOpen]);
 
     useEffect(() => {
-        if (isLoaded && inputRef.current && map && !autocompleteElementRef.current) {
+        if (isLoaded && autocompleteContainerRef.current && map && !autocompleteElementRef.current) {
             try {
-                if (!window.google?.maps?.places) return;
+                if (!window.google?.maps?.places?.PlaceAutocompleteElement) return;
 
-                // Bias results within 15km of Cebu City center
-                const cebuCityCenter = new window.google.maps.LatLng(10.3157, 123.8854);
-                const cebuCircle = new window.google.maps.Circle({
-                    center: cebuCityCenter,
-                    radius: 15000, // 15km
-                });
+                // Restrict results within 15km of Cebu City center
+                const cebuBounds = new window.google.maps.Circle({
+                    center: { lat: 10.3157, lng: 123.8854 },
+                    radius: 15000,
+                }).getBounds();
 
-                // Legacy Autocomplete for dropdown behavior
-                const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+                const placeAutocomplete = new window.google.maps.places.PlaceAutocompleteElement({
                     types: ['address'],
                     componentRestrictions: { country: 'ph' },
-                    bounds: cebuCircle.getBounds(),
-                    strictBounds: true,
+                    locationRestriction: cebuBounds,
                 });
 
-                autocomplete.addListener('place_changed', () => {
-                    const place = autocomplete.getPlace();
-                    const currentMap = mapRef.current;
-                    if (place?.geometry?.location && currentMap) {
-                        currentMap.panTo(place.geometry.location);
-                        currentMap.setZoom(17);
-                        if (place.formatted_address) {
-                            setCompleteAddress(place.formatted_address);
-                            setSuggestedAddress(place.formatted_address);
+                placeAutocomplete.style.width = '100%';
+
+                placeAutocomplete.addEventListener('gmp-placeselect', async (event: any) => {
+                    const place = event.place;
+                    if (!place) return;
+
+                    try {
+                        await place.fetchFields({
+                            fields: ['location', 'formattedAddress', 'addressComponents'],
+                        });
+
+                        const currentMap = mapRef.current;
+                        if (place.location && currentMap) {
+                            currentMap.panTo(place.location);
+                            currentMap.setZoom(17);
+
+                            if (place.formattedAddress) {
+                                setCompleteAddress(place.formattedAddress);
+                                setSuggestedAddress(place.formattedAddress);
+                            }
+
+                            if (place.addressComponents) {
+                                const legacyComponents = place.addressComponents.map((c: any) => ({
+                                    long_name: c.longText,
+                                    short_name: c.shortText,
+                                    types: c.types,
+                                }));
+                                const { isServiceable: isAllowed, city } = checkServiceability(legacyComponents);
+                                setIsServiceable(isAllowed);
+                                setDetectedCity(city);
+                            }
                         }
-                        if (place.address_components) {
-                            const { isServiceable: isAllowed, city } = checkServiceability(place.address_components);
-                            setIsServiceable(isAllowed);
-                            setDetectedCity(city);
-                        }
+                    } catch (err) {
+                        console.error('Failed to fetch place details:', err);
                     }
                 });
 
-                autocompleteElementRef.current = autocomplete;
+                autocompleteContainerRef.current.appendChild(placeAutocomplete);
+                autocompleteElementRef.current = placeAutocomplete;
             } catch (err) {
-                console.error('Failed to initialize Places Autocomplete:', err);
+                console.error('Failed to initialize PlaceAutocompleteElement:', err);
             }
         }
     }, [isLoaded, map]);
@@ -307,16 +326,33 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                             <div className="absolute top-1/2 left-1/2 pointer-events-none z-20" style={{ transform: 'translate(-50%, -100%)' }}>
                                 <MapPin className="text-pink-500 w-12 h-12 drop-shadow-lg" fill="currentColor" strokeWidth={1.5} />
                             </div>
+                            <style>{`
+                                .place-autocomplete-container gmp-placeautocomplete {
+                                    width: 100%;
+                                    display: block;
+                                }
+                                .place-autocomplete-container gmp-placeautocomplete::part(input) {
+                                    width: 100%;
+                                    padding: 0.75rem 1rem;
+                                    background: white;
+                                    border-radius: 9999px;
+                                    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+                                    border: 1px solid #cbd5e1;
+                                    font-size: 0.875rem;
+                                    line-height: 1.25rem;
+                                    outline: none;
+                                    box-sizing: border-box;
+                                }
+                                .place-autocomplete-container gmp-placeautocomplete::part(input):focus {
+                                    border-color: #ec4899;
+                                    box-shadow: 0 0 0 2px #ec4899;
+                                }
+                            `}</style>
                             <div className="absolute top-4 left-0 right-0 flex justify-center px-4 pointer-events-none z-10">
-                                <div className="relative w-full max-w-lg pointer-events-auto">
-                                    <input
-                                        ref={inputRef}
-                                        type="text"
-                                        placeholder="Search for a building or street..."
-                                        autoComplete="off"
-                                        className="w-full px-4 py-3 bg-white rounded-full shadow-lg border border-slate-300 focus:ring-2 focus:ring-pink-500 focus:outline-none text-sm"
-                                    />
-                                </div>
+                                <div
+                                    ref={autocompleteContainerRef}
+                                    className="relative w-full max-w-lg pointer-events-auto place-autocomplete-container"
+                                />
                             </div>
                         </>
                     )}
