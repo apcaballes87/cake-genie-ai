@@ -179,11 +179,7 @@ export async function generateMetadata(
         description = `Customize this ${tagsPrefix}${design.keywords || 'custom'} cake design on Genie.ph. Get instant pricing from local bakers in Cebu and Cavite. ${design.alt_text || ''}`
     }
 
-    // Use the shortest slug form for the canonical URL: strip "-cake-" before
-    // the trailing hash so Google consolidates duplicates that differ only by
-    // the presence of "cake" in the slug (e.g., "...-cake-ffdf" → "...-ffdf").
-    const canonicalSlug = slug.replace(/-cake-([a-f0-9]{4,16})$/, '-$1')
-    const canonicalUrl = `https://genie.ph/customizing/${canonicalSlug}`
+    const canonicalUrl = `https://genie.ph/customizing/${slug}`
 
     return {
         title,
