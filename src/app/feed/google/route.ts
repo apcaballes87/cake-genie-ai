@@ -71,18 +71,25 @@ interface BasePriceMap {
 
 async function fetchBasePrices(supabase: any): Promise<BasePriceMap> {
     const priceMap: BasePriceMap = {};
+    const cakeTypes = Object.keys(CAKE_TYPE_THICKNESS_MAP);
 
-    for (const [cakeType, thickness] of Object.entries(CAKE_TYPE_THICKNESS_MAP)) {
-        const { data } = await supabase
-            .from('productsizes_cakegenie')
-            .select('price')
-            .eq('type', cakeType)
-            .eq('thickness', thickness)
-            .order('price', { ascending: true })
-            .limit(1);
+    const { data, error } = await supabase
+        .from('productsizes_cakegenie')
+        .select('type, thickness, price')
+        .in('type', cakeTypes)
+        .order('price', { ascending: true });
 
-        if (data && data.length > 0) {
-            priceMap[cakeType] = data[0].price;
+    if (error) {
+        console.error('Error fetching base prices:', error);
+        return priceMap;
+    }
+
+    if (data) {
+        for (const row of data) {
+            const requiredThickness = CAKE_TYPE_THICKNESS_MAP[row.type];
+            if (row.thickness === requiredThickness && priceMap[row.type] === undefined) {
+                priceMap[row.type] = row.price;
+            }
         }
     }
 
