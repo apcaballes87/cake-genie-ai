@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Star, Loader2 } from 'lucide-react';
+import { ArrowLeft, Star, Loader2, X } from 'lucide-react';
+import Image from 'next/image';
 
 interface Review {
   review_id: string;
@@ -12,8 +13,13 @@ interface Review {
   review_photos: string[];
   is_verified: boolean;
   created_at: string;
+  order_id: string;
   cakegenie_merchants?: {
     business_name: string;
+  };
+  cakegenie_users?: {
+    first_name: string | null;
+    last_name: string | null;
   };
 }
 
@@ -22,11 +28,30 @@ interface ReviewsClientProps {
   error?: string | null;
 }
 
+function formatCustomerName(firstName: string | null, lastName: string | null): string {
+  const cleanedFirst = firstName?.trim() || '';
+  const cleanedLast = lastName?.trim() || '';
+  
+  if (!cleanedFirst && !cleanedLast) return 'Anonymous';
+  if (cleanedFirst && cleanedLast) {
+    return `${cleanedFirst.charAt(0).toUpperCase()}. ${cleanedLast}`;
+  }
+  if (cleanedFirst) {
+    const parts = cleanedFirst.split(' ');
+    if (parts.length > 1) {
+      return `${parts[0].charAt(0).toUpperCase()}. ${parts.slice(1).join(' ')}`;
+    }
+    return `${cleanedFirst.charAt(0).toUpperCase()}.`;
+  }
+  return cleanedLast || 'Anonymous';
+}
+
 const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], error: initialError = null }) => {
   const router = useRouter();
-  const [reviews, setReviews] = useState<Review[]>(initialReviews);
+  const [reviews] = useState<Review[]>(initialReviews);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(initialError);
+  const [error] = useState<string | null>(initialError);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const renderStars = (rating: number) => (
     <div className="flex gap-0.5">
@@ -45,6 +70,10 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  const handleReviewClick = (orderId: string) => {
+    router.push(`/customizing?order=${orderId}`);
   };
 
   return (
@@ -78,9 +107,13 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
       {!loading && !error && reviews.length > 0 && (
         <div className="space-y-6">
           {reviews.map((review) => (
-            <div key={review.review_id} className="bg-slate-50 rounded-xl p-6 border border-slate-100">
+            <div 
+              key={review.review_id} 
+              className="bg-slate-50 rounded-xl p-6 border border-slate-100 cursor-pointer hover:border-pink-300 hover:shadow-md transition-all"
+              onClick={() => handleReviewClick(review.order_id)}
+            >
               <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {renderStars(review.rating)}
                   <span className="text-sm font-medium text-slate-700">{review.rating}/5</span>
                 </div>
@@ -102,22 +135,32 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
               {review.review_photos && review.review_photos.length > 0 && (
                 <div className="flex gap-2 mb-4">
                   {review.review_photos.map((photo, idx) => (
-                    <img
+                    <div
                       key={idx}
-                      src={photo}
-                      alt={`Review photo ${idx + 1}`}
-                      className="w-20 h-20 object-cover rounded-lg"
-                    />
+                      className="relative w-20 h-20 cursor-zoom-in overflow-hidden rounded-lg"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLightboxImage(photo);
+                      }}
+                    >
+                      <Image
+                        src={photo}
+                        alt={`Review photo ${idx + 1}`}
+                        fill
+                        className="object-cover hover:scale-110 transition-transform duration-300"
+                      />
+                    </div>
                   ))}
                 </div>
               )}
 
               <div className="flex items-center justify-between text-sm text-slate-500">
-                {review.cakegenie_merchants?.business_name && (
-                  <span className="font-medium text-pink-600">
-                    {review.cakegenie_merchants.business_name}
-                  </span>
-                )}
+                <span className="font-medium text-slate-700">
+                  {formatCustomerName(
+                    review.cakegenie_users?.first_name || null,
+                    review.cakegenie_users?.last_name || null
+                  )}
+                </span>
                 <span>{formatDate(review.created_at)}</span>
               </div>
             </div>
@@ -129,6 +172,30 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
         <p className="text-center text-slate-500 text-sm mt-8">
           Have you ordered from us? We&apos;d love to hear about your experience!
         </p>
+      )}
+
+      {/* Lightbox */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button 
+            className="absolute top-4 right-4 p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+            onClick={() => setLightboxImage(null)}
+          >
+            <X className="h-6 w-6" />
+          </button>
+          <div className="relative max-w-4xl max-h-[90vh] w-full aspect-[4/3]">
+            <Image
+              src={lightboxImage}
+              alt="Enlarged review photo"
+              fill
+              className="object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
