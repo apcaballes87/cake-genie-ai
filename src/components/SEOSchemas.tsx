@@ -295,11 +295,11 @@ export function BlogPostingSchema({
         datePublished: datePublished,
         ...(dateModified && { dateModified }),
         author: {
-            '@type': 'Organization',
+            '@type': 'Person',
             name: sanitize(authorName),
             ...(authorUrl && { url: sanitize(authorUrl) })
         },
-        image: imageObject ? [imageObject] : [],
+        ...(imageObject && { image: [imageObject] }),
         description: sanitize(description),
         ...(url && {
             url: sanitize(url),

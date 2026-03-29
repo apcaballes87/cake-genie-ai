@@ -5,12 +5,25 @@
 ## Main Sections
 
 - [Home / Marketplace](https://genie.ph/): Browse trending designs and upload photos for instant pricing.
-- [Cake Design Gallery](https://genie.ph/designs): A curated collection of thousands of custom cake inspirations.
+- [Cake Design Gallery](https://genie.ph/collections): Browse 7,000+ custom cake designs organized by category.
 - [Customizable Designs](https://genie.ph/customizing/): Deep-links to AI-analyzed designs ready for personalization.
 - [Cake Price Calculator](https://genie.ph/cake-price-calculator): Direct tool for AI analysis of custom cake designs.
 - [About Genie.ph](https://genie.ph/about): Our mission to digitize the local baking industry in Cebu.
 - [Cake Ordering Guide](https://genie.ph/how-to-order): Step-by-step instructions on ordering custom cakes online.
+- [Custom Cake Cebu Guide](https://genie.ph/blog/custom-cake-cebu-guide-2026): Comprehensive pricing guide for custom cakes in Cebu (₱350–₱15,000+).
 - [Cake Blog](https://genie.ph/blog): Updates on cake trends, pricing guides, and baker highlights in the Philippines.
+- [FAQ](https://genie.ph/faq): Common questions about ordering, pricing, delivery, and customization.
+
+## Key Facts
+
+- **Catalog**: 7,000+ custom cake designs available for instant AI pricing.
+- **Rush Orders**: Simple designs can be ready in 1–4 hours with select bakers.
+- **Products**: Birthday Cakes, Wedding Cakes, Custom Bento Cakes (from ₱350), Cupcakes, Personalized Gifts.
+- **Pricing**: Bento cakes ₱350–₱600, 6" round ₱700–₱1,200, 8" fondant ₱1,500–₱3,000, 2-tier ₱2,500–₱5,000, wedding ₱5,000–₱15,000+.
+- **Award**: 1st Place Winner — Startup Innovation Summit, Mandaue City (MIPTAC/MCCI).
+- **Founded by**: Alan Paris Caballes.
+- **Location**: Park Tower One, Cebu Business Park, Cebu City, Cebu 6000, Philippines.
+- **Core Technology**: AI Image Synthesis (Gemini/GPT vision models), Automated Pricing Logic, Real-time Baker Notifications.
 
 ## Technical Specifications
 
@@ -26,15 +39,19 @@
 - **Talisay City**: Southern metropolitan Cebu.
 - **Other Areas**: Liloan, Consolacion, and Minglanilla (Select merchants).
 
-## Key Facts
+## Contact
 
-- **Products**: Birthday Cakes, Wedding Cakes, Custom Bento Cakes, Cupcakes, Personalized Gifts.
-- **Core Technology**: AI Image Synthesis, Automated Pricing Logic, Real-time Baker Notifications.
-- **Location**: Based in Cebu, Philippines.
-- **Socials**: [Facebook](https://web.facebook.com/geniephilippines), [Instagram](https://www.instagram.com/genie.ph/), [TikTok](http://tiktok.com/@genie.ph), [YouTube](https://www.youtube.com/@genieph).
+- **Email**: hello@genie.ph
+- **Support**: support@genie.ph
+- **Phone**: +63-908-940-8747
+- **Socials**: [Facebook](https://web.facebook.com/geniephilippines), [Instagram](https://www.instagram.com/genie.ph/), [TikTok](https://www.tiktok.com/@genie.ph), [YouTube](https://www.youtube.com/@genieph).
 
 ## For Developers & Partners
 
 - **Merchant Portal**: [pro.genie.ph](https://pro.genie.ph)
 - **Design Pattern**: `https://genie.ph/customizing/{slug}` - Resource-specific pages for individual cake designs with embedded AI analysis metadata.
 - **API Access**: Internal-only, contact support@genie.ph for integration inquiries.
+
+## Updated
+
+2026-03-29

@@ -10,6 +10,42 @@ export const metadata = buildMarketingPageMetadata({
     canonicalPath: 'https://genie.ph/collections',
 })
 
+function CollectionPageSchema({ categories }: { categories: any[] }) {
+    const schema = {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: 'Browse Custom Cake Designs by Category',
+        description: 'Browse thousands of custom cake designs organized by category. From birthday cakes to weddings, find the perfect design and get instant AI pricing.',
+        url: 'https://genie.ph/collections',
+        breadcrumb: {
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+                { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://genie.ph' },
+                { '@type': 'ListItem', position: 2, name: 'Collections', item: 'https://genie.ph/collections' }
+            ]
+        },
+        mainEntity: {
+            '@type': 'ItemList',
+            name: 'Cake Design Categories',
+            numberOfItems: categories.length,
+            itemListElement: categories.map((cat: any, i: number) => ({
+                '@type': 'ListItem',
+                position: i + 1,
+                name: cat.keyword,
+                url: `https://genie.ph/collections/${cat.slug}`,
+                ...(cat.sample_image && { image: cat.sample_image }),
+            }))
+        }
+    };
+
+    return (
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+    );
+}
+
 export default async function CollectionsPage() {
     const [categoriesRes, recentRes] = await Promise.all([
         getDesignCategories().catch(() => ({ data: [], error: null })),
@@ -19,5 +55,10 @@ export default async function CollectionsPage() {
     const categories = categoriesRes.data || [];
     const recentDesigns = recentRes.data || [];
 
-    return <CollectionsClient categories={categories} recentDesigns={recentDesigns} />
+    return (
+        <>
+            <CollectionPageSchema categories={categories} />
+            <CollectionsClient categories={categories} recentDesigns={recentDesigns} />
+        </>
+    );
 }

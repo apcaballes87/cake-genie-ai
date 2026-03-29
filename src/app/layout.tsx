@@ -15,8 +15,6 @@ const inter = Inter({ subsets: ['latin'], display: 'optional' })
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 }
 
 export const metadata: Metadata = {
@@ -92,6 +90,7 @@ function OrganizationSchema() {
       streetAddress: 'Park Tower One, Cebu Business Park',
       addressLocality: 'Cebu City',
       addressRegion: 'Cebu',
+      postalCode: '6000',
       addressCountry: 'PH'
     },
     geo: {
@@ -102,7 +101,7 @@ function OrganizationSchema() {
     sameAs: [
       'https://web.facebook.com/geniephilippines',
       'https://www.instagram.com/genie.ph/',
-      'http://tiktok.com/@genie.ph',
+      'https://www.tiktok.com/@genie.ph',
       'https://www.youtube.com/@genieph'
     ],
     areaServed: {
@@ -116,6 +115,7 @@ function OrganizationSchema() {
       areaServed: 'PH',
       availableLanguage: ['English', 'Filipino']
     },
+    openingHours: ['Mo-Fr 09:00-18:00', 'Sa 09:00-15:00'],
     priceRange: '₱₱'
   };
 
