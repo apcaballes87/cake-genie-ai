@@ -64,8 +64,7 @@ const checkServiceability = (components: any[]): { isServiceable: boolean; city:
 
     for (const c of components) {
         if (c.types.includes('locality') || c.types.includes('administrative_area_level_2')) {
-            // New API uses longText, legacy uses long_name
-            const name = c.longText || c.long_name;
+            const name = c.long_name;
             if (!name) continue;
             const matchedArea = SERVICEABLE_AREAS.find(area =>
                 name.toLowerCase().includes(area.toLowerCase())
@@ -95,6 +94,7 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
 
     const autocompleteElementRef = useRef<any | null>(null);
     const autocompleteContainerRef = useRef<HTMLDivElement | null>(null);
+    const inputRef = useRef<HTMLInputElement | null>(null);
     const mapRef = useRef<any | null>(null);
 
     useEffect(() => {
@@ -184,7 +184,7 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
     }, [isOpen]);
 
     useEffect(() => {
-        if (isLoaded && autocompleteContainerRef.current && map && !autocompleteElementRef.current) {
+        if (isLoaded && inputRef.current && map && !autocompleteElementRef.current) {
             try {
                 if (!window.google?.maps?.places) return;
 
@@ -195,44 +195,33 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                     radius: 15000, // 15km
                 });
 
-                // New Places API: PlaceAutocompleteElement
-                const autocompleteElement = new window.google.maps.places.PlaceAutocompleteElement({
+                // Legacy Autocomplete for dropdown behavior
+                const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
                     types: ['address'],
                     componentRestrictions: { country: 'ph' },
-                    locationRestriction: cebuCircle.getBounds(),
+                    bounds: cebuCircle.getBounds(),
+                    strictBounds: true,
                 });
 
-                autocompleteElement.addEventListener('gmp-select', async (event: any) => {
-                    const place = event.place;
-                    if (!place) return;
-
-                    // Fetch place fields to get location data
-                    try {
-                        await place.fetchFields({ fields: ['location', 'formattedAddress', 'addressComponents'] });
-                    } catch (fetchErr) {
-                        console.error('Failed to fetch place fields:', fetchErr);
-                        return;
-                    }
-
+                autocomplete.addListener('place_changed', () => {
+                    const place = autocomplete.getPlace();
                     const currentMap = mapRef.current;
-                    if (place.location && currentMap) {
-                        currentMap.panTo(place.location);
+                    if (place?.geometry?.location && currentMap) {
+                        currentMap.panTo(place.geometry.location);
                         currentMap.setZoom(17);
-                        if (place.formattedAddress) {
-                            setCompleteAddress(place.formattedAddress);
-                            setSuggestedAddress(place.formattedAddress);
+                        if (place.formatted_address) {
+                            setCompleteAddress(place.formatted_address);
+                            setSuggestedAddress(place.formatted_address);
                         }
-                        if (place.addressComponents) {
-                            const { isServiceable: isAllowed, city } = checkServiceability(place.addressComponents);
+                        if (place.address_components) {
+                            const { isServiceable: isAllowed, city } = checkServiceability(place.address_components);
                             setIsServiceable(isAllowed);
                             setDetectedCity(city);
                         }
                     }
                 });
 
-                autocompleteContainerRef.current.innerHTML = '';
-                autocompleteContainerRef.current.appendChild(autocompleteElement);
-                autocompleteElementRef.current = autocompleteElement;
+                autocompleteElementRef.current = autocomplete;
             } catch (err) {
                 console.error('Failed to initialize Places Autocomplete:', err);
             }
@@ -320,9 +309,12 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                             </div>
                             <div className="absolute top-4 left-0 right-0 flex justify-center px-4 pointer-events-none z-10">
                                 <div className="relative w-full max-w-lg pointer-events-auto">
-                                    <div
-                                        ref={autocompleteContainerRef}
-                                        className="w-full"
+                                    <input
+                                        ref={inputRef}
+                                        type="text"
+                                        placeholder="Search for a building or street..."
+                                        autoComplete="off"
+                                        className="w-full px-4 py-3 bg-white rounded-full shadow-lg border border-slate-300 focus:ring-2 focus:ring-pink-500 focus:outline-none text-sm"
                                     />
                                 </div>
                             </div>
