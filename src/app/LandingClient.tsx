@@ -946,6 +946,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                     {/* Other nav links */}
                     {[
+                        { label: 'Cold Caking', href: '/coldcaking', emoji: '🧊' },
                         { label: 'Our Bakers', href: '/shop', emoji: '🏪' },
                         { label: 'Blog', href: '/blog', emoji: '📝' },
                         { label: 'How to Order', href: '/how-to-order', emoji: '📋' },
