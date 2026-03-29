@@ -263,6 +263,7 @@ gmp-place-autocomplete {
   --gmpx-color-outline: #cbd5e1;
   --gmpx-font-family: inherit;
   --gmpx-font-size: 0.875rem;
+  --gmpx-border-radius: 9999px;
   width: 100%;
   display: block;
 }
@@ -271,16 +272,25 @@ gmp-place-autocomplete::part(input) {
   width: 100%;
   padding: 0.75rem 1rem;
   background: white;
-  border-radius: 9999px;
+  border-radius: 9999px !important;
   border: 1px solid #cbd5e1;
   box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
   font-size: 0.875rem;
   outline: none;
+  box-sizing: border-box;
 }
 
 gmp-place-autocomplete::part(input):focus {
   border-color: #ec4899;
   box-shadow: 0 0 0 2px rgba(236,72,153,0.2);
+}
+
+gmp-place-autocomplete::part(container) {
+  border-radius: 9999px !important;
+}
+
+gmp-place-autocomplete::part(suggestions) {
+  border-radius: 12px !important;
 }
 
 /* Tawk.to widget - using native sizing (configure size in Tawk.to dashboard) */
