@@ -255,42 +255,33 @@
   transform: translate(0, -50%);
 }
 
-/* --- Google Maps Autocomplete Fix --- */
-gmp-place-autocomplete {
-  --gmpx-color-surface: #ffffff;
-  --gmpx-color-on-surface: #1e293b;
-  --gmpx-color-primary: #ec4899;
-  --gmpx-color-outline: #cbd5e1;
-  --gmpx-font-family: inherit;
-  --gmpx-font-size: 0.875rem;
-  --gmpx-border-radius: 9999px;
-  width: 100%;
-  display: block;
-}
-
-gmp-place-autocomplete::part(input) {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  background: white;
-  border-radius: 9999px !important;
-  border: 1px solid #cbd5e1;
-  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-  font-size: 0.875rem;
-  outline: none;
-  box-sizing: border-box;
-}
-
-gmp-place-autocomplete::part(input):focus {
-  border-color: #ec4899;
-  box-shadow: 0 0 0 2px rgba(236,72,153,0.2);
-}
-
-gmp-place-autocomplete::part(container) {
-  border-radius: 9999px !important;
-}
-
-gmp-place-autocomplete::part(suggestions) {
+/* --- Google Maps Legacy Autocomplete Dropdown Fix --- */
+.pac-container {
+  z-index: 10005 !important;
   border-radius: 12px !important;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1) !important;
+  border: 1px solid #e2e8f0 !important;
+  margin-top: 4px !important;
+}
+
+.pac-item {
+  padding: 10px 12px !important;
+  font-size: 14px !important;
+  color: #1e293b !important;
+}
+
+.pac-item:hover {
+  background-color: #fce7f3 !important;
+}
+
+.pac-item-query {
+  color: #1e293b !important;
+  font-weight: 500 !important;
+}
+
+.pac-matched {
+  color: #ec4899 !important;
+  font-weight: 600 !important;
 }
 
 /* Tawk.to widget - using native sizing (configure size in Tawk.to dashboard) */
