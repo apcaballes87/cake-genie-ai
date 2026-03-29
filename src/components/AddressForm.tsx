@@ -183,6 +183,9 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
     useEffect(() => {
         if (isLoaded && inputRef.current && map && !autocompleteRef.current) {
             try {
+                // Remove stale pac-container elements from previous initializations
+                document.querySelectorAll('.pac-container').forEach(el => el.remove());
+
                 // Calculate bounds based on current map center with 7km radius
                 const mapCenter = map.getCenter();
                 if (!mapCenter || !window.google?.maps?.places) return;
@@ -300,8 +303,10 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                                         type="text"
                                         placeholder="Search for a building or street..."
                                         autoComplete="off"
-                                        name="map-search-no-autofill"
+                                        name={`map-search-${Date.now()}`}
                                         aria-autocomplete="none"
+                                        readOnly
+                                        onFocus={e => e.currentTarget.readOnly = false}
                                         className="w-full px-4 py-3 bg-white rounded-full shadow-lg border border-slate-300 focus:ring-2 focus:ring-pink-500 focus:outline-none text-sm"
                                     />
                                 </div>
