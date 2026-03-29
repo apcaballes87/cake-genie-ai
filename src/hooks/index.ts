@@ -12,3 +12,12 @@ export { useAddresses } from './useAddresses';
 export { useOrders } from './useOrders';
 export { useAvailabilitySettings } from './useAvailabilitySettings';
 export { useSEO, generateCakeStructuredData } from './useSEO';
+export {
+  useMerchantReviews,
+  useProductReviews,
+  useMerchantAllReviews,
+  useSubmitReview,
+  useUpdateReviewVisibility,
+  useRespondToReview,
+  useReviewStats,
+} from './useReviews';

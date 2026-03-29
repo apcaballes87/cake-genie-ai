@@ -8,10 +8,11 @@ import { ImageUploader } from '@/components/ImageUploader';
 import { MapPin, Phone, Star, ShoppingBag, BadgeCheck, Loader2, Heart, Cake } from 'lucide-react';
 import { ProductCard } from '@/components/ProductCard';
 import Masonry from 'react-masonry-css';
-import { getMerchantBySlug, getMerchantProductsWithCache, getRelatedProductsByKeywords } from '@/services/supabaseService';
-import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.types';
+import { getMerchantBySlug, getMerchantProductsWithCache, getMerchantReviews, getMerchantReviewStats } from '@/services/supabaseService';
+import { CakeGenieMerchant, CakeGenieMerchantProduct, CakeGenieReview } from '@/lib/database.types';
 import { HybridAnalysisResult } from '@/types';
 import LazyImage from '@/components/LazyImage';
+import ReviewsDisplay, { ReviewSummary } from '@/components/ReviewsDisplay';
 
 interface MerchantPageClientProps {
     slug?: string;
@@ -26,6 +27,10 @@ export function MerchantPageClient({ slug }: MerchantPageClientProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [merchant, setMerchant] = useState<CakeGenieMerchant | null>(null);
     const [products, setProducts] = useState<(CakeGenieMerchantProduct & { analysis_json?: HybridAnalysisResult })[]>([]);
+    const [reviews, setReviews] = useState<CakeGenieReview[]>([]);
+    const [reviewStats, setReviewStats] = useState<{ total: number; averageRating: number } | null>(null);
+    const [reviewsLoading, setReviewsLoading] = useState(false);
+    const [showAllReviews, setShowAllReviews] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +55,25 @@ export function MerchantPageClient({ slug }: MerchantPageClientProps) {
             const { data: productsData } = await getMerchantProductsWithCache(merchantSlug);
             if (productsData) {
                 setProducts(productsData);
+            }
+
+            // Fetch reviews for the merchant
+            setReviewsLoading(true);
+            try {
+                const [reviewsResult, statsResult] = await Promise.all([
+                    getMerchantReviews(merchantData.merchant_id, { limit: showAllReviews ? 50 : 6 }),
+                    getMerchantReviewStats(merchantData.merchant_id),
+                ]);
+                if (reviewsResult.data) {
+                    setReviews(reviewsResult.data);
+                }
+                if (statsResult.data) {
+                    setReviewStats({ total: statsResult.data.total, averageRating: statsResult.data.averageRating });
+                }
+            } catch (err) {
+                console.error('Error fetching reviews:', err);
+            } finally {
+                setReviewsLoading(false);
             }
 
             setIsLoading(false);
@@ -311,6 +335,49 @@ export function MerchantPageClient({ slug }: MerchantPageClientProps) {
                         </Masonry>
                     )}
                 </section>
+
+                {/* Reviews Section */}
+                {merchant.review_count > 0 && (
+                    <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                <Star className="w-6 h-6 text-yellow-400" />
+                                Customer Reviews
+                                {reviewStats && (
+                                    <span className="text-sm font-normal text-slate-500">
+                                        ({merchant.review_count})
+                                    </span>
+                                )}
+                            </h2>
+                            {merchant.review_count > 6 && !showAllReviews && (
+                                <button
+                                    onClick={() => setShowAllReviews(true)}
+                                    className="text-sm text-pink-600 hover:text-pink-700 font-medium"
+                                >
+                                    View all {merchant.review_count} reviews
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Review Stats Summary */}
+                        {reviewStats && (
+                            <div className="mb-6">
+                                <ReviewSummary
+                                    averageRating={reviewStats.averageRating}
+                                    totalReviews={reviewStats.total}
+                                />
+                            </div>
+                        )}
+
+                        {/* Reviews List */}
+                        <ReviewsDisplay
+                            reviews={reviews}
+                            isLoading={reviewsLoading}
+                            showMerchantResponse={true}
+                            maxDisplayCount={showAllReviews ? undefined : 6}
+                        />
+                    </section>
+                )}
             </main>
 
             <ImageUploader

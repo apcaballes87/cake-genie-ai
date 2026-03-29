@@ -350,3 +350,28 @@ export interface MerchantDashboardStats {
   revenue_30d: number;
   active_products: number;
 }
+
+/**
+ * Represents a product review in the cakegenie_reviews table.
+ */
+export interface CakeGenieReview {
+  review_id: string; // UUID
+  order_id: string; // UUID
+  order_item_id: string | null; // UUID - specific item reviewed (optional for order-level reviews)
+  user_id: string | null; // UUID, nullable for guest reviews
+  merchant_id: string; // UUID
+  product_id: string | null; // UUID, nullable if reviewing merchant/service overall
+  rating: number; // 1-5 stars
+  title: string | null;
+  comment: string | null;
+  photos: string[] | null; // Array of image URLs
+  is_approved: boolean; // Auto-approved by default, but can be moderated
+  is_visible: boolean; // Whether shown publicly
+  merchant_response: string | null;
+  merchant_response_at: string | null; // ISO 8601 timestamp
+  created_at: string; // ISO 8601 timestamp
+  updated_at: string; // ISO 8601 timestamp
+  // Joined data (optional for enriched queries)
+  user?: { first_name: string | null; email: string } | null;
+  cakegenie_orders?: { order_number: string } | null;
+}
