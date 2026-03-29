@@ -256,9 +256,31 @@
 }
 
 /* --- Google Maps Autocomplete Fix --- */
-.pac-container {
-  z-index: 10005 !important;
-  /* Higher than modal's z-[9999] */
+gmp-place-autocomplete {
+  --gmpx-color-surface: #ffffff;
+  --gmpx-color-on-surface: #1e293b;
+  --gmpx-color-primary: #ec4899;
+  --gmpx-color-outline: #cbd5e1;
+  --gmpx-font-family: inherit;
+  --gmpx-font-size: 0.875rem;
+  width: 100%;
+  display: block;
+}
+
+gmp-place-autocomplete::part(input) {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-radius: 9999px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+  font-size: 0.875rem;
+  outline: none;
+}
+
+gmp-place-autocomplete::part(input):focus {
+  border-color: #ec4899;
+  box-shadow: 0 0 0 2px rgba(236,72,153,0.2);
 }
 
 /* Tawk.to widget - using native sizing (configure size in Tawk.to dashboard) */
