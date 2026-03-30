@@ -28,6 +28,7 @@ interface CustomizingStepSummarySectionsProps {
     selectedItemId: string | null;
     setActiveCustomization: Dispatch<SetStateAction<string | null>>;
     setSelectedItem: Dispatch<SetStateAction<ClusteredMarker | null>>;
+    addCakeMessage?: (position: 'top' | 'side' | 'base_board') => void;
     removeCakeMessage: (id: string) => void;
     updateMainTopper: (id: string, updates: Partial<MainTopperUI>) => void;
     updateSupportElement: (id: string, updates: Partial<SupportElementUI>) => void;
@@ -109,6 +110,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     selectedItemId,
     setActiveCustomization,
     setSelectedItem,
+    addCakeMessage,
     removeCakeMessage,
     updateMainTopper,
     updateSupportElement,
@@ -117,6 +119,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     openTopperSheet,
     onIcingTypeChange,
 }: CustomizingStepSummarySectionsProps) {
+    // Default position when "+ Add" is clicked: Bento → front (side), all others → base_board
+    const defaultMessagePosition = cakeInfo?.type === 'Bento' ? 'side' : 'base_board';
     const [showIcingChoice, setShowIcingChoice] = React.useState(true);
     const isDesktop = layout === 'desktop';
     const containerClassName = isDesktop
@@ -301,6 +305,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         event.stopPropagation();
                                         setActiveCustomization('messages');
                                         setSelectedItem(null);
+                                        addCakeMessage?.(defaultMessagePosition);
                                     }}
                                     className="text-[10px] font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2 px-5 rounded-full shadow-sm border border-purple-100 flex items-center gap-1.5"
                                 >
@@ -315,6 +320,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                 onClick={() => {
                                     setActiveCustomization('messages');
                                     setSelectedItem(null);
+                                    addCakeMessage?.(defaultMessagePosition);
                                 }}
                             >
                                 <span className="text-base leading-none">+</span> Add a cake message
