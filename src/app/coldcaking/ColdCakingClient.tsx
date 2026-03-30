@@ -582,6 +582,34 @@ const ColdCakingClient: React.FC = () => {
                     <ColdCakingFAQ />
                 </div>
 
+                <div className="w-full bg-gradient-to-r from-purple-50 to-pink-50 py-16 mt-8">
+                    <div className="max-w-3xl mx-auto px-4 text-center">
+                        <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-4">
+                            Have a different cake design in mind?
+                        </h2>
+                        <p className="text-lg text-slate-600 mb-8">
+                            Upload a photo and we'll give you a price estimate in seconds!
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <button
+                                onClick={() => {
+                                    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+                                    if (fileInput) fileInput.click();
+                                }}
+                                className="px-8 py-3 bg-purple-600 text-white font-semibold rounded-full shadow-lg hover:bg-purple-700 transition-all"
+                            >
+                                Upload Your Design & Get Price in Seconds
+                            </button>
+                            <button
+                                onClick={() => window.location.href = '/collections'}
+                                className="px-8 py-3 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all"
+                            >
+                                Browse Cakes Collections
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 {relatedDesigns.length > 0 && (
                     <div className="w-full max-w-7xl mx-auto px-4 pb-8">
                         <h2 className="text-lg font-semibold text-slate-800 mb-4">Edible Photo Cake Designs</h2>
