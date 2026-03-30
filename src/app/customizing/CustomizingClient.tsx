@@ -275,9 +275,11 @@ interface CustomizingClientProps {
     preloadSource?: string;
     preloadImageUrl?: string;
     hideAiChat?: boolean;
+    isCombining?: boolean;
+    clearMessageTexts?: boolean;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const params = useParams();
@@ -2231,6 +2233,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         onCakeMessageChange(originalMessages as CakeMessageUI[]);
     }, [analysisResult, onCakeMessageChange]);
 
+    // When clearMessageTexts is true (e.g. coldcaking page), blank out any pre-populated message text from analysis
+    useEffect(() => {
+        if (!clearMessageTexts || cakeMessages.length === 0) return;
+        const hasText = cakeMessages.some(m => m.text);
+        if (!hasText) return;
+        onCakeMessageChange(cakeMessages.map(m => ({ ...m, text: '' })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [clearMessageTexts, analysisResult]);
+
     const handleApplyPendingDesignChanges = useCallback(() => {
         if (isUpdatingDesign || !originalImageData || !hasPendingVisualChanges) {
             return;
@@ -2583,7 +2594,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         const newMessage: CakeMessageUI = {
             id: crypto.randomUUID(),
             type: 'gumpaste_letters',
-            text: text || 'Your Text Here',
+            text: text || '',
             position: position,
             color: color || '#000000',
             isEnabled: true,
@@ -2674,6 +2685,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             isSaving={isSaving}
                             showFooterActions={Boolean(cakeInfo || analysisError)}
                             showPriceGuarantee={finalPrice !== null && !isAnalyzing}
+                            isCombining={isCombining}
                             onOriginalTabSelect={() => setActiveTab('original')}
                             onCustomizedTabSelect={handleCustomizedTabClick}
                             onToggleSaveDesign={handleToggleSavedDesign}

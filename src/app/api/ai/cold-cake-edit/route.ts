@@ -3,15 +3,23 @@ import { getAI } from '@/lib/ai/client';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 
 export const maxDuration = 60;
-const MODEL_NAME = 'gemini-3.1-flash-image-preview';
+const MODEL_NAME = 'gemini-2.5-flash-image';
 
-const SYSTEM_INSTRUCTION = `You are an expert cake designer specializing in edible photo cakes.
-Your task is to seamlessly place the provided overlay image onto the top surface of the cake as an edible photo print.
-The result should look like a real edible photo cake — the image should appear printed on the frosting surface,
-conforming to the cake's shape and perspective. Maintain photorealistic quality.
-If the cake is circular, crop or reshape the overlay image into a circle so it fits seamlessly on the round surface.
-If the cake is rectangular or square, reshape the overlay image to match that shape and place it on top.
-Do NOT add any text, watermarks, or additional decorations. Only place the overlay image on the cake surface.`;
+const SYSTEM_INSTRUCTION = `You are a professional food photographer and cake artist specializing in photorealistic edible photo cakes.
+
+Your task: composite the provided overlay image onto the top surface of the base cake so it looks exactly like a real edible photo print made in a professional bakery.
+
+EDIBLE PRINT REALISM RULES — follow all of these:
+1. Shape & fit: Match the print shape precisely to the cake top — circular for round cakes, rectangular/square for those shapes. The print must fill the entire flat top surface without overflow or gap.
+2. Perspective & foreshortening: Apply the same camera angle and perspective as the base cake photo. If the cake is shot at a slight angle, the print should appear foreshortened accordingly — not flat/frontal.
+3. Frosting texture bleed-through: Edible prints are thin rice paper or wafer paper — the frosting texture subtly shows through. Let the underlying frosting micro-texture faintly show through the print, especially near edges.
+4. Matte ink finish: Real edible ink is matte and slightly desaturated compared to a glossy digital image. Reduce the print's saturation by ~10–15% and give it a matte finish, not a glossy or laminated look.
+5. Lighting & shadows: The print must be lit by the exact same light source as the cake. Apply the same highlights and soft shadows from the cake's existing light direction onto the print surface. Do NOT leave the print looking evenly lit or "pasted on".
+6. Edge softness: Where the print meets the cake's border piping or icing edge, feather the print edge slightly so it blends — no hard rectangular cutout border.
+7. Preserve everything else: Keep all existing cake decorations (border piping, ribbons, flowers, side design, base board) completely unchanged. Only modify the top flat surface.
+8. No additions: Do NOT add text, watermarks, extra decorations, or change the cake color/shape.
+
+The final result must be indistinguishable from a real bakery photo of an edible photo cake.`;
 
 function extractGeneratedImage(response: any) {
     const candidate = response?.candidates?.[0];
@@ -69,7 +77,18 @@ export async function POST(req: NextRequest) {
             },
             // Prompt
             {
-                text: 'The first image is the base cake. The second image is what the customer wants printed on the cake. Add the second image on top of the cake as an edible photo cake design. Make it look like a real edible photo print on the frosting surface. If the cake is circular, make the printed image circular to match. If the cake is rectangular or square, make the printed image match that shape.',
+                text: `Image 1 is the base cake. Image 2 is the customer's photo to be printed as an edible photo on top of the cake.
+
+Composite Image 2 onto the top surface of the cake following all professional edible print standards:
+- Fit the print to the exact shape of the cake top (circle, square, or rectangle)
+- Apply correct perspective/foreshortening to match the camera angle of the cake photo
+- Let the frosting texture subtly bleed through the print (rice paper/wafer paper effect)
+- Desaturate the print slightly (~10–15%) and render it matte — no glossy finish
+- Match the lighting direction and shadows from the existing cake photo onto the print
+- Feather the print edges softly where they meet the border piping — no hard cutout edge
+- Leave all other cake elements (borders, piping, ribbon, side design) completely untouched
+
+The result must look like a real professionally-made edible photo cake from a bakery, not a digital composite.`,
             },
         ];
 

@@ -32,6 +32,7 @@ interface CustomizingHeroPanelProps {
     isSaving: boolean;
     showFooterActions: boolean;
     showPriceGuarantee: boolean;
+    isCombining?: boolean;
     onOriginalTabSelect: () => void;
     onCustomizedTabSelect: () => void;
     onToggleSaveDesign: () => void | Promise<void>;
@@ -114,6 +115,7 @@ export const CustomizingHeroPanel = memo(function CustomizingHeroPanel({
     isSaving,
     showFooterActions,
     showPriceGuarantee,
+    isCombining,
     onOriginalTabSelect,
     onCustomizedTabSelect,
     onToggleSaveDesign,
@@ -152,6 +154,13 @@ export const CustomizingHeroPanel = memo(function CustomizingHeroPanel({
                     onContextMenu={(event) => event.preventDefault()}
                     style={{ aspectRatio: originalImageDimensions ? `${originalImageDimensions.width} / ${originalImageDimensions.height}` : '1 / 1' }}
                 >
+                    {isCombining ? (
+                        <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-2xl z-20">
+                            <LoadingSpinner />
+                            <p className="mt-4 text-slate-500 font-semibold">Creating your cake design...</p>
+                        </div>
+                    ) : null}
+
                     {isUpdatingDesign ? (
                         <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-2xl z-20">
                             <LoadingSpinner />

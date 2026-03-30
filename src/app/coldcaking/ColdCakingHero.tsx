@@ -14,15 +14,17 @@ export const ColdCakingHero = React.memo(({ onUploadClick }: ColdCakingHeroProps
         <section className="w-full">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2 md:pt-6 md:pb-4">
                 {/* Mobile Hero */}
-                <div className="md:hidden w-full flex flex-col">
-                    <div className="relative w-full rounded-3xl overflow-hidden mb-4 shadow-lg">
-                        <img
-                            src={DEFAULT_CAKE_IMAGE_URL}
-                            alt="Cold Caking - Edible photo cake with custom print"
-                            className="w-full h-auto object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/30 to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-0 p-5">
+                <div className="md:hidden w-full relative rounded-3xl overflow-hidden shadow-lg" style={{ minHeight: '420px' }}>
+                    <img
+                        src={DEFAULT_CAKE_IMAGE_URL}
+                        alt="Cold Caking - Edible photo cake with custom print"
+                        className="absolute inset-0 w-full h-full object-cover object-top"
+                    />
+                    {/* Gradient: transparent at top, blends to solid white at bottom */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-white via-white/70 to-transparent" style={{ backgroundImage: 'linear-gradient(to top, white 0%, white 30%, rgba(255,255,255,0.6) 55%, transparent 100%)' }} />
+                    {/* Text + CTA pinned to bottom */}
+                    <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 flex flex-col gap-3">
+                        <div>
                             <p className="text-[10px] font-bold text-purple-600 uppercase tracking-[0.15em] mb-1.5">
                                 Print your brand on a cake
                             </p>
@@ -33,21 +35,21 @@ export const ColdCakingHero = React.memo(({ onUploadClick }: ColdCakingHeroProps
                                 A startup founder sent 7 pitch cakes to top VCs and got 5 meetings. Now it&apos;s your turn.
                             </p>
                         </div>
+                        <button
+                            onClick={onUploadClick}
+                            className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3.5 rounded-full font-bold transition-all shadow-md active:scale-[0.98] text-xs whitespace-nowrap w-full"
+                        >
+                            <Upload size={16} className="shrink-0" />
+                            Upload any image here
+                            <ArrowRight size={14} className="shrink-0" />
+                        </button>
+                        <p className="text-[10px] text-slate-500 text-center -mt-1">
+                            We&apos;ll print it on top of the cake
+                        </p>
                     </div>
-                    <button
-                        onClick={onUploadClick}
-                        className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3.5 rounded-full font-bold transition-all shadow-md active:scale-[0.98] text-xs whitespace-nowrap w-full"
-                    >
-                        <Upload size={16} className="shrink-0" />
-                        Upload any image here
-                        <ArrowRight size={14} className="shrink-0" />
-                    </button>
-                    <p className="text-[10px] text-slate-500 text-center mt-1.5">
-                        We&apos;ll print it on top of the cake
-                    </p>
                 </div>
 
-                {/* Desktop Hero */}
+                {/* Desktop Hero — original design */}
                 <div className="hidden md:block w-full relative rounded-3xl overflow-hidden shadow-lg">
                     <img
                         src={DEFAULT_CAKE_IMAGE_URL}

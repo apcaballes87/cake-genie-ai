@@ -390,7 +390,6 @@ const ColdCakingClient: React.FC = () => {
                             }
                             /* Hide the AI customization chat container (CustomizingMessagesPanel) */
                             .coldcaking-customizer-wrapper > div:has(div[class*="bg-slate-50"][class*="border"][class*="rounded-2xl"]),
-                            .coldcaking-customizer-wrapper div[class*="fixed"][class*="bottom-"][class*="left-"][class*="right-"],
                             .coldcaking-customizer-wrapper [class*="messages-panel"] {
                                 display: none !important;
                             }
@@ -411,7 +410,7 @@ const ColdCakingClient: React.FC = () => {
                             onUploadClick={() => setIsUploaderOpen(true)}
                             hasPhoto={hasUploadedPhoto}
                         />
-                        <CustomizingClient hideAiChat={true} />
+                        <CustomizingClient hideAiChat={true} isCombining={isCombining} clearMessageTexts={true} />
                     </div>
                 )}
 
