@@ -8,8 +8,8 @@ interface ColdCakingPhotoStepProps {
     hasPhoto: boolean;
 }
 
-const DESKTOP_CARD_CLASS = 'shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200';
-const MOBILE_CARD_CLASS = 'shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200';
+const DESKTOP_CARD_CLASS = 'shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 h-full';
+const MOBILE_CARD_CLASS = 'shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 h-full';
 
 export function ColdCakingPhotoStep({ onUploadClick, hasPhoto }: ColdCakingPhotoStepProps) {
     const [mobilePlaceholder, setMobilePlaceholder] = useState<HTMLElement | null>(null);
@@ -39,9 +39,12 @@ export function ColdCakingPhotoStep({ onUploadClick, hasPhoto }: ColdCakingPhoto
             step3Card.style.display = 'none';
             hiddenStep3Cards.push(step3Card);
 
-            // Insert our placeholder in its place
+            // Insert our placeholder in its place — flex column so h-full resolves on the inner card
             const placeholder = document.createElement('div');
             placeholder.setAttribute(attrName, '');
+            placeholder.style.display = 'flex';
+            placeholder.style.flexDirection = 'column';
+            placeholder.style.alignSelf = 'stretch';
             container.insertBefore(placeholder, step3Card);
             return placeholder;
         };
