@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useCakeCustomization } from '@/contexts/CustomizationContext';
 import { CAKE_TYPE_THUMBNAILS } from '@/constants';
-import type { CakeType, CakeThickness, CakeFlavor, IcingDesignUI } from '@/types';
+import { getCakeBasePriceOptions } from '@/services/supabaseService';
+import type { CakeType, CakeThickness, CakeFlavor, IcingDesignUI, BasePriceInfo } from '@/types';
 
 const DEFAULT_THICKNESS: CakeThickness = '3 in';
 const DEFAULT_FLAVOR: CakeFlavor = 'Chocolate Cake';
@@ -26,16 +27,18 @@ interface SizeOption {
     sublabel: string;
     type: CakeType;
     size: string;
+    priceThickness: CakeThickness;
 }
 
+// priceThickness: thickness used to fetch the starting/display price (cheapest available)
 const SIZES: SizeOption[] = [
-    { label: 'Bento', sublabel: '4" Round', type: 'Bento', size: '4" Round' },
-    { label: '6" Round', sublabel: '3 in height', type: '1 Tier', size: '6" Round' },
-    { label: '8" Round', sublabel: '3 in height', type: '1 Tier', size: '8" Round' },
-    { label: '8×8', sublabel: 'Square', type: 'Square', size: '8" Square' },
-    { label: '8×12', sublabel: 'Rectangle', type: 'Rectangle', size: '8"x12"' },
-    { label: '10×14', sublabel: 'Rectangle', type: 'Rectangle', size: '10"x14"' },
-    { label: '12×16', sublabel: 'Rectangle', type: 'Rectangle', size: '12"x16"' },
+    { label: 'Bento', sublabel: '4" Round', type: 'Bento', size: '4" Round', priceThickness: '2 in' },
+    { label: '6" Round', sublabel: '3 in height', type: '1 Tier', size: '6" Round', priceThickness: '3 in' },
+    { label: '8" Round', sublabel: '3 in height', type: '1 Tier', size: '8" Round', priceThickness: '3 in' },
+    { label: '8×8', sublabel: 'Square', type: 'Square', size: '8x8', priceThickness: '3 in' },
+    { label: '8×12', sublabel: 'Rectangle', type: 'Rectangle', size: '8x12', priceThickness: '3 in' },
+    { label: '10×14', sublabel: 'Rectangle', type: 'Rectangle', size: '10x14', priceThickness: '3 in' },
+    { label: '12×16', sublabel: 'Rectangle', type: 'Rectangle', size: '12x16', priceThickness: '3 in' },
 ];
 
 const DEFAULT_INDEX = 1; // 6" Round
@@ -46,10 +49,14 @@ const MOBILE_CARD_CLASS = 'shrink-0 w-fit min-w-[280px] snap-start bg-white/70 b
 const DESKTOP_ITEMS_CLASS = 'flex gap-[7px] pt-1 pb-1 w-max md:w-full flex-wrap';
 const MOBILE_ITEMS_CLASS = 'flex gap-[7px] pt-1 pb-1 w-max';
 
+// Map from "type|size" to price
+type PriceMap = Record<string, number>;
+
 export function ColdCakingCakePicker() {
     const { handleCakeInfoChange, onIcingDesignChange, cakeInfo } = useCakeCustomization();
     const [selectedIndex, setSelectedIndex] = useState(DEFAULT_INDEX);
     const hasSetDefault = useRef(false);
+    const [prices, setPrices] = useState<PriceMap>({});
 
     // Placeholder DOM nodes that we portal our picker card into
     const [mobilePlaceholder, setMobilePlaceholder] = useState<HTMLElement | null>(null);
@@ -63,6 +70,23 @@ export function ColdCakingCakePicker() {
         handleCakeInfoChange({ type: def.type, size: def.size, thickness: DEFAULT_THICKNESS, flavors: [DEFAULT_FLAVOR] });
         onIcingDesignChange(DEFAULT_ICING);
     }, [handleCakeInfoChange, onIcingDesignChange]);
+
+    // Fetch base prices for each size using its priceThickness
+    useEffect(() => {
+        // Deduplicate by type+thickness pairs
+        const pairs = [...new Map(SIZES.map(s => [`${s.type}|${s.priceThickness}`, s])).values()];
+        Promise.all(
+            pairs.map(s => getCakeBasePriceOptions(s.type, s.priceThickness))
+        ).then(results => {
+            const map: PriceMap = {};
+            pairs.forEach((s, i) => {
+                results[i].forEach((item: BasePriceInfo) => {
+                    map[`${s.type}|${item.size}`] = item.price;
+                });
+            });
+            setPrices(map);
+        }).catch(() => {/* silently ignore price fetch errors */});
+    }, []);
 
     // Inject placeholder <div>s beside Step 3 in the internal step card containers,
     // then portal our picker card content into those placeholders.
@@ -167,8 +191,12 @@ export function ColdCakingCakePicker() {
                             }`}>
                                 {option.label}
                             </span>
-                            <span className="text-[9px] text-center text-slate-400 leading-tight">
-                                {option.sublabel}
+                            <span className={`text-[9px] text-center leading-tight font-medium ${
+                                isSelected ? 'text-purple-500' : 'text-slate-400'
+                            }`}>
+                                {prices[`${option.type}|${option.size}`]
+                                    ? `₱${prices[`${option.type}|${option.size}`].toLocaleString()}`
+                                    : '…'}
                             </span>
                         </button>
                     );
