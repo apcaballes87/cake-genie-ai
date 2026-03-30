@@ -274,9 +274,10 @@ interface CustomizingClientProps {
     initialCaption?: string;
     preloadSource?: string;
     preloadImageUrl?: string;
+    hideAiChat?: boolean;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const params = useParams();
@@ -2684,7 +2685,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
 
-                        {!analysisError && (
+                        {!analysisError && !hideAiChat && (
                             <CustomizingAiChatPanel
                                 className="bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200 mb-2 md:hidden"
                                 containerRef={aiChatMobileContainerRef}
@@ -2759,6 +2760,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     selectedItemId={selectedItem?.id ?? null}
                                     setActiveCustomization={setActiveCustomization}
                                     setSelectedItem={setSelectedItem}
+                                    addCakeMessage={addCakeMessage}
                                     removeCakeMessage={removeCakeMessage}
                                     updateMainTopper={updateMainTopper}
                                     updateSupportElement={updateSupportElement}
@@ -2775,7 +2777,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     <div className="flex flex-row md:flex-col gap-2 w-[calc(100%+2rem)] md:w-[calc(50%-6px)] -mx-4 md:mx-0 overflow-x-auto md:overflow-visible scrollbar-hide snap-x snap-mandatory scroll-pl-4 pb-60 md:pb-0 -mb-60 md:mb-0 px-4 md:px-0">
                         {/* Availability Section - at top of right column */}
 
-                        {!analysisError && (
+                        {!analysisError && !hideAiChat && (
                             <CustomizingAiChatPanel
                                 className="hidden md:block bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200 mb-2"
                                 containerRef={aiChatDesktopContainerRef}
@@ -2821,6 +2823,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 selectedItemId: selectedItem?.id ?? null,
                                 setActiveCustomization,
                                 setSelectedItem,
+                                addCakeMessage,
                                 removeCakeMessage,
                                 updateMainTopper,
                                 updateSupportElement,
@@ -3029,7 +3032,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
                     onTemplateClear={handleAiPromptTemplateClear}
                     onTemplateColorChange={handleAiPromptTemplateColorChange}
-                    hideAiChat={!!analysisError}
+                    hideAiChat={!!analysisError || hideAiChat}
                 />
                 <ReportModal
                     isOpen={isReportModalOpen}

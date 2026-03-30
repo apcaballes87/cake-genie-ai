@@ -388,6 +388,12 @@ const ColdCakingClient: React.FC = () => {
                             .coldcaking-customizer-wrapper button[data-caketype="3 Tier Fondant"] {
                                 display: none !important;
                             }
+                            /* Hide the AI customization chat container (CustomizingMessagesPanel) */
+                            .coldcaking-customizer-wrapper > div:has(div[class*="bg-slate-50"][class*="border"][class*="rounded-2xl"]),
+                            .coldcaking-customizer-wrapper div[class*="fixed"][class*="bottom-"][class*="left-"][class*="right-"],
+                            .coldcaking-customizer-wrapper [class*="messages-panel"] {
+                                display: none !important;
+                            }
                         `}</style>
                         {/* Step 1 picker — portals its card as first visible step */}
                         <ColdCakingCakePicker onSizeImageChange={handleSizeImageChange} />
@@ -405,7 +411,7 @@ const ColdCakingClient: React.FC = () => {
                                 <p className="text-xs text-slate-500 mt-1">Printing your image onto the cake with AI</p>
                             </div>
                         )}
-                        <CustomizingClient />
+                        <CustomizingClient hideAiChat={true} />
                     </div>
                 )}
 
