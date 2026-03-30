@@ -319,8 +319,13 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
             if (updates.type && updates.type !== prev.type) {
                 const newType = updates.type;
 
-                newState.thickness = DEFAULT_THICKNESS_MAP[newType];
-                newState.size = DEFAULT_SIZE_MAP[newType];
+                // Only apply default thickness/size if they weren't explicitly provided in updates
+                if (!updates.thickness) {
+                    newState.thickness = DEFAULT_THICKNESS_MAP[newType];
+                }
+                if (!updates.size) {
+                    newState.size = DEFAULT_SIZE_MAP[newType];
+                }
 
                 const getFlavorCount = (type: CakeType): number => {
                     if (type.includes('2 Tier')) return 2;
