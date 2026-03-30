@@ -18,6 +18,7 @@ import type { HybridAnalysisResult } from '@/types';
 import { ColdCakingHero } from './ColdCakingHero';
 import { ColdCakingFAQ } from './ColdCakingFAQ';
 import { ColdCakingCakePicker } from './ColdCakingCakePicker';
+import { ColdCakingPhotoStep } from './ColdCakingPhotoStep';
 
 const ImageUploader = dynamic(
     () => import('@/components/ImageUploader').then((mod) => mod.ImageUploader),
@@ -108,6 +109,7 @@ const ColdCakingClient: React.FC = () => {
     const [combineError, setCombineError] = useState<string | null>(null);
     const [showCustomizer, setShowCustomizer] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [hasUploadedPhoto, setHasUploadedPhoto] = useState(false);
 
     // Cache the base cake image base64 so we don't re-fetch every upload
     const baseCakeImageRef = useRef<{ data: string; mimeType: string } | null>(null);
@@ -211,6 +213,7 @@ const ColdCakingClient: React.FC = () => {
             // 5. Clear previous image and feed combined result into the customizer
             clearImages();
             setIsCombining(false);
+            setHasUploadedPhoto(true);
 
             // 6. Run the normal analysis flow with the combined image
             hookImageUpload(
@@ -380,8 +383,13 @@ const ColdCakingClient: React.FC = () => {
                                 display: none !important;
                             }
                         `}</style>
-                        {/* Step 1 picker — mounts here, portals its card beside Step 3 */}
+                        {/* Step 1 picker — portals its card as first visible step */}
                         <ColdCakingCakePicker />
+                        {/* Step 3 photo upload — portals its card replacing Cake Toppers */}
+                        <ColdCakingPhotoStep
+                            onUploadClick={() => setIsUploaderOpen(true)}
+                            hasPhoto={hasUploadedPhoto}
+                        />
 
                         {/* Combining overlay — shown on top while Gemini is processing */}
                         {isCombining && (
