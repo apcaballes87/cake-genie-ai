@@ -13,8 +13,8 @@ const DEFAULT_FLAVOR: CakeFlavor = 'Chocolate Cake';
 const DEFAULT_ICING: IcingDesignUI = {
     base: 'soft_icing',
     color_type: 'single',
-    colors: { side: '#FFFFFF', top: '#FFFFFF' },
-    border_top: false,
+    colors: { side: '#FFFFFF', top: '#FFFFFF', borderTop: '#C4B5FD' },
+    border_top: true,
     border_base: false,
     drip: false,
     gumpasteBaseBoard: false,
