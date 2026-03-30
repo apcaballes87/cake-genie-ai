@@ -17,7 +17,8 @@ async function getReviews() {
     .select(`
       *,
       cakegenie_merchants(business_name),
-      cakegenie_users(first_name, last_name)
+      cakegenie_users(first_name, last_name),
+      cakegenie_order_items(cake_type, cake_size, customized_image_url, customization_details)
     `)
     .eq('is_published', true)
     .order('created_at', { ascending: false })

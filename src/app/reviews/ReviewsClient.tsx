@@ -21,6 +21,12 @@ interface Review {
     first_name: string | null;
     last_name: string | null;
   };
+  cakegenie_order_items?: {
+    cake_type: string | null;
+    cake_size: string | null;
+    customized_image_url: string | null;
+    customization_details: Record<string, unknown> | null;
+  }[];
 }
 
 interface ReviewsClientProps {
@@ -128,6 +134,32 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
                 <h3 className="font-semibold text-slate-800 text-lg mb-2">
                   {review.review_title}
                 </h3>
+              )}
+
+              {/* Product Info */}
+              {review.cakegenie_order_items && review.cakegenie_order_items.length > 0 && review.cakegenie_order_items[0] && (
+                <div className="flex items-center gap-3 mb-3 p-2 bg-white rounded-lg border border-slate-200">
+                  {review.cakegenie_order_items[0].customized_image_url && (
+                    <div className="relative w-16 h-16 flex-shrink-0 overflow-hidden rounded-md">
+                      <Image
+                        src={review.cakegenie_order_items[0].customized_image_url}
+                        alt={review.cakegenie_order_items[0].cake_type || 'Cake'}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-medium text-slate-800">
+                      {review.cakegenie_order_items[0].cake_type} Cake
+                    </p>
+                    {review.cakegenie_order_items[0].cake_size && (
+                      <p className="text-sm text-slate-500">
+                        {review.cakegenie_order_items[0].cake_size}
+                      </p>
+                    )}
+                  </div>
+                </div>
               )}
 
               <p className="text-slate-600 mb-4">{review.review_text}</p>
