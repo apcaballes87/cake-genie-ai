@@ -24,7 +24,7 @@ export const ColdCakingHero = React.memo(({ onUploadClick }: ColdCakingHeroProps
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 p-5">
                             <p className="text-[10px] font-bold text-purple-300 uppercase tracking-[0.15em] mb-1.5">
-                                The boldest outreach tactic of 2026
+                                Upload any image, let&apos;s print it on your cake
                             </p>
                             <h1 className="text-2xl font-extrabold text-white leading-tight tracking-tight mb-2">
                                 Get noticed by your prospects by doing <span className="text-purple-300">"Cold Caking"</span>
@@ -57,7 +57,7 @@ export const ColdCakingHero = React.memo(({ onUploadClick }: ColdCakingHeroProps
                     <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/50 to-transparent" />
                     <div className="absolute inset-0 p-10 lg:p-14 flex flex-col justify-center w-[55%] lg:w-[50%]">
                         <p className="text-xs lg:text-sm font-bold text-purple-300 uppercase tracking-[0.15em] mb-3">
-                            The boldest outreach tactic of 2026
+                            Upload any image, let&apos;s print it on your cake
                         </p>
                         <h1 className="text-4xl lg:text-5xl font-extrabold text-white leading-[1.08] tracking-tight mb-4">
                             Get noticed by your prospects by doing <span className="text-purple-300">"Cold Caking"</span>
