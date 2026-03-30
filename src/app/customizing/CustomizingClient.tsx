@@ -277,9 +277,10 @@ interface CustomizingClientProps {
     hideAiChat?: boolean;
     isCombining?: boolean;
     clearMessageTexts?: boolean;
+    hideStickyBar?: boolean;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false, hideStickyBar = false }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const params = useParams();
@@ -3006,23 +3007,23 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 </div>
 
                 <StickyAddToCartBar
-                    price={finalPrice}
-                    isLoading={isFetchingBasePrice}
+                    price={hideStickyBar ? null : finalPrice}
+                    isLoading={hideStickyBar ? false : isFetchingBasePrice}
                     isAdding={isAddingToCart}
-                    error={basePriceError || analysisError || null}
+                    error={hideStickyBar ? null : (basePriceError || analysisError || null)}
                     onAddToCartClick={onAddToCart}
                     onShareClick={onShare}
                     isSharing={isSharing}
                     canShare={!!analysisResult && isAnalysisCached}
-                    isAnalyzing={isAnalyzing}
+                    isAnalyzing={hideStickyBar ? false : isAnalyzing}
                     cakeInfo={cakeInfo}
-                    warningMessage={isSafetyFallback ? "AI editing disabled for adult-themed content. Your design changes will still be saved." : warningMessage}
-                    warningDescription={warningDescription}
+                    warningMessage={hideStickyBar ? undefined : (isSafetyFallback ? "AI editing disabled for adult-themed content. Your design changes will still be saved." : warningMessage)}
+                    warningDescription={hideStickyBar ? undefined : warningDescription}
                     onWarningClick={warningMessage && !isSafetyFallback ? () => openTopperSheet() : undefined}
-                    availability={availabilityType}
-                    hasPendingDesignChanges={hasPendingVisualChanges}
+                    availability={hideStickyBar ? null : availabilityType}
+                    hasPendingDesignChanges={hideStickyBar ? false : hasPendingVisualChanges}
                     onApplyChangesClick={handleApplyPendingDesignChanges}
-                    isApplyingChanges={isUpdatingDesign}
+                    isApplyingChanges={hideStickyBar ? false : isUpdatingDesign}
                     applyChangesLabel="Apply Design Changes"
                     chatInput={chatInput}
                     onChatInputChange={handleAiChatInputChange}

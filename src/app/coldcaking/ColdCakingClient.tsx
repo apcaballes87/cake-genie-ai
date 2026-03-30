@@ -410,7 +410,7 @@ const ColdCakingClient: React.FC = () => {
                             onUploadClick={() => setIsUploaderOpen(true)}
                             hasPhoto={hasUploadedPhoto}
                         />
-                        <CustomizingClient hideAiChat={true} isCombining={isCombining} clearMessageTexts={true} />
+                        <CustomizingClient hideAiChat={true} isCombining={isCombining} clearMessageTexts={true} hideStickyBar={!hasUploadedPhoto} />
                     </div>
                 )}
 
