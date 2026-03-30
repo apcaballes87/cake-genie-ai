@@ -70,26 +70,27 @@ export function ColdCakingCakePicker() {
         let mobilePlaceholderEl: HTMLElement | null = null;
         let desktopPlaceholderEl: HTMLElement | null = null;
 
-        const injectBesideStep3 = (container: Element, attrName: string): HTMLElement | null => {
+        const injectAsFirstVisible = (container: Element, attrName: string): HTMLElement | null => {
             // Return existing placeholder if already injected
             const existing = container.querySelector(`[${attrName}]`);
             if (existing) return existing as HTMLElement;
 
-            // Find the Step 3 card by its heading text
-            let step3Card: Element | null = null;
+            // Find Step 2 card — insert our picker before it so order is Step 1 → Step 2 → Step 3 → Step 4
+            let step2Card: Element | null = null;
             for (const child of Array.from(container.children)) {
                 const h3 = child.querySelector('h3');
-                if (h3?.textContent?.includes('Step 3')) {
-                    step3Card = child;
+                if (h3?.textContent?.includes('Step 2')) {
+                    step2Card = child;
                     break;
                 }
             }
 
             const placeholder = document.createElement('div');
             placeholder.setAttribute(attrName, '');
-            if (step3Card) {
-                container.insertBefore(placeholder, step3Card);
+            if (step2Card) {
+                container.insertBefore(placeholder, step2Card);
             } else {
+                // Fallback: append at end
                 container.appendChild(placeholder);
             }
             return placeholder;
@@ -103,11 +104,11 @@ export function ColdCakingCakePicker() {
             const desktopContainer = wrapper.querySelector('.z-60');
 
             if (mobileContainer && !mobilePlaceholderEl) {
-                mobilePlaceholderEl = injectBesideStep3(mobileContainer, 'data-cc-picker-mobile');
+                mobilePlaceholderEl = injectAsFirstVisible(mobileContainer, 'data-cc-picker-mobile');
                 setMobilePlaceholder(mobilePlaceholderEl);
             }
             if (desktopContainer && !desktopPlaceholderEl) {
-                desktopPlaceholderEl = injectBesideStep3(desktopContainer, 'data-cc-picker-desktop');
+                desktopPlaceholderEl = injectAsFirstVisible(desktopContainer, 'data-cc-picker-desktop');
                 setDesktopPlaceholder(desktopPlaceholderEl);
             }
         };
