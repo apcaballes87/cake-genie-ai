@@ -231,8 +231,8 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                         rounded-corner area at the top of the main bar (border-radius = 1rem = 16px) */}
                     <div className={`h-[14px] transition-opacity duration-500 ease-in-out ${(!error && (warningMessage || (showAvailability && availability))) ? 'opacity-100' : 'opacity-0'} ${notificationBridgeColor}`} />
                 </div>
-                {/* Spacer: 114px + 14px bridge above = 128px total gap above the main bar */}
-                <div className="h-[114px]" />
+                {/* Spacer: height matches the main bar — 114px with AI chat, 72px without */}
+                <div className={hideAiChat ? 'h-[72px]' : 'h-[114px]'} />
             </div>
 
             {/* Bottom Section: Main Action Bar (z-90) */}
