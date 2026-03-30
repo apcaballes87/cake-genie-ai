@@ -2760,7 +2760,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     selectedItemId={selectedItem?.id ?? null}
                                     setActiveCustomization={setActiveCustomization}
                                     setSelectedItem={setSelectedItem}
-                                    addCakeMessage={addCakeMessage}
                                     removeCakeMessage={removeCakeMessage}
                                     updateMainTopper={updateMainTopper}
                                     updateSupportElement={updateSupportElement}
@@ -2823,7 +2822,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 selectedItemId: selectedItem?.id ?? null,
                                 setActiveCustomization,
                                 setSelectedItem,
-                                addCakeMessage,
                                 removeCakeMessage,
                                 updateMainTopper,
                                 updateSupportElement,
