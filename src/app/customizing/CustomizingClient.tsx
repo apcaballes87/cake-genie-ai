@@ -2132,7 +2132,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     // Calculate icing changes at the top level to avoid hook errors
     const hasIcingChanges = useMemo(() => {
-        if (!analysisResult?.icing_design || !icingDesign) return false;
+        if (!icingDesign) return false;
+        // No prior analysis (e.g. coldcaking before a pitch upload) — any icing is pending if image is loaded
+        if (!analysisResult?.icing_design) return !!originalImageData;
         return (
             JSON.stringify(icingDesign.colors) !== JSON.stringify(analysisResult.icing_design.colors) ||
             icingDesign.drip !== analysisResult.icing_design.drip ||
@@ -2140,7 +2142,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             icingDesign.border_base !== analysisResult.icing_design.border_base ||
             icingDesign.gumpasteBaseBoard !== analysisResult.icing_design.gumpasteBaseBoard
         );
-    }, [icingDesign, analysisResult]);
+    }, [icingDesign, analysisResult, originalImageData]);
 
     // Check if cake messages have changed
     const hasMessageChanges = useMemo(() => {
