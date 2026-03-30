@@ -18,6 +18,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import type { HybridAnalysisResult } from '@/types';
 import { ColdCakingHero } from './ColdCakingHero';
 import { ColdCakingFAQ } from './ColdCakingFAQ';
+import { ColdCakingCakePicker } from './ColdCakingCakePicker';
 
 const ImageUploader = dynamic(
     () => import('@/components/ImageUploader').then((mod) => mod.ImageUploader),
@@ -334,6 +335,9 @@ const ColdCakingClient: React.FC = () => {
                     </div>
                 )}
 
+                {/* Step 1: Our custom size picker — always visible */}
+                <ColdCakingCakePicker />
+
                 {/* Full Customizer — always mounted to preserve steps 1-4 state */}
                 {showCustomizer && (
                     <div id="coldcaking-customizer" className="relative coldcaking-customizer-wrapper">
@@ -364,6 +368,14 @@ const ColdCakingClient: React.FC = () => {
                             }
                             /* Hide Original/Customized tab switcher */
                             .coldcaking-customizer-wrapper div[class*="bg-slate-100"][class*="space-x-1"] {
+                                display: none !important;
+                            }
+                            /* Hide the original Step 1 card (desktop — z-60 container first child) */
+                            .coldcaking-customizer-wrapper .z-60 > div:first-child {
+                                display: none !important;
+                            }
+                            /* Hide the original Step 1 card (mobile — snap-x + mt-0 container first child) */
+                            .coldcaking-customizer-wrapper .snap-x.mt-0 > div:first-child {
                                 display: none !important;
                             }
                             /* Hide 2 Tier and 3 Tier cake type options */
