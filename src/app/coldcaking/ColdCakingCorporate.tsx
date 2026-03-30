@@ -37,8 +37,8 @@ const occasions = [
 
 export const ColdCakingCorporate = React.memo(() => {
     return (
-        <section className="py-4 md:py-6">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <section className="py-4 md:py-6 w-full">
+            <div className="max-w-4xl mx-auto text-center">
                 <h2 className="text-[22px] md:text-[28px] font-bold text-gray-900 mb-4">
                     Corporate Gifting That Actually Works for Your Business
                 </h2>
