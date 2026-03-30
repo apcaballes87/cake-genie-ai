@@ -394,6 +394,19 @@ const ColdCakingClient: React.FC = () => {
                             .coldcaking-customizer-wrapper [class*="messages-panel"] {
                                 display: none !important;
                             }
+                            /* Ensure steps 1-4 containers have lower z-index than the combining overlay */
+                            .coldcaking-customizer-wrapper > div:has(button[data-caketype]),
+                            .coldcaking-customizer-wrapper [class*="z-10"],
+                            .coldcaking-customizer-wrapper [class*="z-20"],
+                            .coldcaking-customizer-wrapper [class*="z-30"],
+                            .coldcaking-customizer-wrapper [class*="z-40"],
+                            .coldcaking-customizer-wrapper [class*="z-50"],
+                            .coldcaking-customizer-wrapper [class*="z-60"],
+                            .coldcaking-customizer-wrapper [class*="z-70"],
+                            .coldcaking-customizer-wrapper [class*="z-80"],
+                            .coldcaking-customizer-wrapper [class*="relative"] {
+                                position: relative;
+                            }
                         `}</style>
                         {/* Step 1 picker — portals its card as first visible step */}
                         <ColdCakingCakePicker onSizeImageChange={handleSizeImageChange} />
@@ -405,7 +418,7 @@ const ColdCakingClient: React.FC = () => {
 
                         {/* Combining overlay — shown on top while Gemini is processing */}
                         {isCombining && (
-                            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-md">
+                            <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/95 backdrop-blur-md">
                                 <LoadingSpinner />
                                 <p className="mt-4 text-sm font-semibold text-slate-700">Creating your cold cake design...</p>
                                 <p className="text-xs text-slate-500 mt-1">Printing your image onto the cake with AI</p>
