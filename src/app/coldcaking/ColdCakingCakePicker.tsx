@@ -57,9 +57,12 @@ type PriceMap = Record<string, number>;
 
 interface ColdCakingCakePickerProps {
     onSizeImageChange?: (url: string, sizeIndex?: number) => void;
+    showApplyChanges?: boolean;
+    isCombining?: boolean;
+    onApplyChanges?: () => void;
 }
 
-export function ColdCakingCakePicker({ onSizeImageChange }: ColdCakingCakePickerProps = {}) {
+export function ColdCakingCakePicker({ onSizeImageChange, showApplyChanges, isCombining, onApplyChanges }: ColdCakingCakePickerProps = {}) {
     const { handleCakeInfoChange, onIcingDesignChange, cakeInfo } = useCakeCustomization();
     const { loadImageWithoutAnalysis } = useImageManagement();
     const [selectedIndex, setSelectedIndex] = useState(DEFAULT_INDEX);
@@ -216,6 +219,22 @@ export function ColdCakingCakePicker({ onSizeImageChange }: ColdCakingCakePicker
                     );
                 })}
             </div>
+            {showApplyChanges && (
+                <button
+                    onClick={onApplyChanges}
+                    disabled={isCombining}
+                    className="mt-3 px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-full shadow-md hover:bg-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full"
+                >
+                    {isCombining ? (
+                        <>
+                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Applying...
+                        </>
+                    ) : (
+                        'Apply Changes'
+                    )}
+                </button>
+            )}
         </div>
     );
 
