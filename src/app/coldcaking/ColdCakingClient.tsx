@@ -18,6 +18,7 @@ import { ColdCakingHero } from './ColdCakingHero';
 import { ColdCakingFAQ } from './ColdCakingFAQ';
 import { ColdCakingCakePicker } from './ColdCakingCakePicker';
 import { ColdCakingPhotoStep } from './ColdCakingPhotoStep';
+import { ColdCakingCorporate } from './ColdCakingCorporate';
 
 const ImageUploader = dynamic(
     () => import('@/components/ImageUploader').then((mod) => mod.ImageUploader),
@@ -491,6 +492,7 @@ const ColdCakingClient: React.FC = () => {
                 )}
 
                 <div className="w-full max-w-7xl mx-auto px-4 mt-6">
+                    <ColdCakingCorporate />
                     <ColdCakingFAQ />
                 </div>
 
