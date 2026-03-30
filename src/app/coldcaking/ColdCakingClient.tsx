@@ -11,7 +11,6 @@ import { getRelatedProductsByKeywords } from '@/services/supabaseService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useImageManagement } from '@/contexts/ImageContext';
-import { useCakeCustomization } from '@/contexts/CustomizationContext';
 import { COMMON_ASSETS } from '@/constants';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -95,7 +94,6 @@ const ColdCakingClient: React.FC = () => {
     const { isAuthenticated, user } = useAuth();
     const { itemCount } = useCart();
     const { handleImageUpload: hookImageUpload, clearImages, loadImageWithoutAnalysis } = useImageManagement();
-    const { clearCustomization } = useCakeCustomization();
 
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -210,9 +208,8 @@ const ColdCakingClient: React.FC = () => {
                 'cold-cake-design.png'
             );
 
-            // 5. Clear previous state and feed into the customizer
+            // 5. Clear previous image and feed combined result into the customizer
             clearImages();
-            clearCustomization();
             setIsCombining(false);
 
             // 6. Run the normal analysis flow with the combined image
@@ -231,7 +228,7 @@ const ColdCakingClient: React.FC = () => {
             setIsAnalyzing(false);
             setCombineError(error.message || 'Failed to create your cold cake design. Please try again.');
         }
-    }, [hookImageUpload, clearImages, clearCustomization]);
+    }, [hookImageUpload, clearImages]);
 
     return (
         <div className="flex flex-col min-h-screen w-full">
@@ -335,9 +332,6 @@ const ColdCakingClient: React.FC = () => {
                     </div>
                 )}
 
-                {/* Step 1: Our custom size picker — always visible */}
-                <ColdCakingCakePicker />
-
                 {/* Full Customizer — always mounted to preserve steps 1-4 state */}
                 {showCustomizer && (
                     <div id="coldcaking-customizer" className="relative coldcaking-customizer-wrapper">
@@ -386,6 +380,9 @@ const ColdCakingClient: React.FC = () => {
                                 display: none !important;
                             }
                         `}</style>
+                        {/* Step 1 picker — mounts here, portals its card beside Step 3 */}
+                        <ColdCakingCakePicker />
+
                         {/* Combining overlay — shown on top while Gemini is processing */}
                         {isCombining && (
                             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-md">
