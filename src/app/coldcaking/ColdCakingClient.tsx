@@ -14,7 +14,6 @@ import { useImageManagement } from '@/contexts/ImageContext';
 import { COMMON_ASSETS } from '@/constants';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import type { HybridAnalysisResult } from '@/types';
 import { ColdCakingHero } from './ColdCakingHero';
 import { ColdCakingFAQ } from './ColdCakingFAQ';
 import { ColdCakingCakePicker } from './ColdCakingCakePicker';
@@ -94,7 +93,7 @@ const ColdCakingClient: React.FC = () => {
     const router = useRouter();
     const { isAuthenticated, user } = useAuth();
     const { itemCount } = useCart();
-    const { handleImageUpload: hookImageUpload, clearImages, loadImageWithoutAnalysis } = useImageManagement();
+    const { clearImages, loadImageWithoutAnalysis } = useImageManagement();
 
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -108,7 +107,6 @@ const ColdCakingClient: React.FC = () => {
     const [isCombining, setIsCombining] = useState(false);
     const [combineError, setCombineError] = useState<string | null>(null);
     const [showCustomizer, setShowCustomizer] = useState(true);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [hasUploadedPhoto, setHasUploadedPhoto] = useState(false);
 
     // Cache the base cake image base64 so we don't re-fetch every upload
@@ -176,7 +174,6 @@ const ColdCakingClient: React.FC = () => {
         setIsCombining(true);
         setCombineError(null);
         setShowCustomizer(true);
-        setIsAnalyzing(true);
 
         // Scroll to customizer section
         setTimeout(() => {
@@ -216,28 +213,21 @@ const ColdCakingClient: React.FC = () => {
                 'cold-cake-design.png'
             );
 
-            // 5. Clear previous image and feed combined result into the customizer
+            // 5. Display the combined image in the customizer (no AI analysis)
             clearImages();
+            const objectUrl = URL.createObjectURL(combinedFile);
+            await loadImageWithoutAnalysis(objectUrl, {
+                fileName: 'cold-cake-design.png',
+                fallbackMimeType: combinedFile.type,
+            });
+
             setIsCombining(false);
             setHasUploadedPhoto(true);
-
-            // 6. Run the normal analysis flow with the combined image
-            hookImageUpload(
-                combinedFile,
-                (_analysisResult: HybridAnalysisResult) => {
-                    setIsAnalyzing(false);
-                },
-                (err: Error) => {
-                    setIsAnalyzing(false);
-                    setCombineError(err.message);
-                }
-            );
         } catch (error: any) {
             setIsCombining(false);
-            setIsAnalyzing(false);
             setCombineError(error.message || 'Failed to create your cold cake design. Please try again.');
         }
-    }, [hookImageUpload, clearImages]);
+    }, [clearImages, loadImageWithoutAnalysis]);
 
     return (
         <div className="flex flex-col min-h-screen w-full">
@@ -410,7 +400,7 @@ const ColdCakingClient: React.FC = () => {
                             onUploadClick={() => setIsUploaderOpen(true)}
                             hasPhoto={hasUploadedPhoto}
                         />
-                        <CustomizingClient hideAiChat={true} isCombining={isCombining} clearMessageTexts={true} hideStickyBar={!hasUploadedPhoto} />
+                        <CustomizingClient hideAiChat={true} isCombining={isCombining} clearMessageTexts={true} hideStickyBar={!hasUploadedPhoto} useBasePriceAsFallback={true} />
                     </div>
                 )}
 

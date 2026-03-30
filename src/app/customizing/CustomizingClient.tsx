@@ -278,9 +278,10 @@ interface CustomizingClientProps {
     isCombining?: boolean;
     clearMessageTexts?: boolean;
     hideStickyBar?: boolean;
+    useBasePriceAsFallback?: boolean;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false, hideStickyBar = false }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false, hideStickyBar = false, useBasePriceAsFallback = false }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const params = useParams();
@@ -3007,7 +3008,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 </div>
 
                 <StickyAddToCartBar
-                    price={hideStickyBar ? null : finalPrice}
+                    price={hideStickyBar ? null : (finalPrice ?? (useBasePriceAsFallback ? (basePrice ?? null) : null))}
                     isLoading={hideStickyBar ? false : isFetchingBasePrice}
                     isAdding={isAddingToCart}
                     error={hideStickyBar ? null : (basePriceError || analysisError || null)}
