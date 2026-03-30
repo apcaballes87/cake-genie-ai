@@ -3,7 +3,7 @@ import { getAI } from '@/lib/ai/client';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 
 export const maxDuration = 60;
-const MODEL_NAME = 'gemini-2.5-flash-image';
+const MODEL_NAME = 'gemini-3.1-flash-image-preview';
 
 const SYSTEM_INSTRUCTION = `You are an expert cake designer specializing in edible photo cakes.
 Your task is to seamlessly place the provided overlay image onto the top surface of the cake as an edible photo print.
