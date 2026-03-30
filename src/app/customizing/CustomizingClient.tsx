@@ -3020,7 +3020,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     warningMessage={hideStickyBar ? undefined : (isSafetyFallback ? "AI editing disabled for adult-themed content. Your design changes will still be saved." : warningMessage)}
                     warningDescription={hideStickyBar ? undefined : warningDescription}
                     onWarningClick={warningMessage && !isSafetyFallback ? () => openTopperSheet() : undefined}
-                    availability={hideStickyBar ? null : availabilityType}
+                    availability={hideStickyBar ? undefined : availabilityType}
                     hasPendingDesignChanges={hideStickyBar ? false : hasPendingVisualChanges}
                     onApplyChangesClick={handleApplyPendingDesignChanges}
                     isApplyingChanges={hideStickyBar ? false : isUpdatingDesign}
