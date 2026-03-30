@@ -57,10 +57,10 @@ export const ColdCakingHero = React.memo(({ onUploadClick }: ColdCakingHeroProps
                     <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/50 to-transparent" />
                     <div className="absolute inset-0 p-10 lg:p-14 flex flex-col justify-center w-[55%] lg:w-[50%]">
                         <p className="text-xs lg:text-sm font-bold text-purple-300 uppercase tracking-[0.15em] mb-3">
-                            Upload any image, let&apos;s print it on your cake
+                            Print your brand on a cake
                         </p>
                         <h1 className="text-4xl lg:text-5xl font-extrabold text-white leading-[1.08] tracking-tight mb-4">
-                            Get noticed by your prospects by doing <span className="text-purple-300">"Cold Caking"</span>
+                            <span className="text-purple-300">Land meetings,</span> Not rejections
                         </h1>
                         <p className="text-sm lg:text-base text-white/80 leading-relaxed mb-6 max-w-md">
                             A startup founder sent 7 pitch cakes to top VCs and got 5 meetings.<br />Now it&apos;s your turn.
