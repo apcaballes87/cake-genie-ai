@@ -32,7 +32,7 @@ const CustomizingClient = dynamic(
 
 const DEFAULT_CAKE_IMAGE_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/sign/cold-caking/Gemini_Generated_Image_4bvnuq4bvnuq4bvn.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV84NDdlNTI3ZS1lZWU5LTRmM2EtODk3Ny05Y2RhMWUwZDUzNDEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjb2xkLWNha2luZy9HZW1pbmlfR2VuZXJhdGVkX0ltYWdlXzRidm51cTRidm51cTRidm4ucG5nIiwiaWF0IjoxNzc0NzM4MTU0LCJleHAiOjQ4OTY4MDIxNTR9.XiyRdgTAwitqtgC8mFa4L42dfHfzGcWwEM8Oz5g6lX4';
 
-const DEFAULT_PREVIEW_IMAGE_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cold-caking/6inches.webp';
+const DEFAULT_PREVIEW_IMAGE_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cold-caking/6in-1layer-cake.webp';
 
 const relatedDesignBreakpoints = {
     default: 6,
@@ -113,6 +113,12 @@ const ColdCakingClient: React.FC = () => {
 
     // Cache the base cake image base64 so we don't re-fetch every upload
     const baseCakeImageRef = useRef<{ data: string; mimeType: string } | null>(null);
+    const currentSizeImageUrlRef = useRef<string>(DEFAULT_PREVIEW_IMAGE_URL);
+
+    const handleSizeImageChange = useCallback((url: string) => {
+        currentSizeImageUrlRef.current = url;
+        baseCakeImageRef.current = null; // invalidate cache so next combine fetches the new size's image
+    }, []);
 
     useEffect(() => { setIsMounted(true); }, []);
 
@@ -178,9 +184,9 @@ const ColdCakingClient: React.FC = () => {
         }, 100);
 
         try {
-            // 1. Get the base cake image as base64 (cache it)
+            // 1. Get the base cake image as base64 (cache it; invalidated when size changes)
             if (!baseCakeImageRef.current) {
-                baseCakeImageRef.current = await imageUrlToBase64(DEFAULT_PREVIEW_IMAGE_URL);
+                baseCakeImageRef.current = await imageUrlToBase64(currentSizeImageUrlRef.current);
             }
 
             // 2. Get the uploaded image as base64
@@ -384,7 +390,7 @@ const ColdCakingClient: React.FC = () => {
                             }
                         `}</style>
                         {/* Step 1 picker — portals its card as first visible step */}
-                        <ColdCakingCakePicker />
+                        <ColdCakingCakePicker onSizeImageChange={handleSizeImageChange} />
                         {/* Step 3 photo upload — portals its card replacing Cake Toppers */}
                         <ColdCakingPhotoStep
                             onUploadClick={() => setIsUploaderOpen(true)}
