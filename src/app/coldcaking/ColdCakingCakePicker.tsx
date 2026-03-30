@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useCakeCustomization } from '@/contexts/CustomizationContext';
-import { CAKE_TYPE_THUMBNAILS } from '@/constants';
+import { useImageManagement } from '@/contexts/ImageContext';
 import { getCakeBasePriceOptions } from '@/services/supabaseService';
 import type { CakeType, CakeThickness, CakeFlavor, IcingDesignUI, BasePriceInfo } from '@/types';
 
@@ -22,23 +22,26 @@ const DEFAULT_ICING: IcingDesignUI = {
     gumpasteBaseBoardPrice: 0,
 };
 
+const CDN = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cold-caking';
+
 interface SizeOption {
     label: string;
     sublabel: string;
     type: CakeType;
     size: string;
     priceThickness: CakeThickness;
+    image: string;
 }
 
 // priceThickness: thickness used to fetch the starting/display price (cheapest available)
 const SIZES: SizeOption[] = [
-    { label: 'Bento', sublabel: '4" Round', type: 'Bento', size: '4" Round', priceThickness: '2 in' },
-    { label: '6" Round', sublabel: '3 in height', type: '1 Tier', size: '6" Round', priceThickness: '3 in' },
-    { label: '8" Round', sublabel: '3 in height', type: '1 Tier', size: '8" Round', priceThickness: '3 in' },
-    { label: '8×8', sublabel: 'Square', type: 'Square', size: '8x8', priceThickness: '3 in' },
-    { label: '8×12', sublabel: 'Rectangle', type: 'Rectangle', size: '8x12', priceThickness: '3 in' },
-    { label: '10×14', sublabel: 'Rectangle', type: 'Rectangle', size: '10x14', priceThickness: '3 in' },
-    { label: '12×16', sublabel: 'Rectangle', type: 'Rectangle', size: '12x16', priceThickness: '3 in' },
+    { label: 'Bento',    sublabel: '4" Round',    type: 'Bento',     size: '4" Round', priceThickness: '2 in', image: `${CDN}/4in-bento-cake.webp` },
+    { label: '6" Round', sublabel: '3 in height', type: '1 Tier',    size: '6" Round', priceThickness: '3 in', image: `${CDN}/6in-1layer-cake.webp` },
+    { label: '8" Round', sublabel: '3 in height', type: '1 Tier',    size: '8" Round', priceThickness: '3 in', image: `${CDN}/8in-1layer-cake.webp` },
+    { label: '8×8',      sublabel: 'Square',      type: 'Square',    size: '8x8',      priceThickness: '3 in', image: `${CDN}/8x8-square-cake.webp` },
+    { label: '8×12',     sublabel: 'Rectangle',   type: 'Rectangle', size: '8x12',     priceThickness: '3 in', image: `${CDN}/8x12-rectangular-cake.webp` },
+    { label: '10×14',    sublabel: 'Rectangle',   type: 'Rectangle', size: '10x14',    priceThickness: '3 in', image: `${CDN}/8x12-rectangular-cake.webp` },
+    { label: '12×16',    sublabel: 'Rectangle',   type: 'Rectangle', size: '12x16',    priceThickness: '3 in', image: `${CDN}/8x12-rectangular-cake.webp` },
 ];
 
 const DEFAULT_INDEX = 1; // 6" Round
@@ -52,8 +55,13 @@ const MOBILE_ITEMS_CLASS = 'flex gap-[7px] pt-1 pb-1 w-max';
 // Map from "type|size" to price
 type PriceMap = Record<string, number>;
 
-export function ColdCakingCakePicker() {
+interface ColdCakingCakePickerProps {
+    onSizeImageChange?: (url: string) => void;
+}
+
+export function ColdCakingCakePicker({ onSizeImageChange }: ColdCakingCakePickerProps = {}) {
     const { handleCakeInfoChange, onIcingDesignChange, cakeInfo } = useCakeCustomization();
+    const { loadImageWithoutAnalysis } = useImageManagement();
     const [selectedIndex, setSelectedIndex] = useState(DEFAULT_INDEX);
     const hasSetDefault = useRef(false);
     const [prices, setPrices] = useState<PriceMap>({});
@@ -161,7 +169,13 @@ export function ColdCakingCakePicker() {
             thickness: DEFAULT_THICKNESS,
             flavors: cakeInfo?.flavors?.length ? cakeInfo.flavors : [DEFAULT_FLAVOR],
         });
-    }, [handleCakeInfoChange, cakeInfo]);
+        // Swap the main cake preview image
+        loadImageWithoutAnalysis(option.image, {
+            fileName: `cold-caking-${option.size}.webp`,
+            fallbackMimeType: 'image/webp',
+        }).catch(() => {});
+        onSizeImageChange?.(option.image);
+    }, [handleCakeInfoChange, loadImageWithoutAnalysis, onSizeImageChange, cakeInfo]);
 
     const renderPickerContent = (cardClass: string, itemsClass: string) => (
         <div className={cardClass}>
@@ -181,7 +195,7 @@ export function ColdCakingCakePicker() {
                                     : 'border-slate-200 group-hover:border-purple-400 bg-white'
                             }`}>
                                 <img
-                                    src={CAKE_TYPE_THUMBNAILS[option.type]}
+                                    src={option.image}
                                     alt={option.label}
                                     className="absolute inset-0 w-full h-full object-cover"
                                 />
