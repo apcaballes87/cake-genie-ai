@@ -55,17 +55,22 @@ export const ColdCakingHero = React.memo(({ onUploadClick }: ColdCakingHeroProps
                         className="w-full h-auto object-cover max-h-[480px]"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/40 to-transparent" />
-                    <div className="absolute inset-0 p-10 lg:p-14 flex flex-col items-center justify-center">
-                        <p className="text-xs lg:text-sm font-bold text-purple-600 uppercase tracking-[0.15em] mb-3">
-                            Print your brand on a cake
-                        </p>
-                        <h1 className="text-4xl lg:text-5xl font-extrabold text-slate-900 leading-[1.08] tracking-tight mb-4 text-center">
-                            <span className="text-purple-600">Land meetings,</span> Not rejections
-                        </h1>
-                        <p className="text-sm lg:text-base text-slate-700 leading-relaxed mb-8 text-center max-w-lg">
-                            A startup founder sent 7 pitch cakes to top VCs and got 5 meetings.<br />Now it&apos;s your turn.
-                        </p>
-                        <div className="flex flex-col items-center gap-1.5">
+                    <div className="absolute inset-0 p-10 lg:p-14 flex items-end justify-between">
+                        <div className="flex flex-col items-start gap-2">
+                            <p className="text-xs lg:text-sm font-bold text-purple-600 uppercase tracking-[0.15em] mb-1">
+                                Print your brand on a cake
+                            </p>
+                            <h1 className="text-3xl lg:text-4xl font-extrabold text-slate-900 leading-[1.1] tracking-tight">
+                                <span className="text-purple-600">Land meetings,</span> Not rejections
+                            </h1>
+                            <p className="text-sm lg:text-base text-slate-700 leading-relaxed">
+                                A startup founder sent 7 pitch cakes to top VCs and got 5 meetings.
+                            </p>
+                            <p className="text-sm lg:text-base text-slate-700 font-semibold">
+                                Now it&apos;s your turn.
+                            </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1.5">
                             <button
                                 onClick={onUploadClick}
                                 className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3.5 lg:px-8 lg:py-4 rounded-full font-bold transition-all shadow-lg active:scale-[0.98] text-sm lg:text-base whitespace-nowrap"
