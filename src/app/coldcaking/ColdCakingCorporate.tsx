@@ -44,7 +44,7 @@ export const ColdCakingCorporate = React.memo(() => {
                 </h2>
                 <div className="prose prose-base md:prose-lg mx-auto text-gray-600 space-y-4 md:space-y-6 leading-relaxed">
                     <p>
-                        <strong>Cold cakes turn every celebration into a strategic opportunity.</strong> Print your brand, message, or visuals on a custom cake to get noticed, get heard, and make people feel appreciated — all while enjoying a delicious, memorable treat.
+                        <strong>Custom cakes turn every celebration into a strategic opportunity.</strong> Print your brand, message, or visuals on a custom cake to get noticed, get heard, and make people feel appreciated — all while enjoying a delicious, memorable treat.
                     </p>
 
                     <ul className="text-left space-y-3 list-none pl-0">
