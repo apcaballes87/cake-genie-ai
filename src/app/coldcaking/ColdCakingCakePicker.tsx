@@ -157,7 +157,7 @@ export function ColdCakingCakePicker() {
                                 <img
                                     src={CAKE_TYPE_THUMBNAILS[option.type]}
                                     alt={option.label}
-                                    className="absolute inset-0 w-full h-full object-contain"
+                                    className="absolute inset-0 w-full h-full object-cover"
                                 />
                             </div>
                             <span className={`text-[10px] text-center font-semibold leading-tight mt-0.5 ${
