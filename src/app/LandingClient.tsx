@@ -448,10 +448,17 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         </div>
                     </div>
 
-                    {/* Desktop Header: Logo + Search (left) | Nav + Icons (right) */}
+                    {/* Desktop Header: Menu + Logo + Search (left) | Nav + Icons (right) */}
                     <div className="hidden md:flex w-full items-center gap-6 py-4">
-                        {/* Left: Logo + Search Bar (search grows to fill space) */}
+                        {/* Left: Menu + Logo + Search Bar */}
                         <div className="flex items-center gap-4 flex-1 min-w-0">
+                            <button
+                                onClick={() => setIsMenuOpen(true)}
+                                className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                aria-label="Open menu"
+                            >
+                                <Menu size={24} />
+                            </button>
                             <Link href="/" className="shrink-0">
                                 <img
                                     src={COMMON_ASSETS.logo}
