@@ -548,32 +548,18 @@ const ColdCakingClient: React.FC = () => {
                             }
                         `}</style>
                         {/* Step 1 picker — portals its card as first visible step */}
-                        <ColdCakingCakePicker onSizeImageChange={handleSizeImageChange} />
+                        <ColdCakingCakePicker 
+                            onSizeImageChange={handleSizeImageChange} 
+                            showApplyChanges={showApplyChanges}
+                            isCombining={isCombining}
+                            onApplyChanges={handleApplyChanges}
+                        />
                         {/* Step 3 photo upload — portals its card replacing Cake Toppers */}
                         <ColdCakingPhotoStep
                             onUploadClick={() => setIsUploaderOpen(true)}
                             hasPhoto={hasUploadedPhoto}
                         />
                         <CustomizingClient hideAiChat={true} isCombining={isCombining} clearMessageTexts={true} hideStickyBar={!hasUploadedPhoto} useBasePriceAsFallback={true} />
-                        {/* Apply Changes button - appears when size changes after photo upload */}
-                        {showApplyChanges && (
-                            <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 md:bottom-8">
-                                <button
-                                    onClick={handleApplyChanges}
-                                    disabled={isCombining}
-                                    className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-full shadow-lg hover:bg-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                >
-                                    {isCombining ? (
-                                        <>
-                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                            Applying...
-                                        </>
-                                    ) : (
-                                        'Apply Changes'
-                                    )}
-                                </button>
-                            </div>
-                        )}
                     </div>
                 )}
 
