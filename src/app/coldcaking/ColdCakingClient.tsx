@@ -5,12 +5,13 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Masonry from 'react-masonry-css';
-import { Menu, Search, ShoppingBag, User, X } from 'lucide-react';
+import { Menu, Search, ShoppingBag, User, X, Loader2, Upload, ArrowRight } from 'lucide-react';
 import { ProductCard, type ProductCardProps } from '@/components/ProductCard';
 import { getRelatedProductsByKeywords } from '@/services/supabaseService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useImageManagement } from '@/contexts/ImageContext';
+import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import { COMMON_ASSETS } from '@/constants';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -99,10 +100,13 @@ const ColdCakingClient: React.FC = () => {
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
+    const [showCompactHeader, setShowCompactHeader] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [relatedDesigns, setRelatedDesigns] = useState<ProductCardProps[]>([]);
     const [hasMoreDesigns, setHasMoreDesigns] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Cold caking specific state
     const [isCombining, setIsCombining] = useState(false);
@@ -136,10 +140,28 @@ const ColdCakingClient: React.FC = () => {
     useEffect(() => { setIsMounted(true); }, []);
 
     useEffect(() => {
-        const onScroll = () => setIsScrolled(window.scrollY > 50);
-        window.addEventListener('scroll', onScroll, { passive: true });
-        return () => window.removeEventListener('scroll', onScroll);
+        let ticking = false;
+        const updateScrollState = () => {
+            const currentScrollY = window.scrollY;
+            const nextIsScrolled = currentScrollY > 20;
+            const nextShowCompactHeader = currentScrollY > 50;
+            setIsScrolled((prev) => prev === nextIsScrolled ? prev : nextIsScrolled);
+            setShowCompactHeader((prev) => prev === nextShowCompactHeader ? prev : nextShowCompactHeader);
+            ticking = false;
+        };
+        const handleScroll = () => {
+            if (ticking) return;
+            ticking = true;
+            window.requestAnimationFrame(updateScrollState);
+        };
+        updateScrollState();
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    const handleSearch = useCallback((query: string) => {
+        router.push(`/search?q=${encodeURIComponent(query)}`);
+    }, [router]);
 
     // Load default cake preview image on mount
     const hasLoadedDefaultImage = useRef(false);
@@ -310,25 +332,63 @@ const ColdCakingClient: React.FC = () => {
             <nav className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm' : 'bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
                     {/* Mobile Header */}
-                    <div className="md:hidden flex items-center justify-between py-3">
-                        <button
-                            onClick={() => setIsMenuOpen(true)}
-                            className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
-                            aria-label="Open menu"
+                    <div className="md:hidden relative w-full mb-4" style={{ height: '88px' }}>
+                        {/* Layer 1: Not-scrolled — [menu | logo | icons] */}
+                        <div
+                            className="absolute inset-0 grid grid-cols-[1fr_auto_1fr] items-center pt-6 transition-opacity duration-300"
+                            style={{ opacity: showCompactHeader ? 0 : 1, pointerEvents: showCompactHeader ? 'none' : 'auto' }}
                         >
-                            <Menu size={24} />
-                        </button>
-                        <Link href="/">
-                            <img src={COMMON_ASSETS.logo} alt="Genie Logo" width={140} height={50} className="h-12 w-auto object-contain" />
-                        </Link>
-                        <div className="flex items-center gap-1">
-                            <button
-                                onClick={() => router.push('/search')}
-                                className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
-                                aria-label="Search"
-                            >
-                                <Search size={24} />
-                            </button>
+                            <div className="flex items-center">
+                                <button
+                                    onClick={() => setIsMenuOpen(true)}
+                                    className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                    aria-label="Open menu"
+                                >
+                                    <Menu size={24} />
+                                </button>
+                            </div>
+                            <Link href="/">
+                                <img src={COMMON_ASSETS.logo} alt="Genie Logo" width={180} height={64} className="h-16 w-auto object-contain" />
+                            </Link>
+                            <div className="flex items-center gap-1 justify-end">
+                                <button
+                                    onClick={() => window.scrollTo({ top: 60, behavior: 'smooth' })}
+                                    className="p-2 text-slate-600 hover:text-purple-700 transition-all shrink-0"
+                                    aria-label="Search"
+                                >
+                                    <Search size={24} />
+                                </button>
+                                <button
+                                    onClick={() => router.push('/cart')}
+                                    className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                    aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
+                                >
+                                    <ShoppingBag size={24} />
+                                    {isMounted && itemCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
+                                            {itemCount}
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Layer 2: Scrolled — [search bar | cart] */}
+                        <div
+                            className="absolute inset-0 flex items-center gap-2 pt-6 transition-opacity duration-300"
+                            style={{ opacity: showCompactHeader ? 1 : 0, pointerEvents: showCompactHeader ? 'auto' : 'none' }}
+                        >
+                            {showCompactHeader ? (
+                                <SearchAutocomplete
+                                    onSearch={handleSearch}
+                                    onUploadClick={() => setIsUploaderOpen(true)}
+                                    placeholder="Search for custom cakes..."
+                                    value={searchQuery}
+                                    onChange={setSearchQuery}
+                                    className="flex-1 min-w-0"
+                                    inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                                />
+                            ) : <div className="flex-1 min-w-0" aria-hidden="true" />}
                             <button
                                 onClick={() => router.push('/cart')}
                                 className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
@@ -344,17 +404,43 @@ const ColdCakingClient: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Desktop Header */}
+                    {/* Desktop Header: Menu + Logo + Search (left) | Nav + Icons (right) */}
                     <div className="hidden md:flex w-full items-center gap-6 py-4">
+                        {/* Left: Menu + Logo + Search Bar */}
                         <div className="flex items-center gap-4 flex-1 min-w-0">
+                            <button
+                                onClick={() => setIsMenuOpen(true)}
+                                className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                aria-label="Open menu"
+                            >
+                                <Menu size={24} />
+                            </button>
                             <Link href="/" className="shrink-0">
                                 <img src={COMMON_ASSETS.logo} alt="Genie Logo" width={150} height={48} className="h-10 w-auto object-contain" />
                             </Link>
+                            <SearchAutocomplete
+                                onSearch={handleSearch}
+                                onUploadClick={() => setIsUploaderOpen(true)}
+                                placeholder="Search cakes..."
+                                value={searchQuery}
+                                onChange={setSearchQuery}
+                                className="flex-1 max-w-sm ml-4"
+                                inputClassName="w-full pl-5 pr-12 py-2.5 text-sm bg-white border-slate-200 border rounded-full shadow-sm focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                            />
                         </div>
+
+                        {/* Right: Nav Links + Account + Cart */}
                         <div className="flex items-center gap-5 lg:gap-6 shrink-0">
-                            <Link href="/collections" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">Browse Cakes</Link>
-                            <Link href="/shop" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">Our Bakers</Link>
-                            <Link href="/blog" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">Blog</Link>
+                            <Link href="/collections" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                                Browse Cakes
+                            </Link>
+                            <Link href="/shop" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                                Our Bakers
+                            </Link>
+                            <Link href="/blog" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                                Blog
+                            </Link>
+
                             <div className="w-px h-5 bg-gray-200" />
                             <button
                                 onClick={() => router.push(isAuthenticated && !user?.is_anonymous ? '/account' : '/login')}
