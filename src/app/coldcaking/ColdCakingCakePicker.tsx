@@ -56,7 +56,7 @@ const MOBILE_ITEMS_CLASS = 'flex gap-[7px] pt-1 pb-1 w-max';
 type PriceMap = Record<string, number>;
 
 interface ColdCakingCakePickerProps {
-    onSizeImageChange?: (url: string) => void;
+    onSizeImageChange?: (url: string, sizeIndex?: number) => void;
 }
 
 export function ColdCakingCakePicker({ onSizeImageChange }: ColdCakingCakePickerProps = {}) {
@@ -174,7 +174,7 @@ export function ColdCakingCakePicker({ onSizeImageChange }: ColdCakingCakePicker
             fileName: `cold-caking-${option.size}.webp`,
             fallbackMimeType: 'image/webp',
         }).catch(() => {});
-        onSizeImageChange?.(option.image);
+        onSizeImageChange?.(option.image, index);
     }, [handleCakeInfoChange, loadImageWithoutAnalysis, onSizeImageChange, cakeInfo]);
 
     const renderPickerContent = (cardClass: string, itemsClass: string) => (

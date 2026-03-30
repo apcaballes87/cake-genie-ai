@@ -108,15 +108,29 @@ const ColdCakingClient: React.FC = () => {
     const [combineError, setCombineError] = useState<string | null>(null);
     const [showCustomizer, setShowCustomizer] = useState(true);
     const [hasUploadedPhoto, setHasUploadedPhoto] = useState(false);
+    const [showApplyChanges, setShowApplyChanges] = useState(false);
+    const [originalSizeIndex, setOriginalSizeIndex] = useState<number>(1);
 
     // Cache the base cake image base64 so we don't re-fetch every upload
     const baseCakeImageRef = useRef<{ data: string; mimeType: string } | null>(null);
     const currentSizeImageUrlRef = useRef<string>(DEFAULT_PREVIEW_IMAGE_URL);
+    const uploadedImageRef = useRef<{ data: string; mimeType: string } | null>(null);
+    const currentSizeIndexRef = useRef<number>(1);
 
-    const handleSizeImageChange = useCallback((url: string) => {
+    const handleSizeImageChange = useCallback((url: string, sizeIndex?: number) => {
         currentSizeImageUrlRef.current = url;
         baseCakeImageRef.current = null; // invalidate cache so next combine fetches the new size's image
-    }, []);
+        
+        const newIndex = sizeIndex ?? 1;
+        currentSizeIndexRef.current = newIndex;
+        
+        // Show apply changes button if user has uploaded a photo and changed to a different size
+        if (hasUploadedPhoto && uploadedImageRef.current && newIndex !== originalSizeIndex) {
+            setShowApplyChanges(true);
+        } else if (newIndex === originalSizeIndex) {
+            setShowApplyChanges(false);
+        }
+    }, [hasUploadedPhoto, originalSizeIndex]);
 
     useEffect(() => { setIsMounted(true); }, []);
 
@@ -174,6 +188,8 @@ const ColdCakingClient: React.FC = () => {
         setIsCombining(true);
         setCombineError(null);
         setShowCustomizer(true);
+        setShowApplyChanges(false);
+        setOriginalSizeIndex(currentSizeIndexRef.current); // Store original size when photo is uploaded
 
         // Scroll to customizer section
         setTimeout(() => {
@@ -188,6 +204,7 @@ const ColdCakingClient: React.FC = () => {
 
             // 2. Get the uploaded image as base64
             const overlayImage = await fileToBase64(file);
+            uploadedImageRef.current = overlayImage; // Store for re-applying on size change
 
             // 3. Call Gemini to combine the images
             const response = await fetch('/api/ai/cold-cake-edit', {
@@ -226,6 +243,56 @@ const ColdCakingClient: React.FC = () => {
         } catch (error: any) {
             setIsCombining(false);
             setCombineError(error.message || 'Failed to create your cold cake design. Please try again.');
+        }
+    }, [clearImages, loadImageWithoutAnalysis]);
+
+    const handleApplyChanges = useCallback(async () => {
+        if (!uploadedImageRef.current || !baseCakeImageRef.current) return;
+        
+        setIsCombining(true);
+        setCombineError(null);
+
+        try {
+            // Re-fetch the base cake image for the current size
+            baseCakeImageRef.current = await imageUrlToBase64(currentSizeImageUrlRef.current);
+
+            // Call Gemini to combine the images with the new base cake
+            const response = await fetch('/api/ai/cold-cake-edit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    baseImage: baseCakeImageRef.current,
+                    overlayImage: uploadedImageRef.current,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Failed to combine images' }));
+                throw new Error(errorData.error || 'Failed to combine images');
+            }
+
+            const result = await response.json();
+
+            // Convert the Gemini result back to a File
+            const combinedFile = base64ToFile(
+                result.imageData,
+                result.mimeType,
+                'cold-cake-design.png'
+            );
+
+            // Display the combined image in the customizer (no AI analysis)
+            clearImages();
+            const objectUrl = URL.createObjectURL(combinedFile);
+            await loadImageWithoutAnalysis(objectUrl, {
+                fileName: 'cold-cake-design.png',
+                fallbackMimeType: combinedFile.type,
+            });
+
+            setIsCombining(false);
+            setShowApplyChanges(false);
+        } catch (error: any) {
+            setIsCombining(false);
+            setCombineError(error.message || 'Failed to apply changes. Please try again.');
         }
     }, [clearImages, loadImageWithoutAnalysis]);
 
@@ -401,6 +468,25 @@ const ColdCakingClient: React.FC = () => {
                             hasPhoto={hasUploadedPhoto}
                         />
                         <CustomizingClient hideAiChat={true} isCombining={isCombining} clearMessageTexts={true} hideStickyBar={!hasUploadedPhoto} useBasePriceAsFallback={true} />
+                        {/* Apply Changes button - appears when size changes after photo upload */}
+                        {showApplyChanges && (
+                            <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 md:bottom-8">
+                                <button
+                                    onClick={handleApplyChanges}
+                                    disabled={isCombining}
+                                    className="px-6 py-3 bg-purple-600 text-white font-semibold rounded-full shadow-lg hover:bg-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {isCombining ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                            Applying...
+                                        </>
+                                    ) : (
+                                        'Apply Changes'
+                                    )}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
