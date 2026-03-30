@@ -394,18 +394,14 @@ const ColdCakingClient: React.FC = () => {
                             .coldcaking-customizer-wrapper [class*="messages-panel"] {
                                 display: none !important;
                             }
-                            /* Ensure steps 1-4 containers have lower z-index than the combining overlay */
-                            .coldcaking-customizer-wrapper > div:has(button[data-caketype]),
-                            .coldcaking-customizer-wrapper [class*="z-10"],
-                            .coldcaking-customizer-wrapper [class*="z-20"],
-                            .coldcaking-customizer-wrapper [class*="z-30"],
-                            .coldcaking-customizer-wrapper [class*="z-40"],
-                            .coldcaking-customizer-wrapper [class*="z-50"],
-                            .coldcaking-customizer-wrapper [class*="z-60"],
-                            .coldcaking-customizer-wrapper [class*="z-70"],
-                            .coldcaking-customizer-wrapper [class*="z-80"],
-                            .coldcaking-customizer-wrapper [class*="relative"] {
-                                position: relative;
+                            /* Ensure steps container shares same stacking context as image container */
+                            .coldcaking-customizer-wrapper > div:has(> div[class*="flex"][class*="flex-col"]),
+                            .coldcaking-customizer-wrapper .z-60 {
+                                z-index: 10 !important;
+                            }
+                            /* Image container should be on same level as steps */
+                            .coldcaking-customizer-wrapper div[class*="min-h-"][class*="rounded-2xl"] {
+                                z-index: 10 !important;
                             }
                         `}</style>
                         {/* Step 1 picker — portals its card as first visible step */}
@@ -415,15 +411,6 @@ const ColdCakingClient: React.FC = () => {
                             onUploadClick={() => setIsUploaderOpen(true)}
                             hasPhoto={hasUploadedPhoto}
                         />
-
-                        {/* Combining overlay — shown on top while Gemini is processing */}
-                        {isCombining && (
-                            <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/95 backdrop-blur-md">
-                                <LoadingSpinner />
-                                <p className="mt-4 text-sm font-semibold text-slate-700">Creating your cold cake design...</p>
-                                <p className="text-xs text-slate-500 mt-1">Printing your image onto the cake with AI</p>
-                            </div>
-                        )}
                         <CustomizingClient hideAiChat={true} />
                     </div>
                 )}
