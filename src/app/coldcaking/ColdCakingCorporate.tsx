@@ -7,22 +7,22 @@ const corporateReasons = [
     {
         emoji: '🎯',
         title: 'Get Noticed',
-        description: 'Stand out from the sea of generic gifts. A custom-printed cake with your brand, message, or visual makes an unforgettable impression that competitors simply can\'t match.',
+        description: 'Stand out from the sea of generic gifts. A custom-printed cake with your brand, message, or visual makes an unforgettable impression.',
     },
     {
         emoji: '🗣️',
         title: 'Get Heard',
-        description: 'Turn every celebration into a storytelling opportunity. Print your pitch, key metrics, or brand message on cake — it sparks conversations and reinforces your value proposition organically.',
+        description: 'Turn every celebration into storytelling. Print your pitch, metrics, or brand message on cake — sparks conversations naturally.',
     },
     {
         emoji: '💝',
         title: 'Make Employees Feel Appreciated',
-        description: 'Celebrate work anniversaries, promotions, birthdays, and team wins with personalized cakes. Show your team they matter beyond the spreadsheet — boost morale and build loyalty.',
+        description: 'Celebrate work anniversaries, promotions, birthdays, and wins with personalized cakes. Show your team they matter beyond the spreadsheet.',
     },
     {
         emoji: '🤝',
         title: 'Make Clients Feel Valued',
-        description: 'Strengthen business relationships with thoughtful gestures. A custom cake for client celebrations, project wins, or holiday greetings builds emotional connection beyond transactions.',
+        description: 'Strengthen relationships with thoughtful gestures. Custom cakes for client celebrations build emotional connection beyond transactions.',
     },
 ];
 
@@ -37,55 +37,46 @@ const occasions = [
 
 export const ColdCakingCorporate = React.memo(() => {
     return (
-        <section className="py-6 md:py-10">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 rounded-3xl p-6 md:p-10 text-white shadow-2xl">
-                    <div className="text-center mb-8">
-                        <span className="inline-block px-3 py-1 bg-purple-500/30 rounded-full text-purple-200 text-xs font-semibold tracking-wide uppercase mb-3">
-                            Corporate & B2B Solutions
-                        </span>
-                        <h2 className="text-2xl md:text-3xl font-bold mb-3">
-                            Make Your Corporate Gifting Actually Work for You
-                        </h2>
-                        <p className="text-purple-100 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-                            Stop sending generic gift baskets that blend into the noise. Cold cakes help you{' '}
-                            <strong>get noticed, get heard, and make people feel appreciated</strong> — all while enjoying a delicious, custom-designed cake.
-                        </p>
-                    </div>
+        <section className="py-4 md:py-6">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 className="text-[22px] md:text-[28px] font-bold text-gray-900 mb-4">
+                    Corporate Gifting That Actually Works for Your Business
+                </h2>
+                <div className="prose prose-base md:prose-lg mx-auto text-gray-600 space-y-4 md:space-y-6 leading-relaxed">
+                    <p>
+                        <strong>Cold cakes turn every celebration into a strategic opportunity.</strong> Print your brand, message, or visuals on a custom cake to get noticed, get heard, and make people feel appreciated — all while enjoying a delicious, memorable treat.
+                    </p>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                    <ul className="text-left space-y-3 list-none pl-0">
                         {corporateReasons.map((reason) => (
-                            <div
-                                key={reason.title}
-                                className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:bg-white/15 transition-colors"
+                            <li key={reason.title} className="flex items-start">
+                                <span className="text-purple-500 mr-2 mt-1">{reason.emoji}</span>
+                                <span><strong>{reason.title}</strong> — {reason.description}</span>
+                            </li>
+                        ))}
+                    </ul>
+
+                    <h3 className="text-[18px] md:text-[21px] font-bold text-gray-800 mt-6 mb-2">
+                        Perfect for Every Corporate Occasion
+                    </h3>
+                    <p>
+                        Whether it's employee appreciation, client retention, or prospect outreach — we've got you covered:
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm font-semibold text-purple-700 mt-4">
+                        {occasions.map((occasion) => (
+                            <Link
+                                key={occasion.label}
+                                href={occasion.href}
+                                className="bg-purple-50 py-2 px-4 rounded-lg hover:bg-purple-100 transition"
                             >
-                                <div className="flex items-start gap-3">
-                                    <span className="text-2xl shrink-0">{reason.emoji}</span>
-                                    <div>
-                                        <h3 className="font-bold text-white text-base mb-1">{reason.title}</h3>
-                                        <p className="text-purple-100 text-sm leading-relaxed">{reason.description}</p>
-                                    </div>
-                                </div>
-                            </div>
+                                {occasion.label}
+                            </Link>
                         ))}
                     </div>
 
-                    <div className="text-center">
-                        <p className="text-purple-200 text-sm font-medium mb-4">
-                            Perfect for employee engagement, client retention, and prospect outreach
-                        </p>
-                        <div className="flex flex-wrap justify-center gap-2">
-                            {occasions.map((occasion) => (
-                                <Link
-                                    key={occasion.label}
-                                    href={occasion.href}
-                                    className="px-4 py-2 bg-purple-600/80 hover:bg-purple-500 text-white text-sm font-semibold rounded-full transition-colors"
-                                >
-                                    {occasion.label}
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
+                    <p className="mt-5">
+                        Your corporate cake wish, granted. Upload your design or browse our corporate templates today.
+                    </p>
                 </div>
             </div>
         </section>
