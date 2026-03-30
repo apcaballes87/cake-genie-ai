@@ -54,18 +54,18 @@ export const ColdCakingHero = React.memo(({ onUploadClick }: ColdCakingHeroProps
                         alt="Cold Caking - Edible photo cake with custom print"
                         className="w-full h-auto object-cover max-h-[480px]"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/85 via-white/50 to-transparent" />
-                    <div className="absolute inset-0 p-10 lg:p-14 flex flex-col justify-center w-[55%] lg:w-[50%]">
+                    <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/40 to-transparent" />
+                    <div className="absolute inset-0 p-10 lg:p-14 flex flex-col items-center justify-center">
                         <p className="text-xs lg:text-sm font-bold text-purple-600 uppercase tracking-[0.15em] mb-3">
                             Print your brand on a cake
                         </p>
-                        <h1 className="text-4xl lg:text-5xl font-extrabold text-slate-900 leading-[1.08] tracking-tight mb-4">
+                        <h1 className="text-4xl lg:text-5xl font-extrabold text-slate-900 leading-[1.08] tracking-tight mb-4 text-center">
                             <span className="text-purple-600">Land meetings,</span> Not rejections
                         </h1>
-                        <p className="text-sm lg:text-base text-slate-700 leading-relaxed mb-6 max-w-md">
+                        <p className="text-sm lg:text-base text-slate-700 leading-relaxed mb-8 text-center max-w-lg">
                             A startup founder sent 7 pitch cakes to top VCs and got 5 meetings.<br />Now it&apos;s your turn.
                         </p>
-                        <div className="flex flex-col items-start gap-1.5">
+                        <div className="flex flex-col items-center gap-1.5">
                             <button
                                 onClick={onUploadClick}
                                 className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3.5 lg:px-8 lg:py-4 rounded-full font-bold transition-all shadow-lg active:scale-[0.98] text-sm lg:text-base whitespace-nowrap"
@@ -74,7 +74,7 @@ export const ColdCakingHero = React.memo(({ onUploadClick }: ColdCakingHeroProps
                                 Upload your pitch here
                                 <ArrowRight size={14} className="shrink-0" />
                             </button>
-                            <p className="text-xs text-white/60 ml-2">
+                            <p className="text-xs text-slate-500">
                                 We&apos;ll print it on top of the cake
                             </p>
                         </div>
