@@ -39,7 +39,7 @@ export const ColdCakingHero = React.memo(({ onUploadClick }: ColdCakingHeroProps
                         className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3.5 rounded-full font-bold transition-all shadow-md active:scale-[0.98] text-xs whitespace-nowrap w-full"
                     >
                         <Upload size={16} className="shrink-0" />
-                        Upload your pitch here
+                        Upload any image here
                         <ArrowRight size={14} className="shrink-0" />
                     </button>
                     <p className="text-[10px] text-slate-500 text-center mt-1.5">
@@ -70,13 +70,13 @@ export const ColdCakingHero = React.memo(({ onUploadClick }: ColdCakingHeroProps
                                 Now it&apos;s your turn.
                             </p>
                         </div>
-                        <div className="flex flex-col items-end gap-1.5">
+                        <div className="flex flex-col items-center gap-1.5">
                             <button
                                 onClick={onUploadClick}
                                 className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3.5 lg:px-8 lg:py-4 rounded-full font-bold transition-all shadow-lg active:scale-[0.98] text-sm lg:text-base whitespace-nowrap"
                             >
                                 <Upload size={15} className="shrink-0" />
-                                Upload your pitch here
+                                Upload any image here
                                 <ArrowRight size={14} className="shrink-0" />
                             </button>
                             <p className="text-xs text-slate-500">
