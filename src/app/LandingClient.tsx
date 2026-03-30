@@ -543,9 +543,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         <br className="max-[414px]:hidden" />
                                         right now.
                                     </h2>
-                                    <p className="text-xs text-gray-700 leading-relaxed font-medium max-[454px]:hidden">
-                                    Upload any cake photo. Get your price in seconds. Order it same day.
-                                    </p>
                                 </div>
                             </div>
 
@@ -553,7 +550,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             <p className="hidden max-[454px]:block text-xs text-gray-700 leading-relaxed font-medium text-center mb-5 px-2">
                                 Upload any cake photo. Get your price in seconds. Order it same day.
                             </p>
-                            
+                             
                             {/* Buttons under the image (1 line) */}
                             <div className="flex items-center gap-2 w-full">
                                 <button
@@ -569,6 +566,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     {isUploading ? 'Uploading...' : 'Upload Your Design - Get Instant Pricing'}
                                 </button>
                             </div>
+                            <p className="max-[454px]:hidden text-xs text-gray-700 leading-relaxed font-medium text-center mt-2">
+                                Upload any cake photo. Get your price in seconds. Order it same day.
+                            </p>
                         </div>
 
                         {/* Desktop Hero View: Image with text overlay */}
@@ -589,9 +589,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     <br />
                                     right now.
                                 </h2>
-                                <p className="text-sm lg:text-base text-gray-700 leading-relaxed mb-8 max-w-md">
-                                    Upload any cake photo. Get your price in seconds. Order it same day.
-                                </p>
                                 <div className="flex items-center gap-3">
                                     <button
                                         disabled={isUploading}
@@ -607,6 +604,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         <ArrowRight size={14} className="shrink-0" />
                                     </button>
                                 </div>
+                                <p className="text-sm lg:text-base text-gray-700 leading-relaxed mt-4">
+                                    Upload any cake photo. Get your price in seconds. Order it same day.
+                                </p>
                             </div>
                         </div>
                     </div>
