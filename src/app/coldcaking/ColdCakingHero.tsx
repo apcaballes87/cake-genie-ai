@@ -21,15 +21,15 @@ export const ColdCakingHero = React.memo(({ onUploadClick }: ColdCakingHeroProps
                             alt="Cold Caking - Edible photo cake with custom print"
                             className="w-full h-auto object-cover"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/30 to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 p-5">
-                            <p className="text-[10px] font-bold text-purple-300 uppercase tracking-[0.15em] mb-1.5">
+                            <p className="text-[10px] font-bold text-purple-600 uppercase tracking-[0.15em] mb-1.5">
                                 Print your brand on a cake
                             </p>
-                            <h1 className="text-2xl font-extrabold text-white leading-tight tracking-tight mb-2">
-                                <span className="text-purple-300">Land meetings,</span> Not rejections
+                            <h1 className="text-2xl font-extrabold text-slate-900 leading-tight tracking-tight mb-2">
+                                <span className="text-purple-600">Land meetings,</span> Not rejections
                             </h1>
-                            <p className="text-xs text-white/80 leading-relaxed">
+                            <p className="text-xs text-slate-700 leading-relaxed">
                                 A startup founder sent 7 pitch cakes to top VCs and got 5 meetings. Now it&apos;s your turn.
                             </p>
                         </div>
@@ -54,15 +54,15 @@ export const ColdCakingHero = React.memo(({ onUploadClick }: ColdCakingHeroProps
                         alt="Cold Caking - Edible photo cake with custom print"
                         className="w-full h-auto object-cover max-h-[480px]"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/50 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/85 via-white/50 to-transparent" />
                     <div className="absolute inset-0 p-10 lg:p-14 flex flex-col justify-center w-[55%] lg:w-[50%]">
-                        <p className="text-xs lg:text-sm font-bold text-purple-300 uppercase tracking-[0.15em] mb-3">
+                        <p className="text-xs lg:text-sm font-bold text-purple-600 uppercase tracking-[0.15em] mb-3">
                             Print your brand on a cake
                         </p>
-                        <h1 className="text-4xl lg:text-5xl font-extrabold text-white leading-[1.08] tracking-tight mb-4">
-                            <span className="text-purple-300">Land meetings,</span> Not rejections
+                        <h1 className="text-4xl lg:text-5xl font-extrabold text-slate-900 leading-[1.08] tracking-tight mb-4">
+                            <span className="text-purple-600">Land meetings,</span> Not rejections
                         </h1>
-                        <p className="text-sm lg:text-base text-white/80 leading-relaxed mb-6 max-w-md">
+                        <p className="text-sm lg:text-base text-slate-700 leading-relaxed mb-6 max-w-md">
                             A startup founder sent 7 pitch cakes to top VCs and got 5 meetings.<br />Now it&apos;s your turn.
                         </p>
                         <div className="flex flex-col items-start gap-1.5">
