@@ -27,7 +27,7 @@ export const ColdCakingHero = React.memo(({ onUploadClick }: ColdCakingHeroProps
                                 The boldest outreach tactic of 2026
                             </p>
                             <h1 className="text-2xl font-extrabold text-white leading-tight tracking-tight mb-2">
-                                Cold Caking
+                                Get noticed by your prospects by doing <span className="text-purple-300">"Cold Caking"</span>
                             </h1>
                             <p className="text-xs text-white/80 leading-relaxed">
                                 Print your pitch deck, seed memo, or any message directly onto a cake. Get noticed. Get the meeting.
@@ -60,7 +60,7 @@ export const ColdCakingHero = React.memo(({ onUploadClick }: ColdCakingHeroProps
                             The boldest outreach tactic of 2026
                         </p>
                         <h1 className="text-4xl lg:text-5xl font-extrabold text-white leading-[1.08] tracking-tight mb-4">
-                            Cold Caking
+                            Get noticed by your prospects by doing <span className="text-purple-300">"Cold Caking"</span>
                         </h1>
                         <p className="text-sm lg:text-base text-white/80 leading-relaxed mb-6 max-w-md">
                             Print your pitch deck, seed memo, or any message directly onto a cake. A startup founder sent 7 pitch cakes to top VCs — and got 5 meetings. Now it&apos;s your turn.
