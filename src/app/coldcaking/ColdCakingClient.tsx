@@ -280,7 +280,7 @@ const ColdCakingClient: React.FC = () => {
     }, [clearImages, loadImageWithoutAnalysis]);
 
     const handleApplyChanges = useCallback(async () => {
-        if (!uploadedImageRef.current || !baseCakeImageRef.current) return;
+        if (!uploadedImageRef.current) return;
         
         setIsCombining(true);
         setCombineError(null);
@@ -323,6 +323,7 @@ const ColdCakingClient: React.FC = () => {
 
             setIsCombining(false);
             setShowApplyChanges(false);
+            setOriginalSizeIndex(currentSizeIndexRef.current); // New size is now the baseline
         } catch (error: any) {
             setIsCombining(false);
             setCombineError(error.message || 'Failed to apply changes. Please try again.');
