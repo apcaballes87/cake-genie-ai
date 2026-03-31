@@ -6,29 +6,29 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-    title: { absolute: 'Cold Caking - Print Your Pitch on a Cake | Genie.ph' },
-    description: 'Upload your pitch deck, seed memo, or any image and get it printed on a custom cake. Inspired by the viral VC pitch cake trend — cold caking is the boldest outreach tactic of 2026.',
+    title: { absolute: 'Corporate Cake Gifts | The Best Way to Order Custom Cakes for Business' },
+    description: 'Order custom corporate cakes and gifts for your team and clients. Print your logo, brand, or message on a delicious cake. Perfect for giveaways, celebrations, and business events.',
     openGraph: {
-        title: 'Cold Caking - Print Your Pitch on a Cake | Genie.ph',
-        description: 'Upload your pitch deck, seed memo, or any image and get it printed on a custom cake. The boldest outreach tactic of 2026.',
+        title: 'Corporate Cake Gifts | The Best Way to Order Custom Cakes for Business',
+        description: 'Order custom corporate cakes and gifts for your team and clients. Print your logo on a delicious cake. Perfect for giveaways, celebrations, and business events.',
         type: 'website',
         url: 'https://genie.ph/coldcaking',
         images: [{
-            url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta-GENIE.jpg',
+            url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cold-caking/corporate-giveaways-cakes-hero.webp',
             width: 1200,
             height: 630,
-            alt: 'Cold Caking - Print Your Pitch on a Cake',
+            alt: 'Corporate Cake Gifts - Custom Cakes for Business',
         }],
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'Cold Caking - Print Your Pitch on a Cake | Genie.ph',
-        description: 'Upload your pitch deck, seed memo, or any image and get it printed on a custom cake. The boldest outreach tactic of 2026.',
+        title: 'Corporate Cake Gifts | The Best Way to Order Custom Cakes for Business',
+        description: 'Order custom corporate cakes and gifts for your team and clients. Print your logo on a delicious cake. Perfect for giveaways, celebrations, and business events.',
         images: [{
-            url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta-GENIE.jpg',
+            url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cold-caking/corporate-giveaways-cakes-hero.webp',
             width: 1200,
             height: 630,
-            alt: 'Cold Caking - Print Your Pitch on a Cake',
+            alt: 'Corporate Cake Gifts - Custom Cakes for Business',
         }],
     },
     alternates: {
@@ -40,10 +40,10 @@ export default function ColdCakingPage() {
     const jsonLd = {
         '@context': 'https://schema.org',
         '@type': 'WebPage',
-        name: 'Cold Caking - Print Your Pitch on a Cake',
-        description: 'Upload your pitch deck, seed memo, or any image and get it printed on a custom cake. Inspired by the viral VC pitch cake trend.',
+        name: 'Corporate Cake Gifts | The Best Way to Order Custom Cakes for Business',
+        description: 'Order custom corporate cakes and gifts for your team and clients. Print your logo, brand, or message on a delicious cake.',
         url: 'https://genie.ph/coldcaking',
-        image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta-GENIE.jpg',
+        image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cold-caking/corporate-giveaways-cakes-hero.webp',
         publisher: {
             '@type': 'Organization',
             name: 'Genie.ph'
