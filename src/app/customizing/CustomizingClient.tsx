@@ -2869,8 +2869,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     isOpen={activeCustomization !== null}
                     activeCustomization={activeCustomization}
                     activeTopperSection={activeTopperSection}
-                    showAvailabilityOffset={Boolean(availabilityType) && !isAnalyzing}
-                    showWarningOffset={Boolean(warningMessage)}
+                    hideStickyBar={hideStickyBar}
+                    hideAiChat={hideAiChat}
+                    showAvailabilityOffset={!hideStickyBar && Boolean(availabilityType) && !isAnalyzing}
+                    showWarningOffset={!hideStickyBar && Boolean(warningMessage)}
                     hasCakeInfoChanges={dirtyFields.has('cakeInfo')}
                     hasPendingVisualChanges={hasPendingVisualChanges}
                     isUpdatingDesign={isUpdatingDesign}
