@@ -142,7 +142,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                 <div className="text-left">
                     <span className="text-lg font-bold text-slate-800">₱{price.toLocaleString()}</span>
                     {cakeInfo && cakeInfo.size && cakeInfo.thickness ? (
-                        <span className="text-[10px] text-slate-500 block whitespace-nowrap">{`${cakeInfo.size} ${cakeInfo.thickness.replace(' in', '" Height')}`}</span>
+                        <span className="text-[9px] text-slate-500 block whitespace-nowrap">{`${cakeInfo.size} ${cakeInfo.thickness.replace(' in', '" Height')}`}</span>
                     ) : (
                         <span className="text-[10px] text-slate-500 block">Final Price</span>
                     )}
@@ -370,18 +370,18 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                         <div className="min-w-[100px] min-h-[48px] flex items-center relative">
                             {renderPrice()}
                         </div>
-                        <div className="flex flex-1 gap-2 sm:gap-3 min-w-0" ref={buttonsRef}>
+                        <div className="flex flex-1 gap-2 min-w-0" ref={buttonsRef}>
                             <ShareButton
                                 onClick={onShareClick}
                                 isLoading={isSharing}
                                 disabled={!canShare || isApplyingChanges}
-                                className="flex-1 min-w-0 h-12"
+                                className="shrink-0"
                                 showText={!isCompact}
                             />
                             {onChatClick && (
                                 <ChatButton
                                     onClick={onChatClick}
-                                    className="flex-1 min-w-0 h-12"
+                                    className="shrink-0"
                                     showText={!isCompact}
                                 />
                             )}
