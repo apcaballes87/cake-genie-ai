@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Home, Cake, ImagePlus, Heart, User } from 'lucide-react';
+import { Home, Cake, ImagePlus, User, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSavedItemsData } from '@/contexts/SavedItemsContext';
+import { MessageCircle } from './icons';
 
 interface MobileBottomNavProps {
     onUploadClick?: () => void;
@@ -14,7 +14,6 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
     const router = useRouter();
     const pathname = usePathname();
     const { isAuthenticated, user } = useAuth();
-    const { savedItems } = useSavedItemsData();
 
     // Determine active tab based on current path
     const getActiveTab = (): string => {
@@ -34,6 +33,13 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
         } else {
             // If no upload handler provided, navigate to home and trigger upload there
             router.push('/?upload=true');
+        }
+    };
+
+    const handleChatClick = () => {
+        if (window.Tawk_API) {
+            window.Tawk_API.showWidget();
+            window.Tawk_API.popup();
         }
     };
 
@@ -72,16 +78,19 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
             </button>
 
             <button
+                onClick={handleChatClick}
+                className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'chat' ? 'text-purple-600' : 'hover:text-gray-500'}`}
+            >
+                <MessageCircle className={`w-[22px] h-[22px] ${activeTab === 'chat' ? 'text-purple-600' : 'text-gray-300'}`} />
+                <span className="text-[9px] font-bold">Chat</span>
+            </button>
+
+            <button
                 onClick={handleSavedClick}
                 className={`flex flex-col items-center gap-1 transition-colors relative ${activeTab === 'saved' ? 'text-purple-600' : 'hover:text-gray-500'}`}
             >
                 <div className="relative">
-                    <Heart size={22} strokeWidth={activeTab === 'saved' ? 2.5 : 2} fill={activeTab === 'saved' ? 'currentColor' : 'none'} />
-                    {savedItems.length > 0 && (
-                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
-                            {savedItems.length > 9 ? '9+' : savedItems.length}
-                        </span>
-                    )}
+                    <Heart size={22} strokeWidth={activeTab === 'saved' ? 2.5 : 2} className={activeTab === 'saved' ? 'text-purple-600' : ''} fill={activeTab === 'saved' ? 'currentColor' : 'none'} />
                 </div>
                 <span className="text-[9px] font-bold">Saved</span>
             </button>
