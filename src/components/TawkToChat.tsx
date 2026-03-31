@@ -70,6 +70,8 @@ export const TawkToChat = () => {
             if (process.env.NODE_ENV === 'development') {
                 console.log('[Tawk.to] Widget loaded successfully');
             }
+            // Hide the floating widget - we show a custom button instead
+            window.Tawk_API.hideWidget();
         };
 
         window.Tawk_API.onStatusChange = function (status: string) {

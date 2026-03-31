@@ -545,6 +545,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         originalImageUrl: seoMetadata?.original_image_url || null,
     });
 
+    const handleChatClick = React.useCallback(() => {
+        if (window.Tawk_API) {
+            window.Tawk_API.popup();
+        }
+    }, []);
+
     const knownSeoMetadata = useMemo(
         () => buildKnownSeoMetadata(product, recentSearchDesign),
         [product, recentSearchDesign]
@@ -3016,6 +3022,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     error={hideStickyBar ? null : (basePriceError || analysisError || null)}
                     onAddToCartClick={onAddToCart}
                     onShareClick={onShare}
+                    onChatClick={handleChatClick}
                     isSharing={isSharing}
                     canShare={!!analysisResult && isAnalysisCached}
                     isAnalyzing={hideStickyBar ? false : isAnalyzing}

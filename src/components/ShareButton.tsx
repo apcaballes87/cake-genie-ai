@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Share2Icon, Loader2 } from './icons';
+import { Share2Icon, Loader2, MessageCircle } from './icons';
 
 interface ShareButtonProps {
   onClick: () => void;
@@ -28,8 +28,8 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         onClick={onClick}
         disabled={isEffectivelyDisabled}
         className={`
-          w-full flex items-center justify-center gap-2
-          px-4 py-3 h-full
+          w-14 sm:w-auto flex items-center justify-center gap-2
+          px-3 sm:px-4 py-3 h-full
           bg-white border-2 border-pink-500 
           text-pink-600 font-bold text-sm
           rounded-xl shadow-sm
@@ -60,5 +60,56 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         </div>
       )}
     </div>
+  );
+};
+
+interface ChatButtonProps {
+  onClick: () => void;
+  isLoading?: boolean;
+  disabled?: boolean;
+  showText?: boolean;
+  className?: string;
+}
+
+export const ChatButton: React.FC<ChatButtonProps> = ({ 
+  onClick, 
+  isLoading = false,
+  disabled = false,
+  showText = true,
+  className = '' 
+}) => {
+  const isEffectivelyDisabled = isLoading || disabled;
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={isEffectivelyDisabled}
+      className={`
+        w-14 sm:w-auto flex items-center justify-center gap-2
+        px-3 sm:px-4 py-3 h-full
+        bg-white border-2 border-purple-500 
+        text-purple-600 font-bold text-sm
+        rounded-xl shadow-sm
+        hover:bg-purple-50 hover:shadow-md
+        transition-all
+        disabled:opacity-50 disabled:cursor-not-allowed
+        whitespace-nowrap
+        ${className}
+      `}
+      aria-label={isLoading ? "Opening chat" : "Chat with us"}
+      type="button"
+    >
+      {isLoading ? (
+        <>
+          <Loader2 className="w-5 h-5 animate-spin" />
+          {showText && <span>Connecting...</span>}
+        </>
+      ) : (
+        <>
+          <MessageCircle className="w-5 h-5" />
+          {showText && <span>Chat</span>}
+        </>
+      )}
+    </button>
   );
 };

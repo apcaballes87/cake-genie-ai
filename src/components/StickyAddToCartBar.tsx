@@ -2,7 +2,7 @@
 import React from 'react';
 import { Loader2, AlertTriangleIcon, CartIcon } from './icons';
 import { X, ShieldCheck } from 'lucide-react';
-import { ShareButton } from './ShareButton';
+import { ShareButton, ChatButton } from './ShareButton';
 import { CakeInfoUI } from '@/types';
 import { AvailabilityType } from '@/lib/utils/availability';
 import { ColorPalette } from './ColorPalette';
@@ -17,6 +17,7 @@ interface StickyAddToCartBarProps {
     error: string | null;
     onAddToCartClick: () => void;
     onShareClick: () => void;
+    onChatClick?: () => void;
     isSharing: boolean;
     canShare: boolean;
     isAnalyzing?: boolean;
@@ -61,6 +62,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     error,
     onAddToCartClick,
     onShareClick,
+    onChatClick,
     isSharing,
     canShare,
     isAnalyzing,
@@ -108,9 +110,9 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
 
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
-                // If width is less than ~230px, we switch to compact mode
-                // This value is based on: Share Button (~90px) + "Add to Cart" (~130px) + Gap (12px)
-                setIsCompact(entry.contentRect.width < 230);
+                // If width is less than ~280px, we switch to compact mode (icons only)
+                // This value is based on: Share Button (~90px) + Chat Button (~90px) + "Add to Cart" (~130px) + Gaps (24px)
+                setIsCompact(entry.contentRect.width < 280);
             }
         });
 
@@ -376,6 +378,13 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                                 className="flex-1 min-w-0"
                                 showText={!isCompact}
                             />
+                            {onChatClick && (
+                                <ChatButton
+                                    onClick={onChatClick}
+                                    className="flex-1 min-w-0"
+                                    showText={!isCompact}
+                                />
+                            )}
                             <button
                                 onClick={onAddToCartClick}
                                 disabled={isLoading || !!error || price === null || isAdding || isAnalyzing || chatInput.trim().length > 0}
