@@ -16,6 +16,8 @@ interface CustomizingEditorSheetProps {
     isUpdatingDesign: boolean;
     hasOriginalImageData: boolean;
     isEmpty?: boolean;
+    hideStickyBar?: boolean;
+    hideAiChat?: boolean;
     onClose: () => void;
     onApplyOptions: () => void;
     onApplyPendingDesignChanges: () => void;
@@ -47,13 +49,19 @@ export const CustomizingEditorSheet = memo(function CustomizingEditorSheet({
     isUpdatingDesign,
     hasOriginalImageData,
     isEmpty,
+    hideStickyBar,
+    hideAiChat,
     onClose,
     onApplyOptions,
     onApplyPendingDesignChanges,
     children,
 }: CustomizingEditorSheetProps) {
     const title = getEditorTitle(activeCustomization, activeTopperSection);
-    const bottomOffset = 130 + (showAvailabilityOffset ? 38 : 0) + (showWarningOffset ? 38 : 0);
+    // Base matches StickyAddToCartBar spacer height: 72px (no AI chat) or 114px (with AI chat)
+    const baseOffset = hideAiChat ? 80 : 130;
+    const bottomOffset = hideStickyBar
+        ? 0
+        : baseOffset + (showAvailabilityOffset ? 38 : 0) + (showWarningOffset ? 38 : 0);
 
     const actionButton = activeCustomization === 'options'
         ? (hasCakeInfoChanges ? (
