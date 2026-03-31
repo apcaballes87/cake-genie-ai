@@ -35,6 +35,10 @@ const DEFAULT_CAKE_IMAGE_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage
 
 const DEFAULT_PREVIEW_IMAGE_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cold-caking/6in-1layer-cake.webp';
 
+// Edible photo addon price per size index — matches SIZES order in ColdCakingCakePicker
+// [0]=Bento, [1]=6" Round, [2]=8" Round, [3]=8x8, [4]=8x12
+const EDIBLE_PHOTO_ADDON_PRICES: readonly number[] = [0, 100, 200, 200, 200];
+
 const relatedDesignBreakpoints = {
     default: 6,
     1536: 6,
@@ -115,6 +119,7 @@ const ColdCakingClient: React.FC = () => {
     const [hasUploadedPhoto, setHasUploadedPhoto] = useState(false);
     const [showApplyChanges, setShowApplyChanges] = useState(false);
     const [originalSizeIndex, setOriginalSizeIndex] = useState<number>(1);
+    const [ediblePhotoAddonPrice, setEdiblePhotoAddonPrice] = useState<number>(0);
 
     // Cache the base cake image base64 so we don't re-fetch every upload
     const baseCakeImageRef = useRef<{ data: string; mimeType: string } | null>(null);
@@ -125,15 +130,18 @@ const ColdCakingClient: React.FC = () => {
     const handleSizeImageChange = useCallback((url: string, sizeIndex?: number) => {
         currentSizeImageUrlRef.current = url;
         baseCakeImageRef.current = null; // invalidate cache so next combine fetches the new size's image
-        
+
         const newIndex = sizeIndex ?? 1;
         currentSizeIndexRef.current = newIndex;
-        
-        // Show apply changes button if user has uploaded a photo and changed to a different size
-        if (hasUploadedPhoto && uploadedImageRef.current && newIndex !== originalSizeIndex) {
-            setShowApplyChanges(true);
-        } else if (newIndex === originalSizeIndex) {
-            setShowApplyChanges(false);
+
+        if (hasUploadedPhoto && uploadedImageRef.current) {
+            setEdiblePhotoAddonPrice(EDIBLE_PHOTO_ADDON_PRICES[newIndex]);
+            // Show apply changes button if changed to a different size
+            if (newIndex !== originalSizeIndex) {
+                setShowApplyChanges(true);
+            } else {
+                setShowApplyChanges(false);
+            }
         }
     }, [hasUploadedPhoto, originalSizeIndex]);
 
@@ -262,9 +270,11 @@ const ColdCakingClient: React.FC = () => {
             });
 
             setIsCombining(false);
+            setEdiblePhotoAddonPrice(EDIBLE_PHOTO_ADDON_PRICES[currentSizeIndexRef.current]);
             setHasUploadedPhoto(true);
         } catch (error: any) {
             setIsCombining(false);
+            setEdiblePhotoAddonPrice(0);
             setCombineError(error.message || 'Failed to create your cold cake design. Please try again.');
         }
     }, [clearImages, loadImageWithoutAnalysis]);
@@ -559,7 +569,7 @@ const ColdCakingClient: React.FC = () => {
                             onUploadClick={() => setIsUploaderOpen(true)}
                             hasPhoto={hasUploadedPhoto}
                         />
-                        <CustomizingClient hideAiChat={true} isCombining={isCombining} clearMessageTexts={true} hideStickyBar={!hasUploadedPhoto} useBasePriceAsFallback={true} />
+                        <CustomizingClient hideAiChat={true} isCombining={isCombining} clearMessageTexts={true} hideStickyBar={!hasUploadedPhoto} useBasePriceAsFallback={true} ediblePhotoAddonPrice={hasUploadedPhoto ? ediblePhotoAddonPrice : 0} />
                     </div>
                 )}
 
