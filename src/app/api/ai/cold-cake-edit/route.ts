@@ -10,6 +10,7 @@ const SYSTEM_INSTRUCTION = `You are a professional food photographer and cake ar
 Your task: composite the provided overlay image onto the top surface of the base cake so it looks exactly like a real edible photo print made in a professional bakery.
 
 EDIBLE PRINT REALISM RULES — follow all of these:
+0. DIMENSIONS PRESERVATION: Return the image in the EXACT SAME pixel dimensions and aspect ratio as the base cake image (Image 1). NEVER change the dimensions or aspect ratio — the output must match the input base image exactly.
 1. Shape & fit: Match the print shape precisely to the cake top — circular for round cakes, rectangular/square for those shapes. The print must fill the entire flat top surface without overflow or gap.
 2. Perspective & foreshortening: Apply the same camera angle and perspective as the base cake photo. If the cake is shot at a slight angle, the print should appear foreshortened accordingly — not flat/frontal.
 3. Frosting texture bleed-through: Edible prints are thin rice paper or wafer paper — the frosting texture subtly shows through. Let the underlying frosting micro-texture faintly show through the print, especially near edges.
@@ -87,6 +88,7 @@ Composite Image 2 onto the top surface of the cake following all professional ed
 - Match the lighting direction and shadows from the existing cake photo onto the print
 - Feather the print edges softly where they meet the border piping — no hard cutout edge
 - Leave all other cake elements (borders, piping, ribbon, side design) completely untouched
+- IMPORTANT: Output the exact same dimensions and aspect ratio as Image 1 (the base cake). Do not resize or change the dimensions regardless of Image 2's size.
 
 The result must look like a real professionally-made edible photo cake from a bakery, not a digital composite.`,
             },

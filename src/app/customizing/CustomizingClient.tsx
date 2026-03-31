@@ -280,9 +280,10 @@ interface CustomizingClientProps {
     clearMessageTexts?: boolean;
     hideStickyBar?: boolean;
     useBasePriceAsFallback?: boolean;
+    ediblePhotoAddonPrice?: number;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false, hideStickyBar = false, useBasePriceAsFallback = false }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false, hideStickyBar = false, useBasePriceAsFallback = false, ediblePhotoAddonPrice = 0 }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const params = useParams();
@@ -707,8 +708,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 cake_thickness: cakeInfo.thickness,
                 cake_size: cakeInfo.size,
                 base_price: basePrice || 0,
-                addon_price: (finalPrice || 0) - (basePrice || 0),
-                final_price: finalPrice || 0,
+                addon_price: (finalPrice || 0) - (basePrice || 0) + ediblePhotoAddonPrice,
+                final_price: (finalPrice || 0) + ediblePhotoAddonPrice,
                 quantity: 1,
                 original_image_url: optimisticOriginal, // Base64
                 customized_image_url: optimisticCustomized, // Base64
@@ -764,6 +765,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         icingDesign,
         additionalInstructions,
         addToCartWithBackgroundUpload,
+        ediblePhotoAddonPrice,
         router,
     ]);
 
@@ -3016,7 +3018,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 </div>
 
                 <StickyAddToCartBar
-                    price={hideStickyBar ? null : (finalPrice ?? (useBasePriceAsFallback ? (basePrice ?? null) : null))}
+                    price={hideStickyBar ? null : (() => { const raw = finalPrice ?? (useBasePriceAsFallback ? (basePrice ?? null) : null); return raw !== null ? raw + ediblePhotoAddonPrice : null; })()}
+                    ediblePhotoAddonNote={!hideStickyBar && ediblePhotoAddonPrice > 0}
                     isLoading={hideStickyBar ? false : isFetchingBasePrice}
                     isAdding={isAddingToCart}
                     error={hideStickyBar ? null : (basePriceError || analysisError || null)}

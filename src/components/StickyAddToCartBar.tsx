@@ -53,6 +53,7 @@ interface StickyAddToCartBarProps {
     onTemplateClear?: () => void;
     onTemplateColorChange?: (color: string) => void | Promise<void>;
     hideAiChat?: boolean;
+    ediblePhotoAddonNote?: boolean;
 }
 
 const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
@@ -95,6 +96,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     onTemplateClear,
     onTemplateColorChange,
     hideAiChat = false,
+    ediblePhotoAddonNote = false,
 }) => {
     const show = Boolean(price !== null || error || isAnalyzing || warningMessage || hasPendingDesignChanges || isApplyingChanges || availability);
 
@@ -145,6 +147,9 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                         <span className="text-[9px] text-slate-500 block whitespace-nowrap">{`${cakeInfo.size} ${cakeInfo.thickness.replace(' in', '" Height')}`}</span>
                     ) : (
                         <span className="text-[10px] text-slate-500 block">Final Price</span>
+                    )}
+                    {ediblePhotoAddonNote && (
+                        <span className="text-[9px] text-purple-600 font-semibold block">+ Edible Photo</span>
                     )}
                 </div>
             );
