@@ -40,8 +40,6 @@ const SIZES: SizeOption[] = [
     { label: '8" Round', sublabel: '3 in height', type: '1 Tier',    size: '8" Round', priceThickness: '3 in', image: `${CDN}/8in-1layer-cake.webp` },
     { label: '8×8',      sublabel: 'Square',      type: 'Square',    size: '8x8',      priceThickness: '3 in', image: `${CDN}/8x8-square-cake.webp` },
     { label: '8×12',     sublabel: 'Rectangle',   type: 'Rectangle', size: '8x12',     priceThickness: '3 in', image: `${CDN}/8x12-rectangular-cake.webp` },
-    { label: '10×14',    sublabel: 'Rectangle',   type: 'Rectangle', size: '10x14',    priceThickness: '3 in', image: `${CDN}/8x12-rectangular-cake.webp` },
-    { label: '12×16',    sublabel: 'Rectangle',   type: 'Rectangle', size: '12x16',    priceThickness: '3 in', image: `${CDN}/8x12-rectangular-cake.webp` },
 ];
 
 const DEFAULT_INDEX = 1; // 6" Round
