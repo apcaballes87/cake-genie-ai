@@ -549,7 +549,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     });
 
     const handleChatClick = React.useCallback(() => {
-        setIsChatModalOpen(true);
+        if (window.Tawk_API) {
+            window.Tawk_API.showWidget();
+            window.Tawk_API.popup();
+        }
     }, []);
 
     const knownSeoMetadata = useMemo(
@@ -686,7 +689,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     // --- AI Chat Customization Handler ---
     const onAddToCart = useCallback(async () => {
-        if (!finalPrice || !cakeInfo) return;
+        const effectivePrice = finalPrice ?? (useBasePriceAsFallback ? basePrice : null);
+        if (!effectivePrice || !cakeInfo) return;
         setIsAddingToCart(true);
         try {
             // 1. Prepare Base64 placeholders for immediate optimistic display
@@ -708,8 +712,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 cake_thickness: cakeInfo.thickness,
                 cake_size: cakeInfo.size,
                 base_price: basePrice || 0,
-                addon_price: (finalPrice || 0) - (basePrice || 0) + ediblePhotoAddonPrice,
-                final_price: (finalPrice || 0) + ediblePhotoAddonPrice,
+                addon_price: (effectivePrice || 0) - (basePrice || 0) + ediblePhotoAddonPrice,
+                final_price: (effectivePrice || 0) + ediblePhotoAddonPrice,
                 quantity: 1,
                 original_image_url: optimisticOriginal, // Base64
                 customized_image_url: optimisticCustomized, // Base64
