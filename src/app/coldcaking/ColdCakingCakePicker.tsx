@@ -162,6 +162,9 @@ export function ColdCakingCakePicker({ onSizeImageChange, showApplyChanges, isCo
     }, []);
 
     const handleSelect = useCallback((index: number) => {
+        // Same size — do nothing so the edited image is preserved
+        if (index === selectedIndex) return;
+
         setSelectedIndex(index);
         const option = SIZES[index];
         handleCakeInfoChange({
@@ -176,7 +179,7 @@ export function ColdCakingCakePicker({ onSizeImageChange, showApplyChanges, isCo
             fallbackMimeType: 'image/webp',
         }).catch(() => {});
         onSizeImageChange?.(option.image, index);
-    }, [handleCakeInfoChange, loadImageWithoutAnalysis, onSizeImageChange, cakeInfo]);
+    }, [handleCakeInfoChange, loadImageWithoutAnalysis, onSizeImageChange, cakeInfo, selectedIndex]);
 
     const renderPickerContent = (cardClass: string, itemsClass: string) => (
         <div className={cardClass}>
@@ -218,20 +221,25 @@ export function ColdCakingCakePicker({ onSizeImageChange, showApplyChanges, isCo
                 })}
             </div>
             {showApplyChanges && (
-                <button
-                    onClick={onApplyChanges}
-                    disabled={isCombining}
-                    className="mt-3 px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-full shadow-md hover:bg-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full"
-                >
-                    {isCombining ? (
-                        <>
-                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            Applying...
-                        </>
-                    ) : (
-                        'Apply Changes'
-                    )}
-                </button>
+                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] text-slate-600 leading-tight">
+                        Update the cake design with your image?
+                    </span>
+                    <button
+                        onClick={onApplyChanges}
+                        disabled={isCombining}
+                        className="px-3 py-1.5 bg-purple-600 text-white text-[11px] font-semibold rounded-full shadow-sm hover:bg-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
+                    >
+                        {isCombining ? (
+                            <>
+                                <div className="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                Applying...
+                            </>
+                        ) : (
+                            'Apply Changes'
+                        )}
+                    </button>
+                </div>
             )}
         </div>
     );
