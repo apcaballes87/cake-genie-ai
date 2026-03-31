@@ -553,11 +553,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 </div>
                             </div>
 
-                            {/* Mobile description below image for small screens */}
-                            <p className="hidden max-[454px]:block text-xs text-gray-700 leading-relaxed font-medium text-center mb-5 px-2">
-                                Upload any cake photo. Get your price in seconds. Order it same day.
-                            </p>
-                             
                             {/* Buttons under the image (1 line) */}
                             <div className="flex items-center gap-2 w-full">
                                 <button
@@ -573,6 +568,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     {isUploading ? 'Uploading...' : 'Upload Your Design - Get Instant Pricing'}
                                 </button>
                             </div>
+                            {/* Mobile description below CTA button for small screens */}
+                            <p className="hidden max-[454px]:block text-xs text-gray-700 leading-relaxed font-medium text-center mt-2">
+                                Upload any cake photo. Get your price in seconds. Order it same day.
+                            </p>
                             <p className="max-[454px]:hidden text-xs text-gray-700 leading-relaxed font-medium text-center mt-2">
                                 Upload any cake photo. Get your price in seconds. Order it same day.
                             </p>
