@@ -22,8 +22,12 @@ export async function GET(request: Request) {
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Supabase configuration missing for Pinterest cron:', {
+        supabaseUrl: !!supabaseUrl,
+        supabaseServiceKey: !!supabaseServiceKey
+      });
       return NextResponse.json({ 
-        error: `Supabase configuration missing: ${!supabaseUrl ? 'URL ' : ''}${!supabaseServiceKey ? 'ServiceRoleKey' : ''}` 
+        error: 'Supabase configuration error'
       }, { status: 500 });
     }
 
@@ -51,7 +55,8 @@ export async function GET(request: Request) {
       const clientSecret = process.env.PINTEREST_CLIENT_SECRET || process.env.PINTEREST_APP_SECRET;
 
       if (!clientId || !clientSecret) {
-        throw new Error('Pinterest credentials missing for refresh');
+        console.error('Pinterest credentials missing for refresh');
+        throw new Error('Pinterest configuration error');
       }
 
       const refreshed = await pinterestService.refreshToken(tokenRecord.refresh_token, clientId, clientSecret);

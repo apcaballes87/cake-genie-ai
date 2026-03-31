@@ -20,9 +20,12 @@ export async function POST(request: Request) {
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing Supabase environment variables');
+      console.error('Supabase configuration missing for Pinterest manual sync:', {
+        supabaseUrl: !!supabaseUrl,
+        supabaseServiceKey: !!supabaseServiceKey
+      });
       return NextResponse.json({ 
-        error: `Supabase configuration missing: ${!supabaseUrl ? 'URL ' : ''}${!supabaseServiceKey ? 'ServiceRoleKey' : ''}` 
+        error: 'Supabase configuration error'
       }, { status: 500 });
     }
 
