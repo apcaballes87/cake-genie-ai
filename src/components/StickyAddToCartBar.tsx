@@ -142,9 +142,9 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                 <div className="text-left">
                     <span className="text-lg font-bold text-slate-800">₱{price.toLocaleString()}</span>
                     {cakeInfo && cakeInfo.size && cakeInfo.thickness ? (
-                        <span className="text-xs text-slate-500 block whitespace-nowrap">{`${cakeInfo.size} ${cakeInfo.thickness.replace(' in', '" Height')}`}</span>
+                        <span className="text-[10px] text-slate-500 block whitespace-nowrap">{`${cakeInfo.size} ${cakeInfo.thickness.replace(' in', '" Height')}`}</span>
                     ) : (
-                        <span className="text-xs text-slate-500 block">Final Price</span>
+                        <span className="text-[10px] text-slate-500 block">Final Price</span>
                     )}
                 </div>
             );
@@ -367,28 +367,28 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                     </div>
                     )}
                     <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
-                        <div className="min-w-[100px] min-h-[44px] flex items-center relative">
+                        <div className="min-w-[100px] min-h-[48px] flex items-center relative">
                             {renderPrice()}
                         </div>
-                        <div className="flex flex-1 gap-3 min-w-0" ref={buttonsRef}>
+                        <div className="flex flex-1 gap-2 sm:gap-3 min-w-0" ref={buttonsRef}>
                             <ShareButton
                                 onClick={onShareClick}
                                 isLoading={isSharing}
                                 disabled={!canShare || isApplyingChanges}
-                                className="flex-1 min-w-0"
+                                className="flex-1 min-w-0 h-12"
                                 showText={!isCompact}
                             />
                             {onChatClick && (
                                 <ChatButton
                                     onClick={onChatClick}
-                                    className="flex-1 min-w-0"
+                                    className="flex-1 min-w-0 h-12"
                                     showText={!isCompact}
                                 />
                             )}
                             <button
                                 onClick={onAddToCartClick}
                                 disabled={isLoading || !!error || price === null || isAdding || isAnalyzing || chatInput.trim().length > 0}
-                                className={`flex-1 min-w-0 bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md flex justify-center items-center gap-2 whitespace-nowrap ${chatInput.trim().length > 0 ? 'opacity-40 grayscale-[0.5]' : ''}`}
+                                className={`flex-1 min-w-0 h-12 bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md flex justify-center items-center gap-2 whitespace-nowrap ${chatInput.trim().length > 0 ? 'opacity-40 grayscale-[0.5]' : ''}`}
                             >
                                 {isAdding ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /> {!isCompact && 'Adding...'}</>

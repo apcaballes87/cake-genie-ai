@@ -29,7 +29,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         disabled={isEffectivelyDisabled}
         className={`
           w-14 sm:w-auto flex items-center justify-center gap-2
-          px-3 sm:px-4 py-3 h-full
+          px-3 sm:px-4 h-12
           bg-white border-2 border-pink-500 
           text-pink-600 font-bold text-sm
           rounded-xl shadow-sm
@@ -86,7 +86,7 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
       disabled={isEffectivelyDisabled}
       className={`
         w-14 sm:w-auto flex items-center justify-center gap-2
-        px-3 sm:px-4 py-3 h-full
+        px-3 sm:px-4 h-12
         bg-white border-2 border-purple-500 
         text-purple-600 font-bold text-sm
         rounded-xl shadow-sm
