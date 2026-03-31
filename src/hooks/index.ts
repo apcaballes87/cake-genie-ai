@@ -12,3 +12,4 @@ export { useAddresses } from './useAddresses';
 export { useOrders } from './useOrders';
 export { useAvailabilitySettings } from './useAvailabilitySettings';
 export { useSEO, generateCakeStructuredData } from './useSEO';
+export { useHasMounted } from './useHasMounted';

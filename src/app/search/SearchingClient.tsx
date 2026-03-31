@@ -17,6 +17,8 @@ import { useImageManagement } from '@/contexts/ImageContext';
 import { useCakeCustomization } from '@/contexts/CustomizationContext';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useHasMounted } from '@/hooks/useHasMounted';
+import { NoSSR } from '@/components/NoSSR';
 import { showError } from '@/lib/utils/toast';
 import { AppState } from '@/hooks/useAppNavigation';
 
@@ -340,11 +342,7 @@ const SearchingClient: React.FC = () => {
     // So I should use `imageManagementError` from context.
     const { error: imageManagementError } = useImageManagement();
 
-    // Hydration fix: only show cart count after mount
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => {
-        setMounted(true);
-    }, []);
+    const hasMounted = useHasMounted();
 
     return (
         <div className="w-full max-w-7xl mx-auto h-full flex flex-col min-h-screen px-4 pb-24 md:pb-0 overflow-hidden">
@@ -363,13 +361,19 @@ const SearchingClient: React.FC = () => {
                         inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
                     />
                 </div>
-                <button onClick={() => router.push('/cart')} className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label={`View cart with ${mounted ? itemCount : 0} items`}>
+                <button
+                    onClick={() => router.push('/cart')}
+                    className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                    aria-label={`View cart with ${hasMounted ? itemCount : 0} items`}
+                >
                     <ShoppingBag size={24} />
-                    {mounted && itemCount > 0 && (
-                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
-                            {itemCount}
-                        </span>
-                    )}
+                    <NoSSR>
+                        {itemCount > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
+                                {itemCount}
+                            </span>
+                        )}
+                    </NoSSR>
                 </button>
             </div>
 
