@@ -28,6 +28,7 @@ import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
 import { reportCustomization, uploadReportImage, getAnalysisByExactHash, getRelatedProductsByKeywords, getCollectionsForDesign } from '../../services/supabaseService';
 import ReportModal from '../../components/ReportModal';
 import ShareModal from '../../components/ShareModal';
+import ChatModal from '../../components/ChatModal';
 import { CartItemDetails } from '../../types';
 import { buildKnownSeoMetadata } from './knownSeoMetadata';
 import { getRefLoadStrategy, parsePersistedAnalysis } from './refLoadStrategy';
@@ -346,6 +347,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
     const [isPreSelectionModalOpen, setIsPreSelectionModalOpen] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [isChatModalOpen, setIsChatModalOpen] = useState(false);
     const [isReporting, setIsReporting] = useState(false);
     const [reportStatus, setReportStatus] = useState<'success' | 'error' | null>(null);
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
@@ -546,9 +548,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     });
 
     const handleChatClick = React.useCallback(() => {
-        if (window.Tawk_API) {
-            window.Tawk_API.popup();
-        }
+        setIsChatModalOpen(true);
     }, []);
 
     const knownSeoMetadata = useMemo(
@@ -3068,6 +3068,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     isOpen={isShareModalOpen}
                     onClose={closeShareModal}
                     shareData={shareData}
+                />
+                <ChatModal
+                    isOpen={isChatModalOpen}
+                    onClose={() => setIsChatModalOpen(false)}
                 />
                 <ImageUploader
                     isOpen={isUploaderOpen}
