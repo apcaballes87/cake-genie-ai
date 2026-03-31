@@ -25,8 +25,13 @@ export async function GET(request: Request) {
   const redirectUri = process.env.PINTEREST_REDIRECT_URI;
 
   if (!clientId || !clientSecret || !redirectUri) {
+    console.error('Pinterest credentials missing:', {
+      clientId: !!clientId,
+      clientSecret: !!clientSecret,
+      redirectUri: !!redirectUri
+    });
     return NextResponse.json(
-      { error: `Pinterest credentials missing: ${!clientId ? 'ClientID ' : ''}${!clientSecret ? 'ClientSecret ' : ''}${!redirectUri ? 'RedirectURI' : ''}` },
+      { error: 'Pinterest configuration error' },
       { status: 500 }
     );
   }
@@ -47,8 +52,12 @@ export async function GET(request: Request) {
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Supabase configuration missing:', {
+        supabaseUrl: !!supabaseUrl,
+        supabaseServiceKey: !!supabaseServiceKey
+      });
       return NextResponse.json({
-        error: `Supabase configuration missing: ${!supabaseUrl ? 'URL ' : ''}${!supabaseServiceKey ? 'ServiceRoleKey' : ''}. Please add them to Vercel/environment variables.`
+        error: 'Supabase configuration error'
       }, { status: 500 });
     }
 
