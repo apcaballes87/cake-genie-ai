@@ -61,7 +61,7 @@ interface ColdCakingCakePickerProps {
 }
 
 export function ColdCakingCakePicker({ onSizeImageChange, showApplyChanges, isCombining, onApplyChanges }: ColdCakingCakePickerProps = {}) {
-    const { handleCakeInfoChange, onIcingDesignChange, cakeInfo } = useCakeCustomization();
+    const { handleCakeInfoChange, onIcingDesignChange, clearCustomization, cakeInfo } = useCakeCustomization();
     const { loadImageWithoutAnalysis } = useImageManagement();
     const [selectedIndex, setSelectedIndex] = useState(DEFAULT_INDEX);
     const hasSetDefault = useRef(false);
@@ -75,10 +75,11 @@ export function ColdCakingCakePicker({ onSizeImageChange, showApplyChanges, isCo
     useEffect(() => {
         if (hasSetDefault.current) return;
         hasSetDefault.current = true;
+        clearCustomization(); // reset any in-memory/localStorage state from previous pages
         const def = SIZES[DEFAULT_INDEX];
         handleCakeInfoChange({ type: def.type, size: def.size, thickness: DEFAULT_THICKNESS, flavors: [DEFAULT_FLAVOR] });
         onIcingDesignChange(DEFAULT_ICING);
-    }, [handleCakeInfoChange, onIcingDesignChange]);
+    }, [handleCakeInfoChange, onIcingDesignChange, clearCustomization]);
 
     // Fetch base prices for each size using its priceThickness
     useEffect(() => {

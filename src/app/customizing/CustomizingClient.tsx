@@ -549,10 +549,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     });
 
     const handleChatClick = React.useCallback(() => {
-        if (window.Tawk_API) {
-            window.Tawk_API.showWidget();
-            window.Tawk_API.popup();
-        }
+        setIsChatModalOpen(true);
     }, []);
 
     const knownSeoMetadata = useMemo(
@@ -756,6 +753,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         }
     }, [
         finalPrice,
+        useBasePriceAsFallback,
         cakeInfo,
         originalImagePreview,
         editedImage,

@@ -89,7 +89,7 @@ export interface CustomizationState {
 
 export function CustomizationProvider({ children, initialData }: { children: React.ReactNode; initialData?: CustomizationState }) {
     const pathname = usePathname()
-    const shouldDeferCustomizationPersistence = pathname === '/'
+    const shouldDeferCustomizationPersistence = pathname === '/' || pathname.startsWith('/coldcaking')
 
     // --- State ---
     // Initialize state with initialData if provided, otherwise null/empty
