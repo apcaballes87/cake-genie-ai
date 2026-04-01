@@ -585,6 +585,7 @@ const ColdCakingClient: React.FC = () => {
                             isCombining={isCombining}
                             onApplyChanges={handleApplyChanges}
                             cachedDesignSizeIndex={cachedDesignSizeIndex}
+                            hasCachedDesignForSize={(sizeIndex) => cachedDesignsRef.current.has(sizeIndex)}
                             onLoadCachedDesign={(sizeIndex) => {
                                 const cachedUrl = cachedDesignsRef.current.get(sizeIndex);
                                 if (cachedUrl) {
