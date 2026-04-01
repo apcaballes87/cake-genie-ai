@@ -120,7 +120,11 @@ const ColdCakingClient: React.FC = () => {
     const [showApplyChanges, setShowApplyChanges] = useState(false);
     const [originalSizeIndex, setOriginalSizeIndex] = useState<number>(1);
     const [ediblePhotoAddonPrice, setEdiblePhotoAddonPrice] = useState<number>(0);
-    const [cachedDesignSizeIndex, setCachedDesignSizeIndex] = useState<number | null>(null);
+    const handleDeletePhoto = useCallback(() => {
+        setHasUploadedPhoto(false);
+        setEdiblePhotoAddonPrice(0);
+        uploadedImageRef.current = null;
+    }, []);
 
     // Cache the base cake image base64 so we don't re-fetch every upload
     const baseCakeImageRef = useRef<{ data: string; mimeType: string } | null>(null);
@@ -128,6 +132,8 @@ const ColdCakingClient: React.FC = () => {
     const uploadedImageRef = useRef<{ data: string; mimeType: string } | null>(null);
     const currentSizeIndexRef = useRef<number>(1);
     const cachedDesignsRef = useRef<Map<number, string>>(new Map());
+
+    const [cachedDesignSizeIndex, setCachedDesignSizeIndex] = useState<number | null>(null);
 
     const handleSizeImageChange = useCallback((url: string, sizeIndex?: number) => {
         currentSizeImageUrlRef.current = url;
@@ -600,6 +606,7 @@ const ColdCakingClient: React.FC = () => {
                         <ColdCakingPhotoStep
                             onUploadClick={() => setIsUploaderOpen(true)}
                             hasPhoto={hasUploadedPhoto}
+                            onDeletePhoto={handleDeletePhoto}
                         />
                         <CustomizingClient hideAiChat={true} isCombining={isCombining} clearMessageTexts={true} hideStickyBar={!hasUploadedPhoto} useBasePriceAsFallback={true} ediblePhotoAddonPrice={hasUploadedPhoto ? ediblePhotoAddonPrice : 0} />
                     </div>
