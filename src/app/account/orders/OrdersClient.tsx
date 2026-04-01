@@ -250,7 +250,14 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                                             className="w-24 h-24 shrink-0 rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 transition-transform hover:scale-105"
                                             aria-label="Enlarge cake image"
                                         >
-                                            <LazyImage src={item.customized_image_url} alt={item.cake_type} className="w-full h-full object-cover" />
+                                            <LazyImage 
+                                                src={item.customized_image_url} 
+                                                alt={item.cake_type} 
+                                                fill={false}
+                                                width={96}
+                                                height={96}
+                                                className="w-full h-full object-cover" 
+                                            />
                                         </button>
                                         <div className="grow">
                                             <p className="font-semibold text-slate-800">{item.cake_type}</p>
