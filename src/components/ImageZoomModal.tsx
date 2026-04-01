@@ -21,14 +21,22 @@ export const ImageZoomModal = React.memo<ImageZoomModalProps>(({
   initialTab = 'original',
 }) => {
   const [activeTab, setActiveTab] = useState<ImageTab>(initialTab);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     // Reset to initialTab whenever the modal is opened
     if (isOpen) {
       setActiveTab(initialTab);
+      // Small delay to allow CSS transition to work
+      requestAnimationFrame(() => {
+        setIsVisible(true);
+      });
+    } else {
+      setIsVisible(false);
     }
   }, [initialTab, isOpen]);
 
+  // Handle escape key
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -43,7 +51,8 @@ export const ImageZoomModal = React.memo<ImageZoomModalProps>(({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen || !originalImage) {
+  // Don't render anything when not open
+  if (!isOpen) {
     return null;
   }
 
@@ -51,12 +60,12 @@ export const ImageZoomModal = React.memo<ImageZoomModalProps>(({
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-4 transition-opacity duration-200 animate-fadeIn"
+      className={`fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-4 transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       onClick={onClose}
       aria-modal="true"
       role="dialog"
+      style={{ pointerEvents: isVisible ? 'auto' : 'none' }}
     >
-      <style>{`.animate-fadeIn { animation: fadeIn 0.2s ease-out; } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}</style>
       <button
         onClick={onClose}
         className="absolute top-4 right-4 text-white p-2 rounded-full bg-black/30 hover:bg-black/50 transition-colors z-20"
@@ -70,13 +79,15 @@ export const ImageZoomModal = React.memo<ImageZoomModalProps>(({
         onClick={(e) => e.stopPropagation()}
         onContextMenu={(e) => e.preventDefault()}
       >
-        <LazyImage
-          key={activeTab} // To force re-render with animation on tab change
-          src={currentImage}
-          alt={`${activeTab} cake preview`}
-          className="max-w-[90vw] max-h-[80vh] object-contain rounded-lg shadow-2xl animate-fadeIn"
-          placeholderClassName="max-w-[90vw] max-h-[80vh] object-contain rounded-lg"
-        />
+        <div className="relative w-full h-full flex items-center justify-center">
+          <LazyImage
+            key={activeTab}
+            src={currentImage || ''}
+            alt={`${activeTab} cake preview`}
+            className="max-w-[90vw] max-h-[80vh] object-contain rounded-lg shadow-2xl"
+            placeholderClassName="max-w-[90vw] max-h-[80vh] object-contain rounded-lg"
+          />
+        </div>
       </div>
 
       <div className="absolute bottom-6 z-20" onClick={(e) => e.stopPropagation()}>
