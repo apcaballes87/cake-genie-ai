@@ -60,9 +60,10 @@ interface ColdCakingCakePickerProps {
     onApplyChanges?: () => void;
     onLoadCachedDesign?: (sizeIndex: number) => void;
     cachedDesignSizeIndex?: number | null;
+    hasCachedDesignForSize?: (sizeIndex: number) => boolean;
 }
 
-export function ColdCakingCakePicker({ onSizeImageChange, showApplyChanges, isCombining, onApplyChanges, onLoadCachedDesign, cachedDesignSizeIndex }: ColdCakingCakePickerProps = {}) {
+export function ColdCakingCakePicker({ onSizeImageChange, showApplyChanges, isCombining, onApplyChanges, onLoadCachedDesign, cachedDesignSizeIndex, hasCachedDesignForSize }: ColdCakingCakePickerProps = {}) {
     const { handleCakeInfoChange, onIcingDesignChange, clearCustomization, cakeInfo } = useCakeCustomization();
     const { loadImageWithoutAnalysis } = useImageManagement();
     const [selectedIndex, setSelectedIndex] = useState(DEFAULT_INDEX);
@@ -178,9 +179,9 @@ export function ColdCakingCakePicker({ onSizeImageChange, showApplyChanges, isCo
         });
         
         // Check if we have a cached design for this size
-        if (cachedDesignSizeIndex === index && onLoadCachedDesign) {
+        if (hasCachedDesignForSize && hasCachedDesignForSize(index)) {
             // Load the cached AI-edited design
-            onLoadCachedDesign(index);
+            onLoadCachedDesign?.(index);
         } else {
             // Swap the main cake preview image to default
             loadImageWithoutAnalysis(option.image, {
@@ -189,7 +190,7 @@ export function ColdCakingCakePicker({ onSizeImageChange, showApplyChanges, isCo
             }).catch(() => {});
         }
         onSizeImageChange?.(option.image, index);
-    }, [handleCakeInfoChange, loadImageWithoutAnalysis, onSizeImageChange, cakeInfo, selectedIndex, cachedDesignSizeIndex, onLoadCachedDesign]);
+    }, [handleCakeInfoChange, loadImageWithoutAnalysis, onSizeImageChange, cakeInfo, selectedIndex, hasCachedDesignForSize, onLoadCachedDesign]);
 
     const renderPickerContent = (cardClass: string, itemsClass: string) => (
         <div className={cardClass}>
