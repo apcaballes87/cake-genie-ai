@@ -120,12 +120,14 @@ const ColdCakingClient: React.FC = () => {
     const [showApplyChanges, setShowApplyChanges] = useState(false);
     const [originalSizeIndex, setOriginalSizeIndex] = useState<number>(1);
     const [ediblePhotoAddonPrice, setEdiblePhotoAddonPrice] = useState<number>(0);
+    const [cachedDesignSizeIndex, setCachedDesignSizeIndex] = useState<number | null>(null);
 
     // Cache the base cake image base64 so we don't re-fetch every upload
     const baseCakeImageRef = useRef<{ data: string; mimeType: string } | null>(null);
     const currentSizeImageUrlRef = useRef<string>(DEFAULT_PREVIEW_IMAGE_URL);
     const uploadedImageRef = useRef<{ data: string; mimeType: string } | null>(null);
     const currentSizeIndexRef = useRef<number>(1);
+    const cachedDesignsRef = useRef<Map<number, string>>(new Map());
 
     const handleSizeImageChange = useCallback((url: string, sizeIndex?: number) => {
         currentSizeImageUrlRef.current = url;
@@ -136,10 +138,20 @@ const ColdCakingClient: React.FC = () => {
 
         if (hasUploadedPhoto && uploadedImageRef.current) {
             setEdiblePhotoAddonPrice(EDIBLE_PHOTO_ADDON_PRICES[newIndex]);
-            // Show apply changes button if changed to a different size
-            if (newIndex !== originalSizeIndex) {
+            
+            // Check if we have a cached design for this size
+            const cachedDesign = cachedDesignsRef.current.get(newIndex);
+            if (cachedDesign) {
+                // Restore the cached design for this size
+                setCachedDesignSizeIndex(newIndex);
+                setShowApplyChanges(false);
+            } else if (newIndex !== originalSizeIndex) {
+                // No cached design for this size, show Apply Changes button
+                setCachedDesignSizeIndex(null);
                 setShowApplyChanges(true);
             } else {
+                // Same as original size but no cache (shouldn't happen normally)
+                setCachedDesignSizeIndex(null);
                 setShowApplyChanges(false);
             }
         }
@@ -272,6 +284,10 @@ const ColdCakingClient: React.FC = () => {
             setIsCombining(false);
             setEdiblePhotoAddonPrice(EDIBLE_PHOTO_ADDON_PRICES[currentSizeIndexRef.current]);
             setHasUploadedPhoto(true);
+            
+            // Cache the AI-combined design for this size
+            cachedDesignsRef.current.set(currentSizeIndexRef.current, objectUrl);
+            setCachedDesignSizeIndex(currentSizeIndexRef.current);
         } catch (error: any) {
             setIsCombining(false);
             setEdiblePhotoAddonPrice(0);
@@ -324,6 +340,10 @@ const ColdCakingClient: React.FC = () => {
             setIsCombining(false);
             setShowApplyChanges(false);
             setOriginalSizeIndex(currentSizeIndexRef.current); // New size is now the baseline
+            
+            // Cache the AI-combined design for this new size
+            cachedDesignsRef.current.set(currentSizeIndexRef.current, objectUrl);
+            setCachedDesignSizeIndex(currentSizeIndexRef.current);
         } catch (error: any) {
             setIsCombining(false);
             setCombineError(error.message || 'Failed to apply changes. Please try again.');
@@ -564,6 +584,16 @@ const ColdCakingClient: React.FC = () => {
                             showApplyChanges={showApplyChanges}
                             isCombining={isCombining}
                             onApplyChanges={handleApplyChanges}
+                            cachedDesignSizeIndex={cachedDesignSizeIndex}
+                            onLoadCachedDesign={(sizeIndex) => {
+                                const cachedUrl = cachedDesignsRef.current.get(sizeIndex);
+                                if (cachedUrl) {
+                                    loadImageWithoutAnalysis(cachedUrl, {
+                                        fileName: `cold-caking-design-${sizeIndex}.png`,
+                                        fallbackMimeType: 'image/png',
+                                    }).catch(() => {});
+                                }
+                            }}
                         />
                         {/* Step 3 photo upload — portals its card replacing Cake Toppers */}
                         <ColdCakingPhotoStep

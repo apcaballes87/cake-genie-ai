@@ -58,9 +58,11 @@ interface ColdCakingCakePickerProps {
     showApplyChanges?: boolean;
     isCombining?: boolean;
     onApplyChanges?: () => void;
+    onLoadCachedDesign?: (sizeIndex: number) => void;
+    cachedDesignSizeIndex?: number | null;
 }
 
-export function ColdCakingCakePicker({ onSizeImageChange, showApplyChanges, isCombining, onApplyChanges }: ColdCakingCakePickerProps = {}) {
+export function ColdCakingCakePicker({ onSizeImageChange, showApplyChanges, isCombining, onApplyChanges, onLoadCachedDesign, cachedDesignSizeIndex }: ColdCakingCakePickerProps = {}) {
     const { handleCakeInfoChange, onIcingDesignChange, clearCustomization, cakeInfo } = useCakeCustomization();
     const { loadImageWithoutAnalysis } = useImageManagement();
     const [selectedIndex, setSelectedIndex] = useState(DEFAULT_INDEX);
@@ -174,13 +176,20 @@ export function ColdCakingCakePicker({ onSizeImageChange, showApplyChanges, isCo
             thickness: DEFAULT_THICKNESS,
             flavors: cakeInfo?.flavors?.length ? cakeInfo.flavors : [DEFAULT_FLAVOR],
         });
-        // Swap the main cake preview image
-        loadImageWithoutAnalysis(option.image, {
-            fileName: `cold-caking-${option.size}.webp`,
-            fallbackMimeType: 'image/webp',
-        }).catch(() => {});
+        
+        // Check if we have a cached design for this size
+        if (cachedDesignSizeIndex === index && onLoadCachedDesign) {
+            // Load the cached AI-edited design
+            onLoadCachedDesign(index);
+        } else {
+            // Swap the main cake preview image to default
+            loadImageWithoutAnalysis(option.image, {
+                fileName: `cold-caking-${option.size}.webp`,
+                fallbackMimeType: 'image/webp',
+            }).catch(() => {});
+        }
         onSizeImageChange?.(option.image, index);
-    }, [handleCakeInfoChange, loadImageWithoutAnalysis, onSizeImageChange, cakeInfo, selectedIndex]);
+    }, [handleCakeInfoChange, loadImageWithoutAnalysis, onSizeImageChange, cakeInfo, selectedIndex, cachedDesignSizeIndex, onLoadCachedDesign]);
 
     const renderPickerContent = (cardClass: string, itemsClass: string) => (
         <div className={cardClass}>
