@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks';
 import { showSuccess, showError } from '@/lib/utils/toast';
 import { CakeGenieOrder, CakeGenieOrderItem, PaymentStatus, OrderStatus } from '@/lib/database.types';
-import { useOrders, useUploadPaymentProof, useOrderDetails, useCancelOrder } from '@/hooks/useOrders';
+import { useOrders, useUploadPaymentProof, useCancelOrder } from '@/hooks/useOrders';
 import { Loader2, ArrowLeft, ChevronDown, Package, Clock, CreditCard, CheckCircle, UploadCloud, Trash2, X, Users, Star } from 'lucide-react';
 import { OrdersSkeleton, Skeleton } from '@/components/LoadingSkeletons';
 import { ImageZoomModal } from '@/components/ImageZoomModal';
@@ -212,14 +212,12 @@ const PayOrderButton: React.FC<{ order: EnrichedOrder }> = ({ order }) => {
 
 const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrder: EnrichedOrder) => void; onReviewSubmitted?: () => void }> = ({ order, onOrderUpdate, onReviewSubmitted }) => {
     const { user } = useAuth();
-    const { data: details, isLoading } = useOrderDetails(order.order_id, user?.id, true);
     const [zoomedItem, setZoomedItem] = useState<CakeGenieOrderItem | null>(null);
     const [showReviewForm, setShowReviewForm] = useState(false);
     const [selectedItemForReview, setSelectedItemForReview] = useState<any>(null);
 
-    if (isLoading) {
-        return <div className="p-4"><Skeleton className="h-24 w-full" /></div>;
-    }
+    // Use the order data directly from the prop - already fetched in the main query
+    const details = order;
 
     if (!details) {
         return <div className="p-4 text-center text-sm text-red-600">Could not load order details.</div>;
@@ -236,11 +234,11 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                 <div>
                     <h4 className="text-sm font-semibold text-slate-800 mb-2">Items</h4>
                     <div className="space-y-4">
-                        {details.cakegenie_order_items?.map(item => {
-                            const details = item.customization_details;
-                            const tierLabels = details.flavors.length === 2
+                        {details.cakegenie_order_items?.map((item: any) => {
+                            const customization = item.customization_details as any;
+                            const tierLabels = customization?.flavors?.length === 2
                                 ? ['Top Tier', 'Bottom Tier']
-                                : details.flavors.length === 3
+                                : customization?.flavors?.length === 3
                                     ? ['Top Tier', 'Middle Tier', 'Bottom Tier']
                                     : ['Flavor'];
 
@@ -260,21 +258,21 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                                             <p className="text-lg font-bold text-pink-600 mt-1">₱{item.final_price.toLocaleString()}</p>
                                         </div>
                                     </div>
-                                    {details && (
+                                    {customization && (
                                         <details className="mt-3">
                                             <summary className="text-xs font-semibold text-slate-600 cursor-pointer">View Customization Details</summary>
                                             <div className="mt-2 pl-2 border-l-2 border-slate-200 space-y-1.5 text-xs text-slate-500">
                                                 <DetailItem label="Type" value={`${item.cake_type}, ${item.cake_thickness}, ${item.cake_size}`} />
-                                                {details.flavors.length <= 1 ? (
-                                                    <DetailItem label="Flavor" value={details.flavors[0] || 'N/A'} />
+                                                {(!customization.flavors || customization.flavors.length <= 1) ? (
+                                                    <DetailItem label="Flavor" value={customization.flavors?.[0] || 'N/A'} />
                                                 ) : (
-                                                    details.flavors.map((flavor, idx) => (
+                                                    customization.flavors.map((flavor: string, idx: number) => (
                                                         <DetailItem key={idx} label={`${tierLabels[idx]} Flavor`} value={flavor} />
                                                     ))
                                                 )}
-                                                {details.mainToppers.length > 0 && <DetailItem label="Main Toppers" value={details.mainToppers.map(t => t.description).join(', ')} />}
-                                                {details.supportElements.length > 0 && <DetailItem label="Support" value={details.supportElements.map(s => s.description).join(', ')} />}
-                                                {details.cakeMessages.map((msg, idx) => (
+                                                {customization.mainToppers?.length > 0 && <DetailItem label="Main Toppers" value={customization.mainToppers.map((t: any) => t.description).join(', ')} />}
+                                                {customization.supportElements?.length > 0 && <DetailItem label="Support" value={customization.supportElements.map((s: any) => s.description).join(', ')} />}
+                                                {customization.cakeMessages?.map((msg: any, idx: number) => (
                                                     <DetailItem
                                                         key={idx}
                                                         label={`Message #${idx + 1}`}
@@ -290,9 +288,9 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                                                         }
                                                     />
                                                 ))}
-                                                {details.icingDesign.drip && <DetailItem label="Icing" value="Has Drip Effect" />}
-                                                {details.icingDesign.gumpasteBaseBoard && <DetailItem label="Icing" value="Gumpaste Base Board" />}
-                                                {Object.entries(details.icingDesign.colors).map(([loc, color]) => (
+                                                {customization.icingDesign?.drip && <DetailItem label="Icing" value="Has Drip Effect" />}
+                                                {customization.icingDesign?.gumpasteBaseBoard && <DetailItem label="Icing" value="Gumpaste Base Board" />}
+                                                {Object.entries(customization.icingDesign?.colors || {}).map(([loc, color]: [string, any]) => (
                                                     <DetailItem
                                                         key={loc}
                                                         label={`${colorLabelMap[loc] || loc.charAt(0).toUpperCase() + loc.slice(1)} Color`}
@@ -300,14 +298,14 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                                                             <div className="flex items-center justify-end gap-2">
                                                                 <div
                                                                     className="w-4 h-4 rounded-md border border-slate-200 shadow-sm"
-                                                                    style={{ backgroundColor: color }}
+                                                                    style={{ backgroundColor: color as string }}
                                                                 />
-                                                                <span>{color}</span>
+                                                                <span>{color as string}</span>
                                                             </div>
                                                         }
                                                     />
                                                 ))}
-                                                {details.additionalInstructions && <DetailItem label="Instructions" value={details.additionalInstructions} />}
+                                                {customization.additionalInstructions && <DetailItem label="Instructions" value={customization.additionalInstructions} />}
                                             </div>
                                         </details>
                                     )}
@@ -362,8 +360,11 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                     <div className="mt-4 pt-4 border-t border-slate-100">
                         <button
                             onClick={() => {
-                                setSelectedItemForReview(details.cakegenie_order_items[0]);
-                                setShowReviewForm(true);
+                                const items = details.cakegenie_order_items;
+                                if (items && items.length > 0) {
+                                    setSelectedItemForReview(items[0]);
+                                    setShowReviewForm(true);
+                                }
                             }}
                             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:from-pink-600 hover:to-purple-700 transition-all"
                         >
