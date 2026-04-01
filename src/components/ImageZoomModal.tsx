@@ -75,19 +75,20 @@ export const ImageZoomModal = React.memo<ImageZoomModalProps>(({
       </button>
 
       <div
-        className="relative w-full h-full flex items-center justify-center secure-image-container"
+        className="flex items-center justify-center w-full h-full max-w-[90vw] max-h-[80vh]"
         onClick={(e) => e.stopPropagation()}
         onContextMenu={(e) => e.preventDefault()}
       >
-        <div className="relative w-full h-full flex items-center justify-center">
-          <LazyImage
-            key={activeTab}
-            src={currentImage || ''}
-            alt={`${activeTab} cake preview`}
-            className="max-w-[90vw] max-h-[80vh] object-contain rounded-lg shadow-2xl"
-            placeholderClassName="max-w-[90vw] max-h-[80vh] object-contain rounded-lg"
-          />
-        </div>
+        <LazyImage
+          key={activeTab}
+          src={currentImage || ''}
+          alt={`${activeTab} cake preview`}
+          fill={false}
+          width={800}
+          height={800}
+          className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
+          placeholderClassName="max-w-full max-h-[80vh] object-contain rounded-lg"
+        />
       </div>
 
       <div className="absolute bottom-6 z-20" onClick={(e) => e.stopPropagation()}>
