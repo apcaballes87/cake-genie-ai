@@ -56,10 +56,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { action, conversationId, sessionId, userId, content, email, name } = body;
+    const { action, conversationId, sessionId, userId, content, email, name, imageUrl } = body;
 
     if (action === 'send_message') {
-      if (!content || !conversationId) {
+      if (!content && !imageUrl || !conversationId) {
         return NextResponse.json(
           { success: false, error: 'Missing required fields' },
           { status: 400 }
@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
         .from('chat_messages')
         .insert({
           conversation_id: conversationId,
-          content,
+          content: content || '',
+          image_url: imageUrl || null,
           sender_type: 'customer',
           is_read: false,
         })
