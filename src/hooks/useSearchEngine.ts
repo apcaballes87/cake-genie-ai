@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { trackSearchTerm } from '@/services/supabaseService';
 import { AppState } from './useAppNavigation';
@@ -390,8 +390,7 @@ export const useSearchEngine = ({
     setSearchTrigger(prev => prev + 1);
   }, [searchInput, setImageError, setAppState, router, searchParams]); // Added router and searchParams to dependencies
 
-  // FIX: Added React to import to make React.KeyboardEvent available.
-  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') { if (searchInput.trim()) handleSearch(searchInput.trim()); }
     if (e.key === 'Escape' && appState === 'searching') { originalImageData ? setAppState('customizing') : setAppState('landing'); }
   }, [searchInput, handleSearch, appState, originalImageData, setAppState]);
