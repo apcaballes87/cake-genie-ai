@@ -3077,6 +3077,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 <ChatModal
                     isOpen={isChatModalOpen}
                     onClose={() => setIsChatModalOpen(false)}
+                    userId={user?.id}
+                    userEmail={user?.email}
+                    userName={user?.email?.split('@')[0]}
                 />
                 <ImageUploader
                     isOpen={isUploaderOpen}
