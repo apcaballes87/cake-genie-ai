@@ -89,6 +89,9 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
         <ChatModal
             isOpen={isChatModalOpen}
             onClose={() => setIsChatModalOpen(false)}
+            userId={user?.id}
+            userEmail={user?.email}
+            userName={user?.email?.split('@')[0]}
         />
         </>
     );
