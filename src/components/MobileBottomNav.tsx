@@ -37,10 +37,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
     };
 
     const handleChatClick = () => {
-        if (window.Tawk_API) {
-            window.Tawk_API.showWidget();
-            window.Tawk_API.popup();
-        }
+        router.push('/customizing');
     };
 
     return (
