@@ -76,13 +76,13 @@ export const metadata: Metadata = {
 function OrganizationSchema() {
   const schema = {
     '@context': 'https://schema.org',
-    '@type': 'LocalBusiness',
-    '@id': 'https://genie.ph/#localbusiness',
+    '@type': 'Bakery',
+    '@id': 'https://genie.ph/#organization',
     name: 'Genie.ph',
     url: 'https://genie.ph',
     logo: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp',
     image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg',
-    description: 'The first AI-powered marketplace for custom cakes in the Philippines. Based in Cebu.',
+    description: 'The first AI-powered marketplace for custom cakes in the Philippines. Upload any cake design, customize with AI, and get instant pricing from top cakeshops and homebakers in Cebu.',
     telephone: '+63-908-940-8747',
     email: 'hello@genie.ph',
     address: {
@@ -105,8 +105,14 @@ function OrganizationSchema() {
       'https://www.youtube.com/@genieph'
     ],
     areaServed: {
-      '@type': 'AdministrativeArea',
-      name: 'Cebu'
+      '@type': 'State',
+      name: ['Cebu', 'Metro Manila', 'Philippines']
+    },
+    serviceType: 'Online Marketplace for Custom Cakes',
+    provider: {
+      '@type': 'Organization',
+      name: 'Genie.ph',
+      url: 'https://genie.ph'
     },
     contactPoint: {
       '@type': 'ContactPoint',
@@ -115,15 +121,47 @@ function OrganizationSchema() {
       areaServed: 'PH',
       availableLanguage: ['English', 'Filipino']
     },
-    openingHours: ['Mo-Fr 09:00-18:00', 'Sa 09:00-15:00'],
-    priceRange: '₱₱'
+    openingHours: 'Mo-Fr 09:00-18:00, Sa 09:00-15:00',
+    priceRange: '₱₱',
+    servesCuisine: 'Custom Cakes',
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'Custom Cake Services',
+      itemListElement: [
+        { '@type': 'Offer', name: 'Custom Cake Design' },
+        { '@type': 'Offer', name: 'Birthday Cakes' },
+        { '@type': 'Offer', name: 'Wedding Cakes' },
+        { '@type': 'Offer', name: 'Special Occasion Cakes' }
+      ]
+    }
   };
 
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'Genie.ph',
+            url: 'https://genie.ph',
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: {
+                '@type': 'EntryPoint',
+                urlTemplate: 'https://genie.ph/search?q={search_term_string}'
+              },
+              'query-input': 'required name=search_term_string'
+            }
+          })
+        }}
+      />
+    </>
   );
 }
 
