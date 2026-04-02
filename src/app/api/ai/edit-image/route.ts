@@ -3,7 +3,7 @@ import { getAI } from '@/lib/ai/client';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 
 export const maxDuration = 60; // Allow sufficient time for image generation
-const MODEL_NAME = 'gemini-3.1-flash-image-preview';
+const MODEL_NAME = 'gemini-2.5-flash-image';
 
 function extractGeneratedImage(response: any) {
     const candidate = response?.candidates?.[0];
@@ -115,6 +115,14 @@ export async function POST(req: NextRequest) {
             },
         });
 
+        console.log(`[AI TRACE ${traceId}] /api/ai/edit-image:raw-response`, {
+            requestSource,
+            hasResponse: !!response,
+            hasCandidates: !!response?.candidates?.length,
+            firstCandidateParts: response?.candidates?.[0]?.content?.parts?.map((p: any) => p.inlineData ? 'hasInlineData' : p.text?.slice(0, 100)),
+            durationMs: Date.now() - startedAt,
+        });
+
         const generatedImage = extractGeneratedImage(response);
 
         if (generatedImage) {
@@ -147,6 +155,7 @@ export async function POST(req: NextRequest) {
         console.error(`[AI TRACE ${traceId}] /api/ai/edit-image:empty-response`, {
             requestSource,
             durationMs: Date.now() - startedAt,
+            fullResponse: JSON.stringify(response).slice(0, 2000),
         });
 
         return NextResponse.json(
