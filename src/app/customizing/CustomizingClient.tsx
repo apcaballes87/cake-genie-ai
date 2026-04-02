@@ -529,16 +529,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         originalImageData, analysisResult, cakeInfo, mainToppers, supportElements, cakeMessages,
         icingDesign, additionalInstructions, threeTierReferenceImage,
         onSuccess: (editedImageResult: string) => {
-            // DEBUG: Log edited image dimensions
-            const debugImg = new window.Image();
-            debugImg.onload = () => {
-                console.log(`🎨 EDITED IMAGE DIMENSIONS: ${debugImg.width}×${debugImg.height} (original was ${originalImageData ? 'provided' : 'unknown'})`);
-            };
-            debugImg.onerror = () => {
-                console.log(`🎨 EDITED IMAGE: Failed to load for dimension check`);
-            };
-            debugImg.src = editedImageResult;
-
             // Save the committed state (matches the previous image) for undo.
             // committedStateRef tracks state from before user edits, so it won't
             // contain the user's latest changes captured by the closure.

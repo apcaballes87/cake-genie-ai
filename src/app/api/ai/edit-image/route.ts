@@ -115,14 +115,6 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        console.log(`[AI TRACE ${traceId}] /api/ai/edit-image:raw-response`, {
-            requestSource,
-            hasResponse: !!response,
-            hasCandidates: !!response?.candidates?.length,
-            firstCandidateParts: response?.candidates?.[0]?.content?.parts?.map((p: any) => p.inlineData ? 'hasInlineData' : p.text?.slice(0, 100)),
-            durationMs: Date.now() - startedAt,
-        });
-
         const generatedImage = extractGeneratedImage(response);
 
         if (generatedImage) {
@@ -152,24 +144,14 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Check for safety/policy blocks
-        const finishReason = response?.candidates?.[0]?.finishReason;
-        let errorMessage = 'AI failed to generate image (No image data returned by Gemini)';
-        if (finishReason === 'PROHIBITED_CONTENT') {
-            errorMessage = 'AI_REJECTION: Request blocked by content safety filters. Try a different prompt.';
-        } else if (finishReason === 'RECITATION') {
-            errorMessage = 'AI_REJECTION: Request blocked due to copyright concerns.';
-        }
-
         console.error(`[AI TRACE ${traceId}] /api/ai/edit-image:empty-response`, {
             requestSource,
             durationMs: Date.now() - startedAt,
-            finishReason,
             fullResponse: JSON.stringify(response).slice(0, 2000),
         });
 
         return NextResponse.json(
-            { error: errorMessage },
+            { error: 'AI failed to generate image (No image data returned by Gemini)' },
             { status: 500 }
         );
 
