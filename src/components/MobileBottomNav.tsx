@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Home, Cake, ImagePlus, User, Heart } from 'lucide-react';
+import { Home, Cake, ImagePlus, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { MessageCircle } from './icons';
 
@@ -43,16 +43,8 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
         }
     };
 
-    const handleSavedClick = () => {
-        if (isAuthenticated && !user?.is_anonymous) {
-            router.push('/saved');
-        } else {
-            router.push('/login?redirect=/saved');
-        }
-    };
-
     return (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-lg border-t border-gray-100 py-4 px-6 flex justify-between items-center text-gray-300 z-50 pb-safe">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-lg border-t border-gray-100 py-4 px-6 flex justify-around items-center text-gray-300 z-50 pb-safe">
             <button
                 onClick={() => router.push('/')}
                 className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'home' ? 'text-purple-600' : 'hover:text-gray-500'}`}
@@ -83,16 +75,6 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
             >
                 <MessageCircle className={`w-[22px] h-[22px] ${activeTab === 'chat' ? 'text-purple-600' : 'text-gray-300'}`} />
                 <span className="text-[9px] font-bold">Chat</span>
-            </button>
-
-            <button
-                onClick={handleSavedClick}
-                className={`flex flex-col items-center gap-1 transition-colors relative ${activeTab === 'saved' ? 'text-purple-600' : 'hover:text-gray-500'}`}
-            >
-                <div className="relative">
-                    <Heart size={22} strokeWidth={activeTab === 'saved' ? 2.5 : 2} className={activeTab === 'saved' ? 'text-purple-600' : ''} fill={activeTab === 'saved' ? 'currentColor' : 'none'} />
-                </div>
-                <span className="text-[9px] font-bold">Saved</span>
             </button>
 
             <button
