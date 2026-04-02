@@ -1,0 +1,70 @@
+# robots.txt for genie.ph
+# https://genie.ph
+
+# Sitemap location
+Sitemap: https://genie.ph/sitemap.xml
+
+# Allow all crawlers access to public content
+User-agent: *
+Allow: /
+
+# Block admin and API routes
+User-agent: *
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /account/
+Disallow: /cart
+Disallow: /login
+Disallow: /signup
+
+# Google Extended - Allow for Google AI features
+User-agent: Google-Extended
+Allow: /
+
+# GPTBot - OpenAI crawler (for ChatGPT)
+User-agent: GPTBot
+Allow: /
+Disallow: /account/
+Disallow: /cart
+Disallow: /login
+Disallow: /signup
+
+# OAI-SearchBot - OpenAI Search crawler
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /account/
+Disallow: /cart
+Disallow: /login
+Disallow: /signup
+
+# ClaudeBot - Anthropic crawler (for Claude)
+User-agent: ClaudeBot
+Allow: /
+Disallow: /account/
+Disallow: /cart
+Disallow: /login
+Disallow: /signup
+
+# Bytespider - Apple/TikTok crawler
+User-agent: Bytespider
+Allow: /
+Disallow: /account/
+Disallow: /cart
+Disallow: /login
+Disallow: /signup
+
+# Facebook crawler
+User-agent: FacebookBot
+Allow: /
+
+# Pinterest crawler
+User-agent: Pinterestbot
+Allow: /
+
+# Discord crawler
+User-agent: Discordbot
+Allow: /
+
+# Common crawl delay for politeness
+Crawl-delay: 1

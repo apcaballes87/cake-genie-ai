@@ -1,11 +1,14 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // Image transformations DISABLED — Supabase quota exceeded (100/month Pro Plan).
-  // Images are already .webp so no server-side transforms needed.
-  // unoptimized: serves original URLs without any image optimization pipeline.
+  // Image optimization: unoptimized=true due to Supabase quota limits (100/month Pro Plan).
+  // Images are already .webp so no format conversion needed.
+  // For better Core Web Vitals, consider upgrading Supabase or using Cloudinary/Imgix.
   images: {
     unoptimized: true,
+    // Device sizes help with responsive image serving even when unoptimized
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     remotePatterns: [
       {
         protocol: 'https',
