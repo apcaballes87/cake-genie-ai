@@ -29,7 +29,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         disabled={isEffectivelyDisabled}
         className={`
           flex items-center justify-center
-          w-11 h-11 sm:w-auto sm:h-12 sm:px-4 sm:gap-2
+          w-11 h-11 sm:w-auto sm:h-12 min-[420px]:max-[639px]:px-0 min-[420px]:max-[639px]:gap-0 sm:px-4 sm:gap-2
           bg-white border-2 border-pink-500
           text-pink-600 font-bold text-sm
           rounded-xl shadow-sm
@@ -44,12 +44,12 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         {isLoading ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
-            {showText && <span>Sharing...</span>}
+            <span className="min-[420px]:max-[639px]:hidden">Sharing...</span>
           </>
         ) : (
           <>
             <Share2Icon className="w-5 h-5" />
-            {showText && <span>Share</span>}
+            <span className="min-[420px]:max-[639px]:hidden">Share</span>
           </>
         )}
       </button>
@@ -86,7 +86,7 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
       disabled={isEffectivelyDisabled}
       className={`
         flex items-center justify-center
-        w-11 h-11 sm:w-auto sm:h-12 sm:px-4 sm:gap-2
+        w-11 h-11 sm:w-auto sm:h-12 min-[420px]:max-[639px]:px-0 min-[420px]:max-[639px]:gap-0 sm:px-4 sm:gap-2
         bg-white border-2 border-purple-500
         text-purple-600 font-bold text-sm
         rounded-xl shadow-sm
@@ -102,12 +102,12 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
       {isLoading ? (
         <>
           <Loader2 className="w-5 h-5 animate-spin" />
-          {showText && <span>Connecting...</span>}
+          <span className="min-[420px]:max-[639px]:hidden">Connecting...</span>
         </>
       ) : (
         <>
           <MessageCircle className="w-5 h-5" />
-          {showText && <span>Chat</span>}
+          <span className="min-[420px]:max-[639px]:hidden">Chat</span>
         </>
       )}
     </button>
