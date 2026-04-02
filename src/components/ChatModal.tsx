@@ -3,6 +3,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { CloseIcon, MessageCircle, Loader2, SendIcon, ImageIcon } from './icons';
 import { createClient } from '@/lib/supabase/client';
+import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow } from '@/services/geminiService';
+import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService';
+import { HybridAnalysisResult } from '@/types';
+import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
+import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
+
+interface ChatMessage {
+    id: string;
+    content: string;
+    image_url: string | null;
+    sender_type: string;
+    created_at: string;
+    is_read: boolean;
+}
 
 interface Message {
     id: string;
@@ -22,6 +36,108 @@ interface ChatModalProps {
     userName?: string;
 }
 
+async function generatePerceptualHash(imageSrc: string): Promise<string | null> {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = async () => {
+            try {
+                const MAX_DIMENSION = 1024;
+                let width = img.naturalWidth;
+                let height = img.naturalHeight;
+                if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+                    if (width > height) {
+                        height = Math.floor((height / width) * MAX_DIMENSION);
+                        width = MAX_DIMENSION;
+                    } else {
+                        width = Math.floor((width / height) * MAX_DIMENSION);
+                        height = MAX_DIMENSION;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                const size = 8;
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return resolve(null);
+                ctx.drawImage(img, 0, 0, width, height);
+                const imageData = ctx.getImageData(0, 0, size, size);
+                const pixels = imageData.data;
+                const numPixels = size * size;
+                const grayscale = new Array(numPixels);
+                let totalLuminance = 0;
+                let allZero = true;
+                for (let i = 0; i < pixels.length; i += 4) {
+                    const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2], a = pixels[i + 3];
+                    if (r !== 0 || g !== 0 || b !== 0 || a !== 0) allZero = false;
+                    const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+                    grayscale[i / 4] = luminance;
+                    totalLuminance += luminance;
+                }
+                if (allZero) return resolve(null);
+                const avgLuminance = totalLuminance / numPixels;
+                let minLum = Infinity, maxLum = -Infinity;
+                for (let i = 0; i < numPixels; i++) {
+                    if (grayscale[i] < minLum) minLum = grayscale[i];
+                    if (grayscale[i] > maxLum) maxLum = grayscale[i];
+                }
+                if (maxLum - minLum < 1) return resolve(null);
+                let hash = 0n;
+                for (let i = 0; i < grayscale.length; i++) {
+                    if (grayscale[i] > avgLuminance) hash |= 1n << BigInt(i);
+                }
+                const hashStr = hash.toString(16).padStart(16, '0');
+                if (hashStr === '0000000000000000') return resolve(null);
+                resolve(hashStr);
+            } catch {
+                resolve(null);
+            }
+        };
+        img.onerror = () => resolve(null);
+        img.src = imageSrc;
+    });
+}
+
+async function analyzeImageWithCache(imageData: { data: string; mimeType: string }, imageUrl?: string): Promise<{ analysis: HybridAnalysisResult | null; slug: string | null; title: string | null; price: number | null; imageUrl: string | null }> {
+    const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
+    const pHash = await generatePerceptualHash(imageSrc);
+    console.log(`🖼️ Chat pHash result: ${pHash ?? 'FAILED (null)'}`);
+    if (!pHash) {
+        return { analysis: null, slug: null, title: null, price: null, imageUrl: null };
+    }
+    const cacheHit = await findSimilarAnalysisByHash(pHash, imageUrl);
+    if (cacheHit) {
+        console.log('⚡ Chat: pHash Cache Hit! Using cached analysis.');
+        return {
+            analysis: cacheHit.analysisResult,
+            slug: cacheHit.seoMetadata.slug,
+            title: cacheHit.seoMetadata.seo_title,
+            price: cacheHit.seoMetadata.price,
+            imageUrl: cacheHit.seoMetadata.original_image_url
+        };
+    }
+    console.log('🔄 Chat: Cache miss, running AI analysis...');
+    const imageBlob = dataURItoBlob(imageSrc);
+    const file = new File([imageBlob], 'chat-image.webp', { type: imageData.mimeType });
+    const compressedFile = await compressImage(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1024, fileType: 'image/webp' });
+    const compressedData = await fileToBase64(new File([compressedFile], 'chat-image.webp', { type: 'image/webp' }));
+    const fastResult = await analyzeCakeFeaturesOnly(compressedData.data, compressedData.mimeType);
+    if (!fastResult) return { analysis: null, slug: null, title: null, price: null, imageUrl: null };
+    let finalResult = fastResult;
+    const hasBbox = hasBoundingBoxData(fastResult);
+    if (!hasBbox) {
+        try {
+            finalResult = await enrichAnalysisWithRoboflow(compressedData.data, compressedData.mimeType, fastResult);
+        } catch {
+            console.warn('Chat: enrichment failed, using fast result');
+        }
+    }
+    if (pHash && finalResult) {
+        const compressedBlob = await compressImage(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1024, fileType: 'image/webp' });
+        cacheAnalysisResult(pHash, finalResult, undefined, compressedBlob);
+    }
+    return { analysis: finalResult, slug: null, title: null, price: null, imageUrl: null };
+}
+
 const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmail, userName }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState('');
@@ -33,6 +149,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
     const [name, setName] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
+    const pendingImageHashRef = useRef<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const supabase = createClient();
@@ -100,7 +217,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             const response = await fetch(`/api/chat?conversation_id=${convoId}`);
             const result = await response.json();
             if (result.success && result.data) {
-                setMessages(result.data.map((msg: any) => ({
+                setMessages(result.data.map((msg: ChatMessage) => ({
                     id: msg.id,
                     text: msg.content,
                     imageUrl: msg.image_url,
@@ -120,7 +237,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         const fileName = `${conversationId}_${Date.now()}.${fileExt}`;
         const filePath = `messages/${fileName}`;
 
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
             .from('chat-images')
             .upload(filePath, file);
 
@@ -175,6 +292,109 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     setMessages(prev => prev.map(msg =>
                         msg.id === userMessage.id ? { ...msg, id: result.data.id } : msg
                     ));
+                }
+
+                setIsTyping(true);
+                try {
+                    const fileData = await fileToBase64(file);
+                    const analysisResult = await analyzeImageWithCache(fileData, imageUrl);
+                    
+                    let botResponse = '';
+                    if (analysisResult.analysis && analysisResult.slug) {
+                        const priceDisplay = analysisResult.price ? `₱${Math.round(analysisResult.price).toLocaleString()}` : 'Check price';
+                        const title = analysisResult.title || 'Your cake design';
+                        botResponse = `🎂 I analyzed your cake image! Here's what I found:\n\n**${title}**\n\n💰 Starting at: ${priceDisplay}\n\n🔗 View and customize: https://genie.ph/customizing/${analysisResult.slug}`;
+                    } else if (analysisResult.analysis) {
+                        botResponse = "⏳ I've analyzed your cake image! Our team is finalizing the price and will send you the customization link shortly. Please give us a few moments!";
+                    } else {
+                        botResponse = "Thanks for sharing your cake image! Our team will review it and get back to you with pricing shortly.";
+                    }
+
+                    const botMessage: Message = {
+                        id: `ai_${Date.now()}`,
+                        text: botResponse,
+                        isUser: false,
+                        sender_type: 'system',
+                        timestamp: new Date().toISOString(),
+                        is_read: true,
+                    };
+                    setMessages(prev => [...prev, botMessage]);
+
+                    if (!analysisResult.slug && analysisResult.analysis) {
+                        const imageSrcForHash = `data:${fileData.mimeType};base64,${fileData.data}`;
+                        const pHash = await generatePerceptualHash(imageSrcForHash);
+                        if (pHash) {
+                            pendingImageHashRef.current = pHash;
+                            setTimeout(async () => {
+                                const recheck = await findSimilarAnalysisByHash(pHash);
+                                if (recheck && recheck.seoMetadata.slug) {
+                                    const priceDisplay = recheck.seoMetadata.price ? `₱${Math.round(recheck.seoMetadata.price).toLocaleString()}` : 'Check price';
+                                    const title = recheck.seoMetadata.seo_title || 'Your cake design';
+                                    const followUpMessage: Message = {
+                                        id: `followup_${Date.now()}`,
+                                        text: `🎉 Your customization link is ready!\n\n**${title}**\n\n💰 Starting at: ${priceDisplay}\n\n🔗 View and customize: https://genie.ph/customizing/${recheck.seoMetadata.slug}`,
+                                        isUser: false,
+                                        sender_type: 'system',
+                                        timestamp: new Date().toISOString(),
+                                        is_read: true,
+                                    };
+                                    setMessages(prev => [...prev, followUpMessage]);
+                                } else {
+                                    const noLinkMessage: Message = {
+                                        id: `followup_${Date.now()}`,
+                                        text: "Hi! I've checked on your cake image and we're still finalizing the details. We'll send you the customization link as soon as it's ready!",
+                                        isUser: false,
+                                        sender_type: 'system',
+                                        timestamp: new Date().toISOString(),
+                                        is_read: true,
+                                    };
+                                    setMessages(prev => [...prev, noLinkMessage]);
+
+                                    setTimeout(async () => {
+                                        const recheck2 = await findSimilarAnalysisByHash(pHash);
+                                        if (recheck2 && recheck2.seoMetadata.slug) {
+                                            const priceDisplay = recheck2.seoMetadata.price ? `₱${Math.round(recheck2.seoMetadata.price).toLocaleString()}` : 'Check price';
+                                            const title = recheck2.seoMetadata.seo_title || 'Your cake design';
+                                            const followUp2: Message = {
+                                                id: `followup2_${Date.now()}`,
+                                                text: `🎉 Your customization link is ready!\n\n**${title}**\n\n💰 Starting at: ${priceDisplay}\n\n🔗 View and customize: https://genie.ph/customizing/${recheck2.seoMetadata.slug}`,
+                                                isUser: false,
+                                                sender_type: 'system',
+                                                timestamp: new Date().toISOString(),
+                                                is_read: true,
+                                            };
+                                            setMessages(prev => [...prev, followUp2]);
+                                        } else {
+                                            const sorryMessage: Message = {
+                                                id: `sorry_${Date.now()}`,
+                                                text: "Sorry it's taking too long! We'll send you the customization link as soon as it's ready!",
+                                                isUser: false,
+                                                sender_type: 'system',
+                                                timestamp: new Date().toISOString(),
+                                                is_read: true,
+                                            };
+                                            setMessages(prev => [...prev, sorryMessage]);
+                                        }
+                                        pendingImageHashRef.current = null;
+                                    }, 6000);
+                                }
+                                pendingImageHashRef.current = null;
+                            }, 11000);
+                        }
+                    }
+                } catch (analysisErr) {
+                    console.error('Error analyzing image:', analysisErr);
+                    const fallbackMessage: Message = {
+                        id: `ai_${Date.now()}`,
+                        text: "Thanks for sharing your cake image! Our team will review it and get back to you with pricing shortly.",
+                        isUser: false,
+                        sender_type: 'system',
+                        timestamp: new Date().toISOString(),
+                        is_read: true,
+                    };
+                    setMessages(prev => [...prev, fallbackMessage]);
+                } finally {
+                    setIsTyping(false);
                 }
             }
         } catch (err) {
