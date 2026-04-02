@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { CloseIcon, MessageCircle, Loader2, SendIcon } from './icons';
+import { CloseIcon, MessageCircle, Loader2, SendIcon, ImageIcon } from './icons';
 import { createClient } from '@/lib/supabase/client';
 
 interface Message {
     id: string;
     text: string;
+    imageUrl?: string;
     isUser: boolean;
     sender_type: 'customer' | 'merchant' | 'system';
     timestamp: string;
@@ -31,6 +32,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
     const [email, setEmail] = useState('');
     const [name, setName] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const supabase = createClient();
 
@@ -100,6 +103,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                 setMessages(result.data.map((msg: any) => ({
                     id: msg.id,
                     text: msg.content,
+                    imageUrl: msg.image_url,
                     isUser: msg.sender_type === 'customer',
                     sender_type: msg.sender_type,
                     timestamp: msg.created_at,
@@ -108,6 +112,76 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             }
         } catch (err) {
             console.error('Error loading messages:', err);
+        }
+    };
+
+    const uploadImage = async (file: File): Promise<string | null> => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${conversationId}_${Date.now()}.${fileExt}`;
+        const filePath = `messages/${fileName}`;
+
+        const { data, error } = await supabase.storage
+            .from('chat-images')
+            .upload(filePath, file);
+
+        if (error) {
+            console.error('Error uploading image:', error);
+            return null;
+        }
+
+        const { data: urlData } = supabase.storage
+            .from('chat-images')
+            .getPublicUrl(filePath);
+
+        return urlData.publicUrl;
+    };
+
+    const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !conversationId) return;
+
+        setIsUploading(true);
+
+        try {
+            const imageUrl = await uploadImage(file);
+            if (imageUrl) {
+                const userMessage: Message = {
+                    id: `temp_${Date.now()}`,
+                    text: inputValue || '',
+                    imageUrl,
+                    isUser: true,
+                    sender_type: 'customer',
+                    timestamp: new Date().toISOString(),
+                    is_read: true,
+                };
+
+                setMessages(prev => [...prev, userMessage]);
+
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'send_message',
+                        conversationId,
+                        content: inputValue || '',
+                        imageUrl,
+                        sessionId: userId ? undefined : sessionId,
+                        userId: userId || undefined,
+                    }),
+                });
+
+                const result = await response.json();
+                if (result.success && result.data) {
+                    setMessages(prev => prev.map(msg =>
+                        msg.id === userMessage.id ? { ...msg, id: result.data.id } : msg
+                    ));
+                }
+            }
+        } catch (err) {
+            console.error('Error sending image:', err);
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
@@ -142,7 +216,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
 
             const result = await response.json();
             if (result.success && result.data) {
-                setMessages(prev => prev.map(msg => 
+                setMessages(prev => prev.map(msg =>
                     msg.id === userMessage.id ? { ...msg, id: result.data.id } : msg
                 ));
             }
@@ -155,7 +229,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     "Thank you! Is there anything else we can help you with?"
                 ];
                 const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-                
+
                 const botMessage: Message = {
                     id: `sys_${Date.now()}`,
                     text: randomResponse,
@@ -164,7 +238,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     timestamp: new Date().toISOString(),
                     is_read: true,
                 };
-                
+
                 setMessages(prev => [...prev, botMessage]);
                 setIsTyping(false);
             }, 1500);
@@ -183,7 +257,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
 
     const handleGuestDetailsSubmit = async () => {
         if (!email.trim()) return;
-        
+
         setShowEmailForm(false);
         await loadOrCreateConversation();
     };
@@ -204,7 +278,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                 >
                     <h2 className="text-lg font-bold text-slate-800 mb-4">Before we continue...</h2>
                     <p className="text-sm text-slate-600 mb-4">Please share your contact details so we can follow up with you.</p>
-                    
+
                     <div className="space-y-3">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Name (optional)</label>
@@ -228,7 +302,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                             />
                         </div>
                     </div>
-                    
+
                     <div className="flex gap-2 mt-6">
                         <button
                             onClick={onClose}
@@ -266,15 +340,15 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                         <MessageCircle className="w-5 h-5 text-purple-600" />
                         <h2 className="text-lg font-bold text-slate-800">Chat with Us</h2>
                     </div>
-                    <button 
-                        onClick={onClose} 
-                        className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" 
+                    <button
+                        onClick={onClose}
+                        className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors"
                         aria-label="Close"
                     >
                         <CloseIcon />
                     </button>
                 </div>
-                
+
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 bg-slate-50 space-y-3">
                     {isLoading ? (
@@ -297,14 +371,21 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                                 : 'bg-white text-slate-800 border border-slate-200 rounded-bl-md'
                                         }`}
                                     >
-                                        <p className="text-sm">{message.text}</p>
+                                        {message.imageUrl && (
+                                            <img
+                                                src={message.imageUrl}
+                                                alt="Image"
+                                                className="rounded-lg max-w-full mb-2"
+                                            />
+                                        )}
+                                        {message.text && <p className="text-sm">{message.text}</p>}
                                         <p className={`text-[10px] mt-1 ${message.isUser ? 'text-purple-200' : 'text-slate-400'}`}>
                                             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </p>
                                     </div>
                                 </div>
                             ))}
-                            
+
                             {isTyping && (
                                 <div className="flex justify-start">
                                     <div className="bg-white border border-slate-200 px-4 py-3 rounded-2xl rounded-bl-md">
@@ -320,10 +401,30 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                         </>
                     )}
                 </div>
-                
+
                 {/* Input */}
                 <div className="p-3 border-t border-slate-200 bg-white shrink-0">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            accept="image/*"
+                            onChange={handleImageSelect}
+                            className="hidden"
+                            disabled={isUploading || !conversationId}
+                        />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploading || !conversationId}
+                            className="p-2 text-slate-500 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-label="Send image"
+                        >
+                            {isUploading ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                                <ImageIcon className="w-5 h-5" />
+                            )}
+                        </button>
                         <input
                             type="text"
                             value={inputValue}
