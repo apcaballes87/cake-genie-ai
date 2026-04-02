@@ -31,12 +31,8 @@ export function filterSignificantMasks(
         sortByConfidence = true
     } = options;
 
-    console.log(`🎯 Filtering ${items.length} masks...`);
-    console.log(`📊 Min confidence threshold: ${minConfidence}`);
-
     // Filter by confidence
     let filtered = items.filter(item => item.confidence >= minConfidence);
-    console.log(`✂️ After confidence filter: ${filtered.length} masks (removed ${items.length - filtered.length} low confidence masks)`);
 
     // Sort by confidence (descending) if requested
     if (sortByConfidence) {
@@ -45,14 +41,8 @@ export function filterSignificantMasks(
 
     // Limit to max number of masks
     if (filtered.length > maxMasks) {
-        console.log(`🔻 Limiting to top ${maxMasks} highest confidence masks`);
         filtered = filtered.slice(0, maxMasks);
     }
-
-    console.log(`✅ Final filtered masks: ${filtered.length}`);
-    filtered.forEach((item, idx) => {
-        console.log(`  ${idx + 1}. ${item.label}: confidence ${item.confidence.toFixed(3)}`);
-    });
 
     return filtered;
 }
