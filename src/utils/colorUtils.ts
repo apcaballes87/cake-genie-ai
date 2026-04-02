@@ -17,15 +17,15 @@ export const hexToRgb = (hex: string): { r: number; g: number; b: number } | nul
  */
 export const AVAILABLE_ICING_COLORS = [
     { name: 'black', keywords: ['black', 'dark'], hex: '#1A1A1A' },
-    { name: 'white', keywords: ['white', 'light white', 'gray', 'grey', 'cream', 'silver'], hex: '#E2E8F0' },
-    { name: 'blue', keywords: ['blue', 'cyan', 'sky', 'baby blue', 'teal', 'aqua', 'turquoise'], hex: '#60A5FA' },
-    { name: 'red', keywords: ['red', 'maroon', 'crimson', 'scarlet'], hex: '#EF4444' },
-    { name: 'purple', keywords: ['purple', 'violet', 'lavender', 'lilac', 'mauve'], hex: '#8B5CF6' },
-    { name: 'green', keywords: ['green', 'mint', 'lime', 'emerald', 'sage', 'olive'], hex: '#22C55E' },
-    { name: 'yellow', keywords: ['yellow', 'gold', 'lemon', 'canary'], hex: '#FACC15' },
-    { name: 'orange', keywords: ['orange', 'tangerine', 'peach', 'coral', 'salmon'], hex: '#F97316' },
-    { name: 'brown', keywords: ['brown', 'chocolate', 'tan', 'mocha', 'coffee', 'caramel'], hex: '#92400E' },
-    { name: 'pink', keywords: ['pink', 'rose', 'magenta', 'fuchsia', 'blush'], hex: '#EC4899' },
+    { name: 'white', keywords: ['light white', 'silver', 'white', 'cream', 'gray', 'grey'], hex: '#E2E8F0' },
+    { name: 'blue', keywords: ['baby blue', 'turquoise', 'aqua', 'blue', 'cyan', 'teal', 'sky'], hex: '#60A5FA' },
+    { name: 'red', keywords: ['crimson', 'scarlet', 'maroon', 'red'], hex: '#EF4444' },
+    { name: 'purple', keywords: ['lavender', 'purple', 'violet', 'lilac', 'mauve'], hex: '#8B5CF6' },
+    { name: 'green', keywords: ['emerald', 'green', 'olive', 'lime', 'mint', 'sage'], hex: '#22C55E' },
+    { name: 'yellow', keywords: ['canary', 'yellow', 'lemon', 'gold'], hex: '#FACC15' },
+    { name: 'orange', keywords: ['tangerine', 'orange', 'salmon', 'coral', 'peach'], hex: '#F97316' },
+    { name: 'brown', keywords: ['chocolate', 'caramel', 'coffee', 'brown', 'mocha', 'tan'], hex: '#92400E' },
+    { name: 'pink', keywords: ['magenta', 'fuchsia', 'blush', 'pink', 'rose'], hex: '#EC4899' },
 ];
 
 /**
@@ -87,8 +87,7 @@ export const findClosestColor = (color: string, availableColors = AVAILABLE_ICIN
 
     const colorLower = color.toLowerCase().trim();
     for (const colorOption of availableColors) {
-        const sortedKeywords = [...colorOption.keywords].sort((a, b) => b.length - a.length);
-        for (const keyword of sortedKeywords) {
+        for (const keyword of colorOption.keywords) {
             if (colorLower.includes(keyword)) return colorOption.name;
         }
     }
