@@ -152,14 +152,24 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // Check for safety/policy blocks
+        const finishReason = response?.candidates?.[0]?.finishReason;
+        let errorMessage = 'AI failed to generate image (No image data returned by Gemini)';
+        if (finishReason === 'PROHIBITED_CONTENT') {
+            errorMessage = 'AI_REJECTION: Request blocked by content safety filters. Try a different prompt.';
+        } else if (finishReason === 'RECITATION') {
+            errorMessage = 'AI_REJECTION: Request blocked due to copyright concerns.';
+        }
+
         console.error(`[AI TRACE ${traceId}] /api/ai/edit-image:empty-response`, {
             requestSource,
             durationMs: Date.now() - startedAt,
+            finishReason,
             fullResponse: JSON.stringify(response).slice(0, 2000),
         });
 
         return NextResponse.json(
-            { error: 'AI failed to generate image (No image data returned by Gemini)' },
+            { error: errorMessage },
             { status: 500 }
         );
 
