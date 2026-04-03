@@ -8,6 +8,7 @@ import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supab
 import { HybridAnalysisResult } from '@/types';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
+import Link from 'next/link';
 
 interface ChatMessage {
     id: string;
@@ -18,10 +19,18 @@ interface ChatMessage {
     is_read: boolean;
 }
 
+interface ProductLink {
+    slug: string;
+    title: string;
+    imageUrl: string;
+    price: string;
+}
+
 interface Message {
     id: string;
     text: string;
     imageUrl?: string;
+    productLink?: ProductLink;
     isUser: boolean;
     sender_type: 'customer' | 'merchant' | 'system';
     timestamp: string;
@@ -34,6 +43,55 @@ interface ChatModalProps {
     userId?: string;
     userEmail?: string;
     userName?: string;
+}
+
+function extractProductLink(text: string): string | null {
+    const match = text.match(/customizing\/([a-zA-Z0-9-]+)/);
+    return match ? match[1] : null;
+}
+
+async function fetchProductBySlug(slug: string, supabase: ReturnType<typeof createClient>): Promise<{ title: string; imageUrl: string; price: string } | null> {
+    try {
+        const { data, error } = await supabase
+            .from('cakegenie_analysis_cache')
+            .select('seo_title, original_image_url, price')
+            .eq('slug', slug)
+            .single();
+        
+        if (error || !data) return null;
+        
+        return {
+            title: data.seo_title || 'Your cake design',
+            imageUrl: data.original_image_url || '',
+            price: data.price ? `₱${Math.round(data.price).toLocaleString()}` : 'Check price'
+        };
+    } catch {
+        return null;
+    }
+}
+
+async function saveSystemMessage(conversationId: string, content: string, supabase: ReturnType<typeof createClient>): Promise<string | null> {
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'send_system_message',
+                conversationId,
+                content,
+            }),
+        });
+
+        const result = await response.json();
+        if (result.success && result.data) {
+            return result.data.id;
+        }
+        console.error('Error saving system message:', result.error);
+        return null;
+    } catch (err) {
+        console.error('Error saving system message:', err);
+        return null;
+    }
 }
 
 async function generatePerceptualHash(imageSrc: string): Promise<string | null> {
@@ -320,6 +378,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     };
                     setMessages(prev => [...prev, botMessage]);
 
+                    if (conversationId) {
+                        saveSystemMessage(conversationId, botResponse, supabase);
+                    }
+
                     if (!analysisResult.slug && analysisResult.analysis) {
                         const imageSrcForHash = `data:${fileData.mimeType};base64,${fileData.data}`;
                         const pHash = await generatePerceptualHash(imageSrcForHash);
@@ -339,6 +401,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                         is_read: true,
                                     };
                                     setMessages(prev => [...prev, followUpMessage]);
+                                    if (conversationId) {
+                                        saveSystemMessage(conversationId, followUpMessage.text, supabase);
+                                    }
                                 } else {
                                     const noLinkMessage: Message = {
                                         id: `followup_${Date.now()}`,
@@ -349,6 +414,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                         is_read: true,
                                     };
                                     setMessages(prev => [...prev, noLinkMessage]);
+                                    if (conversationId) {
+                                        saveSystemMessage(conversationId, noLinkMessage.text, supabase);
+                                    }
 
                                     setTimeout(async () => {
                                         const recheck2 = await findSimilarAnalysisByHash(pHash);
@@ -364,6 +432,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                                 is_read: true,
                                             };
                                             setMessages(prev => [...prev, followUp2]);
+                                            if (conversationId) {
+                                                saveSystemMessage(conversationId, followUp2.text, supabase);
+                                            }
                                         } else {
                                             const sorryMessage: Message = {
                                                 id: `sorry_${Date.now()}`,
@@ -374,6 +445,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                                 is_read: true,
                                             };
                                             setMessages(prev => [...prev, sorryMessage]);
+                                            if (conversationId) {
+                                                saveSystemMessage(conversationId, sorryMessage.text, supabase);
+                                            }
                                         }
                                         pendingImageHashRef.current = null;
                                     }, 6000);
@@ -393,6 +467,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                         is_read: true,
                     };
                     setMessages(prev => [...prev, fallbackMessage]);
+                    if (conversationId) {
+                        saveSystemMessage(conversationId, fallbackMessage.text, supabase);
+                    }
                 } finally {
                     setIsTyping(false);
                 }
@@ -460,6 +537,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                 };
 
                 setMessages(prev => [...prev, botMessage]);
+                if (conversationId) {
+                    saveSystemMessage(conversationId, randomResponse, supabase);
+                }
                 setIsTyping(false);
             }, 1500);
         } catch (err) {
@@ -577,7 +657,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                         </div>
                     ) : (
                         <>
-                            {messages.map((message) => (
+                            {messages.map((message) => {
+                                const productSlug = !message.isUser && message.text ? extractProductLink(message.text) : null;
+                                return (
                                 <div
                                     key={message.id}
                                     className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
@@ -598,13 +680,30 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                                 className="rounded-lg max-w-full mb-2"
                                             />
                                         )}
-                                        {message.text && <p className="text-sm">{message.text}</p>}
+                                        {message.text && <p className="text-sm whitespace-pre-wrap">{message.text}</p>}
+                                        {productSlug && (
+                                            <Link 
+                                                href={`/customizing/${productSlug}`}
+                                                className="mt-2 block bg-white border border-purple-200 rounded-lg p-2 hover:bg-purple-50 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600">
+                                                        <span className="text-lg">🎂</span>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-xs font-medium text-slate-700 truncate">View & Customize</p>
+                                                        <p className="text-[10px] text-slate-500">genie.ph/customizing/{productSlug}</p>
+                                                    </div>
+                                                </div>
+                                            </Link>
+                                        )}
                                         <p className={`text-[10px] mt-1 ${message.isUser ? 'text-purple-200' : 'text-slate-400'}`}>
                                             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </p>
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
 
                             {isTyping && (
                                 <div className="flex justify-start">
