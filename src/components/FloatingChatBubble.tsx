@@ -105,7 +105,7 @@ export default function FloatingChatBubble() {
         
         <button
           onClick={handleToggle}
-          className={`w-14 h-14 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300 flex items-center justify-center ${isOpen ? 'rotate-90' : ''}`}
+          className={`w-14 h-14 rounded-full bg-gradient-to-r from-purple-500 to-violet-600 text-white shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300 flex items-center justify-center ${isOpen ? 'rotate-90' : ''}`}
           aria-label={isOpen ? 'Close chat' : 'Open chat'}
         >
           {isOpen ? (
