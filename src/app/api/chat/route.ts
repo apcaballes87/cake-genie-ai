@@ -90,6 +90,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, data: message }, { status: 201 });
     }
 
+    if (action === 'send_system_message') {
+      if (!content || !conversationId) {
+        return NextResponse.json(
+          { success: false, error: 'Missing required fields' },
+          { status: 400 }
+        );
+      }
+
+      const { data: message, error } = await supabaseAdmin
+        .from('chat_messages')
+        .insert({
+          conversation_id: conversationId,
+          content,
+          sender_type: 'system',
+          is_read: true,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      }
+
+      await supabaseAdmin
+        .from('chat_conversations')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', conversationId);
+
+      return NextResponse.json({ success: true, data: message }, { status: 201 });
+    }
+
     if (action === 'start_conversation') {
       let conversation;
 
