@@ -263,6 +263,45 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
     }, [messages]);
 
     useEffect(() => {
+        if (!conversationId || !supabase) return;
+
+        const channel = supabase
+            .channel('chat-messages-realtime')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'chat_messages',
+                    filter: `conversation_id=eq.${conversationId}`,
+                },
+                (payload) => {
+                    const newMessage = payload.new as ChatMessage;
+                    if (newMessage.sender_type !== 'customer') {
+                        setMessages((prev) => {
+                            if (prev.some((m) => m.id === newMessage.id)) return prev;
+                            const newMsg: Message = {
+                                id: newMessage.id,
+                                text: newMessage.content,
+                                imageUrl: newMessage.image_url || undefined,
+                                isUser: false,
+                                sender_type: newMessage.sender_type as 'merchant' | 'system',
+                                timestamp: newMessage.created_at,
+                                is_read: newMessage.is_read,
+                            };
+                            return [...prev, newMsg];
+                        });
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [conversationId, supabase]);
+
+    useEffect(() => {
         if (isOpen && sessionId) {
             loadOrCreateConversation();
         } else if (!isOpen) {
