@@ -97,9 +97,9 @@ export default function FloatingChatBubble() {
         onMouseDown={handleMouseDown}
       >
         {showTooltip && !isOpen && (
-          <div className="absolute bottom-full right-0 mb-3 w-48 p-3 bg-slate-800 text-white text-sm rounded-lg shadow-lg animate-pulse">
+          <div className="absolute bottom-full right-0 mb-3 w-44 p-2 bg-slate-800 text-white text-xs rounded-lg shadow-lg animate-pulse">
             <p>Hi! If you need help, we&apos;re here!</p>
-            <div className="absolute bottom-0 right-4 -mb-2 w-4 h-4 bg-slate-800 rotate-45"></div>
+            <div className="absolute bottom-0 right-4 -mb-2 w-3 h-3 bg-slate-800 rotate-45"></div>
           </div>
         )}
         
