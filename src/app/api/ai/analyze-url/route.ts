@@ -9,21 +9,56 @@ import { computeImageHash, convertToWebPBuffer, getImageDimensions } from '@/lib
 export const maxDuration = 60;
 
 const ALLOWED_HOSTNAME_PATTERNS = [
+    // Supabase
     /\.supabase\.co$/,
     /\.supabase\.in$/,
+    // Google
     /\.gstatic\.com$/,
     /\.googleusercontent\.com$/,
     /\.googleapis\.com$/,
     /\.ggpht\.com$/,
+    // Unsplash
     /\.unsplash\.com$/,
     /^images\.unsplash\.com$/,
+    // Facebook
     /\.fbcdn\.net$/,
     /\.facebook\.com$/,
     /\.fb\.com$/,
+    // Instagram
     /\.cdninstagram\.com$/,
     /\.instagram\.com$/,
+    // Pinterest
     /\.pinimg\.com$/,
     /\.pinterest\.com$/,
+    // Apple / iCloud
+    /\.icloud\.com$/,
+    /\.apple\.com$/,
+    /media\.icloud\.com$/,
+    // Shopify
+    /\.shopify\.com$/,
+    /\.cdn\.shopify\.com$/,
+    // E-commerce
+    /\.amazon\.com$/,
+    /\.amazon\.co\.jp$/,
+    /\.walmart\.com$/,
+    /\.ebay\.com$/,
+    /\.target\.com$/,
+    /\.bestbuy\.com$/,
+    // Discord
+    /\.discord\.com$/,
+    /\.discordapp\.com$/,
+    // Twitter / X
+    /\.twimg\.com$/,
+    /\.x\.com$/,
+    // TikTok
+    /\.tiktok\.com$/,
+    /\.tiktok\.net$/,
+    /\.cdn\.tiktok\.com$/,
+    // LINE
+    /\.line\.me$/,
+    // WordPress (common patterns)
+    /\.wordpress\.com$/,
+    /\.wp\.com$/,
 ];
 
 const PRIVATE_IP_PATTERNS = [
