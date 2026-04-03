@@ -70,6 +70,39 @@ async function fetchProductBySlug(slug: string, supabase: ReturnType<typeof crea
     }
 }
 
+const ProductLinkCard: React.FC<{ slug: string; supabase: ReturnType<typeof createClient> }> = ({ slug, supabase }) => {
+    const [productData, setProductData] = useState<{ title: string; imageUrl: string } | null>(null);
+
+    useEffect(() => {
+        fetchProductBySlug(slug, supabase).then(setProductData);
+    }, [slug, supabase]);
+
+    return (
+        <Link 
+            href={`/customizing/${slug}`}
+            className="mt-2 block bg-white border border-purple-200 rounded-lg p-2 hover:bg-purple-50 transition-colors"
+        >
+            <div className="flex items-center gap-2">
+                {productData?.imageUrl ? (
+                    <img 
+                        src={productData.imageUrl} 
+                        alt={productData.title}
+                        className="w-12 h-12 rounded-lg object-cover"
+                    />
+                ) : (
+                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600">
+                        <span className="text-lg">🎂</span>
+                    </div>
+                )}
+                <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-slate-700 truncate">{productData?.title || 'View & Customize'}</p>
+                    <p className="text-[10px] text-slate-500">genie.ph/customizing/{slug}</p>
+                </div>
+            </div>
+        </Link>
+    );
+};
+
 async function saveSystemMessage(conversationId: string, content: string, supabase: ReturnType<typeof createClient>): Promise<string | null> {
     try {
         console.log('💾 Saving system message:', { conversationId, content: content.substring(0, 50) });
@@ -663,6 +696,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                         <>
                             {messages.map((message) => {
                                 const productSlug = !message.isUser && message.text ? extractProductLink(message.text) : null;
+                                
                                 return (
                                 <div
                                     key={message.id}
@@ -686,20 +720,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                         )}
                                         {message.text && <p className="text-sm whitespace-pre-wrap">{message.text}</p>}
                                         {productSlug && (
-                                            <Link 
-                                                href={`/customizing/${productSlug}`}
-                                                className="mt-2 block bg-white border border-purple-200 rounded-lg p-2 hover:bg-purple-50 transition-colors"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600">
-                                                        <span className="text-lg">🎂</span>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-xs font-medium text-slate-700 truncate">View & Customize</p>
-                                                        <p className="text-[10px] text-slate-500">genie.ph/customizing/{productSlug}</p>
-                                                    </div>
-                                                </div>
-                                            </Link>
+                                            <ProductLinkCard slug={productSlug} supabase={supabase} />
                                         )}
                                         <p className={`text-[10px] mt-1 ${message.isUser ? 'text-purple-200' : 'text-slate-400'}`}>
                                             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
