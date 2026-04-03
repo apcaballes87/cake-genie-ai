@@ -7,6 +7,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 import ClientHashRedirect from '@/components/ClientHashRedirect'
 import AnimatedBlobs from '@/components/UI/AnimatedBlobs'
+import FloatingChatBubble from '@/components/FloatingChatBubble'
 
 import ErrorLogger from '@/components/ErrorLogger'
 
@@ -179,6 +180,7 @@ export default function RootLayout({
             <ClientHashRedirect />
             <AnimatedBlobs />
             {children}
+            <FloatingChatBubble />
             <ErrorLogger />
           </ErrorBoundary>
         </Providers>
