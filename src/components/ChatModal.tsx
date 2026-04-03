@@ -57,9 +57,9 @@ async function fetchProductBySlug(slug: string, supabase: ReturnType<typeof crea
             .select('seo_title, original_image_url, price')
             .eq('slug', slug)
             .single();
-        
+
         if (error || !data) return null;
-        
+
         return {
             title: data.seo_title || 'Your cake design',
             imageUrl: data.original_image_url || '',
@@ -78,14 +78,14 @@ const ProductLinkCard: React.FC<{ slug: string; supabase: ReturnType<typeof crea
     }, [slug, supabase]);
 
     return (
-        <Link 
+        <Link
             href={`/customizing/${slug}`}
             className="mt-2 block bg-white border border-purple-200 rounded-lg p-2 hover:bg-purple-50 transition-colors"
         >
             <div className="flex items-center gap-2">
                 {productData?.imageUrl ? (
-                    <img 
-                        src={productData.imageUrl} 
+                    <img
+                        src={productData.imageUrl}
                         alt={productData.title}
                         className="w-12 h-12 rounded-lg object-cover"
                     />
@@ -106,7 +106,7 @@ const ProductLinkCard: React.FC<{ slug: string; supabase: ReturnType<typeof crea
 async function saveSystemMessage(conversationId: string, content: string, supabase: ReturnType<typeof createClient>): Promise<string | null> {
     try {
         console.log('💾 Saving system message:', { conversationId, content: content.substring(0, 50) });
-        
+
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -119,7 +119,7 @@ async function saveSystemMessage(conversationId: string, content: string, supaba
 
         const result = await response.json();
         console.log('💾 Save result:', result);
-        
+
         if (result.success && result.data) {
             return result.data.id;
         }
@@ -393,7 +393,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                 try {
                     const fileData = await fileToBase64(file);
                     const analysisResult = await analyzeImageWithCache(fileData, imageUrl);
-                    
+
                     let botResponse = '';
                     if (analysisResult.analysis && analysisResult.slug) {
                         const priceDisplay = analysisResult.price ? `₱${Math.round(analysisResult.price).toLocaleString()}` : 'Check price';
@@ -668,7 +668,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             role="dialog"
         >
             <div
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-md h-[500px] flex flex-col overflow-hidden animate-fade-in"
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-md h-[575px] flex flex-col overflow-hidden animate-fade-in"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -696,37 +696,36 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                         <>
                             {messages.map((message) => {
                                 const productSlug = !message.isUser && message.text ? extractProductLink(message.text) : null;
-                                
+
                                 return (
-                                <div
-                                    key={message.id}
-                                    className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
-                                >
                                     <div
-                                        className={`max-w-[80%] px-4 py-2 rounded-2xl ${
-                                            message.isUser
-                                                ? 'bg-purple-600 text-white rounded-br-md'
-                                                : message.sender_type === 'system'
-                                                ? 'bg-purple-100 text-purple-800 border border-purple-200 rounded-bl-md'
-                                                : 'bg-white text-slate-800 border border-slate-200 rounded-bl-md'
-                                        }`}
+                                        key={message.id}
+                                        className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
                                     >
-                                        {message.imageUrl && (
-                                            <img
-                                                src={message.imageUrl}
-                                                alt="Image"
-                                                className="rounded-lg max-w-full mb-2"
-                                            />
-                                        )}
-                                        {message.text && <p className="text-sm whitespace-pre-wrap">{message.text}</p>}
-                                        {productSlug && (
-                                            <ProductLinkCard slug={productSlug} supabase={supabase} />
-                                        )}
-                                        <p className={`text-[10px] mt-1 ${message.isUser ? 'text-purple-200' : 'text-slate-400'}`}>
-                                            {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
+                                        <div
+                                            className={`max-w-[80%] px-4 py-2 rounded-2xl ${message.isUser
+                                                    ? 'bg-purple-600 text-white rounded-br-md'
+                                                    : message.sender_type === 'system'
+                                                        ? 'bg-purple-100 text-purple-800 border border-purple-200 rounded-bl-md'
+                                                        : 'bg-white text-slate-800 border border-slate-200 rounded-bl-md'
+                                                }`}
+                                        >
+                                            {message.imageUrl && (
+                                                <img
+                                                    src={message.imageUrl}
+                                                    alt="Image"
+                                                    className="rounded-lg max-w-full mb-2"
+                                                />
+                                            )}
+                                            {message.text && <p className="text-sm whitespace-pre-wrap">{message.text}</p>}
+                                            {productSlug && (
+                                                <ProductLinkCard slug={productSlug} supabase={supabase} />
+                                            )}
+                                            <p className={`text-[10px] mt-1 ${message.isUser ? 'text-purple-200' : 'text-slate-400'}`}>
+                                                {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
                                 );
                             })}
 

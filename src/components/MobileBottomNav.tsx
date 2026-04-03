@@ -50,6 +50,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
 
     const handleChatClick = () => {
         setIsChatModalOpen(true);
+        setShowCloudIndicator(false);
     };
 
     return (
