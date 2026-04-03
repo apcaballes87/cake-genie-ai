@@ -72,6 +72,8 @@ async function fetchProductBySlug(slug: string, supabase: ReturnType<typeof crea
 
 async function saveSystemMessage(conversationId: string, content: string, supabase: ReturnType<typeof createClient>): Promise<string | null> {
     try {
+        console.log('💾 Saving system message:', { conversationId, content: content.substring(0, 50) });
+        
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -83,6 +85,8 @@ async function saveSystemMessage(conversationId: string, content: string, supaba
         });
 
         const result = await response.json();
+        console.log('💾 Save result:', result);
+        
         if (result.success && result.data) {
             return result.data.id;
         }
