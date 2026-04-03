@@ -30,6 +30,15 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
 
     const activeTab = getActiveTab();
 
+    // Show cloud indicator 2 seconds after component mounts
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setShowCloudIndicator(true);
+        }, 2000);
+
+        return () => clearTimeout(timer);
+    }, []);
+
     const handleUploadClick = () => {
         if (onUploadClick) {
             onUploadClick();
@@ -72,8 +81,16 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
 
                 <button
                     onClick={handleChatClick}
-                    className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'chat' ? 'text-purple-600' : 'hover:text-gray-500'}`}
+                    className={`flex flex-col items-center gap-1 transition-colors relative ${activeTab === 'chat' ? 'text-purple-600' : 'hover:text-gray-500'}`}
                 >
+                    {showCloudIndicator && (
+                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2" style={{ animation: 'fadeInFast 0.3s ease-out' }}>
+                            <div className="relative bg-gradient-to-br from-purple-100 to-purple-50 border border-purple-200 rounded-lg px-2 py-1 shadow-md whitespace-nowrap">
+                                <p className="text-[8px] font-medium text-purple-700">Hi! If you need help we're here</p>
+                                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-[6px] border-x-transparent border-t-[6px] border-t-purple-100"></div>
+                            </div>
+                        </div>
+                    )}
                     <MessageCircle className={`w-[22px] h-[22px] ${activeTab === 'chat' ? 'text-purple-600' : 'text-gray-300'}`} />
                     <span className="text-[9px] font-bold">Chat</span>
                 </button>
@@ -86,6 +103,8 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
                     <span className="text-[9px] font-bold">Profile</span>
                 </button>
             </nav>
+
+            <style>{`@keyframes fadeInFast { from { opacity: 0; transform: translate(-50%, 5px); } to { opacity: 1; transform: translate(-50%, 0); } }`}</style>
 
             <ChatModal
                 isOpen={isChatModalOpen}
