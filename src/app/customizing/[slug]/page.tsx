@@ -990,6 +990,7 @@ export default async function RecentSearchPage({ params }: Props) {
                         currentSlug={slug}
                         initialCaption={captionText}
                         postEditorSlot={<SSRDesignContent design={design} prices={prices} />}
+                        hideAiChat={true}
                     />
                     <NewsletterPopup />
             </CustomizationProvider>

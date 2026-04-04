@@ -152,6 +152,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                         product={product}
                         merchant={merchant}
                         initialPrices={prices}
+                        hideAiChat={true}
                     />
                 </CustomizationProvider>
             </Suspense>
