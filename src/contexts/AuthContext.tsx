@@ -15,6 +15,7 @@ interface AuthContextType {
     signUp: (email: string, password: string, metadata?: { first_name?: string, last_name?: string }) => Promise<{ data: any, error: any }>
     signOut: () => Promise<{ error: any }>
     signInAnonymously: () => Promise<{ error: any }>
+    signInWithGoogle: (redirectTo?: string) => Promise<{ data: any, error: any }>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -78,6 +79,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error }
     }, [supabase])
 
+    const signInWithGoogle = useCallback(async (redirectTo?: string) => {
+        const origin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+        const callbackUrl = new URL('/auth/callback', origin)
+        if (redirectTo) callbackUrl.searchParams.set('next', redirectTo)
+
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: callbackUrl.toString(),
+            },
+        })
+        return { data, error }
+    }, [supabase])
+
     const isAuthenticated = !!user && !user.is_anonymous
 
     return (
@@ -91,6 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             signUp,
             signOut,
             signInAnonymously,
+            signInWithGoogle,
         }}>
             {children}
         </AuthContext.Provider>
