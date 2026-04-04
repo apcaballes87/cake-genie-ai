@@ -184,6 +184,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, data: conversation }, { status: 201 });
     }
 
+    if (action === 'mark_read') {
+      if (!conversationId) {
+        return NextResponse.json(
+          { success: false, error: 'Missing conversationId' },
+          { status: 400 }
+        );
+      }
+
+      const { error } = await supabaseAdmin
+        .from('chat_messages')
+        .update({ is_read: true })
+        .eq('conversation_id', conversationId)
+        .eq('is_read', false);
+
+      if (error) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
     return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
   } catch (err) {
     console.error('Unexpected error in POST /api/chat:', err);

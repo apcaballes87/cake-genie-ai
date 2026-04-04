@@ -35,6 +35,7 @@ interface Message {
     sender_type: 'customer' | 'merchant' | 'system';
     timestamp: string;
     is_read: boolean;
+    is_sent?: boolean;
 }
 
 interface ChatModalProps {
@@ -288,10 +289,28 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                 sender_type: newMessage.sender_type as 'merchant' | 'system',
                                 timestamp: newMessage.created_at,
                                 is_read: newMessage.is_read,
+                                is_sent: true,
                             };
                             return [...prev, newMsg];
                         });
                     }
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'chat_messages',
+                    filter: `conversation_id=eq.${conversationId}`,
+                },
+                (payload) => {
+                    const updatedMessage = payload.new as ChatMessage;
+                    setMessages((prev) =>
+                        prev.map((m) =>
+                            m.id === updatedMessage.id ? { ...m, is_read: updatedMessage.is_read } : m
+                        )
+                    );
                 }
             )
             .subscribe();
@@ -340,6 +359,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                 sender_type: 'system',
                 timestamp: new Date().toISOString(),
                 is_read: true,
+                is_sent: true,
             }]);
         } finally {
             setIsLoading(false);
@@ -359,7 +379,17 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     sender_type: msg.sender_type,
                     timestamp: msg.created_at,
                     is_read: msg.is_read,
+                    is_sent: true,
                 })));
+
+                await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'mark_read',
+                        conversationId: convoId,
+                    }),
+                });
             }
         } catch (err) {
             console.error('Error loading messages:', err);
@@ -403,7 +433,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     isUser: true,
                     sender_type: 'customer',
                     timestamp: new Date().toISOString(),
-                    is_read: true,
+                    is_read: false,
+                    is_sent: false,
                 };
 
                 setMessages(prev => [...prev, userMessage]);
@@ -424,7 +455,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                 const result = await response.json();
                 if (result.success && result.data) {
                     setMessages(prev => prev.map(msg =>
-                        msg.id === userMessage.id ? { ...msg, id: result.data.id } : msg
+                        msg.id === userMessage.id ? { ...msg, id: result.data.id, is_sent: true } : msg
                     ));
                 }
 
@@ -567,7 +598,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             isUser: true,
             sender_type: 'customer',
             timestamp: new Date().toISOString(),
-            is_read: true,
+            is_read: false,
+            is_sent: false,
         };
 
         setMessages(prev => [...prev, userMessage]);
@@ -590,7 +622,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             const result = await response.json();
             if (result.success && result.data) {
                 setMessages(prev => prev.map(msg =>
-                    msg.id === userMessage.id ? { ...msg, id: result.data.id } : msg
+                    msg.id === userMessage.id ? { ...msg, id: result.data.id, is_sent: true } : msg
                 ));
             }
 
@@ -760,8 +792,27 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                             {productSlug && (
                                                 <ProductLinkCard slug={productSlug} supabase={supabase} />
                                             )}
-                                            <p className={`text-[10px] mt-1 ${message.isUser ? 'text-purple-200' : 'text-slate-400'}`}>
+                                            <p className={`text-[10px] mt-1 flex items-center gap-1 ${message.isUser ? 'text-purple-200' : 'text-slate-400'}`}>
                                                 {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                {message.isUser && (
+                                                    <span className="flex items-center">
+                                                        {message.is_sent ? (
+                                                            message.is_read ? (
+                                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                </svg>
+                                                            ) : (
+                                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                </svg>
+                                                            )
+                                                        ) : (
+                                                            <svg className="w-3 h-3 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                                            </svg>
+                                                        )}
+                                                    </span>
+                                                )}
                                             </p>
                                         </div>
                                     </div>
