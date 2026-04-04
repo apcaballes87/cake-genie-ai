@@ -150,9 +150,16 @@ export async function validateDiscountCode(
       discountAmount = (orderAmount * discountCode.discount_percentage) / 100;
     }
 
+    // Apply max discount cap if set
+    if (discountCode.max_discount_amount !== null && discountCode.max_discount_amount !== undefined) {
+      discountAmount = Math.min(discountAmount, Number(discountCode.max_discount_amount));
+    }
+
     // Ensure discount doesn't exceed order amount, but don't let it go below zero.
     discountAmount = Math.min(discountAmount, orderAmount);
     const finalAmount = Math.max(0, orderAmount - discountAmount);
+
+    const freeDelivery = discountCode.free_delivery === true;
 
     return {
       valid: true,
@@ -161,6 +168,7 @@ export async function validateDiscountCode(
       originalAmount: orderAmount,
       finalAmount,
       message: 'Discount code applied successfully!',
+      freeDelivery,
     };
   } catch (error) {
     console.error('Error validating discount code:', error);
