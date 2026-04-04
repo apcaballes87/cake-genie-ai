@@ -45,11 +45,12 @@ export default function LoginClient() {
             const { error } = await signInWithGoogle(isValidRedirect(redirect) ? redirect || undefined : undefined)
             if (error) {
                 showError(error.message || 'Failed to sign in with Google')
-                setIsGoogleLoading(false)
             }
             // On success, Google redirects the browser — no further action needed
         } catch {
             showError('Failed to sign in with Google')
+        } finally {
+            // Reset in case the redirect never fires (e.g. popup blocked, network error)
             setIsGoogleLoading(false)
         }
     }

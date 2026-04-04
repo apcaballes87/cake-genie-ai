@@ -63,11 +63,12 @@ export default function SignupClient() {
             const { error } = await signInWithGoogle(isValidRedirect(redirect) ? redirect || undefined : undefined)
             if (error) {
                 showError(error.message || 'Failed to sign in with Google')
-                setIsGoogleLoading(false)
             }
             // On success, Google redirects the browser — no further action needed
         } catch {
             showError('Failed to sign in with Google')
+        } finally {
+            // Reset in case the redirect never fires (e.g. popup blocked, network error)
             setIsGoogleLoading(false)
         }
     }
@@ -108,7 +109,11 @@ export default function SignupClient() {
                 }
             } else {
                 showSuccess('Account created! Check your email to verify.')
-                router.push(`/signup/check-email?email=${encodeURIComponent(email)}`)
+                const redirect = searchParams.get('redirect')
+                const checkEmailUrl = new URL('/signup/check-email', window.location.origin)
+                checkEmailUrl.searchParams.set('email', email)
+                if (isValidRedirect(redirect)) checkEmailUrl.searchParams.set('redirect', redirect!)
+                router.push(checkEmailUrl.pathname + checkEmailUrl.search)
             }
         } catch (error: any) {
             showError(error.message || 'An error occurred during sign up')

@@ -7,6 +7,8 @@ import { Suspense } from 'react'
 function CheckEmailContent() {
     const searchParams = useSearchParams()
     const email = searchParams.get('email')
+    const redirect = searchParams.get('redirect')
+    const loginHref = redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login'
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-pink-50 via-purple-50 to-indigo-50 px-4 py-12">
@@ -39,7 +41,7 @@ function CheckEmailContent() {
                     </p>
 
                     <Link
-                        href="/login"
+                        href={loginHref}
                         className="w-full inline-block bg-linear-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:shadow-lg hover:scale-[1.02] transition-all duration-200 text-center"
                     >
                         Go to Sign In
