@@ -419,6 +419,9 @@ function CartClient() {
 
     // Calculate dynamic delivery fee based on city
     const deliveryFee = useMemo(() => {
+        // Free delivery if discount code has free delivery enabled
+        if (appliedDiscount?.freeDelivery) return 0;
+
         // No delivery fee for pickup orders
         if (fulfillmentType === 'pickup') return 0;
 
@@ -443,7 +446,7 @@ function CartClient() {
         }
 
         return 0;
-    }, [fulfillmentType, selectedAddress, guestAddress, derivedCity, pendingAddressData, isAddingAddress]);
+    }, [fulfillmentType, selectedAddress, guestAddress, derivedCity, pendingAddressData, isAddingAddress, appliedDiscount]);
 
     const discountAmount = appliedDiscount?.discountAmount || 0;
     const total = subtotal + deliveryFee - discountAmount;

@@ -290,6 +290,7 @@ export interface DiscountValidationResult {
   originalAmount: number;
   finalAmount: number;
   message?: string;
+  freeDelivery?: boolean;
 }
 
 // --- Service Payloads ---
