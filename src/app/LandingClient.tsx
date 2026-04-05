@@ -618,9 +618,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     priority
                                 />
                                 <div className="absolute inset-0 p-5 flex flex-col justify-center w-[65%] max-[520px]:w-[85%] gap-1.5">
-                                    <Link href="/reviews" className="text-[10px] text-gray-600 text-center w-full px-1 hover:text-purple-600">
-                                        4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
-                                    </Link>
                                     <p className="text-[10px] font-bold text-purple-600 uppercase tracking-[0.15em] flex whitespace-nowrap">
                                         Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;
                                     </p>
