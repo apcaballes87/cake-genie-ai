@@ -615,6 +615,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     alt="Hero"
                                     className="w-full h-auto block object-cover object-center"
                                     skeletonClassName="rounded-3xl"
+                                    priority
                                 />
                                 <div className="absolute inset-0 p-5 flex flex-col justify-center w-[65%] max-[520px]:w-[85%]">
                                     <p className="text-[10px] font-bold text-purple-600 uppercase tracking-[0.15em] mb-2 flex whitespace-nowrap">
