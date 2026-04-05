@@ -705,6 +705,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 user_id: user?.id || null,
                 session_id: user?.is_anonymous ? user.id : null,
                 merchant_id: null, // Will be set when ordering from a specific merchant shop
+                product_id: product?.product_id || null,
                 cake_type: cakeInfo.type,
                 cake_thickness: cakeInfo.thickness,
                 cake_size: cakeInfo.size,

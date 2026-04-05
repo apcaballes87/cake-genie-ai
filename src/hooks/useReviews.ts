@@ -3,6 +3,7 @@ import {
   getMerchantReviews,
   getProductReviews,
   getMerchantAllReviews,
+  getOrderReviews,
   submitReview,
   updateReviewModeration,
   respondToReview,
@@ -34,6 +35,20 @@ export function useProductReviews(productId: string | undefined, options?: { lim
       return result.data || [];
     },
     enabled: !!productId,
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useOrderReviews(orderId: string | undefined) {
+  return useQuery({
+    queryKey: ['order-reviews', orderId],
+    queryFn: async () => {
+      if (!orderId) return [];
+      const result = await getOrderReviews(orderId);
+      if (result.error) throw result.error;
+      return result.data || [];
+    },
+    enabled: !!orderId,
     staleTime: 30 * 1000,
   });
 }

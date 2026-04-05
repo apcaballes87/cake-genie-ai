@@ -15,6 +15,7 @@ interface ReviewFormProps {
   userId: string | null;
   orderNumber?: string;
   itemName?: string;
+  itemImageUrl?: string;
   onReviewSubmitted?: () => void;
 }
 
@@ -28,6 +29,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
   userId,
   orderNumber,
   itemName,
+  itemImageUrl,
   onReviewSubmitted,
 }) => {
   const [rating, setRating] = useState(0);
@@ -171,10 +173,19 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
         {/* Content */}
         <div className="p-5 space-y-5 overflow-y-auto flex-1">
           {/* Item being reviewed */}
-          {itemName && (
-            <div className="p-3 bg-slate-50 rounded-lg">
-              <p className="text-xs text-slate-500 mb-1">Reviewing</p>
-              <p className="font-medium text-slate-800">{itemName}</p>
+          {(itemName || itemImageUrl) && (
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+              {itemImageUrl && (
+                <img
+                  src={itemImageUrl}
+                  alt={itemName || 'Cake'}
+                  className="w-16 h-16 rounded-lg object-cover shrink-0"
+                />
+              )}
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Reviewing</p>
+                <p className="font-medium text-slate-800">{itemName}</p>
+              </div>
             </div>
           )}
 

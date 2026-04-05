@@ -470,8 +470,10 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                     <div>
                         <span className="text-xl font-extrabold text-white">₱{totalPrice.toLocaleString()}</span>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                            <span className="text-[11px] text-white/80 font-medium">Same-day delivery</span>
+                            <span className={`w-1.5 h-1.5 rounded-full ${selectedTier === 1 ? 'bg-yellow-400' : 'bg-green-400 animate-pulse'}`} />
+                            <span className="text-[11px] text-white/80 font-medium">
+                                {selectedTier === 1 ? '1-day lead time' : 'Same-day delivery'}
+                            </span>
                         </div>
                     </div>
                     <button

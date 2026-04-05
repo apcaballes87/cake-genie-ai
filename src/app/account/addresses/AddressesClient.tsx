@@ -155,7 +155,7 @@ export default function AddressesClient() {
     <div className="w-full max-w-3xl mx-auto pb-24 md:pb-8 px-4">
       <div className="flex justify-between items-center mb-6 pt-4">
         <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/')} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Go back">
+          <button onClick={() => router.push('/account')} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Go back">
             <ArrowLeft />
           </button>
           <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text whitespace-nowrap">My Addresses</h1>

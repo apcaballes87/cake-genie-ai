@@ -18,9 +18,10 @@ async function getReviews() {
       *,
       cakegenie_merchants(business_name),
       cakegenie_users(first_name, last_name),
-      cakegenie_order_items(cake_type, cake_size, customized_image_url, customization_details)
+      cakegenie_order_items!order_item_id(cake_type, cake_size, customized_image_url, customization_details)
     `)
-    .eq('is_published', true)
+    .eq('is_visible', true)
+    .eq('is_approved', true)
     .order('created_at', { ascending: false })
     .limit(20);
 
