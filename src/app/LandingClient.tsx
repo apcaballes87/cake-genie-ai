@@ -583,6 +583,11 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                     <div className="flex flex-col md:flex-row gap-8 md:gap-12 lg:gap-16 items-start">
 {/* Mobile Hero View */}
                         <div className="md:hidden w-full flex flex-col">
+                            {/* Rating text above image */}
+                            <p className="text-[9px] text-gray-600 mb-3 text-center w-full">
+                                4.8 <span className="text-yellow-500">★★★★★</span> | Customers rate us 4.8/5 based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
+                            </p>
+
                             {/* Image container with message overlay on the left */}
                             <div className="relative w-full rounded-3xl overflow-hidden mb-4 shadow-lg">
                                 <ImageWithSkeleton
@@ -604,11 +609,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     </h2>
                                 </div>
                             </div>
-
-                            {/* Rating text above CTA */}
-                            <p className="text-[9px] text-gray-600 mb-2 text-center w-full">
-                                4.8 <span className="text-yellow-500">★★★★★</span> | Customers rate us 4.8/5 based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
-                            </p>
 
                             {/* Buttons under the image (1 line) */}
                             <div className="flex items-center gap-2 w-full">
