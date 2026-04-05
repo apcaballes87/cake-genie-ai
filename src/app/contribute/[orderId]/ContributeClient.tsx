@@ -156,7 +156,7 @@ export default function ContributeClient({ orderId }: ContributeClientProps) {
                                     {order.organizer && (
                                         <div>
                                             <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-1">Organized by</p>
-                                            <p className="text-sm font-bold text-gray-900">{order.organizer.first_name || 'Anonymous'}</p>
+                                            <p className="text-sm font-bold text-gray-900">{order.organizer.first_name}</p>
                                             <p className="text-xs text-gray-600">{order.organizer.email}</p>
                                         </div>
                                     )}
