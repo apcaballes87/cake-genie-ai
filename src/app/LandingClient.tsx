@@ -734,42 +734,33 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     aria-label={`Review by ${card.name}`}
                                     onKeyDown={(e) => e.key === 'Enter' && card.photo && setReviewZoomSrc(card.photo)}
                                 >
-                                    <div className="flex gap-2">
-                                        {/* Left: stars + review text + name/date */}
-                                        <div className="min-w-0 flex-1 flex flex-col">
-                                            {/* Row 1: Stars */}
-                                            <div className="flex items-center gap-1 mb-1.5">
-                                                <div className="flex gap-px">
-                                                    {[1, 2, 3, 4, 5].map((star) => (
-                                                        <span key={star} className={`text-xs ${star <= card.rating ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
-                                                    ))}
-                                                </div>
-                                                <span className="text-[10px] font-medium text-slate-600">{card.rating}/5</span>
-                                            </div>
-                                            {/* Row 2: Review snippet */}
-                                            <div className="flex-1 mb-1.5">
-                                                {card.cakeType && <p className="text-[10px] font-semibold text-slate-800 truncate mb-0.5">{card.cakeType} Cake{card.cakeSize ? ` · ${card.cakeSize}` : ''}</p>}
-                                                {card.text && (
-                                                    <p className="text-[10px] text-slate-600 leading-relaxed line-clamp-3 whitespace-normal">{card.text}</p>
-                                                )}
-                                            </div>
-                                            {/* Row 3: Name + Date */}
-                                            <div className="flex items-center justify-between text-[9px] text-slate-400 pt-1 border-t border-slate-100">
-                                                <span className="font-medium text-slate-600">{card.name}</span>
-                                                <span>{card.date}</span>
-                                            </div>
+                                    {/* Row 1: Stars + Name */}
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <div className="flex gap-px">
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <span key={star} className={`text-xs ${star <= card.rating ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+                                            ))}
                                         </div>
-                                        {/* Right: image thumbnail spanning full height */}
+                                        <span className="text-[10px] font-medium text-slate-600 truncate ml-2">{card.name}</span>
+                                    </div>
+                                    {/* Row 2: Image thumbnail (left) + Review snippet (right) */}
+                                    <div className="flex gap-2">
                                         {card.photo && (
-                                            <div className="relative w-[60px] md:w-[68px] flex-shrink-0 overflow-hidden rounded-lg border border-slate-200 self-stretch">
+                                            <div className="relative w-10 h-10 md:w-[47px] md:h-[47px] flex-shrink-0 overflow-hidden rounded-md border border-slate-200">
                                                 <ImageWithSkeleton
                                                     src={card.photo}
                                                     alt={card.cakeType ? `${card.cakeType} Cake` : 'Cake'}
                                                     className="w-full h-full object-cover"
-                                                    skeletonClassName="rounded-lg"
+                                                    skeletonClassName="rounded-md"
                                                 />
                                             </div>
                                         )}
+                                        <div className="min-w-0 flex-1">
+                                            {card.cakeType && <p className="text-[10px] font-semibold text-slate-800 truncate mb-0.5">{card.cakeType} Cake{card.cakeSize ? ` · ${card.cakeSize}` : ''}</p>}
+                                            {card.text && (
+                                                <p className="text-[10px] text-slate-600 leading-relaxed line-clamp-2 whitespace-normal">{card.text}</p>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -1030,7 +1021,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                     {[
                         { label: 'Cold Caking', href: '/coldcaking', emoji: '🧊' },
                         { label: 'Our Bakers', href: '/shop', emoji: '🏪' },
-                        { label: 'Blog', href: '/blog', emoji: '📝' },
                         { label: 'Compare Cakes', href: '/compare', emoji: '⚖️' },
                         { label: 'How to Order', href: '/how-to-order', emoji: '📋' },
                         { label: 'Payment Options', href: '/payment-options', emoji: '💳' },
