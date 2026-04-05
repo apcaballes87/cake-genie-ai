@@ -604,9 +604,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 {/* Mobile Hero View */}
                         <div className="md:hidden w-full flex flex-col">
                             {/* Rating text above image */}
-                            <p className="text-[10px] text-gray-600 mb-1.5 text-center w-full px-1">
+                            <Link href="/reviews" className="text-[10px] text-gray-600 mb-1.5 text-center w-full px-1 hover:text-purple-600">
                                 4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
-                            </p>
+                            </Link>
 
                             {/* Image container with message overlay on the left */}
                             <div className="relative w-full rounded-3xl overflow-hidden mb-4 shadow-lg">
@@ -665,9 +665,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 priority
                             />
                             <div className="absolute inset-0 p-10 lg:p-14 flex flex-col justify-center w-[55%] lg:w-[50%]">
-                                <p className="text-[12px] lg:text-xs text-gray-600 mb-1">
+                                <Link href="/reviews" className="text-[12px] lg:text-xs text-gray-600 mb-1 hover:text-purple-600">
                                     4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
-                                </p>
+                                </Link>
                                 <p className="text-xs lg:text-sm font-bold text-purple-600 uppercase tracking-[0.15em] mb-3">
                                     Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;
                                 </p>
@@ -727,7 +727,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             {reviewCards.map((card, i) => (
                                 <div
                                     key={`${card.id}-${i}`}
-                                    className={`shrink-0 w-[204px] md:w-[238px] bg-white rounded-xl shadow-md p-2.5 md:p-3 transition-shadow ${card.photo ? 'cursor-pointer hover:shadow-lg' : ''}`}
+                                    className={`shrink-0 w-[294px] md:w-[343px] bg-white rounded-xl shadow-md p-2.5 md:p-3 transition-shadow ${card.photo ? 'cursor-pointer hover:shadow-lg' : ''}`}
                                     onClick={() => card.photo && setReviewZoomSrc(card.photo)}
                                     role="button"
                                     tabIndex={0}
