@@ -45,11 +45,31 @@ const ImageUploader = dynamic(
 
 
 
+interface LandingReview {
+    review_id: string;
+    rating: number;
+    review_text: string | null;
+    review_photos: string[] | null;
+    created_at: string;
+    cakegenie_users?: {
+        first_name: string | null;
+        last_name: string | null;
+    };
+    cakegenie_orders?: {
+        cakegenie_order_items?: {
+            cake_type: string | null;
+            cake_size: string | null;
+            customized_image_url: string | null;
+        }[];
+    };
+}
+
 interface LandingClientProps {
     children?: React.ReactNode;
     popularDesigns?: PopularDesign[];
     heroProducts?: PopularDesign[];
     blogPosts?: BlogHomepagePreview[];
+    reviews?: LandingReview[];
 }
 
 const subscribeToHydration = () => () => { };
@@ -196,7 +216,7 @@ const DiscountCapture = () => {
     return null;
 };
 
-const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], heroProducts = [], blogPosts = [] }) => {
+const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], heroProducts = [], blogPosts = [], reviews = [] }) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
@@ -335,6 +355,31 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
         frameId = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(frameId);
     }, [reviewZoomSrc, isInteracting]);
+
+    // Build review items for marquee from actual reviews
+    const reviewItems = useMemo(() => {
+        const items: { id: string; photo: string; rating: number; name: string }[] = [];
+        for (const r of reviews) {
+            // Use review photos first, then fall back to order item cake images
+            const photos = r.review_photos?.length ? r.review_photos :
+                r.cakegenie_orders?.cakegenie_order_items
+                    ?.map(item => item.customized_image_url)
+                    .filter((url): url is string => !!url) || [];
+            if (photos.length === 0) continue;
+            const firstName = r.cakegenie_users?.first_name || '';
+            const lastName = r.cakegenie_users?.last_name || '';
+            const name = firstName && lastName
+                ? `${firstName.charAt(0).toUpperCase()}. ${lastName}`
+                : firstName || 'Customer';
+            for (const photo of photos) {
+                items.push({ id: r.review_id, photo, rating: r.rating, name });
+            }
+        }
+        // Duplicate for seamless looping
+        if (items.length === 0) return [];
+        const doubled = [...items, ...items];
+        return doubled;
+    }, [reviews]);
 
     const scrollThreshold = 50;
 
@@ -634,6 +679,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
 
                 {/* ===== REVIEWS MARQUEE ===== */}
+                {reviewItems.length > 0 && (
                 <section aria-label="Customer reviews" className="w-full overflow-hidden py-2 md:py-3">
                     <div className="relative group">
                         <div
@@ -644,7 +690,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 md:w-28"
                             style={{ background: 'linear-gradient(to left, rgba(240,238,255,1), transparent)' }}
                         />
-                        <div 
+                        <div
                             ref={scrollRef}
                             className="flex gap-9 whitespace-nowrap overflow-x-auto scrollbar-hide py-2"
                             onMouseDown={() => setIsInteracting(true)}
@@ -654,19 +700,19 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             onTouchEnd={() => setIsInteracting(false)}
                         >
                             <div className="flex gap-9 whitespace-nowrap min-w-max pr-9">
-                            {[1, 2, 3, 4, 1, 2, 3, 4].map((n, i) => (
+                            {reviewItems.map((item, i) => (
                                 <div
-                                    key={i}
+                                    key={`${item.id}-${i}`}
                                     className="shrink-0 p-2 bg-white rounded-2xl shadow-md cursor-zoom-in"
-                                    onClick={() => setReviewZoomSrc(`https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/REVIEW-SAMPLES/genieph-reviews-${n}.webp`)}
+                                    onClick={() => setReviewZoomSrc(item.photo)}
                                     role="button"
                                     tabIndex={0}
-                                    aria-label={`View review ${n} in full size`}
-                                    onKeyDown={(e) => e.key === 'Enter' && setReviewZoomSrc(`https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/REVIEW-SAMPLES/genieph-reviews-${n}.webp`)}
+                                    aria-label={`View review by ${item.name} in full size`}
+                                    onKeyDown={(e) => e.key === 'Enter' && setReviewZoomSrc(item.photo)}
                                 >
                                     <ImageWithSkeleton
-                                        src={`https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/REVIEW-SAMPLES/genieph-reviews-${n}a.webp`}
-                                        alt={`Customer review ${n}`}
+                                        src={item.photo}
+                                        alt={`Review by ${item.name} - ${item.rating} stars`}
                                         className="h-[68px] md:h-[86px] w-[90px] md:w-[115px] rounded-xl object-cover"
                                         skeletonClassName="rounded-xl"
                                     />
@@ -676,6 +722,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         </div>
                     </div>
                 </section>
+                )}
 
                 {/* ===== SEE A CAKE YOU LOVE SECTION ===== */}
                 <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-6 pb-6 md:pt-8 md:pb-8 lg:pt-10 lg:pb-10">

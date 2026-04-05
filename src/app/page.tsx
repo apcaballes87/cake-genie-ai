@@ -4,6 +4,8 @@ import { getRecommendedProducts, getPopularDesigns, getHomepageBlogPreviews } fr
 import { RecommendedProductsSection, IntroContent } from '@/components/landing';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import NewsletterPopup from '@/components/NewsletterPopup';
+import { createClient } from '@/lib/supabase/server';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 // ISR: Revalidate every hour for fresh data while maintaining fast loads
 export const revalidate = 3600;
@@ -100,11 +102,32 @@ function WebSiteSchema() {
     );
 }
 
+async function getReviews() {
+    const supabase: SupabaseClient = await createClient();
+    const { data } = await supabase
+        .from('cakegenie_reviews')
+        .select(`
+            review_id,
+            rating,
+            review_text,
+            review_photos,
+            created_at,
+            cakegenie_users(first_name, last_name),
+            cakegenie_orders!order_id(cakegenie_order_items(cake_type, cake_size, customized_image_url))
+        `)
+        .eq('is_visible', true)
+        .eq('is_approved', true)
+        .order('created_at', { ascending: false })
+        .limit(20);
+    return data || [];
+}
+
 export default async function Home() {
-    const [recommendedProductsRes, popularDesignsRes, blogsRes] = await Promise.all([
+    const [recommendedProductsRes, popularDesignsRes, blogsRes, reviews] = await Promise.all([
         getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err })),
         getPopularDesigns(8, { keyword: 'minimalist', availability: ['rush', 'same-day'] }).catch(err => ({ data: [], error: err })),
         getHomepageBlogPreviews(3).catch(err => ({ data: [], error: err })),
+        getReviews().catch(() => []),
     ]);
 
     const recommendedProducts = recommendedProductsRes.data || [];
@@ -118,7 +141,7 @@ export default async function Home() {
     return (
         <>
             <WebSiteSchema />
-            <LandingClient popularDesigns={popularDesigns} heroProducts={heroProducts} blogPosts={blogPosts}>
+            <LandingClient popularDesigns={popularDesigns} heroProducts={heroProducts} blogPosts={blogPosts} reviews={reviews}>
                 {/* Server-rendered sections for LCP optimization */}
                 {/* <MerchantShowcase merchants={merchants} /> - Hidden for now */}
                 <RecommendedProductsSection products={recommendedProducts} />

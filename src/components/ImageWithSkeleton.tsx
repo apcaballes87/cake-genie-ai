@@ -41,7 +41,7 @@ export const ImageWithSkeleton: React.FC<ImageWithSkeletonProps> = ({
         onLoad={handleLoad}
         loading={priority ? 'eager' : 'lazy'}
         fetchPriority={priority ? 'high' : 'auto'}
-        className={`transition-opacity duration-200 ${isLoaded || priority ? 'opacity-100' : 'opacity-0'}`}
+        className={`w-full h-full object-cover transition-opacity duration-200 ${isLoaded || priority ? 'opacity-100' : 'opacity-0'}`}
       />
     </div>
   );
