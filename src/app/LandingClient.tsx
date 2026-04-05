@@ -51,17 +51,17 @@ interface LandingReview {
     review_text: string | null;
     review_photos: string[] | null;
     created_at: string;
-    cakegenie_users?: {
+    cakegenie_users: {
         first_name: string | null;
         last_name: string | null;
-    };
-    cakegenie_orders?: {
-        cakegenie_order_items?: {
+    }[];
+    cakegenie_orders: {
+        cakegenie_order_items: {
             cake_type: string | null;
             cake_size: string | null;
             customized_image_url: string | null;
         }[];
-    };
+    }[];
 }
 
 interface LandingClientProps {
@@ -362,12 +362,13 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
         for (const r of reviews) {
             // Use review photos first, then fall back to order item cake images
             const photos = r.review_photos?.length ? r.review_photos :
-                r.cakegenie_orders?.cakegenie_order_items
+                r.cakegenie_orders?.[0]?.cakegenie_order_items
                     ?.map(item => item.customized_image_url)
                     .filter((url): url is string => !!url) || [];
             if (photos.length === 0) continue;
-            const firstName = r.cakegenie_users?.first_name || '';
-            const lastName = r.cakegenie_users?.last_name || '';
+            const user = r.cakegenie_users?.[0];
+            const firstName = user?.first_name || '';
+            const lastName = user?.last_name || '';
             const name = firstName && lastName
                 ? `${firstName.charAt(0).toUpperCase()}. ${lastName}`
                 : firstName || 'Customer';
