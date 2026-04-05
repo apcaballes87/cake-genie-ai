@@ -70,11 +70,13 @@ export function ReviewCard({ review, showMerchantResponse = true, onRespond }: R
 
           <div className="flex items-center gap-2 text-sm text-gray-500">
             {review.user?.first_name && (
-              <span className="font-medium text-gray-700">
-                {review.user.first_name}
-              </span>
+              <>
+                <span className="font-medium text-gray-700">
+                  {review.user.first_name}
+                </span>
+                <span>•</span>
+              </>
             )}
-            <span>•</span>
             <time dateTime={review.created_at}>
               {review.created_at
                 ? formatDate(review.created_at)

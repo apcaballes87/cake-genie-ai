@@ -8,10 +8,10 @@ import Image from 'next/image';
 interface Review {
   review_id: string;
   rating: number;
-  review_title: string;
-  review_text: string;
-  review_photos: string[];
-  is_verified: boolean;
+  title: string | null;
+  comment: string | null;
+  photos: string[] | null;
+  user_id: string | null;
   created_at: string;
   order_id: string;
   cakegenie_merchants?: {
@@ -21,12 +21,14 @@ interface Review {
     first_name: string | null;
     last_name: string | null;
   };
-  cakegenie_order_items?: {
-    cake_type: string | null;
-    cake_size: string | null;
-    customized_image_url: string | null;
-    customization_details: Record<string, unknown> | null;
-  }[];
+  cakegenie_orders?: {
+    cakegenie_order_items?: {
+      cake_type: string | null;
+      cake_size: string | null;
+      customized_image_url: string | null;
+      customization_details: Record<string, unknown> | null;
+    }[];
+  };
 }
 
 interface ReviewsClientProps {
@@ -38,7 +40,7 @@ function formatCustomerName(firstName: string | null, lastName: string | null): 
   const cleanedFirst = firstName?.trim() || '';
   const cleanedLast = lastName?.trim() || '';
   
-  if (!cleanedFirst && !cleanedLast) return 'Anonymous';
+  if (!cleanedFirst && !cleanedLast) return '';
   if (cleanedFirst && cleanedLast) {
     return `${cleanedFirst.charAt(0).toUpperCase()}. ${cleanedLast}`;
   }
@@ -49,7 +51,7 @@ function formatCustomerName(firstName: string | null, lastName: string | null): 
     }
     return `${cleanedFirst.charAt(0).toUpperCase()}.`;
   }
-  return cleanedLast || 'Anonymous';
+  return cleanedLast || '';
 }
 
 const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], error: initialError = null }) => {
@@ -123,50 +125,57 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
                   {renderStars(review.rating)}
                   <span className="text-sm font-medium text-slate-700">{review.rating}/5</span>
                 </div>
-                {review.is_verified && (
+                {review.user_id && (
                   <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
                     Verified Purchase
                   </span>
                 )}
               </div>
 
-              {review.review_title && (
+              {review.title && (
                 <h3 className="font-semibold text-slate-800 text-lg mb-2">
-                  {review.review_title}
+                  {review.title}
                 </h3>
               )}
 
               {/* Product Info */}
-              {review.cakegenie_order_items && review.cakegenie_order_items.length > 0 && review.cakegenie_order_items[0] && (
-                <div className="flex items-center gap-3 mb-3 p-2 bg-white rounded-lg border border-slate-200">
-                  {review.cakegenie_order_items[0].customized_image_url && (
-                    <div className="relative w-16 h-16 flex-shrink-0 overflow-hidden rounded-md">
-                      <Image
-                        src={review.cakegenie_order_items[0].customized_image_url}
-                        alt={review.cakegenie_order_items[0].cake_type || 'Cake'}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  )}
-                  <div>
-                    <p className="font-medium text-slate-800">
-                      {review.cakegenie_order_items[0].cake_type} Cake
-                    </p>
-                    {review.cakegenie_order_items[0].cake_size && (
-                      <p className="text-sm text-slate-500">
-                        {review.cakegenie_order_items[0].cake_size}
-                      </p>
+              {(() => {
+                const orderItems = review.cakegenie_orders?.cakegenie_order_items;
+                const firstItem = orderItems && orderItems.length > 0 ? orderItems[0] : null;
+                if (!firstItem) return null;
+                return (
+                  <div className="flex items-center gap-3 mb-3 p-2 bg-white rounded-lg border border-slate-200">
+                    {firstItem.customized_image_url && (
+                      <div className="relative w-16 h-16 flex-shrink-0 overflow-hidden rounded-md">
+                        <Image
+                          src={firstItem.customized_image_url}
+                          alt={firstItem.cake_type || 'Cake'}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
                     )}
+                    <div>
+                      <p className="font-medium text-slate-800">
+                        {firstItem.cake_type} Cake
+                      </p>
+                      {firstItem.cake_size && (
+                        <p className="text-sm text-slate-500">
+                          {firstItem.cake_size}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
+                );
+              })()}
+
+              {review.comment && (
+                <p className="text-slate-600 mb-4">{review.comment}</p>
               )}
 
-              <p className="text-slate-600 mb-4">{review.review_text}</p>
-
-              {review.review_photos && review.review_photos.length > 0 && (
+              {review.photos && review.photos.length > 0 && (
                 <div className="flex gap-2 mb-4">
-                  {review.review_photos.map((photo, idx) => (
+                  {review.photos.map((photo, idx) => (
                     <div
                       key={idx}
                       className="relative w-20 h-20 cursor-zoom-in overflow-hidden rounded-lg"
@@ -187,12 +196,17 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
               )}
 
               <div className="flex items-center justify-between text-sm text-slate-500">
-                <span className="font-medium text-slate-700">
-                  {formatCustomerName(
-                    review.cakegenie_users?.first_name || null,
-                    review.cakegenie_users?.last_name || null
-                  )}
-                </span>
+                {formatCustomerName(
+                  review.cakegenie_users?.first_name || null,
+                  review.cakegenie_users?.last_name || null
+                ) && (
+                  <span className="font-medium text-slate-700">
+                    {formatCustomerName(
+                      review.cakegenie_users?.first_name || null,
+                      review.cakegenie_users?.last_name || null
+                    )}
+                  </span>
+                )}
                 <span>{formatDate(review.created_at)}</span>
               </div>
             </div>

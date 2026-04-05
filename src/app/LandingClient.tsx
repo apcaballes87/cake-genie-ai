@@ -383,7 +383,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 const lastName = user?.last_name || '';
                 name = firstName && lastName
                     ? `${firstName.charAt(0).toUpperCase()}. ${lastName}`
-                    : firstName || 'Customer';
+                    : firstName || '';
             }
             const orderItem = r.cakegenie_orders?.[0]?.cakegenie_order_items?.[0];
             cards.push({
