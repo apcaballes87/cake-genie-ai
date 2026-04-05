@@ -701,67 +701,65 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 <section aria-label="Customer reviews" className="w-full overflow-hidden py-2 md:py-4">
                     <div className="relative group">
                         <div
-                            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 md:w-28"
+                            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 md:w-24"
                             style={{ background: 'linear-gradient(to right, rgba(250,245,255,1), transparent)' }}
                         />
                         <div
-                            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 md:w-28"
+                            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 md:w-24"
                             style={{ background: 'linear-gradient(to left, rgba(240,238,255,1), transparent)' }}
                         />
                         <div
                             ref={scrollRef}
-                            className="flex gap-4 md:gap-5 whitespace-nowrap overflow-x-auto scrollbar-hide py-2"
+                            className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide py-2"
                             onMouseDown={() => setIsInteracting(true)}
                             onMouseUp={() => setIsInteracting(false)}
                             onMouseLeave={() => setIsInteracting(false)}
                             onTouchStart={() => setIsInteracting(true)}
                             onTouchEnd={() => setIsInteracting(false)}
                         >
-                            <div className="flex gap-4 md:gap-5 whitespace-nowrap min-w-max pr-4 md:pr-5">
+                            <div className="flex gap-3 md:gap-4 min-w-max pr-3 md:pr-4">
                             {reviewCards.map((card, i) => (
                                 <div
                                     key={`${card.id}-${i}`}
-                                    className="shrink-0 w-[260px] md:w-[300px] bg-white rounded-2xl shadow-md p-3 md:p-4 cursor-pointer hover:shadow-lg transition-shadow"
+                                    className="shrink-0 w-[240px] md:w-[280px] bg-white rounded-2xl shadow-md p-3 md:p-4 cursor-pointer hover:shadow-lg transition-shadow"
                                     onClick={() => setReviewZoomSrc(card.photo)}
                                     role="button"
                                     tabIndex={0}
                                     aria-label={`View review by ${card.name}`}
                                     onKeyDown={(e) => e.key === 'Enter' && setReviewZoomSrc(card.photo)}
                                 >
-                                    {/* Stars + Verified */}
-                                    <div className="flex items-center justify-between mb-2 whitespace-normal">
+                                    {/* Row 1: Stars + Verified */}
+                                    <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-1.5">
                                             <div className="flex gap-0.5">
                                                 {[1, 2, 3, 4, 5].map((star) => (
-                                                    <span key={star} className={`text-xs ${star <= card.rating ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+                                                    <span key={star} className={`text-sm ${star <= card.rating ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
                                                 ))}
                                             </div>
                                             <span className="text-xs font-medium text-slate-600">{card.rating}/5</span>
                                         </div>
                                         <span className="px-1.5 py-0.5 text-[10px] bg-green-100 text-green-700 rounded-full font-medium">Verified Purchase</span>
                                     </div>
-                                    {/* Cake info with image */}
-                                    <div className="flex items-center gap-2.5 mb-2 p-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                                        <div className="relative w-10 h-10 md:w-12 md:h-12 flex-shrink-0 overflow-hidden rounded-md">
+                                    {/* Row 2: Image thumbnail + Review snippet */}
+                                    <div className="flex gap-2.5 mb-2">
+                                        <div className="relative w-14 h-14 md:w-16 md:h-16 flex-shrink-0 overflow-hidden rounded-lg border border-slate-200">
                                             <ImageWithSkeleton
                                                 src={card.photo}
                                                 alt={card.cakeType ? `${card.cakeType} Cake` : 'Cake'}
                                                 className="w-full h-full object-cover"
-                                                skeletonClassName="rounded-md"
+                                                skeletonClassName="rounded-lg"
                                             />
                                         </div>
-                                        <div className="min-w-0">
-                                            {card.cakeType && <p className="text-xs font-medium text-slate-800 truncate">{card.cakeType} Cake</p>}
-                                            {card.cakeSize && <p className="text-[10px] text-slate-500 truncate">{card.cakeSize}</p>}
+                                        <div className="min-w-0 flex-1">
+                                            {card.cakeType && <p className="text-[11px] font-semibold text-slate-800 truncate mb-0.5">{card.cakeType} Cake{card.cakeSize ? ` · ${card.cakeSize}` : ''}</p>}
+                                            {card.text && (
+                                                <p className="text-[11px] text-slate-600 leading-relaxed line-clamp-2 whitespace-normal">{card.text}</p>
+                                            )}
                                         </div>
                                     </div>
-                                    {/* Review text */}
-                                    {card.text && (
-                                        <p className="text-xs text-slate-600 leading-relaxed mb-2 whitespace-normal line-clamp-2">{card.text}</p>
-                                    )}
-                                    {/* Name + Date */}
-                                    <div className="flex items-center justify-between text-[10px] text-slate-500 whitespace-normal">
-                                        <span className="font-medium text-slate-700">{card.name}</span>
+                                    {/* Row 3: Name + Date */}
+                                    <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1.5 border-t border-slate-100">
+                                        <span className="font-medium text-slate-600">{card.name}</span>
                                         <span>{card.date}</span>
                                     </div>
                                 </div>
