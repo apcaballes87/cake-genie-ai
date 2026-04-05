@@ -604,8 +604,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 {/* Mobile Hero View */}
                         <div className="md:hidden w-full flex flex-col">
                             {/* Rating text above image */}
-                            <p className="text-[8px] text-gray-600 mb-1.5 text-center w-full px-1">
-                                4.8 <span className="text-yellow-500">★★★★★</span> | Customers rate us 4.8/5 based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
+                            <p className="text-[10px] text-gray-600 mb-1.5 text-center w-full px-1">
+                                4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
                             </p>
 
                             {/* Image container with message overlay on the left */}
@@ -665,8 +665,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 priority
                             />
                             <div className="absolute inset-0 p-10 lg:p-14 flex flex-col justify-center w-[55%] lg:w-[50%]">
-                                <p className="text-[10px] lg:text-xs text-gray-600 mb-1">
-                                    4.8 <span className="text-yellow-500">★★★★★</span> | Customers rate us 4.8/5 based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
+                                <p className="text-[12px] lg:text-xs text-gray-600 mb-1">
+                                    4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
                                 </p>
                                 <p className="text-xs lg:text-sm font-bold text-purple-600 uppercase tracking-[0.15em] mb-3">
                                     Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;
@@ -752,6 +752,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                                     alt={card.cakeType ? `${card.cakeType} Cake` : 'Cake'}
                                                     className="w-full h-full object-cover"
                                                     skeletonClassName="rounded-md"
+                                                    priority
                                                 />
                                             </div>
                                         )}
