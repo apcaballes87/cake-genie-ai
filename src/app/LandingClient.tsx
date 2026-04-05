@@ -734,41 +734,42 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     aria-label={`Review by ${card.name}`}
                                     onKeyDown={(e) => e.key === 'Enter' && card.photo && setReviewZoomSrc(card.photo)}
                                 >
-                                    {/* Row 1: Stars + Verified */}
-                                    <div className="flex items-center justify-between mb-1.5">
-                                        <div className="flex items-center gap-1">
-                                            <div className="flex gap-px">
-                                                {[1, 2, 3, 4, 5].map((star) => (
-                                                    <span key={star} className={`text-xs ${star <= card.rating ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
-                                                ))}
+                                    <div className="flex gap-2">
+                                        {/* Left: stars + review text + name/date */}
+                                        <div className="min-w-0 flex-1 flex flex-col">
+                                            {/* Row 1: Stars */}
+                                            <div className="flex items-center gap-1 mb-1.5">
+                                                <div className="flex gap-px">
+                                                    {[1, 2, 3, 4, 5].map((star) => (
+                                                        <span key={star} className={`text-xs ${star <= card.rating ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+                                                    ))}
+                                                </div>
+                                                <span className="text-[10px] font-medium text-slate-600">{card.rating}/5</span>
                                             </div>
-                                            <span className="text-[10px] font-medium text-slate-600">{card.rating}/5</span>
+                                            {/* Row 2: Review snippet */}
+                                            <div className="flex-1 mb-1.5">
+                                                {card.cakeType && <p className="text-[10px] font-semibold text-slate-800 truncate mb-0.5">{card.cakeType} Cake{card.cakeSize ? ` · ${card.cakeSize}` : ''}</p>}
+                                                {card.text && (
+                                                    <p className="text-[10px] text-slate-600 leading-relaxed line-clamp-3 whitespace-normal">{card.text}</p>
+                                                )}
+                                            </div>
+                                            {/* Row 3: Name + Date */}
+                                            <div className="flex items-center justify-between text-[9px] text-slate-400 pt-1 border-t border-slate-100">
+                                                <span className="font-medium text-slate-600">{card.name}</span>
+                                                <span>{card.date}</span>
+                                            </div>
                                         </div>
-                                        <span className="px-1 py-0.5 text-[9px] bg-green-100 text-green-700 rounded-full font-medium">Verified Purchase</span>
-                                    </div>
-                                    {/* Row 2: Image thumbnail + Review snippet */}
-                                    <div className="flex gap-2 mb-1.5">
+                                        {/* Right: image thumbnail spanning full height */}
                                         {card.photo && (
-                                            <div className="relative w-11 h-11 md:w-[52px] md:h-[52px] flex-shrink-0 overflow-hidden rounded-md border border-slate-200">
+                                            <div className="relative w-[60px] md:w-[68px] flex-shrink-0 overflow-hidden rounded-lg border border-slate-200 self-stretch">
                                                 <ImageWithSkeleton
                                                     src={card.photo}
                                                     alt={card.cakeType ? `${card.cakeType} Cake` : 'Cake'}
                                                     className="w-full h-full object-cover"
-                                                    skeletonClassName="rounded-md"
+                                                    skeletonClassName="rounded-lg"
                                                 />
                                             </div>
                                         )}
-                                        <div className="min-w-0 flex-1">
-                                            {card.cakeType && <p className="text-[10px] font-semibold text-slate-800 truncate mb-0.5">{card.cakeType} Cake{card.cakeSize ? ` · ${card.cakeSize}` : ''}</p>}
-                                            {card.text && (
-                                                <p className="text-[10px] text-slate-600 leading-relaxed line-clamp-2 whitespace-normal">{card.text}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {/* Row 3: Name + Date */}
-                                    <div className="flex items-center justify-between text-[9px] text-slate-400 pt-1 border-t border-slate-100">
-                                        <span className="font-medium text-slate-600">{card.name}</span>
-                                        <span>{card.date}</span>
                                     </div>
                                 </div>
                             ))}
