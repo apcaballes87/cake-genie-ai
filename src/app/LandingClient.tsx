@@ -50,6 +50,7 @@ interface LandingReview {
     rating: number;
     review_text: string | null;
     review_photos: string[] | null;
+    reviewer_name: string | null;
     created_at: string;
     cakegenie_users: {
         first_name: string | null;
@@ -360,7 +361,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     const reviewCards = useMemo(() => {
         const cards: {
             id: string;
-            photo: string;
+            photo: string | null;
             rating: number;
             name: string;
             text: string | null;
@@ -369,21 +370,25 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
             date: string;
         }[] = [];
         for (const r of reviews) {
+            if (!r.review_text) continue;
             const photos = r.review_photos?.length ? r.review_photos :
                 r.cakegenie_orders?.[0]?.cakegenie_order_items
                     ?.map(item => item.customized_image_url)
                     .filter((url): url is string => !!url) || [];
-            if (photos.length === 0) continue;
-            const user = r.cakegenie_users?.[0];
-            const firstName = user?.first_name || '';
-            const lastName = user?.last_name || '';
-            const name = firstName && lastName
-                ? `${firstName.charAt(0).toUpperCase()}. ${lastName}`
-                : firstName || 'Customer';
+            // Determine name: use reviewer_name for imported reviews, otherwise from user relation
+            let name = r.reviewer_name || '';
+            if (!name) {
+                const user = r.cakegenie_users?.[0];
+                const firstName = user?.first_name || '';
+                const lastName = user?.last_name || '';
+                name = firstName && lastName
+                    ? `${firstName.charAt(0).toUpperCase()}. ${lastName}`
+                    : firstName || 'Customer';
+            }
             const orderItem = r.cakegenie_orders?.[0]?.cakegenie_order_items?.[0];
             cards.push({
                 id: r.review_id,
-                photo: photos[0],
+                photo: photos.length > 0 ? photos[0] : null,
                 rating: r.rating,
                 name,
                 text: r.review_text,
@@ -721,12 +726,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             {reviewCards.map((card, i) => (
                                 <div
                                     key={`${card.id}-${i}`}
-                                    className="shrink-0 w-[204px] md:w-[238px] bg-white rounded-xl shadow-md p-2.5 md:p-3 cursor-pointer hover:shadow-lg transition-shadow"
-                                    onClick={() => setReviewZoomSrc(card.photo)}
+                                    className={`shrink-0 w-[204px] md:w-[238px] bg-white rounded-xl shadow-md p-2.5 md:p-3 transition-shadow ${card.photo ? 'cursor-pointer hover:shadow-lg' : ''}`}
+                                    onClick={() => card.photo && setReviewZoomSrc(card.photo)}
                                     role="button"
                                     tabIndex={0}
-                                    aria-label={`View review by ${card.name}`}
-                                    onKeyDown={(e) => e.key === 'Enter' && setReviewZoomSrc(card.photo)}
+                                    aria-label={`Review by ${card.name}`}
+                                    onKeyDown={(e) => e.key === 'Enter' && card.photo && setReviewZoomSrc(card.photo)}
                                 >
                                     {/* Row 1: Stars + Verified */}
                                     <div className="flex items-center justify-between mb-1.5">
@@ -742,14 +747,16 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     </div>
                                     {/* Row 2: Image thumbnail + Review snippet */}
                                     <div className="flex gap-2 mb-1.5">
-                                        <div className="relative w-11 h-11 md:w-[52px] md:h-[52px] flex-shrink-0 overflow-hidden rounded-md border border-slate-200">
-                                            <ImageWithSkeleton
-                                                src={card.photo}
-                                                alt={card.cakeType ? `${card.cakeType} Cake` : 'Cake'}
-                                                className="w-full h-full object-cover"
-                                                skeletonClassName="rounded-md"
-                                            />
-                                        </div>
+                                        {card.photo && (
+                                            <div className="relative w-11 h-11 md:w-[52px] md:h-[52px] flex-shrink-0 overflow-hidden rounded-md border border-slate-200">
+                                                <ImageWithSkeleton
+                                                    src={card.photo}
+                                                    alt={card.cakeType ? `${card.cakeType} Cake` : 'Cake'}
+                                                    className="w-full h-full object-cover"
+                                                    skeletonClassName="rounded-md"
+                                                />
+                                            </div>
+                                        )}
                                         <div className="min-w-0 flex-1">
                                             {card.cakeType && <p className="text-[10px] font-semibold text-slate-800 truncate mb-0.5">{card.cakeType} Cake{card.cakeSize ? ` · ${card.cakeSize}` : ''}</p>}
                                             {card.text && (
