@@ -584,7 +584,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 {/* Mobile Hero View */}
                         <div className="md:hidden w-full flex flex-col">
                             {/* Rating text above image */}
-                            <p className="text-[9px] text-gray-600 mb-3 text-center w-full">
+                            <p className="text-[8px] text-gray-600 mb-3 text-center w-full px-1">
                                 4.8 <span className="text-yellow-500">★★★★★</span> | Customers rate us 4.8/5 based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
                             </p>
 
