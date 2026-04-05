@@ -86,115 +86,401 @@ interface InteractiveCustomizerProps {
     flavors: FlavorOption[];
     icings: IcingOption[];
     toppers: TopperOption[];
-    onAddToCart: () => void;
+    onTryItClick: () => void;
 }
 
-const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, flavors, icings, toppers, onAddToCart }) => {
-    const [selectedTier, setSelectedTier] = useState(tiers[0].label);
-    const [selectedFlavor, setSelectedFlavor] = useState(flavors[0].label);
-    const [icingOn, setIcingOn] = useState<Record<string, boolean>>({ 'Body Icing': true, 'Drip': false, 'Base Border': true, 'Top Border': false });
-    const [topperOn, setTopperOn] = useState<Record<string, boolean>>({});
+const DEMO_MESSAGE = "Happy Birthday, Sarah! 🎉";
 
-    const tier = tiers.find(t => t.label === selectedTier)!;
+const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, flavors, icings, toppers, onTryItClick }) => {
+    const [selectedTier, setSelectedTier] = useState(2); // Start with Bento
+    const [selectedFlavor, setSelectedFlavor] = useState(0);
+    const [icingOn, setIcingOn] = useState<Record<string, boolean>>({ 'Body Icing': false, 'Drip': false, 'Base Border': false, 'Top Border': false, 'Top Icing': false, 'Board': false });
+    const [selectedToppers, setSelectedToppers] = useState<Set<string>>(new Set());
+    const [cakeMessage, setCakeMessage] = useState('');
+    const [showTypingCursor, setShowTypingCursor] = useState(false);
+    const [showPriceBadge, setShowPriceBadge] = useState(false);
+    const [highlightedOption, setHighlightedOption] = useState<string | null>(null);
+    const [annotation, setAnnotation] = useState<string | null>(null);
+    const [priceDirection, setPriceDirection] = useState<'up' | 'down' | null>(null);
+
+    const isAutoPlayingRef = useRef(true);
+    const autoPlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const typingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const prevPriceRef = useRef(0);
+    const demoRef = useRef<HTMLDivElement>(null);
+    const [isDemoVisible, setIsDemoVisible] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const priceHeading = document.getElementById('price-change-heading');
+            const rushHeading = document.getElementById('rush-orders-heading');
+            
+            if (!priceHeading || !rushHeading) return;
+            
+            const screenHeight = window.innerHeight;
+            const priceRect = priceHeading.getBoundingClientRect();
+            const rushRect = rushHeading.getBoundingClientRect();
+            
+            const priceTriggerPoint = screenHeight * 0.5;
+            const rushTriggerPoint = screenHeight * 0.75;
+            
+            const priceAtThreshold = priceRect.top <= priceTriggerPoint && priceRect.bottom > 0;
+            const rushAtThreshold = rushRect.top <= rushTriggerPoint && rushRect.bottom > 0;
+            
+            setIsDemoVisible(priceAtThreshold && !rushAtThreshold);
+        };
+        
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        handleScroll();
+        
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const tier = tiers[selectedTier];
     const icingAddon = icings.reduce((sum, i) => sum + (icingOn[i.label] ? i.addonPrice : 0), 0);
-    const topperAddon = Object.values(topperOn).filter(Boolean).length * 100;
+    const topperAddon = selectedToppers.size * 100;
     const totalPrice = tier.price + icingAddon + topperAddon;
 
-    const thumbCls = (active: boolean) =>
-        `relative w-full aspect-[5/4] rounded-lg border-2 overflow-hidden transition-all duration-200 cursor-pointer ${active ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white hover:border-purple-300'}`;
-    const icingCls = (active: boolean) =>
-        `w-12 h-12 p-2 rounded-full shadow-md flex items-center justify-center cursor-pointer transition-all duration-200 ${active ? 'border-2 border-purple-600 bg-white/80' : 'border border-slate-200 bg-white/80 opacity-50 hover:opacity-80'}`;
+    const targetImageSrc = icingOn['Drip'] && selectedToppers.has('Sugar Flowers')
+        ? 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip-roses.webp'
+        : tier.src;
+    const [displayedImageSrc, setDisplayedImageSrc] = useState(targetImageSrc);
+    const [imgVisible, setImgVisible] = useState(true);
+    const imgFadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        if (targetImageSrc === displayedImageSrc) return;
+        if (imgFadeTimerRef.current) clearTimeout(imgFadeTimerRef.current);
+        setImgVisible(false);
+        imgFadeTimerRef.current = setTimeout(() => {
+            setDisplayedImageSrc(targetImageSrc);
+            setImgVisible(true);
+        }, 250);
+        return () => { if (imgFadeTimerRef.current) clearTimeout(imgFadeTimerRef.current); };
+    }, [targetImageSrc]);
+
+    // Track price direction for animation
+    useEffect(() => {
+        if (prevPriceRef.current !== 0 && prevPriceRef.current !== totalPrice) {
+            setPriceDirection(totalPrice > prevPriceRef.current ? 'up' : 'down');
+            const timer = setTimeout(() => setPriceDirection(null), 500);
+            prevPriceRef.current = totalPrice;
+            return () => clearTimeout(timer);
+        }
+        prevPriceRef.current = totalPrice;
+    }, [totalPrice]);
+
+    const stopAutoPlay = useCallback(() => {
+        isAutoPlayingRef.current = false;
+        if (autoPlayTimerRef.current) clearTimeout(autoPlayTimerRef.current);
+        if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+        setHighlightedOption(null);
+        setAnnotation(null);
+        setShowTypingCursor(false);
+        setShowPriceBadge(false);
+    }, []);
+
+    // Auto-play demo sequence
+    useEffect(() => {
+        const scheduleStep = (fn: () => void, delay: number) => {
+            autoPlayTimerRef.current = setTimeout(() => {
+                if (!isAutoPlayingRef.current) return;
+                fn();
+            }, delay);
+        };
+
+        const runDemo = () => {
+            if (!isAutoPlayingRef.current) return;
+
+            // Step 1: Show Bento (already selected on start, just annotate)
+            scheduleStep(() => {
+                setHighlightedOption('Bento');
+                setAnnotation('Bento — ₱399');
+
+                // Step 2: Switch to 1 Tier
+                scheduleStep(() => {
+                    setSelectedTier(0);
+                    setHighlightedOption('1 Tier');
+                    setAnnotation('1 Tier — ₱1,500');
+
+                    // Step 3: Switch to 2 Tier
+                    scheduleStep(() => {
+                        setSelectedTier(1);
+                        setHighlightedOption('2 Tier');
+                        setAnnotation('2 Tier — ₱2,500');
+
+                        // Step 4: Toggle Drip
+                        scheduleStep(() => {
+                            setHighlightedOption('Drip');
+                            setAnnotation('Drip Icing — +₱100');
+                            setIcingOn(prev => ({ ...prev, 'Drip': true }));
+
+                            // Step 5: Add Sugar Flowers
+                            scheduleStep(() => {
+                                setHighlightedOption('Sugar Flowers');
+                                setAnnotation('Sugar Flowers — +₱100');
+                                setSelectedToppers(new Set(['Sugar Flowers']));
+
+                                // Step 6: Type message
+                                scheduleStep(() => {
+                                    setHighlightedOption(null);
+                                    setAnnotation(null);
+                                    setShowTypingCursor(true);
+                                    let charIndex = 0;
+                                    typingIntervalRef.current = setInterval(() => {
+                                        if (!isAutoPlayingRef.current) {
+                                            if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+                                            return;
+                                        }
+                                        charIndex++;
+                                        if (charIndex <= DEMO_MESSAGE.length) {
+                                            setCakeMessage(DEMO_MESSAGE.slice(0, charIndex));
+                                        } else {
+                                            if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+                                            setShowTypingCursor(false);
+
+                                            // Step 7: Show price badge
+                                            scheduleStep(() => {
+                                                setShowPriceBadge(true);
+
+                                                // Step 8: Reset and loop
+                                                scheduleStep(() => {
+                                                    setShowPriceBadge(false);
+                                                    setSelectedTier(2); // Reset to Bento
+                                                    setSelectedFlavor(0);
+                                                    setIcingOn({ 'Body Icing': false, 'Drip': false, 'Base Border': false, 'Top Border': false, 'Top Icing': false, 'Board': false });
+                                                    setSelectedToppers(new Set());
+                                                    setCakeMessage('');
+                                                    setAnnotation(null);
+                                                    setHighlightedOption(null);
+
+                                                    scheduleStep(() => runDemo(), 1400);
+                                                }, 2100);
+                                            }, 700);
+                                        }
+                                    }, 49);
+                                }, 1050);
+                            }, 1400);
+                        }, 1400);
+                    }, 1400);
+                }, 1400);
+            }, 700);
+        };
+
+        runDemo();
+
+        return () => {
+            if (autoPlayTimerRef.current) clearTimeout(autoPlayTimerRef.current);
+            if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+        };
+    }, []);
+
+    const handleTierClick = (i: number) => { stopAutoPlay(); setSelectedTier(i); };
+    const handleFlavorClick = (i: number) => { stopAutoPlay(); setSelectedFlavor(i); };
+    const handleIcingToggle = (label: string) => {
+        stopAutoPlay();
+        setIcingOn(prev => ({ ...prev, [label]: !prev[label] }));
+    };
+    const handleTopperToggle = (label: string) => {
+        stopAutoPlay();
+        setSelectedToppers(prev => {
+            const next = new Set(prev);
+            if (next.has(label)) next.delete(label); else next.add(label);
+            return next;
+        });
+    };
 
     return (
-        <div className="flex-1 w-full max-w-lg lg:max-w-none">
-            <p className="text-xs font-bold text-purple-500 uppercase tracking-[0.15em] mb-4">
-                Customize and Add to Cart
-            </p>
+        <div ref={demoRef}>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
+            {/* Left: Cake Preview */}
+            <div className="lg:col-span-3 relative">
+                {/* Live Demo badge */}
+                <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md">
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-xs font-semibold text-slate-700">Live Demo</span>
+                </div>
 
-            <div className="flex flex-col gap-2 mb-3">
-                {/* Step 1: Tier + Flavor + Icing */}
-                <div className="bg-white/70 backdrop-blur-sm p-3 rounded-2xl shadow-sm border border-slate-200">
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-3 px-1">Step 1: Choose Your Cake Specs</h3>
+                {/* Cake image */}
+                <div className="relative rounded-3xl overflow-hidden shadow-xl bg-gradient-to-br from-pink-100 via-purple-50 to-indigo-100 aspect-[4/3]">
+                    <img
+                        src={displayedImageSrc}
+                        alt={`${tier.label} cake preview`}
+                        className="w-full h-full object-cover"
+                        style={{ opacity: imgVisible ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
+                    />
 
-                    {/* Tier thumbnails */}
-                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide px-1 mb-3">
-                        {tiers.map((t) => (
-                            <div key={t.label} className="shrink-0 w-16 flex flex-col items-center text-center" onClick={() => setSelectedTier(t.label)}>
-                                <div className={thumbCls(selectedTier === t.label)}>
-                                    <img src={t.src} alt={t.label} className="w-full h-full object-cover" />
+                    {/* Floating annotation during auto-play */}
+                    {annotation && (
+                        <div
+                            key={annotation}
+                            className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg animate-annotation-fade-in"
+                        >
+                            <span className="text-xs font-bold text-purple-600">{annotation}</span>
+                        </div>
+                    )}
+
+                    {/* Message overlay */}
+                    {cakeMessage && !showPriceBadge && (
+                        <div className="absolute bottom-4 right-4 bg-white/85 backdrop-blur-sm rounded-xl px-4 py-2.5 shadow-md border border-purple-200 animate-annotation-fade-in whitespace-nowrap">
+                            <span className="text-[10px] text-slate-400 block mb-0.5">Cake message</span>
+                            <span className="text-sm font-semibold text-slate-800">
+                                {cakeMessage}
+                                {showTypingCursor && <span className="text-purple-500 animate-pulse">|</span>}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Price badge overlay */}
+                    {showPriceBadge && (
+                        <div className="absolute inset-0 flex items-center justify-center animate-annotation-fade-in">
+                            <div className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl px-6 py-4 shadow-2xl flex flex-col items-center gap-2">
+                                <span className="text-3xl font-extrabold text-white tracking-tight">₱{totalPrice.toLocaleString()}</span>
+                                <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-2">
+                                    <ShoppingBag size={15} className="text-purple-600" />
+                                    <span className="text-sm font-bold text-purple-700">Add to Cart</span>
                                 </div>
-                                <span className="mt-1.5 text-[10px] font-medium text-slate-700 leading-tight">{t.label}</span>
                             </div>
-                        ))}
-                        {/* Divider */}
-                        <div className="w-px bg-slate-200 mx-1 self-stretch shrink-0" />
-                        {/* Flavor thumbnails */}
-                        {flavors.map((f) => (
-                            <div key={f.label} className="shrink-0 w-16 flex flex-col items-center text-center" onClick={() => setSelectedFlavor(f.label)}>
-                                <div className={thumbCls(selectedFlavor === f.label)}>
-                                    <img src={f.src} alt={f.label} className="w-full h-full object-cover" />
-                                </div>
-                                <span className="mt-1.5 text-[10px] font-medium text-slate-700 leading-tight">{f.label}</span>
-                            </div>
+                        </div>
+                    )}
+                </div>
+
+            </div>
+
+            {/* Right: Options Panel */}
+            <div className="lg:col-span-2 flex flex-col gap-3">
+                {/* Cake Type */}
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 shadow-sm border border-slate-100">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Cake Type</label>
+                    <div className="flex gap-2">
+                        {tiers.map((t, i) => (
+                            <button
+                                key={t.label}
+                                onClick={() => handleTierClick(i)}
+                                className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                                    selectedTier === i
+                                        ? 'bg-purple-600 text-white shadow-md scale-[1.02]'
+                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                } ${highlightedOption === t.label ? 'animate-option-glow' : ''}`}
+                            >
+                                {t.label}
+                                <span className="block text-[10px] opacity-70">₱{t.price.toLocaleString()}</span>
+                            </button>
                         ))}
                     </div>
+                </div>
 
-                    {/* Icing toggles */}
-                    <div className="flex gap-3 flex-wrap px-1">
+
+                {/* Icing Details */}
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 shadow-sm border border-slate-100">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Icing Details</label>
+                    <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 pt-1 px-1 -mx-1">
                         {icings.map((ic) => (
-                            <div key={ic.label} className="flex flex-col items-center gap-1" onClick={() => setIcingOn(prev => ({ ...prev, [ic.label]: !prev[ic.label] }))}>
-                                <div className={icingCls(!!icingOn[ic.label])}>
+                            <button
+                                key={ic.label}
+                                onClick={() => handleIcingToggle(ic.label)}
+                                className={`shrink-0 flex flex-col items-center gap-1 min-w-[46px] ${highlightedOption === ic.label ? 'animate-option-glow rounded-full' : ''}`}
+                            >
+                                <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden bg-white p-2 shadow-sm flex items-center justify-center transition-all duration-200 ${
+                                    icingOn[ic.label]
+                                        ? 'ring-2 ring-purple-500 bg-purple-50'
+                                        : 'hover:border-purple-300'
+                                } ${highlightedOption === ic.label ? 'ring-2 ring-purple-400' : ''}`}>
                                     <img src={ic.src} alt={ic.label} className="w-full h-full object-contain" />
                                 </div>
-                                <span className="text-[10px] font-medium text-slate-600 whitespace-nowrap">{ic.label}</span>
-                            </div>
+                                <span className="text-[9px] text-center text-slate-600 font-medium leading-tight max-w-[52px] line-clamp-2 mt-0.5">{ic.label}</span>
+                                {ic.addonPrice > 0 && (
+                                    <span className="text-[8px] text-purple-500 font-semibold">+₱{ic.addonPrice}</span>
+                                )}
+                            </button>
                         ))}
                     </div>
                 </div>
 
-                {/* Step 2: Toppers */}
-                <div className="bg-white/70 backdrop-blur-sm p-3 rounded-2xl shadow-sm border border-slate-200">
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-3 px-1">Step 2: Cake Toppers</h3>
-                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide px-1">
+                {/* Toppers */}
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3 shadow-sm border border-slate-100">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Toppers</label>
+                    <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 pt-0.5 px-1 -mx-1">
                         {toppers.map((tp) => (
-                            <div key={tp.label} className="shrink-0 w-16 flex flex-col items-center text-center" onClick={() => setTopperOn(prev => ({ ...prev, [tp.label]: !prev[tp.label] }))}>
-                                <div className={thumbCls(!!topperOn[tp.label])}>
-                                    <div className="w-full h-full flex items-center justify-center text-2xl">{tp.emoji}</div>
-                                </div>
-                                <span className="mt-1.5 text-[10px] font-medium text-slate-700 leading-tight">{tp.label}</span>
-                            </div>
+                            <button
+                                key={tp.label}
+                                onClick={() => handleTopperToggle(tp.label)}
+                                className={`shrink-0 flex flex-col items-center gap-0 p-1 rounded-lg transition-all duration-200 ${
+                                    selectedToppers.has(tp.label)
+                                        ? 'bg-purple-50 border-2 border-purple-400'
+                                        : 'bg-slate-50 border-2 border-transparent hover:border-slate-200'
+                                } ${highlightedOption === tp.label ? 'animate-option-glow' : ''}`}
+                            >
+                                <span className="text-base leading-tight">{tp.emoji}</span>
+                                <span className="text-[8px] font-medium text-slate-600 mt-0.5">{tp.label}</span>
+                                <span className="text-[8px] text-purple-500 font-semibold">+₱100</span>
+                            </button>
                         ))}
                     </div>
                 </div>
 
-                {/* Step 3: Cake Messages (static) */}
-                <div className="bg-white/70 backdrop-blur-sm p-3 rounded-2xl shadow-sm border border-slate-200">
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 3: Cake Messages</h3>
-                    <div className="flex items-center gap-3 py-2 px-4 rounded-xl bg-slate-50 border border-slate-100">
+                {/* Cake Message */}
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 shadow-sm border border-slate-100">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Cake Message</label>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200">
                         <span className="text-[10px] font-bold text-purple-500 uppercase tracking-wider shrink-0">TOP</span>
-                        <span className="text-sm font-medium text-slate-700 flex-1 truncate">Happy Birthday, Sarah! 🎉</span>
-                        <div className="w-4 h-4 rounded-full bg-pink-400 border border-slate-200 shrink-0 shadow-sm" />
+                        <span className="text-sm text-slate-700 flex-1 truncate">
+                            {cakeMessage || <span className="text-slate-400 italic">Your message here...</span>}
+                            {showTypingCursor && <span className="text-purple-500 animate-pulse font-bold">|</span>}
+                        </span>
+                        <div className="w-3 h-3 rounded-full bg-pink-400 shrink-0 shadow-sm" />
+                    </div>
+                </div>
+
+                {/* Price Bar */}
+                <div className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl p-3.5 shadow-xl">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <div className="relative h-8 overflow-hidden flex items-center">
+                                <span
+                                    key={totalPrice}
+                                    className={`text-xl font-extrabold text-white inline-block ${
+                                        priceDirection === 'up' ? 'animate-price-slide-in-up' :
+                                        priceDirection === 'down' ? 'animate-price-slide-in-down' : ''
+                                    }`}
+                                >
+                                    ₱{totalPrice.toLocaleString()}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                                <span className="text-[11px] text-white/80 font-medium">Same-day delivery</span>
+                            </div>
+                        </div>
+                        <button
+                            onClick={onTryItClick}
+                            className="flex bg-white text-purple-700 font-bold py-2 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] text-sm whitespace-nowrap items-center gap-1.5"
+                        >
+                            Try It Yourself
+                            <ArrowRight size={14} />
+                        </button>
                     </div>
                 </div>
             </div>
+        </div>
 
-            {/* Add to Cart Bar */}
-            <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 px-4 py-4">
-                <div className="flex items-center justify-between gap-3">
+        {/* Sticky mobile price bar — visible only while demo section is on screen */}
+        <div className={`lg:hidden fixed bottom-20 left-0 right-0 z-50 px-4 transition-all duration-500 ${isDemoVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+            <div className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl p-3.5 shadow-2xl flex items-center justify-between gap-3">
                     <div>
-                        <span className="text-lg font-bold text-slate-800">₱{totalPrice.toLocaleString()}</span>
-                        <span className="text-xs text-slate-500 block">{tier.size}</span>
+                        <span className="text-xl font-extrabold text-white">₱{totalPrice.toLocaleString()}</span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                            <span className="text-[11px] text-white/80 font-medium">Same-day delivery</span>
+                        </div>
                     </div>
-                    <div className="flex gap-2 flex-1 justify-end">
-                        <button className="flex items-center gap-1.5 border border-slate-200 bg-white text-slate-600 font-semibold py-3 px-4 rounded-xl text-sm shadow-sm">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
-                            Share
-                        </button>
-                        <button onClick={onAddToCart} className="flex items-center gap-1.5 bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl text-sm shadow-lg whitespace-nowrap">
-                            <ShoppingBag size={16} />
-                            Add to Cart
-                        </button>
-                    </div>
+                    <button
+                        onClick={onTryItClick}
+                        className="flex bg-white text-purple-700 font-bold py-2 px-4 rounded-xl shadow-lg text-sm whitespace-nowrap items-center gap-1.5"
+                    >
+                        Try It Yourself
+                        <ArrowRight size={14} />
+                    </button>
                 </div>
             </div>
         </div>
@@ -771,56 +1057,43 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 </section>
                 )}
 
-                {/* ===== SEE A CAKE YOU LOVE SECTION ===== */}
-                <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-6 pb-6 md:pt-8 md:pb-8 lg:pt-10 lg:pb-10">
-                    <div className="flex flex-col lg:flex-row gap-8 md:gap-12 lg:gap-16 items-start">
-                        {/* Left: Text + Upload Zone */}
-                        <div className="flex-1">
+                {/* ===== INTERACTIVE CUSTOMIZER DEMO ===== */}
+                <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+                    <h2 id="price-change-heading" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-2 text-center">
+                        See your price change <span className="text-purple-600">in real time.</span>
+                    </h2>
+                    <p className="text-base text-slate-500 mb-8 max-w-2xl mx-auto text-center">
+                        Upload any cake design. Customize it. See your price instantly. Same-day delivery.
+                    </p>
 
-                            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-4">
-                                Your design. Your price. Updated instantly. <span className="text-purple-600">Same-day Delivery.</span>
-                            </h2>
-
-                            {/* Upload Drop Zone */}
-                            <div
-                                className="border-2 border-dashed border-purple-300 bg-purple-50/50 rounded-2xl p-6 md:p-8 text-center cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-all"
-                                onClick={() => setIsUploaderOpen(true)}
-                            >
-                                <div className="w-11 h-11 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <Camera size={22} className="text-purple-500" />
-                                </div>
-                                <p className="text-sm font-semibold text-gray-800 mb-1">Drop your cake photo here</p>
-                                <p className="text-xs text-gray-500">PNG, JPG, WEBP up to 10MB</p>
-                            </div>
-                        </div>
-
-                        {/* Right: Interactive Customizer Preview */}
-                        {(() => {
-                            const TIERS = [
-                                { label: '1 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/1tier.webp', price: 1500, size: '8" Round 4 in height' },
-                                { label: '2 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/2tier.webp', price: 2500, size: '6"9" 4 in height per tier' },
-                                { label: 'Bento', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/bento.webp', price: 399, size: '4" Round 2 in height' },
-                            ];
-                            const FLAVORS = [
-                                { label: 'Vanilla', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakevanilla.webp' },
-                                { label: 'Chocolate', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakechocolate.webp' },
-                                { label: 'Ube', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakeube.webp' },
-                            ];
-                            const ICINGS = [
-                                { label: 'Body Icing', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/icing_white.webp', addonPrice: 0 },
-                                { label: 'Drip', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/drip_white.webp', addonPrice: 100 },
-                                { label: 'Base Border', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/baseborder_white.webp', addonPrice: 0 },
-                                { label: 'Top Border', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/top_white.webp', addonPrice: 0 },
-                            ];
-                            const TOPPERS = [
-                                { label: 'Sugar Flowers', emoji: '🌸' },
-                                { label: 'Number', emoji: '🔢' },
-                                { label: 'Sprinkles', emoji: '✨' },
-                                { label: 'Macaron', emoji: '🍪' },
-                            ];
-                            return <InteractiveCustomizer tiers={TIERS} flavors={FLAVORS} icings={ICINGS} toppers={TOPPERS} onAddToCart={() => setIsUploaderOpen(true)} />;
-                        })()}
-                    </div>
+                    {(() => {
+                        const TIERS = [
+                            { label: '1 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/1-tier-ribbon-cake.webp', price: 1500, size: '8" Round 4 in height' },
+                            { label: '2 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake.webp', price: 2500, size: '6"9" 4 in height per tier' },
+                            { label: 'Bento', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/bento-ribbon-cake.png.webp', price: 399, size: '4" Round 2 in height' },
+                        ];
+                        const FLAVORS = [
+                            { label: 'Vanilla', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakevanilla.webp' },
+                            { label: 'Chocolate', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakechocolate.webp' },
+                            { label: 'Ube', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakeube.webp' },
+                        ];
+                        const BASE = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
+                        const ICINGS = [
+                            { label: 'Drip', src: `${BASE}drip_black.webp`, addonPrice: 100 },
+                            { label: 'Top Border', src: `${BASE}top_red.webp`, addonPrice: 0 },
+                            { label: 'Base Border', src: `${BASE}baseborder_red.webp`, addonPrice: 0 },
+                            { label: 'Top Icing', src: `${BASE}topicing_red.webp`, addonPrice: 0 },
+                            { label: 'Body Icing', src: `${BASE}icing_red.webp`, addonPrice: 0 },
+                            { label: 'Board', src: `${BASE}baseboardwhite.webp`, addonPrice: 100 },
+                        ];
+                        const TOPPERS = [
+                            { label: 'Sugar Flowers', emoji: '🌸' },
+                            { label: 'Number', emoji: '🔢' },
+                            { label: 'Sprinkles', emoji: '✨' },
+                            { label: 'Macaron', emoji: '🍪' },
+                        ];
+                        return <InteractiveCustomizer tiers={TIERS} flavors={FLAVORS} icings={ICINGS} toppers={TOPPERS} onTryItClick={() => setIsUploaderOpen(true)} />;
+                    })()}
                 </section>
 
                 {/* ===== MINIMALIST CAKES FOR RUSH ORDERS ===== */}
