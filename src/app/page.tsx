@@ -111,6 +111,7 @@ async function getReviews() {
             rating,
             review_text,
             review_photos,
+            reviewer_name,
             created_at,
             cakegenie_users(first_name, last_name),
             cakegenie_orders!order_id(cakegenie_order_items(cake_type, cake_size, customized_image_url))
