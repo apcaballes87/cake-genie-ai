@@ -584,11 +584,11 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         {/* Mobile Hero View */}
                         <div className="md:hidden w-full flex flex-col">
                             {/* Image container with message overlay on the left */}
-                            <div className="relative w-full rounded-3xl overflow-hidden mb-4 shadow-lg aspect-[4/3]">
+                            <div className="relative w-full rounded-3xl overflow-hidden mb-4 shadow-lg">
                                 <ImageWithSkeleton
                                     src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP"
                                     alt="Hero"
-                                    className="w-full h-full block object-cover object-center"
+                                    className="w-full h-auto block object-cover object-center"
                                     skeletonClassName="rounded-3xl"
                                 />
                                 <div className="absolute inset-0 p-5 flex flex-col justify-center w-[65%] max-[520px]:w-[85%]">
@@ -596,7 +596,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         4.8 <span className="text-yellow-500">★★★★★</span> | Customers rate us 4.8/5 based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
                                     </p>
                                     <p className="text-[10px] font-bold text-purple-600 uppercase tracking-[0.15em] mb-2 flex whitespace-nowrap">
-                                        Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;, no more waiting.
+                                        Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;
                                     </p>
                                     <h2 className="text-[38px] max-[520px]:text-[32px] max-[414px]:text-[28px] font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-4 max-[520px]:mb-2">
                                         Custom cakes{' '}
@@ -633,11 +633,11 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         </div>
 
                         {/* Desktop Hero View: Image with text overlay */}
-                        <div className="hidden md:block w-full relative rounded-3xl overflow-hidden shadow-lg aspect-[16/9]">
+                        <div className="hidden md:block w-full relative rounded-3xl overflow-hidden shadow-lg">
                             <ImageWithSkeleton
                                 src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP"
                                 alt="Hero"
-                                className="w-full h-full block object-cover object-center"
+                                className="w-full h-auto block object-cover object-center"
                                 skeletonClassName="rounded-3xl"
                                 priority
                             />
@@ -646,7 +646,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     4.8 <span className="text-yellow-500">★★★★★</span> | Customers rate us 4.8/5 based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
                                 </p>
                                 <p className="text-xs lg:text-sm font-bold text-purple-600 uppercase tracking-[0.15em] mb-3">
-                                    Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;, no more waiting.
+                                    Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;
                                 </p>
                                 <h2 className="text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-5">
                                     Custom cakes
