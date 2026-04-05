@@ -721,7 +721,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             {reviewCards.map((card, i) => (
                                 <div
                                     key={`${card.id}-${i}`}
-                                    className="shrink-0 w-[240px] md:w-[280px] bg-white rounded-2xl shadow-md p-3 md:p-4 cursor-pointer hover:shadow-lg transition-shadow"
+                                    className="shrink-0 w-[204px] md:w-[238px] bg-white rounded-xl shadow-md p-2.5 md:p-3 cursor-pointer hover:shadow-lg transition-shadow"
                                     onClick={() => setReviewZoomSrc(card.photo)}
                                     role="button"
                                     tabIndex={0}
@@ -729,36 +729,36 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     onKeyDown={(e) => e.key === 'Enter' && setReviewZoomSrc(card.photo)}
                                 >
                                     {/* Row 1: Stars + Verified */}
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-1.5">
-                                            <div className="flex gap-0.5">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <div className="flex items-center gap-1">
+                                            <div className="flex gap-px">
                                                 {[1, 2, 3, 4, 5].map((star) => (
-                                                    <span key={star} className={`text-sm ${star <= card.rating ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+                                                    <span key={star} className={`text-xs ${star <= card.rating ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
                                                 ))}
                                             </div>
-                                            <span className="text-xs font-medium text-slate-600">{card.rating}/5</span>
+                                            <span className="text-[10px] font-medium text-slate-600">{card.rating}/5</span>
                                         </div>
-                                        <span className="px-1.5 py-0.5 text-[10px] bg-green-100 text-green-700 rounded-full font-medium">Verified Purchase</span>
+                                        <span className="px-1 py-0.5 text-[9px] bg-green-100 text-green-700 rounded-full font-medium">Verified Purchase</span>
                                     </div>
                                     {/* Row 2: Image thumbnail + Review snippet */}
-                                    <div className="flex gap-2.5 mb-2">
-                                        <div className="relative w-14 h-14 md:w-16 md:h-16 flex-shrink-0 overflow-hidden rounded-lg border border-slate-200">
+                                    <div className="flex gap-2 mb-1.5">
+                                        <div className="relative w-11 h-11 md:w-[52px] md:h-[52px] flex-shrink-0 overflow-hidden rounded-md border border-slate-200">
                                             <ImageWithSkeleton
                                                 src={card.photo}
                                                 alt={card.cakeType ? `${card.cakeType} Cake` : 'Cake'}
                                                 className="w-full h-full object-cover"
-                                                skeletonClassName="rounded-lg"
+                                                skeletonClassName="rounded-md"
                                             />
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            {card.cakeType && <p className="text-[11px] font-semibold text-slate-800 truncate mb-0.5">{card.cakeType} Cake{card.cakeSize ? ` · ${card.cakeSize}` : ''}</p>}
+                                            {card.cakeType && <p className="text-[10px] font-semibold text-slate-800 truncate mb-0.5">{card.cakeType} Cake{card.cakeSize ? ` · ${card.cakeSize}` : ''}</p>}
                                             {card.text && (
-                                                <p className="text-[11px] text-slate-600 leading-relaxed line-clamp-2 whitespace-normal">{card.text}</p>
+                                                <p className="text-[10px] text-slate-600 leading-relaxed line-clamp-2 whitespace-normal">{card.text}</p>
                                             )}
                                         </div>
                                     </div>
                                     {/* Row 3: Name + Date */}
-                                    <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1.5 border-t border-slate-100">
+                                    <div className="flex items-center justify-between text-[9px] text-slate-400 pt-1 border-t border-slate-100">
                                         <span className="font-medium text-slate-600">{card.name}</span>
                                         <span>{card.date}</span>
                                     </div>
