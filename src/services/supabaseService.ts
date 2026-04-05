@@ -3302,10 +3302,10 @@ export async function submitReview(params: {
   photos?: string[];
 }): Promise<SupabaseServiceResponse<CakeGenieReview>> {
   try {
-    // Verify the order is delivered
+    // Verify the order exists and is eligible for review
     const { data: order, error: orderError } = await supabase
       .from('cakegenie_orders')
-      .select('order_status, user_id')
+      .select('order_status, user_id, delivery_date')
       .eq('order_id', params.orderId)
       .single();
 
@@ -3313,9 +3313,15 @@ export async function submitReview(params: {
       return { data: null, error: orderError || new Error('Order not found') };
     }
 
-    // Check if order is delivered or allow for testing (optional)
-    if (order.order_status !== 'delivered') {
-      return { data: null, error: new Error('You can only review delivered orders') };
+    // Don't allow reviews for cancelled orders
+    if (order.order_status === 'cancelled') {
+      return { data: null, error: new Error('Cannot review cancelled orders') };
+    }
+
+    // Only allow reviews after the delivery date has passed
+    const deliveryDate = new Date(order.delivery_date + 'T23:59:59');
+    if (new Date() < deliveryDate) {
+      return { data: null, error: new Error('You can review after the delivery date has passed') };
     }
 
     // Verify user owns this order or order is guest with matching email
@@ -3359,6 +3365,28 @@ export async function submitReview(params: {
     }
 
     return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Fetches existing reviews for a specific order (to track which items have been reviewed).
+ */
+export async function getOrderReviews(
+  orderId: string
+): Promise<SupabaseServiceResponse<Pick<CakeGenieReview, 'review_id' | 'order_item_id' | 'rating'>[]>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_reviews')
+      .select('review_id, order_item_id, rating')
+      .eq('order_id', orderId);
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data: data || [], error: null };
   } catch (err) {
     return { data: null, error: err as Error };
   }

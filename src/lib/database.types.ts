@@ -87,6 +87,7 @@ export interface CakeGenieCartItem {
   user_id: string | null; // UUID, nullable for guest carts
   session_id: string | null; // For guest carts
   merchant_id: string | null; // UUID - merchant/shop this item belongs to
+  product_id: string | null; // UUID - catalog product this item was customized from
   cake_type: string;
   cake_thickness: string;
   cake_size: string;
@@ -169,6 +170,7 @@ export interface CakeGenieOrderItem {
   item_id: string; // UUID
   order_id: string; // UUID
   merchant_id: string | null; // UUID - merchant/shop this item belongs to (denormalized)
+  product_id: string | null; // UUID - catalog product this item was customized from
   cake_type: string;
   cake_thickness: string;
   cake_size: string;

@@ -14,6 +14,7 @@ import LazyImage from '@/components/LazyImage';
 import BillShareCard from '@/components/BillShareCard';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import ReviewForm from '@/components/ReviewForm';
+import { useOrderReviews } from '@/hooks/useReviews';
 import { createXenditPayment } from '@/services/xenditService';
 
 
@@ -219,6 +220,18 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
     // Use the order data directly from the prop - already fetched in the main query
     const details = order;
 
+    // Check if order is eligible for review (delivery date has passed & not cancelled)
+    const isReviewEligible = (() => {
+        if (!details?.delivery_date || details?.order_status === 'cancelled') return false;
+        const deliveryEnd = new Date(details.delivery_date + 'T23:59:59');
+        return new Date() > deliveryEnd;
+    })();
+
+    // Fetch existing reviews for this order when eligible
+    const { data: existingReviews = [], refetch: refetchReviews } = useOrderReviews(
+        isReviewEligible ? details?.order_id : undefined
+    );
+
     if (!details) {
         return <div className="p-4 text-center text-sm text-red-600">Could not load order details.</div>;
     }
@@ -362,22 +375,59 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                     <a href={details.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-pink-600 hover:underline text-center block mt-2">View Submitted Proof</a>
                 )}
 
-                {/* Leave Review Button for Delivered Orders */}
-                {details.order_status === 'delivered' && details.cakegenie_order_items && details.cakegenie_order_items.length > 0 && (
+                {/* Per-Item Review Section */}
+                {isReviewEligible && details.cakegenie_order_items && details.cakegenie_order_items.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-slate-100">
-                        <button
-                            onClick={() => {
-                                const items = details.cakegenie_order_items;
-                                if (items && items.length > 0) {
-                                    setSelectedItemForReview(items[0]);
-                                    setShowReviewForm(true);
-                                }
-                            }}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:from-pink-600 hover:to-purple-700 transition-all"
-                        >
-                            <Star className="w-5 h-5" />
-                            Leave a Review
-                        </button>
+                        <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                            <Star className="w-4 h-4 text-yellow-500" />
+                            Rate Your Order
+                        </h4>
+                        <div className="space-y-2">
+                            {details.cakegenie_order_items.map((item: any) => {
+                                const itemReview = existingReviews.find(
+                                    (r) => r.order_item_id === item.item_id
+                                );
+                                const isReviewed = !!itemReview;
+
+                                return (
+                                    <div
+                                        key={item.item_id}
+                                        className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200"
+                                    >
+                                        <div className="w-12 h-12 shrink-0 rounded-md overflow-hidden">
+                                            <LazyImage
+                                                src={item.customized_image_url}
+                                                alt={item.cake_type}
+                                                fill={false}
+                                                width={48}
+                                                height={48}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                        <div className="grow min-w-0">
+                                            <p className="text-sm font-medium text-slate-800 truncate">{item.cake_type}</p>
+                                            <p className="text-xs text-slate-500">{item.cake_size}</p>
+                                        </div>
+                                        {isReviewed ? (
+                                            <div className="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
+                                                <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                                                <span className="text-xs font-semibold text-green-700">{itemReview.rating}/5</span>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedItemForReview(item);
+                                                    setShowReviewForm(true);
+                                                }}
+                                                className="shrink-0 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-pink-500 to-purple-600 rounded-full hover:from-pink-600 hover:to-purple-700 transition-all shadow-sm"
+                                            >
+                                                Write Review
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 )}
 
@@ -396,7 +446,11 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                         userId={user.id}
                         orderNumber={details.order_number}
                         itemName={selectedItemForReview.cake_type}
-                        onReviewSubmitted={onReviewSubmitted}
+                        itemImageUrl={selectedItemForReview.customized_image_url}
+                        onReviewSubmitted={() => {
+                            refetchReviews();
+                            if (onReviewSubmitted) onReviewSubmitted();
+                        }}
                     />
                 )}
             </div>
@@ -687,7 +741,7 @@ export default function OrdersClient() {
     return (
         <div className="w-full max-w-3xl mx-auto pb-24 md:pb-8 px-4">
             <div className="flex items-center gap-4 mb-6 pt-4">
-                <button onClick={() => router.push('/')} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Go back">
+                <button onClick={() => router.push('/account')} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Go back">
                     <ArrowLeft />
                 </button>
                 <h1 className="text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">My Orders</h1>

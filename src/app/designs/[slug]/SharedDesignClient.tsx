@@ -285,6 +285,7 @@ export default function SharedDesignClient({ design: initialDesign }: SharedDesi
                 user_id: user?.id || null,
                 session_id: null, // Will be handled by addToCartOptimistic/service
                 merchant_id: null, // Will be set when ordering from a specific merchant shop
+                product_id: null, // Shared designs don't have a catalog product link
                 cake_type: design.cake_type,
                 cake_thickness: design.cake_thickness,
                 cake_size: design.cake_size,

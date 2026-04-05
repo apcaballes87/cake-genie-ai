@@ -134,7 +134,7 @@ const SavedClient: React.FC = () => {
                 <div className="max-w-7xl mx-auto px-4 py-4">
                     <div className="flex items-center gap-4">
                         <button
-                            onClick={() => router.back()}
+                            onClick={() => router.push('/account')}
                             className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors"
                             aria-label="Go back"
                         >

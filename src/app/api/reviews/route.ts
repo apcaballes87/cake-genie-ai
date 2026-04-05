@@ -96,10 +96,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify the order is delivered
+    // Verify the order exists and is eligible for review
     const { data: order, error: orderError } = await supabaseAdmin
       .from('cakegenie_orders')
-      .select('order_status, user_id')
+      .select('order_status, user_id, delivery_date')
       .eq('order_id', orderId)
       .single();
 
@@ -110,9 +110,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (order.order_status !== 'delivered') {
+    // Don't allow reviews for cancelled orders
+    if (order.order_status === 'cancelled') {
       return NextResponse.json(
-        { success: false, error: 'You can only review delivered orders' },
+        { success: false, error: 'Cannot review cancelled orders' },
+        { status: 400 }
+      );
+    }
+
+    // Only allow reviews after the delivery date has passed
+    const deliveryDate = new Date(order.delivery_date + 'T23:59:59');
+    if (new Date() < deliveryDate) {
+      return NextResponse.json(
+        { success: false, error: 'You can review after the delivery date has passed' },
         { status: 400 }
       );
     }

@@ -3,7 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Package, MapPin, Image, Heart, LogOut, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Package, MapPin, Heart, LogOut, ChevronRight, ArrowLeft } from 'lucide-react';
 import MobileBottomNav from '@/components/MobileBottomNav';
 
 const AccountClient: React.FC = () => {
@@ -37,11 +37,11 @@ const AccountClient: React.FC = () => {
             label: 'My Addresses',
             path: '/account/addresses',
         },
-        {
-            icon: Image,
-            label: 'My Stickers',
-            path: '/account/stickers',
-        },
+        // {
+        //     icon: Image,
+        //     label: 'My Stickers',
+        //     path: '/account/stickers',
+        // },
         {
             icon: Heart,
             label: 'My Saved',

@@ -9,6 +9,30 @@ export const metadata = buildMarketingPageMetadata({
 
 const comparisons = [
     {
+        slug: 'genie-ph-vs-goldilocks',
+        title: 'Genie.ph vs Goldilocks',
+        description: 'Custom local cakes vs the most popular chain bakery in the Philippines. See which wins for your occasion.',
+        highlight: 'High Traffic',
+    },
+    {
+        slug: 'genie-ph-vs-red-ribbon',
+        title: 'Genie.ph vs Red Ribbon',
+        description: 'How does ordering a custom cake from a local Cebu baker compare to Red Ribbon\'s signature cakes?',
+        highlight: null,
+    },
+    {
+        slug: 'genie-ph-vs-contis',
+        title: 'Genie.ph vs Contis',
+        description: 'Contis\' legendary Moist Chocolate Cake vs fully personalized custom cakes from local Cebu bakers.',
+        highlight: null,
+    },
+    {
+        slug: 'genie-ph-vs-caramia',
+        title: 'Genie.ph vs Caramia',
+        description: 'Caramia\'s gelato cakes vs custom personalized designs. Which is right for your celebration in Cebu?',
+        highlight: null,
+    },
+    {
         slug: 'genie-ph-vs-traditional-bakeries',
         title: 'Genie.ph vs Traditional Bakeries',
         description: 'Compare the AI-powered marketplace experience with visiting traditional bakeshops in Cebu.',
