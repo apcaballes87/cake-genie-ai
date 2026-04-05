@@ -11,6 +11,7 @@ import type { PopularDesign } from '@/components/landing/PopularDesigns';
 
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import LazyImage from '@/components/LazyImage';
+import { ImageWithSkeleton } from '@/components/ImageWithSkeleton';
 import { showError, showLoading, showInfo } from '@/lib/utils/toast';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -491,6 +492,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             <Link href="/blog" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
                                 Blog
                             </Link>
+                            <Link href="/compare" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                                Compare
+                            </Link>
 
                             <div className="w-px h-5 bg-gray-200" />
                             <button
@@ -534,11 +538,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         {/* Mobile Hero View */}
                         <div className="md:hidden w-full flex flex-col">
                             {/* Image container with message overlay on the left */}
-                            <div className="relative w-full rounded-3xl overflow-hidden mb-4 shadow-lg">
-                                <img
+                            <div className="relative w-full rounded-3xl overflow-hidden mb-4 shadow-lg aspect-[4/3]">
+                                <ImageWithSkeleton
                                     src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP"
                                     alt="Hero"
-                                    className="w-full h-auto block object-cover object-center"
+                                    className="w-full h-full block object-cover object-center"
+                                    skeletonClassName="rounded-3xl"
                                 />
                                 <div className="absolute inset-0 p-5 flex flex-col justify-center w-[65%] max-[520px]:w-[85%]">
                                     <p className="text-[10px] font-bold text-purple-600 uppercase tracking-[0.15em] mb-2 flex whitespace-nowrap">
@@ -579,11 +584,13 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         </div>
 
                         {/* Desktop Hero View: Image with text overlay */}
-                        <div className="hidden md:block w-full relative rounded-3xl overflow-hidden shadow-lg">
-                            <img
+                        <div className="hidden md:block w-full relative rounded-3xl overflow-hidden shadow-lg aspect-[16/9]">
+                            <ImageWithSkeleton
                                 src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP"
                                 alt="Hero"
-                                className="w-full h-auto block object-cover object-center"
+                                className="w-full h-full block object-cover object-center"
+                                skeletonClassName="rounded-3xl"
+                                priority
                             />
                             <div className="absolute inset-0 p-10 lg:p-14 flex flex-col justify-center w-[55%] lg:w-[50%]">
                                 <p className="text-xs lg:text-sm font-bold text-purple-600 uppercase tracking-[0.15em] mb-3">
@@ -651,11 +658,11 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     aria-label={`View review ${n} in full size`}
                                     onKeyDown={(e) => e.key === 'Enter' && setReviewZoomSrc(`https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/REVIEW-SAMPLES/genieph-reviews-${n}.webp`)}
                                 >
-                                    <img
+                                    <ImageWithSkeleton
                                         src={`https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/REVIEW-SAMPLES/genieph-reviews-${n}a.webp`}
                                         alt={`Customer review ${n}`}
-                                        className="h-[68px] md:h-[86px] w-auto rounded-xl object-cover"
-                                        loading="lazy"
+                                        className="h-[68px] md:h-[86px] w-[90px] md:w-[115px] rounded-xl object-cover"
+                                        skeletonClassName="rounded-xl"
                                     />
                                 </div>
                             ))}
@@ -916,6 +923,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         { label: 'Cold Caking', href: '/coldcaking', emoji: '🧊' },
                         { label: 'Our Bakers', href: '/shop', emoji: '🏪' },
                         { label: 'Blog', href: '/blog', emoji: '📝' },
+                        { label: 'Compare Cakes', href: '/compare', emoji: '⚖️' },
                         { label: 'How to Order', href: '/how-to-order', emoji: '📋' },
                         { label: 'Payment Options', href: '/payment-options', emoji: '💳' },
                         { label: 'Delivery Rates', href: '/delivery-rates', emoji: '🚚' },
