@@ -581,7 +581,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 {/* ===== HERO SECTION ===== */}
                 <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-4 pb-4 md:pt-6 md:pb-6 lg:pt-8 lg:pb-8">
                     <div className="flex flex-col md:flex-row gap-8 md:gap-12 lg:gap-16 items-start">
-                        {/* Mobile Hero View */}
+{/* Mobile Hero View */}
                         <div className="md:hidden w-full flex flex-col">
                             {/* Image container with message overlay on the left */}
                             <div className="relative w-full rounded-3xl overflow-hidden mb-4 shadow-lg">
@@ -592,9 +592,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     skeletonClassName="rounded-3xl"
                                 />
                                 <div className="absolute inset-0 p-5 flex flex-col justify-center w-[65%] max-[520px]:w-[85%]">
-                                    <p className="text-[9px] text-gray-600 mb-1">
-                                        4.8 <span className="text-yellow-500">★★★★★</span> | Customers rate us 4.8/5 based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
-                                    </p>
                                     <p className="text-[10px] font-bold text-purple-600 uppercase tracking-[0.15em] mb-2 flex whitespace-nowrap">
                                         Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;
                                     </p>
@@ -607,6 +604,11 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     </h2>
                                 </div>
                             </div>
+
+                            {/* Rating text above CTA */}
+                            <p className="text-[9px] text-gray-600 mb-2 text-center w-full">
+                                4.8 <span className="text-yellow-500">★★★★★</span> | Customers rate us 4.8/5 based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
+                            </p>
 
                             {/* Buttons under the image (1 line) */}
                             <div className="flex items-center gap-2 w-full">
