@@ -71,6 +71,8 @@ const nextConfig: NextConfig = {
         source: '/sitemap.xml',
         destination: '/sitemap-index.xml',
       },
+      // Image sitemap index (robots.ts references /sitemap-images.xml)
+      { source: '/sitemap-images.xml', destination: '/sitemap-images' },
       { source: '/sitemap-core.xml', destination: '/sitemap/0.xml' },
       { source: '/sitemap-bakeries.xml', destination: '/sitemap/1.xml' },
       { source: '/sitemap-products.xml', destination: '/sitemap/2.xml' },

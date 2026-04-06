@@ -549,6 +549,8 @@ function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { desig
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-contain"
                             itemProp="image"
+                            priority
+                            fetchPriority="high"
                         />
                         <figcaption className="absolute bottom-0 left-0 right-0 text-xs text-slate-500 p-3 text-center bg-white/50 backdrop-blur-sm">
                             {altText} — {captionText}

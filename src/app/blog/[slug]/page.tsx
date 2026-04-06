@@ -148,6 +148,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         authorName={post.author}
         authorUrl={post.author_url}
         image={post.image}
+        imageWidth={1200}
+        imageHeight={630}
+        imageAlt={post.title}
         description={post.excerpt}
         url={`https://genie.ph/blog/${post.slug}`}
       />
@@ -191,10 +194,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             <LazyImage
               src={post.image}
               alt={post.title}
+              title={post.title}
               width={1200}
               height={630}
               sizes="(max-width: 768px) 100vw, 768px"
               priority
+              fetchPriority="high"
               className="w-full rounded-xl shadow-md"
               imageClassName="h-auto w-full rounded-xl"
             />
