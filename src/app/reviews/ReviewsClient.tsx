@@ -22,14 +22,12 @@ interface Review {
     first_name: string | null;
     last_name: string | null;
   };
-  cakegenie_orders?: {
-    cakegenie_order_items?: {
-      cake_type: string | null;
-      cake_size: string | null;
-      customized_image_url: string | null;
-      customization_details: Record<string, unknown> | null;
-    }[];
-  };
+  cakegenie_order_items?: {
+    cake_type: string | null;
+    cake_size: string | null;
+    customized_image_url: string | null;
+    customization_details: Record<string, unknown> | null;
+  } | null;
 }
 
 interface ReviewsClientProps {
@@ -146,8 +144,7 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
           {/* Review Cards */}
           <div className="space-y-6">
             {reviews.map((review) => {
-              const orderItems = review.cakegenie_orders?.cakegenie_order_items;
-              const firstItem = orderItems && orderItems.length > 0 ? orderItems[0] : null;
+              const firstItem = review.cakegenie_order_items ?? null;
               const displayName = formatCustomerName(
                 review.cakegenie_users?.first_name || null,
                 review.cakegenie_users?.last_name || null
