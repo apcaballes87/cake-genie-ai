@@ -142,7 +142,9 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
     const totalPrice = tier.price + icingAddon + topperAddon;
 
     const targetImageSrc = icingOn['Drip'] && selectedToppers.has('Sugar Flowers')
-        ? 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip-roses.webp'
+        ? icingOn['Board']
+            ? 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip-roses-base.webp'
+            : 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip.webp'
         : tier.src;
     const [displayedImageSrc, setDisplayedImageSrc] = useState(targetImageSrc);
     const [imgVisible, setImgVisible] = useState(true);
@@ -221,45 +223,52 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                                 setAnnotation('Sugar Flowers — +₱100');
                                 setSelectedToppers(new Set(['Sugar Flowers']));
 
-                                // Step 6: Type message
+                                // Step 5.5: Toggle Board
                                 scheduleStep(() => {
-                                    setHighlightedOption(null);
-                                    setAnnotation(null);
-                                    setShowTypingCursor(true);
-                                    let charIndex = 0;
-                                    typingIntervalRef.current = setInterval(() => {
-                                        if (!isAutoPlayingRef.current) {
-                                            if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
-                                            return;
-                                        }
-                                        charIndex++;
-                                        if (charIndex <= DEMO_MESSAGE.length) {
-                                            setCakeMessage(DEMO_MESSAGE.slice(0, charIndex));
-                                        } else {
-                                            if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
-                                            setShowTypingCursor(false);
+                                    setHighlightedOption('Board');
+                                    setAnnotation('Red Gumpaste Cover — +₱100');
+                                    setIcingOn(prev => ({ ...prev, 'Board': true }));
 
-                                            // Step 7: Show price badge
-                                            scheduleStep(() => {
-                                                setShowPriceBadge(true);
+                                    // Step 6: Type message
+                                    scheduleStep(() => {
+                                        setHighlightedOption(null);
+                                        setAnnotation(null);
+                                        setShowTypingCursor(true);
+                                        let charIndex = 0;
+                                        typingIntervalRef.current = setInterval(() => {
+                                            if (!isAutoPlayingRef.current) {
+                                                if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+                                                return;
+                                            }
+                                            charIndex++;
+                                            if (charIndex <= DEMO_MESSAGE.length) {
+                                                setCakeMessage(DEMO_MESSAGE.slice(0, charIndex));
+                                            } else {
+                                                if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+                                                setShowTypingCursor(false);
 
-                                                // Step 8: Reset and loop
+                                                // Step 7: Show price badge
                                                 scheduleStep(() => {
-                                                    setShowPriceBadge(false);
-                                                    setSelectedTier(2); // Reset to Bento
-                                                    setSelectedFlavor(0);
-                                                    setIcingOn({ 'Body Icing': false, 'Drip': false, 'Base Border': false, 'Top Border': false, 'Top Icing': false, 'Board': false });
-                                                    setSelectedToppers(new Set());
-                                                    setCakeMessage('');
-                                                    setAnnotation(null);
-                                                    setHighlightedOption(null);
+                                                    setShowPriceBadge(true);
 
-                                                    scheduleStep(() => runDemo(), 1400);
-                                                }, 2100);
-                                            }, 700);
-                                        }
-                                    }, 49);
-                                }, 1050);
+                                                    // Step 8: Reset and loop
+                                                    scheduleStep(() => {
+                                                        setShowPriceBadge(false);
+                                                        setSelectedTier(2); // Reset to Bento
+                                                        setSelectedFlavor(0);
+                                                        setIcingOn({ 'Body Icing': false, 'Drip': false, 'Base Border': false, 'Top Border': false, 'Top Icing': false, 'Board': false });
+                                                        setSelectedToppers(new Set());
+                                                        setCakeMessage('');
+                                                        setAnnotation(null);
+                                                        setHighlightedOption(null);
+
+                                                        scheduleStep(() => runDemo(), 1400);
+                                                    }, 2100);
+                                                }, 700);
+                                            }
+                                        }, 49);
+                                    }, 1050);
+                                }, 1400);
                             }, 1400);
                         }, 1400);
                     }, 1400);
