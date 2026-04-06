@@ -884,7 +884,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
             {/* ========== MAIN CONTENT ========== */}
             <main className="flex-1">
-                <h1 className="sr-only">Genie.ph | Best Custom Cakes in Cebu & Online Cake Delivery</h1>
+                {/* sr-only H1 removed — the visible hero headline below is now the H1 */}
 
                 {/* ===== HERO SECTION ===== */}
                 <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-4 pb-4 md:pt-6 md:pb-6 lg:pt-8 lg:pb-8">
@@ -900,7 +900,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             <div className="relative w-full rounded-3xl overflow-hidden mb-4 shadow-lg">
                                 <ImageWithSkeleton
                                     src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP"
-                                    alt="Hero"
+                                    alt="Custom cakes for same-day and rush orders in Cebu, Philippines"
                                     className="w-full h-auto block object-cover object-center"
                                     skeletonClassName="rounded-3xl"
                                     priority
@@ -909,13 +909,13 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     <p className="text-[10px] font-bold text-purple-600 uppercase tracking-[0.15em] flex whitespace-nowrap">
                                         Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;
                                     </p>
-                                    <h2 className="text-[38px] max-[520px]:text-[32px] max-[414px]:text-[28px] font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-4 max-[520px]:mb-2">
+                                    <h1 className="text-[38px] max-[520px]:text-[32px] max-[414px]:text-[28px] font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-4 max-[520px]:mb-2">
                                         Custom cakes{' '}
                                         <br className="max-[414px]:hidden" />
                                         <span className="text-purple-600 italic">you can order</span>{' '}
                                         <br className="max-[414px]:hidden" />
                                         right now.
-                                    </h2>
+                                    </h1>
                                 </div>
                             </div>
 
@@ -947,7 +947,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         <div className="hidden md:block w-full relative rounded-3xl overflow-hidden shadow-lg">
                             <ImageWithSkeleton
                                 src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP"
-                                alt="Hero"
+                                alt="Custom cakes for same-day and rush orders in Cebu, Philippines"
                                 className="w-full h-auto block object-cover object-center"
                                 skeletonClassName="rounded-3xl"
                                 priority
@@ -959,13 +959,13 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 <p className="text-xs lg:text-sm font-bold text-purple-600 uppercase tracking-[0.15em]">
                                     Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;
                                 </p>
-                                <h2 className="text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-5">
+                                <h1 className="text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-5">
                                     Custom cakes
                                     <br />
                                     <span className="text-purple-600 italic">you can order</span>
                                     <br />
                                     right now.
-                                </h2>
+                                </h1>
                                 <div className="flex items-center gap-3">
                                     <button
                                         disabled={isUploading}

@@ -143,25 +143,8 @@ function OrganizationSchema() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'WebSite',
-            name: 'Genie.ph',
-            url: 'https://genie.ph',
-            potentialAction: {
-              '@type': 'SearchAction',
-              target: {
-                '@type': 'EntryPoint',
-                urlTemplate: 'https://genie.ph/search?q={search_term_string}'
-              },
-              'query-input': 'required name=search_term_string'
-            }
-          })
-        }}
-      />
+      {/* WebSite + SearchAction schema lives in page.tsx (homepage only) to avoid
+          rendering it as a duplicate on every page of the site. */}
     </>
   );
 }
