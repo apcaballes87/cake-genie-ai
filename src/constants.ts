@@ -33,9 +33,10 @@ export const COLORS: Color[] = [
 ];
 
 export const CAKE_TYPES: CakeType[] = [
+  'Bento',
   '1 Tier', '2 Tier', '3 Tier',
   '1 Tier Fondant', '2 Tier Fondant', '3 Tier Fondant',
-  'Square', 'Rectangle', 'Bento',
+  'Square', 'Rectangle',
   'Square Fondant', 'Rectangle Fondant'
 ];
 
