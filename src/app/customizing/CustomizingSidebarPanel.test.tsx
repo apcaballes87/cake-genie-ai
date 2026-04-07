@@ -38,10 +38,11 @@ const buildProps = (): React.ComponentProps<typeof CustomizingSidebarPanel> => (
         removeCakeMessage: vi.fn(),
         updateMainTopper: vi.fn(),
         updateSupportElement: vi.fn(),
-        onTopperImageReplace: vi.fn(),
-        onSupportElementImageReplace: vi.fn(),
-        openTopperSheet: vi.fn(),
+    onTopperImageReplace: vi.fn(),
+    onSupportElementImageReplace: vi.fn(),
+    openTopperSheet: vi.fn(),
     },
+    className: undefined,
 });
 
 describe('CustomizingSidebarPanel', () => {
@@ -64,6 +65,18 @@ describe('CustomizingSidebarPanel', () => {
 
         expect(screen.queryByTestId('ai-chat-panel')).not.toBeInTheDocument();
         expect(screen.getByTestId('step-summary-panel')).toHaveTextContent('summary-desktop');
+    });
+
+    it('accepts a custom container class for mobile loading usage', () => {
+        const props = buildProps();
+        props.showLoadingState = true;
+        props.showContentState = false;
+        props.className = 'mobile-loading-card';
+
+        const { container } = render(<CustomizingSidebarPanel {...props} />);
+
+        expect(container.firstChild).toHaveClass('mobile-loading-card');
+        expect(screen.getByText('Analyzing Design...')).toBeInTheDocument();
     });
 
     it('renders the empty upload prompt when no sidebar content is available', () => {

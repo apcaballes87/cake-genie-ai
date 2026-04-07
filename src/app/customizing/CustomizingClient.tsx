@@ -2793,7 +2793,36 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         )}
 
                         <div className="md:hidden">
-                            {analysisError ? (
+                            {isAnalyzing ? (
+                                <CustomizingSidebarPanel
+                                    className="w-full flex flex-col gap-2 mt-2"
+                                    showLoadingState
+                                    showContentState={false}
+                                    analysisError={null}
+                                    stepSummaryProps={{
+                                        cakeInfo,
+                                        icingDesign,
+                                        cakeMessages,
+                                        mainToppers,
+                                        supportElements,
+                                        markerMap,
+                                        itemPrices,
+                                        isAdmin,
+                                        isAnalyzing,
+                                        isRejectionError,
+                                        activeCustomization,
+                                        selectedItemId: selectedItem?.id ?? null,
+                                        setActiveCustomization,
+                                        setSelectedItem,
+                                        removeCakeMessage,
+                                        updateMainTopper,
+                                        updateSupportElement,
+                                        onTopperImageReplace: onTopperImageReplace,
+                                        onSupportElementImageReplace: onSupportElementImageReplace,
+                                        openTopperSheet,
+                                    }}
+                                />
+                            ) : analysisError ? (
                                 <div className="text-center p-6 bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-red-200 flex flex-col items-center justify-center gap-4 mt-2">
                                     <div className="text-red-500 bg-red-50 p-3 rounded-full">
                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M12 8V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M12 16H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
