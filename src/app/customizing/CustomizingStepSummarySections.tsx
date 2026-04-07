@@ -141,14 +141,14 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                     <div className={itemsClassName}>
                         <button onClick={() => setActiveCustomization('options')} className="group flex flex-col items-center gap-1 min-w-[60px]">
                             <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
-                                <LazyImage src={CAKE_TYPE_THUMBNAILS[cakeInfo.type]} alt={cakeInfo.type} fill sizes="56px" imageClassName="object-contain" />
+                                <LazyImage src={CAKE_TYPE_THUMBNAILS[cakeInfo.type]} alt={cakeInfo.type + ' Cake Design'} fill sizes="56px" imageClassName="object-contain" />
                             </div>
                             <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">{cakeInfo.type}</span>
                         </button>
 
                         <button onClick={() => setActiveCustomization('options')} className="group flex flex-col items-center gap-1 min-w-[60px]">
                             <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
-                                <LazyImage src={CAKE_SIZE_THUMBNAILS[cakeInfo.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]} alt={cakeInfo.size} fill sizes="56px" imageClassName="object-contain" />
+                                <LazyImage src={CAKE_SIZE_THUMBNAILS[cakeInfo.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]} alt={cakeInfo.size + ' Custom Cake'} fill sizes="56px" imageClassName="object-contain" />
                                 <div className="absolute inset-x-0 top-0 pt-3 text-black text-[9px] font-bold text-center leading-tight">{renderCakeSizeOverlay(cakeInfo.size)}</div>
                             </div>
                             <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">{cakeInfo.size}</span>
@@ -156,7 +156,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
                         <button onClick={() => setActiveCustomization('options')} className="group flex flex-col items-center gap-1 min-w-[60px]">
                             <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
-                                <LazyImage src={CAKE_THICKNESS_THUMBNAILS[cakeInfo.thickness]} alt={cakeInfo.thickness} fill sizes="56px" imageClassName="object-contain" />
+                                <LazyImage src={CAKE_THICKNESS_THUMBNAILS[cakeInfo.thickness]} alt={cakeInfo.thickness + ' Thick Cake'} fill sizes="56px" imageClassName="object-contain" />
                             </div>
                             <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">{cakeInfo.thickness}</span>
                         </button>
@@ -164,7 +164,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                         {cakeInfo.flavors.map((flavor, index) => (
                             <button key={`${flavor}-${index}`} onClick={() => setActiveCustomization('flavor')} className="group flex flex-col items-center gap-1 min-w-[60px]">
                                 <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'flavor' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
-                                    <LazyImage src={FLAVOR_THUMBNAILS[flavor]} alt={flavor} fill sizes="56px" imageClassName="object-contain" />
+                                    <LazyImage src={FLAVOR_THUMBNAILS[flavor]} alt={flavor + ' Design'} fill sizes="56px" imageClassName="object-contain" />
                                 </div>
                                 <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">{flavor}</span>
                             </button>

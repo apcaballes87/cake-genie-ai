@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildRetryUploadUrl,
   buildRelatedCollectionsRequestKey,
   getAutoRelatedDesignRequest,
   shouldLoadPropDesign,
@@ -130,5 +131,14 @@ describe('customizingClientGuards', () => {
     )
 
     expect(buildRelatedCollectionsRequestKey([], '')).toBeNull()
+  })
+
+  it('removes stale handoff params before opening the retry uploader', () => {
+    expect(buildRetryUploadUrl(
+      '/customizing',
+      '?ref=https%3A%2F%2Fold.example%2Fcake.jpg&source=shopify_cse&image_url=https%3A%2F%2Fold.example%2Fcake.jpg&keep=1&fromSaved=true'
+    )).toBe('/customizing?keep=1')
+
+    expect(buildRetryUploadUrl('/customizing', '')).toBe('/customizing')
   })
 })

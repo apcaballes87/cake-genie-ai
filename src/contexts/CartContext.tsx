@@ -519,6 +519,26 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         setCartItems(prevItems => [tempItem, ...prevItems]);
 
+        const ownerPromise: Promise<Pick<CakeGenieCartItem, 'user_id' | 'session_id'>> =
+            initialItem.user_id || initialItem.session_id
+                ? Promise.resolve({
+                    user_id: initialItem.user_id,
+                    session_id: initialItem.session_id,
+                })
+                : supabase.auth.getUser().then(({ data: { user } }) => {
+                    const isAnonymous = user?.is_anonymous ?? false;
+
+                    if (!user) {
+                        console.error('❌ Cart: User session lost during background save');
+                        throw new Error("User session not found during background save");
+                    }
+
+                    return {
+                        user_id: isAnonymous ? null : user.id,
+                        session_id: isAnonymous ? user.id : null,
+                    };
+                });
+
         // 2. Fire-and-forget Background Process (runs without blocking navigation)
         // We DON'T await this - it runs in the background while user is navigated to cart
         console.log('🔄 Cart: Background upload started...');
@@ -532,18 +552,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     original_image_url: originalImageUrl,
                     customized_image_url: finalImageUrl
                 };
-
-                const { data: { user } } = await supabase.auth.getUser();
-                const isAnonymous = user?.is_anonymous ?? false;
-                if (!user) {
-                    console.error('❌ Cart: User session lost during background save');
-                    throw new Error("User session not found during background save");
-                }
+                const owner = await ownerPromise;
 
                 const itemToSend = {
                     ...finalItemParams,
-                    user_id: isAnonymous ? null : user.id,
-                    session_id: isAnonymous ? user.id : null,
+                    user_id: owner.user_id,
+                    session_id: owner.session_id,
                 };
 
                 const { data: realItem, error } = await addToCartService(itemToSend);

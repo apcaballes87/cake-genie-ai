@@ -55,6 +55,7 @@ import { CustomizingStepSummarySections } from './CustomizingStepSummarySections
 import { CustomizingAiChatPanel } from './CustomizingAiChatPanel';
 import { CustomizingToppersPanel } from './CustomizingToppersPanel';
 import {
+    buildRetryUploadUrl,
     buildRelatedCollectionsRequestKey,
     getAutoRelatedDesignRequest,
     shouldHydrateImageFromExistingAnalysis,
@@ -88,6 +89,7 @@ import { buildAiChatPromptSuggestions, shouldShowAiPromptSuggestion } from '@/ut
 import { fillAiChatPromptTemplate, parseAiChatPromptTemplate, ParsedAiChatPromptTemplate } from '@/utils/aiChatPromptComposer';
 import { mapAnalysisToState } from '@/utils/customizationMapper';
 import type { DesignPromptGenerator } from '@/hooks/useDesignUpdate';
+import { createClient } from '@/lib/supabase/client';
 
 interface AvailabilityInfo {
     type: AvailabilityType;
@@ -288,6 +290,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const searchParams = useSearchParams();
     const params = useParams();
     const slug = params?.slug || currentSlug;
+    const supabase = useMemo(() => createClient(), []);
 
     // Smart back navigation
     const { goBack } = useSmartBack('customizing');
@@ -365,6 +368,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [selectedAiPromptTemplate, setSelectedAiPromptTemplate] = useState<ParsedAiChatPromptTemplate | null>(null);
     const [selectedAiPromptColor, setSelectedAiPromptColor] = useState('');
     const [showAiPromptColorPicker, setShowAiPromptColorPicker] = useState(false);
+    const addToCartInFlightRef = useRef(false);
+    const addToCartResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Open pre-selection modal when arriving from search with analysis already in progress
     // (analysis was started in SearchingClient before navigating here)
@@ -375,11 +380,20 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         }
     }, []); // Run once on mount
 
+    useEffect(() => {
+        return () => {
+            if (addToCartResetTimeoutRef.current !== null) {
+                clearTimeout(addToCartResetTimeoutRef.current);
+            }
+        };
+    }, []);
+
     const handleImageSelect = useCallback((file: File) => {
         setIsUploaderOpen(false);
         setIsAnalyzing(true);
         setAnalysisError(null);
         setIsPreSelectionModalOpen(true);
+        setPreloadedHeroImage(null);
 
         // Clear previous state to avoid mixing old analysis with new one
         clearCustomization();
@@ -390,6 +404,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             file,
             (result: HybridAnalysisResult) => {
                 console.log('Analysis successful:', result);
+                setPendingAnalysisData(result);
                 setIsAnalyzing(false);
             },
             (err: Error) => {
@@ -399,7 +414,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 setIsPreSelectionModalOpen(false);
             }
         );
-    }, [clearCustomization, clearImages, setAnalysisError, setIsAnalyzing, hookImageUpload]);
+    }, [clearCustomization, clearImages, setAnalysisError, setIsAnalyzing, hookImageUpload, setPendingAnalysisData]);
 
     const handlePreSelectionApply = useCallback((preSelectedCakeInfo: CakeInfoUI) => {
         handleCakeInfoChange(preSelectedCakeInfo);
@@ -686,10 +701,27 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     // --- AI Chat Customization Handler ---
     const onAddToCart = useCallback(async () => {
+        if (addToCartInFlightRef.current) return;
+
         const effectivePrice = finalPrice ?? (useBasePriceAsFallback ? basePrice : null);
         if (!effectivePrice || !cakeInfo) return;
+
+        addToCartInFlightRef.current = true;
         setIsAddingToCart(true);
+
         try {
+            let cartUser = user;
+
+            if (!cartUser) {
+                const { data: { user: liveUser }, error: authError } = await supabase.auth.getUser();
+                if (authError) throw authError;
+                cartUser = liveUser;
+            }
+
+            if (!cartUser) {
+                throw new Error('Your cart session is still loading. Please try again in a moment.');
+            }
+
             // 1. Prepare Base64 placeholders for immediate optimistic display
             const optimisticOriginal = originalImagePreview || '';
             const optimisticCustomized = editedImage || '';
@@ -697,13 +729,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             // 2. Start Upload in Background (Do NOT await)
             const uploadPromise = uploadCartImages({
                 editedImageDataUri: editedImage,
-                userId: user?.id,
+                userId: cartUser.id,
                 slug: typeof slug === 'string' ? slug : undefined
             });
 
             const cartItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'> = {
-                user_id: user?.id || null,
-                session_id: user?.is_anonymous ? user.id : null,
+                user_id: cartUser.is_anonymous ? null : cartUser.id,
+                session_id: cartUser.is_anonymous ? cartUser.id : null,
                 merchant_id: null, // Will be set when ordering from a specific merchant shop
                 product_id: product?.product_id || null,
                 cake_type: cakeInfo.type,
@@ -743,15 +775,21 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
             // 4. Fire-and-forget: optimistic update happens instantly, upload runs in background
             // No await needed - function returns immediately after optimistic update
-            addToCartWithBackgroundUpload(cartItem, uploadPromise);
+            void addToCartWithBackgroundUpload(cartItem, uploadPromise);
 
             showSuccess('Added to cart!');
             router.push('/cart');
         } catch (err) {
-            showError('Failed to add to cart: ' + (err instanceof Error ? err.message : 'Unknown error'));
-        } finally {
+            addToCartInFlightRef.current = false;
             setIsAddingToCart(false);
+            showError('Failed to add to cart: ' + (err instanceof Error ? err.message : 'Unknown error'));
+            return;
         }
+
+        addToCartResetTimeoutRef.current = setTimeout(() => {
+            addToCartInFlightRef.current = false;
+            setIsAddingToCart(false);
+        }, 1000);
     }, [
         finalPrice,
         useBasePriceAsFallback,
@@ -759,8 +797,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         originalImagePreview,
         editedImage,
         uploadCartImages,
-        user?.id,
-        user?.is_anonymous,
+        user,
         basePrice,
         mainToppers,
         supportElements,
@@ -769,7 +806,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         additionalInstructions,
         addToCartWithBackgroundUpload,
         ediblePhotoAddonPrice,
+        chatHistory,
+        product?.product_id,
         router,
+        slug,
+        supabase,
     ]);
 
     const submitAiChatPrompt = useCallback(async (prompt: string) => {
@@ -1859,6 +1900,22 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const onSave = handleSave;
     const isSaving = false;
 
+    const handleUploadAnother = useCallback(() => {
+        const nextUrl = buildRetryUploadUrl(window.location.pathname, window.location.search);
+        window.history.replaceState({}, '', nextUrl);
+
+        isLoadingDesignRef.current = false;
+        isLoadingShopifyCseRef.current = false;
+        lastProcessedDesignRefUrl.current = null;
+        setPreloadedHeroImage(null);
+        setActiveTab('original');
+        setIsPreSelectionModalOpen(false);
+        setAnalysisError(null);
+        clearImages();
+        clearCustomization();
+        setIsUploaderOpen(true);
+    }, [clearCustomization, clearImages, setAnalysisError]);
+
     const onClearAll = () => {
         isResettingRef.current = true;
         clearImages();
@@ -2685,10 +2742,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             originalImagePreview={originalImagePreview}
                             preloadedHeroImage={preloadedHeroImage}
                             fallbackImageUrl={product?.image_url || recentSearchDesign?.original_image_url || null}
-                            fallbackImageAlt={product?.alt_text || recentSearchDesign?.alt_text || product?.title || recentSearchDesign?.keywords || 'Cake Design'}
+                            fallbackImageAlt={product?.alt_text || recentSearchDesign?.alt_text || product?.title || recentSearchDesign?.keywords || 'Custom Cake Design - Cebu Philippines'}
                             fallbackImageTitle={product?.title || recentSearchDesign?.seo_title || recentSearchDesign?.keywords || 'Cake Design'}
                             initialCaption={initialCaption}
-                            heroImageAlt={product?.alt_text || (product ? `${product.title} - Custom cake${merchant ? ` from ${merchant.business_name}` : ''}` : (activeTab === 'customized' && editedImage ? 'Edited Cake' : 'Original Cake'))}
+                            heroImageAlt={product?.alt_text || (product ? `${product.title} - Custom cake${merchant ? ` from ${merchant.business_name}` : ''}` : (activeTab === 'customized' && editedImage ? 'Customized Cake Design - Genie.ph' : 'Custom Cake Design - Browse Birthday, Wedding & Character Cakes in Cebu'))}
                             heroImageTitle={product?.title || recentSearchDesign?.seo_title || recentSearchDesign?.keywords || (activeTab === 'customized' && editedImage ? 'Edited Cake' : 'Original Cake')}
                             showSaveDesignButton={Boolean(originalImagePreview && analysisResult)}
                             isCurrentDesignSaved={isDesignSaved(analysisId || '')}
@@ -2755,7 +2812,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                                     <div className="flex flex-col gap-2 w-full mt-2">
                                         <button
-                                            onClick={() => { clearImages(); clearCustomization(); }}
+                                            onClick={handleUploadAnother}
                                             className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-xl transition-colors w-full"
                                         >
                                             Upload Another
@@ -2830,7 +2887,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             showLoadingState={isAnalyzing || (isLoading && !isDesignSaved)}
                             showContentState={Boolean(cakeInfo)}
                             analysisError={analysisError}
-                            onUploadAnother={() => setIsUploaderOpen(true)}
+                            onUploadAnother={handleUploadAnother}
                             onGoBackHome={() => router.push('/')}
                             stepSummaryProps={{
                                 cakeInfo,
