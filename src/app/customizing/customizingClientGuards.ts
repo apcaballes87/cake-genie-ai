@@ -22,6 +22,16 @@ interface ExistingAnalysisHydrationArgs {
   hasCachedAnalysis?: boolean
 }
 
+const RETRY_UPLOAD_QUERY_PARAMS = [
+  'ref',
+  'source',
+  'image_url',
+  'image_name',
+  'image_type',
+  'fromSaved',
+  'fromMerchant',
+] as const
+
 export function shouldLoadPropDesign({
   sourceParam,
   isResetting,
@@ -90,4 +100,15 @@ export function buildRelatedCollectionsRequestKey(tags: string[] | null | undefi
     tags: normalizedTags,
     keyword: normalizedKeyword,
   })
+}
+
+export function buildRetryUploadUrl(pathname: string, search: string): string {
+  const params = new URLSearchParams(search)
+
+  for (const key of RETRY_UPLOAD_QUERY_PARAMS) {
+    params.delete(key)
+  }
+
+  const nextSearch = params.toString()
+  return nextSearch ? `${pathname}?${nextSearch}` : pathname
 }

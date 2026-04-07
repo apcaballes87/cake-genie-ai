@@ -69,9 +69,31 @@ export default async function BlogPage() {
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
           Blog
         </h1>
-        <p className="text-gray-500 mb-10">
+        <p className="text-gray-500 mb-6">
           Guides, tips, and helpful articles for your special celebrations.
         </p>
+
+        {/* Topic tag navigation */}
+        <div className="flex flex-wrap gap-2 mb-10">
+          {[
+            { slug: 'birthday-cakes', label: 'Birthday Cakes' },
+            { slug: 'cebu-cakes', label: 'Cebu Cakes' },
+            { slug: 'wedding-cakes', label: 'Wedding Cakes' },
+            { slug: 'party-packages', label: 'Party Packages' },
+            { slug: 'cake-comparison', label: 'Cake Comparisons' },
+            { slug: 'character-cakes', label: 'Character Cakes' },
+            { slug: 'graduation-cakes', label: 'Graduation Cakes' },
+            { slug: 'kids-cakes', label: 'Kids Cakes' },
+          ].map(({ slug, label }) => (
+            <Link
+              key={slug}
+              href={`/blog/category/${slug}`}
+              className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-purple-200 text-purple-700 hover:bg-purple-50 transition-colors"
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
 
         {blogPosts.length === 0 ? (
           <div className="text-center py-12">

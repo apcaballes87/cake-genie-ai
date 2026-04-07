@@ -172,7 +172,7 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
 
     // Chunk 0: Static Routes
     if (sitemapId === 0) {
-        return [
+        const coreRoutes = [
             '',
             '/shop',
             '/customizing',
@@ -196,7 +196,43 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
             lastModified: new Date('2026-02-27'),
             changeFrequency: 'daily' as const,
             priority: 1,
-        }))
+        }));
+
+        const blogCategoryRoutes = [
+            '/blog/category/birthday-cakes',
+            '/blog/category/cebu-cakes',
+            '/blog/category/wedding-cakes',
+            '/blog/category/party-packages',
+            '/blog/category/cake-comparison',
+            '/blog/category/character-cakes',
+            '/blog/category/graduation-cakes',
+            '/blog/category/kids-cakes',
+        ].map((route) => ({
+            url: `${baseUrl}${route}`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly' as const,
+            priority: 0.8,
+        }));
+
+        const customizingCategoryRoutes = [
+            '/customizing/category/birthday-cakes',
+            '/customizing/category/kuromi-cake',
+            '/customizing/category/wedding-cake',
+            '/customizing/category/graduation-cake',
+            '/customizing/category/minimalist-cake',
+            '/customizing/category/bento-cake',
+            '/customizing/category/character-cake',
+            '/customizing/category/debut-cake',
+            '/customizing/category/baptism-cake',
+            '/customizing/category/anniversary-cake',
+        ].map((route) => ({
+            url: `${baseUrl}${route}`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly' as const,
+            priority: 0.85,
+        }));
+
+        return [...coreRoutes, ...blogCategoryRoutes, ...customizingCategoryRoutes];
     }
 
     // Chunk 1: Bakeries (Merchants)
