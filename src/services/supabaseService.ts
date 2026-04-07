@@ -6,6 +6,7 @@ import { notifyIndexNow } from './indexNowService';
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem, OrderContribution, CakeGenieSavedItem, CustomizationDetails, CakeGenieMerchant, CakeGenieMerchantProduct, MerchantStaff, MerchantPayout, MerchantDashboardStats, MerchantStaffRole, CakeGenieReview } from '@/lib/database.types';
+import { normalizePublicReviewRecord, normalizePublicReviews, REVIEW_SELECT, REVIEW_SELECT_WITH_ORDER_NUMBER } from '@/lib/reviews';
 
 import { compressImage, validateImageFile } from '@/lib/utils/imageOptimization';
 import { calculatePriceFromDatabase } from './pricingService.database';
@@ -1200,7 +1201,7 @@ export async function getCartItems(
       return { data: null, error };
     }
 
-    return { data, error: null };
+    return { data: data || [], error: null };
   } catch (err) {
     return { data: null, error: err as Error };
   }
@@ -1368,7 +1369,7 @@ export async function getUserAddresses(
     if (error) {
       return { data: null, error };
     }
-    return { data, error: null };
+    return { data: data || [], error: null };
   } catch (err) {
     return { data: null, error: err as Error };
   }
@@ -3351,20 +3352,20 @@ export async function submitReview(params: {
         merchant_id: params.merchantId,
         product_id: params.productId || null,
         rating: params.rating,
-        title: params.title || null,
-        comment: params.comment || null,
-        photos: params.photos || [],
+        review_title: params.title || null,
+        review_text: params.comment || null,
+        review_photos: params.photos || [],
         is_approved: true,
         is_visible: true,
       })
-      .select()
+      .select(REVIEW_SELECT)
       .single();
 
     if (error) {
       return { data: null, error };
     }
 
-    return { data, error: null };
+    return { data: data ? normalizePublicReviewRecord(data) : null, error: null };
   } catch (err) {
     return { data: null, error: err as Error };
   }
@@ -3406,10 +3407,7 @@ export async function getMerchantReviews(
   try {
     let query = supabase
       .from('cakegenie_reviews')
-      .select(`
-        *,
-        user:cakegenie_users(first_name, email)
-      `)
+      .select(REVIEW_SELECT)
       .eq('merchant_id', merchantId)
       .order('created_at', { ascending: false });
 
@@ -3431,7 +3429,7 @@ export async function getMerchantReviews(
       return { data: null, error };
     }
 
-    return { data, error: null };
+    return { data: normalizePublicReviews(data), error: null };
   } catch (err) {
     return { data: null, error: err as Error };
   }
@@ -3451,10 +3449,7 @@ export async function getProductReviews(
   try {
     let query = supabase
       .from('cakegenie_reviews')
-      .select(`
-        *,
-        user:cakegenie_users(first_name, email)
-      `)
+      .select(REVIEW_SELECT)
       .eq('product_id', productId)
       .order('created_at', { ascending: false });
 
@@ -3476,7 +3471,7 @@ export async function getProductReviews(
       return { data: null, error };
     }
 
-    return { data, error: null };
+    return { data: normalizePublicReviews(data), error: null };
   } catch (err) {
     return { data: null, error: err as Error };
   }
@@ -3496,11 +3491,7 @@ export async function getMerchantAllReviews(
   try {
     let query = supabase
       .from('cakegenie_reviews')
-      .select(`
-        *,
-        user:cakegenie_users(first_name, email),
-        cakegenie_orders(order_number)
-      `)
+      .select(REVIEW_SELECT_WITH_ORDER_NUMBER)
       .eq('merchant_id', merchantId)
       .order('created_at', { ascending: false });
 
@@ -3522,7 +3513,7 @@ export async function getMerchantAllReviews(
       return { data: null, error };
     }
 
-    return { data, error: null };
+    return { data: normalizePublicReviews(data), error: null };
   } catch (err) {
     return { data: null, error: err as Error };
   }
@@ -3555,18 +3546,19 @@ export async function updateReviewModeration(
     const { data, error } = await supabase
       .from('cakegenie_reviews')
       .update({
-        ...updates,
+        ...(updates.isApproved !== undefined ? { is_approved: updates.isApproved } : {}),
+        ...(updates.isVisible !== undefined ? { is_visible: updates.isVisible } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq('review_id', reviewId)
-      .select()
+      .select(REVIEW_SELECT)
       .single();
 
     if (error) {
       return { data: null, error };
     }
 
-    return { data, error: null };
+    return { data: data ? normalizePublicReviewRecord(data) : null, error: null };
   } catch (err) {
     return { data: null, error: err as Error };
   }
@@ -3601,14 +3593,14 @@ export async function respondToReview(
         updated_at: new Date().toISOString(),
       })
       .eq('review_id', reviewId)
-      .select()
+      .select(REVIEW_SELECT)
       .single();
 
     if (error) {
       return { data: null, error };
     }
 
-    return { data, error: null };
+    return { data: data ? normalizePublicReviewRecord(data) : null, error: null };
   } catch (err) {
     return { data: null, error: err as Error };
   }

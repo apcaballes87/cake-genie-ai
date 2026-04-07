@@ -15,6 +15,8 @@ import { ImageWithSkeleton } from '@/components/ImageWithSkeleton';
 import { showError, showLoading, showInfo } from '@/lib/utils/toast';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { CakeGenieReview } from '@/lib/database.types';
+import { getReviewDisplayName } from '@/lib/reviews';
 import { BlogHomepagePreview } from '@/services/supabaseService';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,34 +45,12 @@ const ImageUploader = dynamic(
     { ssr: false }
 );
 
-
-
-interface LandingReview {
-    review_id: string;
-    rating: number;
-    review_text: string | null;
-    review_photos: string[] | null;
-    reviewer_name: string | null;
-    created_at: string;
-    cakegenie_users: {
-        first_name: string | null;
-        last_name: string | null;
-    }[];
-    cakegenie_orders: {
-        cakegenie_order_items: {
-            cake_type: string | null;
-            cake_size: string | null;
-            customized_image_url: string | null;
-        }[];
-    }[];
-}
-
 interface LandingClientProps {
     children?: React.ReactNode;
     popularDesigns?: PopularDesign[];
     heroProducts?: PopularDesign[];
     blogPosts?: BlogHomepagePreview[];
-    reviews?: LandingReview[];
+    reviews?: CakeGenieReview[];
 }
 
 const subscribeToHydration = () => () => { };
@@ -680,28 +660,20 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
             date: string;
         }[] = [];
         for (const r of reviews) {
-            if (!r.review_text) continue;
-            const photos = r.review_photos?.length ? r.review_photos :
-                r.cakegenie_orders?.[0]?.cakegenie_order_items
-                    ?.map(item => item.customized_image_url)
-                    .filter((url): url is string => !!url) || [];
-            // Determine name: use reviewer_name for imported reviews, otherwise from user relation
-            let name = r.reviewer_name || '';
-            if (!name) {
-                const user = r.cakegenie_users?.[0];
-                const firstName = user?.first_name || '';
-                const lastName = user?.last_name || '';
-                name = firstName && lastName
-                    ? `${firstName.charAt(0).toUpperCase()}. ${lastName}`
-                    : firstName || '';
-            }
-            const orderItem = r.cakegenie_orders?.[0]?.cakegenie_order_items?.[0];
+            if (!r.comment) continue;
+            const orderItem = r.order_item ?? null;
+            const photos = r.photos?.length
+                ? r.photos
+                : orderItem?.customized_image_url
+                    ? [orderItem.customized_image_url]
+                    : [];
+            const name = getReviewDisplayName(r);
             cards.push({
                 id: r.review_id,
                 photo: photos.length > 0 ? photos[0] : null,
                 rating: r.rating,
                 name,
-                text: r.review_text,
+                text: r.comment,
                 cakeType: orderItem?.cake_type || null,
                 cakeSize: orderItem?.cake_size || null,
                 date: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),

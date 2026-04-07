@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useMerchantAllReviews, useUpdateReviewVisibility, useRespondToReview } from '@/hooks/useReviews';
 import { CakeGenieReview } from '@/lib/database.types';
+import { getReviewDisplayName } from '@/lib/reviews';
 import { Star, Check, Eye, EyeOff, MessageSquare, Loader2 } from 'lucide-react';
 
 interface MerchantReviewDashboardProps {
@@ -115,6 +116,9 @@ export function MerchantReviewDashboard({ merchantId }: MerchantReviewDashboardP
             <div key={review.review_id} className="bg-white rounded-lg border border-gray-200 p-4">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
+                  <div className="mb-2 text-sm font-medium text-gray-800">
+                    {getReviewDisplayName(review)}
+                  </div>
                   <div className="flex items-center gap-2 mb-2">
                     {renderStars(review.rating)}
                     <span className="text-sm font-medium">{review.rating}/5</span>

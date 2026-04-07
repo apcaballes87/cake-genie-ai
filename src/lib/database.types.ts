@@ -364,9 +364,12 @@ export interface CakeGenieReview {
   merchant_id: string; // UUID
   product_id: string | null; // UUID, nullable if reviewing merchant/service overall
   rating: number; // 1-5 stars
+  // These fields are normalized aliases over the live review_title/review_text/review_photos columns.
   title: string | null;
   comment: string | null;
   photos: string[] | null; // Array of image URLs
+  reviewer_name?: string | null;
+  is_verified?: boolean | null;
   is_approved: boolean; // Auto-approved by default, but can be moderated
   is_visible: boolean; // Whether shown publicly
   merchant_response: string | null;
@@ -374,6 +377,13 @@ export interface CakeGenieReview {
   created_at: string; // ISO 8601 timestamp
   updated_at: string; // ISO 8601 timestamp
   // Joined data (optional for enriched queries)
-  user?: { first_name: string | null; email: string } | null;
+  user?: { first_name: string | null; last_name?: string | null; email?: string | null } | null;
+  merchant?: { business_name: string | null } | null;
+  order_item?: {
+    cake_type: string | null;
+    cake_size: string | null;
+    customized_image_url: string | null;
+    customization_details?: Record<string, unknown> | null;
+  } | null;
   cakegenie_orders?: { order_number: string } | null;
 }

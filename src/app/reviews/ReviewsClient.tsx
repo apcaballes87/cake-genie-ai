@@ -5,63 +5,17 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Star, X, ShieldCheck } from 'lucide-react';
 import { LazyImage } from '@/components/LazyImage';
 import { ReviewSummary } from '@/components/ReviewsDisplay';
-
-interface Review {
-  review_id: string;
-  rating: number;
-  title: string | null;
-  comment: string | null;
-  photos: string[] | null;
-  user_id: string | null;
-  created_at: string;
-  order_id: string;
-  cakegenie_merchants?: {
-    business_name: string;
-  };
-  cakegenie_users?: {
-    first_name: string | null;
-    last_name: string | null;
-  };
-  cakegenie_order_items?: {
-    cake_type: string | null;
-    cake_size: string | null;
-    customized_image_url: string | null;
-    customization_details: Record<string, unknown> | null;
-  } | null;
-}
+import { CakeGenieReview } from '@/lib/database.types';
+import { getReviewAvatarInitial, getReviewDisplayName } from '@/lib/reviews';
 
 interface ReviewsClientProps {
-  initialReviews?: Review[];
+  initialReviews?: CakeGenieReview[];
   error?: string | null;
-}
-
-function formatCustomerName(firstName: string | null, lastName: string | null): string {
-  const cleanedFirst = firstName?.trim() || '';
-  const cleanedLast = lastName?.trim() || '';
-
-  if (!cleanedFirst && !cleanedLast) return '';
-  if (cleanedFirst && cleanedLast) {
-    return `${cleanedFirst.charAt(0).toUpperCase()}. ${cleanedLast}`;
-  }
-  if (cleanedFirst) {
-    const parts = cleanedFirst.split(' ');
-    if (parts.length > 1) {
-      return `${parts[0].charAt(0).toUpperCase()}. ${parts.slice(1).join(' ')}`;
-    }
-    return `${cleanedFirst.charAt(0).toUpperCase()}.`;
-  }
-  return cleanedLast || '';
-}
-
-function getAvatarInitial(review: Review): string {
-  const first = review.cakegenie_users?.first_name?.trim();
-  const last = review.cakegenie_users?.last_name?.trim();
-  return (first || last || 'C').charAt(0).toUpperCase();
 }
 
 const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], error: initialError = null }) => {
   const router = useRouter();
-  const [reviews] = useState<Review[]>(initialReviews);
+  const [reviews] = useState<CakeGenieReview[]>(initialReviews);
   const [error] = useState<string | null>(initialError);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
@@ -144,11 +98,8 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
           {/* Review Cards */}
           <div className="space-y-6">
             {reviews.map((review) => {
-              const firstItem = review.cakegenie_order_items ?? null;
-              const displayName = formatCustomerName(
-                review.cakegenie_users?.first_name || null,
-                review.cakegenie_users?.last_name || null
-              );
+              const firstItem = review.order_item ?? null;
+              const displayName = getReviewDisplayName(review);
 
               return (
                 <div
@@ -159,10 +110,10 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                        {getAvatarInitial(review)}
+                        {getReviewAvatarInitial(review)}
                       </div>
                       <span className="font-semibold text-slate-800">
-                        {displayName || 'Customer'}
+                        {displayName}
                       </span>
                     </div>
                     <span className="text-sm text-slate-400">{formatDate(review.created_at)}</span>
@@ -172,7 +123,7 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
                   <div className="flex items-center gap-3 mb-3">
                     {renderStars(review.rating)}
                     <span className="text-sm font-medium text-slate-600">{review.rating}/5</span>
-                    {review.user_id && (
+                    {(review.is_verified || review.user_id) && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">
                         <ShieldCheck className="w-3 h-3" />
                         Verified Purchase
@@ -216,9 +167,9 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
                         {firstItem.cake_size && (
                           <p className="text-sm text-slate-500">{firstItem.cake_size}</p>
                         )}
-                        {review.cakegenie_merchants?.business_name && (
+                        {review.merchant?.business_name && (
                           <p className="text-xs text-slate-400 mt-0.5">
-                            by {review.cakegenie_merchants.business_name}
+                            by {review.merchant.business_name}
                           </p>
                         )}
                       </div>

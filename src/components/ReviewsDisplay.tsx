@@ -3,6 +3,7 @@
 import React from 'react';
 import { Star, ThumbsUp } from 'lucide-react';
 import { CakeGenieReview } from '@/lib/database.types';
+import { getReviewAvatarInitial, getReviewDisplayName } from '@/lib/reviews';
 import LazyImage from './LazyImage';
 
 interface ReviewsDisplayProps {
@@ -43,9 +44,7 @@ const ReviewCard: React.FC<{
   review: CakeGenieReview;
   showMerchantResponse?: boolean;
 }> = ({ review, showMerchantResponse = true }) => {
-  const displayName = review.user?.first_name
-    ? `${review.user.first_name}`
-    : 'Customer';
+  const displayName = getReviewDisplayName(review);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
@@ -54,7 +53,7 @@ const ReviewCard: React.FC<{
         <div className="flex items-center gap-3">
           {/* Avatar */}
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
-            {displayName.charAt(0).toUpperCase()}
+            {getReviewAvatarInitial(review)}
           </div>
           <div>
             <p className="font-semibold text-slate-800">{displayName}</p>

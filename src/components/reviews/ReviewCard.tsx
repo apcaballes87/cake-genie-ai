@@ -1,6 +1,7 @@
 'use client';
 
 import { CakeGenieReview } from '@/lib/database.types';
+import { getReviewDisplayName } from '@/lib/reviews';
 import { Star } from 'lucide-react';
 
 interface ReviewCardProps {
@@ -23,6 +24,8 @@ function formatDate(dateString: string): string {
 }
 
 export function ReviewCard({ review, showMerchantResponse = true, onRespond }: ReviewCardProps) {
+  const displayName = getReviewDisplayName(review);
+
   const renderStars = (rating: number) => {
     return (
       <div className="flex gap-0.5">
@@ -69,14 +72,8 @@ export function ReviewCard({ review, showMerchantResponse = true, onRespond }: R
           )}
 
           <div className="flex items-center gap-2 text-sm text-gray-500">
-            {review.user?.first_name && (
-              <>
-                <span className="font-medium text-gray-700">
-                  {review.user.first_name}
-                </span>
-                <span>•</span>
-              </>
-            )}
+            <span className="font-medium text-gray-700">{displayName}</span>
+            <span>•</span>
             <time dateTime={review.created_at}>
               {review.created_at
                 ? formatDate(review.created_at)

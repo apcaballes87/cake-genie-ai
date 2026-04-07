@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { normalizePublicReviewRecord, REVIEW_SELECT_WITH_ORDER_NUMBER } from '@/lib/reviews';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -20,11 +21,7 @@ export async function GET(
 
     const { data, error } = await supabaseAdmin
       .from('cakegenie_reviews')
-      .select(`
-        *,
-        user:cakegenie_users(first_name, email),
-        cakegenie_orders(order_number)
-      `)
+      .select(REVIEW_SELECT_WITH_ORDER_NUMBER)
       .eq('review_id', reviewId)
       .single();
 
@@ -42,7 +39,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, data: normalizePublicReviewRecord(data) });
   } catch (err) {
     console.error('Unexpected error in GET /api/reviews/[reviewId]:', err);
     return NextResponse.json(
@@ -86,7 +83,7 @@ export async function PATCH(
       );
     }
 
-    const updates: Record<string, any> = {
+    const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
 
@@ -122,7 +119,7 @@ export async function PATCH(
       .from('cakegenie_reviews')
       .update(updates)
       .eq('review_id', reviewId)
-      .select()
+      .select(REVIEW_SELECT_WITH_ORDER_NUMBER)
       .single();
 
     if (error) {
@@ -133,7 +130,7 @@ export async function PATCH(
       );
     }
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, data: normalizePublicReviewRecord(data) });
   } catch (err) {
     console.error('Unexpected error in PATCH /api/reviews/[reviewId]:', err);
     return NextResponse.json(

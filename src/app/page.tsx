@@ -5,6 +5,7 @@ import { RecommendedProductsSection, IntroContent } from '@/components/landing';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import NewsletterPopup from '@/components/NewsletterPopup';
 import { createClient } from '@/lib/supabase/server';
+import { normalizePublicReviews, REVIEW_SELECT } from '@/lib/reviews';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 // ISR: Revalidate every hour for fresh data while maintaining fast loads
@@ -106,21 +107,12 @@ async function getReviews() {
     const supabase: SupabaseClient = await createClient();
     const { data } = await supabase
         .from('cakegenie_reviews')
-        .select(`
-            review_id,
-            rating,
-            review_text,
-            review_photos,
-            reviewer_name,
-            created_at,
-            cakegenie_users(first_name, last_name),
-            cakegenie_orders!order_id(cakegenie_order_items(cake_type, cake_size, customized_image_url))
-        `)
+        .select(REVIEW_SELECT)
         .eq('is_visible', true)
         .eq('is_approved', true)
         .order('created_at', { ascending: false })
         .limit(20);
-    return data || [];
+    return normalizePublicReviews(data);
 }
 
 export default async function Home() {
@@ -135,9 +127,7 @@ export default async function Home() {
     const popularDesigns = popularDesignsRes.data || [];
     const blogPosts = blogsRes.data || [];
 
-    // Shuffle hero products on the server to avoid hydration mismatch
-    const shuffled = [...popularDesigns].sort(() => Math.random() - 0.5);
-    const heroProducts = shuffled.slice(0, 4);
+    const heroProducts = popularDesigns.slice(0, 4);
 
     return (
         <>
