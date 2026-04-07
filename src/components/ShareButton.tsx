@@ -44,12 +44,12 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         {isLoading ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
-            <span className="min-[420px]:max-[639px]:hidden">Sharing...</span>
+            <span className="hidden sm:inline">Sharing...</span>
           </>
         ) : (
           <>
             <Share2Icon className="w-5 h-5" />
-            <span className="min-[420px]:max-[639px]:hidden">Share</span>
+            <span className="hidden sm:inline">Share</span>
           </>
         )}
       </button>
@@ -102,12 +102,12 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
       {isLoading ? (
         <>
           <Loader2 className="w-5 h-5 animate-spin" />
-          <span className="min-[420px]:max-[639px]:hidden">Connecting...</span>
+          <span className="hidden sm:inline">Connecting...</span>
         </>
       ) : (
         <>
           <MessageCircle className="w-5 h-5" />
-          <span className="min-[420px]:max-[639px]:hidden">Chat</span>
+          <span className="hidden sm:inline">Chat</span>
         </>
       )}
     </button>
