@@ -12,6 +12,7 @@ interface CustomizingSidebarPanelProps {
     analysisError?: string | null;
     onUploadAnother?: () => void;
     onGoBackHome?: () => void;
+    className?: string;
 }
 
 export const CustomizingSidebarPanel = memo(function CustomizingSidebarPanel({
@@ -21,9 +22,10 @@ export const CustomizingSidebarPanel = memo(function CustomizingSidebarPanel({
     analysisError,
     onUploadAnother,
     onGoBackHome,
+    className = 'w-full flex-col gap-2 hidden md:flex',
 }: CustomizingSidebarPanelProps) {
     return (
-        <div className="w-full flex-col gap-2 hidden md:flex">
+        <div className={className}>
             {showLoadingState ? (
                 <div className="bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
                     <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
