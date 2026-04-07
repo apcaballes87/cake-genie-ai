@@ -101,6 +101,12 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
     const [showPriceBadge, setShowPriceBadge] = useState(false);
     const [highlightedOption, setHighlightedOption] = useState<string | null>('Bento');
     const [annotation, setAnnotation] = useState<string | null>('Bento — ₱399');
+    const [annotationKey, setAnnotationKey] = useState(0);
+
+    // Trigger annotation animation on mount
+    useEffect(() => {
+        setAnnotationKey(1);
+    }, []);
     const [priceDirection, setPriceDirection] = useState<'up' | 'down' | null>(null);
 
     const isAutoPlayingRef = useRef(true);
@@ -200,6 +206,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
             scheduleStep(() => {
                 setHighlightedOption('Bento');
                 setAnnotation('Bento — ₱399');
+                setAnnotationKey(prev => prev + 1);
 
                 // Step 2: Switch to 1 Tier
                 scheduleStep(() => {
@@ -212,23 +219,27 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                         setSelectedTier(1);
                         setHighlightedOption('2 Tier');
                         setAnnotation('2 Tier — ₱2,500');
+                        setAnnotationKey(prev => prev + 1);
 
                         // Step 4: Toggle Drip
                         scheduleStep(() => {
                             setHighlightedOption('Drip');
                             setAnnotation('Drip Icing — +₱100');
+                            setAnnotationKey(prev => prev + 1);
                             setIcingOn(prev => ({ ...prev, 'Drip': true }));
 
                             // Step 5: Add Sugar Flowers
                             scheduleStep(() => {
                                 setHighlightedOption('Sugar Flowers');
                                 setAnnotation('Sugar Flowers — +₱100');
+                                setAnnotationKey(prev => prev + 1);
                                 setSelectedToppers(new Set(['Sugar Flowers']));
 
                                 // Step 5.5: Toggle Board
                                 scheduleStep(() => {
                                     setHighlightedOption('Board');
                                     setAnnotation('Red Gumpaste Cover — +₱100');
+                                    setAnnotationKey(prev => prev + 1);
                                     setIcingOn(prev => ({ ...prev, 'Board': true }));
 
                                     // Step 6: Type message
@@ -324,7 +335,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                     {/* Floating annotation during auto-play */}
                     {annotation && (
                         <div
-                            key={annotation}
+                            key={annotationKey}
                             className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg animate-annotation-fade-in"
                         >
                             <span className="text-xs font-bold text-purple-600">{annotation}</span>
