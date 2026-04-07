@@ -389,15 +389,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, []);
 
     const handleImageSelect = useCallback((file: File) => {
-        setIsUploaderOpen(false);
-        setIsAnalyzing(true);
-        setAnalysisError(null);
-        setIsPreSelectionModalOpen(true);
-        setPreloadedHeroImage(null);
-
         // Clear previous state to avoid mixing old analysis with new one
         clearCustomization();
         clearImages();
+        setIsUploaderOpen(false);
+        setActiveTab('original');
+        setAnalysisError(null);
+        setPreloadedHeroImage(null);
+        setIsAnalyzing(true);
+        setIsPreSelectionModalOpen(true);
 
         // Use the hook to upload and analyze
         hookImageUpload(
