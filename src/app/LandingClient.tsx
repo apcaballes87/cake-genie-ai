@@ -906,12 +906,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
             {/* ========== MAIN CONTENT ========== */}
             <main className="flex-1">
-                <h1 className="text-center text-xs text-slate-500 font-medium tracking-wide py-1.5 px-4">
-                    Best Custom Cakes in Cebu &amp; Online Cake Delivery
+                <h1 className="text-center text-xs text-slate-500 font-medium tracking-wide px-4 mb-2">
+                    Best Custom Cakes in Cebu &amp; Online Cake Delivery for Rush Orders
                 </h1>
 
                 {/* ===== HERO SECTION ===== */}
-                <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-4 pb-4 md:pt-6 md:pb-6 lg:pt-8 lg:pb-8">
+                <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-0 pb-4 md:pb-6 lg:pb-8">
                     <div className="flex flex-col md:flex-row gap-8 md:gap-12 lg:gap-16 items-start">
 {/* Mobile Hero View */}
                         <div className="md:hidden w-full flex flex-col">
