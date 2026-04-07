@@ -99,8 +99,8 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
     const [cakeMessage, setCakeMessage] = useState('');
     const [showTypingCursor, setShowTypingCursor] = useState(false);
     const [showPriceBadge, setShowPriceBadge] = useState(false);
-    const [highlightedOption, setHighlightedOption] = useState<string | null>(null);
-    const [annotation, setAnnotation] = useState<string | null>(null);
+    const [highlightedOption, setHighlightedOption] = useState<string | null>('Bento');
+    const [annotation, setAnnotation] = useState<string | null>('Bento — ₱399');
     const [priceDirection, setPriceDirection] = useState<'up' | 'down' | null>(null);
 
     const isAutoPlayingRef = useRef(true);
@@ -144,7 +144,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
     const targetImageSrc = icingOn['Drip'] && selectedToppers.has('Sugar Flowers')
         ? icingOn['Board']
             ? 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip-roses-base.webp'
-            : 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip.webp'
+            : 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip-roses.webp'
         : tier.src;
     const [displayedImageSrc, setDisplayedImageSrc] = useState(targetImageSrc);
     const [imgVisible, setImgVisible] = useState(true);
