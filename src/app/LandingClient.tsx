@@ -141,10 +141,12 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
     const topperAddon = selectedToppers.size * 100;
     const totalPrice = tier.price + icingAddon + topperAddon;
 
-    const targetImageSrc = icingOn['Drip'] && selectedToppers.has('Sugar Flowers')
-        ? icingOn['Board']
-            ? 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip-roses-base.webp'
-            : 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip-roses.webp'
+    const targetImageSrc = icingOn['Drip']
+        ? selectedToppers.has('Sugar Flowers')
+            ? icingOn['Board']
+                ? 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip-roses-base.webp'
+                : 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip-roses.webp'
+            : 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip.webp'
         : tier.src;
     const [displayedImageSrc, setDisplayedImageSrc] = useState(targetImageSrc);
     const [imgVisible, setImgVisible] = useState(true);
@@ -893,7 +895,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
             {/* ========== MAIN CONTENT ========== */}
             <main className="flex-1">
-                <h1 className="sr-only">Genie.ph | Best Custom Cakes in Cebu & Online Cake Delivery</h1>
+                <h1 className="text-center text-xs text-slate-500 font-medium tracking-wide py-1.5 px-4">
+                    Best Custom Cakes in Cebu &amp; Online Cake Delivery
+                </h1>
 
                 {/* ===== HERO SECTION ===== */}
                 <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-4 pb-4 md:pt-6 md:pb-6 lg:pt-8 lg:pb-8">
