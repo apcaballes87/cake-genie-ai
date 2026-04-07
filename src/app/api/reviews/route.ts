@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { normalizePublicReviewRecord, normalizePublicReviews, REVIEW_SELECT } from '@/lib/reviews';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -22,10 +23,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabaseAdmin
       .from('cakegenie_reviews')
-      .select(`
-        *,
-        user:cakegenie_users(first_name, email)
-      `)
+      .select(REVIEW_SELECT)
       .eq('is_visible', true)
       .eq('is_approved', true)
       .order('created_at', { ascending: false });
@@ -52,7 +50,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: data || [],
+      data: normalizePublicReviews(data),
     });
   } catch (err) {
     console.error('Unexpected error in GET /api/reviews:', err);
@@ -160,13 +158,13 @@ export async function POST(request: NextRequest) {
         merchant_id: merchantId,
         product_id: productId || null,
         rating,
-        title: title || null,
-        comment: comment || null,
-        photos: photos || [],
+        review_title: title || null,
+        review_text: comment || null,
+        review_photos: photos || [],
         is_approved: true,
         is_visible: true,
       })
-      .select()
+      .select(REVIEW_SELECT)
       .single();
 
     if (error) {
@@ -179,7 +177,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data,
+      data: normalizePublicReviewRecord(data),
     }, { status: 201 });
   } catch (err) {
     console.error('Unexpected error in POST /api/reviews:', err);
