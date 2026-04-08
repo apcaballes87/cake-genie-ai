@@ -45,10 +45,19 @@ describe('CustomizingEditorSheet', () => {
         render(<CustomizingEditorSheet {...props} />);
 
         expect(screen.getByText('Cake Options')).toBeInTheDocument();
-        expect(screen.getByText('130px')).toBeInTheDocument();
+        expect(screen.getByText('168px')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: /apply changes/i }));
         expect(props.onApplyOptions).toHaveBeenCalledTimes(1);
         expect(screen.getByText('panel-content')).toBeInTheDocument();
+    });
+
+    it('keeps the options apply action visible but disabled when nothing changed', () => {
+        const props = buildProps();
+        props.hasCakeInfoChanges = false;
+
+        render(<CustomizingEditorSheet {...props} />);
+
+        expect(screen.getByRole('button', { name: /apply changes/i })).toBeDisabled();
     });
 
     it('renders the visual apply action and disables it without image data', () => {
@@ -61,6 +70,17 @@ describe('CustomizingEditorSheet', () => {
         render(<CustomizingEditorSheet {...props} />);
 
         expect(screen.getByText('Icing Colors')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /apply all changes/i })).toBeDisabled();
+    });
+
+    it('keeps the visual apply action visible but disabled with no pending changes', () => {
+        const props = buildProps();
+        props.activeCustomization = 'messages';
+        props.hasCakeInfoChanges = false;
+        props.hasPendingVisualChanges = false;
+
+        render(<CustomizingEditorSheet {...props} />);
+
         expect(screen.getByRole('button', { name: /apply all changes/i })).toBeDisabled();
     });
 
