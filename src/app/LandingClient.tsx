@@ -879,7 +879,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
             {/* ========== MAIN CONTENT ========== */}
             <main className="flex-1">
                 <h1 className="text-center text-xs text-slate-500 font-medium tracking-wide px-4 mb-2">
-                    Best Custom Cakes in Cebu &amp; Online Cake Delivery for Rush Orders
+                    Best Online Cake Delivery for Rush Orders in Metro Cebu
                 </h1>
 
                 {/* ===== HERO SECTION ===== */}
@@ -902,15 +902,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     priority
                                 />
                                 <div className="absolute inset-0 p-5 flex flex-col justify-center w-[65%] max-[520px]:w-[85%] gap-1.5">
-                                    <p className="text-[10px] font-bold text-purple-600 uppercase tracking-[0.15em] flex whitespace-nowrap">
-                                        Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;
-                                    </p>
                                     <h2 className="text-[38px] max-[520px]:text-[32px] max-[414px]:text-[28px] font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-4 max-[520px]:mb-2">
-                                        Custom cakes{' '}
-                                        <br className="max-[414px]:hidden" />
-                                        <span className="text-purple-600 italic">you can order</span>{' '}
-                                        <br className="max-[414px]:hidden" />
-                                        right now.
+                                        Custom Cakes for{' '}
+                                        <span className="text-purple-600 italic">Spontaneous Moments</span>
                                     </h2>
                                 </div>
                             </div>
@@ -952,15 +946,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 <Link href="/reviews" className="text-[12px] lg:text-xs text-gray-600 hover:text-purple-600">
                                     4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
                                 </Link>
-                                <p className="text-xs lg:text-sm font-bold text-purple-600 uppercase tracking-[0.15em]">
-                                    Skip the &ldquo;HM?&rdquo; and &ldquo;PM SENT&rdquo;
-                                </p>
                                 <h2 className="text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-5">
-                                    Custom cakes
+                                    Custom Cakes for
                                     <br />
-                                    <span className="text-purple-600 italic">you can order</span>
-                                    <br />
-                                    right now.
+                                    <span className="text-purple-600 italic">Spontaneous Moments</span>
                                 </h2>
                                 <div className="flex items-center gap-3">
                                     <button
