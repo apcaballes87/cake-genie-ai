@@ -63,39 +63,42 @@ export const CustomizingEditorSheet = memo(function CustomizingEditorSheet({
         ? 0
         : baseOffset + (showAvailabilityOffset ? 38 : 0) + (showWarningOffset ? 38 : 0);
 
-    const actionButton = activeCustomization === 'options'
-        ? (hasCakeInfoChanges ? (
+    const isOptionsSheet = activeCustomization === 'options';
+    const isVisualSheet = activeCustomization === 'icing' || activeCustomization === 'messages' || activeCustomization === 'toppers' || activeCustomization === 'photos';
+    const disableOptionsAction = !hasCakeInfoChanges;
+    const disableVisualAction = isUpdatingDesign || !hasOriginalImageData || !hasPendingVisualChanges || Boolean(isEmpty);
+
+    const actionButton = isOptionsSheet
+        ? (
             <button
                 onClick={onApplyOptions}
-                className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg flex items-center justify-center gap-2"
+                disabled={disableOptionsAction}
+                className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
                 <MagicSparkleIcon className="w-5 h-5" />
                 Apply Changes
             </button>
-        ) : null)
-        : (activeCustomization === 'icing' || activeCustomization === 'messages' || activeCustomization === 'toppers' || activeCustomization === 'photos')
-            ? ((hasPendingVisualChanges || isUpdatingDesign) ? (
-                // Only show "Apply All Changes" if the current section is not empty
-                isEmpty ? null : (
-                    <button
-                        onClick={onApplyPendingDesignChanges}
-                        disabled={isUpdatingDesign || !hasOriginalImageData}
-                        className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                        {isUpdatingDesign ? (
-                            <>
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                                Updating Design...
-                            </>
-                        ) : (
-                            <>
-                                <MagicSparkleIcon className="w-5 h-5" />
-                                Apply All Changes
-                            </>
-                        )}
-                    </button>
-                )
-            ) : null)
+        )
+        : isVisualSheet
+            ? (
+                <button
+                    onClick={onApplyPendingDesignChanges}
+                    disabled={disableVisualAction}
+                    className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                    {isUpdatingDesign ? (
+                        <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Updating Design...
+                        </>
+                    ) : (
+                        <>
+                            <MagicSparkleIcon className="w-5 h-5" />
+                            Apply All Changes
+                        </>
+                    )}
+                </button>
+            )
             : null;
 
     return (
