@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
-import { Loader2, AlertTriangleIcon, CartIcon } from './icons';
-import { X, ShieldCheck } from 'lucide-react';
+import { Loader2, AlertTriangleIcon } from './icons';
+import { X, ShieldCheck, ShoppingBag } from 'lucide-react';
 import { ShareButton, ChatButton } from './ShareButton';
 import { CakeInfoUI } from '@/types';
 import { AvailabilityType } from '@/lib/utils/availability';
@@ -113,7 +113,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 // If width is less than ~280px, we switch to compact mode (icons only)
-                // This value is based on: Share Button (~90px) + Chat Button (~90px) + "Add to Cart" (~130px) + Gaps (24px)
+                // This value is based on: Share Button (~90px) + Chat Button (~90px) + "Buy This Now" (~130px) + gaps.
                 setIsCompact(entry.contentRect.width < 280);
             }
         });
@@ -396,11 +396,11 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                                 className={`flex-1 min-w-0 h-12 bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md flex justify-center items-center gap-2 whitespace-nowrap ${chatInput.trim().length > 0 ? 'opacity-40 grayscale-[0.5]' : ''}`}
                             >
                                 {isAdding ? (
-                                    <><Loader2 className="w-5 h-5 animate-spin" /> {!isCompact && 'Adding...'}</>
+                                    <><Loader2 className="w-5 h-5 animate-spin" /> {!isCompact && 'Processing...'}</>
                                 ) : (
                                     <>
-                                        <CartIcon className="w-5 h-5 shrink-0" />
-                                        {!isCompact && 'Add to Cart'}
+                                        <ShoppingBag className="w-5 h-5 shrink-0" />
+                                        {!isCompact && 'Buy This Now'}
                                     </>
                                 )}
                             </button>
