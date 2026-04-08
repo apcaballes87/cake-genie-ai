@@ -3,6 +3,7 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import CustomizingClient from './CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
+import { LandingFooter } from '@/components/landing/LandingFooter'
 
 // Shopify CSE handoff: image comes from external URL via query param
 // Read searchParams to enable SSR-side preload of the hero image
@@ -124,6 +125,7 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
                     ))}
                 </div>
             </nav>
+            <LandingFooter />
         </>
     )
 }
