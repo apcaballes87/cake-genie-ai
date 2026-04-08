@@ -12,6 +12,7 @@ import { CustomizationProvider, CustomizationState } from '@/contexts/Customizat
 import { DesignAboutSection } from '@/components/DesignAboutSection'
 import LazyImage from '@/components/LazyImage'
 import NewsletterPopup from '@/components/NewsletterPopup'
+import { LandingFooter } from '@/components/landing/LandingFooter'
 import { v4 as uuidv4 } from 'uuid'
 import { mapProductToDefaultState } from '@/utils/customizationMapper'
 import { upgradeLegacySlug, downgradeCakeSlug } from '@/lib/utils/urlHelpers'
@@ -993,10 +994,9 @@ export default async function RecentSearchPage({ params }: Props) {
                         hideAiChat={true}
                     />
                     <NewsletterPopup />
-            </CustomizationProvider>
+                </CustomizationProvider>
             </Suspense>
-
+            <LandingFooter />
         </>
     )
 }
-
