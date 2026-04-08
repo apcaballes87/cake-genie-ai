@@ -137,13 +137,16 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
         <div className={containerClassName}>
             {cakeInfo && !isAnalyzing && !isRejectionError && (
                 <div className={cardClassName}>
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 1: Choose Your Cake Specs</h3>
+                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 1: Cake Options</h3>
                     <div className={itemsClassName}>
                         <button onClick={() => setActiveCustomization('options')} className="group flex flex-col items-center gap-1 min-w-[60px]">
                             <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                 <LazyImage src={CAKE_TYPE_THUMBNAILS[cakeInfo.type]} alt={cakeInfo.type + ' Cake Design'} fill sizes="56px" imageClassName="object-contain" />
+                                <div className="absolute inset-x-0 top-0 pt-3 text-black text-[9px] font-bold text-center leading-tight">
+                                    {cakeInfo.type}
+                                </div>
                             </div>
-                            <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">{cakeInfo.type}</span>
+                            <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">Cake Type</span>
                         </button>
 
                         <button onClick={() => setActiveCustomization('options')} className="group flex flex-col items-center gap-1 min-w-[60px]">
@@ -151,57 +154,28 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                 <LazyImage src={CAKE_SIZE_THUMBNAILS[cakeInfo.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]} alt={cakeInfo.size + ' Custom Cake'} fill sizes="56px" imageClassName="object-contain" />
                                 <div className="absolute inset-x-0 top-0 pt-3 text-black text-[9px] font-bold text-center leading-tight">{renderCakeSizeOverlay(cakeInfo.size)}</div>
                             </div>
-                            <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">{cakeInfo.size}</span>
+                            <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">Cake Size</span>
                         </button>
 
                         <button onClick={() => setActiveCustomization('options')} className="group flex flex-col items-center gap-1 min-w-[60px]">
                             <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                 <LazyImage src={CAKE_THICKNESS_THUMBNAILS[cakeInfo.thickness]} alt={cakeInfo.thickness + ' Thick Cake'} fill sizes="56px" imageClassName="object-contain" />
                             </div>
-                            <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">{cakeInfo.thickness}</span>
+                            <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">Height</span>
                         </button>
 
                         {cakeInfo.flavors.map((flavor, index) => (
                             <button key={`${flavor}-${index}`} onClick={() => setActiveCustomization('flavor')} className="group flex flex-col items-center gap-1 min-w-[60px]">
                                 <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'flavor' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
                                     <LazyImage src={FLAVOR_THUMBNAILS[flavor]} alt={flavor + ' Design'} fill sizes="56px" imageClassName="object-contain" />
+                                    <div className="absolute inset-x-0 top-0 pt-3 text-black text-[9px] font-bold text-center leading-tight">
+                                        {flavor.replace(/\s+Cake$/i, '')}
+                                    </div>
                                 </div>
-                                <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">{flavor}</span>
+                                <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">Flavor</span>
                             </button>
                         ))}
-                    </div>
-
-                    {isFondant && showIcingChoice && (
-                        <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col items-center gap-2">
-                            <span className="text-[11px] font-medium text-slate-600">Change Fondant to Soft Icing?</span>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => {
-                                        onIcingTypeChange?.('soft_icing');
-                                        setShowIcingChoice(false);
-                                        setActiveCustomization('options');
-                                    }}
-                                    className="px-4 py-1.5 rounded-full bg-purple-600 text-white text-[11px] font-bold hover:bg-purple-700 transition-colors shadow-sm"
-                                >
-                                    Yes
-                                </button>
-                                <button
-                                    onClick={() => setShowIcingChoice(false)}
-                                    className="px-4 py-1.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-bold hover:bg-slate-200 transition-colors border border-slate-200"
-                                >
-                                    No
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {cakeInfo && icingDesign && !isAnalyzing && !isRejectionError && (
-                <div className={cardClassName}>
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 2: Icing Colors</h3>
-                    <div className={itemsClassName}>
-                        {[
+                        {icingDesign && [
                             { id: 'icing-edit-drip', description: 'Drip', label: 'Drip', alt: 'Drip', imageType: 'drip' as const, enabled: icingDesign.drip },
                             { id: 'icing-edit-borderTop', description: 'Top', label: 'Top Border', alt: 'Top Border', imageType: 'borderTop' as const, enabled: icingDesign.border_top },
                             { id: 'icing-edit-borderBase', description: 'Bottom', label: 'Base Border', alt: 'Base Border', imageType: 'borderBase' as const, enabled: icingDesign.border_base },
@@ -236,12 +210,36 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             );
                         })}
                     </div>
+
+                    {isFondant && showIcingChoice && (
+                        <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col items-center gap-2">
+                            <span className="text-[11px] font-medium text-slate-600">Change Fondant to Soft Icing?</span>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => {
+                                        onIcingTypeChange?.('soft_icing');
+                                        setShowIcingChoice(false);
+                                        setActiveCustomization('options');
+                                    }}
+                                    className="px-4 py-1.5 rounded-full bg-purple-600 text-white text-[11px] font-bold hover:bg-purple-700 transition-colors shadow-sm"
+                                >
+                                    Yes
+                                </button>
+                                <button
+                                    onClick={() => setShowIcingChoice(false)}
+                                    className="px-4 py-1.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-bold hover:bg-slate-200 transition-colors border border-slate-200"
+                                >
+                                    No
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
             {cakeInfo && !isAnalyzing && !isRejectionError && (
                 <div className={cardClassName}>
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 3: Cake Toppers</h3>
+                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 2: Cake Toppers</h3>
                     <CakeToppersOptions
                         mainToppers={mainToppers}
                         supportElements={supportElements}
@@ -270,7 +268,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
             {cakeInfo && !isAnalyzing && !isRejectionError && (
                 <div className={cardClassName}>
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 4: Cake Messages</h3>
+                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 3: Cake Messages</h3>
                     {cakeMessages.length > 0 ? (
                         <div className="flex flex-col gap-2">
                             {cakeMessages.map((message, index) => (
