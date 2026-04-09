@@ -53,7 +53,88 @@ interface LandingClientProps {
     reviews?: CakeGenieReview[];
 }
 
+const HERO_CAKE_STYLES = ['Minimalist', 'Vintage', 'Doodle', 'Photo', 'Floral'] as const;
+const HERO_RECIPIENTS = ['Mom', 'Dad', 'Bro', 'Sis', 'Bestie', 'Tita', 'Tito', 'Lolo', 'Lola'] as const;
+const HERO_TYPED_SUBHEADLINE_A11Y_LABEL = 'Available right now: Minimalist, Vintage, Doodle, Photo, and Floral cakes for Mom, Dad, Bro, Sis, Bestie, Tita, Tito, Lolo, and Lola.';
+
 const subscribeToHydration = () => () => { };
+
+const HeroTypingSubheadline: React.FC<{ className?: string }> = ({ className = '' }) => {
+    const [styleIndex, setStyleIndex] = useState(0);
+    const [recipientIndex, setRecipientIndex] = useState(0);
+    const [displayRecipient, setDisplayRecipient] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [isStyleVisible, setIsStyleVisible] = useState(true);
+    const [isStyleTransitioning, setIsStyleTransitioning] = useState(false);
+
+    useEffect(() => {
+        if (isStyleTransitioning) {
+            return;
+        }
+
+        const currentRecipient = HERO_RECIPIENTS[recipientIndex];
+        const typingDelay = isDeleting ? 28 : 48;
+        let timeoutId: ReturnType<typeof setTimeout>;
+
+        if (!isDeleting && displayRecipient === currentRecipient) {
+            timeoutId = setTimeout(() => setIsDeleting(true), 500);
+        } else if (isDeleting && displayRecipient.length === 0) {
+            timeoutId = setTimeout(() => {
+                setIsDeleting(false);
+                if (recipientIndex === HERO_RECIPIENTS.length - 1) {
+                    setIsStyleTransitioning(true);
+                    setIsStyleVisible(false);
+                } else {
+                    setRecipientIndex((currentIndex) => currentIndex + 1);
+                }
+            }, 120);
+        } else {
+            timeoutId = setTimeout(() => {
+                const nextLength = isDeleting ? displayRecipient.length - 1 : displayRecipient.length + 1;
+                setDisplayRecipient(currentRecipient.slice(0, nextLength));
+            }, typingDelay);
+        }
+
+        return () => clearTimeout(timeoutId);
+    }, [displayRecipient, isDeleting, isStyleTransitioning, recipientIndex]);
+
+    useEffect(() => {
+        if (!isStyleTransitioning) {
+            return;
+        }
+
+        const fadeOutTimer = setTimeout(() => {
+            setStyleIndex((currentIndex) => (currentIndex + 1) % HERO_CAKE_STYLES.length);
+            setRecipientIndex(0);
+            setIsStyleVisible(true);
+        }, 220);
+
+        const fadeInTimer = setTimeout(() => {
+            setIsStyleTransitioning(false);
+        }, 440);
+
+        return () => {
+            clearTimeout(fadeOutTimer);
+            clearTimeout(fadeInTimer);
+        };
+    }, [isStyleTransitioning]);
+
+    return (
+        <p className={className} aria-label={HERO_TYPED_SUBHEADLINE_A11Y_LABEL}>
+            <span
+                aria-hidden="true"
+                className={`transition-opacity duration-200 ${isStyleVisible ? 'opacity-100' : 'opacity-0'}`}
+            >
+                {HERO_CAKE_STYLES[styleIndex]} Cake for{' '}
+            </span>
+            <span aria-hidden="true">{displayRecipient}</span>
+            <span
+                aria-hidden="true"
+                className="ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] bg-purple-500 align-middle animate-pulse"
+            />
+        </p>
+    );
+};
 
 // ─── Interactive Customizer (landing page demo) ───────────────────────────────
 interface TierOption { label: string; src: string; price: number; size: string; }
@@ -710,7 +791,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
             {/* ========== STATIC TRUST BANNER ========== */}
             <div className="w-full bg-purple-600 py-[4.5px] flex justify-center items-center">
                 <span className="inline-flex items-center text-white text-[10px] md:text-[11px] font-bold tracking-wider">
-                    Place your order by 4PM for same-day delivery 💖
+                    Place your order by 4PM for same-day delivery in Metro Cebu 💖
                 </span>
             </div>
 
@@ -901,11 +982,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     skeletonClassName="rounded-3xl"
                                     priority
                                 />
-                                <div className="absolute inset-0 p-5 flex flex-col justify-center w-[65%] max-[520px]:w-[85%] gap-1.5">
-                                    <h2 className="text-[38px] max-[520px]:text-[32px] max-[414px]:text-[28px] font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-4 max-[520px]:mb-2">
+                                <div className="absolute inset-0 p-5 flex flex-col justify-center w-[65%] max-[520px]:w-[85%] gap-0.5">
+                                    <h2 className="text-[38px] max-[520px]:text-[32px] max-[414px]:text-[28px] font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-2 max-[520px]:mb-1">
                                         Custom Cakes for{' '}
-                                        <span className="text-purple-600 italic">Spontaneous Moments</span>
+                                        <span className="text-purple-600 italic">Spontaneous Celebrations.</span>
                                     </h2>
+                                    <HeroTypingSubheadline className="min-h-[1.125rem] max-w-[16rem] text-[14px] max-[414px]:text-[13px] font-medium text-purple-600 leading-relaxed" />
                                 </div>
                             </div>
 
@@ -926,10 +1008,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             </div>
                             {/* Mobile description below CTA button for small screens */}
                             <p className="hidden max-[454px]:block text-xs text-gray-700 leading-relaxed font-medium text-center mt-2">
-                                Upload any cake photo. Get your price in seconds. Order it same day.
+                                Upload any cake photo. Get the price instantly. Same-day delivery
                             </p>
                             <p className="max-[454px]:hidden text-xs text-gray-700 leading-relaxed font-medium text-center mt-2">
-                                Upload any cake photo. Get your price in seconds. Order it same day.
+                                Upload any cake photo. Get the price instantly. Same-day delivery
                             </p>
                         </div>
 
@@ -942,15 +1024,16 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 skeletonClassName="rounded-3xl"
                                 priority
                             />
-                            <div className="absolute inset-0 p-10 lg:p-14 flex flex-col justify-center w-[55%] lg:w-[50%] gap-1.5">
+                            <div className="absolute inset-0 p-10 lg:p-14 flex flex-col justify-center w-[55%] lg:w-[50%] gap-0.5">
                                 <Link href="/reviews" className="text-[12px] lg:text-xs text-gray-600 hover:text-purple-600">
                                     4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
                                 </Link>
-                                <h2 className="text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-5">
+                                <h2 className="text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-2.5">
                                     Custom Cakes for
                                     <br />
-                                    <span className="text-purple-600 italic">Spontaneous Moments</span>
+                                    <span className="text-purple-600 italic">Spontaneous Celebrations.</span>
                                 </h2>
+                                <HeroTypingSubheadline className="min-h-6 max-w-md text-base lg:text-[18px] font-medium text-purple-600 leading-relaxed mb-6" />
                                 <div className="flex items-center gap-3">
                                     <button
                                         disabled={isUploading}
@@ -967,7 +1050,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     </button>
                                 </div>
                                 <p className="text-sm lg:text-base text-gray-700 leading-relaxed mt-4">
-                                    Upload any cake photo. Get your price in seconds. Order it same day.
+                                    Upload any cake photo. Get the price instantly. Same-day delivery
                                 </p>
                             </div>
                         </div>
