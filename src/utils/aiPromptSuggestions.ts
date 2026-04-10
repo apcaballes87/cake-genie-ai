@@ -1,4 +1,4 @@
-import { FLAVOR_OPTIONS, THICKNESS_OPTIONS_MAP } from '@/constants';
+import { FLAVOR_OPTIONS, TEMPORARILY_DISABLED_FLAVORS, THICKNESS_OPTIONS_MAP } from '@/constants';
 import { BasePriceInfo, CakeInfoUI, CakeType, HybridAnalysisResult, MainTopper, SupportElement } from '@/types';
 import { hexToColorNameProse } from '@/utils/colorUtils';
 
@@ -130,10 +130,12 @@ const getFlavorLabels = (count: number): string[] => {
 };
 
 const getAvailableFlavors = (cakeType?: CakeType | null): string[] => {
+    const enabledFlavors = FLAVOR_OPTIONS.filter(flavor => !TEMPORARILY_DISABLED_FLAVORS.includes(flavor));
+
     if (cakeType === 'Bento') {
-        return FLAVOR_OPTIONS.filter(flavor => flavor !== 'Ube Cake' && flavor !== 'Mocha Cake');
+        return enabledFlavors.filter(flavor => flavor !== 'Ube Cake');
     }
-    return FLAVOR_OPTIONS;
+    return enabledFlavors;
 };
 
 const getTopperReplacementSuggestion = (topper: MainTopper): string => {

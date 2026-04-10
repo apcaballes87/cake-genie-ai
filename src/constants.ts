@@ -44,6 +44,8 @@ export const CAKE_THICKNESSES: CakeThickness[] = ['2 in', '3 in', '4 in', '5 in'
 
 export const FLAVOR_OPTIONS: CakeFlavor[] = ['Chocolate Cake', 'Ube Cake', 'Vanilla Cake', 'Mocha Cake'];
 
+export const TEMPORARILY_DISABLED_FLAVORS: CakeFlavor[] = ['Mocha Cake'];
+
 export const DEFAULT_THICKNESS_MAP: Record<CakeType, CakeThickness> = {
   '1 Tier': '4 in',
   '2 Tier': '4 in',
