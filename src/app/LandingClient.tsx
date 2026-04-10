@@ -48,7 +48,13 @@ const ImageUploader = dynamic(
 interface LandingClientProps {
     children?: React.ReactNode;
     popularDesigns?: PopularDesign[];
-    heroProducts?: PopularDesign[];
+    heroCollections?: {
+        title: string;
+        slug: string;
+        count: number;
+        sampleImage: string;
+        caption: string;
+    }[];
     blogPosts?: BlogHomepagePreview[];
     reviews?: CakeGenieReview[];
 }
@@ -56,6 +62,103 @@ interface LandingClientProps {
 const HERO_CAKE_STYLES = ['Minimalist', 'Vintage', 'Doodle', 'Photo', 'Floral'] as const;
 const HERO_RECIPIENTS = ['Mom', 'Dad', 'Bro', 'Sis', 'Bestie', 'Tita', 'Tito', 'Lolo', 'Lola'] as const;
 const HERO_TYPED_SUBHEADLINE_A11Y_LABEL = 'Available right now: Minimalist, Vintage, Doodle, Photo, and Floral cakes for Mom, Dad, Bro, Sis, Bestie, Tita, Tito, Lolo, and Lola.';
+const HERO_HEADLINE_VARIANTS = [
+    'Custom Cakes',
+    'Minimalist Cakes',
+    'Vintage Cakes',
+    'Floral Cakes',
+    'Photo Cakes',
+    'Bento Cakes',
+    'Doodle Cakes',
+] as const;
+const HERO_HEADLINE_A11Y_LABEL = 'Custom Cakes, Minimalist Cakes, Vintage Cakes, Floral Cakes, Photo Cakes, Bento Cakes, and Doodle Cakes.';
+const DEFAULT_HERO_COLLECTIONS = [
+    {
+        title: 'Minimalist Cakes',
+        slug: 'minimalist-cake',
+        count: 0,
+        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-minimalist-cake.webp',
+        caption: 'Clean lines, pastel finishes, and understated message cakes.',
+    },
+    {
+        title: 'Vintage Cakes',
+        slug: 'vintage-cake',
+        count: 0,
+        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-vintage-cake.webp',
+        caption: 'Frilly piping, retro charm, and statement celebration cakes.',
+    },
+    {
+        title: 'Doodle Cakes',
+        slug: 'doodle-cake',
+        count: 0,
+        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-doodle-cake.webp',
+        caption: 'Playful hand-drawn details for expressive, modern birthdays.',
+    },
+    {
+        title: 'Edible Photo Cakes',
+        slug: 'edible-photo-cake-wrap',
+        count: 0,
+        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-edible-photo-cake.webp',
+        caption: 'Printed memories and personalized graphics wrapped into cake form.',
+    },
+    {
+        title: 'Floral Cakes',
+        slug: 'floral-cake',
+        count: 0,
+        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-floral-cake.webp',
+        caption: 'Soft blooms, romantic piping, and elegant garden-party finishes.',
+    },
+    {
+        title: 'Bento Cakes',
+        slug: 'bento-cake',
+        count: 0,
+        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-bento-cake.webp',
+        caption: 'Compact celebration cakes with playful piping and giftable charm.',
+    },
+] as const;
+const DESKTOP_HERO_CARD_STYLES = [
+    {
+        tintClassName: 'from-fuchsia-200/70 via-white/10 to-transparent',
+        placeholderClassName: 'from-[#f7d4ec] via-[#fef4fb] to-[#eadcff]',
+        cardClassName: 'mt-0',
+    },
+    {
+        tintClassName: 'from-amber-100/70 via-white/10 to-transparent',
+        placeholderClassName: 'from-[#ffe5d1] via-[#fff3eb] to-[#ffd7dc]',
+        cardClassName: 'mt-6',
+    },
+    {
+        tintClassName: 'from-sky-200/70 via-white/10 to-transparent',
+        placeholderClassName: 'from-[#d8efff] via-[#f2fbff] to-[#e3e8ff]',
+        cardClassName: 'mt-2',
+    },
+    {
+        tintClassName: 'from-violet-200/70 via-white/10 to-transparent',
+        placeholderClassName: 'from-[#ead9ff] via-[#faf5ff] to-[#fde7f3]',
+        cardClassName: 'mt-1',
+    },
+    {
+        tintClassName: 'from-emerald-100/70 via-white/10 to-transparent',
+        placeholderClassName: 'from-[#dff8e8] via-[#f7fff9] to-[#fef0f4]',
+        cardClassName: 'mt-8',
+    },
+    {
+        tintClassName: 'from-rose-200/70 via-white/10 to-transparent',
+        placeholderClassName: 'from-[#ffe1e8] via-[#fff5f7] to-[#efe4ff]',
+        cardClassName: 'mt-3',
+    },
+] as const;
+
+const DESKTOP_HERO_MASONRY_COLUMNS = [
+    { indexes: [0, 3], className: 'pt-0' },
+    { indexes: [1, 4], className: 'pt-5 lg:pt-6' },
+    { indexes: [2, 5], className: 'pt-2 lg:pt-3' },
+] as const;
+
+const TABLET_HERO_MASONRY_COLUMNS = [
+    { indexes: [0, 3, 4], className: 'pt-0' },
+    { indexes: [1, 2, 5], className: 'pt-5' },
+] as const;
 
 const subscribeToHydration = () => () => { };
 
@@ -135,6 +238,85 @@ const HeroTypingSubheadline: React.FC<{ className?: string }> = ({ className = '
         </p>
     );
 };
+
+const HeroTypingHeadlineLine: React.FC<{ className?: string }> = ({ className = '' }) => {
+    const [phraseIndex, setPhraseIndex] = useState(0);
+    const [displayText, setDisplayText] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    useEffect(() => {
+        const currentPhrase = HERO_HEADLINE_VARIANTS[phraseIndex];
+        let timeoutId: ReturnType<typeof setTimeout>;
+
+        if (!isDeleting && displayText === currentPhrase) {
+            timeoutId = setTimeout(() => setIsDeleting(true), 900);
+        } else if (isDeleting && displayText.length === 0) {
+            timeoutId = setTimeout(() => {
+                setIsDeleting(false);
+                setPhraseIndex((currentIndex) => (currentIndex + 1) % HERO_HEADLINE_VARIANTS.length);
+            }, 150);
+        } else {
+            timeoutId = setTimeout(() => {
+                const nextLength = isDeleting ? displayText.length - 1 : displayText.length + 1;
+                setDisplayText(currentPhrase.slice(0, nextLength));
+            }, isDeleting ? 34 : 56);
+        }
+
+        return () => clearTimeout(timeoutId);
+    }, [displayText, isDeleting, phraseIndex]);
+
+    return (
+        <span className={className} aria-label={HERO_HEADLINE_A11Y_LABEL}>
+            <span aria-hidden="true">{displayText}</span>
+            <span
+                aria-hidden="true"
+                className="ml-1 inline-block h-[0.92em] w-[3px] translate-y-[2px] bg-purple-500 align-middle animate-pulse"
+            />
+        </span>
+    );
+};
+
+function DesktopHeroCollectionCard({
+    title,
+    slug,
+    sampleImage,
+    index,
+}: {
+    title: string;
+    slug: string;
+    sampleImage: string;
+    index: number;
+}) {
+    const style = DESKTOP_HERO_CARD_STYLES[index % DESKTOP_HERO_CARD_STYLES.length];
+
+    return (
+        <Link
+            href={`/collections/${slug}`}
+            className="group relative block w-full self-start overflow-hidden rounded-[1.35rem] border border-white/75 bg-white/80 shadow-[0_18px_44px_-34px_rgba(88,28,135,0.72)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_52px_-30px_rgba(88,28,135,0.78)]"
+        >
+            <div className="relative overflow-hidden">
+                {sampleImage ? (
+                    <img
+                        src={sampleImage}
+                        alt={`${title} collection`}
+                        loading="lazy"
+                        className="block w-full h-auto transition-transform duration-700 group-hover:scale-105"
+                    />
+                ) : (
+                    <div className={`aspect-[4/4.4] min-h-[168px] bg-gradient-to-br ${style.placeholderClassName}`} />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+                <div className={`absolute inset-0 bg-gradient-to-br ${style.tintClassName} opacity-80 mix-blend-screen`} />
+
+                <div className="absolute inset-x-0 bottom-0 p-3 lg:p-3.5">
+                    <h3 className="max-w-[90%] text-[0.8rem] lg:text-[0.88rem] font-semibold leading-tight text-white">
+                        {title}
+                    </h3>
+                </div>
+            </div>
+        </Link>
+    );
+}
 
 // ─── Interactive Customizer (landing page demo) ───────────────────────────────
 interface TierOption { label: string; src: string; price: number; size: string; }
@@ -588,7 +770,7 @@ const DiscountCapture = () => {
     return null;
 };
 
-const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], heroProducts = [], blogPosts = [], reviews = [] }) => {
+const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], heroCollections = [], blogPosts = [], reviews = [] }) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
@@ -613,6 +795,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
         { id: 'Wedding', name: 'Wedding' },
         { id: 'Baptismal', name: 'Baptismal' },
     ];
+    const desktopHeroCollections = useMemo(
+        () => (heroCollections.length > 0 ? heroCollections : [...DEFAULT_HERO_COLLECTIONS]),
+        [heroCollections]
+    );
 
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -959,20 +1145,11 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
             {/* ========== MAIN CONTENT ========== */}
             <main className="flex-1">
-                <h1 className="text-center text-xs text-slate-500 font-medium tracking-wide px-4 mb-2">
-                    Best Online Cake Delivery for Rush Orders in Metro Cebu
-                </h1>
-
                 {/* ===== HERO SECTION ===== */}
                 <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-0 pb-4 md:pb-6 lg:pb-8">
                     <div className="flex flex-col md:flex-row gap-8 md:gap-12 lg:gap-16 items-start">
 {/* Mobile Hero View */}
                         <div className="md:hidden w-full flex flex-col">
-                            {/* Rating text above image */}
-                            <Link href="/reviews" className="text-[10px] text-gray-600 mb-2 text-center w-full px-1 hover:text-purple-600">
-                                4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
-                            </Link>
-
                             {/* Image container with message overlay on the left */}
                             <div className="relative w-full rounded-3xl overflow-hidden mb-4 shadow-lg">
                                 <ImageWithSkeleton
@@ -1015,43 +1192,83 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             </p>
                         </div>
 
-                        {/* Desktop Hero View: Image with text overlay */}
-                        <div className="hidden md:block w-full relative rounded-3xl overflow-hidden shadow-lg">
-                            <ImageWithSkeleton
-                                src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP"
-                                alt="Hero"
-                                className="w-full h-auto block object-cover object-center"
-                                skeletonClassName="rounded-3xl"
-                                priority
-                            />
-                            <div className="absolute inset-0 p-10 lg:p-14 flex flex-col justify-center w-[55%] lg:w-[50%] gap-0.5">
-                                <Link href="/reviews" className="text-[12px] lg:text-xs text-gray-600 hover:text-purple-600">
-                                    4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
-                                </Link>
-                                <h2 className="text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-2.5">
-                                    Custom Cakes for
-                                    <br />
-                                    <span className="text-purple-600 italic">Spontaneous Celebrations.</span>
+                        {/* Desktop Hero View: top-aligned text plus staggered collection cards */}
+                        <div className="hidden md:grid w-full grid-cols-[minmax(0,1.04fr)_minmax(280px,0.96fr)] items-start gap-5 min-[945px]:grid-cols-[minmax(0,0.82fr)_minmax(430px,1fr)] min-[945px]:gap-7 min-[1232px]:grid-cols-[minmax(0,0.78fr)_minmax(470px,1.06fr)] min-[1232px]:gap-8">
+                            <div className="relative z-10 flex min-h-[540px] flex-col items-center justify-center pr-2 text-center min-[945px]:pr-4">
+                                <h1 className="text-[11px] text-purple-600 font-bold tracking-[0.12em] uppercase">
+                                    Best Online Cake Delivery for Rush Orders in Metro Cebu
+                                </h1>
+                                <h2 className="mt-3 text-[2.95rem] min-[945px]:text-5xl min-[1232px]:text-6xl font-extrabold text-gray-900 leading-[1.05] tracking-tight">
+                                    <HeroTypingHeadlineLine className="block min-h-[1.1em] whitespace-nowrap text-center" />
+                                    <span className="block whitespace-nowrap text-purple-600 italic">For Spontaneous</span>
+                                    <span className="block whitespace-nowrap text-purple-600 italic">Celebrations</span>
                                 </h2>
-                                <HeroTypingSubheadline className="min-h-6 max-w-md text-base lg:text-[18px] font-medium text-purple-600 leading-relaxed mb-6" />
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        disabled={isUploading}
-                                        className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/70 text-white px-6 py-3.5 lg:px-8 lg:py-4 rounded-full font-bold transition-all shadow-lg active:scale-[0.98] text-sm lg:text-base whitespace-nowrap disabled:cursor-not-allowed"
-                                        onClick={() => setIsUploaderOpen(true)}
-                                    >
-                                        {isUploading ? (
-                                            <Loader2 size={15} className="animate-spin shrink-0" />
-                                        ) : (
-                                            <Upload size={15} className="shrink-0" />
-                                        )}
-                                        {isUploading ? 'Uploading...' : 'Upload Your Design - Get Instant Pricing'}
-                                        <ArrowRight size={14} className="shrink-0" />
-                                    </button>
+                                <div className="mt-6 w-full max-w-[20.5rem] min-[945px]:max-w-md">
+                                    <ImageUploader
+                                        isOpen
+                                        variant="inline"
+                                        compact
+                                        compactAlignment="center"
+                                        title="Upload any Cake Design Image"
+                                        showBrowseButton={false}
+                                        iconImageSrc="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/upload-cake-image.webp"
+                                        iconImageAlt="Upload cake design"
+                                        onClose={() => {}}
+                                        onImageSelect={handleAppImageUpload}
+                                    />
                                 </div>
-                                <p className="text-sm lg:text-base text-gray-700 leading-relaxed mt-4">
+                                <p className="mt-5 max-w-lg text-sm leading-relaxed text-gray-700 min-[1232px]:text-base">
                                     Upload any cake photo. Get the price instantly. Same-day delivery
                                 </p>
+                            </div>
+
+                            <div className="relative z-10 mt-4">
+                                <div className="mx-auto grid w-full max-w-[24rem] grid-cols-2 gap-4 min-[945px]:hidden">
+                                    {TABLET_HERO_MASONRY_COLUMNS.map((column) => (
+                                        <div key={column.indexes.join('-')} className={`flex flex-col gap-4 ${column.className}`}>
+                                            {column.indexes.map((collectionIndex) => {
+                                                const collection = desktopHeroCollections[collectionIndex];
+
+                                                if (!collection) {
+                                                    return null;
+                                                }
+
+                                                return (
+                                                    <DesktopHeroCollectionCard
+                                                        key={collection.slug}
+                                                        title={collection.title}
+                                                        slug={collection.slug}
+                                                        sampleImage={collection.sampleImage}
+                                                        index={collectionIndex}
+                                                    />
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="hidden min-[945px]:grid min-[945px]:grid-cols-3 min-[945px]:gap-3 min-[1232px]:gap-4">
+                                    {DESKTOP_HERO_MASONRY_COLUMNS.map((column) => (
+                                        <div key={column.indexes.join('-')} className={`flex flex-col gap-3 min-[1232px]:gap-4 ${column.className}`}>
+                                            {column.indexes.map((collectionIndex) => {
+                                                const collection = desktopHeroCollections[collectionIndex];
+
+                                                if (!collection) {
+                                                    return null;
+                                                }
+
+                                                return (
+                                                    <DesktopHeroCollectionCard
+                                                        key={collection.slug}
+                                                        title={collection.title}
+                                                        slug={collection.slug}
+                                                        sampleImage={collection.sampleImage}
+                                                        index={collectionIndex}
+                                                    />
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1061,6 +1278,11 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 {/* ===== REVIEWS MARQUEE ===== */}
                 {reviewCards.length > 0 && (
                 <section aria-label="Customer reviews" className="w-full overflow-hidden py-2 md:py-4">
+                    <div className="mx-auto max-w-7xl px-4 pb-3 text-center sm:px-6 lg:px-8 md:pb-4">
+                        <Link href="/reviews" className="text-[10px] text-gray-600 hover:text-purple-600 md:text-xs">
+                            4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
+                        </Link>
+                    </div>
                     <div className="relative group">
                         <div
                             className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 md:w-24"
