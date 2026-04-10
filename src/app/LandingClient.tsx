@@ -1068,9 +1068,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                     <div className="flex flex-col md:flex-row gap-8 md:gap-12 lg:gap-16 items-start">
 {/* Mobile Hero View */}
                         <div className="md:hidden w-full flex flex-col">
+                            <h1 className="mb-3 whitespace-nowrap text-center text-[10.5px] font-bold uppercase leading-none tracking-[0.08em] text-purple-600 max-[390px]:text-[9.2px]">
+                                Best Online Cake Delivery for Rush Orders in Metro Cebu
+                            </h1>
                             {/* Image container with centered message overlay */}
                             <div className="relative left-1/2 mb-4 w-screen -translate-x-1/2 overflow-hidden">
-                                <div className="relative h-[45vw] min-h-[200px] max-h-[252px]">
+                                <div className="relative h-[38vw] min-h-[170px] max-h-[214px]">
                                     <ImageWithSkeleton
                                         src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP"
                                         alt="Hero"
@@ -1079,17 +1082,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         priority
                                     />
                                     <div className="absolute inset-0 bg-white/60" />
-                                    <div className="absolute inset-0 flex flex-col items-center px-4 pt-4 pb-6 text-center">
-                                        <h1 className="w-full whitespace-nowrap text-center text-[10.5px] font-bold uppercase leading-none tracking-[0.08em] text-purple-600 max-[390px]:text-[9.2px]">
-                                            Best Online Cake Delivery for Rush Orders in Metro Cebu
-                                        </h1>
-                                        <div className="flex flex-1 items-center justify-center">
-                                            <h2 className="w-full text-[54px] max-[520px]:text-[47px] max-[414px]:text-[40px] font-extrabold leading-[1] tracking-tight text-gray-900">
-                                                <HeroTypingHeadlineLine className="block min-h-[1.05em] whitespace-nowrap text-center" />
-                                                <span className="block whitespace-nowrap text-purple-600 italic">For Spontaneous</span>
-                                                <span className="block whitespace-nowrap text-purple-600 italic">Celebrations</span>
-                                            </h2>
-                                        </div>
+                                    <div className="absolute inset-0 flex items-center justify-center px-4 pb-6 pt-4 text-center">
+                                        <h2 className="w-full text-[54px] max-[520px]:text-[47px] max-[414px]:text-[40px] font-extrabold leading-[1] tracking-tight text-gray-900">
+                                            <HeroTypingHeadlineLine className="block min-h-[1.05em] whitespace-nowrap text-center" />
+                                            <span className="block whitespace-nowrap text-purple-600 italic">For Spontaneous</span>
+                                            <span className="block whitespace-nowrap text-purple-600 italic">Celebrations</span>
+                                        </h2>
                                     </div>
                                 </div>
                             </div>
