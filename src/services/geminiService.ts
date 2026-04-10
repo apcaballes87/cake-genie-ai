@@ -47,12 +47,16 @@ export const fileToBase64 = async (file: File): Promise<{ mimeType: string; data
 /**
  * Validates if the image is a cake using the server-side API
  */
-export const validateCakeImage = async (base64ImageData: string, mimeType: string): Promise<string> => {
+export const validateCakeImage = async (
+    base64ImageData: string,
+    mimeType: string,
+    useCase: 'default' | 'chat' = 'default'
+): Promise<string> => {
     try {
         const response = await fetch('/api/ai/validate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageData: base64ImageData, mimeType })
+            body: JSON.stringify({ imageData: base64ImageData, mimeType, useCase })
         });
 
         if (!response.ok) {

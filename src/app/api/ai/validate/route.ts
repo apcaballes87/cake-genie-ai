@@ -8,7 +8,7 @@ export const maxDuration = 60; // Allow up to 60 seconds for AI processing
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { imageData, mimeType } = body;
+        const { imageData, mimeType, useCase } = body;
 
         if (!imageData || !mimeType) {
             return NextResponse.json(
@@ -17,9 +17,11 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        const model = useCase === 'chat' ? 'gemini-2.5-flash' : 'gemini-3-flash-preview';
+
         const aiClient = getAI();
         const response = await aiClient.models.generateContent({
-            model: "gemini-3-flash-preview",
+            model,
             contents: [{
                 parts: [
                     { inlineData: { mimeType, data: imageData } },
@@ -41,7 +43,7 @@ export async function POST(req: NextRequest) {
         let result;
         try {
             result = JSON.parse(jsonText);
-        } catch (e) {
+        } catch {
             console.error("Failed to parse AI response:", jsonText);
             return NextResponse.json(
                 { error: 'Invalid response format from AI' },
