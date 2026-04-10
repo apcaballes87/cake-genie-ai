@@ -59,9 +59,6 @@ interface LandingClientProps {
     reviews?: CakeGenieReview[];
 }
 
-const HERO_CAKE_STYLES = ['Minimalist', 'Vintage', 'Doodle', 'Photo', 'Floral'] as const;
-const HERO_RECIPIENTS = ['Mom', 'Dad', 'Bro', 'Sis', 'Bestie', 'Tita', 'Tito', 'Lolo', 'Lola'] as const;
-const HERO_TYPED_SUBHEADLINE_A11Y_LABEL = 'Available right now: Minimalist, Vintage, Doodle, Photo, and Floral cakes for Mom, Dad, Bro, Sis, Bestie, Tita, Tito, Lolo, and Lola.';
 const HERO_HEADLINE_VARIANTS = [
     'Custom Cakes',
     'Minimalist Cakes',
@@ -161,83 +158,6 @@ const TABLET_HERO_MASONRY_COLUMNS = [
 ] as const;
 
 const subscribeToHydration = () => () => { };
-
-const HeroTypingSubheadline: React.FC<{ className?: string }> = ({ className = '' }) => {
-    const [styleIndex, setStyleIndex] = useState(0);
-    const [recipientIndex, setRecipientIndex] = useState(0);
-    const [displayRecipient, setDisplayRecipient] = useState('');
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [isStyleVisible, setIsStyleVisible] = useState(true);
-    const [isStyleTransitioning, setIsStyleTransitioning] = useState(false);
-
-    useEffect(() => {
-        if (isStyleTransitioning) {
-            return;
-        }
-
-        const currentRecipient = HERO_RECIPIENTS[recipientIndex];
-        const typingDelay = isDeleting ? 28 : 48;
-        let timeoutId: ReturnType<typeof setTimeout>;
-
-        if (!isDeleting && displayRecipient === currentRecipient) {
-            timeoutId = setTimeout(() => setIsDeleting(true), 500);
-        } else if (isDeleting && displayRecipient.length === 0) {
-            timeoutId = setTimeout(() => {
-                setIsDeleting(false);
-                if (recipientIndex === HERO_RECIPIENTS.length - 1) {
-                    setIsStyleTransitioning(true);
-                    setIsStyleVisible(false);
-                } else {
-                    setRecipientIndex((currentIndex) => currentIndex + 1);
-                }
-            }, 120);
-        } else {
-            timeoutId = setTimeout(() => {
-                const nextLength = isDeleting ? displayRecipient.length - 1 : displayRecipient.length + 1;
-                setDisplayRecipient(currentRecipient.slice(0, nextLength));
-            }, typingDelay);
-        }
-
-        return () => clearTimeout(timeoutId);
-    }, [displayRecipient, isDeleting, isStyleTransitioning, recipientIndex]);
-
-    useEffect(() => {
-        if (!isStyleTransitioning) {
-            return;
-        }
-
-        const fadeOutTimer = setTimeout(() => {
-            setStyleIndex((currentIndex) => (currentIndex + 1) % HERO_CAKE_STYLES.length);
-            setRecipientIndex(0);
-            setIsStyleVisible(true);
-        }, 220);
-
-        const fadeInTimer = setTimeout(() => {
-            setIsStyleTransitioning(false);
-        }, 440);
-
-        return () => {
-            clearTimeout(fadeOutTimer);
-            clearTimeout(fadeInTimer);
-        };
-    }, [isStyleTransitioning]);
-
-    return (
-        <p className={className} aria-label={HERO_TYPED_SUBHEADLINE_A11Y_LABEL}>
-            <span
-                aria-hidden="true"
-                className={`transition-opacity duration-200 ${isStyleVisible ? 'opacity-100' : 'opacity-0'}`}
-            >
-                {HERO_CAKE_STYLES[styleIndex]} Cake for{' '}
-            </span>
-            <span aria-hidden="true">{displayRecipient}</span>
-            <span
-                aria-hidden="true"
-                className="ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] bg-purple-500 align-middle animate-pulse"
-            />
-        </p>
-    );
-};
 
 const HeroTypingHeadlineLine: React.FC<{ className?: string }> = ({ className = '' }) => {
     const [phraseIndex, setPhraseIndex] = useState(0);
@@ -986,7 +906,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 <div className="max-w-7xl mx-auto px-4">
                     {/* Mobile Header */}
                     <div className="md:hidden relative w-full mb-4" style={{ height: '88px' }}>
-                        {/* Layer 1: Not-scrolled — [menu | logo | icons] */}
                         <div
                             className="absolute inset-0 grid grid-cols-[1fr_auto_1fr] items-center pt-6 transition-opacity duration-300"
                             style={{ opacity: showCompactHeader ? 0 : 1, pointerEvents: showCompactHeader ? 'none' : 'auto' }}
@@ -1034,7 +953,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             </div>
                         </div>
 
-                        {/* Layer 2: Scrolled — [search bar | cart] */}
                         <div
                             className="absolute inset-0 flex items-center gap-2 pt-6 transition-opacity duration-300"
                             style={{ opacity: showCompactHeader ? 1 : 0, pointerEvents: showCompactHeader ? 'auto' : 'none' }}
@@ -1150,30 +1068,39 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                     <div className="flex flex-col md:flex-row gap-8 md:gap-12 lg:gap-16 items-start">
 {/* Mobile Hero View */}
                         <div className="md:hidden w-full flex flex-col">
-                            {/* Image container with message overlay on the left */}
-                            <div className="relative w-full rounded-3xl overflow-hidden mb-4 shadow-lg">
-                                <ImageWithSkeleton
-                                    src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP"
-                                    alt="Hero"
-                                    className="w-full h-auto block object-cover object-center"
-                                    skeletonClassName="rounded-3xl"
-                                    priority
-                                />
-                                <div className="absolute inset-0 p-5 flex flex-col justify-center w-[65%] max-[520px]:w-[85%] gap-0.5">
-                                    <h2 className="text-[38px] max-[520px]:text-[32px] max-[414px]:text-[28px] font-extrabold text-gray-900 leading-[1.08] tracking-tight mb-2 max-[520px]:mb-1">
-                                        Custom Cakes for{' '}
-                                        <span className="text-purple-600 italic">Spontaneous Celebrations.</span>
-                                    </h2>
-                                    <HeroTypingSubheadline className="min-h-[1.125rem] max-w-[16rem] text-[14px] max-[414px]:text-[13px] font-medium text-purple-600 leading-relaxed" />
+                            {/* Image container with centered message overlay */}
+                            <div className="relative left-1/2 mb-4 w-screen -translate-x-1/2 overflow-hidden">
+                                <div className="relative h-[45vw] min-h-[200px] max-h-[252px]">
+                                    <ImageWithSkeleton
+                                        src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP"
+                                        alt="Hero"
+                                        className="block h-full w-full object-cover object-center"
+                                        skeletonClassName="h-full w-full"
+                                        priority
+                                    />
+                                    <div className="absolute inset-0 bg-white/60" />
+                                    <div className="absolute inset-0 flex flex-col items-center px-4 pt-4 pb-6 text-center">
+                                        <h1 className="w-full whitespace-nowrap text-center text-[10.5px] font-bold uppercase leading-none tracking-[0.08em] text-purple-600 max-[390px]:text-[9.2px]">
+                                            Best Online Cake Delivery for Rush Orders in Metro Cebu
+                                        </h1>
+                                        <div className="flex flex-1 items-center justify-center">
+                                            <h2 className="w-full text-[54px] max-[520px]:text-[47px] max-[414px]:text-[40px] font-extrabold leading-[1] tracking-tight text-gray-900">
+                                                <HeroTypingHeadlineLine className="block min-h-[1.05em] whitespace-nowrap text-center" />
+                                                <span className="block whitespace-nowrap text-purple-600 italic">For Spontaneous</span>
+                                                <span className="block whitespace-nowrap text-purple-600 italic">Celebrations</span>
+                                            </h2>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="mx-auto mt-1 w-full max-w-sm">
+                            <div className="mt-1 w-full">
                                 <ImageUploader
                                     isOpen
                                     variant="inline"
                                     compact
-                                    compactAlignment="center"
+                                    compactAlignment="inline-center"
+                                    className="rounded-[1.6rem]"
                                     title="Upload any Cake Design Image"
                                     showBrowseButton={false}
                                     iconImageSrc="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/upload-cake-image.webp"
@@ -1185,6 +1112,33 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             <p className="text-xs text-gray-700 leading-relaxed font-medium text-center mt-3">
                                 Upload any cake photo. Get the price instantly. Same-day delivery
                             </p>
+                            <div className="mt-4 flex items-center gap-3">
+                                <div className="h-px flex-1 bg-purple-200/80" />
+                                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-500">or</span>
+                                <div className="h-px flex-1 bg-purple-200/80" />
+                            </div>
+                            <div className="mt-4 grid grid-cols-3 gap-3">
+                                {desktopHeroCollections.slice(0, 6).map((collection) => (
+                                    <Link
+                                        key={collection.slug}
+                                        href={`/collections/${collection.slug}`}
+                                        className="group overflow-hidden rounded-2xl border border-white/80 bg-white/85 shadow-[0_18px_40px_-34px_rgba(88,28,135,0.72)] transition-transform duration-300 hover:-translate-y-0.5"
+                                    >
+                                        <div className="relative aspect-square overflow-hidden">
+                                            <img
+                                                src={collection.sampleImage}
+                                                alt={`${collection.title} collection`}
+                                                loading="lazy"
+                                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+                                            <p className="absolute bottom-2 left-2 right-2 text-[10px] font-semibold leading-tight text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.45)]">
+                                                {collection.title}
+                                            </p>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Desktop Hero View: top-aligned text plus staggered collection cards */}
