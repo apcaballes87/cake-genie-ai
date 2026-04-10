@@ -5,7 +5,7 @@ import { ShieldCheck } from 'lucide-react';
 import { CakeBaseOptions } from './CakeBaseOptions';
 import { CakeFlavorBottomSheet } from './CakeFlavorBottomSheet';
 import { usePricing } from '@/hooks/usePricing';
-import { DEFAULT_THICKNESS_MAP, DEFAULT_SIZE_MAP, FLAVOR_OPTIONS, FLAVOR_THUMBNAILS } from '@/constants';
+import { DEFAULT_THICKNESS_MAP, DEFAULT_SIZE_MAP, FLAVOR_OPTIONS, FLAVOR_THUMBNAILS, TEMPORARILY_DISABLED_FLAVORS } from '@/constants';
 import LazyImage from '@/components/LazyImage';
 import type { CakeInfoUI, CakeType, CakeFlavor } from '@/types';
 
@@ -166,7 +166,7 @@ export const PreSelectionModal: React.FC<PreSelectionModalProps> = ({ isOpen, is
                                             )}
                                             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                                                 {FLAVOR_OPTIONS.map(flavor => {
-                                                    const isDisabled = isBento && (flavor === 'Ube Cake' || flavor === 'Mocha Cake');
+                                                    const isDisabled = TEMPORARILY_DISABLED_FLAVORS.includes(flavor) || (isBento && flavor === 'Ube Cake');
                                                     const isSelected = selectedFlavor === flavor;
                                                     return (
                                                         <button

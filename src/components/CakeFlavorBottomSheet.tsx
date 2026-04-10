@@ -1,7 +1,7 @@
 'use client';
 import React, { useRef } from 'react';
 import LazyImage from '@/components/LazyImage';
-import { FLAVOR_OPTIONS, FLAVOR_THUMBNAILS } from '@/constants';
+import { FLAVOR_OPTIONS, FLAVOR_THUMBNAILS, TEMPORARILY_DISABLED_FLAVORS } from '@/constants';
 import { CustomizationBottomSheet } from './CustomizationBottomSheet';
 import type { CakeFlavor } from '@/types';
 
@@ -80,7 +80,9 @@ export const CakeFlavorBottomSheet: React.FC<CakeFlavorBottomSheetProps> = ({
                             <div className="relative">
                                 <div ref={flavorScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide">
                                     {FLAVOR_OPTIONS.map(flavor => {
-                                        const isFlavorDisabled = isBento && (flavor === 'Ube Cake' || flavor === 'Mocha Cake');
+                                        const isFlavorDisabled =
+                                            TEMPORARILY_DISABLED_FLAVORS.includes(flavor) ||
+                                            (isBento && flavor === 'Ube Cake');
                                         const isSelected = selectedFlavor === flavor;
                                         return (
                                             <button
