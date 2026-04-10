@@ -1168,26 +1168,21 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 </div>
                             </div>
 
-                            {/* Buttons under the image (1 line) */}
-                            <div className="flex items-center gap-2 w-full">
-                                <button
-                                    disabled={isUploading}
-                                    className="flex-1 flex items-center justify-center gap-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/70 text-white px-4 py-3.5 rounded-full font-bold transition-all shadow-md active:scale-[0.98] text-[10px] min-[375px]:text-xs min-[414px]:text-[13px] disabled:cursor-not-allowed whitespace-nowrap"
-                                    onClick={() => setIsUploaderOpen(true)}
-                                >
-                                    {isUploading ? (
-                                        <Loader2 size={16} className="animate-spin shrink-0" />
-                                    ) : (
-                                        <Upload size={16} className="shrink-0" />
-                                    )}
-                                    {isUploading ? 'Uploading...' : 'Upload Your Design - Get Instant Pricing'}
-                                </button>
+                            <div className="mx-auto mt-1 w-full max-w-sm">
+                                <ImageUploader
+                                    isOpen
+                                    variant="inline"
+                                    compact
+                                    compactAlignment="center"
+                                    title="Upload any Cake Design Image"
+                                    showBrowseButton={false}
+                                    iconImageSrc="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/upload-cake-image.webp"
+                                    iconImageAlt="Upload cake design"
+                                    onClose={() => {}}
+                                    onImageSelect={handleAppImageUpload}
+                                />
                             </div>
-                            {/* Mobile description below CTA button for small screens */}
-                            <p className="hidden max-[454px]:block text-xs text-gray-700 leading-relaxed font-medium text-center mt-2">
-                                Upload any cake photo. Get the price instantly. Same-day delivery
-                            </p>
-                            <p className="max-[454px]:hidden text-xs text-gray-700 leading-relaxed font-medium text-center mt-2">
+                            <p className="text-xs text-gray-700 leading-relaxed font-medium text-center mt-3">
                                 Upload any cake photo. Get the price instantly. Same-day delivery
                             </p>
                         </div>
