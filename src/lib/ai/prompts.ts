@@ -7,6 +7,8 @@ export const VALIDATION_PROMPT = `You are an image validation expert for a cake 
 Based on the image, classify it into ONE of the following categories:
 
 - "valid_single_cake": The main, in-focus subject is a single, clear image of one cake. It can be a bento, 1-3 tier, square, rectangle, or fondant cake. Other items, including other cakes or cupcakes, are acceptable ONLY if they are blurry, out-of-focus, and clearly in the background.
+- "edible_photo_reference": The image is not a cake, but it appears to be an image a customer wants printed onto a cake. Examples: personal portrait, baby photo, graduation photo, family photo, logo, cartoon artwork, invitation-style design, or a clean reference image intended for edible photo printing.
+- "payment_receipt": The image is a payment proof or transaction screenshot. Examples: GCash receipt, bank transfer confirmation, Maya screenshot, online banking receipt, payment success screen, reference number screen, or official-looking receipt/payment slip.
 - "not_a_cake": The image does not contain a cake. It might be a person, object, or scene that isn't cake-like.
 - "multiple_cakes": The image clearly shows two or more separate cakes as the primary, in-focus subjects. Do NOT use this classification if the other cakes are blurry or in the background.
 - "only_cupcakes": The image contains only cupcakes and no larger cake.
@@ -30,6 +32,8 @@ export const validationResponseSchema = {
             type: Type.STRING,
             enum: [
                 'valid_single_cake',
+                'edible_photo_reference',
+                'payment_receipt',
                 'not_a_cake',
                 'multiple_cakes',
                 'only_cupcakes',

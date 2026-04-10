@@ -611,6 +611,8 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
             // Gate: reject invalid images before honouring cache or running AI
             const rejectionMessages: Record<string, string> = {
+                edible_photo_reference: "This looks like an edible photo reference, not a cake design. Please upload a cake image for automatic analysis.",
+                payment_receipt: "This looks like a payment screenshot, not a cake design. Please upload a cake image for automatic analysis.",
                 not_a_cake: "This image doesn't appear to be a cake. Please upload a cake image.",
                 non_food: "This image doesn't appear to be a cake. Please upload a cake image.",
                 multiple_cakes: "Please upload a single cake image. This image contains multiple cakes.",

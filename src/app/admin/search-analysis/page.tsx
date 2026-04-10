@@ -475,6 +475,8 @@ export default function SearchAnalysisAdminPage() {
                 const validationResult = await validationResponse.json();
 
                 const rejectionMessages: Record<string, string> = {
+                    edible_photo_reference: "Edible photo reference",
+                    payment_receipt: "Payment receipt",
                     not_a_cake: "Not a cake",
                     non_food: "Non-food item",
                     multiple_cakes: "Multiple cakes",

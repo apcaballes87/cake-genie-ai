@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { CloseIcon, MessageCircle, Loader2, SendIcon, ImageIcon } from './icons';
 import { createClient } from '@/lib/supabase/client';
-import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow } from '@/services/geminiService';
+import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow, validateCakeImage } from '@/services/geminiService';
 import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService';
 import { HybridAnalysisResult } from '@/types';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
@@ -45,6 +45,17 @@ interface ChatModalProps {
     userEmail?: string;
     userName?: string;
 }
+
+const CHAT_IMAGE_CLASSIFICATION_MESSAGES: Record<string, string> = {
+    payment_receipt: "Thanks for sending your payment screenshot. We received it and will confirm your payment shortly.",
+    edible_photo_reference: "Thanks for sending your edible photo image. We saved it and our team will check it for printing suitability.",
+    not_a_cake: "Thanks for sending the image. If this is for cake pricing, please upload a single cake design. If it's for an edible photo or payment proof, you can send that too.",
+    non_food: "Thanks for sending the image. If this is for cake pricing, please upload a single cake design. If it's for an edible photo or payment proof, you can send that too.",
+    multiple_cakes: "Please send one cake image at a time for price analysis so we can generate the correct customization link.",
+    only_cupcakes: "We can’t run price analysis on cupcake-only images in chat yet. Please send a full cake design instead.",
+    complex_sculpture: "Thanks for sending the cake design. This one is too complex for automatic chat analysis, so our team will review it manually.",
+    large_wedding_cake: "Thanks for sending the cake design. Large wedding cakes need manual review, so our team will check it and get back to you.",
+};
 
 function extractProductLink(text: string): string | null {
     const match = text.match(/customizing\/([a-zA-Z0-9-]+)/);
@@ -104,7 +115,7 @@ const ProductLinkCard: React.FC<{ slug: string; supabase: ReturnType<typeof crea
     );
 };
 
-async function saveSystemMessage(conversationId: string, content: string, supabase: ReturnType<typeof createClient>): Promise<string | null> {
+async function saveSystemMessage(conversationId: string, content: string): Promise<string | null> {
     try {
         console.log('💾 Saving system message:', { conversationId, content: content.substring(0, 50) });
 
@@ -137,25 +148,24 @@ async function generatePerceptualHash(imageSrc: string): Promise<string | null> 
         const img = new Image();
         img.onload = async () => {
             try {
-                const MAX_DIMENSION = 1024;
-                let width = img.naturalWidth;
-                let height = img.naturalHeight;
-                if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-                    if (width > height) {
-                        height = Math.floor((height / width) * MAX_DIMENSION);
-                        width = MAX_DIMENSION;
-                    } else {
-                        width = Math.floor((width / height) * MAX_DIMENSION);
-                        height = MAX_DIMENSION;
-                    }
-                }
                 const canvas = document.createElement('canvas');
                 const size = 8;
                 canvas.width = size;
                 canvas.height = size;
                 const ctx = canvas.getContext('2d');
                 if (!ctx) return resolve(null);
-                ctx.drawImage(img, 0, 0, width, height);
+                ctx.imageSmoothingEnabled = true;
+                ctx.drawImage(
+                    img,
+                    0,
+                    0,
+                    img.naturalWidth,
+                    img.naturalHeight,
+                    0,
+                    0,
+                    size,
+                    size
+                );
                 const imageData = ctx.getImageData(0, 0, size, size);
                 const pixels = imageData.data;
                 const numPixels = size * size;
@@ -246,9 +256,17 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
     const pendingImageHashRef = useRef<string | null>(null);
+    const activeImageAnalysisIdRef = useRef(0);
+    const pendingFollowUpTimeoutsRef = useRef<number[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const supabase = createClient();
+
+    const clearPendingImageFollowUps = () => {
+        pendingFollowUpTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+        pendingFollowUpTimeoutsRef.current = [];
+        pendingImageHashRef.current = null;
+    };
 
     useEffect(() => {
         let storedSession = localStorage.getItem('chat_session_id');
@@ -324,11 +342,18 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         if (isOpen && sessionId) {
             loadOrCreateConversation();
         } else if (!isOpen) {
+            clearPendingImageFollowUps();
             setMessages([]);
             setConversationId(null);
             setIsLoading(true);
         }
     }, [isOpen, sessionId, userId]);
+
+    useEffect(() => {
+        return () => {
+            clearPendingImageFollowUps();
+        };
+    }, []);
 
     const loadOrCreateConversation = async () => {
         setIsLoading(true);
@@ -421,6 +446,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         const file = e.target.files?.[0];
         if (!file || !conversationId) return;
 
+        clearPendingImageFollowUps();
+        const analysisId = ++activeImageAnalysisIdRef.current;
         setIsUploading(true);
 
         try {
@@ -462,7 +489,31 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                 setIsTyping(true);
                 try {
                     const fileData = await fileToBase64(file);
+                    const imageClassification = await validateCakeImage(fileData.data, fileData.mimeType, 'chat');
+                    if (analysisId !== activeImageAnalysisIdRef.current) return;
+
+                    if (imageClassification !== 'valid_single_cake') {
+                        const nonCakeReply = CHAT_IMAGE_CLASSIFICATION_MESSAGES[imageClassification]
+                            ?? "Thanks for sending the image. Our team received it and will review it shortly.";
+
+                        const botMessage: Message = {
+                            id: `ai_${Date.now()}`,
+                            text: nonCakeReply,
+                            isUser: false,
+                            sender_type: 'system',
+                            timestamp: new Date().toISOString(),
+                            is_read: true,
+                        };
+                        setMessages(prev => [...prev, botMessage]);
+
+                        if (conversationId) {
+                            saveSystemMessage(conversationId, nonCakeReply);
+                        }
+                        return;
+                    }
+
                     const analysisResult = await analyzeImageWithCache(fileData, imageUrl);
+                    if (analysisId !== activeImageAnalysisIdRef.current) return;
 
                     let botResponse = '';
                     if (analysisResult.analysis && analysisResult.slug) {
@@ -486,7 +537,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     setMessages(prev => [...prev, botMessage]);
 
                     if (conversationId) {
-                        saveSystemMessage(conversationId, botResponse, supabase);
+                        saveSystemMessage(conversationId, botResponse);
                     }
 
                     if (!analysisResult.slug && analysisResult.analysis) {
@@ -494,7 +545,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                         const pHash = await generatePerceptualHash(imageSrcForHash);
                         if (pHash) {
                             pendingImageHashRef.current = pHash;
-                            setTimeout(async () => {
+                            const firstFollowUpTimeout = window.setTimeout(async () => {
+                                if (analysisId !== activeImageAnalysisIdRef.current || pendingImageHashRef.current !== pHash) {
+                                    return;
+                                }
                                 const recheck = await findSimilarAnalysisByHash(pHash);
                                 if (recheck && recheck.seoMetadata.slug) {
                                     const priceDisplay = recheck.seoMetadata.price ? `₱${Math.round(recheck.seoMetadata.price).toLocaleString()}` : 'Check price';
@@ -509,9 +563,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                     };
                                     setMessages(prev => [...prev, followUpMessage]);
                                     if (conversationId) {
-                                        saveSystemMessage(conversationId, followUpMessage.text, supabase);
+                                        saveSystemMessage(conversationId, followUpMessage.text);
                                     }
                                 } else {
+                                    if (analysisId !== activeImageAnalysisIdRef.current || pendingImageHashRef.current !== pHash) {
+                                        return;
+                                    }
                                     const noLinkMessage: Message = {
                                         id: `followup_${Date.now()}`,
                                         text: "Hi! I've checked on your cake image and we're still finalizing the details. We'll send you the customization link as soon as it's ready!",
@@ -522,10 +579,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                     };
                                     setMessages(prev => [...prev, noLinkMessage]);
                                     if (conversationId) {
-                                        saveSystemMessage(conversationId, noLinkMessage.text, supabase);
+                                        saveSystemMessage(conversationId, noLinkMessage.text);
                                     }
 
-                                    setTimeout(async () => {
+                                    const secondFollowUpTimeout = window.setTimeout(async () => {
+                                        if (analysisId !== activeImageAnalysisIdRef.current || pendingImageHashRef.current !== pHash) {
+                                            return;
+                                        }
                                         const recheck2 = await findSimilarAnalysisByHash(pHash);
                                         if (recheck2 && recheck2.seoMetadata.slug) {
                                             const priceDisplay = recheck2.seoMetadata.price ? `₱${Math.round(recheck2.seoMetadata.price).toLocaleString()}` : 'Check price';
@@ -540,9 +600,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                             };
                                             setMessages(prev => [...prev, followUp2]);
                                             if (conversationId) {
-                                                saveSystemMessage(conversationId, followUp2.text, supabase);
+                                                saveSystemMessage(conversationId, followUp2.text);
                                             }
                                         } else {
+                                            if (analysisId !== activeImageAnalysisIdRef.current || pendingImageHashRef.current !== pHash) {
+                                                return;
+                                            }
                                             const sorryMessage: Message = {
                                                 id: `sorry_${Date.now()}`,
                                                 text: "Sorry it's taking too long! We'll send you the customization link as soon as it's ready!",
@@ -553,18 +616,21 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                             };
                                             setMessages(prev => [...prev, sorryMessage]);
                                             if (conversationId) {
-                                                saveSystemMessage(conversationId, sorryMessage.text, supabase);
+                                                saveSystemMessage(conversationId, sorryMessage.text);
                                             }
                                         }
                                         pendingImageHashRef.current = null;
                                     }, 6000);
+                                    pendingFollowUpTimeoutsRef.current.push(secondFollowUpTimeout);
                                 }
                                 pendingImageHashRef.current = null;
                             }, 11000);
+                            pendingFollowUpTimeoutsRef.current.push(firstFollowUpTimeout);
                         }
                     }
                 } catch (analysisErr) {
                     console.error('Error analyzing image:', analysisErr);
+                    if (analysisId !== activeImageAnalysisIdRef.current) return;
                     const fallbackMessage: Message = {
                         id: `ai_${Date.now()}`,
                         text: "Thanks for sharing your cake image! Our team will review it and get back to you with pricing shortly.",
@@ -575,7 +641,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     };
                     setMessages(prev => [...prev, fallbackMessage]);
                     if (conversationId) {
-                        saveSystemMessage(conversationId, fallbackMessage.text, supabase);
+                        saveSystemMessage(conversationId, fallbackMessage.text);
                     }
                 } finally {
                     setIsTyping(false);
@@ -646,7 +712,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
 
                 setMessages(prev => [...prev, botMessage]);
                 if (conversationId) {
-                    saveSystemMessage(conversationId, randomResponse, supabase);
+                    saveSystemMessage(conversationId, randomResponse);
                 }
                 setIsTyping(false);
             }, 1500);
