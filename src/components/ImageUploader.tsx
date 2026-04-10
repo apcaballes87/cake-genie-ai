@@ -35,6 +35,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [show, setShow] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = useCallback(async (file: File | null) => {
@@ -49,10 +50,9 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     setIsProcessing(true);
     try {
       let fileToProcess = file;
-      // Conditionally compress if file is larger than 500KB
       if (file.size > 500 * 1024) {
         fileToProcess = await compressImage(file, {
-          maxSizeMB: 1, // Compress to a max of 1MB
+          maxSizeMB: 1,
           maxWidthOrHeight: 1920,
           useWebWorker: true,
         });
@@ -61,7 +61,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     } catch (error) {
       console.error('Error processing image:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
       showError('Failed to process image.');
-      onImageSelect(file); // fallback to original file
+      onImageSelect(file);
     } finally {
       setIsProcessing(false);
     }
@@ -85,6 +85,14 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       document.removeEventListener('paste', handlePaste);
     };
   }, [isOpen, isProcessing, handleFileSelect]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => setShow(true), 10);
+    } else {
+      setShow(false);
+    }
+  }, [isOpen]);
 
   const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -115,20 +123,11 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     }
   }, [isProcessing, handleFileSelect]);
 
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => setShow(true), 10);
-    } else {
-      setShow(false);
-    }
-  }, [isOpen]);
-
   const handleClose = () => {
     if (isProcessing) return;
     setShow(false);
     setTimeout(onClose, 200);
-  }
+  };
 
   if (!isOpen) {
     return null;
@@ -194,6 +193,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
             )}
             <div className={isCompactCentered ? 'text-center' : ''}>
               <h2 className={`${compact ? 'text-[1.16rem]' : 'text-xl'} font-semibold text-slate-800`}>{title}</h2>
+<<<<<<< HEAD
               <p className={`mt-1 ${compact ? 'max-w-md text-[1.02rem] leading-relaxed' : 'text-base mt-2'}`}>Drag &amp; drop, paste, or click to upload an image.</p>
             </div>
           </div>
@@ -235,7 +235,8 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     <div
       className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-200 ${show ? 'opacity-100' : 'opacity-0'}`}
       onClick={handleClose}
-      aria-modal="true" role="dialog"
+      aria-modal="true"
+      role="dialog"
     >
       {content}
     </div>
