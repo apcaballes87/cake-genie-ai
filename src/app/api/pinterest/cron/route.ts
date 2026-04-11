@@ -190,11 +190,12 @@ export async function GET(request: Request) {
 
         if (bulkError) {
           console.warn('Bulk insert failed in cron, falling back to individual inserts:', bulkError.message);
-          await Promise.all(pinsToInsert.map(pin =>
-            supabase.from('cakegenie_pinterest_pins').insert(pin).catch(err => {
-              console.error(`Failed to record pin ${pin.p_hash} individually in cron:`, err.message);
-            })
-          ));
+          await Promise.all(pinsToInsert.map(async (pin) => {
+            const { error: insertError } = await supabase.from('cakegenie_pinterest_pins').insert(pin);
+            if (insertError) {
+              console.error(`Failed to record pin ${pin.p_hash} individually in cron:`, insertError.message);
+            }
+          }));
         }
       } catch (err: any) {
         console.error('Error during bulk recording pins in cron:', err.message);

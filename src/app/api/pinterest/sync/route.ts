@@ -191,11 +191,12 @@ export async function POST(request: Request) {
         if (bulkError) {
           console.warn('Bulk insert failed, falling back to individual inserts:', bulkError.message);
           // Fallback to individual inserts
-          await Promise.all(pinsToInsert.map(pin =>
-            supabase.from('cakegenie_pinterest_pins').insert(pin).catch(err => {
-              console.error(`Failed to record pin ${pin.p_hash} individually:`, err.message);
-            })
-          ));
+          await Promise.all(pinsToInsert.map(async (pin) => {
+            const { error: insertError } = await supabase.from('cakegenie_pinterest_pins').insert(pin);
+            if (insertError) {
+              console.error(`Failed to record pin ${pin.p_hash} individually:`, insertError.message);
+            }
+          }));
         }
       } catch (err: any) {
         console.error('Error during bulk recording pins:', err.message);
