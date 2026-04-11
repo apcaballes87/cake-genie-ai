@@ -36,6 +36,8 @@ import {
     Loader2,
     Camera,
     ArrowRight,
+    Truck,
+    Zap,
     ChevronDown,
     X
 } from 'lucide-react';
@@ -1072,7 +1074,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 Best Online Cake Delivery for Rush Orders in Metro Cebu
                             </h1>
                             {/* Image container with centered message overlay */}
-                            <div className="relative left-1/2 mb-4 w-screen -translate-x-1/2 overflow-hidden">
+                            <div className="relative left-1/2 mb-2 w-screen -translate-x-1/2 overflow-hidden">
                                 <div className="relative h-[38vw] min-h-[170px] max-h-[214px]">
                                     <ImageWithSkeleton
                                         src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP"
@@ -1092,7 +1094,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 </div>
                             </div>
 
-                            <div className="mt-1 w-full">
+                            <div className="w-full">
                                 <ImageUploader
                                     isOpen
                                     variant="inline"
@@ -1107,9 +1109,20 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     onImageSelect={handleAppImageUpload}
                                 />
                             </div>
-                            <p className="text-xs text-gray-700 leading-relaxed font-medium text-center mt-3">
-                                Upload any cake photo. Get the price instantly. Same-day delivery
-                            </p>
+                            <div className="mt-3 grid w-full grid-cols-3 gap-2 max-[443px]:gap-1.5">
+                                <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[11px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] max-[443px]:gap-1 max-[443px]:px-2 max-[443px]:py-1.5 max-[443px]:text-[9px] max-[390px]:px-1.5 max-[390px]:text-[8.5px] max-[360px]:text-[8px]">
+                                    <ImagePlus size={14} className="shrink-0 text-purple-500 max-[443px]:size-3 max-[390px]:size-[11px] max-[360px]:size-[10px]" />
+                                    <span className="whitespace-nowrap">Any Cake Image</span>
+                                </div>
+                                <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[11px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] max-[443px]:gap-1 max-[443px]:px-2 max-[443px]:py-1.5 max-[443px]:text-[9px] max-[390px]:px-1.5 max-[390px]:text-[8.5px] max-[360px]:text-[8px]">
+                                    <Zap size={14} className="shrink-0 text-purple-500 max-[443px]:size-3 max-[390px]:size-[11px] max-[360px]:size-[10px]" />
+                                    <span className="whitespace-nowrap">Instant Pricing</span>
+                                </div>
+                                <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[11px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] max-[443px]:gap-1 max-[443px]:px-2 max-[443px]:py-1.5 max-[443px]:text-[9px] max-[390px]:px-1.5 max-[390px]:text-[8.5px] max-[360px]:text-[8px]">
+                                    <Truck size={14} className="shrink-0 text-purple-500 max-[443px]:size-3 max-[390px]:size-[11px] max-[360px]:size-[10px]" />
+                                    <span className="whitespace-nowrap">Same-day Delivery</span>
+                                </div>
+                            </div>
                             <div className="mt-4 flex items-center gap-3">
                                 <div className="h-px flex-1 bg-purple-200/80" />
                                 <span className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-500">or</span>
@@ -1164,9 +1177,20 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         onImageSelect={handleAppImageUpload}
                                     />
                                 </div>
-                                <p className="mt-5 max-w-lg text-sm leading-relaxed text-gray-700 min-[1232px]:text-base">
-                                    Upload any cake photo. Get the price instantly. Same-day delivery
-                                </p>
+                                <div className="mt-5 grid w-full max-w-lg grid-cols-3 gap-2.5">
+                                    <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[10px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] min-[1232px]:text-[11px]">
+                                        <ImagePlus size={14} className="shrink-0 text-purple-500" />
+                                        <span className="whitespace-nowrap">Any Cake Image</span>
+                                    </div>
+                                    <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[10px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] min-[1232px]:text-[11px]">
+                                        <Zap size={14} className="shrink-0 text-purple-500" />
+                                        <span className="whitespace-nowrap">Instant Pricing</span>
+                                    </div>
+                                    <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[10px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] min-[1232px]:text-[11px]">
+                                        <Truck size={14} className="shrink-0 text-purple-500" />
+                                        <span className="whitespace-nowrap">Same-day Delivery</span>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="relative z-10 mt-4">
