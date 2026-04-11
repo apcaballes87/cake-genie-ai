@@ -95,7 +95,7 @@ const DEFAULT_HERO_COLLECTIONS = [
     },
     {
         title: 'Edible Photo Cakes',
-        slug: 'edible-photo-cake-wrap',
+        slug: 'edible-photo-cake',
         count: 0,
         sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-edible-photo-cake.webp',
         caption: 'Printed memories and personalized graphics wrapped into cake form.',
@@ -1109,14 +1109,20 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     onImageSelect={handleAppImageUpload}
                                 />
                             </div>
-                            <div className="mt-3 grid w-full grid-cols-3 gap-2 max-[443px]:gap-1.5">
+                            <div className="mt-3 grid w-full grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-1.5 max-[443px]:gap-1">
                                 <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[11px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] max-[443px]:gap-1 max-[443px]:px-2 max-[443px]:py-1.5 max-[443px]:text-[9px] max-[390px]:px-1.5 max-[390px]:text-[8.5px] max-[360px]:text-[8px]">
                                     <ImagePlus size={14} className="shrink-0 text-purple-500 max-[443px]:size-3 max-[390px]:size-[11px] max-[360px]:size-[10px]" />
                                     <span className="whitespace-nowrap">Any Cake Image</span>
                                 </div>
+                                <div className="flex items-center justify-center text-purple-400">
+                                    <ArrowRight size={14} className="max-[443px]:size-3 max-[390px]:size-[11px] max-[360px]:size-[10px]" />
+                                </div>
                                 <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[11px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] max-[443px]:gap-1 max-[443px]:px-2 max-[443px]:py-1.5 max-[443px]:text-[9px] max-[390px]:px-1.5 max-[390px]:text-[8.5px] max-[360px]:text-[8px]">
                                     <Zap size={14} className="shrink-0 text-purple-500 max-[443px]:size-3 max-[390px]:size-[11px] max-[360px]:size-[10px]" />
                                     <span className="whitespace-nowrap">Instant Pricing</span>
+                                </div>
+                                <div className="flex items-center justify-center text-purple-400">
+                                    <ArrowRight size={14} className="max-[443px]:size-3 max-[390px]:size-[11px] max-[360px]:size-[10px]" />
                                 </div>
                                 <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[11px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] max-[443px]:gap-1 max-[443px]:px-2 max-[443px]:py-1.5 max-[443px]:text-[9px] max-[390px]:px-1.5 max-[390px]:text-[8.5px] max-[360px]:text-[8px]">
                                     <Truck size={14} className="shrink-0 text-purple-500 max-[443px]:size-3 max-[390px]:size-[11px] max-[360px]:size-[10px]" />
@@ -1177,14 +1183,20 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         onImageSelect={handleAppImageUpload}
                                     />
                                 </div>
-                                <div className="mt-5 grid w-full max-w-lg grid-cols-3 gap-2.5">
+                                <div className="mt-5 grid w-full max-w-lg grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2">
                                     <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[10px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] min-[1232px]:text-[11px]">
                                         <ImagePlus size={14} className="shrink-0 text-purple-500" />
                                         <span className="whitespace-nowrap">Any Cake Image</span>
                                     </div>
+                                    <div className="flex items-center justify-center text-purple-400">
+                                        <ArrowRight size={14} />
+                                    </div>
                                     <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[10px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] min-[1232px]:text-[11px]">
                                         <Zap size={14} className="shrink-0 text-purple-500" />
                                         <span className="whitespace-nowrap">Instant Pricing</span>
+                                    </div>
+                                    <div className="flex items-center justify-center text-purple-400">
+                                        <ArrowRight size={14} />
                                     </div>
                                     <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[10px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] min-[1232px]:text-[11px]">
                                         <Truck size={14} className="shrink-0 text-purple-500" />

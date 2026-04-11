@@ -81,7 +81,7 @@ const HERO_COLLECTION_BLUEPRINTS = [
     },
     {
         title: 'Edible Photo Cakes',
-        slug: 'edible-photo-cake-wrap',
+        slug: 'edible-photo-cake',
         matchers: ['edible photo', 'photo cake'],
         sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-edible-photo-cake.webp',
         caption: 'Printed memories and personalized graphics wrapped into cake form.',
