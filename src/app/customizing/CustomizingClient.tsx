@@ -95,6 +95,7 @@ import {
     isToyLikeType,
     requestMentionsPrintoutConversion,
 } from '@/utils/printoutConversionPrompt';
+import { buildDecorLocalizationHint } from '@/utils/editImageTuning';
 
 interface AvailabilityInfo {
     type: AvailabilityType;
@@ -129,12 +130,14 @@ const AI_CHAT_IMAGE_PROMPT_GENERATOR: DesignPromptGenerator = (
 
     const changes = [
         `- **⚡ PRIMARY USER REQUEST (HIGHEST PRIORITY):** ${userRequest}. Apply this user request directly to the cake image.`,
-        ...toyToPrintoutTargets.slice(0, 3).map(topper =>
-            `- **Material conversion detail:** ${buildToyToPrintoutInstruction({
+        ...toyToPrintoutTargets.slice(0, 3).map(topper => {
+            const localizationHint = buildDecorLocalizationHint(topper);
+
+            return `- **Material conversion detail:** ${buildToyToPrintoutInstruction({
                 description: topper.description,
                 originalType: topper.original_type || topper.type,
-            })}`
-        ),
+            })}${localizationHint ? ` ${localizationHint}` : ''}`;
+        }),
         toyToPrintoutTargets.length > 3
             ? `- Apply the same toy-to-printout conversion treatment to the remaining ${toyToPrintoutTargets.length - 3} toy-derived topper(s) as well.`
             : null,

@@ -6,6 +6,7 @@ import {
     DEFAULT_THICKNESS_MAP,
     COLORS
 } from '@/constants';
+import { buildDecorLocalizationHint } from '@/utils/editImageTuning';
 import { buildToyToPrintoutInstruction, isToyLikeType } from '@/utils/printoutConversionPrompt';
 import type {
     HybridAnalysisResult,
@@ -116,6 +117,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             changes.push(`- **Remove the main topper** described as: "${t.description}".`);
         } else {
             const itemChanges: string[] = [];
+            const localizationHint = buildDecorLocalizationHint(t);
             if (t.type !== t.original_type) {
                 if (t.type === 'printout' && isToyLikeType(t.original_type)) {
                     itemChanges.push(buildToyToPrintoutInstruction({
@@ -172,7 +174,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             }
 
             if (itemChanges.length > 0) {
-                changes.push(`- For the main topper "${t.description}": ${itemChanges.join(' and ')}.`);
+                changes.push(`- For the main topper "${t.description}": ${itemChanges.join(' and ')}.${localizationHint ? ` ${localizationHint}` : ''}`);
             }
         }
     });
@@ -183,6 +185,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             changes.push(`- **Remove the support element** described as: "${s.description}".`);
         } else {
             const itemChanges: string[] = [];
+            const localizationHint = buildDecorLocalizationHint(s);
             if (s.type !== s.original_type) {
                 itemChanges.push(`change its material to **${s.type}**`);
             }
@@ -235,7 +238,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             }
 
             if (itemChanges.length > 0) {
-                changes.push(`- For the support element "${s.description}": ${itemChanges.join(' and ')}.`);
+                changes.push(`- For the support element "${s.description}": ${itemChanges.join(' and ')}.${localizationHint ? ` ${localizationHint}` : ''}`);
             }
         }
     });
