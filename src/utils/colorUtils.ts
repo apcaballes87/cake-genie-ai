@@ -46,11 +46,13 @@ export const findClosestColor = (color: string, availableColors = AVAILABLE_ICIN
         '#FF8C00': 'orange', '#ED8936': 'orange',
         // Yellows
         '#EAB308': 'yellow', '#FFFF00': 'yellow', '#FDE047': 'yellow', '#FACC15': 'yellow',
-        '#FFD700': 'yellow', '#F6E05E': 'yellow', '#FBBF24': 'yellow',
+        '#FFD700': 'yellow', '#F6E05E': 'yellow', '#FBBF24': 'yellow', '#FFDAB9': 'yellow',
+        '#FFFFE0': 'yellow',
         // Greens
         '#16A34A': 'green', '#4ADE80': 'green', '#14B8A6': 'green', '#22C55E': 'green',
         '#00FF00': 'green', '#10B981': 'green', '#34D399': 'green', '#059669': 'green',
-        '#48BB78': 'green', '#68D391': 'green', '#90EE90': 'green',
+        '#48BB78': 'green', '#68D391': 'green', '#90EE90': 'green', '#008000': 'green',
+        '#98FF98': 'green',
         // Blues (including light/sky/baby blue)
         '#3B82F6': 'blue', '#93C5FD': 'blue', '#60A5FA': 'blue', '#2563EB': 'blue',
         '#0000FF': 'blue', '#1D4ED8': 'blue', '#BFDBFE': 'blue', '#DBEAFE': 'blue',
@@ -58,6 +60,7 @@ export const findClosestColor = (color: string, availableColors = AVAILABLE_ICIN
         '#00BFFF': 'blue', '#1E90FF': 'blue', '#6495ED': 'blue', '#4169E1': 'blue',
         '#00CED1': 'blue', '#40E0D0': 'blue', '#7DD3FC': 'blue', '#38BDF8': 'blue',
         '#0EA5E9': 'blue', '#0284C7': 'blue', '#89CFF0': 'blue', '#00B4D8': 'blue',
+        '#000080': 'blue',
         '#00008B': 'blue', // Dark Blue
         // Purples
         '#8B5CF6': 'purple', '#C4B5FD': 'purple', '#A855F7': 'purple', '#7C3AED': 'purple',
@@ -71,7 +74,7 @@ export const findClosestColor = (color: string, availableColors = AVAILABLE_ICIN
         // Browns
         '#78350F': 'brown', '#B45309': 'brown', '#92400E': 'brown', '#8B4513': 'brown',
         '#A0522D': 'brown', '#D2691E': 'brown', '#CD853F': 'brown', '#DEB887': 'brown',
-        '#8B6914': 'brown', '#795548': 'brown',
+        '#8B6914': 'brown', '#795548': 'brown', '#D2B48C': 'brown',
         // Whites / Grays / Creams
         '#64748B': 'white', '#FFFFFF': 'white', '#F8F8FF': 'white', '#F5F5F5': 'white',
         '#FAFAFA': 'white', '#E2E8F0': 'white', '#CBD5E1': 'white', '#F1F5F9': 'white',
