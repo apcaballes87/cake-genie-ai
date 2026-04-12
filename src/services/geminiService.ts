@@ -10,6 +10,7 @@ import {
 } from './roboflowService';
 import { FEATURE_FLAGS, isRoboflowConfigured } from '@/config/features';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
+import { getEditImageCompressionOptions } from '@/utils/editImageTuning';
 
 const supabase = createClient();
 
@@ -284,13 +285,13 @@ export async function editCakeImage(
         const imageBlob = dataURItoBlob(fullDataUri);
         const imageFile = new File([imageBlob], "input-image.png", { type: originalImage.mimeType });
 
-        // Use the imported compressImage utility (target ~1MB or 1024px)
-        const compressedFile = await compressImage(imageFile, {
-            maxSizeMB: 0.8,
-            maxWidthOrHeight: 1024,
-            useWebWorker: true,
-            fileType: 'image/jpeg' // JPEG is efficient for AI input
+        const compressionOptions = getEditImageCompressionOptions({
+            prompt,
+            mainToppers,
+            supportElements,
         });
+
+        const compressedFile = await compressImage(imageFile, compressionOptions);
 
         // Convert back to the format expected by the API ({ data, mimeType })
         // We use the local fileToBase64 helper or just read it here
@@ -301,6 +302,8 @@ export async function editCakeImage(
             requestSource: requestSource ?? 'unknown',
             originalBytes: imageFile.size,
             compressedBytes: compressedFile.size,
+            maxSizeMB: compressionOptions.maxSizeMB,
+            maxWidthOrHeight: compressionOptions.maxWidthOrHeight,
         });
 
         const response = await fetch('/api/ai/edit-image', {
