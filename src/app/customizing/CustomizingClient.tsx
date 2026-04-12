@@ -90,6 +90,11 @@ import { fillAiChatPromptTemplate, parseAiChatPromptTemplate, ParsedAiChatPrompt
 import { mapAnalysisToState } from '@/utils/customizationMapper';
 import type { DesignPromptGenerator } from '@/hooks/useDesignUpdate';
 import { createClient } from '@/lib/supabase/client';
+import {
+    buildToyToPrintoutInstruction,
+    isToyLikeType,
+    requestMentionsPrintoutConversion,
+} from '@/utils/printoutConversionPrompt';
 
 interface AvailabilityInfo {
     type: AvailabilityType;
@@ -107,7 +112,7 @@ const AI_CHAT_USER_REQUEST_REGEX = /\[USER REQUEST\]:\s*(.*)/;
 const AI_CHAT_IMAGE_PROMPT_GENERATOR: DesignPromptGenerator = (
     _originalAnalysis,
     newCakeInfo,
-    _mainToppers,
+    mainToppers,
     _supportElements,
     _cakeMessages,
     _icingDesign,
@@ -116,8 +121,23 @@ const AI_CHAT_IMAGE_PROMPT_GENERATOR: DesignPromptGenerator = (
     const userRequest = additionalInstructions.match(AI_CHAT_USER_REQUEST_REGEX)?.[1]?.trim()
         ?? additionalInstructions.trim();
 
+    const toyToPrintoutTargets = requestMentionsPrintoutConversion(userRequest)
+        ? mainToppers.filter(topper =>
+            topper.isEnabled && isToyLikeType(topper.original_type || topper.type)
+        )
+        : [];
+
     const changes = [
         `- **⚡ PRIMARY USER REQUEST (HIGHEST PRIORITY):** ${userRequest}. Apply this user request directly to the cake image.`,
+        ...toyToPrintoutTargets.slice(0, 3).map(topper =>
+            `- **Material conversion detail:** ${buildToyToPrintoutInstruction({
+                description: topper.description,
+                originalType: topper.original_type || topper.type,
+            })}`
+        ),
+        toyToPrintoutTargets.length > 3
+            ? `- Apply the same toy-to-printout conversion treatment to the remaining ${toyToPrintoutTargets.length - 3} toy-derived topper(s) as well.`
+            : null,
         newCakeInfo?.size ? `- Preserve the final **cake size** as "${newCakeInfo.size}".` : null,
         '- Preserve all other cake details that the user did not mention.',
     ].filter(Boolean).join('\n');
