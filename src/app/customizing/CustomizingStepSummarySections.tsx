@@ -401,8 +401,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                     onClick={() => {
                                         setSelectedItem({
                                             ...item,
-                                            itemCategory: 'classification' in item ? 'topper' : 'element',
-                                        });
+                                            itemCategory: ('classification' in item ? 'topper' : 'element'),
+                                        } as ClusteredMarker);
                                         openTopperSheet('classification' in item ? 'main' : 'support');
                                     }}
                                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-left"
