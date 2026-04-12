@@ -485,7 +485,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                 {/* Live Demo badge */}
                 <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md">
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-xs font-semibold text-slate-700">Live Demo</span>
+                    <span className="text-[10px] font-semibold text-slate-700">Live Demo</span>
                 </div>
 
                 {/* Cake image */}
@@ -503,7 +503,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                             key={annotationKey}
                             className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg animate-annotation-fade-in"
                         >
-                            <span className="text-xs font-bold text-purple-600">{annotation}</span>
+                            <span className="text-[10px] font-bold text-purple-600">{annotation}</span>
                         </div>
                     )}
 
@@ -947,7 +947,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 >
                                     <ShoppingBag size={24} />
                                     {isMounted && itemCount > 0 && (
-                                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
+                                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
                                             {itemCount}
                                         </span>
                                     )}
@@ -977,7 +977,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             >
                                 <ShoppingBag size={24} />
                                 {isMounted && itemCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
+                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
                                         {itemCount}
                                     </span>
                                 )}
@@ -1052,7 +1052,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             >
                                 <ShoppingBag size={22} />
                                 {isMounted && itemCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
+                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
                                         {itemCount}
                                     </span>
                                 )}
@@ -1131,8 +1131,11 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             </div>
                             <div className="mt-4 flex items-center gap-3">
                                 <div className="h-px flex-1 bg-purple-200/80" />
-                                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-500">or</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-purple-500">or</span>
                                 <div className="h-px flex-1 bg-purple-200/80" />
+                            </div>
+                            <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-purple-500 text-center">
+                                Browse Cake Designs Available for Delivery Today
                             </div>
                             <div className="mt-4 grid grid-cols-3 gap-3">
                                 {desktopHeroCollections.slice(0, 6).map((collection) => (
@@ -1203,10 +1206,19 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         <span className="whitespace-nowrap">Same-day Delivery</span>
                                     </div>
                                 </div>
+                                <div className="mt-4 flex items-center gap-3">
+                                    <div className="h-px flex-1 bg-purple-200/80" />
+                                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-purple-500 shrink-0">or</span>
+                                    <div className="h-px flex-1 bg-purple-200/80" />
+                                </div>
                             </div>
 
-                            <div className="relative z-10 mt-4">
-                                <div className="mx-auto grid w-full max-w-[24rem] grid-cols-2 gap-4 min-[945px]:hidden">
+                            <div className="relative z-10">
+                                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-purple-500 text-center">
+                                    Browse Cake Designs Available for Delivery Today
+                                </div>
+
+                                <div className="mt-4 min-[945px]:mt-[30px] mx-auto grid w-full grid-cols-2 gap-4 min-[945px]:hidden">
                                     {TABLET_HERO_MASONRY_COLUMNS.map((column) => (
                                         <div key={column.indexes.join('-')} className={`flex flex-col gap-4 ${column.className}`}>
                                             {column.indexes.map((collectionIndex) => {
@@ -1229,7 +1241,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         </div>
                                     ))}
                                 </div>
-                                <div className="hidden min-[945px]:grid min-[945px]:grid-cols-3 min-[945px]:gap-3 min-[1232px]:gap-4">
+                                <div className="hidden min-[945px]:grid min-[945px]:grid-cols-3 min-[945px]:gap-3 min-[1232px]:gap-4 mt-4 min-[945px]:mt-[30px]">
                                     {DESKTOP_HERO_MASONRY_COLUMNS.map((column) => (
                                         <div key={column.indexes.join('-')} className={`flex flex-col gap-3 min-[1232px]:gap-4 ${column.className}`}>
                                             {column.indexes.map((collectionIndex) => {
@@ -1262,7 +1274,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 {reviewCards.length > 0 && (
                 <section aria-label="Customer reviews" className="w-full overflow-hidden py-2 md:py-4">
                     <div className="mx-auto max-w-7xl px-4 pb-3 text-center sm:px-6 lg:px-8 md:pb-4">
-                        <Link href="/reviews" className="text-[10px] text-gray-600 hover:text-purple-600 md:text-xs">
+                        <Link href="/reviews" className="text-[10px] text-gray-600 hover:text-purple-600 md:text-[10px]">
                             4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
                         </Link>
                     </div>
@@ -1299,7 +1311,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     <div className="flex items-center justify-between mb-1.5">
                                         <div className="flex gap-px">
                                             {[1, 2, 3, 4, 5].map((star) => (
-                                                <span key={star} className={`text-xs ${star <= card.rating ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+                                                <span key={star} className={`text-[10px] ${star <= card.rating ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
                                             ))}
                                         </div>
                                         <span className="text-[10px] font-medium text-slate-600 truncate ml-2">{card.name}</span>
@@ -1591,7 +1603,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
                 {/* Drawer Footer */}
                 <div className="px-5 py-5 border-t border-purple-50">
-                    <p className="text-xs text-gray-400 text-center">&copy; {new Date().getFullYear()} Genie.ph — Your Cake Wish, Granted.</p>
+                    <p className="text-[10px] text-gray-400 text-center">&copy; {new Date().getFullYear()} Genie.ph — Your Cake Wish, Granted.</p>
                 </div>
             </aside>
         </div>
