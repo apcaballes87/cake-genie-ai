@@ -79,4 +79,53 @@ describe('designService: no-op fast path', () => {
         expect(geminiService.editCakeImage).toHaveBeenCalled();
         expect(result.image).toBe('new-image-data-base64');
     });
+
+    it('uses a strong object-replacement prompt when converting a toy topper to printout', async () => {
+        (geminiService.editCakeImage as any).mockResolvedValueOnce('toy-to-printout-image');
+
+        await updateDesign({
+            originalImageData: mockOriginalImage,
+            analysisResult: {
+                ...mockAnalysisResult,
+                main_toppers: [{
+                    type: 'toy',
+                    description: 'paw patrol figure',
+                    quantity: 1,
+                    size: 'medium',
+                    material: 'plastic',
+                    group_id: 'toy-1',
+                    classification: 'hero',
+                }],
+            } as any,
+            cakeInfo: { type: '1 Tier', flavor: ['Chocolate Cake'], size: '6" Round', thickness: 'Standard' } as any,
+            mainToppers: [{
+                id: 'topper-1',
+                type: 'printout',
+                original_type: 'toy',
+                description: 'paw patrol figure',
+                quantity: 1,
+                size: 'medium',
+                material: 'plastic',
+                group_id: 'toy-1',
+                classification: 'hero',
+                isEnabled: true,
+                price: 0,
+                x: 0,
+                y: 0,
+            }] as any,
+            supportElements: [],
+            cakeMessages: [],
+            icingDesign: mockAnalysisResult.icing_design,
+            additionalInstructions: '',
+            threeTierReferenceImage: null,
+            traceId: 'toy-printout-trace',
+        });
+
+        const [prompt, , , , , systemInstruction] = (geminiService.editCakeImage as any).mock.calls[0];
+
+        expect(prompt).toContain('completely remove the existing 3D toy');
+        expect(prompt).toContain('flat 2D printed paper cutout version of the same subject');
+        expect(prompt).toContain('Do NOT leave any molded plastic seams');
+        expect(systemInstruction).toContain('TOY TO PRINTOUT CONVERSIONS');
+    });
 });

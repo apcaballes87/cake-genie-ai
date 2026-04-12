@@ -6,6 +6,7 @@ import {
     DEFAULT_THICKNESS_MAP,
     COLORS
 } from '@/constants';
+import { buildToyToPrintoutInstruction, isToyLikeType } from '@/utils/printoutConversionPrompt';
 import type {
     HybridAnalysisResult,
     MainTopperUI,
@@ -40,7 +41,8 @@ const GENERATIVE_DESIGN_SYSTEM_INSTRUCTION = `You are a master digital cake arti
 5.  **Clean Removals:** When asked to remove an element, you must cleanly erase it and realistically in-paint the background area to seamlessly match the surrounding texture and lighting.
 6.  **Texture-Preserving Color Changes:** When asked to change an existing color, you MUST perform a "hue-shift" or "color tinting" operation. Preserve 100% of the original surface details and micro-textures (like icing strokes). The brightness and darkness (luminance) of every pixel should remain identical to the original; only the hue and saturation should change. Avoid flat, "plastic" looks.
 7.  **Remove watermarks and digitally overlayed logos (If there are any).**
-8.  **IGNORE NON-DESIGN PROMPTS:** If the user's instruction or statement has nothing to do with editing the cake image (e.g., "add to cart", "pick up", "address", "payment", or date/time selections), ignore it completely and make no changes to the image.`;
+8.  **IGNORE NON-DESIGN PROMPTS:** If the user's instruction or statement has nothing to do with editing the cake image (e.g., "add to cart", "pick up", "address", "payment", or date/time selections), ignore it completely and make no changes to the image.
+9.  **TOY TO PRINTOUT CONVERSIONS:** When asked to convert a toy, figurine, or plastic topper into a printout, you MUST remove the entire 3D object and replace it with a flat 2D photopaper cutout of the same subject. Keep the subject identity and placement, but eliminate all molded seams, glossy plastic volume, and full 3D toy depth.`;
 
 const THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION = `You are a master digital cake artist tasked with reconstructing a cake design into a new 3-tier structure. You will be given an original cake image for its design language and a reference image for the 3-tier structure.
 
@@ -115,7 +117,14 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
         } else {
             const itemChanges: string[] = [];
             if (t.type !== t.original_type) {
-                itemChanges.push(`change its material to **${t.type}**`);
+                if (t.type === 'printout' && isToyLikeType(t.original_type)) {
+                    itemChanges.push(buildToyToPrintoutInstruction({
+                        description: t.description,
+                        originalType: t.original_type,
+                    }));
+                } else {
+                    itemChanges.push(`change its material to **${t.type}**`);
+                }
             }
             if (t.replacementImage) {
                 if (t.type === 'icing_doodle') {
@@ -544,7 +553,7 @@ export async function updateDesign({
     const effectiveTraceId = traceId ?? `design-service-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const startedAt = Date.now();
 
-    let systemInstruction =
+    const systemInstruction =
         isThreeTierReconstruction ? THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION :
             useInpaintingStyle ? INPAINTING_STYLE_SYSTEM_INSTRUCTION :
                 GENERATIVE_DESIGN_SYSTEM_INSTRUCTION;
