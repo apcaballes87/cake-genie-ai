@@ -8,15 +8,6 @@ vi.mock('@/components/LazyImage', () => ({
     default: ({ alt }: { alt: string }) => <span>{alt}</span>,
 }));
 
-vi.mock('@/components/CakeToppersOptions', () => ({
-    CakeToppersOptions: ({ mainToppers, onSectionClick }: { mainToppers: Array<{ id: string }>; onSectionClick?: (section: 'main' | 'support') => void }) => (
-        <div>
-            <span>{mainToppers.length} toppers</span>
-            <button onClick={() => onSectionClick?.('main')}>Open main toppers</button>
-        </div>
-    ),
-}));
-
 const buildProps = (): React.ComponentProps<typeof CustomizingStepSummarySections> => ({
     layout: 'desktop' as const,
     cakeInfo: {
@@ -114,7 +105,7 @@ describe('CustomizingStepSummarySections', () => {
         expect(screen.getByText('FRONT')).toBeInTheDocument();
     });
 
-    it('renders empty-message CTA and topper summary actions in mobile layout', () => {
+    it('renders empty-message CTA and combined decoration summary in mobile layout', () => {
         const props = buildProps();
         props.layout = 'mobile';
         props.cakeMessages = [];
@@ -122,24 +113,105 @@ describe('CustomizingStepSummarySections', () => {
         render(<CustomizingStepSummarySections {...props} />);
 
         fireEvent.click(screen.getByRole('button', { name: /Add a cake message/i }));
-        fireEvent.click(screen.getByRole('button', { name: /Open main toppers/i }));
+        fireEvent.click(screen.getByRole('button', { name: /1x\s*Toy topper\s*\(Toy\)/i }));
 
         expect(props.setActiveCustomization).toHaveBeenCalledWith('messages');
-        expect(props.setSelectedItem).toHaveBeenCalledWith(null);
+        expect(props.setSelectedItem).toHaveBeenCalledWith(expect.objectContaining({
+            id: 'topper-1',
+            itemCategory: 'topper',
+            description: 'Toy topper',
+        }));
         expect(props.openTopperSheet).toHaveBeenCalledWith('main');
-        expect(screen.getByText('1 toppers')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /1x\s*Toy topper\s*\(Toy\)/i })).toBeInTheDocument();
         expect(screen.getByText(/Switch from toy toppers to edible or printed toppers/i)).toBeInTheDocument();
     });
 
-    it('keeps step 4 visible even when no toppers or support elements were detected', () => {
+    it('shows only the first 3 decoration items and uses show more for overflow', () => {
+        const props = buildProps();
+        props.mainToppers = [
+            {
+                id: 'topper-1',
+                type: 'toy',
+                original_type: 'toy',
+                description: 'Toy topper',
+                size: 'medium',
+                quantity: 1,
+                group_id: 'group-1',
+                classification: 'hero',
+                isEnabled: true,
+                price: 0,
+            },
+            {
+                id: 'topper-2',
+                type: 'figurine',
+                original_type: 'figurine',
+                description: 'Butterfly topper',
+                size: 'small',
+                quantity: 1,
+                group_id: 'group-1',
+                classification: 'hero',
+                isEnabled: true,
+                price: 0,
+            },
+        ] as MainTopperUI[];
+        props.supportElements = [
+            {
+                id: 'support-1',
+                type: 'fresh_flowers',
+                original_type: 'fresh_flowers',
+                description: 'Pink flowers',
+                size: 'small',
+                quantity: 2,
+                group_id: 'group-2',
+                isEnabled: true,
+                price: 0,
+            },
+            {
+                id: 'support-2',
+                type: 'dragees',
+                original_type: 'dragees',
+                description: 'Sugar pearls',
+                size: 'small',
+                quantity: 1,
+                group_id: 'group-3',
+                isEnabled: true,
+                price: 0,
+            },
+        ] as SupportElementUI[];
+
+        render(<CustomizingStepSummarySections {...props} />);
+
+        expect(screen.getByRole('button', { name: /1x\s*Toy topper\s*\(Toy\)/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /1x\s*Butterfly topper\s*\(Figurine \(Simpler\)\)/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /2x\s*Pink flowers\s*\(Fresh Flowers\)/i })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /1x\s*Sugar pearls\s*\(Dragees \(Pearls\)\)/i })).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: /Show more/i }));
+
+        expect(props.setSelectedItem).toHaveBeenCalledWith(null);
+        expect(props.openTopperSheet).toHaveBeenCalledWith();
+    });
+
+    it('keeps the decoration step visible even when no toppers or support elements were detected', () => {
         const props = buildProps();
         props.mainToppers = [];
         props.supportElements = [];
 
         render(<CustomizingStepSummarySections {...props} />);
 
-        expect(screen.getByText('Step 3: Cake Toppers')).toBeInTheDocument();
-        expect(screen.getByText('0 toppers')).toBeInTheDocument();
+        expect(screen.getByText('Step 3: Cake Decorations')).toBeInTheDocument();
+        expect(screen.getByText(/No decorations detected yet/i)).toBeInTheDocument();
         expect(screen.queryByText(/Switch from toy toppers to edible or printed toppers/i)).not.toBeInTheDocument();
+    });
+
+    it('splits icing into its own step when requested', () => {
+        const props = buildProps();
+
+        render(<CustomizingStepSummarySections {...props} separateIcingStep />);
+
+        expect(screen.getByText('Step 2: Icing Colors')).toBeInTheDocument();
+        expect(screen.getByText('Step 3: Cake Messages')).toBeInTheDocument();
+        expect(screen.getByText('Step 4: Cake Decorations')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Top Border/i })).toBeInTheDocument();
     });
 });

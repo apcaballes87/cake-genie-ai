@@ -6,15 +6,14 @@ import { createClient } from '@/lib/supabase/server'
 import CustomizingClient from '../CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { getCakeBasePriceOptions, getRelatedProductsByKeywords } from '@/services/supabaseService'
-import { CakeType, CakeThickness, BasePriceInfo, HybridAnalysisResult, CakeInfoUI, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI } from '@/types'
+import { CakeType, CakeThickness, BasePriceInfo, HybridAnalysisResult, CakeInfoUI } from '@/types'
 import { CustomizationProvider, CustomizationState } from '@/contexts/CustomizationContext'
 // FAQPageSchema deprecated (restricted to gov/healthcare Aug 2023) — using HTML accordions instead
 import { DesignAboutSection } from '@/components/DesignAboutSection'
 import LazyImage from '@/components/LazyImage'
 import NewsletterPopup from '@/components/NewsletterPopup'
 import { LandingFooter } from '@/components/landing/LandingFooter'
-import { v4 as uuidv4 } from 'uuid'
-import { mapProductToDefaultState } from '@/utils/customizationMapper'
+import { mapAnalysisToState, mapProductToDefaultState } from '@/utils/customizationMapper'
 import { upgradeLegacySlug, downgradeCakeSlug } from '@/lib/utils/urlHelpers'
 import { generateDesignDetails, generateDynamicFAQ, generateRichAltText } from '@/utils/designContentUtils'
 
@@ -910,48 +909,11 @@ export default async function RecentSearchPage({ params }: Props) {
             size: '6" Round' // Default size, ideally mapped from type
         };
 
-        // Transform arrays to add IDs if needed (though IDs should ideally be valid strings)
-        // We'll trust the analysis structure mostly matches, but ensure IDs exist
-        const mainToppers = (analysis.main_toppers || []).map((t: any) => ({
-            ...t,
-            id: t.id || uuidv4(),
-            isEnabled: true,
-            original_type: t.type,
-            original_color: t.color,
-            original_colors: t.colors
-        }));
-
-        const supportElements = (analysis.support_elements || []).map((s: any) => ({
-            ...s,
-            id: s.id || uuidv4(),
-            isEnabled: true,
-            original_type: s.type,
-            original_color: s.color,
-            original_colors: s.colors
-        }));
-
-        const cakeMessages = (analysis.cake_messages || []).map((m: any) => ({
-            ...m,
-            id: m.id || uuidv4(),
-            text: m.text || '', // Preserve analyzed text if present
-            isEnabled: true,
-            isPlaceholder: !m.text, // Only a placeholder if no text was detected
-            originalMessage: { ...m }
-        }));
-
-        const icingDesign: IcingDesignUI | null = analysis.icing_design ? {
-            ...analysis.icing_design,
-            dripPrice: 100, // Default pricing assumption
-            gumpasteBaseBoardPrice: 100
-        } : null;
+        const mappedState = mapAnalysisToState(analysis as HybridAnalysisResult);
 
         initialState = {
+            ...mappedState,
             cakeInfo: defaultCakeInfo,
-            mainToppers,
-            supportElements,
-            cakeMessages,
-            icingDesign,
-            additionalInstructions: '',
             analysisResult: analysis, // The full analysis result
             analysisId: design.slug, // Using slug or p_hash as ID
             availability: design.availability

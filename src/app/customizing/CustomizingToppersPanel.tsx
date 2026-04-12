@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 import { CakeToppersOptions } from '@/components/CakeToppersOptions';
-import type { MainTopperUI, SupportElementUI } from '@/types';
+import type { AnalysisItem, MainTopperUI, SupportElementUI } from '@/types';
 
 interface CustomizingToppersPanelProps {
     isVisible: boolean;
@@ -17,6 +17,7 @@ interface CustomizingToppersPanelProps {
     isAdmin?: boolean;
     isAnalyzing?: boolean;
     visibleSections?: 'all' | 'main' | 'support';
+    selectedTopperItem?: Extract<AnalysisItem, { itemCategory: 'topper' | 'element' }> | null;
 }
 
 export const CustomizingToppersPanel = memo(function CustomizingToppersPanel({
@@ -32,12 +33,29 @@ export const CustomizingToppersPanel = memo(function CustomizingToppersPanel({
     isAdmin,
     isAnalyzing,
     visibleSections = 'all',
+    selectedTopperItem = null,
 }: CustomizingToppersPanelProps) {
+    const filteredMainToppers = selectedTopperItem?.itemCategory === 'topper'
+        ? mainToppers.filter((topper) => topper.id === selectedTopperItem.id)
+        : selectedTopperItem?.itemCategory === 'element'
+            ? []
+            : mainToppers;
+    const filteredSupportElements = selectedTopperItem?.itemCategory === 'element'
+        ? supportElements.filter((element) => element.id === selectedTopperItem.id)
+        : selectedTopperItem?.itemCategory === 'topper'
+            ? []
+            : supportElements;
+    const effectiveVisibleSections = selectedTopperItem?.itemCategory === 'topper'
+        ? 'main'
+        : selectedTopperItem?.itemCategory === 'element'
+            ? 'support'
+            : visibleSections;
+
     return (
         <div className={isVisible ? 'block' : 'hidden'}>
             <CakeToppersOptions
-                mainToppers={mainToppers}
-                supportElements={supportElements}
+                mainToppers={filteredMainToppers}
+                supportElements={filteredSupportElements}
                 markerMap={markerMap}
                 updateMainTopper={updateMainTopper}
                 updateSupportElement={updateSupportElement}
@@ -46,7 +64,7 @@ export const CustomizingToppersPanel = memo(function CustomizingToppersPanel({
                 itemPrices={itemPrices}
                 isAdmin={isAdmin}
                 isAnalyzing={isAnalyzing}
-                visibleSections={visibleSections}
+                visibleSections={effectiveVisibleSections}
             />
         </div>
     );

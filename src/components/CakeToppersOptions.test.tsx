@@ -103,8 +103,7 @@ describe('CakeToppersOptions', () => {
         });
 
         expect(screen.queryByText('Main Toppers (1)')).not.toBeInTheDocument();
-        expect(screen.getByText('Support Elements (1)')).toBeInTheDocument();
+        expect(screen.queryByText('Support Elements (1)')).not.toBeInTheDocument();
         expect(screen.getByTestId('element-card')).toHaveTextContent('Ferrero cluster');
     });
 });
-

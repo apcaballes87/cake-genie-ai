@@ -6,6 +6,8 @@ import RecentSearchPage from './page';
 import { createClient } from '@/lib/supabase/server';
 import { getCakeBasePriceOptions, getRelatedProductsByKeywords } from '@/services/supabaseService';
 
+let capturedInitialData: unknown;
+
 vi.mock('next/navigation', () => ({ notFound: vi.fn(), permanentRedirect: vi.fn() }));
 vi.mock('next/link', () => ({ default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a> }));
 vi.mock('next/image', () => ({ default: (props: Record<string, unknown>) => <img {...props} /> }));
@@ -21,11 +23,15 @@ vi.mock('@/services/supabaseService', () => ({
   getRelatedProductsByKeywords: vi.fn(),
 }));
 vi.mock('@/contexts/CustomizationContext', () => ({
-  CustomizationProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+  CustomizationProvider: ({ children, initialData }: { children: ReactNode; initialData?: unknown }) => {
+    capturedInitialData = initialData;
+    return <>{children}</>;
+  },
 }));
 
 describe('RecentSearchPage', () => {
   beforeEach(() => {
+    capturedInitialData = undefined;
     const design = {
       slug: 'pink-minimalist-light-pink-bento-cake-f707',
       keywords: 'Pink Minimalist Bento Cake',
@@ -70,10 +76,10 @@ describe('RecentSearchPage', () => {
     expect(screen.getByTestId('customizing-client')).toBeInTheDocument();
 
     const ssrFallback = container.querySelector('#ssr-content');
-    expect(ssrFallback).toHaveStyle({ display: 'none' });
+    expect(ssrFallback).toBeInTheDocument();
 
-    // noscript style removed — Clarity was applying it and making the hidden SSR block visible
-    expect(staticMarkup).not.toContain('<noscript>');
+    // SSR block stays visible in the HTML for crawlers; the client hides it after hydration.
+    expect(staticMarkup).toContain('<noscript>');
     // Preload link added for LCP optimization (image SEO improvement)
     expect(hasDirectPreloadLink).toBe(true);
     // Visible SSR <img> tag for Googlebot + hidden SSR fallback both reference the image
@@ -92,5 +98,55 @@ describe('RecentSearchPage', () => {
     expect(consoleErrorSpy).toHaveBeenCalledTimes(2);
 
     consoleErrorSpy.mockRestore();
+  });
+
+  it('applies the toy-to-printout policy for analyzed slug pages', async () => {
+    const toyDesign = {
+      slug: 'paw-patrol-cake-1135-cake-design',
+      keywords: 'Paw Patrol Cake',
+      seo_title: 'Paw Patrol Cake | Genie.ph',
+      seo_description: 'Paw Patrol cake design.',
+      alt_text: 'Paw Patrol cake with toy toppers',
+      original_image_url: 'https://example.com/paw-patrol-cake.webp',
+      price: 2999,
+      availability: 'normal',
+      tags: ['paw patrol'],
+      analysis_json: {
+        cakeType: '1 Tier',
+        cakeThickness: '4 in',
+        icing_design: {},
+        main_toppers: [
+          {
+            type: 'toy',
+            description: 'paw patrol figure',
+            x: 0.5,
+            y: 0.2,
+          },
+        ],
+        support_elements: [],
+        cake_messages: [],
+      },
+    };
+
+    vi.mocked(createClient).mockResolvedValueOnce({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            single: () => Promise.resolve({ data: toyDesign }),
+          }),
+        }),
+      }),
+    } as never);
+
+    const page = await RecentSearchPage({ params: Promise.resolve({ slug: toyDesign.slug }) });
+    render(page);
+
+    const initialData = capturedInitialData as { mainToppers?: Array<{ type: string; original_type: string }> };
+
+    expect(initialData.mainToppers).toHaveLength(1);
+    expect(initialData.mainToppers?.[0]).toMatchObject({
+      type: 'printout',
+      original_type: 'toy',
+    });
   });
 });

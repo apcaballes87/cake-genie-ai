@@ -283,9 +283,10 @@ interface CustomizingClientProps {
     hideStickyBar?: boolean;
     useBasePriceAsFallback?: boolean;
     ediblePhotoAddonPrice?: number;
+    separateIcingStep?: boolean;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false, hideStickyBar = false, useBasePriceAsFallback = false, ediblePhotoAddonPrice = 0 }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false, hideStickyBar = false, useBasePriceAsFallback = false, ediblePhotoAddonPrice = 0, separateIcingStep = false }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const params = useParams();
@@ -2042,7 +2043,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
         if (hasReplacedToy) {
             return {
-                warningMessage: "toy temporarily replaced with printout",
+                warningMessage: "Toy Temporarily Replaced with Printout",
                 warningDescription: "We changed the topper to printout for now due to availability."
             };
         }
@@ -2820,6 +2821,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         onTopperImageReplace: onTopperImageReplace,
                                         onSupportElementImageReplace: onSupportElementImageReplace,
                                         openTopperSheet,
+                                        separateIcingStep,
                                     }}
                                 />
                             ) : analysisError ? (
@@ -2878,6 +2880,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     onSupportElementImageReplace={onSupportElementImageReplace}
                                     openTopperSheet={openTopperSheet}
                                     onIcingTypeChange={handleIcingTypeChange}
+                                    separateIcingStep={separateIcingStep}
                                 />
                             )}
                         </div>
@@ -2939,6 +2942,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 onTopperImageReplace: onTopperImageReplace,
                                 onSupportElementImageReplace: onSupportElementImageReplace,
                                 openTopperSheet,
+                                separateIcingStep,
                             }}
                         />
                     </div>
@@ -3050,6 +3054,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         isAdmin={isAdmin}
                         isAnalyzing={isAnalyzing}
                         visibleSections={activeTopperSection ?? 'all'}
+                        selectedTopperItem={
+                            selectedItem && !selectedItem.isCluster && (selectedItem.itemCategory === 'topper' || selectedItem.itemCategory === 'element')
+                                ? selectedItem
+                                : null
+                        }
                     />
 
                     <CustomizingPhotosPanel

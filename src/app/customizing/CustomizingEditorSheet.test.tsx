@@ -95,4 +95,13 @@ describe('CustomizingEditorSheet', () => {
         fireEvent.click(screen.getByRole('button', { name: 'close-sheet' }));
         expect(props.onClose).toHaveBeenCalledTimes(1);
     });
+
+    it('offsets the sheet above both warning and availability bars when both are visible', () => {
+        const props = buildProps();
+        props.showWarningOffset = true;
+
+        render(<CustomizingEditorSheet {...props} />);
+
+        expect(screen.getByText('206px')).toBeInTheDocument();
+    });
 });
