@@ -3,7 +3,7 @@ import { getAI } from '@/lib/ai/client';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 
 export const maxDuration = 60;
-const MODEL_NAME = 'gemini-2.5-flash-image';
+const MODEL_NAME = 'gemini-3.1-flash-image-preview';
 
 const SYSTEM_INSTRUCTION = `You are a professional food photographer and cake artist specializing in photorealistic edible photo cakes.
 
