@@ -88,8 +88,11 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
         }
     }, [isOpen]);
 
-    // if (!isVisible) return null; // Removed for SEO - keep mounted but hidden
+    const resolvedBottomOffset = typeof style?.bottom === 'number'
+        ? `${style.bottom}px`
+        : style?.bottom || '80px';
 
+    // if (!isVisible) return null; // Removed for SEO - keep mounted but hidden
 
     return (
         <div
@@ -105,7 +108,7 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
                     ${className}
                 `}
                 style={{
-                    transform: isAnimating ? `translateY(${dragOffset}px)` : 'translateY(100%)',
+                    transform: isAnimating ? `translateY(${dragOffset}px)` : `translateY(calc(100% + ${resolvedBottomOffset}))`,
                     transition: isDragging && dragOffset > 0 ? 'none' : 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)',
                 }}
                 onTouchStart={handleTouchStart}
@@ -151,4 +154,3 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
         </div>
     );
 };
-

@@ -43,6 +43,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
     const [isSupportExpanded, setIsSupportExpanded] = useState(true);
     const showMainSection = visibleSections === 'all' || visibleSections === 'main';
     const showSupportSection = visibleSections === 'all' || visibleSections === 'support';
+    const showDetailedSectionHeaders = visibleSections === 'all';
 
     const mainTopperCount = useMemo(
         () => mainToppers.reduce((sum, topper) => sum + (topper.quantity || 1), 0),
@@ -122,19 +123,21 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
             {/* Main Toppers Section */}
             {mainToppers.length > 0 && showMainSection && (
                 <div>
-                    <button
-                        onClick={() => setIsMainExpanded(!isMainExpanded)}
-                        className="w-full flex items-center justify-between py-1.5 px-1 hover:bg-slate-50 rounded-lg transition-colors group"
-                    >
-                        <h3 className="text-xs font-semibold text-slate-700">
-                            Main Toppers ({mainTopperCount})
-                        </h3>
-                        <div className={`transition-transform duration-200 ${isMainExpanded ? 'rotate-0' : '-rotate-90'}`}>
-                            <ChevronDownIcon className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-500" />
-                        </div>
-                    </button>
+                    {showDetailedSectionHeaders && (
+                        <button
+                            onClick={() => setIsMainExpanded(!isMainExpanded)}
+                            className="w-full flex items-center justify-between py-1.5 px-1 hover:bg-slate-50 rounded-lg transition-colors group"
+                        >
+                            <h3 className="text-xs font-semibold text-slate-700">
+                                Main Toppers ({mainTopperCount})
+                            </h3>
+                            <div className={`transition-transform duration-200 ${isMainExpanded ? 'rotate-0' : '-rotate-90'}`}>
+                                <ChevronDownIcon className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-500" />
+                            </div>
+                        </button>
+                    )}
                     {isMainExpanded && (
-                        <div className="space-y-2 mt-1.5">
+                        <div className={`space-y-2 ${showDetailedSectionHeaders ? 'mt-1.5' : ''}`}>
                             {mainToppers.map((topper) => (
                                 <TopperCard
                                     key={topper.id}
@@ -157,19 +160,21 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
             {/* Support Elements Section */}
             {supportElements.length > 0 && showSupportSection && (
                 <div>
-                    <button
-                        onClick={() => setIsSupportExpanded(!isSupportExpanded)}
-                        className="w-full flex items-center justify-between py-1.5 px-1 hover:bg-slate-50 rounded-lg transition-colors group"
-                    >
-                        <h3 className="text-xs font-semibold text-slate-700">
-                            Support Elements ({supportElementCount})
-                        </h3>
-                        <div className={`transition-transform duration-200 ${isSupportExpanded ? 'rotate-0' : '-rotate-90'}`}>
-                            <ChevronDownIcon className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-500" />
-                        </div>
-                    </button>
+                    {showDetailedSectionHeaders && (
+                        <button
+                            onClick={() => setIsSupportExpanded(!isSupportExpanded)}
+                            className="w-full flex items-center justify-between py-1.5 px-1 hover:bg-slate-50 rounded-lg transition-colors group"
+                        >
+                            <h3 className="text-xs font-semibold text-slate-700">
+                                Support Elements ({supportElementCount})
+                            </h3>
+                            <div className={`transition-transform duration-200 ${isSupportExpanded ? 'rotate-0' : '-rotate-90'}`}>
+                                <ChevronDownIcon className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-500" />
+                            </div>
+                        </button>
+                    )}
                     {isSupportExpanded && (
-                        <div className="space-y-2 mt-1.5">
+                        <div className={`space-y-2 ${showDetailedSectionHeaders ? 'mt-1.5' : ''}`}>
                             {supportElements.map((element) => (
                                 <TopperCard
                                     key={element.id}
@@ -196,4 +201,3 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
         </div>
     );
 };
-
