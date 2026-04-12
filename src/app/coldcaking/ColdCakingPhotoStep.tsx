@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Trash2 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 interface ColdCakingPhotoStepProps {
@@ -25,7 +26,9 @@ export function ColdCakingPhotoStep({ onUploadClick, hasPhoto, onDeletePhoto }: 
             const existing = container.querySelector(`[${attrName}]`);
             if (existing) return existing as HTMLElement;
 
-            // Find and hide the original Step 3 (Cake Toppers) card
+            // Find and hide the original Step 3 (Cake Toppers) card.
+            // Cold caking inserts a dedicated icing step, so the photo step
+            // replaces the toppers slot while cake messages remain visible.
             let step3Card: HTMLElement | null = null;
             for (const child of Array.from(container.children)) {
                 const h3 = child.querySelector('h3');
@@ -90,23 +93,22 @@ export function ColdCakingPhotoStep({ onUploadClick, hasPhoto, onDeletePhoto }: 
                         <span className="text-green-500 text-sm">✓</span>
                         <span className="text-[11px] font-semibold text-green-700">Photo uploaded</span>
                     </div>
-                    {onDeletePhoto && (
-                        <button
-                            onClick={onDeletePhoto}
-                            className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
-                            title="Delete photo"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM3 6h14v10a2 2 0 01-2 2H5a2 2 0 01-2-2V6zm3 3a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h4a1 1 0 100-2h-4z" clipRule="evenodd" />
-                            </svg>
-                        </button>
-                    )}
                     <button
                         onClick={onUploadClick}
                         className="text-[10px] font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2 px-5 rounded-full shadow-sm border border-purple-100 flex items-center gap-1.5"
                     >
                         <span className="text-base leading-none">↑</span> Change photo
                     </button>
+                    {onDeletePhoto && (
+                        <button
+                            onClick={onDeletePhoto}
+                            className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                            title="Delete photo"
+                            aria-label="Delete photo"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </button>
+                    )}
                 </div>
             ) : (
                 <div className="flex justify-center py-2">

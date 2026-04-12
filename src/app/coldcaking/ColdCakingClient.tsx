@@ -619,7 +619,7 @@ const ColdCakingClient: React.FC = () => {
                             hasPhoto={hasUploadedPhoto}
                             onDeletePhoto={handleDeletePhoto}
                         />
-                        <CustomizingClient hideAiChat={true} isCombining={isCombining} clearMessageTexts={true} hideStickyBar={!hasUploadedPhoto} useBasePriceAsFallback={true} ediblePhotoAddonPrice={hasUploadedPhoto ? ediblePhotoAddonPrice : 0} />
+                        <CustomizingClient hideAiChat={true} isCombining={isCombining} clearMessageTexts={true} hideStickyBar={!hasUploadedPhoto} useBasePriceAsFallback={true} ediblePhotoAddonPrice={hasUploadedPhoto ? ediblePhotoAddonPrice : 0} separateIcingStep={true} />
                     </div>
                 )}
 
