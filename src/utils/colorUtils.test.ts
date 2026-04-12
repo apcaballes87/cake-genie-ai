@@ -31,6 +31,15 @@ describe('findClosestColor', () => {
         expect(findClosestColor('#8B0000')).toBe('red'); // Dark Red
     });
 
+    it('should map the customized icing palette overrides correctly', () => {
+        expect(findClosestColor('#FFDAB9')).toBe('yellow'); // Peach
+        expect(findClosestColor('#FFFFE0')).toBe('yellow'); // Light Yellow
+        expect(findClosestColor('#008000')).toBe('green'); // Green
+        expect(findClosestColor('#98FF98')).toBe('green'); // Mint
+        expect(findClosestColor('#000080')).toBe('blue'); // Navy
+        expect(findClosestColor('#D2B48C')).toBe('brown'); // Tan
+    });
+
     // Edge Cases
     it('should handle uppercase hex codes', () => {
         expect(findClosestColor('#87CEEB')).toBe('blue');
