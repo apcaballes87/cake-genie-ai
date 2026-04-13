@@ -3,7 +3,6 @@ import LandingClient from './LandingClient';
 import { getRecommendedProducts, getPopularDesigns, getHomepageBlogPreviews, getDesignCategories } from '@/services/supabaseService';
 import { RecommendedProductsSection, IntroContent } from '@/components/landing';
 import { LandingFooter } from '@/components/landing/LandingFooter';
-import NewsletterPopup from '@/components/NewsletterPopup';
 import { createClient } from '@/lib/supabase/server';
 import { normalizePublicReviews, REVIEW_SELECT } from '@/lib/reviews';
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -218,7 +217,6 @@ export default async function Home() {
                 <IntroContent />
             </LandingClient>
             <LandingFooter />
-            <NewsletterPopup />
         </>
     );
 }

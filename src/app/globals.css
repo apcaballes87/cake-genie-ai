@@ -619,6 +619,21 @@ div.gs-image-box div.gs-image {
   font-size: 0.875rem;
 }
 
+@layer utilities {
+  .animate-bounce-subtle {
+    animation: bounce-subtle 3s ease-in-out infinite;
+  }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
 .blog-content th {
   background-color: #f3e8ff;
   color: #581c87;
