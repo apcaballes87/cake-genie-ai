@@ -11,15 +11,7 @@ export default function NewsletterPopup() {
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    // Check if the user landed directly on a customizing page
-    const firstEntry = sessionStorage.getItem('genieph_first_entry');
     const hasSeenPopup = localStorage.getItem('hasSeenNewsletterPopup');
-
-    // If first entry was customizing, don't show the global popup
-    if (firstEntry && firstEntry.includes('/customizing')) {
-      console.log('🔇 Suppressing popup because first entry was customizing:', firstEntry);
-      return;
-    }
 
     if (!hasSeenPopup) {
       const timer = setTimeout(() => {
@@ -33,7 +25,6 @@ export default function NewsletterPopup() {
   const closePopup = () => {
     setIsOpen(false);
     localStorage.setItem('hasSeenNewsletterPopup', 'true');
-    document.body.classList.remove('newsletter-popup-active');
   };
 
   const handleSubscribe = async (e: React.FormEvent) => {
