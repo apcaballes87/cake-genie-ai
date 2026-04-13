@@ -1418,6 +1418,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 clearImages();
                 clearCustomization();
                 setActiveTab('original');
+                // Clear any previous loading toasts from previous pages
+                toast.dismiss();
                 setIsAnalyzing(true);
                 setIsPreSelectionModalOpen(true);
                 showInfo("Loading your cake design...");
@@ -1504,6 +1506,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         if (isLoadingDesignRef.current) {
             return;
         }
+
+        // Clear any previous loading toasts from previous pages
+        toast.dismiss();
 
         const decodedUrl = decodeURIComponent(refUrl);
         const pathname = window.location.pathname;

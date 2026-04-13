@@ -225,10 +225,10 @@ function DesktopHeroCollectionCard({
                         className="block w-full h-auto transition-transform duration-700 group-hover:scale-105"
                     />
                 ) : (
-                    <div className={`aspect-[4/4.4] min-h-[168px] bg-gradient-to-br ${style.placeholderClassName}`} />
+                    <div className={`aspect-square min-h-[168px] bg-linear-to-br ${style.placeholderClassName}`} />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-                <div className={`absolute inset-0 bg-gradient-to-br ${style.tintClassName} opacity-80 mix-blend-screen`} />
+                <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/30 to-transparent" />
+                <div className={`absolute inset-0 bg-linear-to-br ${style.tintClassName} opacity-80 mix-blend-screen`} />
 
                 <div className="absolute inset-x-0 bottom-0 p-3 lg:p-3.5">
                     <h3 className="max-w-[90%] text-[0.8rem] lg:text-[0.88rem] font-semibold leading-tight text-white">
@@ -489,7 +489,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                 </div>
 
                 {/* Cake image */}
-                <div className="relative rounded-3xl overflow-hidden shadow-xl bg-gradient-to-br from-pink-100 via-purple-50 to-indigo-100 aspect-[4/3]">
+                <div className={`relative w-full aspect-4/3 overflow-hidden bg-linear-to-br from-slate-100 to-slate-50 transition-all duration-300 group-hover:scale-[1.02] shadow-sm rounded-3xl`}>
                     <img
                         src={displayedImageSrc}
                         alt={`${tier.label} cake preview`}
@@ -521,7 +521,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                     {/* Price badge overlay */}
                     {showPriceBadge && (
                         <div className="absolute inset-0 flex items-center justify-center animate-annotation-fade-in">
-                            <div className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl px-6 py-4 shadow-2xl flex flex-col items-center gap-2">
+                            <div className="bg-linear-to-r from-purple-600 to-pink-500 rounded-2xl px-6 py-4 shadow-2xl flex flex-col items-center gap-2">
                                 <span className="text-3xl font-extrabold text-white tracking-tight">₱{totalPrice.toLocaleString()}</span>
                                 <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-2">
                                     <ShoppingBag size={15} className="text-purple-600" />
@@ -620,7 +620,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                 </div>
 
                 {/* Price Bar */}
-                <div className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl p-3.5 shadow-xl">
+                <div className="bg-linear-to-r from-purple-600 to-pink-500 rounded-2xl p-3.5 shadow-xl">
                     <div className="flex items-center justify-between gap-3">
                         <div>
                             <div className="relative h-8 overflow-hidden flex items-center">
@@ -653,7 +653,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
 
         {/* Sticky mobile price bar — visible only while demo section is on screen */}
         <div className={`lg:hidden fixed bottom-20 left-0 right-0 z-50 px-4 transition-all duration-500 ${isDemoVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-            <div className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl p-3.5 shadow-2xl flex items-center justify-between gap-3">
+            <div className="bg-linear-to-r from-purple-600 to-pink-500 rounded-2xl p-3.5 shadow-2xl flex items-center justify-between gap-3">
                     <div>
                         <span className="text-xl font-extrabold text-white">₱{totalPrice.toLocaleString()}</span>
                         <div className="flex items-center gap-1.5 mt-0.5">
@@ -774,6 +774,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                     // doesn't briefly show a previously-uploaded image from IndexedDB.
                     const { clearIndexedDB } = await import('@/lib/utils/storage');
                     await clearIndexedDB();
+                    if (uploadToastId.current) {
+                        toast.dismiss(uploadToastId.current);
+                        uploadToastId.current = null;
+                    }
                     router.push(`/customizing?ref=${encodedUrl}&source=landing`);
                 }
             } finally {
@@ -1085,7 +1089,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     />
                                     <div className="absolute inset-0 bg-white/60" />
                                     <div className="absolute inset-0 flex items-center justify-center px-4 pb-6 pt-4 text-center">
-                                        <h2 className="w-full text-[54px] max-[520px]:text-[47px] max-[414px]:text-[40px] font-extrabold leading-[1] tracking-tight text-gray-900">
+                                        <h2 className="w-full text-[54px] max-[520px]:text-[47px] max-[414px]:text-[40px] font-extrabold leading-none tracking-tight text-gray-900">
                                             <HeroTypingHeadlineLine className="block min-h-[1.05em] whitespace-nowrap text-center" />
                                             <span className="block whitespace-nowrap text-purple-600 italic">For Spontaneous</span>
                                             <span className="block whitespace-nowrap text-purple-600 italic">Celebrations</span>
@@ -1151,7 +1155,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                                 loading="lazy"
                                                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                                             />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+                                            <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/15 to-transparent" />
                                             <p className="absolute bottom-2 left-2 right-2 text-[10px] font-semibold leading-tight text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.45)]">
                                                 {collection.title}
                                             </p>
@@ -1172,7 +1176,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     <span className="block whitespace-nowrap text-purple-600 italic">For Spontaneous</span>
                                     <span className="block whitespace-nowrap text-purple-600 italic">Celebrations</span>
                                 </h2>
-                                <div className="mt-6 w-full max-w-[20.5rem] min-[945px]:max-w-md">
+                                <div className="mt-6 w-full max-w-82 min-[945px]:max-w-md">
                                     <ImageUploader
                                         isOpen
                                         variant="inline"
@@ -1319,7 +1323,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     {/* Row 2: Image thumbnail (left) + Review snippet (right) */}
                                     <div className="flex gap-2">
                                         {card.photo && (
-                                            <div className="relative w-10 h-10 md:w-[47px] md:h-[47px] flex-shrink-0 overflow-hidden rounded-md border border-slate-200">
+                                            <div className="relative w-10 h-10 md:w-[47px] md:h-[47px] shrink-0 overflow-hidden rounded-md border border-slate-200">
                                                 <ImageWithSkeleton
                                                     src={card.photo}
                                                     alt={card.cakeType ? `${card.cakeType} Cake` : 'Cake'}
@@ -1399,7 +1403,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
                     <section aria-label="Blog" className="py-8 md:py-12">
                         <div className="flex items-center justify-between mb-4 md:mb-6">
-                            <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-tight">Stories, Blogs and News</h2>
+                            <h2 className="text-3xl sm:text-4xl font-black bg-linear-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent tracking-tight">Stories, Blogs and News</h2>
                             <Link href="/blog" className="group flex items-center gap-1 md:gap-2 text-purple-600 font-semibold hover:text-purple-700 transition-colors text-[13px] md:text-base shrink-0">
                                 View all
                                 <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
