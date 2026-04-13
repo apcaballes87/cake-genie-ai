@@ -2,7 +2,7 @@
 import React, { useRef } from 'react';
 import LazyImage from '@/components/LazyImage';
 import { CakeInfoUI, BasePriceInfo, CakeType } from '@/types';
-import { CAKE_TYPES, THICKNESS_OPTIONS_MAP, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_OPTIONS, FLAVOR_THUMBNAILS } from '@/constants';
+import { CAKE_TYPES, THICKNESS_OPTIONS_MAP, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_OPTIONS, FLAVOR_THUMBNAILS, SQUARE_RECT_SIZE_PATTERN } from '@/constants';
 import { CakeBaseSkeleton } from './LoadingSkeletons';
 import { roundDownToNearest99 } from '@/lib/utils/pricing';
 
@@ -150,15 +150,30 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                                 {(() => {
                                                     const sizePart = option.size?.split(' ')[0] || '';
                                                     const tiers = sizePart?.match(/\d+"/g) || [];
-                                                    return (
-                                                        <div>
-                                                            {tiers.map((tier, index) => (
-                                                                <React.Fragment key={index}>
-                                                                    <span>&lt;- {tier} -&gt;</span><br />
-                                                                </React.Fragment>
-                                                            ))}
-                                                        </div>
-                                                    );
+                                                    if (tiers.length > 0) {
+                                                        return (
+                                                            <div>
+                                                                {tiers.map((tier, index) => (
+                                                                    <React.Fragment key={index}>
+                                                                        <span>&lt;- {tier} -&gt;</span><br />
+                                                                    </React.Fragment>
+                                                                ))}
+                                                            </div>
+                                                        );
+                                                    }
+                                                    const squareRect = sizePart.match(SQUARE_RECT_SIZE_PATTERN) || [];
+                                                    if (squareRect.length > 0) {
+                                                        return (
+                                                            <div>
+                                                                {squareRect.map((dim, index) => (
+                                                                    <React.Fragment key={index}>
+                                                                        <span>&lt;- {dim.replace(/\s*[xX×]\s*/g, '×')} -&gt;</span><br />
+                                                                    </React.Fragment>
+                                                                ))}
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return <span>{option.size}</span>;
                                                 })()}
                                             </div>
                                         </div>

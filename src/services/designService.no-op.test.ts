@@ -111,7 +111,14 @@ describe('designService: no-op fast path', () => {
                 isEnabled: true,
                 price: 0,
                 x: 0,
-                y: 0,
+                y: 140,
+                bbox: {
+                    x: -20,
+                    y: 140,
+                    width: 60,
+                    height: 60,
+                    confidence: 0.95,
+                },
             }] as any,
             supportElements: [],
             cakeMessages: [],
@@ -126,6 +133,7 @@ describe('designService: no-op fast path', () => {
         expect(prompt).toContain('completely remove the existing 3D toy');
         expect(prompt).toContain('flat 2D printed paper cutout version of the same subject');
         expect(prompt).toContain('Do NOT leave any molded plastic seams');
+        expect(prompt).toContain('upper-center area of the cake');
         expect(systemInstruction).toContain('TOY TO PRINTOUT CONVERSIONS');
     });
 });

@@ -4,7 +4,7 @@ import React, { memo } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import LazyImage from '@/components/LazyImage';
 import { findClosestColor } from '@/utils/colorUtils';
-import { CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, CAKE_TYPE_THUMBNAILS, FLAVOR_THUMBNAILS } from '@/constants';
+import { CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, CAKE_TYPE_THUMBNAILS, FLAVOR_THUMBNAILS, SQUARE_RECT_SIZE_PATTERN } from '@/constants';
 import { TrashIcon } from '@/components/icons';
 import type { CakeInfoUI, CakeMessageUI, ClusteredMarker, IcingDesignUI, MainTopperType, MainTopperUI, SupportElementType, SupportElementUI } from '@/types';
 
@@ -86,12 +86,24 @@ const getMessagePositionLabel = (position: CakeMessageUI['position']) => (
 );
 
 const renderCakeSizeOverlay = (size: string) => {
-    const tiers = (size.split(' ')[0] || '').match(/\d+"/g) || [];
-    return tiers.map((tier, index) => (
-        <React.Fragment key={`${tier}-${index}`}>
-            <span>&lt;- {tier} -&gt;</span><br />
-        </React.Fragment>
-    ));
+    const sizePart = size.split(' ')[0] || '';
+    const tiers = sizePart.match(/\d+"/g) || [];
+    if (tiers.length > 0) {
+        return tiers.map((tier, index) => (
+            <React.Fragment key={`${tier}-${index}`}>
+                <span>&lt;- {tier} -&gt;</span><br />
+            </React.Fragment>
+        ));
+    }
+    const squareRect = sizePart.match(SQUARE_RECT_SIZE_PATTERN) || [];
+    if (squareRect.length > 0) {
+        return squareRect.map((dim, index) => (
+            <React.Fragment key={`${dim}-${index}`}>
+                <span>&lt;- {dim.replace(/\s*[xX×]\s*/g, '×')} -&gt;</span><br />
+            </React.Fragment>
+        ));
+    }
+    return <span>{size}</span>;
 };
 
 const buildCombinedDecorSummary = (mainToppers: MainTopperUI[], supportElements: SupportElementUI[]) => {
