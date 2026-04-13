@@ -55,6 +55,7 @@ interface StickyAddToCartBarProps {
     onTemplateColorChange?: (color: string) => void | Promise<void>;
     hideAiChat?: boolean;
     ediblePhotoAddonNote?: boolean;
+    isBlurred?: boolean;
 }
 
 const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
@@ -98,6 +99,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     onTemplateColorChange,
     hideAiChat = false,
     ediblePhotoAddonNote = false,
+    isBlurred = false,
 }) => {
     const show = Boolean(price !== null || error || isAnalyzing || warningMessage || hasPendingDesignChanges || isApplyingChanges || availability);
 
@@ -257,7 +259,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         <>
             {/* Top Section: Warnings & Availability (z-60) */}
             <div className={`fixed bottom-0 left-0 right-0 z-85 pointer-events-none transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}>
-                <div className={`pointer-events-auto transition-all duration-300 ${isAnalyzing ? 'blur-[2px] opacity-50 pointer-events-none' : ''}`}>
+                <div className={`pointer-events-auto transition-all duration-300 ${isBlurred ? 'blur-[2px] opacity-50 pointer-events-none' : ''}`}>
                     <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${hasTopNotification ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                         <div className="relative overflow-visible">
                             {renderWarningNotification(true)}
@@ -274,7 +276,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
 
             {/* Bottom Section: Main Action Bar (z-90) */}
             <div className={`fixed bottom-0 left-0 right-0 z-90 pointer-events-none transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}>
-                <div className={`relative pointer-events-auto bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[20px] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] ${hasTopNotification ? 'border-t border-transparent' : 'border-t border-slate-200'} transition-all duration-300 ${isAnalyzing ? 'blur-[2px] opacity-50 pointer-events-none' : ''}`}>
+                <div className={`relative pointer-events-auto bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[20px] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] ${hasTopNotification ? 'border-t border-transparent' : 'border-t border-slate-200'} transition-all duration-300 ${isBlurred ? 'blur-[2px] opacity-50 pointer-events-none' : ''}`}>
                     {!hideAiChat && (
                         <div className="max-w-4xl mx-auto mb-2 relative bg-white border border-slate-200 rounded-2xl p-0 shadow-inner transition-all" ref={containerRef}>
                         {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isApplyingChanges && (
