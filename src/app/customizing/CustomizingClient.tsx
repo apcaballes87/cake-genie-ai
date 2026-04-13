@@ -447,7 +447,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     const handlePreSelectionClose = useCallback(() => {
         setIsPreSelectionModalOpen(false);
-    }, []);
+        setIsAnalyzing(false);
+    }, [setIsAnalyzing]);
 
 
     // Preloaded image from SSR for Shopify CSE handoff - shows immediately while processing
