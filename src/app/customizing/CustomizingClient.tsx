@@ -447,8 +447,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     const handlePreSelectionClose = useCallback(() => {
         setIsPreSelectionModalOpen(false);
-        setIsAnalyzing(false);
-    }, [setIsAnalyzing]);
+    }, []);
 
 
     // Preloaded image from SSR for Shopify CSE handoff - shows immediately while processing
@@ -3156,6 +3155,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     isSharing={isSharing}
                     canShare={!!analysisResult && isAnalysisCached}
                     isAnalyzing={hideStickyBar ? false : isAnalyzing}
+                    isBlurred={isPreSelectionModalOpen}
                     cakeInfo={cakeInfo}
                     warningMessage={hideStickyBar ? undefined : (isSafetyFallback ? "AI editing disabled for adult-themed content. Your design changes will still be saved." : warningMessage)}
                     warningDescription={hideStickyBar ? undefined : warningDescription}
