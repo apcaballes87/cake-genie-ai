@@ -230,7 +230,16 @@ export const CAKE_SIZE_THUMBNAILS: Record<string, string> = {
   '9"x13" Rectangle': `${storageBaseUrl}/rectangle.webp`,
   // Bento
   '4" Round': `${storageBaseUrl}/bento.webp`,
+  // Square (new format)
+  '8x8': `${storageBaseUrl}/square.webp`,
+  '10x10': `${storageBaseUrl}/square.webp`,
+  // Rectangle (new format)
+  '8x12': `${storageBaseUrl}/rectangle.webp`,
+  '10x14': `${storageBaseUrl}/rectangle.webp`,
+  '12x16': `${storageBaseUrl}/rectangle.webp`,
 };
+
+export const SQUARE_RECT_SIZE_PATTERN = /\d+\s*[xX×]\s*\d+/g;
 
 export const DEFAULT_SIZE_MAP: Record<CakeType, CakeSize> = {
   '1 Tier': '8" Round',
