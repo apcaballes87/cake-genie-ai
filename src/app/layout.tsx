@@ -6,9 +6,10 @@ import { Providers } from '@/components/Providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 import ClientHashRedirect from '@/components/ClientHashRedirect'
+import EntryTracker from '@/components/EntryTracker'
 import AnimatedBlobs from '@/components/UI/AnimatedBlobs'
 import FloatingChatBubble from '@/components/FloatingChatBubble'
-
+import NewsletterPopup from '@/components/NewsletterPopup'
 import ErrorLogger from '@/components/ErrorLogger'
 
 const inter = Inter({ subsets: ['latin'], display: 'optional' })
@@ -176,9 +177,11 @@ export default function RootLayout({
       <body className={`${inter.className} min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100`} suppressHydrationWarning>
         <OrganizationSchema />
         <Providers>
-            <ErrorBoundary>
+          <ErrorBoundary>
             <ClientHashRedirect />
+            <EntryTracker />
             <AnimatedBlobs />
+            <NewsletterPopup />
             {children}
             <FloatingChatBubble />
             <ErrorLogger />

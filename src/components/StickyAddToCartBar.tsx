@@ -8,6 +8,7 @@ import { AvailabilityType } from '@/lib/utils/availability';
 import { ColorPalette } from './ColorPalette';
 import type { CustomizingAiPromptSuggestionItem } from '@/app/customizing/CustomizingAiChatPanel';
 import type { ParsedAiChatPromptTemplate } from '@/utils/aiChatPromptComposer';
+import { DiscountOfferBubble } from './DiscountOfferBubble';
 
 // --- Sticky Add to Cart Bar ---
 interface StickyAddToCartBarProps {
@@ -105,7 +106,18 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
 
 
     const [isCompact, setIsCompact] = React.useState(false);
+    const [isDiscountApplied, setIsDiscountApplied] = React.useState(false);
+    const [isMounted, setIsMounted] = React.useState(false);
     const buttonsRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        setIsMounted(true);
+        // Check for discount on mount
+        const appliedCode = localStorage.getItem('cart_discount_code');
+        if (appliedCode === 'NEW20') {
+            setIsDiscountApplied(true);
+        }
+    }, []);
 
     React.useEffect(() => {
         const currentRef = buttonsRef.current;
@@ -141,9 +153,25 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         if (isLoading) return <span className="text-sm text-slate-500">Calculating...</span>;
         if (error) return <span className="text-sm font-semibold text-red-600">{error.includes('AI') ? 'Analysis Error' : 'Pricing Error'}</span>;
         if (price !== null) {
+            const finalPriceValue = isDiscountApplied ? price * 0.8 : price;
+
             return (
                 <div className="text-left">
-                    <span className="text-lg font-bold text-slate-800">₱{price.toLocaleString()}</span>
+                    {isDiscountApplied ? (
+                        <div className="flex flex-col relative">
+                            {/* Floating Pill Above Price */}
+                            <div className="absolute bottom-[calc(100%+2px)] left-0 flex items-center gap-1 px-1.5 py-0.5 bg-green-50 text-green-700 rounded-full text-[8px] font-black border border-green-100 uppercase tracking-tighter shadow-sm animate-in fade-in slide-in-from-bottom-1 duration-300">
+                                <span>NEW20 APPLIED</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 leading-tight">
+                                <span className="text-xs text-slate-400 line-through">₱{price.toLocaleString()}</span>
+                                <span className="text-lg font-bold text-slate-800">₱{finalPriceValue.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    ) : (
+                        <span className="text-lg font-bold text-slate-800">₱{price.toLocaleString()}</span>
+                    )}
+                    
                     {cakeInfo && cakeInfo.size && cakeInfo.thickness ? (
                         <span className="text-[9px] text-slate-500 block whitespace-nowrap">{`${cakeInfo.size} ${cakeInfo.thickness.replace(' in', '" Height')}`}</span>
                     ) : (
@@ -374,8 +402,16 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                     </div>
                     )}
                     <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
-                        <div className="min-w-[100px] min-h-[48px] flex items-center relative">
-                            {renderPrice()}
+                        <div className="min-w-[80px] min-h-[48px] flex items-center">
+                            <div className="relative">
+                                {renderPrice()}
+                                {isMounted && price !== null && !isAnalyzing && !isLoading && !error && !isDiscountApplied && (
+                                    <DiscountOfferBubble 
+                                        basePrice={price} 
+                                        onApplied={() => setIsDiscountApplied(true)}
+                                    />
+                                )}
+                            </div>
                         </div>
                         <div className="flex flex-1 gap-2 min-w-0" ref={buttonsRef}>
                             <ShareButton
