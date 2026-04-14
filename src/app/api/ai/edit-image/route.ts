@@ -121,7 +121,12 @@ export async function POST(req: NextRequest) {
 
         // Add 3-tier structure reference (OPTIONAL) - for consistent tier resizing
         // Only if the prompt actually involves tier stack manipulation
-        if (threeTierReferenceImage && threeTierReferenceImage.data && prompt.includes('tier')) {
+        if (
+            threeTierReferenceImage &&
+            threeTierReferenceImage.data &&
+            threeTierReferenceImage.mimeType &&
+            prompt.includes('tier')
+        ) {
             parts.push({
                 inlineData: {
                     mimeType: threeTierReferenceImage.mimeType,
