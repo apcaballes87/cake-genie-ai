@@ -30,8 +30,10 @@ interface CustomizingAiChatPanelProps {
     onTemplateColorChange: (color: string) => void | Promise<void>;
     onInputChange: (value: string) => void;
     onInputInteract: () => void;
+    onInputBlur?: () => void;
     onInputKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
     onSuggestionSelect: (suggestion: string) => void;
+    placeholder?: string;
 }
 
 export const CustomizingAiChatPanel = React.memo(({
@@ -53,8 +55,10 @@ export const CustomizingAiChatPanel = React.memo(({
     onTemplateColorChange,
     onInputChange,
     onInputInteract,
+    onInputBlur,
     onInputKeyDown,
     onSuggestionSelect,
+    placeholder = "✨ Tell Genie your cake design wish...",
 }: CustomizingAiChatPanelProps) => (
     <div className={className}>
         <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">AI Customization Chat</h3>
@@ -101,16 +105,17 @@ export const CustomizingAiChatPanel = React.memo(({
                     value={chatInput}
                     onChange={(event) => onInputChange(event.target.value)}
                     onFocus={onInputInteract}
+                    onBlur={onInputBlur}
                     onClick={onInputInteract}
                     onKeyDown={onInputKeyDown}
-                    placeholder="✨ Tell Genie your cake design wish..."
+                    placeholder={placeholder}
                     disabled={isAiProcessing || isUpdatingDesign}
                     autoComplete="off"
                     className="w-full pl-4 pr-12 py-3 bg-white border border-slate-200 rounded-2xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
                 />
             )}
             {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isUpdatingDesign && (
-                <div className="absolute left-0 right-0 top-full z-100 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute left-0 right-0 bottom-full z-[9999] mb-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
                     <div className="max-h-72 overflow-y-auto py-1">
                         {filteredAiChatPromptSuggestions.map(({ suggestion, template }, index) => (
                             <button

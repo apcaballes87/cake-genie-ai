@@ -36,6 +36,7 @@ interface CustomizingStepSummarySectionsProps {
     openTopperSheet: (section?: 'main' | 'support' | null) => void;
     onIcingTypeChange?: (newType: string) => void;
     separateIcingStep?: boolean;
+    aiChatNode?: React.ReactNode;
 }
 
 const getIcingImage = (icingDesign: IcingDesignUI, type: IcingImageType, isTopSpecific = false): string => {
@@ -200,6 +201,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     openTopperSheet,
     onIcingTypeChange,
     separateIcingStep = false,
+    aiChatNode,
 }: CustomizingStepSummarySectionsProps) {
     // Default position when "+ Add" is clicked: Bento → front (side), all others → base_board
     const defaultMessagePosition = cakeInfo?.type === 'Bento' ? 'side' : 'base_board';
@@ -469,6 +471,15 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             </p>
                         </div>
                     )}
+                </div>
+            )}
+
+            {cakeInfo && !isAnalyzing && !isRejectionError && aiChatNode && (
+                <div className={cardClassName}>
+                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {topperStepNumber + 1}: Change Icing Colors with AI</h3>
+                    <div className="mt-1">
+                        {aiChatNode}
+                    </div>
                 </div>
             )}
         </div>
