@@ -2,6 +2,7 @@
 import {
     editCakeImage
 } from './geminiService';
+import { AI_IMAGE_EDIT_TIMEOUT_MS, AI_IMAGE_EDIT_TIMEOUT_SECONDS } from '@/lib/ai/imageEditConfig';
 import {
     DEFAULT_THICKNESS_MAP,
     COLORS
@@ -604,7 +605,10 @@ ${colorChanges.join('\n')}`;
 
     // 6. Handle timeout
     const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Request timed out after 60 seconds.")), 60000)
+        setTimeout(
+            () => reject(new Error(`Request timed out after ${AI_IMAGE_EDIT_TIMEOUT_SECONDS} seconds.`)),
+            AI_IMAGE_EDIT_TIMEOUT_MS
+        )
     );
 
     try {

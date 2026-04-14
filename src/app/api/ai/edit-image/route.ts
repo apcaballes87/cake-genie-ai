@@ -1,14 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAI } from '@/lib/ai/client';
+import { AI_IMAGE_EDIT_TIMEOUT_SECONDS } from '@/lib/ai/imageEditConfig';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 
-export const maxDuration = 60; // Allow sufficient time for image generation
+export const maxDuration = AI_IMAGE_EDIT_TIMEOUT_SECONDS;
 const MODEL_NAME = 'gemini-3.1-flash-image-preview';
 
-function extractGeneratedImage(response: any) {
+type AiInlineDataPart = {
+    inlineData?: {
+        data?: string;
+        mimeType?: string;
+    };
+    text?: string;
+};
+
+type AiGenerateContentResponse = {
+    candidates?: Array<{
+        content?: {
+            parts?: AiInlineDataPart[];
+        };
+    }>;
+    data?: string;
+    mimeType?: string;
+    text?: string | (() => string);
+};
+
+type EditImageRequestBody = {
+    prompt?: string;
+    originalImage?: {
+        data?: string;
+        mimeType?: string;
+    };
+    threeTierReferenceImage?: {
+        data?: string;
+        mimeType?: string;
+    } | null;
+    systemInstruction?: string;
+};
+
+function extractGeneratedImage(response: AiGenerateContentResponse) {
     const candidate = response?.candidates?.[0];
     const partsResponse = candidate?.content?.parts;
-    const imagePart = partsResponse?.find((part: any) => part.inlineData?.data);
+    const imagePart = partsResponse?.find((part) => part.inlineData?.data);
 
     if (imagePart?.inlineData?.data) {
         return {
@@ -27,7 +60,7 @@ function extractGeneratedImage(response: any) {
     return null;
 }
 
-function extractTextResponse(response: any) {
+function extractTextResponse(response: AiGenerateContentResponse) {
     if (typeof response?.text === 'string') {
         return response.text;
     }
@@ -40,11 +73,11 @@ function extractTextResponse(response: any) {
         }
     }
 
-    const textParts = response?.candidates?.flatMap((candidate: any) =>
-        candidate?.content?.parts?.filter((part: any) => typeof part?.text === 'string') ?? []
+    const textParts = response?.candidates?.flatMap((candidate) =>
+        candidate?.content?.parts?.filter((part) => typeof part?.text === 'string') ?? []
     ) ?? [];
 
-    return textParts.map((part: any) => part.text).join('\n').trim();
+    return textParts.map((part) => part.text).join('\n').trim();
 }
 
 export async function POST(req: NextRequest) {
@@ -53,7 +86,7 @@ export async function POST(req: NextRequest) {
     const startedAt = Date.now();
 
     try {
-        const body = await req.json();
+        const body = (await req.json()) as EditImageRequestBody;
         const { prompt, originalImage, threeTierReferenceImage, systemInstruction } = body;
 
         console.log(`[AI TRACE ${traceId}] /api/ai/edit-image:start`, {
@@ -71,7 +104,10 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const parts: any[] = [];
+        const parts: Array<
+            | { inlineData: { mimeType: string; data: string } }
+            | { text: string }
+        > = [];
 
         // Add original image (MANDATORY) - user's uploaded cake
         if (originalImage.data && originalImage.mimeType) {
@@ -152,11 +188,11 @@ export async function POST(req: NextRequest) {
         });
 
         return NextResponse.json(
-            { error: 'AI failed to generate image (No image data returned by Gemini)' },
-            { status: 500 }
+            { error: 'AI did not return an edited image. Please try again.' },
+            { status: 502 }
         );
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error editing cake image:", error);
 
         const normalizedError = normalizeAiRouteError(error, {
@@ -169,7 +205,10 @@ export async function POST(req: NextRequest) {
             durationMs: Date.now() - startedAt,
             status: normalizedError.status,
             message: normalizedError.message,
-            rawStatus: error?.status,
+            rawStatus:
+                typeof error === 'object' && error && 'status' in error
+                    ? (error as { status?: unknown }).status
+                    : undefined,
         });
 
         return NextResponse.json(
