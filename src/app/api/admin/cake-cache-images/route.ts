@@ -4,12 +4,10 @@ import sharp from 'sharp';
 import {
   ADMIN_IMAGE_STUDIO_PIN,
   buildImageStudioPrompt,
-  buildImageStudioWatermarkSvg,
   getImageStudioOutputDimensions,
   getImageStudioStoragePath,
   IMAGE_STUDIO_PAGE_SIZE,
   IMAGE_STUDIO_SMALL_IMAGE_DIMENSION_THRESHOLD,
-  IMAGE_STUDIO_WATERMARK_LOGO_URL,
   normalizeImageStudioStatus,
 } from '@/lib/admin/imageStudio';
 import { getAI } from '@/lib/ai/client';
@@ -22,7 +20,6 @@ export const maxDuration = 180;
 
 const MODEL_NAME = 'gemini-3.1-flash-image-preview';
 const STORAGE_BUCKET = 'cakegenie';
-const BRAND_LABEL = 'genie.ph';
 
 type AiInlineDataPart = {
   inlineData?: {
@@ -181,7 +178,6 @@ async function finalizeEditedImage(
   const metadata = await image.metadata();
   const width = dimensions?.width ?? metadata.width ?? 1200;
   const height = dimensions?.height ?? metadata.height ?? 1200;
-  const logoOverlay = await createLogoOverlay(width, height);
 
   const resizedImage =
     dimensions?.wasUpscaled && metadata.width && metadata.height
@@ -196,7 +192,6 @@ async function finalizeEditedImage(
     : resizedImage;
 
   return enhancedImage
-    .composite([{ input: logoOverlay, top: 0, left: 0 }])
     .webp({
       quality: dimensions?.wasUpscaled ? 96 : 92,
       effort: 6,
@@ -204,62 +199,6 @@ async function finalizeEditedImage(
     .toBuffer();
 }
 
-async function createLogoOverlay(width: number, height: number) {
-  try {
-    const response = await fetch(IMAGE_STUDIO_WATERMARK_LOGO_URL, {
-      cache: 'force-cache',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch watermark logo (${response.status})`);
-    }
-
-    const logoBuffer = Buffer.from(await response.arrayBuffer());
-    const targetWidth = Math.max(220, Math.round(width * 0.46));
-    const targetHeight = Math.max(90, Math.round(height * 0.14));
-    const resizedLogo = await sharp(logoBuffer)
-      .resize({
-        width: targetWidth,
-        height: targetHeight,
-        fit: 'inside',
-        withoutEnlargement: false,
-      })
-      .webp()
-      .toBuffer();
-    const logoMetadata = await sharp(resizedLogo).metadata();
-    const logoWidth = logoMetadata.width ?? targetWidth;
-    const top = Math.max(28, Math.round(height * 0.09));
-    const left = Math.max(24, Math.round((width - logoWidth) / 2));
-
-    return sharp({
-      create: {
-        width,
-        height,
-        channels: 4,
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      },
-    })
-      .composite([
-        {
-          input: resizedLogo,
-          top,
-          left,
-        },
-      ])
-      .png()
-      .toBuffer();
-  } catch (error) {
-    console.warn('Falling back to generated watermark SVG:', getErrorMessage(error));
-
-    const fallbackSvg = buildImageStudioWatermarkSvg({
-      width,
-      height,
-      brandLabel: BRAND_LABEL,
-    });
-
-    return Buffer.from(fallbackSvg);
-  }
-}
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
@@ -412,7 +351,7 @@ export async function POST(req: NextRequest) {
     }
 
     const originalImage = await fetchImageAsInlineData(cacheRow.original_image_url);
-    const prompt = buildImageStudioPrompt(BRAND_LABEL);
+    const prompt = buildImageStudioPrompt();
     const aiClient = getAI();
 
     const aiResponse = await aiClient.models.generateContent({
