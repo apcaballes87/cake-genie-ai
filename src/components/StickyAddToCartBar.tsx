@@ -243,6 +243,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                                     <DiscountOfferBubble 
                                         basePrice={price} 
                                         onApplied={() => setIsDiscountApplied(true)}
+                                        isShiftedUp={hasTopNotification}
                                     />
                                 )}
                             </div>

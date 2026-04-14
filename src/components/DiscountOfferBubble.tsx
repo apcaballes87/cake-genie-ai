@@ -8,9 +8,10 @@ import { showSuccess, showError } from '@/lib/utils/toast';
 interface DiscountOfferBubbleProps {
   basePrice: number;
   onApplied?: () => void;
+  isShiftedUp?: boolean;
 }
 
-export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({ basePrice, onApplied }) => {
+export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({ basePrice, onApplied, isShiftedUp }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
@@ -41,7 +42,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({ basePr
       if (success) {
         // Apply NEW20 code to localStorage
         localStorage.setItem('cart_discount_code', 'NEW20');
-        
+
         // Mock the validation result so Cart picking it up feels smooth
         const mockResult = {
           valid: true,
@@ -53,7 +54,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({ basePr
           freeDelivery: false
         };
         localStorage.setItem('cart_applied_discount', JSON.stringify(mockResult));
-        
+
         showSuccess('20% Discount Unlocked! Code NEW20 applied.');
         setStatus('success');
         setHasApplied(true);
@@ -75,7 +76,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({ basePr
   return (
     <div className="relative">
       {!isExpanded ? (
-        <div className="absolute bottom-full -left-2 mb-[38px] animate-bounce-subtle">
+        <div className={`absolute bottom-full -left-2 ${isShiftedUp ? 'mb-[76px]' : 'mb-[17px]'} animate-bounce-subtle`}>
           <div className="relative bg-purple-100 text-purple-900 px-4 py-3 rounded-2xl shadow-xl border border-purple-200 min-w-[200px] flex flex-col gap-1">
             {/* Close Button */}
             <button
@@ -90,16 +91,16 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({ basePr
             </button>
             {/* Arrow */}
             <div className="absolute -bottom-1.5 left-6 w-3 h-3 bg-purple-100 border-r border-b border-purple-200 rotate-45"></div>
-            
+
             <div className="text-[11px] font-extrabold flex items-center gap-1 text-purple-700 uppercase tracking-tight">
               <Sparkles className="w-3 h-3 fill-purple-600" />
               SIGN UP & GET 20% OFF!!
             </div>
-            
+
             <div className="flex items-center gap-2">
               <span className="text-xs text-purple-400 line-through font-medium">₱{basePrice.toLocaleString()}</span>
               <span className="text-sm text-purple-900 font-black">₱{discountedPrice.toLocaleString()}</span>
-              
+
               <button
                 onClick={() => setIsExpanded(true)}
                 className="ml-auto bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-black px-3 py-1 rounded-lg transition-all active:scale-90 shadow-sm"
@@ -110,14 +111,14 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({ basePr
           </div>
         </div>
       ) : (
-        <div className="absolute bottom-full -left-2 mb-[38px] w-72 bg-white rounded-2xl shadow-2xl border border-purple-100 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-300 z-50">
+        <div className={`absolute bottom-full -left-2 ${isShiftedUp ? 'mb-[110px]' : 'mb-[30px]'} w-72 bg-white rounded-2xl shadow-2xl border border-purple-100 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-300 z-50`}>
           <div className="bg-purple-50 p-4 border-b border-purple-100">
             <div className="flex justify-between items-start mb-1">
               <h3 className="font-extrabold text-gray-900 text-sm flex items-center gap-1.5">
                 <Mail className="w-4 h-4 text-purple-600" />
                 SIGN UP TO SAVE
               </h3>
-              <button 
+              <button
                 onClick={() => setIsExpanded(false)}
                 className="p-1 hover:bg-white rounded-full transition-colors"
               >
