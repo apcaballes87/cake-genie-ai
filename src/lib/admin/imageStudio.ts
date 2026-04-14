@@ -62,7 +62,7 @@ export function buildImageStudioPrompt(brandLabel: string = 'genie.ph'): string 
     'Use soft diffused lighting, a gentle premium studio mood, and a realistic contact shadow so the cake still feels naturally photographed.',
     'Do not add props, flowers, ribbons, hands, extra cake decorations, text, UI elements, or watermarks.',
     'Keep the final image in the exact same aspect ratio and dimensions as the original.',
-    `Leave the background clean and uncluttered so a subtle transparent ${brandLabel} logo can sit comfortably in the negative space behind the product.`,
+    `Leave the background clean and uncluttered with plenty of negative space behind and above the product subject.`,
   ].join(' ');
 }
 
