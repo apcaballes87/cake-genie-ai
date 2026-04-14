@@ -13,13 +13,12 @@ import {
   normalizeImageStudioStatus,
 } from '@/lib/admin/imageStudio';
 import { getAI } from '@/lib/ai/client';
-import { AI_IMAGE_EDIT_TIMEOUT_SECONDS } from '@/lib/ai/imageEditConfig';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 import { createPublicServerSupabaseClient } from '@/lib/supabase/publicServer';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = AI_IMAGE_EDIT_TIMEOUT_SECONDS;
+export const maxDuration = 180;
 
 const MODEL_NAME = 'gemini-3.1-flash-image-preview';
 const STORAGE_BUCKET = 'cakegenie';
