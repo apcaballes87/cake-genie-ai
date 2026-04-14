@@ -3180,7 +3180,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     onApplyChangesClick={handleApplyPendingDesignChanges}
                     isApplyingChanges={hideStickyBar ? false : isUpdatingDesign}
                     applyChangesLabel="Apply Design Changes"
-                    hideAiChat={!!analysisError || hideAiChat}
                 />
                 <ReportModal
                     isOpen={isReportModalOpen}
