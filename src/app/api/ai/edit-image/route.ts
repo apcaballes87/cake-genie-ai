@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
             contents: [{ parts }],
             config: {
                 systemInstruction: systemInstruction,
+                responseModalities: ['TEXT', 'IMAGE'],
             },
         });
 

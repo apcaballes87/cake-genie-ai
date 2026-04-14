@@ -329,13 +329,21 @@ export async function editCakeImage(
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
+            // Safely read the raw body text first (avoid JSON parse on HTML errors e.g. 504 timeouts)
+            const rawErrorBody = await response.text().catch(() => '');
+            let errorData: { error?: string } = {};
+            try {
+                errorData = rawErrorBody ? JSON.parse(rawErrorBody) : {};
+            } catch {
+                // Body was not JSON (e.g. HTML timeout page)
+            }
             console.error(`[AI TRACE ${effectiveTraceId}] editCakeImage:failed-response`, {
                 requestSource: requestSource ?? 'unknown',
                 status: response.status,
                 error: errorData?.error,
+                rawBodySnippet: rawErrorBody.slice(0, 500),
             });
-            throw new Error(errorData.error || 'Failed to edit image');
+            throw new Error(errorData?.error || `Image edit failed with status ${response.status}`);
         }
 
         const result = await response.json();
