@@ -193,11 +193,7 @@ async function finalizeEditedImage(
       : image;
 
   const enhancedImage = dimensions?.wasUpscaled
-    ? resizedImage.sharpen({
-        sigma: 0.8,
-        flat: 1,
-        jagged: 2,
-      })
+    ? resizedImage.sharpen(0.8, 1, 2)
     : resizedImage;
 
   return enhancedImage
