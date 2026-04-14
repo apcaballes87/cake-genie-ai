@@ -501,8 +501,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         if (typeof window === 'undefined') return null;
         return window.innerWidth >= 768 ? aiChatDesktopInputRef.current : aiChatMobileInputRef.current;
     };
-    const stickyChatContainerRef = useRef<HTMLDivElement>(null);
-    const stickyChatInputRef = useRef<HTMLTextAreaElement>(null);
+
 
     // --- Hooks ---
     const { addOnPricing, itemPrices, basePriceOptions: hookBasePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice } = usePricing({
@@ -554,12 +553,16 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     const filteredAiChatPromptSuggestions = useMemo(() => {
         const normalizedQuery = chatInput.trim().toLowerCase();
-        return aiChatPromptSuggestionItems.filter(({ suggestion, template }) => (
-            shouldShowAiPromptSuggestion(suggestion, normalizedQuery)
-            && (!normalizedQuery || `${suggestion} ${template?.placeholderLabel ?? ''}`
-                .toLowerCase()
-                .includes(normalizedQuery))
-        ));
+        return aiChatPromptSuggestionItems.filter(({ suggestion, template }) => {
+            const normalizedSuggestion = suggestion.toLowerCase();
+            const isIcingRelated = normalizedSuggestion.includes('icing') || normalizedSuggestion.includes('drip') || normalizedSuggestion.includes('border') || normalizedSuggestion.includes('board');
+            if (!isIcingRelated) return false;
+
+            return shouldShowAiPromptSuggestion(suggestion, normalizedQuery)
+                && (!normalizedQuery || `${suggestion} ${template?.placeholderLabel ?? ''}`
+                    .toLowerCase()
+                    .includes(normalizedQuery));
+        });
     }, [aiChatPromptSuggestionItems, chatInput]);
 
     const {
@@ -1032,8 +1035,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setSelectedAiPromptIndex(-1);
 
         requestAnimationFrame(() => {
-            const activeChatInput = getActiveChatInput();
-            const input = activeChatInput || stickyChatInputRef.current;
+            const input = getActiveChatInput();
             if (input) {
                 input.focus();
                 const cursorPosition = suggestion.length;
@@ -1042,25 +1044,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         });
     }, []);
 
-    const handleStickySuggestionSelect = useCallback((suggestion: string) => {
-        // For the sticky bar, always put the raw text into the textarea.
-        // Replace the "..." placeholder so the user can just type the value after it.
-        const text = suggestion.replace('...', '');
-        setSelectedAiPromptTemplate(null);
-        setSelectedAiPromptColor('');
-        setShowAiPromptColorPicker(false);
-        setChatInput(text);
-        setShowAiPromptSuggestions(false);
-        setSelectedAiPromptIndex(-1);
 
-        requestAnimationFrame(() => {
-            if (stickyChatInputRef.current) {
-                stickyChatInputRef.current.focus();
-                const cursorPosition = text.length;
-                stickyChatInputRef.current.setSelectionRange(cursorPosition, cursorPosition);
-            }
-        });
-    }, []);
 
     const handleAiPromptTemplateClear = useCallback(() => {
         const template = selectedAiPromptTemplate?.template ?? '';
@@ -1114,8 +1098,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     const handleMainChatInputInteract = useCallback((e?: React.MouseEvent | React.FocusEvent) => {
         e?.preventDefault();
-        if (stickyChatInputRef.current) {
-            stickyChatInputRef.current.focus();
+        const input = getActiveChatInput();
+        if (input) {
+            input.focus();
         }
     }, []);
 
@@ -1151,12 +1136,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     // --- Effects ---
     useEffect(() => {
         const handleClickOutside = (event: PointerEvent) => {
-            const activeChatContainer = getActiveChatContainer();
-            const isOutsideTopChat = activeChatContainer && !activeChatContainer.contains(event.target as Node);
-            const isOutsideStickyChat = stickyChatContainerRef.current && !stickyChatContainerRef.current.contains(event.target as Node);
+            const isOutsideMobileChat = aiChatMobileContainerRef.current && !aiChatMobileContainerRef.current.contains(event.target as Node);
+            const isOutsideDesktopChat = aiChatDesktopContainerRef.current && !aiChatDesktopContainerRef.current.contains(event.target as Node);
 
             // Close suggestions if clicked outside both containers
-            if ((!activeChatContainer || isOutsideTopChat) && (!stickyChatContainerRef.current || isOutsideStickyChat)) {
+            if ((!aiChatMobileContainerRef.current || isOutsideMobileChat) && (!aiChatDesktopContainerRef.current || isOutsideDesktopChat)) {
                 setShowAiPromptSuggestions(false);
                 setSelectedAiPromptIndex(-1);
                 setShowAiPromptColorPicker(false);
@@ -2796,30 +2780,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
 
-                        {!analysisError && !hideAiChat && (
-                            <CustomizingAiChatPanel
-                                className="bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200 mb-2 md:hidden"
-                                containerRef={aiChatMobileContainerRef}
-                                inputRef={aiChatMobileInputRef}
-                                chatInput={chatInput}
-                                selectedAiPromptTemplate={selectedAiPromptTemplate}
-                                selectedAiPromptColor={selectedAiPromptColor}
-                                showAiPromptColorPicker={showAiPromptColorPicker}
-                                showAiPromptSuggestions={false}
-                                filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
-                                selectedAiPromptIndex={selectedAiPromptIndex}
-                                isAiProcessing={isAiProcessing}
-                                isUpdatingDesign={isUpdatingDesign}
-                                onSubmit={handleChatSubmit}
-                                onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
-                                onTemplateClear={handleAiPromptTemplateClear}
-                                onTemplateColorChange={handleAiPromptTemplateColorChange}
-                                onInputChange={handleAiChatInputChange}
-                                onInputInteract={handleMainChatInputInteract}
-                                onInputKeyDown={handleAiPromptInputKeyDown}
-                                onSuggestionSelect={handleAiPromptSuggestionSelect}
-                            />
-                        )}
 
                         <div className="md:hidden">
                             {isAnalyzing ? (
@@ -2850,6 +2810,32 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         onSupportElementImageReplace: onSupportElementImageReplace,
                                         openTopperSheet,
                                         separateIcingStep,
+                                        aiChatNode: !analysisError && !hideAiChat ? (
+                                            <CustomizingAiChatPanel
+                                                className="w-full"
+                                                containerRef={aiChatDesktopContainerRef}
+                                                inputRef={aiChatDesktopInputRef}
+                                                chatInput={chatInput}
+                                                selectedAiPromptTemplate={selectedAiPromptTemplate}
+                                                selectedAiPromptColor={selectedAiPromptColor}
+                                                showAiPromptColorPicker={showAiPromptColorPicker}
+                                                showAiPromptSuggestions={showAiPromptSuggestions}
+                                                filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
+                                                selectedAiPromptIndex={selectedAiPromptIndex}
+                                                isAiProcessing={isAiProcessing}
+                                                isUpdatingDesign={isUpdatingDesign}
+                                                onSubmit={handleChatSubmit}
+                                                onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
+                                                onTemplateClear={handleAiPromptTemplateClear}
+                                                onTemplateColorChange={handleAiPromptTemplateColorChange}
+                                                onInputChange={handleAiChatInputChange}
+                                                onInputInteract={handleAiChatInputInteract}
+                                                onInputBlur={() => setShowAiPromptSuggestions(false)}
+                                                onInputKeyDown={handleAiPromptInputKeyDown}
+                                                onSuggestionSelect={handleAiPromptSuggestionSelect}
+                                                placeholder="✨ Describe the icing colors you want..."
+                                            />
+                                        ) : null,
                                     }}
                                 />
                             ) : analysisError ? (
@@ -2909,6 +2895,32 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     openTopperSheet={openTopperSheet}
                                     onIcingTypeChange={handleIcingTypeChange}
                                     separateIcingStep={separateIcingStep}
+                                    aiChatNode={!analysisError && !hideAiChat ? (
+                                        <CustomizingAiChatPanel
+                                            className="w-full"
+                                            containerRef={aiChatMobileContainerRef}
+                                            inputRef={aiChatMobileInputRef}
+                                            chatInput={chatInput}
+                                            selectedAiPromptTemplate={selectedAiPromptTemplate}
+                                            selectedAiPromptColor={selectedAiPromptColor}
+                                            showAiPromptColorPicker={showAiPromptColorPicker}
+                                            showAiPromptSuggestions={showAiPromptSuggestions}
+                                            filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
+                                            selectedAiPromptIndex={selectedAiPromptIndex}
+                                            isAiProcessing={isAiProcessing}
+                                            isUpdatingDesign={isUpdatingDesign}
+                                            onSubmit={handleChatSubmit}
+                                            onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
+                                            onTemplateClear={handleAiPromptTemplateClear}
+                                            onTemplateColorChange={handleAiPromptTemplateColorChange}
+                                            onInputChange={handleAiChatInputChange}
+                                            onInputInteract={handleAiChatInputInteract}
+                                            onInputBlur={() => setShowAiPromptSuggestions(false)}
+                                            onInputKeyDown={handleAiPromptInputKeyDown}
+                                            onSuggestionSelect={handleAiPromptSuggestionSelect}
+                                            placeholder="✨ Describe the icing colors you want..."
+                                        />
+                                    ) : null}
                                 />
                             )}
                         </div>
@@ -2918,30 +2930,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     <div className="flex flex-row md:flex-col gap-2 w-[calc(100%+2rem)] md:w-[calc(50%-6px)] -mx-4 md:mx-0 overflow-x-auto md:overflow-visible scrollbar-hide snap-x snap-mandatory scroll-pl-4 pb-60 md:pb-0 -mb-60 md:mb-0 px-4 md:px-0">
                         {/* Availability Section - at top of right column */}
 
-                        {!analysisError && !hideAiChat && (
-                            <CustomizingAiChatPanel
-                                className="hidden md:block bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200 mb-2"
-                                containerRef={aiChatDesktopContainerRef}
-                                inputRef={aiChatDesktopInputRef}
-                                chatInput={chatInput}
-                                selectedAiPromptTemplate={selectedAiPromptTemplate}
-                                selectedAiPromptColor={selectedAiPromptColor}
-                                showAiPromptColorPicker={showAiPromptColorPicker}
-                                showAiPromptSuggestions={false}
-                                filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
-                                selectedAiPromptIndex={selectedAiPromptIndex}
-                                isAiProcessing={isAiProcessing}
-                                isUpdatingDesign={isUpdatingDesign}
-                                onSubmit={handleChatSubmit}
-                                onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
-                                onTemplateClear={handleAiPromptTemplateClear}
-                                onTemplateColorChange={handleAiPromptTemplateColorChange}
-                                onInputChange={handleAiChatInputChange}
-                                onInputInteract={handleMainChatInputInteract}
-                                onInputKeyDown={handleAiPromptInputKeyDown}
-                                onSuggestionSelect={handleAiPromptSuggestionSelect}
-                            />
-                        )}
+
 
                         <CustomizingSidebarPanel
                             showLoadingState={isAnalyzing || (isLoading && !isDesignSaved)}
@@ -2971,6 +2960,32 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 onSupportElementImageReplace: onSupportElementImageReplace,
                                 openTopperSheet,
                                 separateIcingStep,
+                                aiChatNode: !analysisError && !hideAiChat ? (
+                                    <CustomizingAiChatPanel
+                                        className="w-full"
+                                        containerRef={aiChatDesktopContainerRef}
+                                        inputRef={aiChatDesktopInputRef}
+                                        chatInput={chatInput}
+                                        selectedAiPromptTemplate={selectedAiPromptTemplate}
+                                        selectedAiPromptColor={selectedAiPromptColor}
+                                        showAiPromptColorPicker={showAiPromptColorPicker}
+                                        showAiPromptSuggestions={showAiPromptSuggestions}
+                                        filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
+                                        selectedAiPromptIndex={selectedAiPromptIndex}
+                                        isAiProcessing={isAiProcessing}
+                                        isUpdatingDesign={isUpdatingDesign}
+                                        onSubmit={handleChatSubmit}
+                                        onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
+                                        onTemplateClear={handleAiPromptTemplateClear}
+                                        onTemplateColorChange={handleAiPromptTemplateColorChange}
+                                        onInputChange={handleAiChatInputChange}
+                                        onInputInteract={handleAiChatInputInteract}
+                                        onInputBlur={() => setShowAiPromptSuggestions(false)}
+                                        onInputKeyDown={handleAiPromptInputKeyDown}
+                                        onSuggestionSelect={handleAiPromptSuggestionSelect}
+                                        placeholder="✨ Describe the icing colors you want..."
+                                    />
+                                ) : null,
                             }}
                         />
                     </div>
@@ -3165,24 +3180,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     onApplyChangesClick={handleApplyPendingDesignChanges}
                     isApplyingChanges={hideStickyBar ? false : isUpdatingDesign}
                     applyChangesLabel="Apply Design Changes"
-                    chatInput={chatInput}
-                    onChatInputChange={handleAiChatInputChange}
-                    onChatSubmit={handleChatSubmit}
-                    isAiProcessing={isAiProcessing}
-                    showAiPromptSuggestions={showAiPromptSuggestions}
-                    filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
-                    selectedAiPromptIndex={selectedAiPromptIndex}
-                    onSuggestionSelect={handleAiPromptSuggestionSelect}
-                    onInputInteract={handleAiChatInputInteract}
-                    onInputKeyDown={handleAiPromptInputKeyDown}
-                    containerRef={stickyChatContainerRef}
-                    inputRef={stickyChatInputRef}
-                    selectedAiPromptTemplate={selectedAiPromptTemplate}
-                    selectedAiPromptColor={selectedAiPromptColor}
-                    showAiPromptColorPicker={showAiPromptColorPicker}
-                    onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
-                    onTemplateClear={handleAiPromptTemplateClear}
-                    onTemplateColorChange={handleAiPromptTemplateColorChange}
                     hideAiChat={!!analysisError || hideAiChat}
                 />
                 <ReportModal

@@ -95,7 +95,7 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
                 <CustomizingClient
                     preloadSource={source || undefined}
                     preloadImageUrl={proxyImageUrl || undefined}
-                    hideAiChat={true}
+                    hideAiChat={false}
                 />
             </Suspense>
 
