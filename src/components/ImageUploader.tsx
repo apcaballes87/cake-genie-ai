@@ -171,7 +171,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       )}
 
       <div
-        className={`w-full border-2 border-dashed transition-colors cursor-pointer ${compact ? 'rounded-xl p-5 max-[416px]:p-4' : 'rounded-lg p-10'} ${isDragging ? 'border-purple-500 bg-purple-50' : 'border-slate-300 hover:border-purple-300 hover:bg-purple-50/40'}`}
+        className={`w-full border-2 border-dashed transition-colors cursor-pointer ${compact ? 'rounded-xl p-3 max-[416px]:p-2.5' : 'rounded-lg p-10'} ${isDragging ? 'border-purple-500 bg-purple-50' : 'border-slate-300 hover:border-purple-300 hover:bg-purple-50/40'}`}
         onClick={() => {
           if (!isProcessing) {
             fileInputRef.current?.click();
