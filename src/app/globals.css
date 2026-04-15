@@ -444,6 +444,15 @@ div.gs-image-box div.gs-image {
 }
 
 /* --- Blog Content Styles --- */
+.blog-content h1 {
+  font-size: 1.875rem;
+  font-weight: 800;
+  color: #111827;
+  margin-top: 3rem;
+  margin-bottom: 1.25rem;
+  line-height: 1.2;
+}
+
 .blog-content h2 {
   font-size: 1.5rem;
   font-weight: 700;
