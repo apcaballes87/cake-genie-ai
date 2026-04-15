@@ -44,6 +44,7 @@ export interface HandleDesignUpdateOptions {
 
 interface UseDesignUpdateProps {
     originalImageData: { data: string; mimeType: string } | null;
+    editedImage: string | null;
     analysisResult: HybridAnalysisResult | null;
     cakeInfo: CakeInfoUI | null;
     mainToppers: MainTopperUI[];
@@ -52,12 +53,29 @@ interface UseDesignUpdateProps {
     icingDesign: IcingDesignUI | null;
     additionalInstructions: string;
     threeTierReferenceImage: { data: string; mimeType: string } | null;
-    onSuccess: (editedImage: string) => void;
+    onSuccess: (editedImage: string, baseImageData: { data: string; mimeType: string }) => void;
     promptGenerator?: DesignPromptGenerator;
+}
+
+function parseDataUriImage(imageUri: string | null): { data: string; mimeType: string } | null {
+    if (!imageUri || !imageUri.startsWith('data:')) {
+        return null;
+    }
+
+    const match = imageUri.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) {
+        return null;
+    }
+
+    return {
+        mimeType: match[1],
+        data: match[2],
+    };
 }
 
 export const useDesignUpdate = ({
     originalImageData,
+    editedImage,
     analysisResult,
     cakeInfo,
     mainToppers,
@@ -89,6 +107,7 @@ export const useDesignUpdate = ({
         const resolvedIcingDesign = options?.stateOverrides?.icingDesign ?? icingDesign;
         const resolvedAdditionalInstructions = options?.stateOverrides?.additionalInstructions ?? additionalInstructions;
         const resolvedPromptGenerator = options?.promptGenerator ?? promptGenerator;
+        const currentBaseImageData = parseDataUriImage(editedImage) ?? originalImageData;
 
         if (inFlightPromiseRef.current) {
             return inFlightPromiseRef.current;
@@ -103,7 +122,7 @@ export const useDesignUpdate = ({
         }
 
         // Guard against missing critical data which is checked in the service, but good to have here too.
-        if (!originalImageData || !resolvedIcingDesign || !resolvedCakeInfo) {
+        if (!currentBaseImageData || !resolvedIcingDesign || !resolvedCakeInfo) {
             const missingDataError = "Cannot update design: missing original image, icing design, or cake info.";
             // setError(missingDataError); // Removed per instruction
             throw new Error(missingDataError);
@@ -121,7 +140,7 @@ export const useDesignUpdate = ({
 
 
                 const { image: editedImageResult, prompt, systemInstruction } = await updateDesign({
-                    originalImageData,
+                    originalImageData: currentBaseImageData,
                     analysisResult: resolvedAnalysisResult,
                     cakeInfo: resolvedCakeInfo,
                     mainToppers: resolvedMainToppers,
@@ -136,7 +155,7 @@ export const useDesignUpdate = ({
                 });
 
                 lastGenerationInfoRef.current = { prompt, systemInstruction };
-                onSuccess(editedImageResult);
+                onSuccess(editedImageResult, currentBaseImageData);
                 return editedImageResult;
 
             } catch (err) {
@@ -152,11 +171,11 @@ export const useDesignUpdate = ({
                     setIsSafetyFallback(true);
 
                     // Fallback: Use the original image data
-                    // We need to reconstruct the data URI for the original image
-                    const originalImageSrc = `data:${originalImageData.mimeType};base64,${originalImageData.data}`;
+                    // We need to reconstruct the data URI for the current working base image
+                    const originalImageSrc = `data:${currentBaseImageData.mimeType};base64,${currentBaseImageData.data}`;
 
                     // Call onSuccess with the original image so the flow continues
-                    onSuccess(originalImageSrc);
+                    onSuccess(originalImageSrc, currentBaseImageData);
 
                     // Return the original image so the caller (handleAddToCart) can proceed
                     return originalImageSrc;
@@ -175,6 +194,7 @@ export const useDesignUpdate = ({
         return requestPromise;
     }, [
         originalImageData,
+        editedImage,
         analysisResult,
         cakeInfo,
         mainToppers,
