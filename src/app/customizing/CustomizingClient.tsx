@@ -26,6 +26,7 @@ import { ColorPalette } from '../../components/ColorPalette';
 import StickyAddToCartBar from '../../components/StickyAddToCartBar';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
 import { reportCustomization, uploadReportImage, getAnalysisByExactHash, getRelatedProductsByKeywords, getCollectionsForDesign } from '../../services/supabaseService';
+import { trackViewItem } from '@/lib/analytics';
 import ReportModal from '../../components/ReportModal';
 import ShareModal from '../../components/ShareModal';
 import ChatModal from '../../components/ChatModal';
@@ -334,6 +335,28 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         const ssrContent = document.getElementById('ssr-content');
         if (ssrContent) ssrContent.style.display = 'none';
     }, []);
+
+    // GA4: fire view_item once per design mount (price may be a fallback
+    // before AI analysis completes; still useful for funnel counting).
+    const viewItemFiredRef = useRef(false);
+    useEffect(() => {
+        if (viewItemFiredRef.current) return;
+        const itemId = product?.product_id || recentSearchDesign?.slug || recentSearchDesign?.p_hash || (typeof slug === 'string' ? slug : null);
+        if (!itemId) return;
+        const itemName = product?.title || recentSearchDesign?.seo_title || 'custom-cake';
+        const price = (product?.custom_price && product.custom_price > 0)
+            ? product.custom_price
+            : (recentSearchDesign?.price && recentSearchDesign.price > 0)
+                ? recentSearchDesign.price
+                : 1099;
+        trackViewItem({
+            item_id: String(itemId),
+            item_name: itemName,
+            price,
+            item_category: product?.category || recentSearchDesign?.keywords || undefined,
+        });
+        viewItemFiredRef.current = true;
+    }, [product, recentSearchDesign, slug]);
 
     // --- Context Hooks ---
     const { user, isAuthenticated } = useAuth();

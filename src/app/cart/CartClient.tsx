@@ -18,6 +18,7 @@ import DetailItem from '@/components/UI/DetailItem';
 import { createOrderFromCart, createSplitOrderFromCart, getAvailableDeliveryDates, getBlockedDatesInRange, AvailableDate, BlockedDateInfo, createGuestUser } from '@/services/supabaseService';
 import { upgradeAnonymousToEmailAccount } from '@/services/accountActivation';
 import { createXenditPayment } from '@/services/xenditService';
+import { trackBeginCheckout, trackAddPaymentInfo } from '@/lib/analytics';
 import { AddressForm, StaticMap } from '@/components/AddressForm';
 import { SplitWithFriendsModal } from '@/components/SplitWithFriendsModal';
 import { SplitOrderShareModal } from '@/components/SplitOrderShareModal';
@@ -865,6 +866,9 @@ function CartClient() {
                 }
             }
 
+            // GA4: user has committed to checkout (address valid, about to create order)
+            trackBeginCheckout(total, cartItems.length);
+
             // 1. Create Order
             const { success, order, error } = await createOrderFromCart({
                 cartItems,
@@ -893,6 +897,9 @@ function CartClient() {
             setIsCreatingPayment(true);
             const emailToUse = isAnonymous ? guestEmail : user?.email || 'customer@example.com';
             const nameToUse = isAnonymous ? effectiveGuestAddress?.recipient_name : user?.user_metadata?.first_name || selectedAddress?.recipient_name || 'Customer';
+
+            // GA4: payment handoff to Xendit
+            trackAddPaymentInfo(order.total_amount, 'xendit');
 
             const { paymentUrl, error: paymentError } = await createXenditPayment({
                 orderId: order.order_id,
@@ -1042,6 +1049,9 @@ function CartClient() {
                 }
             }
 
+            // GA4: split-order checkout commitment
+            trackBeginCheckout(total, cartItems.length);
+
             const { success, order, error } = await createSplitOrderFromCart({
                 cartItems,
                 eventDate,
@@ -1067,6 +1077,9 @@ function CartClient() {
             if (!success || !order) {
                 throw error || new Error('Failed to create split order.');
             }
+
+            // GA4: split orders don't go through Xendit directly but do commit a payment intent
+            trackAddPaymentInfo(order.total_amount, 'split');
 
             // For anonymous users, upgrade to email account and send activation email
             if (isAnonymous && user && guestEmail) {
