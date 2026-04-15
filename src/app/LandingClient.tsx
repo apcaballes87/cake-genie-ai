@@ -1136,11 +1136,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     <span className="whitespace-nowrap">Same-day Delivery</span>
                                 </div>
                             </div>
-                            <p className="mt-3 text-center text-[11px] font-semibold text-slate-600 max-[390px]:text-[10px]">
-                                Bento from <span className="text-purple-700">₱399</span> · 1-tier from <span className="text-purple-700">₱1,500</span> · 2-tier from <span className="text-purple-700">₱2,500</span>
-                                <br />
-                                Same-day delivery in Metro Cebu from <span className="text-purple-700">₱100</span>
-                            </p>
                             <div className="mt-4 flex items-center gap-3">
                                 <div className="h-px flex-1 bg-purple-200/80" />
                                 <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-purple-500">or</span>
@@ -1219,9 +1214,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         <span className="whitespace-nowrap">Same-day Delivery</span>
                                     </div>
                                 </div>
-                                <p className="mt-4 text-center text-[12px] font-semibold text-slate-600 min-[1232px]:text-[13px]">
-                                    Bento from <span className="text-purple-700">₱399</span> · 1-tier from <span className="text-purple-700">₱1,500</span> · 2-tier from <span className="text-purple-700">₱2,500</span> · Same-day delivery from <span className="text-purple-700">₱100</span>
-                                </p>
                                 <div className="mt-4 flex items-center gap-3">
                                     <div className="h-px flex-1 bg-purple-200/80" />
                                     <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-purple-500 shrink-0">or</span>
