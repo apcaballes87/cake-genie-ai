@@ -568,9 +568,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const {
         isLoading: isUpdatingDesign, error: designUpdateError, lastGenerationInfoRef, handleUpdateDesign, setError: setDesignUpdateError, isSafetyFallback
     } = useDesignUpdate({
-        originalImageData, analysisResult, cakeInfo, mainToppers, supportElements, cakeMessages,
+        originalImageData, editedImage, analysisResult, cakeInfo, mainToppers, supportElements, cakeMessages,
         icingDesign, additionalInstructions, threeTierReferenceImage,
-        onSuccess: (editedImageResult: string) => {
+        onSuccess: (editedImageResult: string, baseImageData) => {
             // Save the committed state (matches the previous image) for undo.
             // committedStateRef tracks state from before user edits, so it won't
             // contain the user's latest changes captured by the closure.
@@ -578,7 +578,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
             setEditedImage(editedImageResult);
             setActiveTab('customized');
-            if (originalImageData) setPreviousImageData(originalImageData);
+            setPreviousImageData(baseImageData);
             syncAnalysisResultWithCurrentState();
             clearDirtyState();
         },

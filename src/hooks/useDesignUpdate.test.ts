@@ -10,6 +10,7 @@ vi.mock('@/services/designService', () => ({
 describe('useDesignUpdate', () => {
     const baseProps = {
         originalImageData: { data: 'image-data', mimeType: 'image/png' },
+        editedImage: null,
         analysisResult: {} as never,
         cakeInfo: {} as never,
         mainToppers: [],
@@ -54,7 +55,7 @@ describe('useDesignUpdate', () => {
             expect(result.current.isLoading).toBe(false);
         });
         expect(onSuccess).toHaveBeenCalledTimes(1);
-        expect(onSuccess).toHaveBeenCalledWith('edited-image');
+        expect(onSuccess).toHaveBeenCalledWith('edited-image', baseProps.originalImageData);
     });
 
     it('allows a new update after the previous one finishes', async () => {
@@ -74,8 +75,8 @@ describe('useDesignUpdate', () => {
         });
 
         expect(updateDesign).toHaveBeenCalledTimes(2);
-        expect(onSuccess).toHaveBeenNthCalledWith(1, 'first-image');
-        expect(onSuccess).toHaveBeenNthCalledWith(2, 'second-image');
+        expect(onSuccess).toHaveBeenNthCalledWith(1, 'first-image', baseProps.originalImageData);
+        expect(onSuccess).toHaveBeenNthCalledWith(2, 'second-image', baseProps.originalImageData);
     });
 
     it('passes state and prompt overrides through to updateDesign', async () => {
@@ -110,12 +111,43 @@ describe('useDesignUpdate', () => {
             traceId: 'trace-123',
             requestSource: 'ai-chat-image-edit',
             analysisResult: { cakeType: '1 Tier' },
+            originalImageData: baseProps.originalImageData,
             cakeInfo: overriddenCakeInfo,
             cakeMessages: [{ text: 'Hi' }],
             icingDesign: overriddenIcingDesign,
             additionalInstructions: 'existing context. [USER REQUEST]: add drip',
             promptGenerator,
         }));
-        expect(onSuccess).toHaveBeenCalledWith('override-image');
+        expect(onSuccess).toHaveBeenCalledWith('override-image', baseProps.originalImageData);
+    });
+
+    it('uses the latest edited image as the base for the next design update', async () => {
+        vi.mocked(updateDesign).mockResolvedValueOnce({
+            image: 'next-image',
+            prompt: 'next-prompt',
+            systemInstruction: 'next-system',
+        });
+        const onSuccess = vi.fn();
+
+        const { result } = renderHook(() => useDesignUpdate({
+            ...baseProps,
+            editedImage: 'data:image/webp;base64,edited-base64-data',
+            onSuccess,
+        }));
+
+        await act(async () => {
+            await result.current.handleUpdateDesign();
+        });
+
+        expect(updateDesign).toHaveBeenCalledWith(expect.objectContaining({
+            originalImageData: {
+                data: 'edited-base64-data',
+                mimeType: 'image/webp',
+            },
+        }));
+        expect(onSuccess).toHaveBeenCalledWith('next-image', {
+            data: 'edited-base64-data',
+            mimeType: 'image/webp',
+        });
     });
 });
