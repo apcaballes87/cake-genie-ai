@@ -1,5 +1,5 @@
 import { Metadata, ResolvingMetadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import Image from 'next/image'
 import LazyImage from '@/components/LazyImage'
 import { createClient } from '@/lib/supabase/server'
@@ -53,7 +53,7 @@ export async function generateMetadata(
         title,
         description,
         alternates: {
-            canonical: `https://genie.ph/designs/${slug}`,
+            canonical: `https://genie.ph/customizing/${slug}`,
         },
         robots: {
             index: true,
@@ -185,6 +185,10 @@ function DesignSchema({ design }: { design: SharedDesign }) {
 
 export default async function SharedDesignPage({ params }: Props) {
     const { slug } = await params
+
+    // /designs/[slug] is a legacy route. Canonical URL is /customizing/[slug].
+    permanentRedirect(`/customizing/${slug}`)
+
     const supabase = await createClient()
 
     const { data: design } = await supabase

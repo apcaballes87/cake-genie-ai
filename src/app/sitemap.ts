@@ -155,7 +155,7 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
                 .range(offset, offset + CHUNK_SIZE - 1);
 
             return (designs || []).map((design: any) => ({
-                url: `${baseUrl}/designs/${design.url_slug}`,
+                url: `${baseUrl}/customizing/${design.url_slug}`,
                 lastModified: new Date(design.created_at),
                 changeFrequency: 'weekly' as const,
                 priority: 0.7,
