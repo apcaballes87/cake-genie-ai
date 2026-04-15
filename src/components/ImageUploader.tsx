@@ -146,7 +146,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   const content = (
     <div
       ref={containerRef}
-      className={`relative bg-white ${isInline ? 'rounded-[1.55rem] border border-purple-100/90 shadow-[0_20px_50px_-34px_rgba(109,40,217,0.55)]' : 'rounded-2xl shadow-2xl'} w-full ${isInline ? '' : 'max-w-lg'} ${compact ? `p-[1.28rem] ${isCompactCentered || isCompactInlineCentered ? 'text-center' : 'text-left'}` : 'p-8 text-center'} flex flex-col items-center gap-4 transition-all duration-200 ${isInline ? 'opacity-100 scale-100' : show ? 'scale-100 opacity-100' : 'scale-95 opacity-0'} ${className}`}
+      className={`relative bg-white ${isInline ? 'rounded-[1.55rem] border border-purple-100/90 shadow-[0_20px_50px_-34px_rgba(109,40,217,0.55)]' : 'rounded-2xl shadow-2xl'} w-full ${isInline ? '' : 'max-w-lg'} ${compact ? `p-[0.9rem] md:p-[1.28rem] ${isCompactCentered || isCompactInlineCentered ? 'text-center' : 'text-left'}` : 'p-8 text-center'} flex flex-col items-center gap-4 transition-all duration-200 ${isInline ? 'opacity-100 scale-100' : show ? 'scale-100 opacity-100' : 'scale-95 opacity-0'} ${className}`}
       onClick={(e) => {
         if (!isInline) {
           e.stopPropagation();
@@ -171,7 +171,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       )}
 
       <div
-        className={`w-full border-2 border-dashed transition-colors cursor-pointer ${compact ? 'rounded-xl p-3 max-[416px]:p-2.5' : 'rounded-lg p-10'} ${isDragging ? 'border-purple-500 bg-purple-50' : 'border-slate-300 hover:border-purple-300 hover:bg-purple-50/40'}`}
+        className={`w-full border-2 border-dashed transition-colors cursor-pointer ${compact ? 'rounded-xl p-[8px] max-[416px]:p-[7px] md:p-3' : 'rounded-lg p-10'} ${isDragging ? 'border-purple-500 bg-purple-50' : 'border-slate-300 hover:border-purple-300 hover:bg-purple-50/40'}`}
         onClick={() => {
           if (!isProcessing) {
             fileInputRef.current?.click();
