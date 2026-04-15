@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { SearchIcon, CameraIcon, Loader2, LinkIcon, LayersIcon } from './icons';
 import { CAKE_SEARCH_KEYWORDS } from '@/constants/searchKeywords';
 import { getSuggestedKeywords, getPopularKeywords, logSearchAnalytics, getDesignCategories } from '@/services/supabaseService';
+import { trackSearch } from '@/lib/analytics';
 import Link from 'next/link';
 
 interface SearchAutocompleteProps {
@@ -229,6 +230,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
         const currentQuery = query.trim();
         if (currentQuery) {
           logSearchAnalytics(currentQuery, 'typed');
+          trackSearch(currentQuery, 'autocomplete_enter');
           onSearch(currentQuery);
           setShowSuggestions(false);
         }
@@ -260,6 +262,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     // Directly trigger search, which will update the input value via parent
     setShowSuggestions(false);
     logSearchAnalytics(suggestion, 'clicked');
+    trackSearch(suggestion, 'autocomplete_suggestion');
     onSearch(suggestion);
   };
 
@@ -267,6 +270,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     const currentQuery = query.trim();
     if (currentQuery) {
       logSearchAnalytics(currentQuery, 'typed');
+      trackSearch(currentQuery, 'autocomplete_button');
       onSearch(currentQuery);
       setShowSuggestions(false);
     }
