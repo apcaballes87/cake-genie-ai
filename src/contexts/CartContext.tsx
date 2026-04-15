@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { SupabaseClient, User, PostgrestError } from '@supabase/supabase-js';
 import { debounce } from 'lodash-es';
 import { showError } from '@/lib/utils/toast';
+import { trackAddToCart } from '@/lib/analytics';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
@@ -463,6 +464,14 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setCartItems(prevItems => [tempItem, ...prevItems]);
         }
 
+        // GA4: fire add_to_cart once per optimistic add.
+        trackAddToCart({
+            item_id: tempItem.product_id || tempItem.cart_item_id,
+            item_name: tempItem.cake_type || 'custom-cake',
+            price: tempItem.final_price,
+            quantity: tempItem.quantity,
+        });
+
         try {
             // FIX: Fetch the user directly before the operation to avoid race conditions
             // with the state update, which was causing RLS violations.
@@ -518,6 +527,14 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
 
         setCartItems(prevItems => [tempItem, ...prevItems]);
+
+        // GA4: fire add_to_cart for the background-upload path too.
+        trackAddToCart({
+            item_id: tempItem.product_id || tempItem.cart_item_id,
+            item_name: tempItem.cake_type || 'custom-cake',
+            price: tempItem.final_price,
+            quantity: tempItem.quantity,
+        });
 
         const ownerPromise: Promise<Pick<CakeGenieCartItem, 'user_id' | 'session_id'>> =
             initialItem.user_id || initialItem.session_id

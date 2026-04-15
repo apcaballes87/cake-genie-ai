@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { subscribeToNewsletter } from '@/services/supabaseService';
+import { trackSignUp } from '@/lib/analytics';
 import { X } from 'lucide-react';
 
 export default function NewsletterPopup() {
@@ -11,15 +12,33 @@ export default function NewsletterPopup() {
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    const hasSeenPopup = localStorage.getItem('hasSeenNewsletterPopup');
+    if (typeof window === 'undefined') return;
+    if (localStorage.getItem('hasSeenNewsletterPopup')) return;
 
-    if (!hasSeenPopup) {
-      const timer = setTimeout(() => {
-        setIsOpen(true);
-      }, 5000);
+    // Open on whichever happens first:
+    //  - 25 seconds elapsed (down from 5s — less intrusive for cold traffic)
+    //  - user scrolls past 40% of the page (already engaged → good moment)
+    let opened = false;
+    const open = () => {
+      if (opened) return;
+      opened = true;
+      setIsOpen(true);
+    };
 
-      return () => clearTimeout(timer);
-    }
+    const timer = setTimeout(open, 25_000);
+
+    const onScroll = () => {
+      const docEl = document.documentElement;
+      const scrolled = window.scrollY + window.innerHeight;
+      const total = docEl.scrollHeight;
+      if (total > 0 && scrolled / total > 0.4) open();
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('scroll', onScroll);
+    };
   }, []);
 
   const closePopup = () => {
@@ -51,6 +70,7 @@ export default function NewsletterPopup() {
 
       if (success) {
         setStatus('success');
+        trackSignUp('email', 'newsletter_popup');
         localStorage.setItem('hasSeenNewsletterPopup', 'true');
       } else {
         setStatus('error');

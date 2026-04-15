@@ -23,6 +23,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { batchSaveToLocalStorage } from '@/contexts/CartContext';
 import { COMMON_ASSETS } from '@/constants';
+import { trackImageUpload, trackSelectItem } from '@/lib/analytics';
 import {
     Search,
     ShoppingBag,
@@ -214,6 +215,7 @@ function DesktopHeroCollectionCard({
     return (
         <Link
             href={`/collections/${slug}`}
+            onClick={() => trackSelectItem({ item_list_name: 'hero_collections', item_id: slug, item_name: title })}
             className="group relative block w-full self-start overflow-hidden rounded-[1.35rem] border border-white/75 bg-white/80 shadow-[0_18px_44px_-34px_rgba(88,28,135,0.72)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_52px_-30px_rgba(88,28,135,0.78)]"
         >
             <div className="relative overflow-hidden">
@@ -769,6 +771,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 const publicUrl = await uploadToSupabase();
 
                 if (publicUrl) {
+                    trackImageUpload('landing');
                     const encodedUrl = encodeURIComponent(publicUrl);
                     // Clear stale image data before navigating so the customizing page
                     // doesn't briefly show a previously-uploaded image from IndexedDB.
@@ -1133,6 +1136,11 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     <span className="whitespace-nowrap">Same-day Delivery</span>
                                 </div>
                             </div>
+                            <p className="mt-3 text-center text-[11px] font-semibold text-slate-600 max-[390px]:text-[10px]">
+                                Bento from <span className="text-purple-700">₱399</span> · 1-tier from <span className="text-purple-700">₱1,500</span> · 2-tier from <span className="text-purple-700">₱2,500</span>
+                                <br />
+                                Same-day delivery in Metro Cebu from <span className="text-purple-700">₱100</span>
+                            </p>
                             <div className="mt-4 flex items-center gap-3">
                                 <div className="h-px flex-1 bg-purple-200/80" />
                                 <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-purple-500">or</span>
@@ -1146,6 +1154,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                     <Link
                                         key={collection.slug}
                                         href={`/collections/${collection.slug}`}
+                                        onClick={() => trackSelectItem({ item_list_name: 'hero_collections', item_id: collection.slug, item_name: collection.title })}
                                         className="group overflow-hidden rounded-2xl border border-white/80 bg-white/85 shadow-[0_18px_40px_-34px_rgba(88,28,135,0.72)] transition-transform duration-300 hover:-translate-y-0.5"
                                     >
                                         <div className="relative aspect-square overflow-hidden">
@@ -1210,6 +1219,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                         <span className="whitespace-nowrap">Same-day Delivery</span>
                                     </div>
                                 </div>
+                                <p className="mt-4 text-center text-[12px] font-semibold text-slate-600 min-[1232px]:text-[13px]">
+                                    Bento from <span className="text-purple-700">₱399</span> · 1-tier from <span className="text-purple-700">₱1,500</span> · 2-tier from <span className="text-purple-700">₱2,500</span> · Same-day delivery from <span className="text-purple-700">₱100</span>
+                                </p>
                                 <div className="mt-4 flex items-center gap-3">
                                     <div className="h-px flex-1 bg-purple-200/80" />
                                     <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-purple-500 shrink-0">or</span>
