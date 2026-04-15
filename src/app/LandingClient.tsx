@@ -14,6 +14,7 @@ import LazyImage from '@/components/LazyImage';
 import { ImageWithSkeleton } from '@/components/ImageWithSkeleton';
 import { showError, showLoading, showInfo } from '@/lib/utils/toast';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import SameDayCutoffBanner from '@/components/SameDayCutoffBanner';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { CakeGenieReview } from '@/lib/database.types';
 import { getReviewDisplayName } from '@/lib/reviews';
@@ -903,11 +904,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 <DiscountCapture />
             </Suspense>
 
-            {/* ========== STATIC TRUST BANNER ========== */}
+            {/* ========== SAME-DAY CUTOFF COUNTDOWN BANNER ========== */}
             <div className="w-full bg-purple-600 py-[4.5px] flex justify-center items-center">
-                <span className="inline-flex items-center text-white text-[10px] md:text-[11px] font-bold tracking-wider">
-                    Place your order by 4PM for same-day delivery in Metro Cebu 💖
-                </span>
+                <SameDayCutoffBanner />
             </div>
 
             {/* ========== HEADER ========== */}
