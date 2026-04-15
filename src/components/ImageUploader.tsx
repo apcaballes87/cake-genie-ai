@@ -146,7 +146,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   const content = (
     <div
       ref={containerRef}
-      className={`relative bg-white ${isInline ? 'rounded-[1.55rem] border border-purple-100/90 shadow-[0_20px_50px_-34px_rgba(109,40,217,0.55)]' : 'rounded-2xl shadow-2xl'} w-full ${isInline ? '' : 'max-w-lg'} ${compact ? `p-[0.45rem] md:p-[0.64rem] ${isCompactCentered || isCompactInlineCentered ? 'text-center' : 'text-left'}` : 'p-8 text-center'} flex flex-col items-center gap-4 transition-all duration-200 ${isInline ? 'opacity-100 scale-100' : show ? 'scale-100 opacity-100' : 'scale-95 opacity-0'} ${className}`}
+      className={`relative bg-white ${isInline ? 'rounded-[1.55rem] border border-purple-100/90 shadow-[0_20px_50px_-34px_rgba(109,40,217,0.55)]' : 'rounded-2xl shadow-2xl'} w-full ${isInline ? '' : 'max-w-lg'} ${compact ? `p-1 md:p-1.5 ${isCompactCentered || isCompactInlineCentered ? 'text-center' : 'text-left'}` : 'p-8 text-center'} flex flex-col items-center gap-4 transition-all duration-200 ${isInline ? 'opacity-100 scale-100' : show ? 'scale-100 opacity-100' : 'scale-95 opacity-0'} ${className}`}
       onClick={(e) => {
         if (!isInline) {
           e.stopPropagation();
