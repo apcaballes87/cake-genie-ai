@@ -410,7 +410,7 @@ export default function ImageStudioAdminClient() {
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-white/80 md:text-base">
                 Review cache rows, run a consistent pastel purple cyclorama edit, and save the
-                finished image back to Supabase with a subtle transparent Genie.ph mark.
+                finished image back to Supabase with professional subject isolation.
               </p>
             </div>
 
@@ -580,8 +580,7 @@ export default function ImageStudioAdminClient() {
 
           <div className="mt-8 flex items-center justify-between gap-3">
             <div className="text-sm text-slate-500">
-              Each edit keeps the cake intact, swaps in the purple cyclorama background, and
-              finishes with a translucent logo watermark.
+              Each edit keeps the cake intact and swaps in the professional pastel purple cyclorama background.
             </div>
             <div className="text-sm font-medium text-slate-500">
               Failed on page: <span className="text-rose-600">{pageSummary.failed}</span>
