@@ -3241,14 +3241,6 @@ export async function getAllBlogSlugs(): Promise<SupabaseServiceResponse<{ slug:
   }
 }
 /**
- * Subscribes an email to the newsletter.
- * Handles duplicates gracefully (if already subscribed, returns success).
- *
- * @param email - The email to subscribe.
- * @param source - The source of the subscription (e.g., 'popup').
- * @returns A promise that resolves to true if successful, false otherwise.
- */
-/**
  * Subscribes an email to the newsletter and returns a unique per-email
  * 20%-off discount code, or null on failure.
  *

@@ -70,13 +70,13 @@ export async function validateDiscountCode(
     }
 
     // Check minimum order amount
-    if (discountCode.min_order_amount && orderAmount < discountCode.min_order_amount) {
+    if (discountCode.minimum_order_amount && orderAmount < discountCode.minimum_order_amount) {
       return {
         valid: false,
         discountAmount: 0,
         originalAmount: orderAmount,
         finalAmount: orderAmount,
-        message: `Minimum order amount of ₱${discountCode.min_order_amount} required`,
+        message: `Minimum order amount of ₱${discountCode.minimum_order_amount} required`,
       };
     }
 
