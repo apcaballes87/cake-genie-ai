@@ -81,8 +81,8 @@ serve(async (req) => {
       });
     }
 
-    if (discountCode.min_order_amount && orderAmount < discountCode.min_order_amount) {
-      return new Response(JSON.stringify({ valid: false, error: `Minimum order amount of ₱${discountCode.min_order_amount} is required.` }), {
+    if (discountCode.minimum_order_amount && orderAmount < discountCode.minimum_order_amount) {
+      return new Response(JSON.stringify({ valid: false, error: `Minimum order amount of ₱${discountCode.minimum_order_amount} is required.` }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200
       });
     }
