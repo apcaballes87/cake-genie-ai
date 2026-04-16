@@ -543,7 +543,8 @@ const ColdCakingClient: React.FC = () => {
                                 display: none !important;
                             }
                             /* Hide About This section (CustomizingSupplementalContent) */
-                            .coldcaking-customizer-wrapper div.w-full.mt-0:has(> .bg-white\\/70) {
+                            /* Must exclude .flex-col to avoid also hiding the mobile step cards container */
+                            .coldcaking-customizer-wrapper div.w-full.mt-0:has(> .bg-white\\/70):not(.flex-col) {
                                 display: none !important;
                             }
                             /* Hide Design Specifications + FAQ (CustomizingPostAnalysisContent) */
@@ -566,8 +567,8 @@ const ColdCakingClient: React.FC = () => {
                             .coldcaking-customizer-wrapper .z-60 > div:first-child {
                                 display: none !important;
                             }
-                            /* Hide the original Step 1 card (mobile — snap-x + mt-0 container first child) */
-                            .coldcaking-customizer-wrapper .snap-x.mt-0 > div:first-child {
+                            /* Hide the original Step 1 card (mobile — mt-0 flex-col container first child) */
+                            .coldcaking-customizer-wrapper .mt-0.flex-col > div:first-child {
                                 display: none !important;
                             }
                             /* Hide 2 Tier and 3 Tier cake type options */
