@@ -10,6 +10,7 @@ export default function NewsletterPopup() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [discountCode, setDiscountCode] = useState('');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -66,9 +67,10 @@ export default function NewsletterPopup() {
     setErrorMessage('');
 
     try {
-      const success = await subscribeToNewsletter(email, 'popup');
+      const code = await subscribeToNewsletter(email, 'popup');
 
-      if (success) {
+      if (code) {
+        setDiscountCode(code);
         setStatus('success');
         trackSignUp('email', 'newsletter_popup');
         localStorage.setItem('hasSeenNewsletterPopup', 'true');
@@ -104,7 +106,7 @@ export default function NewsletterPopup() {
               <h2 className="text-2xl font-extrabold text-gray-900 mb-3">THANK YOU!</h2>
               <p className="text-base text-gray-600 mb-5">Here is your 20% off discount code:</p>
               <div className="bg-purple-50 border-2 border-dashed border-purple-300 rounded-xl py-3 px-6 inline-block mb-6 shadow-sm">
-                <span className="text-2xl font-bold tracking-wider text-purple-700">NEW20</span>
+                <span className="text-2xl font-bold tracking-wider text-purple-700">{discountCode}</span>
               </div>
               <p className="text-sm text-gray-500 mb-6">Use this code at checkout to claim your discount.</p>
               <button
