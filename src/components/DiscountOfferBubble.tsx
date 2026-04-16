@@ -111,6 +111,43 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
     // Page will redirect to Google — execution stops here
   };
 
+  /**
+   * Fallback for when email confirmation is required: generates a code via
+   * the newsletter route (no session needed) and applies it to the cart
+   * immediately, so the user doesn't have to wait for their inbox.
+   */
+  const applyDiscountViaEmail = async (emailAddress: string) => {
+    try {
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailAddress, source: 'customizing_bubble' }),
+      });
+      const data = await res.json();
+      if (!data.success || !data.code) {
+        showError(data.error || 'Could not generate discount. Please try again.');
+        setStatus('idle');
+        return;
+      }
+
+      const code: string = data.code;
+      const validationResult = await validateDiscountCode(code, basePrice);
+      localStorage.setItem('cart_discount_code', code);
+      localStorage.setItem('cart_applied_discount', JSON.stringify(validationResult));
+
+      setAppliedCode(code);
+      showSuccess(`20% Discount Unlocked! Code ${code} applied. Check your email to confirm your account.`);
+      setStatus('success');
+      setHasApplied(true);
+      if (onApplied) onApplied();
+      setTimeout(() => setIsExpanded(false), 2000);
+    } catch (err) {
+      console.error('Error applying email-fallback discount:', err);
+      showError('Something went wrong. Please try again.');
+      setStatus('idle');
+    }
+  };
+
   // ── Email / password sign-up ──
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,14 +173,13 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
     }
 
     if (!data?.session) {
-      // Email confirmation required — can't generate code until confirmed
-      showSuccess('Check your email to confirm your account, then return here for your discount!');
-      setStatus('idle');
-      setIsExpanded(false);
+      // Email confirmation required — apply the discount immediately via the
+      // newsletter route so the user isn't left waiting for their inbox.
+      await applyDiscountViaEmail(email);
       return;
     }
 
-    // Immediately authenticated
+    // Immediately authenticated (email confirmation disabled)
     await applyDiscountForCurrentUser();
   };
 
