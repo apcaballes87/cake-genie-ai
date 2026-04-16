@@ -11,7 +11,7 @@ interface ColdCakingPhotoStepProps {
 }
 
 const DESKTOP_CARD_CLASS = 'shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 h-full';
-const MOBILE_CARD_CLASS = 'shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 h-full';
+const MOBILE_CARD_CLASS = 'w-full min-w-0 bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200';
 
 export function ColdCakingPhotoStep({ onUploadClick, hasPhoto, onDeletePhoto }: ColdCakingPhotoStepProps) {
     const [mobilePlaceholder, setMobilePlaceholder] = useState<HTMLElement | null>(null);
@@ -57,7 +57,7 @@ export function ColdCakingPhotoStep({ onUploadClick, hasPhoto, onDeletePhoto }: 
             const wrapper = document.querySelector('.coldcaking-customizer-wrapper');
             if (!wrapper) return;
 
-            const mobileContainer = wrapper.querySelector('.snap-x.mt-0');
+            const mobileContainer = wrapper.querySelector('.mt-0.flex-col');
             const desktopContainer = wrapper.querySelector('.z-60');
 
             if (mobileContainer && !mobilePlaceholderEl) {
