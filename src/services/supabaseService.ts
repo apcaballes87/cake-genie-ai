@@ -3248,38 +3248,33 @@ export async function getAllBlogSlugs(): Promise<SupabaseServiceResponse<{ slug:
  * @param source - The source of the subscription (e.g., 'popup').
  * @returns A promise that resolves to true if successful, false otherwise.
  */
-export const subscribeToNewsletter = async (email: string, source: string = 'popup'): Promise<boolean> => {
+/**
+ * Subscribes an email to the newsletter and returns a unique per-email
+ * 20%-off discount code, or null on failure.
+ *
+ * Delegates to /api/newsletter (service-role) so the discount code can be
+ * written to discount_codes without RLS friction. validateDiscountCode() in
+ * discountService.ts picks it up automatically — no changes needed there.
+ */
+export const subscribeToNewsletter = async (email: string, source: string = 'popup'): Promise<string | null> => {
   try {
-    const { error } = await supabase
-      .from('cakegenie_newsletter_subscribers')
-      .insert([
-        {
-          email,
-          source,
-        },
-      ]);
+    const res = await fetch('/api/newsletter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, source }),
+    });
 
-    if (error) {
-      // If the error is a unique constraint violation (code 23505),
-      // it means the email is already subscribed. We can treat this as a success
-      // for the user's perspective, or we could potentially update the is_active flag.
-      if (error.code === '23505') {
-        // Optionally, ensure they are active if they resubscribed
-        await supabase
-          .from('cakegenie_newsletter_subscribers')
-          .update({ is_active: true, updated_at: new Date().toISOString() })
-          .eq('email', email);
-        return true;
-      }
-
-      console.error('Error subscribing to newsletter:', error);
-      return false;
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({ error: 'Unknown error' }));
+      console.error('Newsletter subscribe error:', error);
+      return null;
     }
 
-    return true;
+    const { success, code } = await res.json();
+    return success && code ? (code as string) : null;
   } catch (err) {
     console.error('Unexpected error subscribing to newsletter:', err);
-    return false;
+    return null;
   }
 };
 

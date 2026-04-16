@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { subscribeToNewsletter } from '@/services/supabaseService';
+import { validateDiscountCode } from '@/services/discountService';
 import { Sparkles, Check, ChevronRight, X, Mail } from 'lucide-react';
 import { showSuccess, showError } from '@/lib/utils/toast';
 
@@ -17,11 +18,13 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({ basePr
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
   const [hasApplied, setHasApplied] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
+  const [appliedCode, setAppliedCode] = useState('');
 
   useEffect(() => {
-    // Check if discount was already applied in this session or before
-    const appliedCode = localStorage.getItem('cart_discount_code');
-    if (appliedCode === 'NEW20') {
+    // Check if a discount was already applied in this session
+    const storedCode = localStorage.getItem('cart_discount_code');
+    if (storedCode) {
+      setAppliedCode(storedCode);
       setHasApplied(true);
     }
   }, []);
@@ -38,32 +41,26 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({ basePr
 
     setStatus('loading');
     try {
-      const success = await subscribeToNewsletter(email, 'customizing_bubble');
-      if (success) {
-        // Apply NEW20 code to localStorage
-        localStorage.setItem('cart_discount_code', 'NEW20');
-
-        // Mock the validation result so Cart picking it up feels smooth
-        const mockResult = {
-          valid: true,
-          discountAmount: basePrice * 0.2,
-          codeId: 'new20-auto',
-          originalAmount: basePrice,
-          finalAmount: discountedPrice,
-          message: 'NEW20 applied automatically!',
-          freeDelivery: false
-        };
-        localStorage.setItem('cart_applied_discount', JSON.stringify(mockResult));
-
-        showSuccess('20% Discount Unlocked! Code NEW20 applied.');
-        setStatus('success');
-        setHasApplied(true);
-        if (onApplied) onApplied();
-        setTimeout(() => setIsExpanded(false), 2000);
-      } else {
+      const code = await subscribeToNewsletter(email, 'customizing_bubble');
+      if (!code) {
         showError('Subscription failed. Please try again.');
         setStatus('idle');
+        return;
       }
+
+      // Validate the real code to get the actual codeId for order creation
+      const validationResult = await validateDiscountCode(code, basePrice);
+
+      // Store the code and real validation result so CartClient picks them up correctly
+      localStorage.setItem('cart_discount_code', code);
+      localStorage.setItem('cart_applied_discount', JSON.stringify(validationResult));
+
+      setAppliedCode(code);
+      showSuccess(`20% Discount Unlocked! Code ${code} applied.`);
+      setStatus('success');
+      setHasApplied(true);
+      if (onApplied) onApplied();
+      setTimeout(() => setIsExpanded(false), 2000);
     } catch (err) {
       console.error('Error in discount bubble signup:', err);
       showError('Something went wrong.');
@@ -126,7 +123,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({ basePr
               </button>
             </div>
             <p className="text-[11px] text-gray-600 leading-relaxed">
-              Enter your email to apply <b>NEW20</b> and save <b>₱{savings.toLocaleString()}</b> immediately.
+              Enter your email to get a unique 20% off code and save <b>₱{savings.toLocaleString()}</b> immediately.
             </p>
           </div>
 
@@ -137,7 +134,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({ basePr
                   <Check className="w-6 h-6" />
                 </div>
                 <p className="text-xs font-bold text-gray-900">Discount Unlocked!</p>
-                <p className="text-[10px] text-gray-500">NEW20 applied to your cart.</p>
+                <p className="text-[10px] text-gray-500">{appliedCode} applied to your cart.</p>
               </div>
             ) : (
               <form onSubmit={handleSubscribe} className="space-y-3">
