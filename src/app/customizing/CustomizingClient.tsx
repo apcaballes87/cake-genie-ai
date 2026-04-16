@@ -15,6 +15,7 @@ import { SegmentationOverlay } from '../../components/SegmentationOverlay';
 import { SegmentationBottomSheet } from '../../components/SegmentationBottomSheet';
 import { CustomizationSkeleton } from '../../components/LoadingSkeletons';
 import { BackIcon, UserCircleIcon, LogOutIcon, MapPinIcon, PackageIcon, TrashIcon } from '../../components/icons';
+import SameDayCutoffBanner from '@/components/SameDayCutoffBanner';
 import { ShoppingBag } from 'lucide-react';
 import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType, CakeSize, CakeThickness, AvailabilitySettings, IcingColorDetails, AnalysisItem, ClusteredMarker, CartItem } from '../../types';
 import { CakeGenieCartItem, CakeGenieMerchant, CakeGenieMerchantProduct } from '../../lib/database.types';
@@ -2726,6 +2727,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     return (
         <>
             <h1 className="sr-only">{seoMetadata?.seo_title || 'Customize Your Cake Design - Genie.ph'}</h1>
+            {/* Same-day cutoff countdown — live urgency signal */}
+            <div className="w-full bg-purple-600 py-[4.5px] flex justify-center items-center">
+                <SameDayCutoffBanner />
+            </div>
             <div className="w-full max-w-7xl mx-auto px-4">
                 <div className="w-full flex items-center gap-2 md:gap-4 mb-4 pt-6">
                     <button onClick={onClose} className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label="Go back">
