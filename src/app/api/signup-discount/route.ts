@@ -83,7 +83,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Insert into discount_codes tied to this specific user account
+        // Insert into discount_codes. We intentionally do NOT set user_id or
+        // one_per_user — both fields require an active auth session to validate,
+        // and CartClient re-validates before auth hydrates, causing a false
+        // "must be logged in" rejection. max_uses: 1 is the sole reuse guard;
+        // the code is already unique and tracked per-email via newsletter_subscribers.
         const { error: discountInsertError } = await serviceClient
             .from('discount_codes')
             .insert({
@@ -93,9 +97,8 @@ export async function POST(request: NextRequest) {
                 max_uses: 1,
                 times_used: 0,
                 free_delivery: false,
-                one_per_user: true,
+                one_per_user: false,
                 new_users_only: false,
-                user_id: userId,
             });
 
         if (discountInsertError) {
