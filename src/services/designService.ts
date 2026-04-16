@@ -502,6 +502,10 @@ export async function updateDesign({
     }
 
     // 3. Build the prompt
+    // Fallback matches cold caking DEFAULT_ICING so that when analysisResult is null,
+    // the prompt only includes ACTUAL changes from the default — prevents spurious
+    // "add top border" instructions that trigger the generative system instruction
+    // (which removes the edible photo as a "digitally overlayed logo").
     const analysisForPrompt = analysisResult || {
         main_toppers: [],
         support_elements: [],
@@ -510,9 +514,11 @@ export async function updateDesign({
             base: 'soft_icing',
             color_type: 'single',
             colors: {
-                side: '#FFFFFF'
+                side: '#FFFFFF',
+                top: '#FFFFFF',
+                borderTop: '#C4B5FD',
             },
-            border_top: false,
+            border_top: true,
             border_base: false,
             drip: false,
             gumpasteBaseBoard: false

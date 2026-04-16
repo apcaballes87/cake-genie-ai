@@ -99,7 +99,7 @@ const ColdCakingClient: React.FC = () => {
     const router = useRouter();
     const { isAuthenticated, user } = useAuth();
     const { itemCount } = useCart();
-    const { clearImages, loadImageWithoutAnalysis } = useImageManagement();
+    const { clearImages, loadImageWithoutAnalysis, editedImage } = useImageManagement();
     const scrollThreshold = 50;
 
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
@@ -356,6 +356,51 @@ const ColdCakingClient: React.FC = () => {
             setCombineError(error.message || 'Failed to apply changes. Please try again.');
         }
     }, [clearImages, loadImageWithoutAnalysis]);
+
+    // After any AI icing update, re-overlay the uploaded photo so the edible photo is always preserved.
+    const isReapplyingAfterIcingRef = useRef(false);
+    useEffect(() => {
+        if (!editedImage || !hasUploadedPhoto || !uploadedImageRef.current || isReapplyingAfterIcingRef.current) return;
+        isReapplyingAfterIcingRef.current = true;
+        setIsCombining(true);
+        setCombineError(null);
+
+        const commaIndex = editedImage.indexOf(',');
+        const header = editedImage.slice(0, commaIndex);
+        const data = editedImage.slice(commaIndex + 1);
+        const mimeType = header.match(/data:([^;]+)/)?.[1] ?? 'image/png';
+        const baseImage = { data, mimeType };
+
+        (async () => {
+            try {
+                const response = await fetch('/api/ai/cold-cake-edit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ baseImage, overlayImage: uploadedImageRef.current }),
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: 'Failed to re-apply photo' }));
+                    throw new Error(errorData.error || 'Failed to re-apply photo after icing change');
+                }
+                const result = await response.json();
+                const combinedFile = base64ToFile(result.imageData, result.mimeType, 'cold-cake-design.png');
+                clearImages();
+                const objectUrl = URL.createObjectURL(combinedFile);
+                await loadImageWithoutAnalysis(objectUrl, {
+                    fileName: 'cold-cake-design.png',
+                    fallbackMimeType: combinedFile.type,
+                });
+                cachedDesignsRef.current.set(currentSizeIndexRef.current, objectUrl);
+                setCachedDesignSizeIndex(currentSizeIndexRef.current);
+            } catch (error: any) {
+                setCombineError(error.message || 'Failed to re-apply photo after icing change. Please try again.');
+            } finally {
+                setIsCombining(false);
+                isReapplyingAfterIcingRef.current = false;
+            }
+        })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editedImage]);
 
     return (
         <div id="top" className="font-sans bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100 min-h-screen pb-24 md:pb-0 text-gray-800 flex flex-col">
