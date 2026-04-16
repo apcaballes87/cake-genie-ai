@@ -46,9 +46,9 @@ const DEFAULT_INDEX = 1; // 6" Round
 
 // Match the card/items class names used inside CustomizingStepSummarySections
 const DESKTOP_CARD_CLASS = 'shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 h-full';
-const MOBILE_CARD_CLASS = 'shrink-0 w-fit min-w-[280px] snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200 h-full';
+const MOBILE_CARD_CLASS = 'w-full min-w-0 bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200';
 const DESKTOP_ITEMS_CLASS = 'flex gap-[7px] pt-1 pb-1 w-max md:w-full flex-wrap';
-const MOBILE_ITEMS_CLASS = 'flex gap-[7px] pt-1 pb-1 w-max';
+const MOBILE_ITEMS_CLASS = 'flex gap-[7px] pt-1 pb-1 w-full flex-wrap';
 
 // Map from "type|size" to price
 type PriceMap = Record<string, number>;
@@ -139,7 +139,7 @@ export function ColdCakingCakePicker({ onSizeImageChange, showApplyChanges, isCo
             const wrapper = document.querySelector('.coldcaking-customizer-wrapper');
             if (!wrapper) return;
 
-            const mobileContainer = wrapper.querySelector('.snap-x.mt-0');
+            const mobileContainer = wrapper.querySelector('.mt-0.flex-col');
             const desktopContainer = wrapper.querySelector('.z-60');
 
             if (mobileContainer && !mobilePlaceholderEl) {

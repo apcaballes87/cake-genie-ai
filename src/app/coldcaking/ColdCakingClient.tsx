@@ -15,6 +15,7 @@ import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import { COMMON_ASSETS } from '@/constants';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import SameDayCutoffBanner from '@/components/SameDayCutoffBanner';
 import { ColdCakingHero } from './ColdCakingHero';
 import { ColdCakingFAQ } from './ColdCakingFAQ';
 import { ColdCakingCakePicker } from './ColdCakingCakePicker';
@@ -98,7 +99,7 @@ const ColdCakingClient: React.FC = () => {
     const router = useRouter();
     const { isAuthenticated, user } = useAuth();
     const { itemCount } = useCart();
-    const { clearImages, loadImageWithoutAnalysis } = useImageManagement();
+    const { clearImages, loadImageWithoutAnalysis, editedImage } = useImageManagement();
     const scrollThreshold = 50;
 
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
@@ -356,13 +357,56 @@ const ColdCakingClient: React.FC = () => {
         }
     }, [clearImages, loadImageWithoutAnalysis]);
 
+    // After any AI icing update, re-overlay the uploaded photo so the edible photo is always preserved.
+    const isReapplyingAfterIcingRef = useRef(false);
+    useEffect(() => {
+        if (!editedImage || !hasUploadedPhoto || !uploadedImageRef.current || isReapplyingAfterIcingRef.current) return;
+        isReapplyingAfterIcingRef.current = true;
+        setIsCombining(true);
+        setCombineError(null);
+
+        const commaIndex = editedImage.indexOf(',');
+        const header = editedImage.slice(0, commaIndex);
+        const data = editedImage.slice(commaIndex + 1);
+        const mimeType = header.match(/data:([^;]+)/)?.[1] ?? 'image/png';
+        const baseImage = { data, mimeType };
+
+        (async () => {
+            try {
+                const response = await fetch('/api/ai/cold-cake-edit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ baseImage, overlayImage: uploadedImageRef.current }),
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: 'Failed to re-apply photo' }));
+                    throw new Error(errorData.error || 'Failed to re-apply photo after icing change');
+                }
+                const result = await response.json();
+                const combinedFile = base64ToFile(result.imageData, result.mimeType, 'cold-cake-design.png');
+                clearImages();
+                const objectUrl = URL.createObjectURL(combinedFile);
+                await loadImageWithoutAnalysis(objectUrl, {
+                    fileName: 'cold-cake-design.png',
+                    fallbackMimeType: combinedFile.type,
+                });
+                cachedDesignsRef.current.set(currentSizeIndexRef.current, objectUrl);
+                setCachedDesignSizeIndex(currentSizeIndexRef.current);
+            } catch (error: any) {
+                setCombineError(error.message || 'Failed to re-apply photo after icing change. Please try again.');
+            } finally {
+                setIsCombining(false);
+                isReapplyingAfterIcingRef.current = false;
+            }
+        })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editedImage]);
+
     return (
         <div id="top" className="font-sans bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100 min-h-screen pb-24 md:pb-0 text-gray-800 flex flex-col">
-            {/* Trust Banner */}
+            {/* ========== SAME-DAY CUTOFF COUNTDOWN BANNER ========== */}
             <div className="w-full bg-purple-600 py-[4.5px] flex justify-center items-center">
-                <span className="inline-flex items-center text-white text-[10px] md:text-[11px] font-bold tracking-wider">
-                    Place your order by 4PM for same-day delivery in Metro Cebu 💖
-                </span>
+                <SameDayCutoffBanner />
             </div>
 
             {/* Header */}
@@ -544,7 +588,8 @@ const ColdCakingClient: React.FC = () => {
                                 display: none !important;
                             }
                             /* Hide About This section (CustomizingSupplementalContent) */
-                            .coldcaking-customizer-wrapper div.w-full.mt-0:has(> .bg-white\\/70) {
+                            /* Must exclude .flex-col to avoid also hiding the mobile step cards container */
+                            .coldcaking-customizer-wrapper div.w-full.mt-0:has(> .bg-white\\/70):not(.flex-col) {
                                 display: none !important;
                             }
                             /* Hide Design Specifications + FAQ (CustomizingPostAnalysisContent) */
@@ -567,8 +612,8 @@ const ColdCakingClient: React.FC = () => {
                             .coldcaking-customizer-wrapper .z-60 > div:first-child {
                                 display: none !important;
                             }
-                            /* Hide the original Step 1 card (mobile — snap-x + mt-0 container first child) */
-                            .coldcaking-customizer-wrapper .snap-x.mt-0 > div:first-child {
+                            /* Hide the original Step 1 card (mobile — mt-0 flex-col container first child) */
+                            .coldcaking-customizer-wrapper .mt-0.flex-col > div:first-child {
                                 display: none !important;
                             }
                             /* Hide 2 Tier and 3 Tier cake type options */
@@ -591,6 +636,10 @@ const ColdCakingClient: React.FC = () => {
                             /* Image container should be on same level as steps */
                             .coldcaking-customizer-wrapper div[class*="min-h-"][class*="rounded-2xl"] {
                                 z-index: 10 !important;
+                            }
+                            /* Hide the duplicate purple banner rendered by CustomizingClient */
+                            .coldcaking-customizer-wrapper > div.w-full.bg-purple-600 {
+                                display: none !important;
                             }
                         `}</style>
                         {/* Step 1 picker — portals its card as first visible step */}
