@@ -15,6 +15,7 @@ import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import { COMMON_ASSETS } from '@/constants';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import SameDayCutoffBanner from '@/components/SameDayCutoffBanner';
 import { ColdCakingHero } from './ColdCakingHero';
 import { ColdCakingFAQ } from './ColdCakingFAQ';
 import { ColdCakingCakePicker } from './ColdCakingCakePicker';
@@ -358,11 +359,9 @@ const ColdCakingClient: React.FC = () => {
 
     return (
         <div id="top" className="font-sans bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100 min-h-screen pb-24 md:pb-0 text-gray-800 flex flex-col">
-            {/* Trust Banner */}
+            {/* ========== SAME-DAY CUTOFF COUNTDOWN BANNER ========== */}
             <div className="w-full bg-purple-600 py-[4.5px] flex justify-center items-center">
-                <span className="inline-flex items-center text-white text-[10px] md:text-[11px] font-bold tracking-wider">
-                    Place your order by 4PM for same-day delivery in Metro Cebu 💖
-                </span>
+                <SameDayCutoffBanner />
             </div>
 
             {/* Header */}
@@ -591,6 +590,10 @@ const ColdCakingClient: React.FC = () => {
                             /* Image container should be on same level as steps */
                             .coldcaking-customizer-wrapper div[class*="min-h-"][class*="rounded-2xl"] {
                                 z-index: 10 !important;
+                            }
+                            /* Hide the duplicate purple banner rendered by CustomizingClient */
+                            .coldcaking-customizer-wrapper > div.w-full.bg-purple-600 {
+                                display: none !important;
                             }
                         `}</style>
                         {/* Step 1 picker — portals its card as first visible step */}
