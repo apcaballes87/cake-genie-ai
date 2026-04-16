@@ -74,7 +74,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         setIsMounted(true);
         // Check for discount on mount
         const appliedCode = localStorage.getItem('cart_discount_code');
-        if (appliedCode === 'NEW20') {
+        if (appliedCode) {
             setIsDiscountApplied(true);
         }
     }, []);
@@ -121,7 +121,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                         <div className="flex flex-col relative">
                             {/* Floating Pill Above Price */}
                             <div className="absolute bottom-[calc(100%+2px)] left-0 flex items-center gap-1 px-1.5 py-0.5 bg-green-50 text-green-700 rounded-full text-[8px] font-black border border-green-100 uppercase tracking-tighter shadow-sm animate-in fade-in slide-in-from-bottom-1 duration-300">
-                                <span>NEW20 APPLIED</span>
+                                <span>DISCOUNT APPLIED</span>
                             </div>
                             <div className="flex items-center gap-1.5 leading-tight">
                                 <span className="text-xs text-slate-400 line-through">₱{price.toLocaleString()}</span>
