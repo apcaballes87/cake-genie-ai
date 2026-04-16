@@ -100,6 +100,33 @@ export default function NewsletterPopup() {
     }
   };
 
+  /**
+   * Fallback for when email confirmation is required: generates a code via
+   * the newsletter route (no session needed) and shows it immediately.
+   */
+  const generateDiscountViaEmail = async (emailAddress: string) => {
+    setStatus('loading');
+    try {
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailAddress, source: 'popup' }),
+      });
+      const data = await res.json();
+      if (data.success && data.code) {
+        setDiscountCode(data.code);
+        setStatus('success');
+        localStorage.setItem(SEEN_KEY, 'true');
+      } else {
+        setStatus('error');
+        setErrorMessage(data.error || 'Failed to generate discount code.');
+      }
+    } catch {
+      setStatus('error');
+      setErrorMessage('An unexpected error occurred.');
+    }
+  };
+
   // ── Email / password sign-up ──
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,11 +159,10 @@ export default function NewsletterPopup() {
     }
 
     if (!data?.session) {
-      // Email confirmation required — show a holding message
-      setStatus('success');
-      setDiscountCode('');          // no code yet; shown after confirmation
-      localStorage.setItem(SEEN_KEY, 'true');
+      // Email confirmation required — generate the code via the newsletter
+      // route (no session needed) so we can show it to the user right now.
       trackSignUp('email', 'signup_popup');
+      await generateDiscountViaEmail(email);
       return;
     }
 
@@ -174,26 +200,18 @@ export default function NewsletterPopup() {
           {status === 'success' ? (
             <div className="text-center py-6">
               <div className="text-3xl mb-3">🎉</div>
-              <h2 className="text-2xl font-extrabold text-gray-900 mb-3">
-                {discountCode ? 'YOU\'RE ALL SET!' : 'ALMOST THERE!'}
-              </h2>
+              <h2 className="text-2xl font-extrabold text-gray-900 mb-3">YOU'RE ALL SET!</h2>
 
-              {discountCode ? (
-                <>
-                  <p className="text-base text-gray-600 mb-5">Here is your 20% off discount code:</p>
-                  <div className="bg-purple-50 border-2 border-dashed border-purple-300 rounded-xl py-3 px-6 inline-block mb-6 shadow-sm">
-                    <span className="text-2xl font-bold tracking-wider text-purple-700">{discountCode}</span>
-                  </div>
-                  <p className="text-sm text-gray-500 mb-6">Use this code at checkout to claim your discount.</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-base text-gray-600 mb-5">
-                    We sent a confirmation link to <strong>{email}</strong>.<br />
-                    Confirm your email to activate your account — your 20% discount will be waiting for you at checkout.
-                  </p>
-                </>
-              )}
+              <p className="text-base text-gray-600 mb-5">Here is your 20% off discount code:</p>
+              <div className="bg-purple-50 border-2 border-dashed border-purple-300 rounded-xl py-3 px-6 inline-block mb-4 shadow-sm">
+                <span className="text-2xl font-bold tracking-wider text-purple-700">{discountCode}</span>
+              </div>
+              <p className="text-sm text-gray-500 mb-6">
+                Use this code at checkout to claim your discount.
+                {email && (
+                  <><br /><span className="text-xs text-slate-400 mt-1 block">A confirmation email was sent to {email}.</span></>
+                )}
+              </p>
 
               <button
                 onClick={closePopup}
