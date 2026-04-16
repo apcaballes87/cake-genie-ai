@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Masonry from 'react-masonry-css';
-import { Menu, Search, ShoppingBag, User, X, Loader2, Upload, ArrowRight, ChevronDown } from 'lucide-react';
+import { Menu, Search, ShoppingBag, User } from 'lucide-react';
 import { ProductCard, type ProductCardProps } from '@/components/ProductCard';
 import { getRelatedProductsByKeywords } from '@/services/supabaseService';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,8 +32,6 @@ const CustomizingClient = dynamic(
     { ssr: false, loading: () => <div className="flex justify-center py-12"><LoadingSpinner /></div> }
 );
 
-const DEFAULT_CAKE_IMAGE_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/sign/cold-caking/Gemini_Generated_Image_4bvnuq4bvnuq4bvn.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV84NDdlNTI3ZS1lZWU5LTRmM2EtODk3Ny05Y2RhMWUwZDUzNDEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjb2xkLWNha2luZy9HZW1pbmlfR2VuZXJhdGVkX0ltYWdlXzRidm51cTRidm51cTRidm4ucG5nIiwiaWF0IjoxNzc0NzM4MTU0LCJleHAiOjQ4OTY4MDIxNTR9.XiyRdgTAwitqtgC8mFa4L42dfHfzGcWwEM8Oz5g6lX4';
-
 const DEFAULT_PREVIEW_IMAGE_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cold-caking/6in-1layer-cake.webp';
 
 // Edible photo addon price per size index — matches SIZES order in ColdCakingCakePicker
@@ -49,15 +47,6 @@ const relatedDesignBreakpoints = {
     490: 2,
     0: 2,
 };
-
-const navLinks = [
-    { label: 'Browse Cakes', href: '/collections', emoji: '🎂' },
-    { label: 'Our Bakers', href: '/shop', emoji: '🏪' },
-    { label: 'Blog', href: '/blog', emoji: '📝' },
-    { label: 'How to Order', href: '/how-to-order', emoji: '📋' },
-    { label: 'About Us', href: '/about', emoji: 'ℹ️' },
-    { label: 'Contact', href: '/contact', emoji: '📞' },
-];
 
 const categoriesList = [
     { id: 'Birthdays', name: 'Birthdays' },
@@ -110,6 +99,7 @@ const ColdCakingClient: React.FC = () => {
     const { isAuthenticated, user } = useAuth();
     const { itemCount } = useCart();
     const { clearImages, loadImageWithoutAnalysis } = useImageManagement();
+    const scrollThreshold = 50;
 
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -117,7 +107,6 @@ const ColdCakingClient: React.FC = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [showCompactHeader, setShowCompactHeader] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
-    const [isUploading, setIsUploading] = useState(false);
     const [relatedDesigns, setRelatedDesigns] = useState<ProductCardProps[]>([]);
     const [hasMoreDesigns, setHasMoreDesigns] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -368,11 +357,11 @@ const ColdCakingClient: React.FC = () => {
     }, [clearImages, loadImageWithoutAnalysis]);
 
     return (
-        <div className="flex flex-col min-h-screen w-full">
+        <div id="top" className="font-sans bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100 min-h-screen pb-24 md:pb-0 text-gray-800 flex flex-col">
             {/* Trust Banner */}
             <div className="w-full bg-purple-600 py-[4.5px] flex justify-center items-center">
                 <span className="inline-flex items-center text-white text-[10px] md:text-[11px] font-bold tracking-wider">
-                    Place your order by 4PM for same-day delivery 💖
+                    Place your order by 4PM for same-day delivery in Metro Cebu 💖
                 </span>
             </div>
 
@@ -400,7 +389,7 @@ const ColdCakingClient: React.FC = () => {
                             </Link>
                             <div className="flex items-center gap-1 justify-end">
                                 <button
-                                    onClick={() => window.scrollTo({ top: 60, behavior: 'smooth' })}
+                                    onClick={() => window.scrollTo({ top: scrollThreshold + 10, behavior: 'smooth' })}
                                     className="p-2 text-slate-600 hover:text-purple-700 transition-all shrink-0"
                                     aria-label="Search"
                                 >
@@ -488,10 +477,19 @@ const ColdCakingClient: React.FC = () => {
                             <Link href="/blog" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
                                 Blog
                             </Link>
+                            <Link href="/compare" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                                Compare
+                            </Link>
 
                             <div className="w-px h-5 bg-gray-200" />
                             <button
-                                onClick={() => router.push(isAuthenticated && !user?.is_anonymous ? '/account' : '/login')}
+                                onClick={() => {
+                                    if (isAuthenticated && !user?.is_anonymous) {
+                                        router.push('/account');
+                                    } else {
+                                        router.push('/login');
+                                    }
+                                }}
                                 className="p-1.5 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                 aria-label="Account"
                             >
@@ -792,7 +790,7 @@ const ColdCakingClient: React.FC = () => {
                     {[
                         { label: 'Cold Caking', href: '/coldcaking', emoji: '🧊' },
                         { label: 'Our Bakers', href: '/shop', emoji: '🏪' },
-                        { label: 'Blog', href: '/blog', emoji: '📝' },
+                        { label: 'Compare Cakes', href: '/compare', emoji: '⚖️' },
                         { label: 'How to Order', href: '/how-to-order', emoji: '📋' },
                         { label: 'Payment Options', href: '/payment-options', emoji: '💳' },
                         { label: 'Delivery Rates', href: '/delivery-rates', emoji: '🚚' },
@@ -813,7 +811,7 @@ const ColdCakingClient: React.FC = () => {
 
                 {/* Drawer Footer */}
                 <div className="px-5 py-5 border-t border-purple-50">
-                    <p className="text-xs text-gray-400 text-center">&copy; {new Date().getFullYear()} Genie.ph — Your Cake Wish, Granted.</p>
+                    <p className="text-[10px] text-gray-400 text-center">&copy; {new Date().getFullYear()} Genie.ph — Your Cake Wish, Granted.</p>
                 </div>
             </aside>
 
