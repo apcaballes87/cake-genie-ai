@@ -11,6 +11,10 @@ import SameDayCutoffBanner from '@/components/SameDayCutoffBanner';
 import { ProductCard } from '@/components/ProductCard';
 import type { LandingPageConfig } from './cebuLandingData';
 
+const ROOT_PAGE_EYEBROW = 'Best Online Cake Delivery for Rush Orders in Metro Cebu';
+const ROOT_PAGE_HERO_IMAGE =
+  'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP';
+
 type ProductPreview = {
   p_hash: string;
   slug: string | null;
@@ -218,9 +222,25 @@ export async function LocalSeoLandingPage({ config }: { config: LandingPageConfi
       <div className="min-h-screen pb-32 md:pb-16">
         <header className="sticky top-0 z-40 border-b border-white/70 bg-white/80 backdrop-blur-xl">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-            <Link href="/" className="flex items-center gap-3">
-              <Image src={COMMON_ASSETS.logo} alt="Genie.ph" width={164} height={40} className="h-10 w-auto object-contain" />
-            </Link>
+            <div className="flex items-center gap-6">
+              <Link href="/" className="flex items-center gap-3">
+                <Image src={COMMON_ASSETS.logo} alt="Genie.ph" width={164} height={40} className="h-10 w-auto object-contain" />
+              </Link>
+              <nav className="hidden items-center gap-5 lg:flex">
+                <Link href="/collections" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                  Browse Cakes
+                </Link>
+                <Link href="/shop" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                  Our Bakers
+                </Link>
+                <Link href="/blog" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                  Blog
+                </Link>
+                <Link href="/compare" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                  Compare
+                </Link>
+              </nav>
+            </div>
             <div className="hidden items-center gap-3 md:flex">
               <Link
                 href={config.secondaryCta.href}
@@ -249,14 +269,43 @@ export async function LocalSeoLandingPage({ config }: { config: LandingPageConfi
             <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/80 shadow-[0_24px_60px_-40px_rgba(88,28,135,0.55)] backdrop-blur">
               <div className="grid gap-8 p-6 md:p-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] lg:p-10">
                 <div>
+                  <h1 className="sr-only">{config.h1}</h1>
                   <div className="mb-4 inline-flex items-center rounded-full bg-linear-to-r from-pink-500 to-purple-600 px-4 py-2 shadow-sm">
                     <SameDayCutoffBanner />
                   </div>
-                  <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-purple-600">{config.heroEyebrow}</p>
-                  <h1 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-5xl">
-                    {config.h1}
-                  </h1>
-                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
+                  <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-purple-600">{ROOT_PAGE_EYEBROW}</p>
+                  <div className="max-w-3xl">
+                    <div className="relative mb-5 overflow-hidden rounded-[1.75rem] md:hidden">
+                      <div className="relative h-[38vw] min-h-[170px] max-h-[214px]">
+                        <Image
+                          src={ROOT_PAGE_HERO_IMAGE}
+                          alt="Custom cakes for spontaneous celebrations"
+                          fill
+                          priority
+                          sizes="100vw"
+                          className="object-cover object-center"
+                        />
+                        <div className="absolute inset-0 bg-white/60" />
+                        <div className="absolute inset-0 flex items-center justify-center px-4 pb-6 pt-4 text-center">
+                          <h2 className="w-full text-[54px] font-extrabold leading-none tracking-tight text-gray-900 max-[520px]:text-[47px] max-[414px]:text-[40px]">
+                            <span className="block whitespace-nowrap text-center">Custom Cakes</span>
+                            <span className="block whitespace-nowrap text-purple-600 italic">For Spontaneous</span>
+                            <span className="block whitespace-nowrap text-purple-600 italic">Celebrations</span>
+                          </h2>
+                        </div>
+                      </div>
+                    </div>
+
+                    <h2 className="hidden text-[2.95rem] font-extrabold leading-[1.05] tracking-tight text-gray-900 md:block min-[945px]:text-5xl min-[1232px]:text-6xl">
+                      <span className="block whitespace-nowrap text-center md:text-left">Custom Cakes</span>
+                      <span className="block whitespace-nowrap text-purple-600 italic md:text-left">For Spontaneous</span>
+                      <span className="block whitespace-nowrap text-purple-600 italic md:text-left">Celebrations</span>
+                    </h2>
+                  </div>
+                  <p className="mt-1 text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    {config.heroEyebrow}
+                  </p>
+                  <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
                     {config.heroBody}
                   </p>
 
