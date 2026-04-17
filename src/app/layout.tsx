@@ -170,6 +170,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const shouldLoadAnalytics = process.env.NODE_ENV === 'production'
+
   return (
     <html lang="en-PH" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100`} suppressHydrationWarning>
@@ -193,16 +195,20 @@ export default function RootLayout({
             })(window, document, "clarity", "script", "te894qldzn");
           `}
         </Script>
-        <Script src="https://www.googletagmanager.com/gtag/js?id=G-C28QNPRWFK" strategy="lazyOnload" />
-        <Script id="google-analytics" strategy="lazyOnload">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
+        {shouldLoadAnalytics && (
+          <>
+            <Script src="https://www.googletagmanager.com/gtag/js?id=G-C28QNPRWFK" strategy="lazyOnload" />
+            <Script id="google-analytics" strategy="lazyOnload">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                window.gtag = function gtag(){window.dataLayer.push(arguments);}
+                window.gtag('js', new Date());
 
-            gtag('config', 'G-C28QNPRWFK');
-          `}
-        </Script>
+                window.gtag('config', 'G-C28QNPRWFK');
+              `}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   )

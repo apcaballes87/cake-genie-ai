@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import { getAllBlogSlugs } from '@/services/supabaseService'
+import { LOCAL_SEO_ROUTES } from '@/components/local-seo/cebuLandingData'
 
 // Cache the sitemaps for 24 hours to prevent Googlebot timeouts on cold starts
 export const revalidate = 86400;
@@ -104,15 +105,43 @@ export async function generateSitemaps(): Promise<Array<{ id: number | string }>
     return ids;
 }
 
-export default async function sitemap({ id }: { id: any }): Promise<MetadataRoute.Sitemap> {
+type SitemapParam = number | string | Promise<number | string>;
+
+type CustomizedCakeSitemapRow = {
+    slug: string;
+    created_at: string;
+    original_image_url: string | null;
+};
+
+type SharedDesignSitemapRow = {
+    url_slug: string;
+    created_at: string;
+    customized_image_url: string | null;
+};
+
+type MerchantProductSitemapRow = {
+    slug: string;
+    updated_at: string | null;
+    image_url: string | null;
+    cakegenie_merchants: { slug: string } | { slug: string }[] | null;
+};
+
+function getMerchantSlug(value: MerchantProductSitemapRow['cakegenie_merchants']): string | null {
+    if (Array.isArray(value)) {
+        return value[0]?.slug ?? null;
+    }
+
+    return value?.slug ?? null;
+}
+
+export default async function sitemap({ id }: { id: SitemapParam }): Promise<MetadataRoute.Sitemap> {
     const baseUrl = 'https://genie.ph'
     const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
-    // Next.js 15 breaking change runtime parameter parsing (either Promise or Primitive)
-    const resolvedId = typeof id === 'object' && id !== null && 'then' in (id as any) ? await (id as any) : id;
+    const resolvedId = await Promise.resolve(id);
     const sitemapId = Number(resolvedId);
 
     // ==========================================
@@ -130,11 +159,12 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
                 .select('slug, created_at, original_image_url')
                 .not('slug', 'is', null)
                 .order('created_at', { ascending: false })
-                .range(offset, offset + CHUNK_SIZE - 1);
+                .range(offset, offset + CHUNK_SIZE - 1)
+                .returns<CustomizedCakeSitemapRow[]>();
 
             return (customizedCakes || [])
-                .filter((cake: any) => !/[a-f0-9]{16}$/.test(cake.slug))
-                .map((cake: any) => ({
+                .filter((cake) => !/[a-f0-9]{16}$/.test(cake.slug))
+                .map((cake) => ({
                 url: `${baseUrl}/customizing/${cake.slug}`,
                 lastModified: new Date(cake.created_at),
                 changeFrequency: 'weekly' as const,
@@ -152,9 +182,10 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
                 .from('cakegenie_shared_designs')
                 .select('url_slug, created_at, customized_image_url')
                 .order('created_at', { ascending: false })
-                .range(offset, offset + CHUNK_SIZE - 1);
+                .range(offset, offset + CHUNK_SIZE - 1)
+                .returns<SharedDesignSitemapRow[]>();
 
-            return (designs || []).map((design: any) => ({
+            return (designs || []).map((design) => ({
                 url: `${baseUrl}/customizing/${design.url_slug}`,
                 lastModified: new Date(design.created_at),
                 changeFrequency: 'weekly' as const,
@@ -191,6 +222,7 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
             '/compare/genie-ph-vs-traditional-bakeries',
             '/compare/genie-ph-vs-social-media-ordering',
             '/compare/custom-cake-pricing-cebu',
+            ...LOCAL_SEO_ROUTES,
         ].map((route) => ({
             url: `${baseUrl}${route}`,
             lastModified: new Date('2026-02-27'),
@@ -261,9 +293,12 @@ export default async function sitemap({ id }: { id: any }): Promise<MetadataRout
                 cakegenie_merchants!inner(slug)
             `)
             .eq('is_active', true)
+            .returns<MerchantProductSitemapRow[]>()
 
-        return (products || []).map((product: any) => ({
-            url: `${baseUrl}/shop/${product.cakegenie_merchants.slug}/${product.slug}`,
+        return (products || [])
+            .filter((product) => product.slug && getMerchantSlug(product.cakegenie_merchants))
+            .map((product) => ({
+            url: `${baseUrl}/shop/${getMerchantSlug(product.cakegenie_merchants)}/${product.slug}`,
             lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),
             changeFrequency: 'weekly' as const,
             priority: 0.8,
