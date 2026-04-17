@@ -1,14 +1,23 @@
-// SSR-safe GA4 event push. Uses dataLayer directly so calls made before
-// gtag/js finishes lazy-loading are still queued and picked up once the
-// tag hydrates. GA4 measurement ID G-C28QNPRWFK is loaded in src/app/layout.tsx.
+// SSR-safe GA4 event push. Prefer the real gtag helper when available and
+// otherwise queue the event command until gtag.js hydrates.
+// GA4 measurement ID G-C28QNPRWFK is loaded in src/app/layout.tsx.
 
 export type GA4EventParams = Record<string, unknown>;
 
 export function trackEvent(name: string, params: GA4EventParams = {}): void {
     if (typeof window === 'undefined') return;
-    const w = window as unknown as { dataLayer?: unknown[] };
+    const w = window as unknown as {
+        dataLayer?: unknown[];
+        gtag?: (...args: unknown[]) => void;
+    };
+
+    if (typeof w.gtag === 'function') {
+        w.gtag('event', name, params);
+        return;
+    }
+
     w.dataLayer = w.dataLayer || [];
-    w.dataLayer.push({ event: name, ...params });
+    w.dataLayer.push(['event', name, params]);
 }
 
 // ---------- GA4 Ecommerce wrappers (PHP by default) ----------

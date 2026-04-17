@@ -900,6 +900,20 @@ Baptism is the beginning of your child's spiritual journey, and while the paperw
     keywords: 'birthday, kids birthday, birthday cake, children party, party cake',
     cakeSearchKeywords: 'jollibee, mcdonalds',
     relatedCakesIntro: "Whether you're going Jollibee, McDonald's, or home party — you'll still need a great birthday cake. Here are some designs to get you started.",
+    designShowcases: [
+      {
+        id: 'jollibee-party',
+        keyword: 'jollibee cake',
+        title: 'Jollibee Cake Design Showcase',
+        intro: 'If you are leaning toward a Jollibee party, these real Jollibee-inspired cake designs give you a quick visual starting point for the birthday cake.',
+      },
+      {
+        id: 'mcdonalds-party',
+        keyword: 'mcdonalds cake',
+        title: 'McDonald\'s Cake Design Showcase',
+        intro: 'If your child is more into McDonald\'s themes, browse these McDonald\'s-inspired cake designs you can customize for the celebration.',
+      },
+    ],
     date: '2026-02-23',
     author: 'Genie.ph',
     authorUrl: 'https://genie.ph/about',
@@ -994,6 +1008,8 @@ Arrive 30 minutes early. Bring your own candles, invitation cards (if you made a
 - **Facebook:** facebook.com/JollibeePhilippines
 - **Website:** jollibee.com.ph
 
+[[design_showcase:jollibee-party]]
+
 For branch-specific inquiries, call the branch directly. Most Jollibee branches in malls have landlines listed on mall directories.
 
 ---
@@ -1077,6 +1093,8 @@ Arrive early. The party host will guide the program. McDonald's parties tend to 
 - **Customer Care:** 8-8888-6236
 - **Facebook:** facebook.com/McDo.ph
 - **Website:** mcdonalds.com.ph
+
+[[design_showcase:mcdonalds-party]]
 
 ---
 
