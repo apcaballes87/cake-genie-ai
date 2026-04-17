@@ -932,6 +932,7 @@ export default async function RecentSearchPage({ params }: Props) {
                     rel="preload"
                     as="image"
                     href={design.original_image_url}
+                    fetchPriority="high"
                 />
             )}
 
