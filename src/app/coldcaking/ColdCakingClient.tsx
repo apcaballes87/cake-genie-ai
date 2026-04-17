@@ -21,6 +21,7 @@ import { ColdCakingFAQ } from './ColdCakingFAQ';
 import { ColdCakingCakePicker } from './ColdCakingCakePicker';
 import { ColdCakingPhotoStep } from './ColdCakingPhotoStep';
 import { ColdCakingCorporate } from './ColdCakingCorporate';
+import { ColdCakingMessageStep } from './ColdCakingMessageStep';
 import MobileBottomNav from '@/components/MobileBottomNav';
 
 const ImageUploader = dynamic(
@@ -660,12 +661,14 @@ const ColdCakingClient: React.FC = () => {
                                 }
                             }}
                         />
-                        {/* Step 3 photo upload — portals its card replacing Cake Toppers */}
+                        {/* Step 3 photo upload — portals its card replacing Cake Messages */}
                         <ColdCakingPhotoStep
                             onUploadClick={() => setIsUploaderOpen(true)}
                             hasPhoto={hasUploadedPhoto}
                             onDeletePhoto={handleDeletePhoto}
                         />
+                        {/* Step 4 cake message — portals its card replacing Cake Decorations */}
+                        <ColdCakingMessageStep />
                         <CustomizingClient hideAiChat={true} isCombining={isCombining} clearMessageTexts={true} hideStickyBar={!hasUploadedPhoto} useBasePriceAsFallback={true} ediblePhotoAddonPrice={hasUploadedPhoto ? ediblePhotoAddonPrice : 0} separateIcingStep={true} />
                     </div>
                 )}
