@@ -62,6 +62,24 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // Link response headers for agent discovery (RFC 8288).
+        // Advertises machine-readable resources to AI agents and crawlers.
+        source: '/',
+        headers: [
+          {
+            key: 'Link',
+            value: [
+              '</sitemap.xml>; rel="sitemap"; type="application/xml"',
+              '</.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json"',
+              '</llms.txt>; rel="describedby"; type="text/plain"',
+              '</about>; rel="author"',
+              '</privacy>; rel="privacy-policy"',
+              '</return-policy>; rel="terms-of-service"',
+            ].join(', '),
+          },
+        ],
+      },
     ];
   },
 
