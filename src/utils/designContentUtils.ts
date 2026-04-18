@@ -197,13 +197,17 @@ export function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { que
  *   "{keywords} {occasion} cake design — {tier} {icingBase} cake in {colors} with {toppers list}"
  */
 export function generateRichAltText(design: any): string {
-    // 1. Prioritize existing AI-generated alt text from the database (most natural)
-    if (design.alt_text && design.alt_text.length > 15) {
-        return design.alt_text;
+    const storedAlt = (design.alt_text || '').trim();
+
+    // 1. Trust substantial stored alt text without regenerating.
+    //    Threshold is 60 chars: enough to carry tier, icing, colors, and one
+    //    decoration; shorter values are usually too generic for image search.
+    if (storedAlt.length >= 60) {
+        return storedAlt;
     }
 
     // 2. Auto-generated backup: build rich, specific alt text from analysis data.
-    //    Many of the 8K+ designs hit this path when alt_text is empty.
+    //    Many of the 8K+ designs hit this path when alt_text is empty or short.
     const analysis = design.analysis_json || {};
     const keywords = design.keywords || 'Custom';
     const tags = design.tags || [];
@@ -266,9 +270,21 @@ export function generateRichAltText(design: any): string {
     const generated = parts.join(' — ').replace(/\s+/g, ' ').trim();
     const capitalized = generated.charAt(0).toUpperCase() + generated.slice(1);
 
-    if (allDecos.length > 0 || colors || messagePart) return capitalized;
+    // 3. Prefer the generated alt when analysis data produced something richer
+    //    than whatever was stored. Falls back to stored alt if generation was
+    //    thin, so a reasonable short alt_text is never replaced by a weaker one.
+    const hasRichGeneration = allDecos.length > 0 || colors || messagePart;
+    if (hasRichGeneration && capitalized.length > storedAlt.length) {
+        return capitalized;
+    }
+    if (storedAlt.length > 0) {
+        return storedAlt;
+    }
+    if (hasRichGeneration) {
+        return capitalized;
+    }
 
-    // 3. Absolute fallback
+    // 4. Absolute fallback
     return `${keywords} cake design`;
 }
 

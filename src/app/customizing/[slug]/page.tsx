@@ -228,7 +228,8 @@ export async function generateMetadata(
         other: {
             thumbnail: design.original_image_url || '',
             // Explicit og:image:alt for Pinterest and crawlers that read it separately
-            'og:image:alt': design.alt_text || design.keywords || 'Custom cake design',
+            // Uses generateRichAltText so short/generic stored values get upgraded
+            'og:image:alt': generateRichAltText(design),
             // product:* meta tags for e-commerce enrichment (og:type set via openGraph.type above)
             'product:price:amount': (design.price && design.price > 0) ? Math.round(design.price).toString() : FALLBACK_MIN_PRICE.toString(),
             'product:price:currency': 'PHP',
@@ -247,6 +248,15 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
     const imageUrl = design.original_image_url;
     const pageUrl = `https://genie.ph/customizing/${design.slug || ''}`;
 
+    // Detect MIME type from URL extension — 82% of stored images are .jpg (JPEG),
+    // the remainder are .webp. Hardcoding 'image/webp' was incorrect for most pages.
+    const detectMimeType = (url: string): string => {
+        const path = url.split('?')[0].toLowerCase();
+        if (path.endsWith('.webp')) return 'image/webp';
+        if (path.endsWith('.png')) return 'image/png';
+        return 'image/jpeg'; // .jpg / .jpeg / fallback
+    };
+
     // ImageObject for better image indexing — includes licensing metadata for Google Images "Licensable" badge
     const imageObject = imageUrl ? {
         '@type': 'ImageObject',
@@ -254,7 +264,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         contentUrl: imageUrl,
         ...(design.image_width && { width: design.image_width }),
         ...(design.image_height && { height: design.image_height }),
-        encodingFormat: 'image/webp',
+        encodingFormat: detectMimeType(imageUrl),
         name: sanitize(generateRichAltText(design)),
         caption: sanitize(design.seo_description || `Custom ${keywords} cake design`),
         creditText: 'Genie.ph',
@@ -932,6 +942,7 @@ export default async function RecentSearchPage({ params }: Props) {
                     rel="preload"
                     as="image"
                     href={design.original_image_url}
+                    fetchPriority="high"
                 />
             )}
 
