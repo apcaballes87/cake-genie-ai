@@ -448,13 +448,20 @@ export async function convertToWebP(blob: Blob): Promise<Blob> {
 }
 
 /**
- * Saves a new AI analysis result to the cache table. This is a fire-and-forget operation.
+ * Saves a new AI analysis result to the cache table and returns the generated metadata
+ * so callers (e.g. the chat widget) can immediately reply with a customizing link.
+ * Returns null if caching fails for any reason other than a duplicate row.
  * @param pHash The perceptual hash of the image.
  * @param analysisResult The JSON result from the AI analysis.
  * @param imageUrl The public URL of the original image being cached.
  * @param imageBlob Optional Blob of the processed image to be converted and uploaded to Supabase.
  */
-export async function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysisResult, imageUrl?: string, imageBlob?: Blob): Promise<void> {
+export async function cacheAnalysisResult(
+  pHash: string,
+  analysisResult: HybridAnalysisResult,
+  imageUrl?: string,
+  imageBlob?: Blob
+): Promise<{ slug: string; seo_title: string; price: number; original_image_url: string | null } | null> {
   try {
     console.log('💾 Attempting to cache analysis result with pHash:', pHash);
 
@@ -587,9 +594,9 @@ export async function cacheAnalysisResult(pHash: string, analysisResult: HybridA
       // especially during race conditions or when different designs share a truncated slug.
       if (error.code !== '23505' && error.code !== 'PGRST116') {
         console.warn('⚠️ Cache insert status:', error.message);
-      } else {
-        console.log('ℹ️ Analysis already cached (duplicate pHash or slug - this is fine).');
+        return null;
       }
+      console.log('ℹ️ Analysis already cached (duplicate pHash or slug - this is fine).');
     } else {
       console.log('✅ Analysis result cached successfully with pHash:', pHash, 'slug:', slug);
 
@@ -598,8 +605,16 @@ export async function cacheAnalysisResult(pHash: string, analysisResult: HybridA
         notifyIndexNow(`https://genie.ph/customizing/${slug}`);
       }
     }
+
+    return {
+      slug,
+      seo_title: seoTitle,
+      price: totalPrice,
+      original_image_url: finalImageUrl ?? null,
+    };
   } catch (err) {
-    console.error('❌ Exception during fire-and-forget cache write:', err);
+    console.error('❌ Exception during cache write:', err);
+    return null;
   }
 }
 

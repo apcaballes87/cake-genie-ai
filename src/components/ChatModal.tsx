@@ -239,7 +239,16 @@ async function analyzeImageWithCache(imageData: { data: string; mimeType: string
     }
     if (pHash && finalResult) {
         const compressedBlob = await compressImage(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1024, fileType: 'image/webp' });
-        cacheAnalysisResult(pHash, finalResult, undefined, compressedBlob);
+        const cached = await cacheAnalysisResult(pHash, finalResult, undefined, compressedBlob);
+        if (cached) {
+            return {
+                analysis: finalResult,
+                slug: cached.slug,
+                title: cached.seo_title,
+                price: cached.price,
+                imageUrl: cached.original_image_url,
+            };
+        }
     }
     return { analysis: finalResult, slug: null, title: null, price: null, imageUrl: null };
 }
@@ -255,18 +264,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
     const [name, setName] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
-    const pendingImageHashRef = useRef<string | null>(null);
     const activeImageAnalysisIdRef = useRef(0);
-    const pendingFollowUpTimeoutsRef = useRef<number[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const supabase = createClient();
-
-    const clearPendingImageFollowUps = () => {
-        pendingFollowUpTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
-        pendingFollowUpTimeoutsRef.current = [];
-        pendingImageHashRef.current = null;
-    };
 
     useEffect(() => {
         let storedSession = localStorage.getItem('chat_session_id');
@@ -342,18 +343,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         if (isOpen && sessionId) {
             loadOrCreateConversation();
         } else if (!isOpen) {
-            clearPendingImageFollowUps();
             setMessages([]);
             setConversationId(null);
             setIsLoading(true);
         }
     }, [isOpen, sessionId, userId]);
-
-    useEffect(() => {
-        return () => {
-            clearPendingImageFollowUps();
-        };
-    }, []);
 
     const loadOrCreateConversation = async () => {
         setIsLoading(true);
@@ -446,7 +440,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         const file = e.target.files?.[0];
         if (!file || !conversationId) return;
 
-        clearPendingImageFollowUps();
         const analysisId = ++activeImageAnalysisIdRef.current;
         setIsUploading(true);
 
@@ -520,8 +513,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                         const priceDisplay = analysisResult.price ? `₱${Math.round(analysisResult.price).toLocaleString()}` : 'Check price';
                         const title = analysisResult.title || 'Your cake design';
                         botResponse = `🎂 I analyzed your cake image! Here's what I found:\n\n**${title}**\n\n💰 Starting at: ${priceDisplay}\n\n🔗 View and customize: https://genie.ph/customizing/${analysisResult.slug}`;
-                    } else if (analysisResult.analysis) {
-                        botResponse = "⏳ I've analyzed your cake image! Our team is finalizing the price and will send you the customization link shortly. Please give us a few moments!";
                     } else {
                         botResponse = "Thanks for sharing your cake image! Our team will review it and get back to you with pricing shortly.";
                     }
@@ -538,95 +529,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
 
                     if (conversationId) {
                         saveSystemMessage(conversationId, botResponse);
-                    }
-
-                    if (!analysisResult.slug && analysisResult.analysis) {
-                        const imageSrcForHash = `data:${fileData.mimeType};base64,${fileData.data}`;
-                        const pHash = await generatePerceptualHash(imageSrcForHash);
-                        if (pHash) {
-                            pendingImageHashRef.current = pHash;
-                            const firstFollowUpTimeout = window.setTimeout(async () => {
-                                if (analysisId !== activeImageAnalysisIdRef.current || pendingImageHashRef.current !== pHash) {
-                                    return;
-                                }
-                                const recheck = await findSimilarAnalysisByHash(pHash);
-                                if (recheck && recheck.seoMetadata.slug) {
-                                    const priceDisplay = recheck.seoMetadata.price ? `₱${Math.round(recheck.seoMetadata.price).toLocaleString()}` : 'Check price';
-                                    const title = recheck.seoMetadata.seo_title || 'Your cake design';
-                                    const followUpMessage: Message = {
-                                        id: `followup_${Date.now()}`,
-                                        text: `🎉 Your customization link is ready!\n\n**${title}**\n\n💰 Starting at: ${priceDisplay}\n\n🔗 View and customize: https://genie.ph/customizing/${recheck.seoMetadata.slug}`,
-                                        isUser: false,
-                                        sender_type: 'system',
-                                        timestamp: new Date().toISOString(),
-                                        is_read: true,
-                                    };
-                                    setMessages(prev => [...prev, followUpMessage]);
-                                    if (conversationId) {
-                                        saveSystemMessage(conversationId, followUpMessage.text);
-                                    }
-                                } else {
-                                    if (analysisId !== activeImageAnalysisIdRef.current || pendingImageHashRef.current !== pHash) {
-                                        return;
-                                    }
-                                    const noLinkMessage: Message = {
-                                        id: `followup_${Date.now()}`,
-                                        text: "Hi! I've checked on your cake image and we're still finalizing the details. We'll send you the customization link as soon as it's ready!",
-                                        isUser: false,
-                                        sender_type: 'system',
-                                        timestamp: new Date().toISOString(),
-                                        is_read: true,
-                                    };
-                                    setMessages(prev => [...prev, noLinkMessage]);
-                                    if (conversationId) {
-                                        saveSystemMessage(conversationId, noLinkMessage.text);
-                                    }
-
-                                    const secondFollowUpTimeout = window.setTimeout(async () => {
-                                        if (analysisId !== activeImageAnalysisIdRef.current || pendingImageHashRef.current !== pHash) {
-                                            return;
-                                        }
-                                        const recheck2 = await findSimilarAnalysisByHash(pHash);
-                                        if (recheck2 && recheck2.seoMetadata.slug) {
-                                            const priceDisplay = recheck2.seoMetadata.price ? `₱${Math.round(recheck2.seoMetadata.price).toLocaleString()}` : 'Check price';
-                                            const title = recheck2.seoMetadata.seo_title || 'Your cake design';
-                                            const followUp2: Message = {
-                                                id: `followup2_${Date.now()}`,
-                                                text: `🎉 Your customization link is ready!\n\n**${title}**\n\n💰 Starting at: ${priceDisplay}\n\n🔗 View and customize: https://genie.ph/customizing/${recheck2.seoMetadata.slug}`,
-                                                isUser: false,
-                                                sender_type: 'system',
-                                                timestamp: new Date().toISOString(),
-                                                is_read: true,
-                                            };
-                                            setMessages(prev => [...prev, followUp2]);
-                                            if (conversationId) {
-                                                saveSystemMessage(conversationId, followUp2.text);
-                                            }
-                                        } else {
-                                            if (analysisId !== activeImageAnalysisIdRef.current || pendingImageHashRef.current !== pHash) {
-                                                return;
-                                            }
-                                            const sorryMessage: Message = {
-                                                id: `sorry_${Date.now()}`,
-                                                text: "Sorry it's taking too long! We'll send you the customization link as soon as it's ready!",
-                                                isUser: false,
-                                                sender_type: 'system',
-                                                timestamp: new Date().toISOString(),
-                                                is_read: true,
-                                            };
-                                            setMessages(prev => [...prev, sorryMessage]);
-                                            if (conversationId) {
-                                                saveSystemMessage(conversationId, sorryMessage.text);
-                                            }
-                                        }
-                                        pendingImageHashRef.current = null;
-                                    }, 6000);
-                                    pendingFollowUpTimeoutsRef.current.push(secondFollowUpTimeout);
-                                }
-                                pendingImageHashRef.current = null;
-                            }, 11000);
-                            pendingFollowUpTimeoutsRef.current.push(firstFollowUpTimeout);
-                        }
                     }
                 } catch (analysisErr) {
                     console.error('Error analyzing image:', analysisErr);
