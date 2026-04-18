@@ -132,45 +132,78 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Could not determine Pinterest board' }, { status: 500 });
     }
 
-    let pinsCreated = 0;
-    const syncResults = [];
+    const productsToPin = products.filter(p => p.original_image_url);
 
-    // 4. Create Pins SEQUENTIALLY
-    for (const product of products) {
-      if (!product.original_image_url) continue;
-
+    // 4. Create Pins in Parallel
+    const pinPromises = productsToPin.map(async (product) => {
       try {
         const pin = await pinterestService.createPin(accessToken, {
-          board_id: boardId,
+          board_id: boardId!,
           title: slugToTitle(product.slug),
           description: product.seo_description || product.alt_text || `Order this beautiful custom cake on Genie.ph`,
           link: `https://genie.ph/customizing/${product.slug}`,
           alt_text: product.alt_text || 'Premium custom cake design',
           media_source: {
             source_type: 'image_url',
-            url: product.original_image_url,
+            url: product.original_image_url!,
           },
         });
- 
-        // 5. Record the pin in our database
-        await supabase.from('cakegenie_pinterest_pins').insert({
+
+        return {
           p_hash: product.p_hash,
           pinterest_pin_id: pin.id,
-          board_id: boardId,
-        });
-
-        pinsCreated++;
-        syncResults.push({ p_hash: product.p_hash, status: 'success' });
-
-        // Safety delay
-        if (pinsCreated < products.length) {
-          await sleep(SLEEP_MS);
-        }
+          board_id: boardId!,
+          status: 'success' as const
+        };
       } catch (pinErr: any) {
         console.error(`Failed to pin product ${product.p_hash}:`, pinErr.message);
-        syncResults.push({ p_hash: product.p_hash, status: 'error', error: pinErr.message });
+        return {
+          p_hash: product.p_hash,
+          status: 'error' as const,
+          error: pinErr.message
+        };
+      }
+    });
+
+    const results = await Promise.all(pinPromises);
+    const successfulResults = results.filter(r => r.status === 'success');
+    const syncResults = results.map(r => {
+      if (r.status === 'success') {
+        return { p_hash: r.p_hash, status: 'success' };
+      }
+      return { p_hash: r.p_hash, status: 'error', error: r.error };
+    });
+
+    // 5. Bulk Record the pins in our database
+    if (successfulResults.length > 0) {
+      const pinsToInsert = successfulResults.map(r => ({
+        p_hash: r.p_hash,
+        pinterest_pin_id: (r as any).pinterest_pin_id,
+        board_id: (r as any).board_id,
+      }));
+
+      try {
+        // Optimistic Bulk Insert
+        const { error: bulkError } = await supabase
+          .from('cakegenie_pinterest_pins')
+          .insert(pinsToInsert);
+
+        if (bulkError) {
+          console.warn('Bulk insert failed, falling back to individual inserts:', bulkError.message);
+          // Fallback to individual inserts
+          await Promise.all(pinsToInsert.map(async (pin) => {
+            const { error: insertError } = await supabase.from('cakegenie_pinterest_pins').insert(pin);
+            if (insertError) {
+              console.error(`Failed to record pin ${pin.p_hash} individually:`, insertError.message);
+            }
+          }));
+        }
+      } catch (err: any) {
+        console.error('Error during bulk recording pins:', err.message);
       }
     }
+
+    const pinsCreated = successfulResults.length;
 
     return NextResponse.json({
       message: `Sync completed! Created ${pinsCreated} pins.`,
