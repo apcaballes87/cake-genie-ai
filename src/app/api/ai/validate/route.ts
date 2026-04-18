@@ -5,6 +5,39 @@ import { VALIDATION_PROMPT, validationResponseSchema } from '@/lib/ai/prompts';
 
 export const maxDuration = 60; // Allow up to 60 seconds for AI processing
 
+async function classifyImageWithModel(
+    imageData: string,
+    mimeType: string,
+    model: string
+) {
+    const aiClient = getAI();
+    const response = await aiClient.models.generateContent({
+        model,
+        contents: [{
+            parts: [
+                { inlineData: { mimeType, data: imageData } },
+                { text: VALIDATION_PROMPT }
+            ],
+        }],
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: validationResponseSchema,
+            temperature: 0,
+            thinkingConfig: {
+                thinkingLevel: ThinkingLevel.LOW,
+            },
+        },
+    });
+
+    const jsonText = (response.text || '').trim();
+    try {
+        return JSON.parse(jsonText);
+    } catch {
+        console.error(`Failed to parse AI response from model ${model}:`, jsonText);
+        throw new Error('Invalid response format from AI');
+    }
+}
+
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
@@ -17,38 +50,22 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const model = useCase === 'chat' ? 'gemini-2.5-flash' : 'gemini-3-flash-preview';
+        const primaryModel = useCase === 'chat' ? 'gemini-2.5-flash' : 'gemini-3-flash-preview';
+        const fallbackModel = 'gemini-3-flash-preview';
 
-        const aiClient = getAI();
-        const response = await aiClient.models.generateContent({
-            model,
-            contents: [{
-                parts: [
-                    { inlineData: { mimeType, data: imageData } },
-                    { text: VALIDATION_PROMPT }
-                ],
-            }],
-            config: {
-                responseMimeType: 'application/json',
-                responseSchema: validationResponseSchema,
-                temperature: 0,
-                // Using 'low' for quick validation - minimal thinking for simple classification
-                thinkingConfig: {
-                    thinkingLevel: ThinkingLevel.LOW,
-                },
-            },
-        });
-
-        const jsonText = (response.text || '').trim();
         let result;
         try {
-            result = JSON.parse(jsonText);
-        } catch {
-            console.error("Failed to parse AI response:", jsonText);
-            return NextResponse.json(
-                { error: 'Invalid response format from AI' },
-                { status: 500 }
-            );
+            result = await classifyImageWithModel(imageData, mimeType, primaryModel);
+        } catch (primaryError) {
+            if (useCase === 'chat' && primaryModel !== fallbackModel) {
+                console.warn(
+                    `Chat validation failed with ${primaryModel}. Retrying with ${fallbackModel}.`,
+                    primaryError
+                );
+                result = await classifyImageWithModel(imageData, mimeType, fallbackModel);
+            } else {
+                throw primaryError;
+            }
         }
 
         return NextResponse.json(result);
