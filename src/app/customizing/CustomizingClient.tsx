@@ -7,7 +7,7 @@ import { useSmartBack } from '@/hooks/useSmartBack';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { v4 as uuidv4 } from 'uuid';
 import { findClosestColor, hexToColorNameProse } from '@/utils/colorUtils';
-import { generateDesignDetails } from '@/utils/designContentUtils';
+import { generateDesignDetails, generateRichAltText } from '@/utils/designContentUtils';
 import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Cake, Zap, Clock, CalendarDays, ChevronRight } from 'lucide-react';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
 
@@ -622,6 +622,16 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         () => buildKnownSeoMetadata(product, recentSearchDesign),
         [product, recentSearchDesign]
     );
+
+    const recentSearchRichAlt = useMemo(() => {
+        if (!recentSearchDesign) return null;
+
+        return generateRichAltText({
+            ...recentSearchDesign,
+            analysis_json: recentSearchDesign.analysis_json ?? {},
+            tags: recentSearchDesign.tags ?? [],
+        });
+    }, [recentSearchDesign]);
 
     // --- Derived State ---
     const isLoading = useMemo(() => isImageManagementLoading || isUpdatingDesign, [isImageManagementLoading, isUpdatingDesign]);
@@ -2783,11 +2793,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             originalImagePreview={originalImagePreview}
                             preloadedHeroImage={preloadedHeroImage}
                             fallbackImageUrl={product?.image_url || recentSearchDesign?.original_image_url || null}
-                            fallbackImageAlt={product?.alt_text || recentSearchDesign?.alt_text || product?.title || recentSearchDesign?.keywords || 'Custom Cake Design - Cebu Philippines'}
-                            fallbackImageTitle={product?.title || recentSearchDesign?.seo_title || recentSearchDesign?.keywords || 'Cake Design'}
+                            fallbackImageAlt={product?.alt_text || recentSearchRichAlt || recentSearchDesign?.alt_text || product?.title || recentSearchDesign?.keywords || 'Custom Cake Design - Cebu Philippines'}
+                            fallbackImageTitle={product?.title || recentSearchDesign?.seo_title || recentSearchRichAlt || recentSearchDesign?.keywords || 'Cake Design'}
                             initialCaption={initialCaption}
-                            heroImageAlt={product?.alt_text || (product ? `${product.title} - Custom cake${merchant ? ` from ${merchant.business_name}` : ''}` : (activeTab === 'customized' && editedImage ? 'Customized Cake Design - Genie.ph' : 'Custom Cake Design - Browse Birthday, Wedding & Character Cakes in Cebu'))}
-                            heroImageTitle={product?.title || recentSearchDesign?.seo_title || recentSearchDesign?.keywords || (activeTab === 'customized' && editedImage ? 'Edited Cake' : 'Original Cake')}
+                            heroImageAlt={product?.alt_text || (product ? `${product.title} - Custom cake${merchant ? ` from ${merchant.business_name}` : ''}` : (activeTab === 'customized' && editedImage ? 'Customized Cake Design - Genie.ph' : (recentSearchRichAlt || recentSearchDesign?.alt_text || recentSearchDesign?.keywords || 'Custom Cake Design - Browse Birthday, Wedding & Character Cakes in Cebu')))}
+                            heroImageTitle={product?.title || recentSearchDesign?.seo_title || recentSearchRichAlt || recentSearchDesign?.keywords || (activeTab === 'customized' && editedImage ? 'Edited Cake' : 'Original Cake')}
                             showSaveDesignButton={Boolean(originalImagePreview && analysisResult)}
                             isCurrentDesignSaved={isDesignSaved(analysisId || '')}
                             canUndo={canUndo}

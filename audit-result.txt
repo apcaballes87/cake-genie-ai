@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Genie.ph — Strategic Update · April 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,800;0,9..144,900;1,9..144,400;1,9..144,600&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #13100d;
+    --bg-2: #1b1612;
+    --surface: #241d18;
+    --surface-2: #2d241d;
+    --line: #3a2e25;
+    --ink: #f5ecdc;
+    --ink-2: #d8cab3;
+    --ink-3: #8a7d68;
+    --ink-4: #5c5142;
+    --accent: #e85d4a;      /* warm raspberry/coral */
+    --accent-2: #d9a441;    /* warm gold */
+    --accent-3: #7fb26a;    /* muted green */
+    --accent-4: #6b8bc9;    /* slate blue */
+    --danger: #d55757;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Instrument Sans', -apple-system, sans-serif;
+    font-weight: 400;
+    letter-spacing: -0.005em;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-image:
+      radial-gradient(ellipse 80% 50% at 80% 0%, rgba(232, 93, 74, 0.08), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 10% 100%, rgba(217, 164, 65, 0.06), transparent 60%);
+  }
+
+  /* grain overlay */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.35;
+    mix-blend-mode: overlay;
+    z-index: 100;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.35 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  .display {
+    font-family: 'Fraunces', Georgia, serif;
+    font-variation-settings: "opsz" 144, "SOFT" 100;
+    font-weight: 400;
+    letter-spacing: -0.025em;
+    line-height: 0.95;
+  }
+
+  .mono {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+  }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  /* ============== LAYOUT ============== */
+
+  #deck {
+    height: 100vh;
+    height: 100dvh;
+    width: 100vw;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    padding: clamp(24px, 5vw, 72px) clamp(24px, 6vw, 96px);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(12px);
+    transition: opacity 0.4s ease, transform 0.5s cubic-bezier(.2,.7,.2,1);
+    overflow-y: auto;
+  }
+
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .slide-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: clamp(20px, 4vh, 48px);
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .slide-header .num {
+    color: var(--ink-4);
+  }
+
+  .slide-title {
+    font-size: clamp(2.2rem, 6vw, 5.2rem);
+    margin-bottom: 8px;
+  }
+
+  .slide-subtitle {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(1.1rem, 2.2vw, 1.6rem);
+    color: var(--ink-2);
+    max-width: 68ch;
+    line-height: 1.35;
+  }
+
+  .lead {
+    font-size: clamp(1rem, 1.5vw, 1.15rem);
+    line-height: 1.6;
+    color: var(--ink-2);
+    max-width: 70ch;
+  }
+
+  .muted { color: var(--ink-3); }
+  .hot { color: var(--accent); }
+  .gold { color: var(--accent-2); }
+  .green { color: var(--accent-3); }
+  .under-line { border-bottom: 1px dashed var(--ink-4); padding-bottom: 2px; }
+
+  /* ============== NAVIGATION ============== */
+
+  .nav {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 18px;
+    background: rgba(36, 29, 24, 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    z-index: 50;
+  }
+
+  .nav-btn {
+    appearance: none;
+    background: transparent;
+    border: none;
+    color: var(--ink);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    transition: background 0.2s;
+  }
+  .nav-btn:hover:not(:disabled) { background: var(--surface-2); }
+  .nav-btn:disabled { opacity: 0.3; cursor: default; }
+
+  .nav-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--ink-2);
+    min-width: 58px;
+    text-align: center;
+    letter-spacing: 0.08em;
+  }
+
+  .nav-counter .curr { color: var(--ink); font-weight: 500; }
+  .nav-counter .slash { color: var(--ink-4); margin: 0 4px; }
+
+  .progress {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: transparent;
+    z-index: 50;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+
+  .brand-mark {
+    position: fixed;
+    top: 20px;
+    left: 28px;
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 144;
+    font-size: 1.05rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    z-index: 40;
+    color: var(--ink);
+  }
+  .brand-mark .dot { color: var(--accent); }
+
+  .deck-meta {
+    position: fixed;
+    top: 20px;
+    right: 28px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    z-index: 40;
+  }
+
+  /* ============== COVER SLIDE ============== */
+
+  .cover {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    padding: clamp(60px, 10vh, 120px) clamp(32px, 6vw, 96px);
+  }
+
+  .cover-main {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .cover-title {
+    font-size: clamp(3rem, 11vw, 9.5rem);
+    line-height: 0.88;
+    letter-spacing: -0.035em;
+    font-weight: 400;
+  }
+  .cover-title .italic {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 300;
+  }
+  .cover-title .ph {
+    color: var(--ink-3);
+    font-weight: 300;
+  }
+
+  .cover-tag {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: clamp(1.2rem, 2.4vw, 1.8rem);
+    color: var(--ink-2);
+    margin-top: 28px;
+    max-width: 60ch;
+  }
+
+  .cover-footer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 24px;
+    padding-top: 40px;
+    border-top: 1px solid var(--line);
+  }
+
+  .cover-footer .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 8px;
+  }
+  .cover-footer .value {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    color: var(--ink);
+  }
+
+  /* ============== COMMON COMPONENTS ============== */
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(24px, 4vw, 64px);
+    flex: 1;
+    align-items: start;
+  }
+  @media (max-width: 820px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: clamp(20px, 2.4vw, 32px);
+  }
+
+  .card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 12px;
+  }
+  .card-head h4 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    font-weight: 500;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 100px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    color: var(--ink-2);
+  }
+  .pill.hot { color: var(--accent); border-color: rgba(232, 93, 74, 0.35); background: rgba(232, 93, 74, 0.08); }
+  .pill.gold { color: var(--accent-2); border-color: rgba(217, 164, 65, 0.35); background: rgba(217, 164, 65, 0.08); }
+  .pill.green { color: var(--accent-3); border-color: rgba(127, 178, 106, 0.35); background: rgba(127, 178, 106, 0.1); }
+  .pill.slate { color: var(--accent-4); border-color: rgba(107, 139, 201, 0.35); background: rgba(107, 139, 201, 0.1); }
+
+  .kbd {
+    display: inline-block;
+    padding: 2px 6px;
+    border: 1px solid var(--line);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--ink-2);
+    background: var(--surface);
+  }
+
+  /* ============== SEGMENT SLIDE ============== */
+
+  .segment-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    flex: 1;
+  }
+  @media (max-width: 820px) {
+    .segment-grid { grid-template-columns: 1fr; }
+  }
+  .segment-card {
+    padding: 32px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    position: relative;
+  }
+  .segment-card.not-us {
+    background: linear-gradient(135deg, rgba(213, 87, 87, 0.04), transparent);
+    border-color: rgba(213, 87, 87, 0.2);
+  }
+  .segment-card.us {
+    background: linear-gradient(135deg, rgba(127, 178, 106, 0.06), transparent);
+    border-color: rgba(127, 178, 106, 0.25);
+  }
+  .segment-card h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 2rem;
+    font-weight: 500;
+    margin: 12px 0 8px;
+  }
+  .segment-card ul {
+    list-style: none;
+    margin-top: 20px;
+  }
+  .segment-card li {
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+    color: var(--ink-2);
+    font-size: 0.98rem;
+    display: flex;
+    gap: 10px;
+  }
+  .segment-card li::before {
+    content: "·";
+    color: var(--ink-4);
+  }
+
+  /* ============== MARKET SLIDE ============== */
+
+  .market-bar {
+    display: grid;
+    grid-template-columns: 15fr 40fr 45fr;
+    height: 80px;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 40px 0 24px;
+    border: 1px solid var(--line);
+  }
+  .market-bar > div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    font-family: 'Fraunces', serif;
+    padding: 8px;
+    text-align: center;
+  }
+  .market-bar .custom {
+    background: rgba(213, 87, 87, 0.25);
+    color: var(--ink);
+  }
+  .market-bar .grocery {
+    background: rgba(232, 93, 74, 0.55);
+    color: #fff;
+    position: relative;
+  }
+  .market-bar .cafe {
+    background: var(--surface-2);
+    color: var(--ink-2);
+  }
+  .market-bar .pct {
+    font-size: 1.3rem;
+    font-weight: 500;
+  }
+  .market-bar .lbl {
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    opacity: 0.85;
+    margin-top: 2px;
+  }
+  .market-bar .grocery::after {
+    content: "↓ our real market";
+    position: absolute;
+    top: -26px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 0.88rem;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  /* ============== TRISHA PERSONA ============== */
+
+  .persona {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 48px;
+    flex: 1;
+    align-items: stretch;
+  }
+  @media (max-width: 820px) {
+    .persona { grid-template-columns: 1fr; }
+  }
+  .persona-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .persona-left h2 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(3rem, 8vw, 6rem);
+    line-height: 0.9;
+    margin-bottom: 20px;
+  }
+  .persona-left h2 .italic {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 300;
+  }
+  .persona-facts {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+    padding: 28px;
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1px solid var(--line);
+  }
+  .fact {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 16px;
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+    align-items: baseline;
+  }
+  .fact:first-child { border-top: none; }
+  .fact-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .fact-value {
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    color: var(--ink);
+    line-height: 1.4;
+  }
+
+  /* ============== PRICING SLIDE ============== */
+
+  .price-compare {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr 40px 1fr;
+    gap: 0;
+    align-items: center;
+    margin: 32px 0;
+  }
+  @media (max-width: 820px) {
+    .price-compare { grid-template-columns: 1fr; gap: 16px; }
+    .price-compare .arrow { display: none; }
+  }
+  .price-tile {
+    padding: 28px 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    text-align: center;
+  }
+  .price-tile.highlight {
+    background: linear-gradient(160deg, rgba(232, 93, 74, 0.12), var(--surface));
+    border-color: rgba(232, 93, 74, 0.35);
+  }
+  .price-tile .brand {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 12px;
+  }
+  .price-tile .amount {
+    font-family: 'Fraunces', serif;
+    font-size: 2.6rem;
+    font-weight: 500;
+  }
+  .price-tile .unit {
+    font-size: 0.85rem;
+    color: var(--ink-3);
+    margin-top: 6px;
+  }
+  .arrow {
+    display: grid;
+    place-items: center;
+    color: var(--ink-4);
+    font-size: 1.2rem;
+  }
+
+  .gap-callout {
+    text-align: center;
+    padding: 20px;
+    border-top: 1px dashed var(--line);
+    border-bottom: 1px dashed var(--line);
+    margin-top: 24px;
+  }
+  .gap-callout .big {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .gap-callout .big .hot { color: var(--accent); }
+  .gap-callout .small {
+    margin-top: 10px;
+    color: var(--ink-3);
+  }
+
+  /* ============== PERFORMANCE TABLE ============== */
+
+  .perf-wrapper {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 40px;
+    flex: 1;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .perf-wrapper { grid-template-columns: 1fr; }
+  }
+
+  .perf-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+  }
+  .perf-table th, .perf-table td {
+    padding: 10px 12px;
+    text-align: right;
+    border-bottom: 1px solid var(--line);
+  }
+  .perf-table th:first-child, .perf-table td:first-child {
+    text-align: left;
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+  .perf-table th {
+    color: var(--ink-3);
+    font-weight: 500;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .perf-table td { color: var(--ink-2); }
+  .perf-table .total td {
+    color: var(--ink);
+    font-weight: 600;
+    border-top: 2px solid var(--line);
+    border-bottom: none;
+    padding-top: 14px;
+  }
+  .perf-table .highlight-col { color: var(--accent) !important; font-weight: 600; }
+
+  .stat-stack { display: flex; flex-direction: column; gap: 16px; }
+  .stat-card {
+    padding: 20px 22px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+  }
+  .stat-card .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+  }
+  .stat-card .value {
+    font-family: 'Fraunces', serif;
+    font-size: 2rem;
+    font-weight: 500;
+    line-height: 1;
+  }
+  .stat-card .note {
+    font-size: 0.85rem;
+    color: var(--ink-3);
+    margin-top: 8px;
+    font-style: italic;
+    font-family: 'Fraunces', serif;
+  }
+
+  /* ============== BAR CHART ============== */
+
+  .chart-wrap {
+    margin-top: 24px;
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+
+  /* ============== LIST / GRID CARDS ============== */
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    flex: 1;
+  }
+  @media (max-width: 900px) {
+    .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    flex: 1;
+  }
+  @media (max-width: 820px) {
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+
+  .bullet-card {
+    padding: 24px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+  }
+  .bullet-card h4 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.15rem;
+    font-weight: 500;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .bullet-card h4 .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--accent);
+  }
+  .bullet-card p {
+    color: var(--ink-2);
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+
+  /* ============== LOOP DIAGRAM ============== */
+
+  .loop {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 24px;
+    flex: 1;
+  }
+  .loop-step {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 20px;
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  .loop-step .num {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 2rem;
+    color: var(--accent);
+    text-align: center;
+    line-height: 1;
+  }
+  .loop-step .text {
+    font-family: 'Fraunces', serif;
+    font-size: 1.05rem;
+    color: var(--ink);
+    line-height: 1.35;
+  }
+  .loop-step .text em {
+    color: var(--ink-3);
+    font-style: italic;
+    display: block;
+    margin-top: 4px;
+    font-size: 0.85rem;
+    font-family: 'Instrument Sans', sans-serif;
+  }
+
+  /* ============== TRACTION TIERS ============== */
+
+  .tier-column {
+    padding: 24px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .tier-column.tier-1 {
+    background: linear-gradient(180deg, rgba(232, 93, 74, 0.1), var(--surface));
+    border-color: rgba(232, 93, 74, 0.3);
+  }
+  .tier-column h4 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .tier-column .tier-lbl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 20px;
+  }
+  .tier-column ul {
+    list-style: none;
+  }
+  .tier-column li {
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+    color: var(--ink-2);
+    font-size: 0.88rem;
+    line-height: 1.4;
+  }
+
+  /* ============== EXPERIMENT TABLE ============== */
+
+  .exp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  .exp-table th {
+    text-align: left;
+    padding: 10px 14px;
+    color: var(--ink-3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-weight: 500;
+    border-bottom: 1px solid var(--line);
+  }
+  .exp-table td {
+    padding: 14px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-2);
+    vertical-align: top;
+  }
+  .exp-table td:first-child {
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .exp-table tr:last-child td { border-bottom: none; }
+
+  /* ============== ASKS ============== */
+  .ask-card {
+    padding: 28px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+  }
+  .ask-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--accent);
+  }
+  .ask-card .q-num {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 3rem;
+    color: var(--accent);
+    line-height: 0.8;
+    margin-bottom: 10px;
+  }
+  .ask-card .q-text {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    color: var(--ink);
+    line-height: 1.4;
+  }
+
+  /* quote block */
+  .quote {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: clamp(1.4rem, 2.8vw, 2.2rem);
+    line-height: 1.3;
+    color: var(--ink);
+    max-width: 30ch;
+    padding-left: 24px;
+    border-left: 3px solid var(--accent);
+  }
+  .quote + .caption {
+    margin-top: 14px;
+    color: var(--ink-3);
+    padding-left: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* traffic chart */
+  .traffic-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 0;
+    border-top: 1px solid var(--line);
+  }
+  .traffic-row:first-child { border-top: none; }
+  .traffic-row .tname {
+    width: 140px;
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .traffic-row .tbar {
+    flex: 1;
+    height: 10px;
+    background: var(--surface-2);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .traffic-row .tbar-fill {
+    height: 100%;
+    border-radius: 100px;
+    background: var(--accent);
+    transition: width 0.8s cubic-bezier(.2,.7,.2,1);
+  }
+  .traffic-row .tbar-fill.c2 { background: var(--accent-2); }
+  .traffic-row .tbar-fill.c3 { background: var(--accent-3); }
+  .traffic-row .tbar-fill.c4 { background: var(--accent-4); }
+  .traffic-row .tval {
+    width: 84px;
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--ink-2);
+    flex-shrink: 0;
+  }
+
+  /* ============== TWO-COL LIST ============== */
+  .two-col-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    flex: 1;
+  }
+  @media (max-width: 820px) {
+    .two-col-list { grid-template-columns: 1fr; }
+  }
+  .col-head {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    font-weight: 500;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .col-head .badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 100px;
+  }
+  .col-head .badge.good {
+    background: rgba(127, 178, 106, 0.15);
+    color: var(--accent-3);
+  }
+  .col-head .badge.bad {
+    background: rgba(213, 87, 87, 0.15);
+    color: var(--danger);
+  }
+
+  .check-list { list-style: none; }
+  .check-list li {
+    padding: 10px 0 10px 26px;
+    position: relative;
+    color: var(--ink-2);
+    line-height: 1.5;
+    border-top: 1px solid var(--line);
+  }
+  .check-list li:first-child { border-top: none; }
+  .check-list li::before {
+    position: absolute;
+    left: 0;
+    top: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+  }
+  .check-list.good li::before { content: "+"; color: var(--accent-3); }
+  .check-list.bad li::before { content: "−"; color: var(--danger); }
+
+  /* expenses bars */
+  .expense-list { list-style: none; margin-top: 16px; }
+  .expense-row {
+    display: grid;
+    grid-template-columns: 160px 1fr 90px;
+    gap: 16px;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+  }
+  .expense-row:first-child { border-top: none; }
+  .expense-name {
+    font-family: 'Fraunces', serif;
+    font-size: 0.98rem;
+    color: var(--ink-2);
+  }
+  .expense-bar {
+    height: 8px;
+    background: var(--surface-2);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .expense-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  }
+  .expense-amt {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--ink);
+  }
+
+  /* simple scrollbar */
+  .slide::-webkit-scrollbar { width: 6px; }
+  .slide::-webkit-scrollbar-track { background: transparent; }
+  .slide::-webkit-scrollbar-thumb { background: var(--line); border-radius: 100px; }
+
+  /* small-screen nav fix */
+  @media (max-width: 600px) {
+    .brand-mark { top: 14px; left: 18px; font-size: 0.95rem; }
+    .deck-meta { display: none; }
+    .slide { padding: 56px 22px 92px; }
+  }
+
+  /* Hint popover on first load */
+  .hint {
+    position: fixed;
+    bottom: 76px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--ink-2);
+    letter-spacing: 0.08em;
+    z-index: 45;
+    opacity: 0;
+    transition: opacity 0.5s;
+    pointer-events: none;
+  }
+  .hint.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="brand-mark">Genie<span class="dot">.</span>ph</div>
+<div class="deck-meta">Internal · Apr 2026</div>
+
+<div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+
+<main id="deck">
+
+  <!-- ====================== SLIDE 1: COVER ====================== -->
+  <section class="slide cover active" data-slide="1">
+    <div class="cover-main">
+      <div class="eyebrow" style="margin-bottom: 32px;">Strategic Update · Week 16 · 2026</div>
+      <h1 class="cover-title display">
+        Custom Cake.<br/>
+        <span class="italic">Instant Order</span><span class="ph">.</span>
+      </h1>
+      <p class="cover-tag">
+        A deep look at where Genie.ph stands — who we're really for,<br/>
+        what the numbers say, and the five questions I need your help with.
+      </p>
+    </div>
+    <div class="cover-footer">
+      <div>
+        <div class="label">Presented by</div>
+        <div class="value">Alan · Founder & CEO</div>
+      </div>
+      <div>
+        <div class="label">Program</div>
+        <div class="value">StellarPH Accelerator</div>
+      </div>
+      <div>
+        <div class="label">Stage</div>
+        <div class="value">Post-product · Pre-scale</div>
+      </div>
+      <div>
+        <div class="label">Ask</div>
+        <div class="value">Feedback + Growth Direction</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 2: WHAT WE ARE ====================== -->
+  <section class="slide" data-slide="2">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">01 · The Premise</div>
+        <h2 class="slide-title display">What Genie<span class="hot">.</span>ph is.</h2>
+      </div>
+      <div class="mono muted">slide 02 / 22</div>
+    </div>
+    <p class="lead" style="max-width: 60ch; margin-bottom: 32px;">
+      An AI-powered custom cake ordering platform out of Cebu, operating as a B2B2C marketplace between local bakeries and spontaneous celebration buyers. You upload a photo, AI prices it, you pay. <em style="font-family:'Fraunces',serif;">Custom cake at the speed of a chain store.</em>
+    </p>
+    <div class="grid-3">
+      <div class="bullet-card">
+        <h4><span class="num">01</span>Speed</h4>
+        <p>Instant AI pricing. Same-day possible. No 48-hour chat threads to get a quote.</p>
+      </div>
+      <div class="bullet-card">
+        <h4><span class="num">02</span>Certainty</h4>
+        <p>You see the design. You see the price. You see the delivery window. No surprises.</p>
+      </div>
+      <div class="bullet-card">
+        <h4><span class="num">03</span>Control</h4>
+        <p>You designed it — it arrives as you pictured it. Not what a baker guessed from a DM.</p>
+      </div>
+    </div>
+    <div style="margin-top: 28px; display: flex; gap: 8px; flex-wrap: wrap;">
+      <span class="pill">1st Place · Startup Innovation Summit Mandaue 2024</span>
+      <span class="pill">StellarPH Accelerator · 2026</span>
+      <span class="pill gold">Partner: Cakes and Memories · Cebu + Cavite</span>
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 3: THE MARKET ====================== -->
+  <section class="slide" data-slide="3">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">02 · Market</div>
+        <h2 class="slide-title display">We're fishing in the wrong lake —<br/><span style="font-style:italic; color:var(--ink-2);">on purpose.</span></h2>
+      </div>
+    </div>
+    <p class="lead" style="margin-bottom: 12px;">
+      Every custom bakery in the Philippines crowds into the 15%. The 40% grocery segment — nearly 3× bigger — is almost uncontested by better alternatives.
+    </p>
+
+    <div class="market-bar">
+      <div class="custom">
+        <div class="pct">15%</div>
+        <div class="lbl">Custom cakes<br/><span class="mono" style="opacity:.7;">(overcrowded)</span></div>
+      </div>
+      <div class="grocery">
+        <div class="pct">40%</div>
+        <div class="lbl">Generic grocery cakes<br/><span class="mono" style="opacity:.85;">Red Ribbon · Goldilocks</span></div>
+      </div>
+      <div class="cafe">
+        <div class="pct">45%</div>
+        <div class="lbl">Bread, pastries, cafe cakes</div>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-top: 40px; flex: 0;">
+      <div>
+        <div class="eyebrow" style="margin-bottom:10px;">The play</div>
+        <p class="lead">
+          Converting <span class="hot">10% of the 40%</span> is a larger business than owning all of custom cakes. And the incumbents here have no personalization answer.
+        </p>
+      </div>
+      <div>
+        <div class="eyebrow" style="margin-bottom:10px;">The problem</div>
+        <p class="lead">
+          These customers aren't searching for "custom cake." They're defaulting to GrabFood. We have to interrupt a habit, not fulfill a demand.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 4: SEGMENTS ====================== -->
+  <section class="slide" data-slide="4">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">03 · Customer Segments</div>
+        <h2 class="slide-title display">Two kinds of cake buyers.<br/><span style="font-style:italic; color:var(--ink-2);">Only one is ours.</span></h2>
+      </div>
+    </div>
+    <div class="segment-grid" style="margin-top: 20px;">
+      <div class="segment-card not-us">
+        <span class="pill" style="color: var(--danger); border-color: rgba(213,87,87,.3); background: rgba(213,87,87,.08);">NOT OUR CUSTOMER</span>
+        <h3>Milestone Planners</h3>
+        <p class="muted">1st, 7th, 18th, 60th birthdays. Weddings. Grand reveals.</p>
+        <ul>
+          <li>Plans weeks or months ahead</li>
+          <li>Wants hands-on involvement with the baker</li>
+          <li>Higher AOV, but rare purchase frequency</li>
+          <li>Will not trust AI instant pricing</li>
+          <li>Already well-served by Facebook bakeries</li>
+        </ul>
+      </div>
+      <div class="segment-card us">
+        <span class="pill green">OUR CUSTOMER</span>
+        <h3>Spontaneous Celebrants</h3>
+        <p class="muted">6th birthday at school · boss's 42nd · officemate's 23rd</p>
+        <ul>
+          <li>Buys <em style="font-family:'Fraunces',serif;">days</em> before, not weeks</li>
+          <li>Wants it done — not a co-creative project</li>
+          <li>Lower AOV, higher repeat potential</li>
+          <li>Values speed and certainty over process</li>
+          <li>Currently defaulting to Red Ribbon / GrabFood</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 5: TRISHA PERSONA ====================== -->
+  <section class="slide" data-slide="5">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">04 · Target Customer</div>
+      </div>
+    </div>
+    <div class="persona">
+      <div class="persona-left">
+        <h2 class="display">Meet<br/><span class="italic">Trisha.</span></h2>
+        <p class="lead">
+          The <strong style="color:var(--ink);">Premium Red Ribbon Settler.</strong> She spends ₱800–1,000 on a Red Ribbon cake — not because she loves it, but because nothing better existed at that speed.
+        </p>
+        <p class="lead" style="margin-top: 16px;">
+          She's not price-sensitive. She's <em style="font-family:'Fraunces',serif;">option-sensitive</em>. Give her ₱999 with her boss's name on it, and she picks us without thinking.
+        </p>
+      </div>
+      <div class="persona-facts">
+        <div class="fact"><div class="fact-label">Age</div><div class="fact-value">26 – 45</div></div>
+        <div class="fact"><div class="fact-label">Income</div><div class="fact-value">₱60k – ₱150k / month</div></div>
+        <div class="fact"><div class="fact-label">Buys for</div><div class="fact-value">Boss, officemates, close friends</div></div>
+        <div class="fact"><div class="fact-label">Occasion</div><div class="fact-value">Non-milestone birthdays, small wins, "thanks for covering my shift"</div></div>
+        <div class="fact"><div class="fact-label">Cares about</div><div class="fact-value">How the moment looks. Social credit. Being known as the thoughtful one.</div></div>
+        <div class="fact"><div class="fact-label">Default today</div><div class="fact-value">Opens GrabFood, orders the ₱950 Red Ribbon dedication cake — again.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 6: PRICING ====================== -->
+  <section class="slide" data-slide="6">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">05 · Pricing Reality</div>
+        <h2 class="slide-title display">The ₱200 gap is the unlock,<br/><span style="font-style:italic; color:var(--accent);">not the barrier.</span></h2>
+      </div>
+    </div>
+
+    <div class="price-compare">
+      <div class="price-tile">
+        <div class="brand">Goldilocks / Red Ribbon</div>
+        <div class="amount">₱799</div>
+        <div class="unit">8" generic cake</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="price-tile highlight">
+        <div class="brand" style="color: var(--accent);">Genie.ph</div>
+        <div class="amount">₱999 – ₱1,299</div>
+        <div class="unit">6"–8" personalized</div>
+      </div>
+      <div class="arrow">↑</div>
+      <div class="price-tile">
+        <div class="brand">Custom bakery</div>
+        <div class="amount">₱1,800+</div>
+        <div class="unit">3-day lead time</div>
+      </div>
+    </div>
+
+    <div class="gap-callout">
+      <div class="big">The difference between<br/>a ₱999 cake and a ₱799 cake is <span class="hot">₱200.</span></div>
+      <div class="small">The difference between <em>showing up embarrassed</em> and <em>showing up proud</em> is much larger.</div>
+    </div>
+
+    <p class="lead" style="margin-top: 28px; max-width: 70ch;">
+      Budget buyers see this as 25% more. Premium Red Ribbon settlers see it as <strong style="color:var(--ink);">the cost of not settling</strong>. The entire brand has to make that comparison unmissable.
+    </p>
+  </section>
+
+  <!-- ====================== SLIDE 7: REAL COMPETITION ====================== -->
+  <section class="slide" data-slide="7">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">06 · Competition</div>
+        <h2 class="slide-title display">The real competition isn't<br/><span style="font-style:italic; color:var(--ink-2);">another cake shop.</span></h2>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="bullet-card">
+        <h4><span class="num">01</span>Direct competitors</h4>
+        <p style="margin-bottom: 12px;">Facebook & Instagram bakeries. Beautiful cakes. DM-dependent. 2–3 days of back-and-forth before a quote.</p>
+        <span class="pill green">We beat them on speed.</span>
+      </div>
+      <div class="bullet-card" style="background: linear-gradient(160deg, rgba(232,93,74,.1), var(--surface)); border-color: rgba(232,93,74,.3);">
+        <h4><span class="num">02</span>Real threat</h4>
+        <p style="margin-bottom: 12px;">Red Ribbon + Goldilocks via <strong style="color:var(--ink);">GrabFood & FoodPanda</strong>. The habit is already digitized. Already 2-minute easy. Already at her desk.</p>
+        <span class="pill hot">We cannot win on convenience. Only on personalization.</span>
+      </div>
+      <div class="bullet-card">
+        <h4><span class="num">03</span>Invisible enemy</h4>
+        <p style="margin-bottom: 12px;"><em style="font-family:'Fraunces',serif;">"Pwede na 'yan."</em> Not a company. A cultural acceptance of mediocrity for non-milestone moments.</p>
+        <span class="pill gold">Hardest to beat. There's no pain to solve — we have to create aspiration.</span>
+      </div>
+    </div>
+    <div class="quote" style="margin-top: 36px; align-self: flex-start;">
+      This isn't a pain-relief challenge.<br/>It's a <span class="hot">category creation</span> challenge.
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 8: CUSTOMER DATA ====================== -->
+  <section class="slide" data-slide="8">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">07 · What customers actually do</div>
+        <h2 class="slide-title display">The screenshot problem.</h2>
+      </div>
+    </div>
+    <div class="two-col">
+      <div>
+        <p class="lead" style="margin-bottom: 16px;">
+          Multiple real customers have done the same thing:
+        </p>
+        <div class="loop" style="margin-top: 12px;">
+          <div class="loop-step"><div class="num">1</div><div class="text">Use Genie<span class="hot">.</span>ph to get an instant AI price</div></div>
+          <div class="loop-step"><div class="num">2</div><div class="text">Screenshot the price</div></div>
+          <div class="loop-step"><div class="num">3</div><div class="text">Message Cakes and Memories on Facebook to confirm</div></div>
+          <div class="loop-step"><div class="num">4</div><div class="text">Order via chat. Pay via GCash.<em>Genie.ph gets nothing.</em></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-head">
+            <h4>What this tells us</h4>
+            <span class="pill hot">Core insight</span>
+          </div>
+          <ul class="check-list good" style="margin-top:4px;">
+            <li>The AI pricing is <strong style="color:var(--ink);">accurate</strong> — the bakery confirms it every time.</li>
+            <li>Customers trust the bakery, not yet the platform.</li>
+            <li>Genie.ph is a <em style="font-family:'Fraunces',serif;">price-discovery tool</em> that hands off.</li>
+          </ul>
+          <ul class="check-list bad" style="margin-top:18px;">
+            <li>Current customers are custom-cake seekers — <strong style="color:var(--ink);">the wrong segment</strong>.</li>
+            <li>Zero customers have picked us <em>because</em> of the experience.</li>
+            <li>The core assumption is still untested: will Trisha prefer instant pricing over chatting?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 9: PERFORMANCE ====================== -->
+  <section class="slide" data-slide="9">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">08 · Where the numbers stand</div>
+        <h2 class="slide-title display">5 months · 30 orders · ₱46,594</h2>
+        <p class="slide-subtitle">April is already the biggest month by revenue — and we're 18 days in.</p>
+      </div>
+    </div>
+
+    <div class="perf-wrapper">
+      <table class="perf-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>DEC</th>
+            <th>JAN</th>
+            <th>FEB</th>
+            <th>MAR</th>
+            <th class="highlight-col">APR (1–18)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Website sales</td><td>11,592</td><td>499</td><td>853</td><td>2,109</td><td class="highlight-col">18,149</td></tr>
+          <tr><td>Chat sales</td><td>0</td><td>5,369</td><td>2,399</td><td>1,199</td><td>3,598</td></tr>
+          <tr class="total"><td>Total (₱)</td><td>11,592</td><td>5,895</td><td>3,252</td><td>4,108</td><td class="highlight-col">21,747</td></tr>
+          <tr><td>Paid orders</td><td>6</td><td>5</td><td>3</td><td>4</td><td class="highlight-col">14</td></tr>
+          <tr><td>AOV (₱)</td><td>2,282</td><td>949</td><td>427</td><td>703</td><td>1,460</td></tr>
+          <tr><td>Sessions</td><td>468</td><td>667</td><td>963</td><td>3,480</td><td>2,523</td></tr>
+          <tr><td>Conv. rate</td><td>1.89%</td><td>1.05%</td><td>0.51%</td><td>0.16%</td><td>0.50%</td></tr>
+        </tbody>
+      </table>
+
+      <div class="stat-stack">
+        <div class="stat-card">
+          <div class="label">5-Month Revenue</div>
+          <div class="value">₱46,594</div>
+          <div class="note">Across 30 paid orders</div>
+        </div>
+        <div class="stat-card" style="border-color: rgba(232,93,74,.35); background: linear-gradient(160deg, rgba(232,93,74,.08), var(--surface));">
+          <div class="label">April run-rate</div>
+          <div class="value hot">₱36.2k</div>
+          <div class="note">Projected, at current pace</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Web vs Chat</div>
+          <div class="value">61% / 39%</div>
+          <div class="note">Website share is growing in April</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 10: TRAJECTORY ====================== -->
+  <section class="slide" data-slide="10">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">09 · Trajectory</div>
+        <h2 class="slide-title display">Breakout month.</h2>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 800 320" style="width:100%; height:auto;" xmlns="http://www.w3.org/2000/svg">
+        <!-- grid -->
+        <g stroke="#3a2e25" stroke-width="1" opacity=".5">
+          <line x1="60" y1="40" x2="780" y2="40"/>
+          <line x1="60" y1="110" x2="780" y2="110"/>
+          <line x1="60" y1="180" x2="780" y2="180"/>
+          <line x1="60" y1="250" x2="780" y2="250"/>
+        </g>
+        <!-- y labels -->
+        <g font-family="JetBrains Mono" font-size="10" fill="#8a7d68">
+          <text x="52" y="44" text-anchor="end">25k</text>
+          <text x="52" y="114" text-anchor="end">17k</text>
+          <text x="52" y="184" text-anchor="end">9k</text>
+          <text x="52" y="254" text-anchor="end">0</text>
+        </g>
+        <!-- bars: (value/25000)*210 height, bottom at y=250 -->
+        <!-- Dec 11592 -> h=97.4, y=152.6 -->
+        <g>
+          <rect x="110" y="152.6" width="90" height="97.4" rx="4" fill="#d9a441" opacity=".75"/>
+          <rect x="110" y="152.6" width="90" height="97.4" rx="4" fill="url(#g1)" opacity=".9"/>
+        </g>
+        <!-- Jan 5895 -> h=49.5, y=200.5 -->
+        <rect x="240" y="200.5" width="90" height="49.5" rx="4" fill="#8a7d68"/>
+        <!-- Feb 3252 -> h=27.3, y=222.7 -->
+        <rect x="370" y="222.7" width="90" height="27.3" rx="4" fill="#8a7d68"/>
+        <!-- Mar 4108 -> h=34.5, y=215.5 -->
+        <rect x="500" y="215.5" width="90" height="34.5" rx="4" fill="#8a7d68"/>
+        <!-- Apr 21747 -> h=182.7, y=67.3 -->
+        <rect x="630" y="67.3" width="90" height="182.7" rx="4" fill="#e85d4a"/>
+        <!-- labels -->
+        <g font-family="Instrument Sans" font-size="12" fill="#d8cab3" text-anchor="middle">
+          <text x="155" y="274">DEC</text>
+          <text x="285" y="274">JAN</text>
+          <text x="415" y="274">FEB</text>
+          <text x="545" y="274">MAR</text>
+          <text x="675" y="274">APR · 18 days</text>
+        </g>
+        <!-- values -->
+        <g font-family="Fraunces" font-size="13" fill="#f5ecdc" text-anchor="middle">
+          <text x="155" y="146">11.6k</text>
+          <text x="285" y="194">5.9k</text>
+          <text x="415" y="216">3.3k</text>
+          <text x="545" y="209">4.1k</text>
+          <text x="675" y="61" fill="#e85d4a" font-weight="600" font-size="16">21.7k</text>
+        </g>
+        <!-- annotation -->
+        <g font-family="Fraunces" font-style="italic" font-size="12" fill="#e85d4a">
+          <text x="675" y="48" text-anchor="middle">↑ largest month, still incomplete</text>
+        </g>
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#d9a441" stop-opacity=".9"/>
+            <stop offset="100%" stop-color="#d9a441" stop-opacity=".5"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+    <div class="two-col" style="margin-top: 24px; flex: 0;">
+      <p class="lead">
+        <strong style="color:var(--ink);">What changed in April?</strong> SEO traffic from Mar compounded, Gemini 3.1 image pricing went live, same-day countdown UX shipped, and creator waitlist started converting.
+      </p>
+      <p class="lead">
+        <strong style="color:var(--ink);">What to watch:</strong> can we keep website sales growing without leaning on chat? The Dec spike was chat-fallback-driven. The April spike is website-led.
+      </p>
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 11: TRAFFIC ====================== -->
+  <section class="slide" data-slide="11">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">10 · Acquisition</div>
+        <h2 class="slide-title display">Where they come from.</h2>
+        <p class="slide-subtitle">Last 28 days · 6,152 sessions across 4 primary channels.</p>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-head"><h4>Channel mix</h4><span class="pill">28-day</span></div>
+        <div>
+          <div class="traffic-row">
+            <div class="tname">Direct</div>
+            <div class="tbar"><div class="tbar-fill" style="width:46.4%"></div></div>
+            <div class="tval">46.4%</div>
+          </div>
+          <div class="traffic-row">
+            <div class="tname">Organic Search</div>
+            <div class="tbar"><div class="tbar-fill c2" style="width:41.4%"></div></div>
+            <div class="tval">41.4%</div>
+          </div>
+          <div class="traffic-row">
+            <div class="tname">Referral</div>
+            <div class="tbar"><div class="tbar-fill c3" style="width:6.8%"></div></div>
+            <div class="tval">6.8%</div>
+          </div>
+          <div class="traffic-row">
+            <div class="tname">Organic Social</div>
+            <div class="tbar"><div class="tbar-fill c4" style="width:4.1%"></div></div>
+            <div class="tval">4.1%</div>
+          </div>
+        </div>
+        <p class="muted" style="margin-top: 20px; font-size: 0.88rem; border-top:1px solid var(--line); padding-top:16px;">
+          Engagement rate: Referral (70%) → Organic (48%) → Social (37%) → Direct (11%).
+        </p>
+      </div>
+      <div>
+        <div class="eyebrow" style="margin-bottom: 14px;">Read on this</div>
+        <p class="lead" style="margin-bottom: 16px;">
+          SEO is compounding — <strong style="color:var(--ink);">41% of sessions, 48% engagement</strong>. That's the clearest acquisition engine we have.
+        </p>
+        <p class="lead" style="margin-bottom: 16px;">
+          Direct is large but low-engagement — much of it is Alan's own typing-the-URL plus bounces.
+        </p>
+        <p class="lead">
+          Social is underweighted. Threads/Reels aren't pulling yet. FB Marketplace is the only outperformer in manual demand-gen.
+        </p>
+        <div style="margin-top: 20px;">
+          <span class="pill green">Device: 56% mobile</span>
+          <span class="pill">43.5% desktop</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 12: WORKING VS ROADBLOCKS ====================== -->
+  <section class="slide" data-slide="12">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">11 · Diagnostics</div>
+        <h2 class="slide-title display">What's working &amp; what's stuck.</h2>
+      </div>
+    </div>
+    <div class="two-col-list">
+      <div>
+        <div class="col-head">Working <span class="badge good">+ compounding</span></div>
+        <ul class="check-list good">
+          <li><strong style="color:var(--ink);">SEO</strong> is the clearest acquisition engine — traffic grew ~17× from Dec to Mar.</li>
+          <li>The <em style="font-family:'Fraunces',serif;">Jollibee vs McDo kids' party comparison</em> blog post is a top discovery driver.</li>
+          <li>Internal cake-search → customizer → cart flow shows the strongest buyer intent on site.</li>
+          <li>AI customizer remains a core differentiator — accuracy confirmed by bakery.</li>
+          <li>"Same-day / instant pricing" positioning is resonating.</li>
+          <li>Google Images is starting to drive design-led discovery.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="col-head">Stuck <span class="badge bad">− blocking</span></div>
+        <ul class="check-list bad">
+          <li><strong style="color:var(--ink);">Image SEO</strong> is not ranking — low incoming traffic despite effort.</li>
+          <li>SEO traffic is mostly <em style="font-family:'Fraunces',serif;">info-seekers</em>, not cake buyers. Converting them is hard.</li>
+          <li>Mobile UX in customizer + cart needs simplification (56% of users).</li>
+          <li>Customers screenshot AI prices and complete orders via <em>chat</em>, not platform.</li>
+          <li>Tier-2 channels (Threads, daily Reels) not producing signal yet.</li>
+          <li>Off-website sales are invisible in attribution.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 13: EXPERIMENTS ====================== -->
+  <section class="slide" data-slide="13">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">12 · Experiments</div>
+        <h2 class="slide-title display">Traction tests · running log.</h2>
+      </div>
+    </div>
+    <div class="card" style="flex:1; overflow:auto;">
+      <table class="exp-table">
+        <thead>
+          <tr>
+            <th>Experiment</th>
+            <th>Signal</th>
+            <th>Status</th>
+            <th>Sales</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>General SEO</td>
+            <td>2 overseas customers converted; 4 abandoned at disabled CC (now fixed)</td>
+            <td><span class="pill green">In progress</span></td>
+            <td>₱2,598</td>
+          </tr>
+          <tr>
+            <td>Facebook Marketplace</td>
+            <td>15 inbound msgs from 10 listings · 2 sales (1 chat, 1 web)</td>
+            <td><span class="pill gold">Early signal</span></td>
+            <td>₱2,899</td>
+          </tr>
+          <tr>
+            <td>Image SEO</td>
+            <td>No results yet — rankings stuck</td>
+            <td><span class="pill">Awaiting</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Govt HR outreach (DTI, DOST, DepEd)</td>
+            <td>1 potential customer</td>
+            <td><span class="pill">In progress</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>UGC creators (genie.ph/creators)</td>
+            <td>14 influencers in waitlist</td>
+            <td><span class="pill">In progress</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Party-needs shop partnerships (Hannah's)</td>
+            <td>Awaiting reply — possibly ghosted</td>
+            <td><span class="pill">Stalled</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>FoodPanda / GrabFood discount coupons</td>
+            <td>No measurable response</td>
+            <td><span class="pill" style="color:var(--danger); border-color:rgba(213,87,87,.3);">Weak</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>TikTok / Reels / Threads daily</td>
+            <td>Views + likes, no conversion</td>
+            <td><span class="pill" style="color:var(--danger); border-color:rgba(213,87,87,.3);">Weak</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Mom meet-ups (discount coupons)</td>
+            <td>No measurable response yet</td>
+            <td><span class="pill">In progress</span></td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 14: ECONOMICS ====================== -->
+  <section class="slide" data-slide="14">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">13 · Economics</div>
+        <h2 class="slide-title display">Monthly burn: <span class="hot">₱11,813</span>.</h2>
+        <p class="slide-subtitle">Lean. Almost all of it goes to AI + infrastructure. Marketing is still a rounding error.</p>
+      </div>
+    </div>
+    <div class="two-col" style="flex:1;">
+      <div class="card">
+        <div class="card-head"><h4>Where the ₱ go</h4><span class="pill">Active SaaS</span></div>
+        <ul class="expense-list">
+          <li class="expense-row"><div class="expense-name">Gemini 3 (AI usage)</div><div class="expense-bar"><div class="expense-fill" style="width:100%"></div></div><div class="expense-amt">₱3,540</div></li>
+          <li class="expense-row"><div class="expense-name">Supabase</div><div class="expense-bar"><div class="expense-fill" style="width:64%"></div></div><div class="expense-amt">₱2,280</div></li>
+          <li class="expense-row"><div class="expense-name">Marketing (cake giveaways)</div><div class="expense-bar"><div class="expense-fill" style="width:56%"></div></div><div class="expense-amt">₱2,000</div></li>
+          <li class="expense-row"><div class="expense-name">Vercel (hosting)</div><div class="expense-bar"><div class="expense-fill" style="width:44%"></div></div><div class="expense-amt">₱1,560</div></li>
+          <li class="expense-row"><div class="expense-name">Google Antigravity Pro</div><div class="expense-bar"><div class="expense-fill" style="width:34%"></div></div><div class="expense-amt">₱1,200</div></li>
+          <li class="expense-row"><div class="expense-name">OpenAI Codex Plus</div><div class="expense-bar"><div class="expense-fill" style="width:28%"></div></div><div class="expense-amt">₱1,000</div></li>
+          <li class="expense-row"><div class="expense-name">Domain (genie.ph)</div><div class="expense-bar"><div class="expense-fill" style="width:6%"></div></div><div class="expense-amt">₱233</div></li>
+        </ul>
+      </div>
+      <div>
+        <div class="eyebrow" style="margin-bottom: 14px;">What this tells us</div>
+        <p class="lead" style="margin-bottom: 16px;">
+          <strong style="color:var(--ink);">53%</strong> of burn is AI + database — the expensive part of the product works, and cost scales with usage.
+        </p>
+        <p class="lead" style="margin-bottom: 16px;">
+          <strong style="color:var(--ink);">Marketing is ₱2k/mo</strong> — essentially zero against a category-creation challenge. If we turn ads on, this line must grow first.
+        </p>
+        <div class="stat-card" style="margin-top: 20px; border-color: rgba(232,93,74,.35);">
+          <div class="label">April gross revenue</div>
+          <div class="value" style="color: var(--accent-3);">~1.8× burn</div>
+          <div class="note">First month tracking above operating costs</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 15: GROWTH LOOP ====================== -->
+  <section class="slide" data-slide="15">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">14 · The growth engine</div>
+        <h2 class="slide-title display">The office loop.</h2>
+        <p class="slide-subtitle">Personalized cakes are socially visible. Red Ribbon cakes are invisible. That asymmetry is the engine.</p>
+      </div>
+    </div>
+    <div class="loop" style="margin-top: 4px;">
+      <div class="loop-step"><div class="num">1</div><div class="text">Trisha settles for Red Ribbon → discovers Genie.ph <em>(interception is the whole marketing job)</em></div></div>
+      <div class="loop-step"><div class="num">2</div><div class="text">Gets instant price — realizes it's only ₱200–300 more</div></div>
+      <div class="loop-step"><div class="num">3</div><div class="text">Orders personalized cake. Same speed as GrabFood. <em>No compromise.</em></div></div>
+      <div class="loop-step"><div class="num">4</div><div class="text">Cake arrives at the office party. Everyone notices.</div></div>
+      <div class="loop-step"><div class="num">5</div><div class="text">"Saan mo nakuha 'yan? May name pa!" — Trisha: "Genie.ph. Madali lang."</div></div>
+      <div class="loop-step"><div class="num">6</div><div class="text">3 officemates save the name. Next birthday, one of them orders. <em style="color:var(--accent);">Loop repeats with 3 new Trishas.</em></div></div>
+    </div>
+    <div class="quote" style="margin-top: 36px;">
+      One personalized cake in an office of 50 is a live ad seen by 50 potential customers at once.
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 16: REFERRAL ====================== -->
+  <section class="slide" data-slide="16">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">15 · Referral mechanism</div>
+        <h2 class="slide-title display">Not codes.<br/><span style="font-style:italic; color:var(--accent);">Social credit.</span></h2>
+      </div>
+    </div>
+    <p class="lead" style="margin-bottom: 32px; max-width: 70ch;">
+      When Trisha shows up with a personalized cake, she didn't just <em style="font-family:'Fraunces',serif;">buy</em> a cake — she <strong style="color:var(--ink);">curated</strong> an experience. She gets credit for being thoughtful. That credit is worth more than any discount code.
+    </p>
+    <div class="grid-2">
+      <div class="bullet-card">
+        <h4><span class="num">A</span>Post-order hook</h4>
+        <p>"Your cake is being made! You just upgraded from Red Ribbon — your boss is going to love this."</p>
+      </div>
+      <div class="bullet-card">
+        <h4><span class="num">B</span>Delivery nudge</h4>
+        <p>"Don't forget to take a photo — these always look amazing. Tag us @genie.ph"</p>
+      </div>
+      <div class="bullet-card">
+        <h4><span class="num">C</span>Shareable design card</h4>
+        <p>Every order generates a clean image of the cake design + subtle <em>"Made on Genie.ph"</em> watermark. Beautiful enough to post.</p>
+      </div>
+      <div class="bullet-card">
+        <h4><span class="num">D</span>Language of ownership</h4>
+        <p>"I designed this" throughout the product — gives the customer creative credit, not just transaction credit.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 17: TRACTION CHANNELS ====================== -->
+  <section class="slide" data-slide="17">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">16 · Traction prioritization</div>
+        <h2 class="slide-title display">5 bets we should place first.</h2>
+      </div>
+    </div>
+    <div class="grid-3" style="flex:1;">
+      <div class="tier-column tier-1">
+        <div class="tier-lbl">Tier 1 · Test immediately</div>
+        <h4>Cheap, fast, highest leverage</h4>
+        <ul style="margin-top: 14px; flex:1;">
+          <li><strong style="color:var(--ink);">GrabFood box insert card.</strong> ₱2–3 printed. Reaches customers who already trust the bakery.</li>
+          <li><strong style="color:var(--ink);">Office insider program.</strong> Personal outreach to Cebu BPO HR admins. 10 offices = recurring revenue.</li>
+          <li><strong style="color:var(--ink);">FB/IG targeted ads.</strong> Cebu, 25–45, 10a–2p weekdays. ₱200–300/day.</li>
+          <li><strong style="color:var(--ink);">Birthday reminder loop.</strong> Capture dates at checkout. Email 7 days before.</li>
+          <li><strong style="color:var(--ink);">Conquesting SEM.</strong> Bid on "Red Ribbon" + "Goldilocks" Cebu.</li>
+        </ul>
+      </div>
+      <div class="tier-column">
+        <div class="tier-lbl">Tier 2 · Build while testing</div>
+        <h4>Compounding, longer horizon</h4>
+        <ul style="margin-top: 14px; flex:1;">
+          <li>Viral loop: design card + story moments</li>
+          <li>SEO for urgency ("cake delivery Cebu same day")</li>
+          <li>TikTok / Reels: office cake <em>reaction</em> content</li>
+          <li>Corporate accounts + event supplier referrals</li>
+          <li>Eventual GrabFood platform integration</li>
+          <li>Cebu lifestyle / food blogger outreach (free cake, no strings)</li>
+          <li>"Cebu Celebration Ideas" community — unbranded</li>
+        </ul>
+      </div>
+      <div class="tier-column">
+        <div class="tier-lbl">Tier 3 · Seeds for later</div>
+        <h4>Lower priority, non-zero</h4>
+        <ul style="margin-top: 14px; flex:1;">
+          <li>Cebu Daily News human-interest pitch</li>
+          <li>Unconventional PR: surprise office cake stunt, documented</li>
+          <li>StellarPH stage + speaking</li>
+          <li>5 micro-influencer cake curators (₱999/mo product)</li>
+          <li>Trade shows: <em>corporate + HR</em>, not cake industry</li>
+          <li>Live "Design Your Cake" demo at a Cebu coffee shop</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 18: PRIORITIES ====================== -->
+  <section class="slide" data-slide="18">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">17 · Next 1–2 weeks</div>
+        <h2 class="slide-title display">What I'm shipping next.</h2>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top: 12px;">
+      <div class="bullet-card">
+        <h4><span class="num">01</span>Attribution cleanup</h4>
+        <p>Finish GA4 funnel instrumentation + production QA on key events — we need to trust what we're measuring before we scale spend.</p>
+      </div>
+      <div class="bullet-card">
+        <h4><span class="num">02</span>Mobile UX simplification</h4>
+        <p>Customizer + cart on mobile (56% of users). Target: reduce steps, tighten trust signals, fix the screenshot-and-chat escape hatch.</p>
+      </div>
+      <div class="bullet-card">
+        <h4><span class="num">03</span>SEO → product bridge</h4>
+        <p>Convert blog readers into cake explorers. Add contextual product modules inside high-traffic posts (Jollibee vs McDo, etc.).</p>
+      </div>
+      <div class="bullet-card">
+        <h4><span class="num">04</span>Cebu commercial landers · v2</h4>
+        <p>Iterate the bento cake / delivery / custom cake Cebu pages — these are the closest thing we have to high-intent SEO landing.</p>
+      </div>
+      <div class="bullet-card" style="grid-column: span 2; background: linear-gradient(160deg, rgba(232,93,74,.08), var(--surface)); border-color: rgba(232,93,74,.3);">
+        <h4><span class="num" style="color: var(--accent);">05</span>Mother's Day campaign</h4>
+        <p>Marketing materials + first real paid-ads test across Facebook, Instagram, TikTok. Mother's Day is the closest thing to a "spontaneous premium" occasion all year — we should not miss it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 19: ASKS ====================== -->
+  <section class="slide" data-slide="19">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">18 · Where I need you</div>
+        <h2 class="slide-title display">5 questions,<br/><span style="font-style:italic;">I'd value your read on.</span></h2>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top: 8px;">
+      <div class="ask-card">
+        <div class="q-num">01</div>
+        <p class="q-text"><strong style="color:var(--ink);">UI/UX feedback</strong> on the landing &amp; customization pages. Direct visitors convert highest — where are we losing the rest?</p>
+      </div>
+      <div class="ask-card">
+        <div class="q-num">02</div>
+        <p class="q-text">What's the best way to turn <strong style="color:var(--ink);">blog readers into cake buyers</strong> — or is that a low-conversion audience we should de-prioritize?</p>
+      </div>
+      <div class="ask-card">
+        <div class="q-num">03</div>
+        <p class="q-text">How do we track <strong style="color:var(--ink);">off-website sales</strong> properly — or do we stop counting them and force every order onto the platform?</p>
+      </div>
+      <div class="ask-card">
+        <div class="q-num">04</div>
+        <p class="q-text">Is it time to run <strong style="color:var(--ink);">paid ads</strong>? Facebook, Instagram, TikTok — what's the first ₱5k test you'd put your money on?</p>
+      </div>
+      <div class="ask-card" style="grid-column: span 2;">
+        <div class="q-num">05</div>
+        <p class="q-text">
+          We want to replicate a <strong style="color:var(--ink);">Luma-style viral loop</strong>. Our payment-sharing link already lets multiple people chip in. What's the cleanest way to layer a <em style="font-family:'Fraunces',serif;">"Shareable Cake Page"</em> + referral mechanic on top of that?
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== SLIDE 20: CLOSING ====================== -->
+  <section class="slide" data-slide="20">
+    <div class="slide-header">
+      <div>
+        <div class="eyebrow">— end of deck —</div>
+      </div>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; gap: 24px;">
+      <h2 class="display" style="font-size: clamp(3rem, 9vw, 7rem); line-height: 0.9; max-width: 18ch;">
+        Spontaneous celebrations<br/>deserve more than a<br/><span style="font-style:italic; color:var(--accent);">grocery cake.</span>
+      </h2>
+      <p class="lead" style="max-width: 60ch; font-size: 1.15rem;">
+        The metric we're tracking: <strong style="color:var(--ink);">completed platform orders from first-time customers per week.</strong><br/>
+        Everything else is a means to that number.
+      </p>
+      <div style="display:flex; gap: 10px; flex-wrap:wrap; margin-top: 16px;">
+        <span class="pill">alan@genie.ph</span>
+        <span class="pill hot">genie.ph</span>
+        <span class="pill gold">cakesandmemories.com</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="nav">
+  <button class="nav-btn" id="prevBtn" aria-label="Previous slide">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+  <div class="nav-counter">
+    <span class="curr" id="currNum">01</span><span class="slash">/</span><span id="totalNum">20</span>
+  </div>
+  <button class="nav-btn" id="nextBtn" aria-label="Next slide">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+  </button>
+</div>
+
+<div class="hint" id="hint">Use <span class="kbd">←</span> <span class="kbd">→</span> to navigate</div>
+
+<script>
+(function () {
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  let current = 0;
+
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const currNum = document.getElementById('currNum');
+  const totalNum = document.getElementById('totalNum');
+  const progressFill = document.getElementById('progressFill');
+  const hint = document.getElementById('hint');
+
+  totalNum.textContent = String(total).padStart(2, '0');
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function go(idx) {
+    if (idx < 0 || idx >= total) return;
+    slides[current].classList.remove('active');
+    current = idx;
+    slides[current].classList.add('active');
+    currNum.textContent = pad(current + 1);
+    progressFill.style.width = ((current + 1) / total * 100) + '%';
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === total - 1;
+    slides[current].scrollTop = 0;
+    if (history.replaceState) history.replaceState(null, '', '#s' + (current + 1));
+  }
+
+  prevBtn.addEventListener('click', () => go(current - 1));
+  nextBtn.addEventListener('click', () => go(current + 1));
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+      e.preventDefault();
+      go(current + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      go(current - 1);
+    } else if (e.key === 'Home') {
+      go(0);
+    } else if (e.key === 'End') {
+      go(total - 1);
+    }
+  });
+
+  // Touch swipe
+  let touchStartX = 0, touchStartY = 0;
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) go(current + 1);
+      else go(current - 1);
+    }
+  }, { passive: true });
+
+  // Deep link
+  if (location.hash.match(/^#s(\d+)$/)) {
+    const n = parseInt(RegExp.$1, 10) - 1;
+    if (n > 0 && n < total) go(n);
+  } else {
+    progressFill.style.width = (1 / total * 100) + '%';
+    prevBtn.disabled = true;
+  }
+
+  // Hint
+  setTimeout(() => {
+    hint.classList.add('show');
+    setTimeout(() => hint.classList.remove('show'), 3000);
+  }, 1200);
+})();
+</script>
+</body>
+</html>
