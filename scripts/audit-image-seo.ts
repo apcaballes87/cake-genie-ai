@@ -119,6 +119,35 @@ async function main() {
     console.log(`original_image_url not .webp: ${notWebp} (${pct(notWebp, total)})`);
     console.log('');
 
+    // A.1 Detailed image dimensions audit
+    const withDims = rows.filter(r => r.image_width && r.image_height);
+    const widths = withDims.map(r => r.image_width as number).sort((a, b) => a - b);
+    const heights = withDims.map(r => r.image_height as number).sort((a, b) => a - b);
+
+    let square = 0, portrait = 0, landscape = 0, tiny = 0;
+    for (const r of withDims) {
+        const w = r.image_width as number;
+        const h = r.image_height as number;
+        const ratio = w / h;
+        if (Math.abs(ratio - 1) < 0.05) square++;
+        else if (ratio < 1) portrait++;
+        else landscape++;
+        if (w < 300 || h < 300) tiny++;
+    }
+
+    console.log('=== A.1 Image Dimensions (rows with both width+height) ===');
+    console.log(`Rows with dimensions       : ${withDims.length} (${pct(withDims.length, total)})`);
+    if (withDims.length > 0) {
+        console.log(`width  p25/p50/p75/p90/max : ${percentile(widths, 25)} / ${percentile(widths, 50)} / ${percentile(widths, 75)} / ${percentile(widths, 90)} / ${widths[widths.length - 1]}`);
+        console.log(`height p25/p50/p75/p90/max : ${percentile(heights, 25)} / ${percentile(heights, 50)} / ${percentile(heights, 75)} / ${percentile(heights, 90)} / ${heights[heights.length - 1]}`);
+        console.log(`Orientation                : ${square} square, ${portrait} portrait, ${landscape} landscape`);
+        console.log(`Tiny images (<300px)       : ${tiny} (${pct(tiny, withDims.length)} of measured)`);
+    }
+    if (noDims > 0) {
+        console.log(`NOTE: ${noDims} rows missing dimensions — run scripts/backfill-image-dimensions.ts to fix`);
+    }
+    console.log('');
+
     // B. Generic alt text detector
     const generic = rows.filter(isGenericAltText);
     console.log('=== B. Generic / Boilerplate Alt Text ===');
