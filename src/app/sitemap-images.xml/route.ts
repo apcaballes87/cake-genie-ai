@@ -7,6 +7,9 @@ export const revalidate = 86400;
 /** Regex matching old 16-char hex-hash slugs that should be excluded */
 const LEGACY_SLUG_RE = /[a-f0-9]{16}$/;
 
+/** Site-wide license URL, matching the JSON-LD ImageObject on the slug page */
+const LICENSE_URL = 'https://genie.ph/terms';
+
 /**
  * Sanitize a URL for XML sitemap output.
  * Strips query params from Supabase storage URLs and XML-escapes all others.
@@ -87,6 +90,7 @@ export async function GET() {
       <image:title>${escapeXml(title)}</image:title>
       <image:caption>${escapeXml(caption)}</image:caption>
       <image:geo_location>Cebu, Philippines</image:geo_location>
+      <image:license>${LICENSE_URL}</image:license>
     </image:image>
   </url>`;
         })
@@ -127,6 +131,7 @@ export async function GET() {
       <image:title>${title}</image:title>
       <image:caption>${caption}</image:caption>
       <image:geo_location>Cebu, Philippines</image:geo_location>
+      <image:license>${LICENSE_URL}</image:license>
     </image:image>
   </url>`;
         })
@@ -154,6 +159,7 @@ export async function GET() {
       <image:title>${title}</image:title>
       <image:caption>${caption}</image:caption>
       <image:geo_location>Cebu, Philippines</image:geo_location>
+      <image:license>${LICENSE_URL}</image:license>
     </image:image>
   </url>`;
         })
@@ -193,6 +199,7 @@ export async function GET() {
       <image:title>${title}</image:title>
       <image:caption>${caption}</image:caption>
       <image:geo_location>Cebu, Philippines</image:geo_location>
+      <image:license>${LICENSE_URL}</image:license>
     </image:image>`;
                 })
                 .filter(Boolean);
