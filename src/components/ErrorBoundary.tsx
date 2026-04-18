@@ -30,7 +30,6 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
 
     // Call optional error handler
-    // FIX: Correctly access props via `this.props` in a class component.
     const { onError } = this.props;
     if (onError) {
       onError(error, errorInfo);
@@ -40,7 +39,6 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     const { hasError } = this.state;
 
-    // FIX: Correctly access props via `this.props` in a class component.
     const { fallback, children } = this.props;
 
     if (hasError) {
