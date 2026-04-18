@@ -57,6 +57,30 @@ const CHAT_IMAGE_CLASSIFICATION_MESSAGES: Record<string, string> = {
     large_wedding_cake: "Thanks for sending the cake design. Large wedding cakes need manual review, so our team will check it and get back to you.",
 };
 
+const CHAT_IMAGE_MANUAL_REVIEW_MESSAGE = "Thanks for sharing your cake image! Our team will review it and get back to you with pricing shortly.";
+const CHAT_IMAGE_FINALIZING_MESSAGE = "⏳ I've analyzed your cake image! I'm finalizing the customization link and will send it here shortly.";
+const CHAT_IMAGE_VALIDATION_FALLBACK_MESSAGE = "Thanks for sending the image. We couldn't automatically identify it yet. If this is for cake pricing, please upload a single cake design. If it's for an edible photo or payment proof, you can send that too.";
+
+function formatChatCustomizationLinkMessage(title: string | null, price: number | null, slug: string): string {
+    const priceDisplay = price ? `₱${Math.round(price).toLocaleString()}` : 'Check price';
+    const safeTitle = title || 'Your cake design';
+    return `🎂 I analyzed your cake image! Here's what I found:\n\n**${safeTitle}**\n\n💰 Starting at: ${priceDisplay}\n\n🔗 View and customize: https://genie.ph/customizing/${slug}`;
+}
+
+function getChatImageAnalysisErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+        if (error.message.startsWith('AI_REJECTION:')) {
+            return error.message.replace('AI_REJECTION: ', '');
+        }
+
+        if (error.message.includes('failed to validate the image') || error.message.includes('Failed to validate image')) {
+            return CHAT_IMAGE_VALIDATION_FALLBACK_MESSAGE;
+        }
+    }
+
+    return CHAT_IMAGE_MANUAL_REVIEW_MESSAGE;
+}
+
 function extractProductLink(text: string): string | null {
     const match = text.match(/customizing\/([a-zA-Z0-9-]+)/);
     return match ? match[1] : null;
@@ -203,31 +227,66 @@ async function generatePerceptualHash(imageSrc: string): Promise<string | null> 
     });
 }
 
-async function analyzeImageWithCache(imageData: { data: string; mimeType: string }, imageUrl?: string): Promise<{ analysis: HybridAnalysisResult | null; slug: string | null; title: string | null; price: number | null; imageUrl: string | null }> {
+async function generateStableFallbackHash(base64Data: string): Promise<string | null> {
+    try {
+        const binary = atob(base64Data);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+
+        const digest = await crypto.subtle.digest('SHA-256', bytes);
+        return Array.from(new Uint8Array(digest))
+            .slice(0, 8)
+            .map((byte) => byte.toString(16).padStart(2, '0'))
+            .join('');
+    } catch (error) {
+        console.warn('⚠️ Chat: failed to generate fallback image hash', error);
+        return null;
+    }
+}
+
+async function analyzeImageWithCache(
+    imageData: { data: string; mimeType: string },
+    imageUrl?: string
+): Promise<{ analysis: HybridAnalysisResult | null; slug: string | null; title: string | null; price: number | null; imageUrl: string | null; cacheKey: string | null }> {
     const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
-    const pHash = await generatePerceptualHash(imageSrc);
-    console.log(`🖼️ Chat pHash result: ${pHash ?? 'FAILED (null)'}`);
-    if (!pHash) {
-        return { analysis: null, slug: null, title: null, price: null, imageUrl: null };
+    const perceptualHash = await generatePerceptualHash(imageSrc);
+    const cacheKey = perceptualHash ?? await generateStableFallbackHash(imageData.data);
+    console.log(
+        `🖼️ Chat hash result: ${
+            perceptualHash
+                ? `${perceptualHash} (perceptual)`
+                : cacheKey
+                    ? `${cacheKey} (stable fallback)`
+                    : 'FAILED (null)'
+        }`
+    );
+
+    if (perceptualHash) {
+        const cacheHit = await findSimilarAnalysisByHash(perceptualHash, imageUrl);
+        if (cacheHit) {
+            console.log('⚡ Chat: pHash Cache Hit! Using cached analysis.');
+            return {
+                analysis: cacheHit.analysisResult,
+                slug: cacheHit.seoMetadata.slug,
+                title: cacheHit.seoMetadata.seo_title,
+                price: cacheHit.seoMetadata.price,
+                imageUrl: cacheHit.seoMetadata.original_image_url,
+                cacheKey: perceptualHash,
+            };
+        }
+    } else {
+        console.log('ℹ️ Chat: skipping similarity cache lookup because perceptual hash was unavailable.');
     }
-    const cacheHit = await findSimilarAnalysisByHash(pHash, imageUrl);
-    if (cacheHit) {
-        console.log('⚡ Chat: pHash Cache Hit! Using cached analysis.');
-        return {
-            analysis: cacheHit.analysisResult,
-            slug: cacheHit.seoMetadata.slug,
-            title: cacheHit.seoMetadata.seo_title,
-            price: cacheHit.seoMetadata.price,
-            imageUrl: cacheHit.seoMetadata.original_image_url
-        };
-    }
+
     console.log('🔄 Chat: Cache miss, running AI analysis...');
     const imageBlob = dataURItoBlob(imageSrc);
     const file = new File([imageBlob], 'chat-image.webp', { type: imageData.mimeType });
     const compressedFile = await compressImage(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1024, fileType: 'image/webp' });
     const compressedData = await fileToBase64(new File([compressedFile], 'chat-image.webp', { type: 'image/webp' }));
     const fastResult = await analyzeCakeFeaturesOnly(compressedData.data, compressedData.mimeType);
-    if (!fastResult) return { analysis: null, slug: null, title: null, price: null, imageUrl: null };
+    if (!fastResult) return { analysis: null, slug: null, title: null, price: null, imageUrl: null, cacheKey };
     let finalResult = fastResult;
     const hasBbox = hasBoundingBoxData(fastResult);
     if (!hasBbox) {
@@ -237,9 +296,9 @@ async function analyzeImageWithCache(imageData: { data: string; mimeType: string
             console.warn('Chat: enrichment failed, using fast result');
         }
     }
-    if (pHash && finalResult) {
+    if (cacheKey && finalResult) {
         const compressedBlob = await compressImage(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1024, fileType: 'image/webp' });
-        const cached = await cacheAnalysisResult(pHash, finalResult, undefined, compressedBlob);
+        const cached = await cacheAnalysisResult(cacheKey, finalResult, imageUrl, compressedBlob);
         if (cached) {
             return {
                 analysis: finalResult,
@@ -247,10 +306,12 @@ async function analyzeImageWithCache(imageData: { data: string; mimeType: string
                 title: cached.seo_title,
                 price: cached.price,
                 imageUrl: cached.original_image_url,
+                cacheKey,
             };
         }
     }
-    return { analysis: finalResult, slug: null, title: null, price: null, imageUrl: null };
+
+    return { analysis: finalResult, slug: null, title: null, price: null, imageUrl: null, cacheKey };
 }
 
 const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmail, userName }) => {
@@ -264,10 +325,18 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
     const [name, setName] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
+    const pendingImageHashRef = useRef<string | null>(null);
     const activeImageAnalysisIdRef = useRef(0);
+    const pendingFollowUpTimeoutsRef = useRef<number[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const supabase = createClient();
+
+    const clearPendingImageFollowUps = () => {
+        pendingFollowUpTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+        pendingFollowUpTimeoutsRef.current = [];
+        pendingImageHashRef.current = null;
+    };
 
     useEffect(() => {
         let storedSession = localStorage.getItem('chat_session_id');
@@ -343,11 +412,18 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         if (isOpen && sessionId) {
             loadOrCreateConversation();
         } else if (!isOpen) {
+            clearPendingImageFollowUps();
             setMessages([]);
             setConversationId(null);
             setIsLoading(true);
         }
     }, [isOpen, sessionId, userId]);
+
+    useEffect(() => {
+        return () => {
+            clearPendingImageFollowUps();
+        };
+    }, []);
 
     const loadOrCreateConversation = async () => {
         setIsLoading(true);
@@ -436,10 +512,57 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         return urlData.publicUrl;
     };
 
+    const queueImageLinkFollowUp = (analysisId: number, cacheKey: string) => {
+        pendingImageHashRef.current = cacheKey;
+
+        const followUpTimeout = window.setTimeout(async () => {
+            if (analysisId !== activeImageAnalysisIdRef.current || pendingImageHashRef.current !== cacheKey) {
+                return;
+            }
+
+            const recheck = await findSimilarAnalysisByHash(cacheKey);
+
+            if (analysisId !== activeImageAnalysisIdRef.current || pendingImageHashRef.current !== cacheKey) {
+                return;
+            }
+
+            const followUpText = recheck?.seoMetadata.slug
+                ? formatChatCustomizationLinkMessage(
+                    recheck.seoMetadata.seo_title,
+                    recheck.seoMetadata.price,
+                    recheck.seoMetadata.slug
+                )
+                : CHAT_IMAGE_MANUAL_REVIEW_MESSAGE;
+
+            const followUpMessage: Message = {
+                id: `followup_${Date.now()}`,
+                text: followUpText,
+                isUser: false,
+                sender_type: 'system',
+                timestamp: new Date().toISOString(),
+                is_read: true,
+            };
+
+            setMessages((prev) => [...prev, followUpMessage]);
+
+            if (conversationId) {
+                saveSystemMessage(conversationId, followUpText);
+            }
+
+            pendingImageHashRef.current = null;
+            pendingFollowUpTimeoutsRef.current = pendingFollowUpTimeoutsRef.current.filter(
+                (timeoutId) => timeoutId !== followUpTimeout
+            );
+        }, 4000);
+
+        pendingFollowUpTimeoutsRef.current.push(followUpTimeout);
+    };
+
     const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !conversationId) return;
 
+        clearPendingImageFollowUps();
         const analysisId = ++activeImageAnalysisIdRef.current;
         setIsUploading(true);
 
@@ -482,7 +605,29 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                 setIsTyping(true);
                 try {
                     const fileData = await fileToBase64(file);
-                    const imageClassification = await validateCakeImage(fileData.data, fileData.mimeType, 'chat');
+                    let imageClassification: string;
+                    try {
+                        imageClassification = await validateCakeImage(fileData.data, fileData.mimeType, 'chat');
+                    } catch (validationErr) {
+                        console.error('Error validating image before analysis:', validationErr);
+                        if (analysisId !== activeImageAnalysisIdRef.current) return;
+
+                        const validationFallbackMessage: Message = {
+                            id: `ai_${Date.now()}`,
+                            text: CHAT_IMAGE_VALIDATION_FALLBACK_MESSAGE,
+                            isUser: false,
+                            sender_type: 'system',
+                            timestamp: new Date().toISOString(),
+                            is_read: true,
+                        };
+
+                        setMessages(prev => [...prev, validationFallbackMessage]);
+                        if (conversationId) {
+                            saveSystemMessage(conversationId, validationFallbackMessage.text);
+                        }
+                        return;
+                    }
+
                     if (analysisId !== activeImageAnalysisIdRef.current) return;
 
                     if (imageClassification !== 'valid_single_cake') {
@@ -510,11 +655,15 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
 
                     let botResponse = '';
                     if (analysisResult.analysis && analysisResult.slug) {
-                        const priceDisplay = analysisResult.price ? `₱${Math.round(analysisResult.price).toLocaleString()}` : 'Check price';
-                        const title = analysisResult.title || 'Your cake design';
-                        botResponse = `🎂 I analyzed your cake image! Here's what I found:\n\n**${title}**\n\n💰 Starting at: ${priceDisplay}\n\n🔗 View and customize: https://genie.ph/customizing/${analysisResult.slug}`;
+                        botResponse = formatChatCustomizationLinkMessage(
+                            analysisResult.title,
+                            analysisResult.price,
+                            analysisResult.slug
+                        );
+                    } else if (analysisResult.analysis) {
+                        botResponse = CHAT_IMAGE_FINALIZING_MESSAGE;
                     } else {
-                        botResponse = "Thanks for sharing your cake image! Our team will review it and get back to you with pricing shortly.";
+                        botResponse = CHAT_IMAGE_MANUAL_REVIEW_MESSAGE;
                     }
 
                     const botMessage: Message = {
@@ -530,12 +679,17 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     if (conversationId) {
                         saveSystemMessage(conversationId, botResponse);
                     }
+
+                    if (analysisResult.analysis && !analysisResult.slug && analysisResult.cacheKey) {
+                        queueImageLinkFollowUp(analysisId, analysisResult.cacheKey);
+                    }
                 } catch (analysisErr) {
                     console.error('Error analyzing image:', analysisErr);
                     if (analysisId !== activeImageAnalysisIdRef.current) return;
+                    const errorMessage = getChatImageAnalysisErrorMessage(analysisErr);
                     const fallbackMessage: Message = {
                         id: `ai_${Date.now()}`,
-                        text: "Thanks for sharing your cake image! Our team will review it and get back to you with pricing shortly.",
+                        text: errorMessage,
                         isUser: false,
                         sender_type: 'system',
                         timestamp: new Date().toISOString(),
