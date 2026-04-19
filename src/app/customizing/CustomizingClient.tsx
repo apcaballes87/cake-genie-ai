@@ -3244,6 +3244,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     isOpen={isUploaderOpen}
                     onClose={() => setIsUploaderOpen(false)}
                     onImageSelect={handleImageSelect}
+                    source="customizing"
                 />
                 <PreSelectionModal
                     isOpen={isPreSelectionModalOpen}

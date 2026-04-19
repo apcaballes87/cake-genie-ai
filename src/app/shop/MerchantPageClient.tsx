@@ -384,6 +384,7 @@ export function MerchantPageClient({ slug }: MerchantPageClientProps) {
                 isOpen={isUploadOpen}
                 onClose={() => setIsUploadOpen(false)}
                 onImageSelect={handleImageSelect}
+                source="customizing"
             />
         </div>
     );

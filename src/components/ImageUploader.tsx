@@ -3,11 +3,13 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { CloseIcon, Loader2 } from './icons';
 import { compressImage, validateImageFile } from '@/lib/utils/imageOptimization';
 import { showError } from '@/lib/utils/toast';
+import { trackImageUpload } from '@/lib/analytics';
 
 export interface ImageUploaderProps {
   isOpen: boolean;
   onClose: () => void;
   onImageSelect: (file: File) => void;
+  source?: 'landing' | 'customizing' | 'header';
   variant?: 'modal' | 'inline';
   compact?: boolean;
   compactAlignment?: 'left' | 'center' | 'inline-center';
@@ -23,6 +25,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   isOpen,
   onClose,
   onImageSelect,
+  source,
   variant = 'modal',
   compact = false,
   compactAlignment = 'left',
@@ -59,6 +62,8 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         });
       }
       onImageSelect(fileToProcess);
+      // GA4: track image upload by entry point
+      if (source) trackImageUpload(source);
     } catch (error) {
       console.error('Error processing image:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
       showError('Failed to process image.');

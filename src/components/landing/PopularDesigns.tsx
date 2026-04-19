@@ -84,7 +84,7 @@ const PopularDesignsComponent = ({ designs: initialDesigns }: PopularDesignsProp
             >
                 {designs.slice(0, displayCount).map((design) => (
                     <div key={design.slug} className="mb-2 md:mb-3">
-                        <ProductCard {...design} />
+                        <ProductCard {...design} listName="popular_designs" />
                     </div>
                 ))}
             </Masonry>

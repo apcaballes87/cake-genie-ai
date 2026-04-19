@@ -222,6 +222,7 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                                             analysis_json={design.analysis_json}
                                             image_width={design.image_width}
                                             image_height={design.image_height}
+                                            listName="collections"
                                         />
                                     </div>
                                 ))}

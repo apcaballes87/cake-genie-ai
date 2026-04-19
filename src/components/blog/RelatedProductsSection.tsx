@@ -144,6 +144,7 @@ export const RelatedProductsSection: React.FC<RelatedProductsProps> = ({
                                 slug={product.slug}
                                 availability={product.availability}
                                 analysis_json={product.analysis_json}
+                                listName="blog_related"
                             />
                         </div>
                     ))}
