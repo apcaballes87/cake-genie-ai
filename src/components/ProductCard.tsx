@@ -14,6 +14,7 @@ import { CustomizationDetails } from '@/lib/database.types';
 import { showError, showLoading } from '@/lib/utils/toast';
 import { formatStartingPrice } from '@/lib/utils/currency';
 import { HybridAnalysisResult } from '@/types';
+import { trackSelectItem } from '@/lib/analytics';
 
 export interface ProductCardProps {
     p_hash: string;
@@ -35,6 +36,8 @@ export interface ProductCardProps {
     backgroundOnly?: boolean;
     /** Collection context for richer alt text on gallery pages (e.g. "Kuromi" for the Kuromi collection) */
     collectionContext?: string;
+    /** GA4 item_list_name — which section/page the card appears in (e.g. 'search_results', 'popular_designs') */
+    listName?: string;
 }
 
 type ProductCardContentProps = Pick<
@@ -223,9 +226,22 @@ const LinkedProductCard = (props: ProductCardProps & { slug: string }) => {
     const title = buildProductTitle(props.keywords, props.collectionContext);
     const { isSaved, handleSaveClick } = useProductCardCommon(props);
 
+    const handleCardClick = () => {
+        trackSelectItem({
+            item_list_name: props.listName ?? 'unknown',
+            item_id: props.slug,
+            item_name: title,
+        });
+    };
+
     return (
         <ProductCardShell isSaved={isSaved} onSaveClick={handleSaveClick}>
-            <Link href={`/customizing/${props.slug}`} className="cursor-pointer flex flex-col h-full w-full" title={`${title} Design Details`}>
+            <Link
+                href={`/customizing/${props.slug}`}
+                className="cursor-pointer flex flex-col h-full w-full"
+                title={`${title} Design Details`}
+                onClick={handleCardClick}
+            >
                 <ProductCardContent {...props} title={title} />
             </Link>
         </ProductCardShell>
@@ -250,6 +266,12 @@ const InteractiveProductCard = (props: ProductCardProps) => {
         }
 
         if (!props.original_image_url) return;
+
+        trackSelectItem({
+            item_list_name: props.listName ?? 'unknown',
+            item_id: props.p_hash,
+            item_name: buildProductTitle(props.keywords, props.collectionContext),
+        });
 
         const toastId = showLoading('Loading design...');
         clearImages();

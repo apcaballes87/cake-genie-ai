@@ -54,7 +54,7 @@ const RelatedDesignsSection = React.memo(({
             >
                 {relatedDesigns.map((related, i) => (
                     <div key={`${related.slug}-${i}`} className="mb-3">
-                        <ProductCard {...related} backgroundOnly />
+                        <ProductCard {...related} backgroundOnly listName="related_designs" />
                     </div>
                 ))}
             </Masonry>

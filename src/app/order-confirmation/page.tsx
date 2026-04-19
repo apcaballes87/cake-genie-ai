@@ -22,6 +22,9 @@ const OrderConfirmationContent: React.FC = () => {
     const [paymentStatus, setPaymentStatus] = useState<'loading' | 'paid' | 'pending' | 'expired' | 'failed'>('loading');
     const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
 
+    // Deduplication key — prevents re-firing the purchase event on page refresh
+    const purchaseEventKey = orderId ? `ga4_purchase_fired_${orderId}` : null;
+
     const onContinueShopping = () => router.push('/');
     const onGoToOrders = () => router.push('/account/orders');
 
@@ -42,23 +45,6 @@ const OrderConfirmationContent: React.FC = () => {
 
                 if (error) throw error;
                 setOrder(data);
-
-                // Analytics: Track purchase event for the funnel
-                if (typeof gtag === 'function' && data) {
-                    const orderItems = (data.cakegenie_order_items || []).map((item: any) => ({
-                        item_id: `${item.cake_type}_${item.cake_size}`,
-                        item_name: `Custom Cake - ${item.cake_type}`,
-                        price: item.final_price,
-                        quantity: item.quantity
-                    }));
-
-                    gtag('event', 'purchase', {
-                        transaction_id: data.order_number,
-                        value: data.total_amount,
-                        currency: 'PHP',
-                        items: orderItems
-                    });
-                }
             } catch (error) {
                 console.error('[OrderConfirmationPage] Error fetching order:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
                 setOrder(null);
@@ -117,6 +103,34 @@ const OrderConfirmationContent: React.FC = () => {
 
         return () => clearInterval(intervalId);
     }, [orderId, paymentStatus]);
+
+    // Fire the GA4 purchase event exactly once when payment is confirmed as 'paid'.
+    // The sessionStorage guard prevents duplicate events on page refresh.
+    useEffect(() => {
+        if (paymentStatus !== 'paid' || !order || !purchaseEventKey) return;
+        if (sessionStorage.getItem(purchaseEventKey)) return;
+
+        if (typeof gtag === 'function') {
+            const orderItems = (order.cakegenie_order_items || []).map((item: CakeGenieOrderItem) => ({
+                item_id: `${item.cake_type}_${item.cake_size}`,
+                item_name: `Custom Cake - ${item.cake_type}`,
+                item_category: item.cake_type,
+                price: item.final_price,
+                quantity: item.quantity,
+            }));
+
+            gtag('event', 'purchase', {
+                transaction_id: order.order_number,
+                value: order.total_amount,
+                currency: 'PHP',
+                coupon: order.discount_code_id ?? undefined,
+                items: orderItems,
+            });
+
+            // Mark as fired so refreshing the page doesn't re-send the event
+            sessionStorage.setItem(purchaseEventKey, '1');
+        }
+    }, [paymentStatus, order, purchaseEventKey]);
 
     if (loading) {
         return (

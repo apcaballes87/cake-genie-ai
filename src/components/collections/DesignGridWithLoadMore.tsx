@@ -79,6 +79,7 @@ export const DesignGridWithLoadMore: React.FC<DesignGridWithLoadMoreProps> = ({ 
                             image_width={design.image_width}
                             image_height={design.image_height}
                             collectionContext={collectionTitle}
+                            listName="collection_page"
                         />
                     </div>
                 ))}

@@ -95,6 +95,7 @@ const RecommendedProductsGridComponent = ({ initialProducts }: RecommendedProduc
                                     priority={index < 4}
                                     image_width={item.image_width}
                                     image_height={item.image_height}
+                                    listName="recommended"
                                 />
                             </div>
                         ))}
