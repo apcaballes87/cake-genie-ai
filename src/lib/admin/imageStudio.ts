@@ -59,6 +59,7 @@ export function buildImageStudioPrompt(brandLabel: string = 'genie.ph'): string 
     'For screenshots with multiple cakes or items, keep only the most prominent hero cake, ideally the largest or most centered cake, and do not include secondary cakes.',
     'When isolating a cake from a screenshot, rebuild any partially hidden edges naturally so the final result looks like a clean standalone studio photo of one cake.',
     'Place the final cake (and its bento box if applicable) on a solid light pastel purple cyclorama studio background.',
+    'Center the cake and adjust the zoom and placement of the cake to fill 75% of the screen.',
     'Use soft diffused lighting, a gentle premium studio mood, and a realistic contact shadow so the cake still feels naturally photographed.',
     'Do not add props, flowers, ribbons, hands, extra cake decorations, text, UI elements, or watermarks.',
     'Keep the final image in the exact same aspect ratio and dimensions as the original.',
