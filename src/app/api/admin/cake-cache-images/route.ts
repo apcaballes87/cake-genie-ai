@@ -211,16 +211,16 @@ async function finalizeEditedImage(
     const logoMetadata = await sharp(resizedLogoBuffer).metadata();
     const logoHeight = logoMetadata.height ?? 0;
 
-    // Position in the upper background (e.g., 12% from the top)
+    // Position behind the cake
     const left = Math.round((width - logoWidth) / 2);
-    const top = Math.round(height * 0.12);
+    const top = Math.round((height - logoHeight) / 2);
 
     enhancedImage.composite([
       {
         input: resizedLogoBuffer,
         top,
         left,
-        blend: 'over',
+        blend: 'overlay', // Soft blend to make it look like it's in the background/behind
       },
     ]);
   } catch (err) {
