@@ -108,6 +108,7 @@ export default function ImageStudioAdminClient() {
   const [loading, setLoading] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
   const [page, setPage] = useState(1);
+  const [fetchedPage, setFetchedPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [searchInput, setSearchInput] = useState('');
@@ -175,6 +176,7 @@ export default function ImageStudioAdminClient() {
 
         setRecords(payload.items ?? []);
         setPage(payload.page ?? pageToLoad);
+        setFetchedPage(payload.page ?? pageToLoad);
         setTotalPages(payload.totalPages ?? 1);
         setTotalCount(payload.totalCount ?? 0);
       } catch (error: unknown) {
@@ -301,7 +303,20 @@ export default function ImageStudioAdminClient() {
     );
 
     if (queue.length === 0) {
-      toast('Nothing on this page needs editing.');
+      if (isAutoContinuing) {
+        if (page < totalPages) {
+          setBatchProgress({ current: 0, total: 0, label: 'Loading next page...' });
+          setAutoProcessing(false);
+          setPage((p) => p + 1);
+        } else {
+          setIsAutoContinuing(false);
+          setAutoProcessing(false);
+          setBatchProgress(null);
+          toast.success('Finished auto-editing across all pages.');
+        }
+      } else {
+        toast('Nothing on this page needs editing.');
+      }
       return;
     }
 
@@ -334,6 +349,7 @@ export default function ImageStudioAdminClient() {
       toast('Auto-edit stopped after the active image finished.');
     } else if (page < totalPages) {
       setBatchProgress({ current: 0, total: 0, label: 'Loading next page...' });
+      setAutoProcessing(false);
       setPage((p) => p + 1);
       setIsAutoContinuing(true);
     } else {
@@ -343,13 +359,13 @@ export default function ImageStudioAdminClient() {
       stopBatchRef.current = false;
       toast.success('Finished auto-editing all matching images.');
     }
-  }, [page, processSingleRecord, records, totalPages]);
+  }, [page, processSingleRecord, records, totalPages, isAutoContinuing]);
 
   useEffect(() => {
-    if (isAutoContinuing && !loading && !autoProcessing && isAuthenticated) {
+    if (isAutoContinuing && !loading && !autoProcessing && isAuthenticated && fetchedPage === page) {
       void handleAutoEdit();
     }
-  }, [isAutoContinuing, loading, autoProcessing, handleAutoEdit, isAuthenticated]);
+  }, [isAutoContinuing, loading, autoProcessing, handleAutoEdit, isAuthenticated, fetchedPage, page]);
 
   const handleCopyHash = async (value: string) => {
     try {
