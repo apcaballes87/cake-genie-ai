@@ -19,7 +19,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 180;
 
-const MODEL_NAME = 'gemini-2.5-flash-image';
+const MODEL_NAME = 'gemini-3.1-flash-image';
 const STORAGE_BUCKET = 'cakegenie';
 
 let cachedLogoBuffer: Buffer | null = null;
@@ -209,10 +209,18 @@ async function finalizeEditedImage(
 
     const logoBuffer = await getLogoBuffer();
     const logoWidth = Math.round(actualWidth * 0.9);
-    const resizedLogoBuffer = await sharp(logoBuffer).resize(logoWidth).toBuffer();
+    // Convert to PNG before base64 encoding to ensure reliable SVG embedding compatibility
+    const resizedLogoBuffer = await sharp(logoBuffer).resize(logoWidth).png().toBuffer();
 
     const logoMetadata = await sharp(resizedLogoBuffer).metadata();
-    const logoHeight = logoMetadata.height ?? 0;
+    const logoHeight = Math.max(1, logoMetadata.height ?? 1);
+
+    // Render it at 20% opacity using SVG so it effectively recedes into the background plane
+    const transparentLogoSvg = Buffer.from(`
+      <svg width="${logoWidth}" height="${logoHeight}" viewBox="0 0 ${logoWidth} ${logoHeight}" xmlns="http://www.w3.org/2000/svg">
+        <image href="data:image/png;base64,${resizedLogoBuffer.toString('base64')}" width="${logoWidth}" height="${logoHeight}" opacity="0.20" />
+      </svg>
+    `.trim());
 
     // Position it slightly above the cake so it appears to be floating in the background
     const left = Math.round((actualWidth - logoWidth) / 2);
@@ -227,10 +235,10 @@ async function finalizeEditedImage(
 
     enhancedImage.composite([
       {
-        input: resizedLogoBuffer,
+        input: transparentLogoSvg,
         top,
         left,
-        blend: 'over', // Standard alpha blend
+        blend: 'over',
       },
     ]);
   } catch (err) {
