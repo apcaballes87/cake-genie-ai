@@ -204,16 +204,19 @@ async function finalizeEditedImage(
 
   // Add floating background logo
   try {
+    const actualWidth = dimensions?.wasUpscaled ? width : (metadata.width ?? width);
+    const actualHeight = dimensions?.wasUpscaled ? height : (metadata.height ?? height);
+
     const logoBuffer = await getLogoBuffer();
-    const logoWidth = Math.round(width * 0.9);
+    const logoWidth = Math.round(actualWidth * 0.9);
     const resizedLogoBuffer = await sharp(logoBuffer).resize(logoWidth).toBuffer();
 
     const logoMetadata = await sharp(resizedLogoBuffer).metadata();
     const logoHeight = logoMetadata.height ?? 0;
 
     // Position behind the cake
-    const left = Math.round((width - logoWidth) / 2);
-    const top = Math.round((height - logoHeight) / 2);
+    const left = Math.round((actualWidth - logoWidth) / 2);
+    const top = Math.round((actualHeight - logoHeight) / 2);
 
     enhancedImage.composite([
       {
