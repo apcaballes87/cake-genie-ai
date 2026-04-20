@@ -214,11 +214,14 @@ async function finalizeEditedImage(
 
     const logoMetadata = await sharp(resizedLogoBuffer).metadata();
     const logoHeight = Math.max(1, logoMetadata.height ?? 1);
+    const logoBase64 = resizedLogoBuffer.toString('base64');
 
-    // Render it at 20% opacity using SVG so it effectively recedes into the background plane
+    // Render it at 60% opacity using SVG so it effectively recedes into the background plane
     const transparentLogoSvg = Buffer.from(`
-      <svg width="${logoWidth}" height="${logoHeight}" viewBox="0 0 ${logoWidth} ${logoHeight}" xmlns="http://www.w3.org/2000/svg">
-        <image href="data:image/png;base64,${resizedLogoBuffer.toString('base64')}" width="${logoWidth}" height="${logoHeight}" opacity="0.20" />
+      <svg width="${logoWidth}" height="${logoHeight}" xmlns="http://www.w3.org/2000/svg">
+        <g opacity="0.60">
+          <image href="data:image/png;base64,${logoBase64}" width="${logoWidth}" height="${logoHeight}" />
+        </g>
       </svg>
     `.trim());
 
