@@ -214,16 +214,23 @@ async function finalizeEditedImage(
     const logoMetadata = await sharp(resizedLogoBuffer).metadata();
     const logoHeight = logoMetadata.height ?? 0;
 
-    // Position behind the cake
+    // Position it slightly above the cake so it appears to be floating in the background
     const left = Math.round((actualWidth - logoWidth) / 2);
-    const top = Math.round((actualHeight - logoHeight) / 2);
+    
+    // Estimate cake top to be ~25% down the canvas, and place logo 20px above that.
+    // If it goes too high, constrain it to at least 20px from the top edge.
+    const estimatedCakeTop = actualHeight * 0.25;
+    let top = Math.round(estimatedCakeTop - logoHeight - 20);
+    if (top < 20) {
+      top = 20;
+    }
 
     enhancedImage.composite([
       {
         input: resizedLogoBuffer,
         top,
         left,
-        blend: 'overlay', // Soft blend to make it look like it's in the background/behind
+        blend: 'over', // Standard alpha blend
       },
     ]);
   } catch (err) {
