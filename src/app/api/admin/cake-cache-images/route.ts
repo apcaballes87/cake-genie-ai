@@ -18,7 +18,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 180;
 
-const MODEL_NAME = 'gemini-3.1-flash-image-preview';
+const MODEL_NAME = 'gemini-2.5-flash-image';
 const STORAGE_BUCKET = 'cakegenie';
 
 type AiInlineDataPart = {
