@@ -8,6 +8,7 @@ import {
   getImageStudioStoragePath,
   IMAGE_STUDIO_PAGE_SIZE,
   IMAGE_STUDIO_SMALL_IMAGE_DIMENSION_THRESHOLD,
+  IMAGE_STUDIO_WATERMARK_LOGO_URL,
   normalizeImageStudioStatus,
 } from '@/lib/admin/imageStudio';
 import { getAI } from '@/lib/ai/client';
@@ -20,6 +21,16 @@ export const maxDuration = 180;
 
 const MODEL_NAME = 'gemini-2.5-flash-image';
 const STORAGE_BUCKET = 'cakegenie';
+
+let cachedLogoBuffer: Buffer | null = null;
+async function getLogoBuffer() {
+  if (cachedLogoBuffer) return cachedLogoBuffer;
+  const res = await fetch(IMAGE_STUDIO_WATERMARK_LOGO_URL, { cache: 'force-cache' });
+  if (!res.ok) throw new Error('Failed to fetch brand logo');
+  const buffer = Buffer.from(await res.arrayBuffer());
+  cachedLogoBuffer = buffer;
+  return buffer;
+}
 
 type AiInlineDataPart = {
   inlineData?: {
@@ -190,6 +201,31 @@ async function finalizeEditedImage(
   const enhancedImage = dimensions?.wasUpscaled
     ? resizedImage.sharpen(0.8, 1, 2)
     : resizedImage;
+
+  // Add floating background logo
+  try {
+    const logoBuffer = await getLogoBuffer();
+    const logoWidth = Math.round(width * 0.9);
+    const resizedLogoBuffer = await sharp(logoBuffer).resize(logoWidth).toBuffer();
+
+    const logoMetadata = await sharp(resizedLogoBuffer).metadata();
+    const logoHeight = logoMetadata.height ?? 0;
+
+    // Position in the upper background (e.g., 12% from the top)
+    const left = Math.round((width - logoWidth) / 2);
+    const top = Math.round(height * 0.12);
+
+    enhancedImage.composite([
+      {
+        input: resizedLogoBuffer,
+        top,
+        left,
+        blend: 'over',
+      },
+    ]);
+  } catch (err) {
+    console.error('Failed to overlay brand logo:', err);
+  }
 
   return enhancedImage
     .webp({
