@@ -633,9 +633,9 @@ export default function ImageStudioAdminClient() {
                         )}
                       </div>
                       <div className="border-b border-slate-100 bg-linear-to-br from-violet-50 to-white lg:border-b-0">
-                        {record.studio_edited_image_url ? (
+                        {record.studio_edited_image_url || (status === 'completed' && record.original_image_url) ? (
                           <img
-                            src={record.studio_edited_image_url}
+                            src={record.studio_edited_image_url || record.original_image_url!}
                             alt={`Edited ${record.seo_title || record.slug || 'cake image'}`}
                             className="aspect-square h-full w-full object-cover"
                             loading="lazy"
@@ -767,9 +767,9 @@ export default function ImageStudioAdminClient() {
                       ) : null}
 
                       <div className="flex flex-wrap gap-3">
-                        {record.studio_edited_image_url ? (
+                        {record.studio_edited_image_url || (status === 'completed' && record.original_image_url) ? (
                           <a
-                            href={record.studio_edited_image_url}
+                            href={record.studio_edited_image_url || record.original_image_url!}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex items-center gap-2 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
