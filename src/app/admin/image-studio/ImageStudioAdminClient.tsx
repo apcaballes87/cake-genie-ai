@@ -121,6 +121,7 @@ export default function ImageStudioAdminClient() {
     total: number;
     label: string;
   } | null>(null);
+  const [isAutoContinuing, setIsAutoContinuing] = useState(false);
 
   const stopBatchRef = useRef(false);
 
@@ -324,16 +325,31 @@ export default function ImageStudioAdminClient() {
     }
 
     const stopped = stopBatchRef.current;
-    setAutoProcessing(false);
-    setBatchProgress(null);
-    stopBatchRef.current = false;
 
     if (stopped) {
+      setAutoProcessing(false);
+      setIsAutoContinuing(false);
+      setBatchProgress(null);
+      stopBatchRef.current = false;
       toast('Auto-edit stopped after the active image finished.');
+    } else if (page < totalPages) {
+      setBatchProgress({ current: 0, total: 0, label: 'Loading next page...' });
+      setPage((p) => p + 1);
+      setIsAutoContinuing(true);
     } else {
-      toast.success('Finished auto-editing the visible page.');
+      setAutoProcessing(false);
+      setIsAutoContinuing(false);
+      setBatchProgress(null);
+      stopBatchRef.current = false;
+      toast.success('Finished auto-editing all matching images.');
     }
-  }, [processSingleRecord, records]);
+  }, [page, processSingleRecord, records, totalPages]);
+
+  useEffect(() => {
+    if (isAutoContinuing && !loading && !autoProcessing && isAuthenticated) {
+      void handleAutoEdit();
+    }
+  }, [isAutoContinuing, loading, autoProcessing, handleAutoEdit, isAuthenticated]);
 
   const handleCopyHash = async (value: string) => {
     try {
@@ -523,7 +539,7 @@ export default function ImageStudioAdminClient() {
                   className="inline-flex items-center gap-2 rounded-2xl border border-violet-200 bg-white px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:text-slate-300"
                 >
                   <Square className="size-4" />
-                  Stop after current image
+                  Stop auto-edit
                 </button>
               </div>
 
