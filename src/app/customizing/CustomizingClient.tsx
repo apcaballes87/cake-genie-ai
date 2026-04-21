@@ -421,12 +421,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     // Open pre-selection modal when arriving from search with analysis already in progress
     // (analysis was started in SearchingClient before navigating here)
-    useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('from') === 'search' && isAnalyzing && !isPreSelectionModalOpen) {
-            setIsPreSelectionModalOpen(true);
-        }
-    }, []); // Run once on mount
+    // DISABLED: Preselection modal disabled for now
+    // useEffect(() => {
+    //     const urlParams = new URLSearchParams(window.location.search);
+    //     if (urlParams.get('from') === 'search' && isAnalyzing && !isPreSelectionModalOpen) {
+    //         setIsPreSelectionModalOpen(true);
+    //     }
+    // }, []); // Run once on mount
 
     useEffect(() => {
         return () => {
@@ -445,7 +446,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setAnalysisError(null);
         setPreloadedHeroImage(null);
         setIsAnalyzing(true);
-        setIsPreSelectionModalOpen(true);
+        // DISABLED: Preselection modal disabled
+        // setIsPreSelectionModalOpen(true);
 
         // Use the hook to upload and analyze
         hookImageUpload(
@@ -459,7 +461,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 console.warn('Analysis failed:', err.message);
                 setIsAnalyzing(false);
                 setAnalysisError(err.message);
-                setIsPreSelectionModalOpen(false);
+                // DISABLED: Preselection modal disabled
+                // setIsPreSelectionModalOpen(false);
             }
         );
     }, [clearCustomization, clearImages, setAnalysisError, setIsAnalyzing, hookImageUpload, setPendingAnalysisData]);
@@ -1221,9 +1224,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         // Loading item from props
 
         // Show pre-selection modal for search arrivals (user can pick cake specs while loading)
+        // DISABLED: Preselection modal disabled
         const isFromSearch = urlParams.get('from') === 'search';
         if (isFromSearch) {
-            setIsPreSelectionModalOpen(true);
+            // setIsPreSelectionModalOpen(true);
         }
 
         // Clear any existing stale data
@@ -1238,7 +1242,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         if (!hasSSRData) {
             clearCustomization();
             setIsAnalyzing(true);
-            setIsPreSelectionModalOpen(true);
+            // DISABLED: Preselection modal disabled
+            // setIsPreSelectionModalOpen(true);
         }
 
         const shouldReuseSsrAnalysis = shouldHydrateImageFromExistingAnalysis({ hasSsrData: hasSSRData });
@@ -1439,7 +1444,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 // Clear any previous loading toasts from previous pages
                 toast.dismiss();
                 setIsAnalyzing(true);
-                setIsPreSelectionModalOpen(true);
+                // DISABLED: Preselection modal disabled
+                // setIsPreSelectionModalOpen(true);
                 showInfo("Loading your cake design...");
 
                 // Reject blob URLs (dead after navigation)
@@ -1784,7 +1790,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
         // Show loading state immediately
         setIsAnalyzing(true);
-        setIsPreSelectionModalOpen(true);
+        // DISABLED: Preselection modal disabled
+        // setIsPreSelectionModalOpen(true);
         showInfo("Loading your cake design...");
 
         // Save the image ref we're about to analyze (so we can restore on return)
@@ -3208,7 +3215,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     isSharing={isSharing}
                     canShare={!!analysisResult && isAnalysisCached}
                     isAnalyzing={hideStickyBar ? false : isAnalyzing}
-                    isBlurred={isPreSelectionModalOpen}
+                    // DISABLED: Preselection modal disabled
+                    // isBlurred={isPreSelectionModalOpen}
                     cakeInfo={cakeInfo}
                     warningMessage={hideStickyBar ? undefined : (isSafetyFallback ? "AI editing disabled for adult-themed content. Your design changes will still be saved." : warningMessage)}
                     warningDescription={hideStickyBar ? undefined : warningDescription}
@@ -3247,7 +3255,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     source="customizing"
                 />
                 <PreSelectionModal
-                    isOpen={isPreSelectionModalOpen}
+                    // DISABLED: Preselection modal disabled
+                    isOpen={false}
                     isAnalyzing={isAnalyzing}
                     onClose={handlePreSelectionClose}
                     onApply={handlePreSelectionApply}
