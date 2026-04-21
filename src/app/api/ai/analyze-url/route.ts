@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { ThinkingLevel, Type } from "@google/genai";
 import { getAI } from '@/lib/ai/client';
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
@@ -396,6 +396,18 @@ export async function POST(req: NextRequest) {
             });
 
             console.log('✅ Cached analysis result for pHash:', pHash);
+
+            // Trigger background studio edit in parallel
+            after(() => {
+                fetch(`${req.nextUrl.origin}/api/admin/cake-cache-images`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-pin': process.env.ADMIN_IMAGE_STUDIO_PIN || '',
+                    },
+                    body: JSON.stringify({ pHash })
+                }).catch(e => console.error('Background studio edit failed:', e));
+            });
         } catch (cacheError) {
             console.error('Failed to cache analysis result:', cacheError);
         }
