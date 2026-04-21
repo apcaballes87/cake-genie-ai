@@ -604,6 +604,15 @@ export async function cacheAnalysisResult(
       if (slug) {
         notifyIndexNow(`https://genie.ph/customizing/${slug}`);
       }
+
+      // Trigger background Image Studio edit (Fire and forget)
+      if (pHash && typeof window !== 'undefined') {
+        fetch('/api/ai/trigger-studio-edit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pHash })
+        }).catch(err => console.warn('Background trigger fetch error:', err));
+      }
     }
 
     return {
