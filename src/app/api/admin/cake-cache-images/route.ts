@@ -475,10 +475,9 @@ export async function POST(req: NextRequest) {
 
     const completedAt = new Date().toISOString();
     const updatePayload = {
-      original_image_url: publicUrl,
       image_width: outputDimensions?.width ?? generatedMetadata.width,
       image_height: outputDimensions?.height ?? generatedMetadata.height,
-      studio_edited_image_url: null,
+      studio_edited_image_url: publicUrl,
       studio_edit_status: 'completed',
       studio_edit_error: null,
       studio_edited_at: completedAt,
