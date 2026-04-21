@@ -398,15 +398,22 @@ export async function POST(req: NextRequest) {
             console.log('✅ Cached analysis result for pHash:', pHash);
 
             // Trigger background studio edit in parallel
-            after(() => {
-                fetch(`${req.nextUrl.origin}/api/admin/cake-cache-images`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-admin-pin': '231323',
-                    },
-                    body: JSON.stringify({ pHash })
-                }).catch(e => console.error('Background studio edit failed:', e));
+            after(async () => {
+                console.log(`[Background] Triggering studio edit for ${pHash} at ${req.nextUrl.origin}/api/admin/cake-cache-images`);
+                try {
+                    const res = await fetch(`${req.nextUrl.origin}/api/admin/cake-cache-images`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-admin-pin': '231323',
+                        },
+                        body: JSON.stringify({ pHash })
+                    });
+                    const text = await res.text();
+                    console.log(`[Background] Studio edit fetch response: ${res.status} ${res.statusText} - ${text.slice(0, 200)}`);
+                } catch (e) {
+                    console.error('[Background] Background studio edit failed:', e);
+                }
             });
         } catch (cacheError) {
             console.error('Failed to cache analysis result:', cacheError);
