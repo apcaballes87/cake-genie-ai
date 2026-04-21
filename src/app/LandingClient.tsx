@@ -1030,9 +1030,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             <Link href="/shop" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
                                 Our Bakers
                             </Link>
-                            <Link href="/blog" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+{/* <Link href="/blog" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
                                 Blog
-                            </Link>
+                            </Link> */}
                             <Link href="/compare" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
                                 Compare
                             </Link>
@@ -1327,7 +1327,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                     {children}
                 </div>
 
-                {/* ===== BLOG SECTION ===== */}
+                {/* ===== BLOG SECTION - Hidden as requested ===== */}
+                {/* 
                 <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
                     <section aria-label="Blog" className="py-8 md:py-12">
                         <div className="flex items-center justify-between mb-4 md:mb-6">
@@ -1375,6 +1376,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         </div>
                     </section>
                 </div>
+                */}
 
                 {/* ===== REVIEWS MARQUEE ===== */}
                 {reviewCards.length > 0 && (

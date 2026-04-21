@@ -19,7 +19,7 @@ const socialLinks = [
   { href: 'https://m.me/genieph', label: 'Messenger', icon: MessageCircle, className: 'text-blue-500 hover:bg-blue-600 hover:text-white' },
 ] as const;
 
-const exploreLinks = ['/customizing|Customize a Cake', '/coldcaking|Cold Caking', '/shop|Shop', '/collections|Collections', '/blog|Blog', '/about|About Us', '/compare|Compare', '/sitemap-html|HTML Sitemap'];
+const exploreLinks = ['/customizing|Customize a Cake', '/coldcaking|Cold Caking', '/shop|Shop', '/collections|Collections', '/about|About Us', '/compare|Compare', '/sitemap-html|HTML Sitemap'];
 const helpLinks = ['/contact|Contact Us', '/faq|FAQ', '/how-to-order|How to Order', '/delivery-rates|Delivery Rates', '/terms|Terms of Service', '/privacy|Privacy Policy', '/return-policy|Return Policy'];
 
 export function LandingFooter() {
