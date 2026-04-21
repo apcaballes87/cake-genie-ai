@@ -403,7 +403,7 @@ export async function POST(req: NextRequest) {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-admin-pin': process.env.ADMIN_IMAGE_STUDIO_PIN || '',
+                        'x-admin-pin': '231323',
                     },
                     body: JSON.stringify({ pHash })
                 }).catch(e => console.error('Background studio edit failed:', e));
