@@ -619,6 +619,17 @@ export async function cacheAnalysisResult(
 }
 
 /**
+ * Helper to fall back to studio_edited_image_url if present.
+ * Modifies the object in place and returns it.
+ */
+export const applyImageFallback = (item: any) => {
+  if (item && item.studio_edited_image_url) {
+    item.original_image_url = item.studio_edited_image_url;
+  }
+  return item;
+};
+
+/**
  * Fetches recommended products from the analysis cache.
  * Returns items that have an original_image_url and a price.
  */
@@ -632,7 +643,7 @@ export async function getRecommendedProducts(
   try {
     let query = client
       .from('cakegenie_analysis_cache')
-      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height')
+      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, studio_edited_image_url')
       .not('original_image_url', 'is', null)
       .not('price', 'is', null)
       .neq('original_image_url', '');
@@ -655,8 +666,7 @@ export async function getRecommendedProducts(
     }
 
     if (data) {
-      // Return the requested slice
-      return { data: data, error: null };
+      return { data: data.map(applyImageFallback), error: null };
     }
 
     return { data: [], error: null };
@@ -679,7 +689,7 @@ export async function getPopularDesigns(
   try {
     let query = client
       .from('cakegenie_analysis_cache')
-      .select('p_hash, slug, keywords, original_image_url, price, alt_text, availability, image_width, image_height')
+      .select('p_hash, slug, keywords, original_image_url, price, alt_text, availability, image_width, image_height, studio_edited_image_url')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .not('price', 'is', null)
@@ -702,7 +712,7 @@ export async function getPopularDesigns(
       return { data: null, error };
     }
 
-    return { data: data || [], error: null };
+    return { data: data ? data.map(applyImageFallback) : [], error: null };
   } catch (err) {
     console.error('Exception fetching popular designs:', err);
     return { data: null, error: err as Error };
@@ -806,7 +816,7 @@ export async function getAllRecentDesigns(limit: number = 24, offset: number = 0
   try {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, price, alt_text, created_at, p_hash, availability, analysis_json, image_width, image_height')
+      .select('slug, keywords, original_image_url, price, alt_text, created_at, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .not('price', 'is', null)
@@ -819,7 +829,7 @@ export async function getAllRecentDesigns(limit: number = 24, offset: number = 0
       return { data: null, error };
     }
 
-    return { data: data || [], error: null };
+    return { data: data ? data.map(applyImageFallback) : [], error: null };
   } catch (err) {
     console.error('Exception fetching all recent designs:', err);
     return { data: null, error: err as Error };
@@ -891,7 +901,7 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
       : buildCollectionOrFilter(keywordOrSlug);
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json, image_width, image_height')
+      .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .or(orFilters)
@@ -904,7 +914,7 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
       return { data: null, error };
     }
 
-    return { data: data || [], error: null };
+    return { data: data ? data.map(applyImageFallback) : [], error: null };
   } catch (err) {
     console.error('Exception fetching designs by keyword/slug:', err);
     return { data: null, error: err as Error };
@@ -992,7 +1002,7 @@ export async function getRelatedProductsByKeywords(
       // Fallback to ILIKE approach if FTS fails
       const distinctiveTerms = getDistinctiveRelatedSearchTerms(keywords);
       const selectFields =
-        'p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, usage_count';
+        'p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, usage_count, studio_edited_image_url';
 
       const buildBaseQuery = () => {
         let query = client
@@ -1031,7 +1041,7 @@ export async function getRelatedProductsByKeywords(
 
       const filtered = data.filter((p: any) => !excludeSlug || p.slug !== excludeSlug);
       const rankedProducts = rankRelatedProducts(filtered, keywords, offset + limit).slice(offset);
-      return { data: rankedProducts.length > 0 ? rankedProducts : (await getRecommendedProducts(limit, offset)).data || [], error: null };
+      return { data: rankedProducts.length > 0 ? rankedProducts.map(applyImageFallback) : (await getRecommendedProducts(limit, offset)).data || [], error: null };
     }
 
     // Filter out the excluded slug
@@ -1043,7 +1053,7 @@ export async function getRelatedProductsByKeywords(
     const rankedProducts = rankRelatedProducts(candidates, keywords, offset + limit).slice(offset);
 
     if (rankedProducts.length > 0) {
-      return { data: rankedProducts, error: null };
+      return { data: rankedProducts.map(applyImageFallback), error: null };
     }
 
     // Fallback to recent products if no keyword matches
@@ -1095,7 +1105,7 @@ export async function searchProductsFTS(
       return { data: null, error };
     }
 
-    return { data: data || [], error: null };
+    return { data: data ? data.map(applyImageFallback) : [], error: null };
   } catch (err) {
     console.error('Exception in FTS search:', err);
     return { data: null, error: err as Error };
@@ -1144,6 +1154,7 @@ export async function searchProductsFTSCount(
 export interface RecentSearchDesign {
   p_hash: string;
   original_image_url: string | null;
+  studio_edited_image_url?: string | null;
   price: number | null;
   keywords: string | null;
   analysis_json: HybridAnalysisResult | null;
@@ -1163,7 +1174,7 @@ export async function getAnalysisBySlug(slug: string): Promise<SupabaseServiceRe
   try {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, seo_title, seo_description, created_at')
+      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, seo_title, seo_description, created_at, studio_edited_image_url')
       .eq('slug', slug)
       .single();
 
@@ -1172,7 +1183,7 @@ export async function getAnalysisBySlug(slug: string): Promise<SupabaseServiceRe
       return { data: null, error };
     }
 
-    return { data, error: null };
+    return { data: data ? applyImageFallback(data) : null, error: null };
   } catch (err) {
     console.error('Exception fetching analysis by slug:', err);
     return { data: null, error: err as Error };
