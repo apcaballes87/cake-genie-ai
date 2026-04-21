@@ -1276,81 +1276,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                     </div>
                 </section>
 
-
-                {/* ===== REVIEWS MARQUEE ===== */}
-                {reviewCards.length > 0 && (
-                <section aria-label="Customer reviews" className="w-full overflow-hidden py-2 md:py-4">
-                    <div className="mx-auto max-w-7xl px-4 pb-3 text-center sm:px-6 lg:px-8 md:pb-4">
-                        <Link href="/reviews" className="text-[10px] text-gray-600 hover:text-purple-600 md:text-[10px]">
-                            4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
-                        </Link>
-                    </div>
-                    <div className="relative group">
-                        <div
-                            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 md:w-24"
-                            style={{ background: 'linear-gradient(to right, rgba(250,245,255,1), transparent)' }}
-                        />
-                        <div
-                            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 md:w-24"
-                            style={{ background: 'linear-gradient(to left, rgba(240,238,255,1), transparent)' }}
-                        />
-                        <div
-                            ref={scrollRef}
-                            className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide py-2"
-                            onMouseDown={() => setIsInteracting(true)}
-                            onMouseUp={() => setIsInteracting(false)}
-                            onMouseLeave={() => setIsInteracting(false)}
-                            onTouchStart={() => setIsInteracting(true)}
-                            onTouchEnd={() => setIsInteracting(false)}
-                        >
-                            <div className="flex gap-3 md:gap-4 min-w-max pr-3 md:pr-4">
-                            {reviewCards.map((card, i) => (
-                                <div
-                                    key={`${card.id}-${i}`}
-                                    className={`shrink-0 w-[294px] md:w-[343px] bg-white rounded-xl shadow-md p-2.5 md:p-3 transition-shadow ${card.photo ? 'cursor-pointer hover:shadow-lg' : ''}`}
-                                    onClick={() => card.photo && setReviewZoomSrc(card.photo)}
-                                    role="button"
-                                    tabIndex={0}
-                                    aria-label={`Review by ${card.name}`}
-                                    onKeyDown={(e) => e.key === 'Enter' && card.photo && setReviewZoomSrc(card.photo)}
-                                >
-                                    {/* Row 1: Stars + Name */}
-                                    <div className="flex items-center justify-between mb-1.5">
-                                        <div className="flex gap-px">
-                                            {[1, 2, 3, 4, 5].map((star) => (
-                                                <span key={star} className={`text-[10px] ${star <= card.rating ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
-                                            ))}
-                                        </div>
-                                        <span className="text-[10px] font-medium text-slate-600 truncate ml-2">{card.name}</span>
-                                    </div>
-                                    {/* Row 2: Image thumbnail (left) + Review snippet (right) */}
-                                    <div className="flex gap-2">
-                                        {card.photo && (
-                                            <div className="relative w-10 h-10 md:w-[47px] md:h-[47px] shrink-0 overflow-hidden rounded-md border border-slate-200">
-                                                <ImageWithSkeleton
-                                                    src={card.photo}
-                                                    alt={card.cakeType ? `${card.cakeType} Cake` : 'Cake'}
-                                                    className="w-full h-full object-cover"
-                                                    skeletonClassName="rounded-md"
-                                                    priority
-                                                />
-                                            </div>
-                                        )}
-                                        <div className="min-w-0 flex-1">
-                                            {card.cakeType && <p className="text-[10px] font-semibold text-slate-800 truncate mb-0.5">{card.cakeType} Cake{card.cakeSize ? ` · ${card.cakeSize}` : ''}</p>}
-                                            {card.text && (
-                                                <p className="text-[10px] text-slate-600 leading-relaxed line-clamp-2 whitespace-normal">{card.text}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                )}
-
                 {/* ===== INTERACTIVE CUSTOMIZER DEMO ===== */}
                 <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
                     <h2 id="price-change-heading" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-2 text-center">
@@ -1450,6 +1375,80 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                         </div>
                     </section>
                 </div>
+
+                {/* ===== REVIEWS MARQUEE ===== */}
+                {reviewCards.length > 0 && (
+                    <section aria-label="Customer reviews" className="w-full overflow-hidden py-2 md:py-4">
+                        <div className="mx-auto max-w-7xl px-4 pb-3 text-center sm:px-6 lg:px-8 md:pb-4">
+                            <Link href="/reviews" className="text-[10px] text-gray-600 hover:text-purple-600 md:text-[10px]">
+                                4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
+                            </Link>
+                        </div>
+                        <div className="relative group">
+                            <div
+                                className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 md:w-24"
+                                style={{ background: 'linear-gradient(to right, rgba(250,245,255,1), transparent)' }}
+                            />
+                            <div
+                                className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 md:w-24"
+                                style={{ background: 'linear-gradient(to left, rgba(240,238,255,1), transparent)' }}
+                            />
+                            <div
+                                ref={scrollRef}
+                                className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide py-2"
+                                onMouseDown={() => setIsInteracting(true)}
+                                onMouseUp={() => setIsInteracting(false)}
+                                onMouseLeave={() => setIsInteracting(false)}
+                                onTouchStart={() => setIsInteracting(true)}
+                                onTouchEnd={() => setIsInteracting(false)}
+                            >
+                                <div className="flex gap-3 md:gap-4 min-w-max pr-3 md:pr-4">
+                                    {reviewCards.map((card, i) => (
+                                        <div
+                                            key={`${card.id}-${i}`}
+                                            className={`shrink-0 w-[294px] md:w-[343px] bg-white rounded-xl shadow-md p-2.5 md:p-3 transition-shadow ${card.photo ? 'cursor-pointer hover:shadow-lg' : ''}`}
+                                            onClick={() => card.photo && setReviewZoomSrc(card.photo)}
+                                            role="button"
+                                            tabIndex={0}
+                                            aria-label={`Review by ${card.name}`}
+                                            onKeyDown={(e) => e.key === 'Enter' && card.photo && setReviewZoomSrc(card.photo)}
+                                        >
+                                            {/* Row 1: Stars + Name */}
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <div className="flex gap-px">
+                                                    {[1, 2, 3, 4, 5].map((star) => (
+                                                        <span key={star} className={`text-[10px] ${star <= card.rating ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+                                                    ))}
+                                                </div>
+                                                <span className="text-[10px] font-medium text-slate-600 truncate ml-2">{card.name}</span>
+                                            </div>
+                                            {/* Row 2: Image thumbnail (left) + Review snippet (right) */}
+                                            <div className="flex gap-2">
+                                                {card.photo && (
+                                                    <div className="relative w-10 h-10 md:w-[47px] md:h-[47px] shrink-0 overflow-hidden rounded-md border border-slate-200">
+                                                        <ImageWithSkeleton
+                                                            src={card.photo}
+                                                            alt={card.cakeType ? `${card.cakeType} Cake` : 'Cake'}
+                                                            className="w-full h-full object-cover"
+                                                            skeletonClassName="rounded-md"
+                                                            priority
+                                                        />
+                                                    </div>
+                                                )}
+                                                <div className="min-w-0 flex-1">
+                                                    {card.cakeType && <p className="text-[10px] font-semibold text-slate-800 truncate mb-0.5">{card.cakeType} Cake{card.cakeSize ? ` · ${card.cakeSize}` : ''}</p>}
+                                                    {card.text && (
+                                                        <p className="text-[10px] text-slate-600 leading-relaxed line-clamp-2 whitespace-normal">{card.text}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                )}
             </main>
 
             {/* ========== MOBILE BOTTOM NAV ========== */}
