@@ -202,7 +202,8 @@ async function finalizeEditedImage(
     ? resizedImage.sharpen(0.8, 1, 2)
     : resizedImage;
 
-  // Add floating background logo
+  // Add floating background logo (Disabled temporarily)
+  /*
   try {
     const actualWidth = dimensions?.wasUpscaled ? width : (metadata.width ?? width);
     const actualHeight = dimensions?.wasUpscaled ? height : (metadata.height ?? height);
@@ -218,9 +219,9 @@ async function finalizeEditedImage(
 
     // Render it at 60% opacity using SVG so it effectively recedes into the background plane
     const transparentLogoSvg = Buffer.from(`
-      <svg width="${logoWidth}" height="${logoHeight}" xmlns="http://www.w3.org/2000/svg">
+      <svg width="\${logoWidth}" height="\${logoHeight}" xmlns="http://www.w3.org/2000/svg">
         <g opacity="0.60">
-          <image href="data:image/png;base64,${logoBase64}" width="${logoWidth}" height="${logoHeight}" />
+          <image href="data:image/png;base64,\${logoBase64}" width="\${logoWidth}" height="\${logoHeight}" />
         </g>
       </svg>
     `.trim());
@@ -247,6 +248,7 @@ async function finalizeEditedImage(
   } catch (err) {
     console.error('Failed to overlay brand logo:', err);
   }
+  */
 
   return enhancedImage
     .webp({
