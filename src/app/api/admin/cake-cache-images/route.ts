@@ -193,9 +193,9 @@ async function finalizeEditedImage(
   const resizedImage =
     dimensions?.wasUpscaled && metadata.width && metadata.height
       ? image.resize(width, height, {
-          fit: 'fill',
-          kernel: sharp.kernel.lanczos3,
-        })
+        fit: 'fill',
+        kernel: sharp.kernel.lanczos3,
+      })
       : image;
 
   const enhancedImage = dimensions?.wasUpscaled
@@ -227,7 +227,7 @@ async function finalizeEditedImage(
 
     // Position it slightly above the cake so it appears to be floating in the background
     const left = Math.round((actualWidth - logoWidth) / 2);
-    
+
     // Estimate cake top to be ~25% down the canvas, and place logo 20px above that.
     // If it goes too high, constrain it to at least 20px from the top edge.
     const estimatedCakeTop = actualHeight * 0.25;
@@ -296,17 +296,17 @@ export async function GET(req: NextRequest) {
 
   const searchConditions = search
     ? [
-        `seo_title.ilike.%${search}%`,
-        `slug.ilike.%${search.replace(/\s+/g, '-')}%`,
-        `keywords.ilike.%${search}%`,
-      ]
+      `seo_title.ilike.%${search}%`,
+      `slug.ilike.%${search.replace(/\s+/g, '-')}%`,
+      `keywords.ilike.%${search}%`,
+    ]
     : [];
   const sizeConditions =
     sizeFilter === 'small'
       ? [
-          `image_width.lt.${IMAGE_STUDIO_SMALL_IMAGE_DIMENSION_THRESHOLD}`,
-          `image_height.lt.${IMAGE_STUDIO_SMALL_IMAGE_DIMENSION_THRESHOLD}`,
-        ]
+        `image_width.lt.${IMAGE_STUDIO_SMALL_IMAGE_DIMENSION_THRESHOLD}`,
+        `image_height.lt.${IMAGE_STUDIO_SMALL_IMAGE_DIMENSION_THRESHOLD}`,
+      ]
       : [];
 
   if (searchConditions.length > 0 && sizeConditions.length > 0) {
@@ -330,9 +330,8 @@ export async function GET(req: NextRequest) {
     console.error('Failed to load image studio cache rows:', error);
     return NextResponse.json(
       {
-        error: `Failed to load image cache rows. ${error.message}${
-          error.hint ? ` Hint: ${error.hint}` : ''
-        }`,
+        error: `Failed to load image cache rows. ${error.message}${error.hint ? ` Hint: ${error.hint}` : ''
+          }`,
       },
       { status: 500 }
     );
@@ -475,9 +474,10 @@ export async function POST(req: NextRequest) {
 
     const completedAt = new Date().toISOString();
     const updatePayload = {
+      original_image_url: publicUrl,
       image_width: outputDimensions?.width ?? generatedMetadata.width,
       image_height: outputDimensions?.height ?? generatedMetadata.height,
-      studio_edited_image_url: publicUrl,
+      studio_edited_image_url: null,
       studio_edit_status: 'completed',
       studio_edit_error: null,
       studio_edited_at: completedAt,
