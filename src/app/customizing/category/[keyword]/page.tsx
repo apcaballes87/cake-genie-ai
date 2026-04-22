@@ -188,7 +188,7 @@ export default async function CategoryPage({ params }: Props) {
 
                     {/* Header */}
                     <header className="mb-8">
-                        <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">
+                        <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text truncate">
                             {cleanName} Cake Designs
                         </h1>
                         <p className="text-slate-500 font-medium mt-1">

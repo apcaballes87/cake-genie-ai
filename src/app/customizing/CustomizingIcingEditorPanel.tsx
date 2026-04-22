@@ -131,7 +131,7 @@ const IcingToolbar = memo(function IcingToolbar({
                                 if (tool.disabled) return;
                                 onSelectItem(isSelected ? null : { id: `icing-edit-${tool.id}`, itemCategory: 'icing', description: tool.description, cakeType: effectiveCakeType });
                             }}
-                            className={`relative ${buttonSizeClasses} p-2 rounded-full hover:bg-purple-100 transition-all ${isSelected ? 'bg-purple-100 ring-2 ring-purple-500' : 'bg-white/80'} backdrop-blur-md ${tool.featureFlag ? 'border-2 border-purple-600' : 'border border-slate-200'} shadow-md ${tool.featureFlag ? '' : 'opacity-60'} disabled:opacity-40 disabled:cursor-not-allowed`}
+                            className={`relative ${buttonSizeClasses} p-2 rounded-full hover:bg-purple-100 transition-all ${isSelected ? 'genie-control-selected' : 'bg-white/80'} backdrop-blur-md ${tool.featureFlag ? 'border-2 border-purple-400' : 'border border-purple-100'} shadow-md ${tool.featureFlag ? '' : 'opacity-60'} disabled:opacity-40 disabled:cursor-not-allowed`}
                             disabled={tool.disabled}
                         >
                             {React.cloneElement(tool.icon as React.ReactElement<{ className?: string }>, { className: 'w-full h-full flex items-center justify-center' })}
@@ -141,7 +141,7 @@ const IcingToolbar = memo(function IcingToolbar({
                                 </div>
                             )}
                         </button>
-                        <span className={`text-[10px] font-medium transition-colors whitespace-nowrap ${isSelected ? 'text-purple-600' : 'text-slate-600 group-hover:text-purple-600'} ${tool.disabled ? 'opacity-40' : ''}`}>
+                        <span className={`text-[10px] font-medium transition-colors whitespace-nowrap ${isSelected ? 'text-purple-700' : 'text-slate-600 group-hover:text-purple-600'} ${tool.disabled ? 'opacity-40' : ''}`}>
                             {tool.label}
                         </span>
                     </div>
@@ -189,7 +189,7 @@ export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorP
                                 onIcingDesignChange(nextDesign);
                             }}
                         />
-                        <div className={`w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'peer-checked:bg-purple-600'}`} />
+                        <div className={`w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'peer-checked:bg-purple-400'}`} />
                     </label>
                 </div>
                 <div className={`transition-all duration-300 ${isDisabled ? 'max-h-0 opacity-0 overflow-hidden' : 'max-h-24 opacity-100'}`}>
@@ -216,7 +216,7 @@ export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorP
                 <div className="flex justify-between items-center">
                     <p className="text-xs text-slate-500">Customize your cake&apos;s colors and icing details.</p>
                     {hasIcingChanges && (
-                        <button type="button" onClick={onRevert} className="text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors flex items-center gap-1">
+                        <button type="button" onClick={onRevert} className="genie-btn-ghost text-xs font-medium rounded-lg px-2 py-1">
                             <ResetIcon className="w-3 h-3" />
                             Revert
                         </button>

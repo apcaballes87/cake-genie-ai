@@ -17,46 +17,46 @@ export const Footer = () => {
     };
 
     return (
-        <footer className="bg-purple-50 text-gray-900 pt-16 pb-24 md:pb-8 border-t border-purple-100">
+        <footer className="genie-page-bg text-gray-900 pt-16 pb-24 md:pb-8 border-t border-purple-100">
 
             {/* Top Section: Feature Cards */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-                    <article className="bg-white p-4 md:p-6 rounded-2xl text-center hover:shadow-lg transition duration-300 border border-purple-100">
-                        <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 text-purple-600">
+                    <article className="genie-card genie-card-hover p-4 md:p-6 rounded-2xl text-center transition duration-300">
+                        <div className="w-12 h-12 genie-icon-soft rounded-full flex items-center justify-center mx-auto mb-4">
                             <Camera size={24} />
                         </div>
                         <h3 className="font-bold text-lg mb-2 text-purple-700 font-serif italic">Instantly get the price</h3>
                         <p className="text-gray-600 text-sm mb-4">Upload your cake design and get your price in 10 seconds.</p>
-                        <button onClick={() => router.push('/customizing')} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-full text-sm font-bold transition shadow-sm">
+                        <button onClick={() => router.push('/customizing')} className="genie-btn-primary px-6 py-2 rounded-full text-sm font-bold">
                             Upload here
                         </button>
                     </article>
 
-                    <article className="bg-white p-4 md:p-6 rounded-2xl text-center hover:shadow-lg transition duration-300 border border-purple-100">
-                        <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4 text-pink-600">
+                    <article className="genie-card genie-card-hover p-4 md:p-6 rounded-2xl text-center transition duration-300">
+                        <div className="w-12 h-12 genie-icon-soft rounded-full flex items-center justify-center mx-auto mb-4">
                             <Cake size={24} />
                         </div>
                         <h3 className="font-bold text-lg mb-2 text-pink-600 font-serif italic">Fresh cakes delivered to you</h3>
                         <p className="text-gray-600 text-sm mb-4">Homemade delicious cakes freshly baked just in time for your special day</p>
-                        <button onClick={() => router.push('/about')} className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2 rounded-full text-sm font-bold transition shadow-sm">
+                        <button onClick={() => router.push('/about')} className="genie-btn-primary px-6 py-2 rounded-full text-sm font-bold">
                             About Us
                         </button>
                     </article>
 
-                    <article className="bg-white p-4 md:p-6 rounded-2xl text-center hover:shadow-lg transition duration-300 border border-purple-100">
-                        <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 text-purple-600">
+                    <article className="genie-card genie-card-hover p-4 md:p-6 rounded-2xl text-center transition duration-300">
+                        <div className="w-12 h-12 genie-icon-soft rounded-full flex items-center justify-center mx-auto mb-4">
                             <Tag size={24} />
                         </div>
                         <h3 className="font-bold text-lg mb-2 text-purple-700 font-serif italic">Affordable yummy cakes</h3>
                         <p className="text-gray-600 text-sm mb-4">All prices of our cake designs are always updated and affordable</p>
-                        <button onClick={() => router.push('/how-to-order')} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-full text-sm font-bold transition shadow-sm">
+                        <button onClick={() => router.push('/how-to-order')} className="genie-btn-primary px-6 py-2 rounded-full text-sm font-bold">
                             How to order
                         </button>
                     </article>
 
-                    <article className="bg-white p-4 md:p-6 rounded-2xl text-center hover:shadow-lg transition duration-300 border border-purple-100">
-                        <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4 text-pink-600">
+                    <article className="genie-card genie-card-hover p-4 md:p-6 rounded-2xl text-center transition duration-300">
+                        <div className="w-12 h-12 genie-icon-soft rounded-full flex items-center justify-center mx-auto mb-4">
                             <CreditCard size={24} />
                         </div>
                         <h3 className="font-bold text-lg mb-2 text-pink-600 font-serif italic">Secure payment options</h3>
@@ -65,7 +65,7 @@ export const Footer = () => {
                             href="https://checkout.xendit.co/od/genieph" 
                             target="_blank" 
                             rel="noopener noreferrer" 
-                            className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2 rounded-full text-sm font-bold transition shadow-sm inline-block"
+                            className="genie-btn-primary px-6 py-2 rounded-full text-sm font-bold inline-flex"
                         >
                             Payments
                         </a>
@@ -74,32 +74,32 @@ export const Footer = () => {
             </div>
 
             {/* Middle Section: Ratings & Social */}
-            <div className="border-t border-purple-200 bg-purple-100/50">
+            <div className="border-y border-purple-100 bg-white/45 backdrop-blur-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                         {/* Social Icons */}
                         <div className="flex items-center gap-3">
-                            <a href="https://web.facebook.com/geniephilippines" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-purple-600 hover:text-white transition text-purple-600 shadow-sm">
+                            <a href="https://web.facebook.com/geniephilippines" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full genie-icon-button flex items-center justify-center">
                                 <Facebook size={18} />
                             </a>
-                            <a href="https://www.instagram.com/genie.ph/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-purple-600 hover:text-white transition text-purple-600 shadow-sm">
+                            <a href="https://www.instagram.com/genie.ph/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full genie-icon-button flex items-center justify-center">
                                 <Instagram size={18} />
                             </a>
-                            <a href="http://tiktok.com/genie.ph" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-pink-600 hover:text-white transition text-pink-500 shadow-sm">
+                            <a href="http://tiktok.com/genie.ph" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full genie-icon-button flex items-center justify-center">
                                 <svg viewBox="0 0 24 24" fill="currentColor" height="18" width="18">
                                     <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
                                 </svg>
                             </a>
-                            <a href="https://www.youtube.com/@genieph" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-red-600 hover:text-white transition text-red-500 shadow-sm">
+                            <a href="https://www.youtube.com/@genieph" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full genie-icon-button flex items-center justify-center">
                                 <Youtube size={18} />
                             </a>
-                            <a href="https://m.me/genieph" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-blue-600 hover:text-white transition text-blue-500 shadow-sm">
+                            <a href="https://m.me/genieph" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full genie-icon-button flex items-center justify-center">
                                 <MessageCircle size={18} />
                             </a>
                         </div>
 
                         {/* Ratings */}
-                        <div className="flex items-center gap-3 text-sm bg-white px-4 py-2 rounded-full shadow-sm border border-purple-100">
+                        <div className="flex items-center gap-3 text-sm bg-white/85 px-4 py-2 rounded-full shadow-sm border border-purple-100">
                             <span className="font-bold text-2xl text-gray-800">4.8</span>
                             <div className="flex text-yellow-400">
                                 <Star size={16} fill="currentColor" />
@@ -147,11 +147,11 @@ export const Footer = () => {
                             </div>
                             <div className="space-y-2 text-sm text-gray-600 mb-4">
                                 <div className="flex items-center gap-2">
-                                    <Mail size={15} className="text-purple-500 shrink-0" />
+                                    <Mail size={15} className="genie-icon shrink-0" />
                                     <span>support@genie.ph</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Phone size={15} className="text-pink-500 shrink-0" />
+                                    <Phone size={15} className="genie-icon shrink-0" />
                                     <span>+63 908 940 8747</span>
                                 </div>
                             </div>
@@ -159,7 +159,7 @@ export const Footer = () => {
                             <div className="flex flex-wrap items-center gap-3">
                                 <button 
                                     onClick={() => setShowDtiModal(true)}
-                                    className="px-3 py-1.5 bg-purple-50 rounded-md text-xs font-semibold text-purple-700 flex items-center gap-1.5 border border-purple-100 hover:bg-purple-100 transition-colors cursor-pointer" 
+                                    className="genie-btn-secondary px-3 py-1.5 rounded-md text-xs font-semibold cursor-pointer" 
                                     aria-label="View DTI Registration"
                                 >
                                     <ShieldCheck size={14} />
@@ -230,7 +230,7 @@ export const Footer = () => {
                         </p>
                         <button
                             onClick={scrollToTop}
-                            className="bg-purple-600 text-white p-2.5 rounded-xl hover:bg-purple-700 transition shadow-md"
+                            className="genie-btn-primary p-2.5 rounded-xl"
                             aria-label="Back to top"
                         >
                             <ChevronUp size={20} />

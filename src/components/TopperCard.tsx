@@ -41,7 +41,7 @@ export const TopperCard: React.FC<{
     marker?: string;
     expanded: boolean;
     onToggle: () => void;
-    updateItem: (updates: any) => void;
+    updateItem: (updates: Partial<MainTopperUI> | Partial<SupportElementUI>) => void;
     onImageReplace: (file: File) => void;
     itemPrice?: number;
     isAdmin?: boolean;
@@ -74,11 +74,12 @@ export const TopperCard: React.FC<{
     const isDoodle = item.original_type === 'icing_doodle';
     const isPaletteKnife = item.type === 'icing_palette_knife';
     const canChangeMultipleColors = isPaletteKnife && 'colors' in item && item.colors && item.colors.length > 0;
-    const canChangeColor = (isDoodle || COLORABLE_ITEM_TYPES.includes(item.type as any)) && !canChangeMultipleColors;
+    const canChangeColor = (isDoodle || COLORABLE_ITEM_TYPES.includes(item.type as MainTopperType | SupportElementType)) && !canChangeMultipleColors;
     const isReplaceableIcingFigure = (item.type === 'icing_doodle' || item.type === 'icing_palette_knife') && isHumanFigure;
     const isReplaceableGumpasteFigure = (item.type === 'edible_3d_complex' || item.type === 'edible_3d_ordinary' || item.type === 'edible_3d_support') && isHumanFigure;
 
     const materialLabel = isTopper ? topperTypeDisplayMap[item.type as MainTopperType] : supportTypeDisplayMap[item.type as SupportElementType];
+    const editableColors = canChangeMultipleColors && 'colors' in item ? item.colors : null;
 
     const handleImageReplace = async (file: File) => {
         setIsUploadingImage(true);
@@ -98,11 +99,11 @@ export const TopperCard: React.FC<{
     };
 
     return (
-        <div className="w-full bg-white rounded-lg border border-slate-200 overflow-hidden">
+        <div className="w-full bg-white/90 rounded-lg border border-purple-100 overflow-hidden shadow-sm">
             {/* Header - Collapsible */}
             <div
                 onClick={onToggle}
-                className="w-full flex items-center gap-3 p-2 text-left hover:bg-slate-50 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-3 p-2 text-left hover:bg-purple-50/70 transition-colors cursor-pointer"
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -142,7 +143,7 @@ export const TopperCard: React.FC<{
                             e.stopPropagation();
                             updateItem({ isEnabled: !item.isEnabled });
                         }}
-                        className={`relative inline-flex items-center h-5 w-9 transition-colors duration-200 ease-in-out rounded-full ${item.isEnabled ? 'bg-purple-600' : 'bg-slate-300'}`}
+                        className={`relative inline-flex items-center h-5 w-9 transition-colors duration-200 ease-in-out rounded-full ${item.isEnabled ? 'bg-purple-400' : 'bg-slate-300'}`}
                         aria-pressed={item.isEnabled}
                     >
                         <span className={`inline-block w-3.5 h-3.5 transform bg-white rounded-full transition-transform duration-200 ease-in-out ${item.isEnabled ? 'translate-x-4' : 'translate-x-1'}`} />
@@ -153,12 +154,12 @@ export const TopperCard: React.FC<{
 
             {/* Expanded Content - Customization Options */}
             {expanded && (
-                <div className="px-2 pb-2 space-y-3 border-t border-slate-100">
+                <div className="px-2 pb-2 space-y-3 border-t border-purple-100">
                     {/* Material Type Options */}
                     {hasMaterialOptions && (
                         <div>
                             <label className="block text-[10px] font-medium text-slate-600 mb-1.5">Material Type</label>
-                            <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-md">
+                            <div className="flex flex-wrap gap-1 bg-purple-50/70 p-1 rounded-md border border-purple-100">
                                 {isNumberTopper && (
                                     <>
                                         <button onClick={() => updateItem({ type: (item as MainTopperUI).original_type })} className={`flex-1 px-1.5 py-0.5 text-[10px] font-semibold rounded ${['edible_3d_complex', 'edible_3d_ordinary'].includes(item.type) ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Edible</button>
@@ -213,7 +214,7 @@ export const TopperCard: React.FC<{
                                 {isReplaceableIcingFigure ? 'Replace Icing Figure' : isReplaceableGumpasteFigure ? 'Replace Gumpaste Figure' : 'Replacement Image'}
                             </label>
                             <div className="flex items-center">
-                                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploadingImage} className="text-[10px] bg-slate-200 text-slate-700 font-semibold px-2 py-1 rounded-md hover:bg-slate-300 transition-colors flex items-center disabled:opacity-50 disabled:cursor-wait">
+                                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploadingImage} className="genie-btn-secondary text-[10px] font-semibold px-2 py-1 rounded-md disabled:opacity-50 disabled:cursor-wait">
                                     {isUploadingImage ? (
                                         <>
                                             <Loader2 className="w-3 h-3 mr-1 animate-spin" />
@@ -247,7 +248,7 @@ export const TopperCard: React.FC<{
                                 <div className="flex justify-between items-center mb-1.5">
                                     <label className="block text-[10px] font-medium text-slate-600">Color</label>
                                     {canRevert && (
-                                        <button onClick={() => updateItem({ color: originalColor })} className="flex items-center gap-1 text-[10px] font-semibold text-purple-600 hover:text-purple-800 p-1 rounded-md hover:bg-purple-50">
+                                        <button onClick={() => updateItem({ color: originalColor })} className="genie-btn-ghost text-[10px] font-semibold p-1 rounded-md">
                                             <ResetIcon className="w-3 h-3" />
                                             Revert
                                         </button>
@@ -259,9 +260,9 @@ export const TopperCard: React.FC<{
                     })()}
 
                     {/* Multiple Colors */}
-                    {canChangeMultipleColors && (
+                    {editableColors && (
                         <MultiColorEditor
-                            colors={(item as any).colors!}
+                            colors={editableColors}
                             onColorChange={(index, newHex) => handleColorArrayChange(index, newHex)}
                         />
                     )}

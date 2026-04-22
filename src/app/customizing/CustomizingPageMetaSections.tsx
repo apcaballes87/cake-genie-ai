@@ -21,22 +21,23 @@ interface CustomizingSupplementalContentProps {
     showClientFallback: boolean;
 }
 
-const getRecentSearchTitle = (recentSearchDesign?: RecentSearchDesignMeta) => {
-    const raw = recentSearchDesign?.seo_title?.replace(/\s*\|\s*Genie\.ph\s*$/i, '')
-        || recentSearchDesign?.keywords
-        || 'Custom Design';
-    // Ensure "Cake Design" is present — matches what Filipino users search in Google Images
-    if (/cake\s*design/i.test(raw)) return raw;
-    if (/cake\s*$/i.test(raw)) return `${raw} Design`;
-    return `${raw} Cake Design`;
-};
+export const cleanDisplayTitle = (title?: string | null) => (
+    title?.split('|')[0]?.trim() || ''
+);
+
+export const getRecentSearchDisplayTitle = (recentSearchDesign?: RecentSearchDesignMeta) => (
+    cleanDisplayTitle(recentSearchDesign?.seo_title)
+    || recentSearchDesign?.keywords?.trim()
+    || 'Custom Design'
+);
 
 export const CustomizingPageMetaHeader = React.memo(({
     product,
     merchant,
     recentSearchDesign,
 }: CustomizingPageMetaHeaderProps) => {
-    const recentSearchTitle = getRecentSearchTitle(recentSearchDesign);
+    const productTitle = cleanDisplayTitle(product?.title) || product?.title;
+    const recentSearchTitle = getRecentSearchDisplayTitle(recentSearchDesign);
     const showBreadcrumbs = Boolean((product && merchant) || (recentSearchDesign && recentSearchDesign.slug));
 
     if (!showBreadcrumbs && !product && !recentSearchDesign) {
@@ -46,23 +47,25 @@ export const CustomizingPageMetaHeader = React.memo(({
     return (
         <>
             {showBreadcrumbs && (
-                <nav className="w-full" aria-label="Breadcrumb">
-                    <ol className="flex items-center gap-1 text-xs text-slate-500 flex-wrap">
-                        <li><Link href="/" className="hover:text-purple-600 transition-colors">Home</Link></li>
-                        <li><span className="mx-1">/</span></li>
+                <nav className="w-full min-w-0" aria-label="Breadcrumb">
+                    <ol className="flex w-full min-w-0 flex-nowrap items-center gap-1 overflow-hidden whitespace-nowrap text-xs text-slate-500">
+                        <li className="shrink-0"><Link href="/" className="hover:text-purple-600 transition-colors">Home</Link></li>
+                        <li className="shrink-0"><span className="mx-1">/</span></li>
                         {product && merchant ? (
                             <>
-                                <li><Link href="/shop" className="hover:text-purple-600 transition-colors">Shop</Link></li>
-                                <li><span className="mx-1">/</span></li>
-                                <li><Link href={`/shop/${merchant.slug}`} className="hover:text-purple-600 transition-colors">{merchant.business_name}</Link></li>
-                                <li><span className="mx-1">/</span></li>
-                                <li className="text-slate-700 font-medium" aria-current="page">{product.title}</li>
+                                <li className="shrink-0"><Link href="/shop" className="hover:text-purple-600 transition-colors">Shop</Link></li>
+                                <li className="shrink-0"><span className="mx-1">/</span></li>
+                                <li className="min-w-0 max-w-[28vw] shrink truncate sm:max-w-xs md:max-w-sm">
+                                    <Link href={`/shop/${merchant.slug}`} className="block truncate hover:text-purple-600 transition-colors">{merchant.business_name}</Link>
+                                </li>
+                                <li className="shrink-0"><span className="mx-1">/</span></li>
+                                <li className="min-w-0 truncate text-slate-700 font-medium" aria-current="page">{productTitle}</li>
                             </>
                         ) : recentSearchDesign ? (
                             <>
-                                <li><Link href="/customizing" className="hover:text-purple-600 transition-colors">Customizing</Link></li>
-                                <li><span className="mx-1">/</span></li>
-                                <li className="text-slate-700 font-medium" aria-current="page">{recentSearchTitle}</li>
+                                <li className="shrink-0"><Link href="/customizing" className="hover:text-purple-600 transition-colors">Customizing</Link></li>
+                                <li className="shrink-0"><span className="mx-1">/</span></li>
+                                <li className="min-w-0 truncate text-slate-700 font-medium" aria-current="page">{recentSearchTitle}</li>
                             </>
                         ) : null}
                     </ol>
@@ -71,8 +74,8 @@ export const CustomizingPageMetaHeader = React.memo(({
 
             {(product || recentSearchDesign) && (
                 <div className="w-full">
-                    <h1 className="text-xl md:text-2xl font-bold text-slate-800 leading-tight">
-                        {product ? product.title : recentSearchTitle}
+                    <h1 className="text-xl md:text-2xl font-bold text-slate-800 leading-tight truncate whitespace-nowrap">
+                        {product ? productTitle : recentSearchTitle}
                     </h1>
                     {product?.category && (
                         <span className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">

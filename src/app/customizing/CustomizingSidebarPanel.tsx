@@ -27,10 +27,10 @@ export const CustomizingSidebarPanel = memo(function CustomizingSidebarPanel({
     return (
         <div className={className}>
             {showLoadingState ? (
-                <div className="bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200">
-                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-                        <div className="p-2 bg-purple-100 rounded-lg">
-                            <MagicSparkleIcon className="w-5 h-5 text-purple-600 animate-pulse" />
+                <div className="genie-card p-2 rounded-2xl">
+                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-purple-100">
+                        <div className="p-2 genie-icon-soft rounded-lg">
+                            <MagicSparkleIcon className="w-5 h-5 animate-pulse" />
                         </div>
                         <div>
                             <h2 className="text-lg font-bold text-slate-800">Analyzing Design...</h2>
@@ -48,7 +48,7 @@ export const CustomizingSidebarPanel = memo(function CustomizingSidebarPanel({
                     </div>
                 </div>
             ) : analysisError ? (
-                <div className="text-center p-6 bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-red-200 flex flex-col items-center justify-center gap-4">
+                <div className="text-center p-6 genie-card rounded-2xl border-red-200 flex flex-col items-center justify-center gap-4">
                     <div className="text-red-500 bg-red-50 p-3 rounded-full">
                         <ErrorIcon className="w-8 h-8" />
                     </div>
@@ -67,13 +67,13 @@ export const CustomizingSidebarPanel = memo(function CustomizingSidebarPanel({
                     <div className="flex flex-col gap-2 w-full mt-2">
                         <button 
                             onClick={onUploadAnother}
-                            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-xl transition-colors w-full"
+                            className="genie-btn-primary font-bold py-3 px-4 rounded-xl w-full"
                         >
                             Upload Another
                         </button>
                         <button 
                             onClick={onGoBackHome}
-                            className="bg-white hover:bg-slate-50 text-slate-700 font-bold py-3 px-4 rounded-xl border border-slate-200 transition-colors w-full"
+                            className="genie-btn-secondary font-bold py-3 px-4 rounded-xl w-full"
                         >
                             Go Back Home
                         </button>
@@ -87,7 +87,7 @@ export const CustomizingSidebarPanel = memo(function CustomizingSidebarPanel({
                     />
                 </>
             ) : (
-                <div className="text-center p-8 bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 text-slate-500">
+                <div className="text-center p-8 genie-card rounded-2xl text-slate-500">
                     <p>Upload an image to get started.</p>
                 </div>
             )}

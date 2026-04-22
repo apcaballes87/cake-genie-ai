@@ -32,7 +32,7 @@ export const MultiColorEditor: React.FC<MultiColorEditorProps> = ({ colors, onCo
               <button
                 type="button"
                 onClick={() => setEditingIndex(index)}
-                className="flex items-center gap-1 text-[10px] font-semibold text-purple-600 hover:text-purple-800 p-1 rounded-md hover:bg-purple-50"
+                className="genie-btn-ghost text-[10px] font-semibold p-1 rounded-md"
               >
                 <PencilIcon className="w-3 h-3" />
                 Edit

@@ -58,10 +58,10 @@ export const CustomizingEditorSheet = memo(function CustomizingEditorSheet({
 }: CustomizingEditorSheetProps) {
     const title = getEditorTitle(activeCustomization, activeTopperSection);
     // Base matches StickyAddToCartBar spacer height: 72px (no AI chat) or 114px (with AI chat)
-    const baseOffset = hideAiChat ? 80 : 130;
+    const baseOffset = 72;
     const bottomOffset = hideStickyBar
         ? 0
-        : baseOffset + (showAvailabilityOffset ? 38 : 0) + (showWarningOffset ? 38 : 0);
+        : baseOffset + (showAvailabilityOffset ? 32 : 0) + (showWarningOffset ? 32 : 0);
 
     const isOptionsSheet = activeCustomization === 'options';
     const isVisualSheet = activeCustomization === 'icing' || activeCustomization === 'messages' || activeCustomization === 'toppers' || activeCustomization === 'photos';
@@ -73,7 +73,7 @@ export const CustomizingEditorSheet = memo(function CustomizingEditorSheet({
             <button
                 onClick={onApplyOptions}
                 disabled={disableOptionsAction}
-                className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full genie-btn-primary font-bold py-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 <MagicSparkleIcon className="w-5 h-5" />
                 Apply Changes
@@ -84,7 +84,7 @@ export const CustomizingEditorSheet = memo(function CustomizingEditorSheet({
                 <button
                     onClick={onApplyPendingDesignChanges}
                     disabled={disableVisualAction}
-                    className="w-full bg-purple-600 text-purple-50 font-bold py-3 rounded-xl hover:shadow-lg hover:bg-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full genie-btn-primary font-bold py-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {isUpdatingDesign ? (
                         <>

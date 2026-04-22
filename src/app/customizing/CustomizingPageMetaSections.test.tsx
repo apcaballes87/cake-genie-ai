@@ -35,6 +35,31 @@ describe('CustomizingPageMetaSections', () => {
         expect(screen.getByText('Birthday')).toBeInTheDocument();
     });
 
+    it('cleans the Genie.ph suffix from product titles too', () => {
+        render(
+            <CustomizingPageMetaHeader
+                product={{
+                    product_id: 'product-1', merchant_id: 'merchant-1', p_hash: 'hash-1', title: 'Blue Ombre Wedding Cake With Succulents | Genie.ph',
+                    slug: 'blue-ombre-wedding-cake-with-succulents', short_description: null, long_description: null, image_url: null,
+                    alt_text: null, image_caption: null, meta_keywords: null, og_title: null, og_description: null,
+                    brand: null, sku: null, gtin: null, tags: ['wedding'], category: null, cake_type: null,
+                    custom_price: null, availability: 'in_stock', is_featured: false, is_active: true, sort_order: 0,
+                    created_at: '2025-01-01', updated_at: '2025-01-01',
+                }}
+                merchant={{
+                    merchant_id: 'merchant-1', user_id: null, business_name: 'Sweet Crumbs', slug: 'sweet-crumbs',
+                    description: null, cover_image_url: null, profile_image_url: null, address: null, city: null,
+                    latitude: null, longitude: null, phone: null, email: null, facebook_url: null,
+                    instagram_url: null, rating: 5, review_count: 10, is_verified: true, is_active: true,
+                    min_order_lead_days: 1, delivery_fee: 0, created_at: '2025-01-01', updated_at: '2025-01-01',
+                }}
+            />
+        );
+
+        expect(screen.getByRole('heading', { name: 'Blue Ombre Wedding Cake With Succulents' })).toBeInTheDocument();
+        expect(screen.queryByText('Blue Ombre Wedding Cake With Succulents | Genie.ph')).not.toBeInTheDocument();
+    });
+
     it('renders recent-search breadcrumb title and supplemental fallback content', () => {
         render(
             <>
@@ -67,6 +92,45 @@ describe('CustomizingPageMetaSections', () => {
         expect(screen.getByText('Related Tags')).toBeInTheDocument();
         expect(screen.getByText('pink')).toBeInTheDocument();
         expect(screen.getByText('minimalist')).toBeInTheDocument();
+    });
+
+    it('keeps recent-search breadcrumbs on one line and shows the clean stored title', () => {
+        render(
+            <CustomizingPageMetaHeader
+                recentSearchDesign={{
+                    slug: 'blue-ombre-wedding-cake-with-succulents',
+                    seo_title: 'Blue Ombre Wedding Cake With Succulents | Genie.ph',
+                    keywords: 'Blue Ombre Wedding Cake With Succulents',
+                }}
+            />
+        );
+
+        const breadcrumbList = screen.getByRole('list');
+        const currentPageCrumb = screen
+            .getAllByText('Blue Ombre Wedding Cake With Succulents')
+            .find((element) => element.getAttribute('aria-current') === 'page');
+
+        expect(breadcrumbList).toHaveClass('flex-nowrap', 'overflow-hidden', 'whitespace-nowrap');
+        expect(currentPageCrumb).toBeDefined();
+        expect(currentPageCrumb).toHaveClass('truncate');
+        expect(screen.getByRole('heading', { name: 'Blue Ombre Wedding Cake With Succulents' })).toBeInTheDocument();
+        expect(screen.queryByText('Blue Ombre Wedding Cake With Succulents Cake Design')).not.toBeInTheDocument();
+        expect(screen.queryByText('Blue Ombre Wedding Cake With Succulents | Genie.ph')).not.toBeInTheDocument();
+    });
+
+    it('removes descriptive pipe suffixes from recent-search display titles', () => {
+        render(
+            <CustomizingPageMetaHeader
+                recentSearchDesign={{
+                    slug: 'witches-dont-age-birthday-cake',
+                    seo_title: "Witches Don't Age Birthday Cake | Navy Blue Minimalist Design",
+                    keywords: "Witches Don't Age Birthday Cake",
+                }}
+            />
+        );
+
+        expect(screen.getByRole('heading', { name: "Witches Don't Age Birthday Cake" })).toBeInTheDocument();
+        expect(screen.queryByText("Witches Don't Age Birthday Cake | Navy Blue Minimalist Design")).not.toBeInTheDocument();
     });
 
     it('prefers the SEO content slot over the fallback block', () => {

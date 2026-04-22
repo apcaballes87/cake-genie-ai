@@ -61,7 +61,6 @@ export const CustomizingAiChatPanel = React.memo(({
     placeholder = "✨ Tell Genie your cake design wish...",
 }: CustomizingAiChatPanelProps) => (
     <div className={className}>
-        <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">AI Customization Chat</h3>
         <form onSubmit={(event) => { void onSubmit(event); }} className="relative" ref={containerRef}>
             {selectedAiPromptTemplate ? (
                 <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-12 shadow-sm">

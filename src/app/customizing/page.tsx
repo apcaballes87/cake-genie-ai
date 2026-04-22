@@ -118,7 +118,7 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
                         <Link
                             key={href}
                             href={href}
-                            className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/70 border border-slate-200 text-slate-600 hover:border-purple-400 hover:text-purple-700 transition-colors"
+                            className="genie-btn-secondary px-3 py-1.5 rounded-full text-xs font-medium"
                         >
                             {label}
                         </Link>

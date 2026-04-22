@@ -103,8 +103,8 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
             {/* Sheet */}
             <div
                 className={`
-                    relative w-full max-w-lg bg-white rounded-t-2xl shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] 
-                    flex flex-col max-h-[65vh] pointer-events-auto border-t border-slate-100
+                    relative w-full max-w-lg bg-white rounded-t-2xl shadow-[0_-14px_38px_-24px_rgba(88,28,135,0.6)] 
+                    flex flex-col max-h-[65vh] pointer-events-auto border-t border-purple-100
                     ${className}
                 `}
                 style={{
@@ -118,15 +118,15 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
                 <div className="touch-none">
                     {/* Drag Handle Area */}
                     <div className="w-full flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing">
-                        <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
+                    <div className="w-12 h-1.5 bg-purple-200 rounded-full" />
                     </div>
 
                     {/* Header */}
-                    <div className="flex items-center justify-between px-3 pb-2 border-b border-slate-100 bg-white sticky top-0 z-10">
+                    <div className="flex items-center justify-between px-3 pb-2 border-b border-purple-100 bg-white sticky top-0 z-10">
                         <h2 className="text-sm font-bold text-slate-800">{title}</h2>
                         <button
                             onClick={onClose}
-                            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                            className="p-1 genie-icon-button rounded-full transition-colors"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -143,7 +143,7 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
 
                 {/* Footer (Action Button) */}
                 {actionButton && (
-                    <div className="pt-2 px-2 pb-4 border-t border-slate-100 bg-white sticky bottom-0 z-10">
+                    <div className="pt-2 px-2 pb-4 border-t border-purple-100 bg-white sticky bottom-0 z-10">
                         {actionButton}
                     </div>
                 )}

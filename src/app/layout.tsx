@@ -174,7 +174,7 @@ export default function RootLayout({
 
   return (
     <html lang="en-PH" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100`} suppressHydrationWarning>
+      <body className={`${inter.className} min-h-screen genie-page-bg`} suppressHydrationWarning>
         <OrganizationSchema />
         <Providers>
           <ErrorBoundary>

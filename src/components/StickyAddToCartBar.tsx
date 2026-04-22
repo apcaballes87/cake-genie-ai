@@ -120,7 +120,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                     {isDiscountApplied ? (
                         <div className="flex flex-col relative">
                             {/* Floating Pill Above Price */}
-                            <div className="absolute bottom-[calc(100%+2px)] left-0 flex items-center gap-1 px-1.5 py-0.5 bg-green-50 text-green-700 rounded-full text-[8px] font-black border border-green-100 uppercase tracking-tighter shadow-sm animate-in fade-in slide-in-from-bottom-1 duration-300">
+                            <div className="absolute bottom-[calc(100%+2px)] left-3 flex items-center gap-1 px-1.5 py-0.5 bg-green-50 text-green-700 rounded-full text-[8px] font-black border border-green-100 uppercase tracking-tighter shadow-sm animate-in fade-in slide-in-from-bottom-1 duration-300">
                                 <span>DISCOUNT APPLIED</span>
                             </div>
                             <div className="flex items-center gap-1.5 leading-tight">
@@ -266,7 +266,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                             <button
                                 onClick={onAddToCartClick}
                                 disabled={isLoading || !!error || price === null || isAdding || isAnalyzing}
-                                className={`flex-1 min-w-0 h-12 bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md flex justify-center items-center gap-2 whitespace-nowrap`}
+                                className="flex-1 min-w-0 h-12 genie-btn-primary font-bold py-3 px-4 rounded-xl text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md whitespace-nowrap"
                             >
                                 {isAdding ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /> {!isCompact && 'Processing...'}</>

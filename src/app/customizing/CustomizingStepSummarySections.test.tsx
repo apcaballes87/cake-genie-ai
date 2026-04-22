@@ -78,23 +78,16 @@ const buildProps = (): React.ComponentProps<typeof CustomizingStepSummarySection
 });
 
 describe('CustomizingStepSummarySections', () => {
-    it('forwards step-summary interactions for specs, icing, and messages', () => {
+    it('forwards step-summary interactions for specs and messages', () => {
         const props = buildProps();
 
         render(<CustomizingStepSummarySections {...props} />);
 
         fireEvent.click(screen.getByRole('button', { name: /2 Tier/i }));
-        fireEvent.click(screen.getByRole('button', { name: /Top Border/i }));
         fireEvent.click(screen.getByText('Happy Birthday'));
         fireEvent.click(screen.getByRole('button', { name: 'Delete message' }));
 
         expect(props.setActiveCustomization).toHaveBeenCalledWith('options');
-        expect(props.setActiveCustomization).toHaveBeenCalledWith('icing');
-        expect(props.setSelectedItem).toHaveBeenCalledWith(expect.objectContaining({
-            id: 'icing-edit-borderTop',
-            itemCategory: 'icing',
-            cakeType: '2 Tier',
-        }));
         expect(props.setActiveCustomization).toHaveBeenCalledWith('messages');
         expect(props.setSelectedItem).toHaveBeenCalledWith(expect.objectContaining({
             id: 'message-1',
@@ -103,6 +96,16 @@ describe('CustomizingStepSummarySections', () => {
         }));
         expect(props.removeCakeMessage).toHaveBeenCalledWith('message-1');
         expect(screen.getByText('FRONT')).toBeInTheDocument();
+    });
+
+    it('does not mix icing thumbnails into the default cake options step', () => {
+        const props = buildProps();
+
+        render(<CustomizingStepSummarySections {...props} />);
+
+        expect(screen.queryByRole('button', { name: /Top Border/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Top Icing/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Body Icing/i })).not.toBeInTheDocument();
     });
 
     it('renders empty-message CTA and combined decoration summary in mobile layout', () => {

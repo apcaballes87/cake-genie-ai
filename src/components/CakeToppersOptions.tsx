@@ -79,7 +79,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
                     <button
                         type="button"
                         onClick={() => onSectionClick?.('main')}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-left"
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-purple-100 bg-white/90 hover:bg-purple-50/70 transition-colors text-left"
                     >
                         <div className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5">
                             <span className="shrink-0 font-semibold text-slate-700">
@@ -89,7 +89,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
                                 {buildSummary(mainToppers)}
                             </span>
                         </div>
-                        <ChevronDownIcon className="w-4 h-4 text-slate-400 -rotate-90 shrink-0" />
+                        <ChevronDownIcon className="w-4 h-4 genie-icon -rotate-90 shrink-0" />
                     </button>
                 )}
 
@@ -97,7 +97,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
                     <button
                         type="button"
                         onClick={() => onSectionClick?.('support')}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-left"
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-purple-100 bg-white/90 hover:bg-purple-50/70 transition-colors text-left"
                     >
                         <div className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5">
                             <span className="shrink-0 font-semibold text-slate-700">
@@ -107,7 +107,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
                                 {buildSummary(supportElements)}
                             </span>
                         </div>
-                        <ChevronDownIcon className="w-4 h-4 text-slate-400 -rotate-90 shrink-0" />
+                        <ChevronDownIcon className="w-4 h-4 genie-icon -rotate-90 shrink-0" />
                     </button>
                 )}
 
@@ -126,7 +126,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
                     {showDetailedSectionHeaders && (
                         <button
                             onClick={() => setIsMainExpanded(!isMainExpanded)}
-                            className="w-full flex items-center justify-between py-1.5 px-1 hover:bg-slate-50 rounded-lg transition-colors group"
+                            className="w-full flex items-center justify-between py-1.5 px-1 hover:bg-purple-50 rounded-lg transition-colors group"
                         >
                             <h3 className="text-xs font-semibold text-slate-700">
                                 Main Toppers ({mainTopperCount})
@@ -163,7 +163,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
                     {showDetailedSectionHeaders && (
                         <button
                             onClick={() => setIsSupportExpanded(!isSupportExpanded)}
-                            className="w-full flex items-center justify-between py-1.5 px-1 hover:bg-slate-50 rounded-lg transition-colors group"
+                            className="w-full flex items-center justify-between py-1.5 px-1 hover:bg-purple-50 rounded-lg transition-colors group"
                         >
                             <h3 className="text-xs font-semibold text-slate-700">
                                 Support Elements ({supportElementCount})

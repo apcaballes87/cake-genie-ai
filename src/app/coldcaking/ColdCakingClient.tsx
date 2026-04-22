@@ -413,35 +413,35 @@ const ColdCakingClient: React.FC = () => {
             <nav className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm' : 'bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
                     {/* Mobile Header */}
-                    <div className="md:hidden relative w-full mb-4" style={{ height: '71px' }}>
+                    <div className="md:hidden relative w-full mb-4" style={{ height: '64px' }}>
                         {/* Layer 1: Not-scrolled — [menu | logo | icons] */}
                         <div
-                            className="absolute inset-0 grid grid-cols-[1fr_auto_1fr] items-center pt-[25px] transition-opacity duration-300"
+                            className="absolute inset-0 grid grid-cols-[1fr_auto_1fr] items-center pt-[22px] transition-opacity duration-300"
                             style={{ opacity: showCompactHeader ? 0 : 1, pointerEvents: showCompactHeader ? 'none' : 'auto' }}
                         >
                             <div className="flex items-center">
                                 <button
                                     onClick={() => setIsMenuOpen(true)}
-                                    className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                    className="p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                     aria-label="Open menu"
                                 >
                                     <Menu size={24} />
                                 </button>
                             </div>
                             <Link href="/">
-                                <img src={COMMON_ASSETS.logo} alt="Genie Logo" width={130} height={46} className="h-[46px] w-auto object-contain" />
+                                <img src={COMMON_ASSETS.logo} alt="Genie Logo" width={117} height={41} className="h-[41px] w-auto object-contain" />
                             </Link>
                             <div className="flex items-center gap-1 justify-end">
                                 <button
                                     onClick={() => window.scrollTo({ top: scrollThreshold + 10, behavior: 'smooth' })}
-                                    className="p-2 text-slate-600 hover:text-purple-700 transition-all shrink-0"
+                                    className="p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-all shrink-0"
                                     aria-label="Search"
                                 >
                                     <Search size={24} />
                                 </button>
                                 <button
                                     onClick={() => router.push('/cart')}
-                                    className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                    className="relative p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                     aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
                                 >
                                     <ShoppingBag size={24} />
@@ -456,7 +456,7 @@ const ColdCakingClient: React.FC = () => {
 
                         {/* Layer 2: Scrolled — [search bar | cart] */}
                         <div
-                            className="absolute inset-0 flex items-center gap-2 pt-[25px] transition-opacity duration-300"
+                            className="absolute inset-0 flex items-center gap-2 pt-[22px] transition-opacity duration-300"
                             style={{ opacity: showCompactHeader ? 1 : 0, pointerEvents: showCompactHeader ? 'auto' : 'none' }}
                         >
                             {showCompactHeader ? (
@@ -467,12 +467,12 @@ const ColdCakingClient: React.FC = () => {
                                     value={searchQuery}
                                     onChange={setSearchQuery}
                                     className="flex-1 min-w-0"
-                                    inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                                    inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
                                 />
                             ) : <div className="flex-1 min-w-0" aria-hidden="true" />}
                             <button
                                 onClick={() => router.push('/cart')}
-                                className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                className="relative p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                 aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
                             >
                                 <ShoppingBag size={24} />
@@ -486,18 +486,18 @@ const ColdCakingClient: React.FC = () => {
                     </div>
 
                     {/* Desktop Header: Menu + Logo + Search (left) | Nav + Icons (right) */}
-                    <div className="hidden md:flex w-full items-center gap-6 py-[12.5px]">
+                    <div className="hidden md:flex w-full items-center gap-6 py-[11px]">
                         {/* Left: Menu + Logo + Search Bar */}
                         <div className="flex items-center gap-4 flex-1 min-w-0">
                             <button
                                 onClick={() => setIsMenuOpen(true)}
-                                className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                className="p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                 aria-label="Open menu"
                             >
                                 <Menu size={24} />
                             </button>
                             <Link href="/" className="shrink-0">
-                                <img src={COMMON_ASSETS.logo} alt="Genie Logo" width={150} height={48} className="h-10 w-auto object-contain" />
+                                <img src={COMMON_ASSETS.logo} alt="Genie Logo" width={135} height={43} className="h-[36px] w-auto object-contain" />
                             </Link>
                             <SearchAutocomplete
                                 onSearch={handleSearch}
@@ -506,7 +506,7 @@ const ColdCakingClient: React.FC = () => {
                                 value={searchQuery}
                                 onChange={setSearchQuery}
                                 className="flex-1 max-w-sm ml-4"
-                                inputClassName="w-full pl-5 pr-12 py-2.5 text-sm bg-white border-slate-200 border rounded-full shadow-sm focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                                inputClassName="w-full pl-5 pr-12 py-2.5 text-sm bg-white border-purple-100 border rounded-full shadow-sm focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
                             />
                         </div>
 
@@ -534,14 +534,14 @@ const ColdCakingClient: React.FC = () => {
                                         router.push('/login');
                                     }
                                 }}
-                                className="p-1.5 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                className="p-1.5 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                 aria-label="Account"
                             >
                                 <User size={22} />
                             </button>
                             <button
                                 onClick={() => router.push('/cart')}
-                                className="relative p-1.5 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                className="relative p-1.5 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                 aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
                             >
                                 <ShoppingBag size={22} />

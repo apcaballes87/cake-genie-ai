@@ -17,7 +17,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
 }) => {
   return (
     <div className="min-h-[400px] flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
+      <div className="genie-card rounded-xl p-8 max-w-md w-full text-center">
         <ErrorIcon className="w-16 h-16 text-red-500 mx-auto mb-4" />
         <h3 className="text-xl font-bold text-gray-800 mb-2">{title}</h3>
         <p className="text-gray-600 mb-4">{message}</p>
@@ -36,7 +36,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
         {resetError && (
           <button
             onClick={resetError}
-            className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-full font-semibold hover:shadow-lg transition-all"
+            className="genie-btn-primary px-6 py-2 rounded-full font-semibold"
           >
             Try Again
           </button>

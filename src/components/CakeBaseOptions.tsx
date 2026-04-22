@@ -102,9 +102,9 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                 data-caketype={type}
                                 type="button"
                                 onClick={() => onCakeInfoChange({ type })}
-                                className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2`}
+                                className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg genie-focus`}
                             >
-                                <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.type === type ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
+                                <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.type === type ? 'genie-control-selected' : 'border-purple-100 bg-white group-hover:border-purple-400'}`}>
                                     <LazyImage
                                         src={CAKE_TYPE_THUMBNAILS[type]}
                                         alt={cakeTypeDisplayMap[type]}
@@ -123,7 +123,7 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                 <div>
                     <label className={`block ${labelSize} font-medium text-slate-700 ${labelMargin}`}>Size (Diameter)</label>
                     {basePriceOptions.length === 1 ? (
-                        <div className="p-3 bg-purple-50 border-2 border-purple-200 rounded-lg flex items-center justify-between">
+                        <div className="p-3 genie-control-selected rounded-lg flex items-center justify-between">
                             <span className="text-sm font-semibold text-purple-800">{basePriceOptions[0].size}</span>
                             {!hidePrices && <span className="text-sm font-bold text-purple-800">₱{basePriceOptions[0].price.toLocaleString()}</span>}
                         </div>
@@ -136,9 +136,9 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                         data-cakesize={option.size}
                                         type="button"
                                         onClick={() => onCakeInfoChange({ size: option.size })}
-                                        className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2`}
+                                        className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg genie-focus`}
                                     >
-                                        <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.size === option.size ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
+                                        <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.size === option.size ? 'genie-control-selected' : 'border-purple-100 bg-white group-hover:border-purple-400'}`}>
                                             <LazyImage
                                                 src={CAKE_SIZE_THUMBNAILS[option.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
                                                 alt={option.size}
@@ -199,9 +199,9 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                 data-cakethickness={thickness}
                                 type="button"
                                 onClick={() => onCakeInfoChange({ thickness })}
-                                className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2`}
+                                className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg genie-focus`}
                             >
-                                <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.thickness === thickness ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
+                                <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.thickness === thickness ? 'genie-control-selected' : 'border-purple-100 bg-white group-hover:border-purple-400'}`}>
                                     <LazyImage
                                         src={CAKE_THICKNESS_THUMBNAILS[thickness]}
                                         alt={`${thickness} height`}

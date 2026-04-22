@@ -41,8 +41,10 @@ import {
 } from './CustomizingDiscoverySections';
 import { CustomizingPostAnalysisContent } from './CustomizingPostAnalysisContent';
 import {
+    cleanDisplayTitle,
     CustomizingPageMetaHeader,
     CustomizingSupplementalContent,
+    getRecentSearchDisplayTitle,
 } from './CustomizingPageMetaSections';
 import { CustomizingEditorSheet } from './CustomizingEditorSheet';
 import { CustomizingHeroPanel } from './CustomizingHeroPanel';
@@ -647,6 +649,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             tags: recentSearchDesign.tags ?? [],
         });
     }, [recentSearchDesign]);
+
+    const pageDisplayTitle = useMemo(() => {
+        if (product?.title) return cleanDisplayTitle(product.title) || product.title;
+        if (recentSearchDesign) return getRecentSearchDisplayTitle(recentSearchDesign);
+        return cleanDisplayTitle(seoMetadata?.seo_title) || 'Customize Your Cake Design';
+    }, [product?.title, recentSearchDesign, seoMetadata?.seo_title]);
 
     // --- Derived State ---
     const isLoading = useMemo(() => isImageManagementLoading || isUpdatingDesign, [isImageManagementLoading, isUpdatingDesign]);
@@ -2756,38 +2764,53 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setActiveTab('customized');
     };
 
+    const [isTopSearchBarScrolled, setIsTopSearchBarScrolled] = useState(false);
+
+    useEffect(() => {
+        const updateTopSearchBarState = () => {
+            setIsTopSearchBarScrolled(window.scrollY > 12);
+        };
+
+        updateTopSearchBarState();
+        window.addEventListener('scroll', updateTopSearchBarState, { passive: true });
+
+        return () => window.removeEventListener('scroll', updateTopSearchBarState);
+    }, []);
+
     const showStickyBar = finalPrice !== null || !!basePriceError || isAnalyzing || !!warningMessage || isSafetyFallback || hasPendingVisualChanges || isUpdatingDesign;
 
     return (
         <>
-            <h1 className="sr-only">{seoMetadata?.seo_title || 'Customize Your Cake Design - Genie.ph'}</h1>
+            <h1 className="sr-only">{pageDisplayTitle}</h1>
             {/* Same-day cutoff countdown — live urgency signal */}
-            <div className="w-full bg-purple-600 py-[4.5px] flex justify-center items-center">
+            <div className="w-full bg-purple-400 py-[4.5px] flex justify-center items-center">
                 <SameDayCutoffBanner />
             </div>
-            <div className="w-full max-w-7xl mx-auto px-4">
-                <div className="w-full flex items-center gap-2 md:gap-4 mb-4 pt-6">
-                    <button onClick={onClose} className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label="Go back">
-                        <BackIcon />
-                    </button>
-                    <div className="relative grow">
-                        <SearchAutocomplete
-                            value={searchInput}
-                            onChange={setSearchInput}
-                            onSearch={onSearch}
-                            showUploadButton={false}
-                            placeholder="Search for other designs..."
-                            inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
-                        />
+            <div className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${isTopSearchBarScrolled ? 'border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg' : 'border-transparent bg-transparent'}`}>
+                <div className="w-full max-w-7xl mx-auto px-4">
+                    <div className="w-full flex items-center gap-2 md:gap-4 py-[11px] md:py-[14px]">
+                        <button onClick={onClose} className="p-2 genie-icon-button rounded-full shrink-0" aria-label="Go back">
+                            <BackIcon />
+                        </button>
+                        <div className="relative grow">
+                            <SearchAutocomplete
+                                value={searchInput}
+                                onChange={setSearchInput}
+                                onSearch={onSearch}
+                                showUploadButton={false}
+                                placeholder="Search for other designs..."
+                                inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                            />
+                        </div>
+                        <button onClick={() => setAppState('cart')} className="relative p-2 genie-icon-button rounded-full shrink-0" aria-label={`View cart with ${itemCount} items`}>
+                            <ShoppingBag size={24} />
+                            {itemCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
+                                    {itemCount}
+                                </span>
+                            )}
+                        </button>
                     </div>
-                    <button onClick={() => setAppState('cart')} className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label={`View cart with ${itemCount} items`}>
-                        <ShoppingBag size={24} />
-                        {itemCount > 0 && (
-                            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
-                                {itemCount}
-                            </span>
-                        )}
-                    </button>
                 </div>
             </div>
 
@@ -2823,10 +2846,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 recentSearchDesign?.original_image_url,
                             )}
                             fallbackImageAlt={product?.alt_text || recentSearchRichAlt || recentSearchDesign?.alt_text || product?.title || recentSearchDesign?.keywords || 'Custom Cake Design - Cebu Philippines'}
-                            fallbackImageTitle={product?.title || recentSearchDesign?.seo_title || recentSearchRichAlt || recentSearchDesign?.keywords || 'Cake Design'}
+                            fallbackImageTitle={pageDisplayTitle || recentSearchRichAlt || 'Cake Design'}
                             initialCaption={initialCaption}
                             heroImageAlt={product?.alt_text || (product ? `${product.title} - Custom cake${merchant ? ` from ${merchant.business_name}` : ''}` : (activeTab === 'customized' && editedImage ? 'Customized Cake Design - Genie.ph' : (recentSearchRichAlt || recentSearchDesign?.alt_text || recentSearchDesign?.keywords || 'Custom Cake Design - Browse Birthday, Wedding & Character Cakes in Cebu')))}
-                            heroImageTitle={product?.title || recentSearchDesign?.seo_title || recentSearchRichAlt || recentSearchDesign?.keywords || (activeTab === 'customized' && editedImage ? 'Edited Cake' : 'Original Cake')}
+                            heroImageTitle={pageDisplayTitle || recentSearchRichAlt || (activeTab === 'customized' && editedImage ? 'Edited Cake' : 'Original Cake')}
                             showSaveDesignButton={Boolean(originalImagePreview && analysisResult)}
                             isCurrentDesignSaved={isDesignSaved(analysisId || '')}
                             canUndo={canUndo}
@@ -2906,7 +2929,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     }}
                                 />
                             ) : analysisError ? (
-                                <div className="text-center p-6 bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-red-200 flex flex-col items-center justify-center gap-4 mt-2">
+                                <div className="text-center p-6 genie-card rounded-2xl border-red-200 flex flex-col items-center justify-center gap-4 mt-2">
                                     <div className="text-red-500 bg-red-50 p-3 rounded-full">
                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M12 8V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M12 16H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                                     </div>
@@ -2925,13 +2948,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     <div className="flex flex-col gap-2 w-full mt-2">
                                         <button
                                             onClick={handleUploadAnother}
-                                            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-xl transition-colors w-full"
+                                            className="genie-btn-primary font-bold py-3 px-4 rounded-xl w-full"
                                         >
                                             Upload Another
                                         </button>
                                         <button
                                             onClick={() => router.push('/')}
-                                            className="bg-white hover:bg-slate-50 text-slate-700 font-bold py-3 px-4 rounded-xl border border-slate-200 transition-colors w-full"
+                                            className="genie-btn-secondary font-bold py-3 px-4 rounded-xl w-full"
                                         >
                                             Go Back Home
                                         </button>

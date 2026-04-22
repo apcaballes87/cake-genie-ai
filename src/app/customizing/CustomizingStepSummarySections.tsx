@@ -211,8 +211,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
         ? 'w-full hidden md:flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden gap-2 pb-6 md:pb-4 scrollbar-hide snap-x md:snap-none relative z-60'
         : 'w-full mt-0 flex flex-col gap-2 pb-4 md:hidden';
     const cardClassName = isDesktop
-        ? 'shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200'
-        : 'w-full min-w-0 bg-white/70 backdrop-blur-lg p-2 rounded-2xl shadow-lg border border-slate-200';
+        ? 'shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start genie-card p-2 rounded-2xl'
+        : 'w-full min-w-0 genie-card p-2 rounded-2xl';
     const itemsClassName = isDesktop ? 'flex gap-[7px] pt-1 pb-1 w-max md:w-full flex-wrap' : 'flex gap-[7px] pt-1 pb-1 w-full flex-wrap';
     const stepOneItemsViewportClassName = 'w-full overflow-x-auto overflow-y-hidden scrollbar-hide';
     const stepOneItemsClassName = 'flex gap-[7px] pt-1 pb-2 w-max min-w-max flex-nowrap snap-x snap-mandatory';
@@ -242,7 +242,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                 }}
                 className="group flex flex-col items-center gap-1 min-w-[60px]"
             >
-                <div className={`w-14 h-14 rounded-full border border-slate-200 overflow-hidden relative group-hover:border-purple-500 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${isSelected ? 'ring-2 ring-purple-500 bg-purple-50' : isEnabled ? 'ring-2 ring-purple-500' : ''}`}>
+                <div className={`w-14 h-14 rounded-full border border-purple-100 overflow-hidden relative group-hover:border-purple-400 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${isSelected ? 'genie-control-selected' : isEnabled ? 'ring-2 ring-purple-400' : ''}`}>
                     <LazyImage
                         src={getIcingImage(icingDesign, item.imageType, item.isTopSpecific)}
                         alt={item.alt}
@@ -265,7 +265,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                     <div className={stepOneItemsViewportClassName}>
                         <div className={stepOneItemsClassName}>
                             <button onClick={() => setActiveCustomization('options')} className="group flex flex-col items-center gap-1 min-w-[60px]">
-                                <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
+                                <div className={`w-14 h-14 rounded-xl border border-purple-100 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'genie-control-selected' : ''}`}>
                                     <LazyImage src={CAKE_TYPE_THUMBNAILS[cakeInfo.type]} alt={cakeInfo.type + ' Cake Design'} fill sizes="56px" imageClassName="object-contain" />
                                     <div className="absolute inset-x-0 top-0 pt-[11px] text-black text-[9px] font-bold text-center leading-tight">
                                         {cakeInfo.type}
@@ -275,7 +275,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             </button>
 
                             <button onClick={() => setActiveCustomization('options')} className="group flex flex-col items-center gap-1 min-w-[60px]">
-                                <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
+                                <div className={`w-14 h-14 rounded-xl border border-purple-100 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'genie-control-selected' : ''}`}>
                                     <LazyImage src={CAKE_SIZE_THUMBNAILS[cakeInfo.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]} alt={cakeInfo.size + ' Custom Cake'} fill sizes="56px" imageClassName="object-contain" />
                                     <div className="absolute inset-x-0 top-0 pt-[11px] text-black text-[9px] font-bold text-center leading-tight">{renderCakeSizeOverlay(cakeInfo.size)}</div>
                                 </div>
@@ -283,7 +283,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             </button>
 
                             <button onClick={() => setActiveCustomization('options')} className="group flex flex-col items-center gap-1 min-w-[60px]">
-                                <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
+                                <div className={`w-14 h-14 rounded-xl border border-purple-100 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'genie-control-selected' : ''}`}>
                                     <LazyImage src={CAKE_THICKNESS_THUMBNAILS[cakeInfo.thickness]} alt={cakeInfo.thickness + ' Thick Cake'} fill sizes="56px" imageClassName="object-contain" />
                                 </div>
                                 <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">Height</span>
@@ -291,7 +291,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
                             {cakeInfo.flavors.map((flavor, index) => (
                                 <button key={`${flavor}-${index}`} onClick={() => setActiveCustomization('flavor')} className="group flex flex-col items-center gap-1 min-w-[60px]">
-                                    <div className={`w-14 h-14 rounded-xl border border-slate-200 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'flavor' ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}>
+                                    <div className={`w-14 h-14 rounded-xl border border-purple-100 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'flavor' ? 'genie-control-selected' : ''}`}>
                                         <LazyImage src={FLAVOR_THUMBNAILS[flavor]} alt={flavor + ' Design'} fill sizes="56px" imageClassName="object-contain" />
                                         <div className="absolute inset-x-0 top-0 pt-[11px] text-black text-[9px] font-bold text-center leading-tight">
                                             {flavor.replace(/\s+Cake$/i, '')}
@@ -300,7 +300,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                     <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">Flavor</span>
                                 </button>
                             ))}
-                            {!separateIcingStep && icingSummaryItems}
                         </div>
                     </div>
 
@@ -314,13 +313,13 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         setShowIcingChoice(false);
                                         setActiveCustomization('options');
                                     }}
-                                    className="px-4 py-1.5 rounded-full bg-purple-600 text-white text-[11px] font-bold hover:bg-purple-700 transition-colors shadow-sm"
+                                    className="genie-btn-primary px-4 py-1.5 rounded-full text-[11px] font-bold"
                                 >
                                     Yes
                                 </button>
                                 <button
                                     onClick={() => setShowIcingChoice(false)}
-                                    className="px-4 py-1.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-bold hover:bg-slate-200 transition-colors border border-slate-200"
+                                    className="genie-btn-secondary px-4 py-1.5 rounded-full text-[11px] font-bold"
                                 >
                                     No
                                 </button>
@@ -380,7 +379,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         setSelectedItem(null);
                                         addCakeMessage?.(defaultMessagePosition);
                                     }}
-                                    className="text-[10px] font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2 px-5 rounded-full shadow-sm border border-purple-100 flex items-center gap-1.5"
+                                    className="genie-btn-secondary text-[10px] font-bold py-2 px-5 rounded-full"
                                 >
                                     <span className="text-base leading-none">+</span> Add message
                                 </button>
@@ -389,7 +388,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                     ) : (
                         <div className="flex justify-center py-2">
                             <button
-                                className="text-[10px] font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2 px-5 rounded-full shadow-sm border border-purple-100 flex items-center gap-1.5"
+                                className="genie-btn-secondary text-[10px] font-bold py-2 px-5 rounded-full"
                                 onClick={() => {
                                     setActiveCustomization('messages');
                                     setSelectedItem(null);
@@ -419,7 +418,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         } as ClusteredMarker);
                                         openTopperSheet('classification' in item ? 'main' : 'support');
                                     }}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-left"
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-purple-100 bg-white/90 hover:bg-purple-50/70 transition-colors text-left"
                                 >
                                     <div className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5">
                                         <span className="shrink-0 font-semibold text-slate-700">
@@ -443,7 +442,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                             setSelectedItem(null);
                                             openTopperSheet();
                                         }}
-                                        className="text-[10px] font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 transition-all py-2 px-5 rounded-full shadow-sm border border-purple-100 flex items-center gap-1.5"
+                                        className="genie-btn-secondary text-[10px] font-bold py-2 px-5 rounded-full"
                                     >
                                         Show more
                                     </button>
@@ -451,7 +450,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             )}
                         </div>
                     ) : (
-                        <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-left">
+                        <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-purple-100 bg-white/90 text-left">
                             <div className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5">
                                 <span className="shrink-0 font-semibold text-slate-700">
                                     Decorations (0):
@@ -476,7 +475,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
             {cakeInfo && !isAnalyzing && !isRejectionError && aiChatNode && (
                 <div className={cardClassName}>
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {topperStepNumber + 1}: Change Icing Colors with AI</h3>
+
                     <div className="mt-1">
                         {aiChatNode}
                     </div>

@@ -29,6 +29,8 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
     };
 
     const activeTab = getActiveTab();
+    const navItemClass = (tab: string) =>
+        `flex flex-col items-center gap-1 transition-colors ${activeTab === tab ? 'text-purple-600 genie-icon' : 'text-gray-300 hover:text-purple-500'}`;
 
     // Show cloud indicator 2 seconds after component mounts
     useEffect(() => {
@@ -55,10 +57,10 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
 
     return (
         <>
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-lg border-t border-gray-100 py-3 px-6 flex justify-around items-center text-gray-300 z-50 pb-safe">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-lg border-t border-purple-100 py-3 px-6 flex justify-around items-center text-gray-300 z-50 pb-safe shadow-[0_-10px_30px_-24px_rgba(88,28,135,0.55)]">
                 <button
                     onClick={() => router.push('/')}
-                    className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'home' ? 'text-purple-600' : 'hover:text-gray-500'}`}
+                    className={navItemClass('home')}
                 >
                     <Home size={22} strokeWidth={activeTab === 'home' ? 2.5 : 2} />
                     <span className="text-[9px] font-bold">Home</span>
@@ -66,7 +68,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
 
                 <button
                     onClick={() => router.push('/customizing')}
-                    className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'customize' ? 'text-purple-600' : 'hover:text-gray-500'}`}
+                    className={navItemClass('customize')}
                 >
                     <Cake size={22} strokeWidth={activeTab === 'customize' ? 2.5 : 2} />
                     <span className="text-[9px] font-bold">Customize</span>
@@ -74,7 +76,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
 
                 <button
                     onClick={handleUploadClick}
-                    className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'getprice' ? 'text-purple-600' : 'hover:text-gray-500'}`}
+                    className={navItemClass('getprice')}
                 >
                     <ImagePlus size={22} strokeWidth={activeTab === 'getprice' ? 2.5 : 2} />
                     <span className="text-[9px] font-bold">Get Price</span>
@@ -82,23 +84,23 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
 
                 <button
                     onClick={handleChatClick}
-                    className={`flex flex-col items-center gap-1 transition-colors relative ${activeTab === 'chat' ? 'text-purple-600' : 'hover:text-gray-500'}`}
+                    className={`${navItemClass('chat')} relative`}
                 >
                     {showCloudIndicator && (
                         <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2" style={{ animation: 'fadeInFast 0.3s ease-out' }}>
-                            <div className="relative bg-gradient-to-br from-purple-100 to-purple-50 border border-purple-200 rounded-lg px-2 py-1 shadow-md whitespace-nowrap">
-                                <p className="text-[8px] font-medium text-purple-700">Hi! If you need help we're here</p>
+                            <div className="relative bg-gradient-to-br from-purple-100 to-pink-50 border border-purple-200 rounded-lg px-2 py-1 shadow-md whitespace-nowrap">
+                                <p className="text-[8px] font-medium text-purple-700">Hi! If you need help we&apos;re here</p>
                                 <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-[6px] border-x-transparent border-t-[6px] border-t-purple-100"></div>
                             </div>
                         </div>
                     )}
-                    <MessageCircle className={`w-[22px] h-[22px] ${activeTab === 'chat' ? 'text-purple-600' : 'text-gray-300'}`} />
+                    <MessageCircle className={`w-[22px] h-[22px] ${activeTab === 'chat' ? 'genie-icon' : 'text-gray-300'}`} />
                     <span className="text-[9px] font-bold">Chat</span>
                 </button>
 
                 <button
                     onClick={() => router.push(isAuthenticated && !user?.is_anonymous ? '/account' : '/login')}
-                    className={`flex flex-col items-center gap-1 transition-colors ${activeTab === 'profile' ? 'text-purple-600' : 'hover:text-gray-500'}`}
+                    className={navItemClass('profile')}
                 >
                     <User size={22} strokeWidth={activeTab === 'profile' ? 2.5 : 2} />
                     <span className="text-[9px] font-bold">Profile</span>
@@ -119,4 +121,3 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
 };
 
 export default MobileBottomNav;
-
