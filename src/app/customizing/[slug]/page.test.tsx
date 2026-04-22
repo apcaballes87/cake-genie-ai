@@ -67,10 +67,10 @@ describe('RecentSearchPage', () => {
     const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'pink-minimalist-light-pink-bento-cake-f707' }) });
     const { container } = render(page);
     const staticMarkup = renderToStaticMarkup(page);
-    const topLevelChildren = Children.toArray((page as ReactElement).props.children);
+    const topLevelChildren = Children.toArray((page as ReactElement<{ children?: ReactNode }>).props.children);
 
     const hasDirectPreloadLink = topLevelChildren.some(
-      (child) => isValidElement(child) && child.type === 'link' && child.props.rel === 'preload',
+      (child) => isValidElement<{ rel?: string }>(child) && child.type === 'link' && child.props.rel === 'preload',
     );
 
     expect(screen.getByTestId('customizing-client')).toBeInTheDocument();
@@ -84,6 +84,44 @@ describe('RecentSearchPage', () => {
     expect(hasDirectPreloadLink).toBe(true);
     // Visible SSR <img> tag for Googlebot + hidden SSR fallback both reference the image
     expect(staticMarkup).toContain('src="https://example.com/pink-bento-cake.webp"');
+  });
+
+  it('prefers the studio-edited image for the customizing hero when it is not blank', async () => {
+    const design = {
+      slug: 'studio-edited-cake',
+      keywords: 'Studio Edited Cake',
+      seo_title: 'Studio Edited Cake | Genie.ph',
+      seo_description: 'Studio edited cake design.',
+      alt_text: 'Studio edited cake',
+      original_image_url: 'https://example.com/original-cake.webp',
+      studio_edited_image_url: ' https://example.com/studio-edited-cake.webp ',
+      price: 1299,
+      tags: ['studio'],
+      analysis_json: {
+        cakeType: 'custom',
+        icing_design: {},
+        main_toppers: [],
+        support_elements: [],
+        cake_messages: [],
+      },
+    };
+
+    vi.mocked(createClient).mockResolvedValueOnce({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            single: () => Promise.resolve({ data: design }),
+          }),
+        }),
+      }),
+    } as never);
+
+    const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'studio-edited-cake' }) });
+    const staticMarkup = renderToStaticMarkup(page);
+
+    expect(staticMarkup).toContain('src="https://example.com/studio-edited-cake.webp"');
+    expect(staticMarkup).toContain('href="https://example.com/studio-edited-cake.webp"');
+    expect(staticMarkup).not.toContain('https://example.com/original-cake.webp');
   });
 
   it('still renders when SEO-side data fetches fail independently', async () => {

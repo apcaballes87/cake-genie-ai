@@ -627,13 +627,27 @@ export async function cacheAnalysisResult(
   }
 }
 
+const firstNonBlankImageUrl = (...urls: unknown[]) => {
+  for (const url of urls) {
+    if (typeof url === 'string' && url.trim()) {
+      return url.trim();
+    }
+  }
+
+  return null;
+};
+
 /**
- * Helper to fall back to studio_edited_image_url if present.
+ * Helper to prefer studio-edited images when present, with original image as backup.
  * Modifies the object in place and returns it.
  */
 export const applyImageFallback = (item: any) => {
-  if (item && item.studio_edited_image_url) {
-    item.original_image_url = item.studio_edited_image_url;
+  if (item) {
+    item.original_image_url = firstNonBlankImageUrl(
+      item.studio_edited_image_url,
+      item.studio_edit_image_url,
+      item.original_image_url,
+    );
   }
   return item;
 };

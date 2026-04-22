@@ -29,7 +29,7 @@ const FAQ_ITEMS: FAQItem[] = [
                         <div className="flex items-center gap-2 mb-1">
                             <h4 className="font-bold text-emerald-900 text-sm">Rush Order</h4>
                             <span className="px-2 py-0.5 bg-white text-emerald-700 text-[10px] font-bold uppercase tracking-wider rounded-full border border-emerald-200">
-                                30 MINS - 1 HR
+                                60 MINS
                             </span>
                         </div>
                         <p className="text-emerald-800 text-xs leading-relaxed">

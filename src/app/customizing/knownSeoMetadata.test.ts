@@ -52,4 +52,28 @@ describe('buildKnownSeoMetadata', () => {
       availability: null,
     });
   });
+
+  it('uses the studio-edited recent-search image before falling back to the original image', () => {
+    expect(buildKnownSeoMetadata(undefined, {
+      seo_title: 'Studio Edited Cake',
+      seo_description: 'Known SEO description from cached design.',
+      keywords: 'studio edited cake',
+      alt_text: 'A studio edited cake',
+      slug: 'studio-edited-cake',
+      studio_edited_image_url: ' https://example.com/studio-edited.webp ',
+      original_image_url: 'https://example.com/original.webp',
+      price: 999,
+    })?.original_image_url).toBe('https://example.com/studio-edited.webp');
+
+    expect(buildKnownSeoMetadata(undefined, {
+      seo_title: 'Original Cake',
+      seo_description: 'Known SEO description from cached design.',
+      keywords: 'original cake',
+      alt_text: 'An original cake',
+      slug: 'original-cake',
+      studio_edited_image_url: ' ',
+      original_image_url: 'https://example.com/original.webp',
+      price: 999,
+    })?.original_image_url).toBe('https://example.com/original.webp');
+  });
 });

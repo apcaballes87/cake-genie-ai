@@ -8,8 +8,20 @@ export interface KnownRecentSearchDesignLike {
   alt_text: string | null;
   slug: string | null;
   original_image_url: string | null;
+  studio_edited_image_url?: string | null;
+  studio_edit_image_url?: string | null;
   price: number | null;
 }
+
+const firstNonBlankImageUrl = (...urls: unknown[]) => {
+  for (const url of urls) {
+    if (typeof url === 'string' && url.trim()) {
+      return url.trim();
+    }
+  }
+
+  return null;
+};
 
 export function buildKnownSeoMetadata(
   product?: CakeGenieMerchantProduct,
@@ -35,7 +47,11 @@ export function buildKnownSeoMetadata(
       keywords: recentSearchDesign.keywords,
       alt_text: recentSearchDesign.alt_text,
       slug: recentSearchDesign.slug,
-      original_image_url: recentSearchDesign.original_image_url,
+      original_image_url: firstNonBlankImageUrl(
+        recentSearchDesign.studio_edited_image_url,
+        recentSearchDesign.studio_edit_image_url,
+        recentSearchDesign.original_image_url,
+      ),
       price: recentSearchDesign.price,
       availability: null,
     };

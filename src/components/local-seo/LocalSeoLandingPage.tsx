@@ -11,7 +11,7 @@ import SameDayCutoffBanner from '@/components/SameDayCutoffBanner';
 import { ProductCard } from '@/components/ProductCard';
 import type { LandingPageConfig } from './cebuLandingData';
 
-const ROOT_PAGE_EYEBROW = 'Best Online Cake Delivery for Rush Orders in Metro Cebu';
+const ROOT_PAGE_EYEBROW = 'Best Online Cake Delivery for Rush Orders in Cebu';
 const ROOT_PAGE_HERO_IMAGE =
   'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP';
 

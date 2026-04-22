@@ -28,6 +28,31 @@ const CAKE_TYPE_THICKNESS_MAP: Record<string, CakeThickness> = {
     'Bento': '2 in',
 };
 
+const firstNonBlankImageUrl = (...urls: unknown[]) => {
+    for (const url of urls) {
+        if (typeof url === 'string' && url.trim()) {
+            return url.trim();
+        }
+    }
+
+    return null;
+};
+
+type DesignWithHeroImageUrls = {
+    original_image_url?: string | null;
+    studio_edited_image_url?: string | null;
+    studio_edit_image_url?: string | null;
+};
+
+const withPreferredHeroImage = <T extends DesignWithHeroImageUrls>(design: T): T => ({
+    ...design,
+    original_image_url: firstNonBlankImageUrl(
+        design.studio_edited_image_url,
+        design.studio_edit_image_url,
+        design.original_image_url,
+    ),
+});
+
 // ISR: Cache pages for 1 hour, then revalidate in the background.
 // Reduces TTFB for 8k+ pages and gives Google a faster crawl experience.
 export const revalidate = 3600;
@@ -58,7 +83,7 @@ const getDesign = cache(async (slug: string) => {
         .eq('slug', slug)
         .single()
 
-    if (cacheData) return cacheData;
+    if (cacheData) return withPreferredHeroImage(cacheData);
 
     // Check if it's a legacy slug that needs a 301 redirect to the modern format
     const upgradedSlug = upgradeLegacySlug(slug);
@@ -92,7 +117,7 @@ const getDesign = cache(async (slug: string) => {
             }
         }
 
-        return {
+        return withPreferredHeroImage({
             isSharedDesign: true,
             slug: sharedData.url_slug,
             keywords: sharedData.title || sharedData.cake_type || 'Custom',
@@ -105,7 +130,7 @@ const getDesign = cache(async (slug: string) => {
             availability: sharedData.availability_type,
             analysis_json: details?.analysisResult || null,
             customization_details: details
-        }
+        })
     }
 
     return null

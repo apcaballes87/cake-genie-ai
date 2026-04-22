@@ -12,10 +12,10 @@ import { SupabaseClient } from '@supabase/supabase-js';
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-    title: { absolute: 'Best Online Cake Delivery for Rush Orders in Metro Cebu' },
+    title: { absolute: 'Best Online Cake Delivery for Rush Orders in Cebu' },
     description: 'Upload any cake design, customize with AI, and get instant pricing from top cakeshops and homebakers in Cebu. Order your perfect custom cake online today!',
     openGraph: {
-        title: 'Best Online Cake Delivery for Rush Orders in Metro Cebu',
+        title: 'Best Online Cake Delivery for Rush Orders in Cebu',
         description: 'Upload any cake design, customize with AI, and get instant pricing from top cakeshops and homebakers in Cebu. Order your perfect custom cake online today!',
         images: [{
             url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg',
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'Best Online Cake Delivery for Rush Orders in Metro Cebu',
+        title: 'Best Online Cake Delivery for Rush Orders in Cebu',
         description: 'Upload any cake design, customize with AI, and get instant pricing from top cakeshops and homebakers in Cebu.',
         images: [{
             url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg',
