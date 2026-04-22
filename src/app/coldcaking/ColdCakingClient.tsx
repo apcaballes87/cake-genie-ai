@@ -18,7 +18,6 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import SameDayCutoffBanner from '@/components/SameDayCutoffBanner';
 import { ColdCakingHero } from './ColdCakingHero';
 import { ColdCakingFAQ } from './ColdCakingFAQ';
-import { ColdCakingCakePicker } from './ColdCakingCakePicker';
 import { ColdCakingPhotoStep } from './ColdCakingPhotoStep';
 import { ColdCakingCorporate } from './ColdCakingCorporate';
 import MobileBottomNav from '@/components/MobileBottomNav';
@@ -608,24 +607,11 @@ const ColdCakingClient: React.FC = () => {
                             .coldcaking-customizer-wrapper div[class*="bg-slate-100"][class*="space-x-1"] {
                                 display: none !important;
                             }
-                            /* Hide the original Step 1 card (desktop — z-60 container first child) */
-                            .coldcaking-customizer-wrapper .z-60 > div:first-child {
-                                display: none !important;
-                            }
-                            /* Hide the original Step 1 card (mobile — mt-0 flex-col container first child) */
-                            .coldcaking-customizer-wrapper .mt-0.flex-col > div:first-child {
-                                display: none !important;
-                            }
                             /* Hide 2 Tier and 3 Tier cake type options */
                             .coldcaking-customizer-wrapper button[data-caketype="2 Tier"],
                             .coldcaking-customizer-wrapper button[data-caketype="3 Tier"],
                             .coldcaking-customizer-wrapper button[data-caketype="2 Tier Fondant"],
                             .coldcaking-customizer-wrapper button[data-caketype="3 Tier Fondant"] {
-                                display: none !important;
-                            }
-                            /* Hide the AI customization chat container (CustomizingMessagesPanel) */
-                            .coldcaking-customizer-wrapper > div:has(div[class*="bg-slate-50"][class*="border"][class*="rounded-2xl"]),
-                            .coldcaking-customizer-wrapper [class*="messages-panel"] {
                                 display: none !important;
                             }
                             /* Ensure steps container shares same stacking context as image container */
@@ -637,36 +623,26 @@ const ColdCakingClient: React.FC = () => {
                             .coldcaking-customizer-wrapper div[class*="min-h-"][class*="rounded-2xl"] {
                                 z-index: 10 !important;
                             }
-                            /* Hide the duplicate purple banner rendered by CustomizingClient */
-                            .coldcaking-customizer-wrapper > div.w-full.bg-purple-600 {
-                                display: none !important;
-                            }
+
                         `}</style>
-                        {/* Step 1 picker — portals its card as first visible step */}
-                        <ColdCakingCakePicker 
-                            onSizeImageChange={handleSizeImageChange} 
-                            showApplyChanges={showApplyChanges}
+                        <CustomizingClient
+                            hideAiChat={true}
                             isCombining={isCombining}
-                            onApplyChanges={handleApplyChanges}
-                            cachedDesignSizeIndex={cachedDesignSizeIndex}
-                            hasCachedDesignForSize={(sizeIndex) => cachedDesignsRef.current.has(sizeIndex)}
-                            onLoadCachedDesign={(sizeIndex) => {
-                                const cachedUrl = cachedDesignsRef.current.get(sizeIndex);
-                                if (cachedUrl) {
-                                    loadImageWithoutAnalysis(cachedUrl, {
-                                        fileName: `cold-caking-design-${sizeIndex}.png`,
-                                        fallbackMimeType: 'image/png',
-                                    }).catch(() => {});
-                                }
-                            }}
+                            clearMessageTexts={true}
+                            hideStickyBar={!hasUploadedPhoto}
+                            useBasePriceAsFallback={true}
+                            ediblePhotoAddonPrice={hasUploadedPhoto ? ediblePhotoAddonPrice : 0}
+                            separateIcingStep={true}
+                            hideBanner={true}
+                            hideStepFour={true}
+                            photoStepNode={(
+                                <ColdCakingPhotoStep
+                                    onUploadClick={() => setIsUploaderOpen(true)}
+                                    hasPhoto={hasUploadedPhoto}
+                                    onDeletePhoto={handleDeletePhoto}
+                                />
+                            )}
                         />
-                        {/* Step 3 photo upload — portals its card replacing Cake Toppers */}
-                        <ColdCakingPhotoStep
-                            onUploadClick={() => setIsUploaderOpen(true)}
-                            hasPhoto={hasUploadedPhoto}
-                            onDeletePhoto={handleDeletePhoto}
-                        />
-                        <CustomizingClient hideAiChat={true} isCombining={isCombining} clearMessageTexts={true} hideStickyBar={!hasUploadedPhoto} useBasePriceAsFallback={true} ediblePhotoAddonPrice={hasUploadedPhoto ? ediblePhotoAddonPrice : 0} separateIcingStep={true} />
                     </div>
                 )}
 

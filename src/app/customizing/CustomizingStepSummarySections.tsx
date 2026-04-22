@@ -37,6 +37,9 @@ interface CustomizingStepSummarySectionsProps {
     onIcingTypeChange?: (newType: string) => void;
     separateIcingStep?: boolean;
     aiChatNode?: React.ReactNode;
+    hideStepOne?: boolean;
+    hideStepFour?: boolean;
+    photoStepNode?: React.ReactNode;
 }
 
 const getIcingImage = (icingDesign: IcingDesignUI, type: IcingImageType, isTopSpecific = false): string => {
@@ -218,8 +221,15 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     const stepOneItemsClassName = 'flex gap-[7px] pt-1 pb-2 w-max min-w-max flex-nowrap snap-x snap-mandatory';
 
     const isFondant = cakeInfo?.type.toLowerCase().includes('fondant');
-    const messageStepNumber = separateIcingStep ? 3 : 2;
-    const topperStepNumber = separateIcingStep ? 4 : 3;
+
+    // Dynamic Step Numbering
+    let currentStep = 1;
+    const stepOneNumber = !hideStepOne ? currentStep++ : null;
+    const icingStepNumber = (separateIcingStep && cakeInfo) ? currentStep++ : null;
+    const photoStepNumber = photoStepNode ? currentStep++ : null;
+    const messageStepNumber = currentStep++;
+    const topperStepNumber = !hideStepFour ? currentStep++ : null;
+
     const combinedDecorItems = getCombinedDecorItems(mainToppers, supportElements);
     const combinedDecorSummary = buildCombinedDecorSummary(mainToppers, supportElements);
     const icingSummaryItems = icingDesign && cakeInfo ? [
@@ -259,9 +269,9 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
     return (
         <div className={containerClassName}>
-            {cakeInfo && !isAnalyzing && !isRejectionError && (
+            {cakeInfo && !isAnalyzing && !isRejectionError && !hideStepOne && (
                 <div className={cardClassName}>
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 1: Cake Options</h3>
+                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {stepOneNumber}: Cake Options</h3>
                     <div className={stepOneItemsViewportClassName}>
                         <div className={stepOneItemsClassName}>
                             <button onClick={() => setActiveCustomization('options')} className="group flex flex-col items-center gap-1 min-w-[60px]">
@@ -332,12 +342,19 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
             {cakeInfo && !isAnalyzing && !isRejectionError && (
                 separateIcingStep ? (
                     <div className={cardClassName}>
-                        <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step 2: Icing Colors</h3>
+                        <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {icingStepNumber}: Icing Colors</h3>
                         <div className={itemsClassName}>
                             {icingSummaryItems}
                         </div>
                     </div>
                 ) : null
+            )}
+
+            {cakeInfo && !isAnalyzing && !isRejectionError && photoStepNode && (
+                <div className={cardClassName}>
+                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {photoStepNumber}: Upload Your Photo</h3>
+                    {photoStepNode}
+                </div>
             )}
 
             {cakeInfo && !isAnalyzing && !isRejectionError && (
@@ -402,7 +419,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                 </div>
             )}
 
-            {cakeInfo && !isAnalyzing && !isRejectionError && (
+            {cakeInfo && !isAnalyzing && !isRejectionError && !hideStepFour && (
                 <div className={cardClassName}>
                     <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {topperStepNumber}: Cake Decorations</h3>
                     {combinedDecorItems.length > 0 ? (

@@ -136,7 +136,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
                                 label={`Message #${idx + 1}`}
                                 value={
                                     <div className="flex items-center justify-end gap-2">
-                                        <span>'{msg.text}'</span>
+                                        <span>&quot;{msg.text}&quot;</span>
                                         <div
                                             className="w-4 h-4 rounded-md border border-slate-200 shadow-sm"
                                             style={{ backgroundColor: msg.color }}
@@ -220,7 +220,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
                             label={`Message #${idx + 1}`}
                             value={
                                 <div className="flex items-center justify-end gap-2">
-                                    <span>'{msg.text}'</span>
+                                    <span>&quot;{msg.text}&quot;</span>
                                     <div
                                         className="w-4 h-4 rounded-md border border-slate-200 shadow-sm"
                                         style={{ backgroundColor: msg.color }}

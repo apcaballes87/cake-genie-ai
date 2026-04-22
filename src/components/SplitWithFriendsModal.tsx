@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { X, Users, MessageSquare, Calculator } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/currency';
 
@@ -20,13 +20,7 @@ export const SplitWithFriendsModal: React.FC<SplitWithFriendsModalProps> = ({
 }) => {
     const [splitCount, setSplitCount] = useState(2);
     const [splitMessage, setSplitMessage] = useState("Hey guys! Let's chip in for this cake! 🎂");
-    const [perPersonAmount, setPerPersonAmount] = useState(0);
-
-    useEffect(() => {
-        if (splitCount > 0) {
-            setPerPersonAmount(totalAmount / splitCount);
-        }
-    }, [splitCount, totalAmount]);
+    const perPersonAmount = useMemo(() => splitCount > 0 ? totalAmount / splitCount : 0, [splitCount, totalAmount]);
 
     if (!isOpen) return null;
 
