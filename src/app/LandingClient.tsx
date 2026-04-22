@@ -589,9 +589,8 @@ function HeroProductPreviewStack({
                             onClick={onOpenUploader}
                             className="shrink-0 rounded-2xl bg-neutral-200 px-5 py-2.5 text-black border border-neutral-300 hover:bg-neutral-300 transition-colors active:scale-[0.98] uppercase tracking-tight"
                         >
-                            <div className="flex flex-col items-center text-center leading-tight">
-                                <span className="text-[10px] font-black">Customize Yours</span>
-                                <span className="text-[8px] font-bold normal-case opacity-70">Upload Your Design</span>
+                            <div className="flex items-center justify-center">
+                                <span className="text-[11px] font-black uppercase">Customize Yours</span>
                             </div>
                         </button>
                     </div>
@@ -602,7 +601,7 @@ function HeroProductPreviewStack({
 
     return (
         <>
-            <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px] min-[505px]:[mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] min-[505px]:[-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
+            <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px]">
                 <div className="overflow-hidden bg-transparent">
                     <div className="relative aspect-[3/2] w-full overflow-hidden rounded-3xl">
                         {heroUploadedImageSrc && (
@@ -1897,9 +1896,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                                         onClick={() => setIsUploaderOpen(true)}
                                                         className="shrink-0 bg-neutral-200 text-black border border-neutral-300 hover:bg-neutral-300 transition-colors px-6 py-2.5 rounded-2xl active:scale-[0.98] uppercase tracking-tight"
                                                     >
-                                                        <div className="flex flex-col items-center text-center leading-tight">
-                                                            <span className="text-xs font-black">Customize Yours</span>
-                                                            <span className="text-[10px] font-bold normal-case opacity-70">Upload Your Design</span>
+                                                        <div className="flex items-center justify-center">
+                                                            <span className="text-sm font-black uppercase">Customize Yours</span>
                                                         </div>
                                                     </button>
                                                 </div>
@@ -1910,7 +1908,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                         <>
                                             {/* Uploaded image + loading bar overlay */}
                                             <div className="relative w-full max-w-[480px]">
-                                                <div className="overflow-hidden bg-transparent [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
+                                                <div className="overflow-hidden bg-transparent">
                                                     <div className="relative w-full aspect-[3/2] overflow-hidden rounded-3xl">
                                                         {heroUploadedImageSrc && (
                                                             <img
