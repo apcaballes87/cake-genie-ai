@@ -205,6 +205,9 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     onIcingTypeChange,
     separateIcingStep = false,
     aiChatNode,
+    hideStepOne,
+    hideStepFour,
+    photoStepNode,
 }: CustomizingStepSummarySectionsProps) {
     // Default position when "+ Add" is clicked: Bento → front (side), all others → base_board
     const defaultMessagePosition = cakeInfo?.type === 'Bento' ? 'side' : 'base_board';
