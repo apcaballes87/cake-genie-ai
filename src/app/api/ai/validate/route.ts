@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ThinkingLevel } from "@google/genai";
 import { getAI } from '@/lib/ai/client';
 import { VALIDATION_PROMPT, validationResponseSchema } from '@/lib/ai/prompts';
+import { normalizeAiRouteError } from '@/lib/ai/routeError';
 
 export const maxDuration = 60; // Allow up to 60 seconds for AI processing
 
@@ -57,7 +58,13 @@ export async function POST(req: NextRequest) {
         try {
             result = await classifyImageWithModel(imageData, mimeType, primaryModel);
         } catch (primaryError) {
-            if (useCase === 'chat' && primaryModel !== fallbackModel) {
+            const normalizedPrimaryError = normalizeAiRouteError(primaryError, {
+                defaultMessage: 'Failed to validate image',
+                quotaMessage: 'AI image validation is temporarily unavailable due to quota limits. Please try again later.',
+                authorizationMessage: 'AI image validation is not authorized. Please check the Google AI API key and project access.',
+            });
+
+            if (useCase === 'chat' && primaryModel !== fallbackModel && ![401, 403].includes(normalizedPrimaryError.status)) {
                 console.warn(
                     `Chat validation failed with ${primaryModel}. Retrying with ${fallbackModel}.`,
                     primaryError
@@ -72,9 +79,16 @@ export async function POST(req: NextRequest) {
 
     } catch (error) {
         console.error("Error validating cake image:", error);
+
+        const normalizedError = normalizeAiRouteError(error, {
+            defaultMessage: 'Failed to validate image',
+            quotaMessage: 'AI image validation is temporarily unavailable due to quota limits. Please try again later.',
+            authorizationMessage: 'AI image validation is not authorized. Please check the Google AI API key and project access.',
+        });
+
         return NextResponse.json(
-            { error: 'Failed to validate image' },
-            { status: 500 }
+            { error: normalizedError.message },
+            { status: normalizedError.status }
         );
     }
 }

@@ -3,6 +3,7 @@ import { ThinkingLevel, Type } from "@google/genai";
 import { getAI } from '@/lib/ai/client';
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { createClient } from '@/lib/supabase/client';
+import { normalizeAiRouteError } from '@/lib/ai/routeError';
 
 export const maxDuration = 60; // Allow up to 60 seconds for AI processing
 
@@ -235,9 +236,16 @@ export async function POST(req: NextRequest) {
 
     } catch (error) {
         console.error("Error analyzing cake image:", error);
+
+        const normalizedError = normalizeAiRouteError(error, {
+            defaultMessage: 'Failed to analyze image',
+            quotaMessage: 'AI cake analysis is temporarily unavailable due to quota limits. Please try again later.',
+            authorizationMessage: 'AI cake analysis is not authorized. Please check the Google AI API key and project access.',
+        });
+
         return NextResponse.json(
-            { error: 'Failed to analyze image' },
-            { status: 500 }
+            { error: normalizedError.message },
+            { status: normalizedError.status }
         );
     }
 }
