@@ -1669,7 +1669,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                             className="genie-btn-primary flex w-full items-center justify-center gap-2 sm:gap-3 rounded-2xl py-4 px-3 sm:px-6 font-bold active:scale-[0.98]"
                                 >
                                     <Cake size={20} className="shrink-0" />
-                                    <span className="whitespace-nowrap text-[12px] min-[360px]:text-[13px] min-[390px]:text-sm sm:text-base">Upload Cake Design - Get Instant Pricing</span>
+                                    <span className="whitespace-nowrap text-[12px] min-[360px]:text-[13px] min-[390px]:text-sm sm:text-base">Upload Any Design - Get Instant Pricing</span>
                                 </button>
                             </div>
                         </div>
@@ -1697,7 +1697,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                             className="genie-btn-primary flex w-full items-center justify-center gap-3 rounded-2xl py-4 px-6 md:px-8 text-[17px] lg:text-lg font-bold active:scale-[0.99]"
                                         >
                                             <Cake size={24} className="shrink-0" />
-                                            <span className="whitespace-nowrap">Upload Cake Design - Get Instant Pricing</span>
+                                            <span className="whitespace-nowrap">Upload Any Design - Get Instant Pricing</span>
                                         </button>
                                     </div>
                                     <div className="mt-6 grid w-full max-w-[520px] grid-cols-3 gap-2">
@@ -2214,7 +2214,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
             {isUploaderOpen ? (
                 <ImageUploader
                     isOpen={isUploaderOpen}
-                    title="Upload Cake Design - Get Instant Pricing"
+                    title="Upload Any Design - Get Instant Pricing"
                     iconImageSrc="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/upload-cake-image.webp"
                     iconImageAlt="Upload cake design"
                     onClose={() => setIsUploaderOpen(false)}

@@ -10,7 +10,7 @@ Skeleton.displayName = 'Skeleton';
 
 // Cart item skeleton
 export const CartItemSkeleton: React.FC = React.memo(() => (
-  <div className="flex gap-4 p-4 bg-white rounded-lg border border-slate-200">
+  <div className="flex gap-4 p-4 genie-card rounded-lg">
     <Skeleton className="w-24 h-24 md:w-32 md:h-32 shrink-0 rounded-md" />
     <div className="grow space-y-3">
       <Skeleton className="h-5 w-3/4" />
@@ -29,7 +29,7 @@ export const CartSkeleton: React.FC<{ count?: number }> = React.memo(({ count = 
     {Array.from({ length: count }).map((_, i) => (
       <CartItemSkeleton key={i} />
     ))}
-    <div className="mt-6 pt-6 border-t border-slate-200 space-y-4">
+    <div className="mt-6 pt-6 border-t border-purple-100 space-y-4">
       <Skeleton className="h-8 w-1/2" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Skeleton className="h-10 w-full" />
