@@ -134,7 +134,7 @@ export const getAssetUrl = (bucket: keyof typeof STORAGE_BUCKETS, path: string):
  */
 export const COMMON_ASSETS = {
   // Branding
-  logo: getAssetUrl('cakegenie', 'genie%20logo%20long2.webp'),
+  logo: getAssetUrl('landingpage', 'genie-logo-header.webp'),
   logoSquare: getAssetUrl('cakegenie', 'genie%20logo.webp'),
   watermark: getAssetUrl('cakegenie', 'genie%20watermark.png'),
 
