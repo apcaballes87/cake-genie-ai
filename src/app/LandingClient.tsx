@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback, useRef, Suspense, useMemo } fr
 import toast from 'react-hot-toast';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
+import useEmblaCarousel from 'embla-carousel-react';
+import { WheelGesturesPlugin } from 'embla-carousel-wheel-gestures';
 
 import Link from 'next/link';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
@@ -168,6 +170,27 @@ const HERO_PRODUCTS = [
         headlineVariant: 5,
     },
 ] as const;
+
+const getHeroAvailabilityConfig = (title: string, isDesktop: boolean = false) => {
+    const isRush = ['Bento Cakes', 'Minimalist Cakes', 'Doodle Cakes'].includes(title);
+    if (isRush) {
+        return {
+            text: 'Rush Order! Ready in 60 mins',
+            Icon: Zap,
+            bannerClass: isDesktop ? 'bg-green-100/80 text-green-900' : 'bg-green-100 text-green-800',
+            iconClass: isDesktop ? 'text-green-900' : 'text-green-800',
+            invertedCornerClass: isDesktop ? 'bg-green-100/80' : 'bg-green-100'
+        };
+    }
+    return {
+        text: 'Same-Day Order! Ready in 3 hours',
+        Icon: Clock,
+        bannerClass: isDesktop ? 'bg-blue-100/80 text-blue-900' : 'bg-blue-100 text-blue-800',
+        iconClass: isDesktop ? 'text-blue-900' : 'text-blue-800',
+        invertedCornerClass: isDesktop ? 'bg-blue-100/80' : 'bg-blue-100'
+    };
+};
+
 const DESKTOP_HERO_CARD_STYLES = [
     {
         tintClassName: 'from-fuchsia-200/70 via-white/10 to-transparent',
@@ -310,7 +333,7 @@ const HeroTypingHeadlineLine: React.FC<{ className?: string; controlledPhraseInd
 
     return (
         <span className={className} aria-label={HERO_HEADLINE_A11Y_LABEL}>
-            <span aria-hidden="true">{displayText}</span>
+            <span aria-hidden="true" className="italic">{displayText}</span>
             <span
                 aria-hidden="true"
                 className="ml-1 inline-block h-[0.92em] w-[3px] translate-y-[2px] bg-purple-500 align-middle animate-pulse"
@@ -364,21 +387,114 @@ function DesktopHeroCollectionCard({
     );
 }
 
-function HeroProductCrossfadeImage({ heroProductIndex }: { heroProductIndex: number }) {
+function HeroProductPeekCarousel({
+    heroProductIndex,
+    onSelectProduct,
+    onInteraction,
+}: {
+    heroProductIndex: number;
+    onSelectProduct: (index: number) => void;
+    onInteraction?: () => void;
+}) {
+    const wheelGestures = useMemo(() => [WheelGesturesPlugin()], []);
+    const [emblaRef, emblaApi] = useEmblaCarousel(
+        {
+            align: 'center',
+            dragFree: false,
+            duration: 28,
+            loop: true,
+            skipSnaps: false,
+        },
+        wheelGestures
+    );
+
+    useEffect(() => {
+        if (!emblaApi || emblaApi.selectedScrollSnap() === heroProductIndex) return;
+        emblaApi.scrollTo(heroProductIndex);
+    }, [emblaApi, heroProductIndex]);
+
+    useEffect(() => {
+        if (!emblaApi) return;
+
+        const syncSelectedProduct = () => {
+            onSelectProduct(emblaApi.selectedScrollSnap());
+        };
+
+        syncSelectedProduct();
+        emblaApi.on('select', syncSelectedProduct);
+        emblaApi.on('reInit', syncSelectedProduct);
+
+        // Listen for actual user interaction
+        const handlePointerDown = () => onInteraction?.();
+        const handleScroll = () => {
+            // Only trigger if it's not a programmatic scroll
+            if (emblaApi.internalEngine().scrollBody.velocity() !== 0) {
+                onInteraction?.();
+            }
+        };
+
+        emblaApi.on('pointerDown', handlePointerDown);
+        emblaApi.on('scroll', handleScroll);
+
+        return () => {
+            emblaApi.off('select', syncSelectedProduct);
+            emblaApi.off('reInit', syncSelectedProduct);
+            emblaApi.off('pointerDown', handlePointerDown);
+            emblaApi.off('scroll', handleScroll);
+        };
+    }, [emblaApi, onSelectProduct, onInteraction]);
+
+    const handleProductClick = (index: number) => {
+        onInteraction?.();
+        onSelectProduct(index);
+        emblaApi?.scrollTo(index);
+    };
+
     return (
-        <>
-            {HERO_PRODUCTS.map((product, index) => (
-                <img
-                    key={product.title}
-                    src={product.image}
-                    alt={index === heroProductIndex ? `${product.title} example` : ''}
-                    aria-hidden={index !== heroProductIndex}
-                    className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-in-out ${index === heroProductIndex ? 'opacity-100' : 'opacity-0'
-                        }`}
-                    loading={index === 0 ? 'eager' : 'lazy'}
-                />
-            ))}
-        </>
+        <div className="relative aspect-[3/2] w-full overflow-hidden bg-transparent">
+            <div ref={emblaRef} className="h-full overflow-hidden cursor-grab active:cursor-grabbing">
+                <div className="flex h-full touch-pan-y">
+                    {HERO_PRODUCTS.map((product, productIndex) => {
+                        const isCenter = productIndex === heroProductIndex;
+
+                        return (
+                            <button
+                                key={product.title}
+                                type="button"
+                                onClick={() => handleProductClick(productIndex)}
+                                aria-label={isCenter ? `${product.title} example` : `View ${product.title}`}
+                                className={`relative mx-1 h-full min-w-0 flex-[0_0_calc(50%_-_8px)] overflow-hidden rounded-[1.35rem] bg-transparent transition-shadow duration-500 ease-out ${isCenter ? 'shadow-[0_18px_45px_-28px_rgba(15,23,42,0.75)]' : ''
+                                    }`}
+                            >
+                                <img
+                                    src={product.image}
+                                    alt={isCenter ? `${product.title} example` : ''}
+                                    aria-hidden={!isCenter}
+                                    className="h-full w-full object-cover"
+                                    draggable={false}
+                                    loading={productIndex === 0 ? 'eager' : 'lazy'}
+                                />
+                                {isCenter && (
+                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/25 to-transparent" />
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+            <div className="absolute bottom-3 left-0 right-0 z-30 flex justify-center gap-1.5">
+                {HERO_PRODUCTS.map((_, i) => (
+                    <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleProductClick(i)}
+                        aria-label={`View ${HERO_PRODUCTS[i].title}`}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${i === heroProductIndex ? 'w-5 bg-white shadow-sm' : 'w-1.5 bg-white/55 hover:bg-white/80'
+                            }`}
+                    />
+                ))}
+            </div>
+        </div>
     );
 }
 
@@ -392,6 +508,7 @@ function HeroProductPreviewStack({
     onPrev,
     onNext,
     onSelectProduct,
+    onInteraction,
     onOpenUploader,
     onResetUpload,
     onResultAction,
@@ -405,6 +522,7 @@ function HeroProductPreviewStack({
     onPrev: () => void;
     onNext: () => void;
     onSelectProduct: (index: number) => void;
+    onInteraction: () => void;
     onOpenUploader: () => void;
     onResetUpload: () => void;
     onResultAction: () => void;
@@ -412,23 +530,13 @@ function HeroProductPreviewStack({
     if (heroUploadState === 'idle') {
         return (
             <>
-                <div className="relative mx-auto w-full max-w-[480px]">
-                    <div className="overflow-hidden rounded-3xl border border-neutral-100 bg-white shadow-xl">
-                        <div className="relative aspect-[5/4] w-full overflow-hidden">
-                            <HeroProductCrossfadeImage heroProductIndex={heroProductIndex} />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
-                                {HERO_PRODUCTS.map((_, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => onSelectProduct(i)}
-                                        aria-label={`View ${HERO_PRODUCTS[i].title}`}
-                                        className={`h-1.5 rounded-full transition-all duration-300 ${i === heroProductIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/55 hover:bg-white/80'
-                                            }`}
-                                    />
-                                ))}
-                            </div>
-                        </div>
+                <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px] min-[505px]:[mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] min-[505px]:[-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
+                    <div className="overflow-hidden bg-transparent">
+                        <HeroProductPeekCarousel 
+                            heroProductIndex={heroProductIndex} 
+                            onSelectProduct={onSelectProduct} 
+                            onInteraction={onInteraction}
+                        />
                     </div>
                     <button
                         onClick={onPrev}
@@ -447,21 +555,27 @@ function HeroProductPreviewStack({
                 </div>
 
                 <div className="mx-auto w-full max-w-[480px] overflow-hidden rounded-3xl border border-neutral-100 bg-white shadow-xl">
-                    <div className="relative flex items-center justify-center gap-2 bg-blue-100 px-4 py-2 rounded-t-[23px]">
-                        <Clock className="h-3 w-3 text-blue-800" />
-                        <span className="text-[9px] font-bold uppercase tracking-wide text-blue-800">Same-Day Order! Ready in 3 hours</span>
-                        
-                        {/* Inverted Corner Left */}
-                        <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full h-full bg-blue-100" />
-                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
-                        </div>
-                        {/* Inverted Corner Right */}
-                        <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
-                            <div className="absolute top-0 right-0 w-full h-full bg-blue-100" />
-                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
-                        </div>
-                    </div>
+                    {(() => {
+                        const config = getHeroAvailabilityConfig(HERO_PRODUCTS[heroProductIndex].title, false);
+                        const { Icon } = config;
+                        return (
+                            <div className={`relative flex items-center justify-center gap-2 px-4 py-2 rounded-t-[23px] ${config.bannerClass}`}>
+                                <Icon className={`h-3 w-3 ${config.iconClass}`} />
+                                <span className={`text-[9px] font-bold uppercase tracking-wide ${config.iconClass}`}>{config.text}</span>
+                                
+                                {/* Inverted Corner Left */}
+                                <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
+                                    <div className={`absolute top-0 left-0 w-full h-full ${config.invertedCornerClass}`} />
+                                    <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
+                                </div>
+                                {/* Inverted Corner Right */}
+                                <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
+                                    <div className={`absolute top-0 right-0 w-full h-full ${config.invertedCornerClass}`} />
+                                    <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
+                                </div>
+                            </div>
+                        );
+                    })()}
                     <div className="relative z-10 flex items-center justify-between gap-3 px-5 py-3">
                         <div className="flex min-w-0 flex-col">
                             <p key={`mobile-price-${heroProductIndex}`} className="text-2xl font-black leading-none tracking-tight text-neutral-900 animate-in fade-in slide-in-from-bottom-1 duration-300">
@@ -473,9 +587,12 @@ function HeroProductPreviewStack({
                         </div>
                         <button
                             onClick={onOpenUploader}
-                            className="shrink-0 whitespace-nowrap rounded-2xl bg-neutral-200 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-black border border-neutral-300 hover:bg-neutral-300 transition-colors active:scale-[0.98]"
+                            className="shrink-0 rounded-2xl bg-neutral-200 px-5 py-2.5 text-black border border-neutral-300 hover:bg-neutral-300 transition-colors active:scale-[0.98] uppercase tracking-tight"
                         >
-                            Order This Cake
+                            <div className="flex flex-col items-center text-center leading-tight">
+                                <span className="text-[10px] font-black">Customize Yours</span>
+                                <span className="text-[8px] font-bold normal-case opacity-70">Upload Your Design</span>
+                            </div>
                         </button>
                     </div>
                 </div>
@@ -485,9 +602,9 @@ function HeroProductPreviewStack({
 
     return (
         <>
-            <div className="relative mx-auto w-full max-w-[480px]">
-                <div className="overflow-hidden rounded-3xl border border-neutral-100 bg-white shadow-xl">
-                    <div className="relative aspect-[5/4] w-full overflow-hidden">
+            <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px] min-[505px]:[mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] min-[505px]:[-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
+                <div className="overflow-hidden bg-transparent">
+                    <div className="relative aspect-[3/2] w-full overflow-hidden rounded-3xl">
                         {heroUploadedImageSrc && (
                             <img
                                 src={heroUploadedImageSrc}
@@ -564,8 +681,9 @@ function HeroProductPreviewStack({
                         </div>
                     </div>
                 ) : heroAnalysis.availability === 'rush' ? (
-                    <div className="relative bg-green-100 px-4 py-2 text-center text-[9px] font-bold text-green-800 rounded-t-[23px]">
-                        Rush Order Available! Ready in 60 mins
+                    <div className="relative flex items-center justify-center gap-2 bg-green-100 px-4 py-2 text-center rounded-t-[23px]">
+                        <Zap className="h-3 w-3 text-green-800" />
+                        <span className="text-[9px] font-bold text-green-800 uppercase tracking-wide">Rush Order! Ready in 60 mins</span>
                         
                         {/* Inverted Corner Left */}
                         <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
@@ -1155,6 +1273,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
     const isMounted = React.useSyncExternalStore(subscribeToHydration, () => true, () => false);
 
     const [heroProductIndex, setHeroProductIndex] = useState(0);
+    const [hasInteractedWithHero, setHasInteractedWithHero] = useState(false);
 
     // ── Hero upload analysis state ─────────────────────────────────────────
     const [heroUploadState, setHeroUploadState] = useState<HeroUploadState>('idle');
@@ -1166,10 +1285,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
 
     const handleHeroPrev = useCallback(() => {
         setHeroProductIndex((prev) => (prev - 1 + HERO_PRODUCTS.length) % HERO_PRODUCTS.length);
+        setHasInteractedWithHero(true);
     }, []);
 
     const handleHeroNext = useCallback(() => {
         setHeroProductIndex((prev) => (prev + 1) % HERO_PRODUCTS.length);
+        setHasInteractedWithHero(true);
     }, []);
 
     const resetHeroUploadPreview = useCallback(() => {
@@ -1204,15 +1325,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
             });
         }, 180);
     }, []);
-
-    // Auto-advance carousel every 4 s; pauses while upload analysis is running
-    useEffect(() => {
-        if (heroUploadState !== 'idle') return;
-        const timer = setTimeout(() => {
-            setHeroProductIndex((prev) => (prev + 1) % HERO_PRODUCTS.length);
-        }, 4000);
-        return () => clearTimeout(timer);
-    }, [heroProductIndex, heroUploadState]);
 
     // Trigger progress-bar CSS transition one tick after analysis starts
     useEffect(() => {
@@ -1657,7 +1769,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                             </h1>
                             <div className="mb-5 text-center">
                                 <h2 className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-[0.88] tracking-tight text-gray-900">
-                                    <HeroTypingHeadlineLine className="block min-h-[1.1em] whitespace-nowrap text-center text-purple-400" controlledPhraseIndex={HERO_PRODUCTS[heroProductIndex].headlineVariant} />
+                                    <HeroTypingHeadlineLine 
+                                        className="block min-h-[1.1em] whitespace-nowrap text-center text-purple-400" 
+                                        controlledPhraseIndex={hasInteractedWithHero ? HERO_PRODUCTS[heroProductIndex].headlineVariant : 0} 
+                                    />
                                     <span className="block whitespace-nowrap text-black italic">For Today&apos;s</span>
                                     <span className="block whitespace-nowrap text-black italic">Celebrations</span>
                                 </h2>
@@ -1687,7 +1802,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                         Best Online Cake Delivery for Rush Orders in Cebu
                                     </h1>
                                     <h2 className="mt-3 text-[3.79rem] min-[945px]:text-[3.85rem] min-[1232px]:text-[4.75rem] font-extrabold text-gray-900 leading-[1.05] tracking-tight">
-                                        <HeroTypingHeadlineLine className="block min-h-[1.1em] whitespace-nowrap text-center text-purple-400" controlledPhraseIndex={HERO_PRODUCTS[heroProductIndex].headlineVariant} />
+                                        <HeroTypingHeadlineLine 
+                                            className="block min-h-[1.1em] whitespace-nowrap text-center text-purple-400" 
+                                            controlledPhraseIndex={hasInteractedWithHero ? HERO_PRODUCTS[heroProductIndex].headlineVariant : 0} 
+                                        />
                                         <span className="block whitespace-nowrap text-black italic">For Today&apos;s</span>
                                         <span className="block whitespace-nowrap text-black italic">Celebrations</span>
                                     </h2>
@@ -1724,25 +1842,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                         <>
                                             {/* Image Card with Prev / Next arrows */}
                                             <div className="relative w-full max-w-[480px]">
-                                                <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-neutral-100 transition-all duration-300 hover:shadow-2xl">
-                                                    <div className="relative w-full aspect-[5/4] overflow-hidden">
-                                                        <HeroProductCrossfadeImage heroProductIndex={heroProductIndex} />
-                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                                                        {/* Dot indicators */}
-                                                        <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
-                                                            {HERO_PRODUCTS.map((_, i) => (
-                                                                <button
-                                                                    key={i}
-                                                                    onClick={() => setHeroProductIndex(i)}
-                                                                    aria-label={`View ${HERO_PRODUCTS[i].title}`}
-                                                                    className={`h-1.5 rounded-full transition-all duration-300 ${i === heroProductIndex
-                                                                            ? 'bg-white w-5'
-                                                                            : 'bg-white/55 w-1.5 hover:bg-white/80'
-                                                                        }`}
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                    </div>
+                                                <div className="overflow-hidden bg-transparent transition-all duration-300 [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
+                                                    <HeroProductPeekCarousel 
+                                                        heroProductIndex={heroProductIndex} 
+                                                        onSelectProduct={setHeroProductIndex} 
+                                                        onInteraction={() => setHasInteractedWithHero(true)}
+                                                    />
                                                 </div>
                                                 {/* Left arrow */}
                                                 <button onClick={handleHeroPrev} aria-label="Previous cake design" className="absolute left-0 top-[45%] -translate-y-1/2 -translate-x-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-lg text-neutral-600 transition-all hover:border-purple-300 hover:text-purple-700 hover:shadow-xl active:scale-95">
@@ -1757,21 +1862,27 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                             {/* Product Info & Action Card — carousel */}
                                             <div className="w-full max-w-[480px] bg-white rounded-3xl shadow-xl border border-neutral-100 relative">
                                                 {/* Availability banner with Inverted Corners */}
-                                                <div className="relative bg-blue-100/80 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl transition-colors duration-300">
-                                                    <Clock className="w-3 h-3 text-blue-900" />
-                                                    <span className="text-blue-900 text-[10px] font-black uppercase tracking-wider">Same-Day Order! Ready in 3 hours</span>
+                                                {(() => {
+                                                    const config = getHeroAvailabilityConfig(HERO_PRODUCTS[heroProductIndex].title, true);
+                                                    const { Icon } = config;
+                                                    return (
+                                                        <div className={`relative py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl transition-colors duration-300 ${config.bannerClass}`}>
+                                                            <Icon className={`w-3 h-3 ${config.iconClass}`} />
+                                                            <span className={`text-[10px] font-black uppercase tracking-wider ${config.iconClass}`}>{config.text}</span>
 
-                                                    {/* Inverted Corner Left */}
-                                                    <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
-                                                        <div className="absolute top-0 left-0 w-full h-full bg-blue-100/80" />
-                                                        <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
-                                                    </div>
-                                                    {/* Inverted Corner Right */}
-                                                    <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
-                                                        <div className="absolute top-0 right-0 w-full h-full bg-blue-100/80" />
-                                                        <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
-                                                    </div>
-                                                </div>
+                                                            {/* Inverted Corner Left */}
+                                                            <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
+                                                                <div className={`absolute top-0 left-0 w-full h-full ${config.invertedCornerClass}`} />
+                                                                <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
+                                                            </div>
+                                                            {/* Inverted Corner Right */}
+                                                            <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
+                                                                <div className={`absolute top-0 right-0 w-full h-full ${config.invertedCornerClass}`} />
+                                                                <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
 
                                                 <div className="relative z-10 py-4 px-5 flex items-center justify-between gap-3">
                                                     <div className="flex flex-col">
@@ -1784,9 +1895,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                                     </div>
                                                     <button
                                                         onClick={() => setIsUploaderOpen(true)}
-                                                        className="shrink-0 bg-neutral-200 text-black border border-neutral-300 hover:bg-neutral-300 transition-colors px-7 py-3.5 rounded-2xl font-bold text-[10px] lg:text-xs active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
+                                                        className="shrink-0 bg-neutral-200 text-black border border-neutral-300 hover:bg-neutral-300 transition-colors px-6 py-2.5 rounded-2xl active:scale-[0.98] uppercase tracking-tight"
                                                     >
-                                                        Order This Cake
+                                                        <div className="flex flex-col items-center text-center leading-tight">
+                                                            <span className="text-xs font-black">Customize Yours</span>
+                                                            <span className="text-[10px] font-bold normal-case opacity-70">Upload Your Design</span>
+                                                        </div>
                                                     </button>
                                                 </div>
                                             </div>
@@ -1796,8 +1910,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                         <>
                                             {/* Uploaded image + loading bar overlay */}
                                             <div className="relative w-full max-w-[480px]">
-                                                <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-neutral-100">
-                                                    <div className="relative w-full aspect-[5/4] overflow-hidden">
+                                                <div className="overflow-hidden bg-transparent [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
+                                                    <div className="relative w-full aspect-[3/2] overflow-hidden rounded-3xl">
                                                         {heroUploadedImageSrc && (
                                                             <img
                                                                 src={heroUploadedImageSrc}
@@ -1888,7 +2002,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                                 ) : heroAnalysis.availability === 'rush' ? (
                                                     <div className="bg-green-100/80 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl">
                                                         <Zap className="w-3 h-3 text-green-900" />
-                                                        <span className="text-green-900 text-[10px] font-black uppercase tracking-wider">Rush Order Available! Ready in 60 mins</span>
+                                                        <span className="text-green-900 text-[10px] font-black uppercase tracking-wider">Rush Order! Ready in 60 mins</span>
 
                                                         {/* Inverted Corner Left */}
                                                         <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
@@ -1994,6 +2108,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                             onPrev={handleHeroPrev}
                             onNext={handleHeroNext}
                             onSelectProduct={setHeroProductIndex}
+                            onInteraction={() => setHasInteractedWithHero(true)}
                             onOpenUploader={() => setIsUploaderOpen(true)}
                             onResetUpload={resetHeroUploadPreview}
                             onResultAction={handleHeroResultAction}
