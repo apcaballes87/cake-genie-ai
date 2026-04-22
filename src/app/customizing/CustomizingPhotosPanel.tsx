@@ -67,11 +67,11 @@ export const CustomizingPhotosPanel = memo(function CustomizingPhotosPanel({
                                 onToggle={noop}
                                 updateItem={(updates) => {
                                     if (photo.category === 'topper') {
-                                        updateMainTopper(photo.id, updates);
+                                        updateMainTopper(photo.id, updates as Partial<MainTopperUI>);
                                         return;
                                     }
 
-                                    updateSupportElement(photo.id, updates);
+                                    updateSupportElement(photo.id, updates as Partial<SupportElementUI>);
                                 }}
                                 onImageReplace={(file) => {
                                     if (photo.category === 'topper') {
