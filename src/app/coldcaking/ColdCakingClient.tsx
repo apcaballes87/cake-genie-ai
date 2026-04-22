@@ -413,10 +413,10 @@ const ColdCakingClient: React.FC = () => {
             <nav className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm' : 'bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
                     {/* Mobile Header */}
-                    <div className="md:hidden relative w-full mb-4" style={{ height: '79px' }}>
+                    <div className="md:hidden relative w-full mb-4" style={{ height: '71px' }}>
                         {/* Layer 1: Not-scrolled — [menu | logo | icons] */}
                         <div
-                            className="absolute inset-0 grid grid-cols-[1fr_auto_1fr] items-center pt-[21.5px] transition-opacity duration-300"
+                            className="absolute inset-0 grid grid-cols-[1fr_auto_1fr] items-center pt-[25px] transition-opacity duration-300"
                             style={{ opacity: showCompactHeader ? 0 : 1, pointerEvents: showCompactHeader ? 'none' : 'auto' }}
                         >
                             <div className="flex items-center">
@@ -429,7 +429,7 @@ const ColdCakingClient: React.FC = () => {
                                 </button>
                             </div>
                             <Link href="/">
-                                <img src={COMMON_ASSETS.logo} alt="Genie Logo" width={144} height={51} className="h-[51px] w-auto object-contain" />
+                                <img src={COMMON_ASSETS.logo} alt="Genie Logo" width={130} height={46} className="h-[46px] w-auto object-contain" />
                             </Link>
                             <div className="flex items-center gap-1 justify-end">
                                 <button
@@ -456,7 +456,7 @@ const ColdCakingClient: React.FC = () => {
 
                         {/* Layer 2: Scrolled — [search bar | cart] */}
                         <div
-                            className="absolute inset-0 flex items-center gap-2 pt-[21.5px] transition-opacity duration-300"
+                            className="absolute inset-0 flex items-center gap-2 pt-[25px] transition-opacity duration-300"
                             style={{ opacity: showCompactHeader ? 1 : 0, pointerEvents: showCompactHeader ? 'auto' : 'none' }}
                         >
                             {showCompactHeader ? (
