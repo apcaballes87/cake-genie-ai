@@ -1488,9 +1488,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
             <nav className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm' : 'bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
                     {/* Mobile Header */}
-                    <div className="md:hidden relative w-full mb-4" style={{ height: '88px' }}>
+                    <div className="md:hidden relative w-full mb-4" style={{ height: '79px' }}>
                         <div
-                            className="absolute inset-0 grid grid-cols-[1fr_auto_1fr] items-center pt-6 transition-opacity duration-300"
+                            className="absolute inset-0 grid grid-cols-[1fr_auto_1fr] items-center pt-[21.5px] transition-opacity duration-300"
                             style={{ opacity: showCompactHeader ? 0 : 1, pointerEvents: showCompactHeader ? 'none' : 'auto' }}
                         >
                             <div className="flex items-center">
@@ -1507,9 +1507,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                 <img
                                     src={COMMON_ASSETS.logo}
                                     alt="Genie Logo"
-                                    width={180}
-                                    height={64}
-                                    className="h-16 w-auto object-contain"
+                                    width={144}
+                                    height={51}
+                                    className="h-[51px] w-auto object-contain"
                                 />
                             </Link>
 
@@ -1537,7 +1537,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                         </div>
 
                         <div
-                            className="absolute inset-0 flex items-center gap-2 pt-6 transition-opacity duration-300"
+                            className="absolute inset-0 flex items-center gap-2 pt-[21.5px] transition-opacity duration-300"
                             style={{ opacity: showCompactHeader ? 1 : 0, pointerEvents: showCompactHeader ? 'auto' : 'none' }}
                         >
                             {showCompactHeader ? (
@@ -1567,7 +1567,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                     </div>
 
                     {/* Desktop Header: Menu + Logo + Search (left) | Nav + Icons (right) */}
-                    <div className="hidden md:flex w-full items-center gap-6 py-4">
+                    <div className="hidden md:flex w-full items-center gap-6 py-[12.5px]">
                         {/* Left: Menu + Logo + Search Bar */}
                         <div className="flex items-center gap-4 flex-1 min-w-0">
                             <button
