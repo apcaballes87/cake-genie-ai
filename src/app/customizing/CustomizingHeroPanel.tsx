@@ -117,10 +117,10 @@ export const CustomizingHeroPanel = memo(({
     const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
 
     return (
-        <div className="w-full flex flex-col">
+        <div className="w-full flex flex-col gap-1">
             {/* Tabs above the image container */}
             {editedImage ? (
-                <div className="flex w-full gap-2 mb-1 animate-in fade-in slide-in-from-top-2 duration-500">
+                <div className="flex w-full gap-2 animate-in fade-in slide-in-from-top-2 duration-500">
                     <button
                         onClick={onOriginalTabSelect}
                         className={`flex-1 py-2 text-xs font-bold rounded-full border transition-all shadow-sm ${activeTab === 'original' ? 'bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
@@ -234,7 +234,6 @@ export const CustomizingHeroPanel = memo(({
                                                 <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
                                                 Guaranteed Price
                                             </div>
-                                            <p className="text-[8px] text-green-100 font-medium tracking-tight">Based on real cakeshop data</p>
                                         </div>
                                     </div>
                                 ) : null}
@@ -276,7 +275,7 @@ export const CustomizingHeroPanel = memo(({
             </div>
 
             {showFooterActions ? (
-                <div className="mt-0.5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                     <HeroActionButtonsRow editedImage={editedImage} isLoading={isLoading} isReporting={isReporting} isSaving={isSaving} onOpenReportModal={onOpenReportModal} onSave={onSave} onClearAll={onClearAll} />
                 </div>
             ) : null}

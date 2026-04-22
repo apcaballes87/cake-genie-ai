@@ -146,7 +146,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
                                     marker={markerMap.get(topper.id)}
                                     expanded={expandedItemId === topper.id}
                                     onToggle={() => setExpandedItemId(expandedItemId === topper.id ? null : topper.id)}
-                                    updateItem={(updates) => updateMainTopper(topper.id, updates)}
+                                    updateItem={(updates) => updateMainTopper(topper.id, updates as Partial<MainTopperUI>)}
                                     onImageReplace={(file) => onTopperImageReplace(topper.id, file)}
                                     itemPrice={itemPrices?.get(topper.id)}
                                     isAdmin={isAdmin}
@@ -183,7 +183,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
                                     marker={markerMap.get(element.id)}
                                     expanded={expandedItemId === element.id}
                                     onToggle={() => setExpandedItemId(expandedItemId === element.id ? null : element.id)}
-                                    updateItem={(updates) => updateSupportElement(element.id, updates)}
+                                    updateItem={(updates) => updateSupportElement(element.id, updates as Partial<SupportElementUI>)}
                                     onImageReplace={(file) => onSupportElementImageReplace(element.id, file)}
                                     itemPrice={itemPrices?.get(element.id)}
                                     isAdmin={isAdmin}
