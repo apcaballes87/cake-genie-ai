@@ -6,9 +6,6 @@ import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import Link from 'next/link';
-import { PopularDesigns } from '@/components/landing';
-import type { PopularDesign } from '@/components/landing/PopularDesigns';
-
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import LazyImage from '@/components/LazyImage';
 import { ImageWithSkeleton } from '@/components/ImageWithSkeleton';
@@ -18,7 +15,12 @@ import SameDayCutoffBanner from '@/components/SameDayCutoffBanner';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { CakeGenieReview } from '@/lib/database.types';
 import { getReviewDisplayName } from '@/lib/reviews';
-import { BlogHomepagePreview } from '@/services/supabaseService';
+import { BlogHomepagePreview, cacheAnalysisResult, findSimilarAnalysisByHash, getCakeBasePriceOptions } from '@/services/supabaseService';
+import { getDesignAvailability } from '@/lib/utils/availability';
+import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow } from '@/services/geminiService';
+import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
+import { compressImage } from '@/lib/utils/imageOptimization';
+import { generatePerceptualHash } from '@/hooks/useImageManagement';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
@@ -41,7 +43,11 @@ import {
     Truck,
     Zap,
     ChevronDown,
-    X
+    ChevronLeft,
+    ChevronRight,
+    X,
+    Clock,
+    Calendar
 } from 'lucide-react';
 
 const ImageUploader = dynamic(
@@ -51,7 +57,6 @@ const ImageUploader = dynamic(
 
 interface LandingClientProps {
     children?: React.ReactNode;
-    popularDesigns?: PopularDesign[];
     heroCollections?: {
         title: string;
         slug: string;
@@ -117,6 +122,51 @@ const DEFAULT_HERO_COLLECTIONS = [
         caption: 'Compact celebration cakes with playful piping and giftable charm.',
     },
 ] as const;
+
+const HERO_PRODUCTS = [
+    {
+        title: 'Minimalist Cakes',
+        price: 999,
+        size: '6" Round 3" Height',
+        image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-minimalist-cake.webp',
+        headlineVariant: 1,
+    },
+    {
+        title: 'Vintage Cakes',
+        price: 1199,
+        size: '6" Round 4" Height',
+        image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-vintage-cake.webp',
+        headlineVariant: 2,
+    },
+    {
+        title: 'Doodle Cakes',
+        price: 999,
+        size: '6" Round 3" Height',
+        image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-doodle-cake.webp',
+        headlineVariant: 6,
+    },
+    {
+        title: 'Edible Photo Cakes',
+        price: 1099,
+        size: '6" Round 3" Height',
+        image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-edible-photo-cake.webp',
+        headlineVariant: 4,
+    },
+    {
+        title: 'Floral Cakes',
+        price: 1199,
+        size: '6" Round 4" Height',
+        image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-floral-cake.webp',
+        headlineVariant: 3,
+    },
+    {
+        title: 'Bento Cakes',
+        price: 499,
+        size: '4" Round 2" Height',
+        image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-bento-cake.webp',
+        headlineVariant: 5,
+    },
+] as const;
 const DESKTOP_HERO_CARD_STYLES = [
     {
         tintClassName: 'from-fuchsia-200/70 via-white/10 to-transparent',
@@ -163,21 +213,51 @@ const TABLET_HERO_MASONRY_COLUMNS = [
 
 const subscribeToHydration = () => () => { };
 
-const HeroTypingHeadlineLine: React.FC<{ className?: string }> = ({ className = '' }) => {
-    const [phraseIndex, setPhraseIndex] = useState(0);
+type HeroUploadState = 'idle' | 'analyzing' | 'done' | 'error';
+
+type HeroAnalysisSummary = {
+    price: number | null;
+    size: string | null;
+    availability: 'rush' | 'same-day' | 'normal' | null;
+    slug: string | null;
+};
+
+const HeroTypingHeadlineLine: React.FC<{ className?: string; controlledPhraseIndex?: number }> = ({ className = '', controlledPhraseIndex }) => {
+    const [phraseIndex, setPhraseIndex] = useState(controlledPhraseIndex ?? 0);
     const [displayText, setDisplayText] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
+    const prevControlledRef = useRef(controlledPhraseIndex);
+    const pendingIndexRef = useRef<number | null>(null);
+
+    // When the controlled index changes externally, queue deletion + re-type
+    useEffect(() => {
+        if (controlledPhraseIndex !== undefined && controlledPhraseIndex !== prevControlledRef.current) {
+            prevControlledRef.current = controlledPhraseIndex;
+            pendingIndexRef.current = controlledPhraseIndex;
+            const timeoutId = setTimeout(() => setIsDeleting(true), 0);
+            return () => clearTimeout(timeoutId);
+        }
+    }, [controlledPhraseIndex]);
 
     useEffect(() => {
         const currentPhrase = HERO_HEADLINE_VARIANTS[phraseIndex];
         let timeoutId: ReturnType<typeof setTimeout>;
 
         if (!isDeleting && displayText === currentPhrase) {
+            // Controlled mode with no pending change — stay on current phrase
+            if (controlledPhraseIndex !== undefined && pendingIndexRef.current === null) return;
             timeoutId = setTimeout(() => setIsDeleting(true), 900);
         } else if (isDeleting && displayText.length === 0) {
             timeoutId = setTimeout(() => {
                 setIsDeleting(false);
-                setPhraseIndex((currentIndex) => (currentIndex + 1) % HERO_HEADLINE_VARIANTS.length);
+                if (pendingIndexRef.current !== null) {
+                    // Switch to the requested phrase
+                    setPhraseIndex(pendingIndexRef.current);
+                    pendingIndexRef.current = null;
+                } else if (controlledPhraseIndex === undefined) {
+                    // Free-running auto-cycle
+                    setPhraseIndex((currentIndex) => (currentIndex + 1) % HERO_HEADLINE_VARIANTS.length);
+                }
             }, 150);
         } else {
             timeoutId = setTimeout(() => {
@@ -187,7 +267,7 @@ const HeroTypingHeadlineLine: React.FC<{ className?: string }> = ({ className = 
         }
 
         return () => clearTimeout(timeoutId);
-    }, [displayText, isDeleting, phraseIndex]);
+    }, [displayText, isDeleting, phraseIndex, controlledPhraseIndex]);
 
     return (
         <span className={className} aria-label={HERO_HEADLINE_A11Y_LABEL}>
@@ -205,11 +285,13 @@ function DesktopHeroCollectionCard({
     slug,
     sampleImage,
     index,
+    className,
 }: {
     title: string;
     slug: string;
     sampleImage: string;
     index: number;
+    className?: string;
 }) {
     const style = DESKTOP_HERO_CARD_STYLES[index % DESKTOP_HERO_CARD_STYLES.length];
 
@@ -217,29 +299,240 @@ function DesktopHeroCollectionCard({
         <Link
             href={`/collections/${slug}`}
             onClick={() => trackSelectItem({ item_list_name: 'hero_collections', item_id: slug, item_name: title })}
-            className="group relative block w-full self-start overflow-hidden rounded-[1.35rem] border border-white/75 bg-white/80 shadow-[0_18px_44px_-34px_rgba(88,28,135,0.72)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_52px_-30px_rgba(88,28,135,0.78)]"
+            className={`group relative block w-full self-start overflow-hidden rounded-[1.35rem] border border-white/75 bg-white/80 shadow-[0_18px_44px_-34px_rgba(88,28,135,0.72)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_52px_-30px_rgba(88,28,135,0.78)] ${className || ''}`}
         >
-            <div className="relative overflow-hidden">
+            <div className="relative aspect-[4/5] overflow-hidden">
                 {sampleImage ? (
                     <img
                         src={sampleImage}
                         alt={`${title} collection`}
                         loading="lazy"
-                        className="block w-full h-auto transition-transform duration-700 group-hover:scale-105"
+                        className="block h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
                 ) : (
-                    <div className={`aspect-square min-h-[168px] bg-linear-to-br ${style.placeholderClassName}`} />
+                    <div className={`h-full w-full bg-linear-to-br ${style.placeholderClassName}`} />
                 )}
                 <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/30 to-transparent" />
                 <div className={`absolute inset-0 bg-linear-to-br ${style.tintClassName} opacity-80 mix-blend-screen`} />
 
                 <div className="absolute inset-x-0 bottom-0 p-3 lg:p-3.5">
-                    <h3 className="max-w-[90%] text-[0.8rem] lg:text-[0.88rem] font-semibold leading-tight text-white">
+                    <h3 className="line-clamp-2 max-w-[94%] text-[0.72rem] font-semibold leading-tight text-white md:line-clamp-1 lg:text-[0.82rem] xl:text-[0.88rem]">
                         {title}
                     </h3>
                 </div>
             </div>
         </Link>
+    );
+}
+
+function HeroProductCrossfadeImage({ heroProductIndex }: { heroProductIndex: number }) {
+    return (
+        <>
+            {HERO_PRODUCTS.map((product, index) => (
+                <img
+                    key={product.title}
+                    src={product.image}
+                    alt={index === heroProductIndex ? `${product.title} example` : ''}
+                    aria-hidden={index !== heroProductIndex}
+                    className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-in-out ${index === heroProductIndex ? 'opacity-100' : 'opacity-0'
+                        }`}
+                    loading={index === 0 ? 'eager' : 'lazy'}
+                />
+            ))}
+        </>
+    );
+}
+
+function HeroProductPreviewStack({
+    heroProductIndex,
+    heroUploadState,
+    heroUploadedImageSrc,
+    heroProgressAnimate,
+    heroAnalysis,
+    heroUploadError,
+    onPrev,
+    onNext,
+    onSelectProduct,
+    onOpenUploader,
+    onResetUpload,
+    onResultAction,
+}: {
+    heroProductIndex: number;
+    heroUploadState: HeroUploadState;
+    heroUploadedImageSrc: string | null;
+    heroProgressAnimate: boolean;
+    heroAnalysis: HeroAnalysisSummary;
+    heroUploadError: string | null;
+    onPrev: () => void;
+    onNext: () => void;
+    onSelectProduct: (index: number) => void;
+    onOpenUploader: () => void;
+    onResetUpload: () => void;
+    onResultAction: () => void;
+}) {
+    if (heroUploadState === 'idle') {
+        return (
+            <>
+                <div className="relative mx-auto w-full max-w-[480px]">
+                    <div className="overflow-hidden rounded-3xl border border-neutral-100 bg-white shadow-xl">
+                        <div className="relative aspect-[5/4] w-full overflow-hidden">
+                            <HeroProductCrossfadeImage heroProductIndex={heroProductIndex} />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+                                {HERO_PRODUCTS.map((_, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => onSelectProduct(i)}
+                                        aria-label={`View ${HERO_PRODUCTS[i].title}`}
+                                        className={`h-1.5 rounded-full transition-all duration-300 ${i === heroProductIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/55 hover:bg-white/80'
+                                            }`}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <button
+                        onClick={onPrev}
+                        aria-label="Previous cake design"
+                        className="absolute left-2 top-[45%] z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-lg transition-all active:scale-95"
+                    >
+                        <ChevronLeft size={18} />
+                    </button>
+                    <button
+                        onClick={onNext}
+                        aria-label="Next cake design"
+                        className="absolute right-2 top-[45%] z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-lg transition-all active:scale-95"
+                    >
+                        <ChevronRight size={18} />
+                    </button>
+                </div>
+
+                <div className="mx-auto w-full max-w-[480px] overflow-hidden rounded-3xl border border-neutral-100 bg-white shadow-xl">
+                    <div className="flex items-center justify-center gap-2 border-b border-blue-200/50 bg-blue-100 px-4 py-2">
+                        <Clock className="h-3 w-3 text-blue-800" />
+                        <span className="text-[9px] font-bold uppercase tracking-wide text-blue-800">Same-Day Order! Ready in 3 hours</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 px-5 py-3">
+                        <div className="flex min-w-0 flex-col">
+                            <p key={`mobile-price-${heroProductIndex}`} className="text-2xl font-black leading-none tracking-tight text-neutral-900 animate-in fade-in slide-in-from-bottom-1 duration-300">
+                                ₱{HERO_PRODUCTS[heroProductIndex].price.toLocaleString()}
+                            </p>
+                            <p key={`mobile-size-${heroProductIndex}`} className="mt-1 text-[11px] font-bold uppercase tracking-tight text-neutral-500 animate-in fade-in duration-300">
+                                {HERO_PRODUCTS[heroProductIndex].size}
+                            </p>
+                        </div>
+                        <button
+                            onClick={onOpenUploader}
+                            className="shrink-0 whitespace-nowrap rounded-2xl bg-purple-400 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-white shadow-md transition-all active:scale-[0.98]"
+                        >
+                            customize cake
+                        </button>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
+    return (
+        <>
+            <div className="relative mx-auto w-full max-w-[480px]">
+                <div className="overflow-hidden rounded-3xl border border-neutral-100 bg-white shadow-xl">
+                    <div className="relative aspect-[5/4] w-full overflow-hidden">
+                        {heroUploadedImageSrc && (
+                            <img
+                                src={heroUploadedImageSrc}
+                                alt="Your uploaded cake design"
+                                className="h-full w-full object-cover animate-in fade-in duration-500"
+                            />
+                        )}
+                        {heroUploadState === 'analyzing' && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-black/70 via-black/10 to-transparent px-5 pb-5">
+                                <div className="w-full space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-white" />
+                                        <span className="text-[11px] font-bold uppercase tracking-widest text-white">Analyzing your cake design...</span>
+                                    </div>
+                                    <div className="h-1.5 overflow-hidden rounded-full bg-white/20">
+                                        <div
+                                            className="h-full rounded-full bg-gradient-to-r from-purple-400 to-purple-500"
+                                            style={{
+                                                width: heroProgressAnimate ? '100%' : '0%',
+                                                transition: heroProgressAnimate ? 'width 11s linear' : 'none',
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        {heroUploadState === 'done' && (
+                            <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-green-500/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow">
+                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                Analysis complete
+                            </div>
+                        )}
+                    </div>
+                </div>
+                <button
+                    onClick={onResetUpload}
+                    aria-label="Back to cake designs"
+                    className="absolute -right-3 -top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500 shadow transition-all hover:text-neutral-900"
+                >
+                    <X size={14} />
+                </button>
+            </div>
+
+            <div className="mx-auto w-full max-w-[480px] overflow-hidden rounded-3xl border border-neutral-100 bg-white shadow-xl">
+                {heroUploadState === 'analyzing' ? (
+                    <div className="flex items-center justify-center gap-2 border-b border-neutral-200 bg-neutral-100 px-4 py-2">
+                        <Loader2 className="h-3 w-3 animate-spin text-neutral-500" />
+                        <span className="text-[9px] font-bold uppercase tracking-wide text-neutral-500">Calculating availability...</span>
+                    </div>
+                ) : heroUploadState === 'error' ? (
+                    <div className="bg-red-50 px-3 py-2 text-center text-[9px] font-bold uppercase tracking-wide text-red-700">
+                        {heroUploadError ?? 'AI analysis is temporarily unavailable.'}
+                    </div>
+                ) : heroAnalysis.availability === 'rush' ? (
+                    <div className="bg-green-100 p-1.5 text-center text-[9px] font-bold text-green-800">
+                        Rush Order Available! Ready in 30 mins
+                    </div>
+                ) : heroAnalysis.availability === 'same-day' ? (
+                    <div className="bg-blue-100 p-1.5 text-center text-[9px] font-bold text-blue-800">
+                        Same-Day Order! Ready in 3 hours
+                    </div>
+                ) : (
+                    <div className="bg-slate-100 p-1.5 text-center text-[9px] font-bold text-slate-700">
+                        Standard order. Receive this by tomorrow
+                    </div>
+                )}
+
+                <div className="flex items-center justify-between gap-3 px-5 py-3">
+                    <div className="flex min-w-0 flex-col">
+                        {heroUploadState === 'analyzing' ? (
+                            <>
+                                <div className="h-7 w-24 rounded-lg bg-neutral-100 animate-pulse" />
+                                <div className="mt-1.5 h-3 w-32 rounded bg-neutral-100 animate-pulse" />
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-2xl font-black leading-none tracking-tight text-neutral-900 animate-in fade-in slide-in-from-bottom-1 duration-300">
+                                    {heroUploadState === 'error' ? 'Unavailable' : heroAnalysis.price != null ? `₱${heroAnalysis.price.toLocaleString()}` : '-'}
+                                </p>
+                                <p className="mt-1 text-[11px] font-bold uppercase tracking-tight text-neutral-500 animate-in fade-in duration-300">
+                                    {heroUploadState === 'error' ? 'Please try again later' : heroAnalysis.size ?? 'Starting price'}
+                                </p>
+                            </>
+                        )}
+                    </div>
+                    <button
+                        disabled={heroUploadState === 'analyzing' || (heroUploadState !== 'error' && !heroAnalysis.slug)}
+                        onClick={onResultAction}
+                        className="shrink-0 whitespace-nowrap rounded-2xl bg-purple-400 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-white shadow-md transition-all active:scale-[0.98] disabled:cursor-wait disabled:opacity-40"
+                    >
+                        {heroUploadState === 'analyzing' ? 'Analyzing...' : heroUploadState === 'error' ? 'Upload another' : 'Customize cake'}
+                    </button>
+                </div>
+            </div>
+        </>
     );
 }
 
@@ -288,25 +581,25 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
         const handleScroll = () => {
             const priceHeading = document.getElementById('price-change-heading');
             const rushHeading = document.getElementById('rush-orders-heading');
-            
+
             if (!priceHeading || !rushHeading) return;
-            
+
             const screenHeight = window.innerHeight;
             const priceRect = priceHeading.getBoundingClientRect();
             const rushRect = rushHeading.getBoundingClientRect();
-            
+
             const priceTriggerPoint = screenHeight * 0.5;
             const rushTriggerPoint = screenHeight * 0.75;
-            
+
             const priceAtThreshold = priceRect.top <= priceTriggerPoint && priceRect.bottom > 0;
             const rushAtThreshold = rushRect.top <= rushTriggerPoint && rushRect.bottom > 0;
-            
+
             setIsDemoVisible(priceAtThreshold && !rushAtThreshold);
         };
-        
+
         window.addEventListener('scroll', handleScroll, { passive: true });
         handleScroll();
-        
+
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
@@ -482,181 +775,177 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
 
     return (
         <div ref={demoRef}>
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
-            {/* Left: Cake Preview */}
-            <div className="lg:col-span-3 relative">
-                {/* Live Demo badge */}
-                <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-[10px] font-semibold text-slate-700">Live Demo</span>
-                </div>
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
+                {/* Left: Cake Preview */}
+                <div className="lg:col-span-3 relative">
+                    {/* Live Demo badge */}
+                    <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md">
+                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        <span className="text-[10px] font-semibold text-slate-700">Live Demo</span>
+                    </div>
 
-                {/* Cake image */}
-                <div className={`relative w-full aspect-4/3 overflow-hidden bg-linear-to-br from-slate-100 to-slate-50 transition-all duration-300 group-hover:scale-[1.02] shadow-sm rounded-3xl`}>
-                    <img
-                        src={displayedImageSrc}
-                        alt={`${tier.label} cake preview`}
-                        className="w-full h-full object-cover"
-                        style={{ opacity: imgVisible ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
-                    />
+                    {/* Cake image */}
+                    <div className={`relative w-full aspect-4/3 overflow-hidden bg-linear-to-br from-slate-100 to-slate-50 transition-all duration-300 group-hover:scale-[1.02] shadow-sm rounded-3xl`}>
+                        <img
+                            src={displayedImageSrc}
+                            alt={`${tier.label} cake preview`}
+                            className="w-full h-full object-cover"
+                            style={{ opacity: imgVisible ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
+                        />
 
-                    {/* Floating annotation during auto-play */}
-                    {annotation && (
-                        <div
-                            key={annotationKey}
-                            className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg animate-annotation-fade-in"
-                        >
-                            <span className="text-[10px] font-bold text-purple-600">{annotation}</span>
-                        </div>
-                    )}
-
-                    {/* Message overlay */}
-                    {cakeMessage && !showPriceBadge && (
-                        <div className="absolute bottom-4 right-4 bg-white/85 backdrop-blur-sm rounded-xl px-4 py-2.5 shadow-md border border-purple-200 animate-annotation-fade-in whitespace-nowrap">
-                            <span className="text-[10px] text-slate-400 block mb-0.5">Cake message</span>
-                            <span className="text-sm font-semibold text-slate-800">
-                                {cakeMessage}
-                                {showTypingCursor && <span className="text-purple-500 animate-pulse">|</span>}
-                            </span>
-                        </div>
-                    )}
-
-                    {/* Price badge overlay */}
-                    {showPriceBadge && (
-                        <div className="absolute inset-0 flex items-center justify-center animate-annotation-fade-in">
-                            <div className="bg-linear-to-r from-purple-600 to-pink-500 rounded-2xl px-6 py-4 shadow-2xl flex flex-col items-center gap-2">
-                                <span className="text-3xl font-extrabold text-white tracking-tight">₱{totalPrice.toLocaleString()}</span>
-                                <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-2">
-                                    <ShoppingBag size={15} className="text-purple-600" />
-                                    <span className="text-sm font-bold text-purple-700">Add to Cart</span>
-                                </div>
+                        {/* Floating annotation during auto-play */}
+                        {annotation && (
+                            <div
+                                key={annotationKey}
+                                className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg animate-annotation-fade-in"
+                            >
+                                <span className="text-[10px] font-bold text-purple-400">{annotation}</span>
                             </div>
-                        </div>
-                    )}
-                </div>
+                        )}
 
-            </div>
-
-            {/* Right: Options Panel */}
-            <div className="lg:col-span-2 flex flex-col gap-3">
-                {/* Cake Type */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 shadow-sm border border-slate-100">
-                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Cake Type</label>
-                    <div className="flex gap-2">
-                        {tiers.map((t, i) => (
-                            <button
-                                key={t.label}
-                                onClick={() => handleTierClick(i)}
-                                className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                                    selectedTier === i
-                                        ? 'bg-purple-600 text-white shadow-md scale-[1.02]'
-                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                } ${highlightedOption === t.label ? 'animate-option-glow' : ''}`}
-                            >
-                                {t.label}
-                                <span className="block text-[10px] opacity-70">₱{t.price.toLocaleString()}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-
-                {/* Icing Details */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 shadow-sm border border-slate-100">
-                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Icing Details</label>
-                    <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 pt-1 px-1 -mx-1">
-                        {icings.map((ic) => (
-                            <button
-                                key={ic.label}
-                                onClick={() => handleIcingToggle(ic.label)}
-                                className={`shrink-0 flex flex-col items-center gap-1 min-w-[46px] ${highlightedOption === ic.label ? 'animate-option-glow rounded-full' : ''}`}
-                            >
-                                <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden bg-white p-2 shadow-sm flex items-center justify-center transition-all duration-200 ${
-                                    icingOn[ic.label]
-                                        ? 'ring-2 ring-purple-500 bg-purple-50'
-                                        : 'hover:border-purple-300'
-                                } ${highlightedOption === ic.label ? 'ring-2 ring-purple-400' : ''}`}>
-                                    <img src={ic.src} alt={ic.label} className="w-full h-full object-contain" />
-                                </div>
-                                <span className="text-[9px] text-center text-slate-600 font-medium leading-tight max-w-[52px] line-clamp-2 mt-0.5">{ic.label}</span>
-                                {ic.addonPrice > 0 && (
-                                    <span className="text-[8px] text-purple-500 font-semibold">+₱{ic.addonPrice}</span>
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Toppers */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3 shadow-sm border border-slate-100">
-                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Toppers</label>
-                    <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 pt-0.5 px-1 -mx-1">
-                        {toppers.map((tp) => (
-                            <button
-                                key={tp.label}
-                                onClick={() => handleTopperToggle(tp.label)}
-                                className={`shrink-0 flex flex-col items-center gap-0 p-1 rounded-lg transition-all duration-200 ${
-                                    selectedToppers.has(tp.label)
-                                        ? 'bg-purple-50 border-2 border-purple-400'
-                                        : 'bg-slate-50 border-2 border-transparent hover:border-slate-200'
-                                } ${highlightedOption === tp.label ? 'animate-option-glow' : ''}`}
-                            >
-                                <span className="text-base leading-tight">{tp.emoji}</span>
-                                <span className="text-[8px] font-medium text-slate-600 mt-0.5">{tp.label}</span>
-                                <span className="text-[8px] text-purple-500 font-semibold">+₱100</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Cake Message */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 shadow-sm border border-slate-100">
-                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Cake Message</label>
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200">
-                        <span className="text-[10px] font-bold text-purple-500 uppercase tracking-wider shrink-0">TOP</span>
-                        <span className="text-sm text-slate-700 flex-1 truncate">
-                            {cakeMessage || <span className="text-slate-400 italic">Your message here...</span>}
-                            {showTypingCursor && <span className="text-purple-500 animate-pulse font-bold">|</span>}
-                        </span>
-                        <div className="w-3 h-3 rounded-full bg-pink-400 shrink-0 shadow-sm" />
-                    </div>
-                </div>
-
-                {/* Price Bar */}
-                <div className="bg-linear-to-r from-purple-600 to-pink-500 rounded-2xl p-3.5 shadow-xl">
-                    <div className="flex items-center justify-between gap-3">
-                        <div>
-                            <div className="relative h-8 overflow-hidden flex items-center">
-                                <span
-                                    key={totalPrice}
-                                    className={`text-xl font-extrabold text-white inline-block ${
-                                        priceDirection === 'up' ? 'animate-price-slide-in-up' :
-                                        priceDirection === 'down' ? 'animate-price-slide-in-down' : ''
-                                    }`}
-                                >
-                                    ₱{totalPrice.toLocaleString()}
+                        {/* Message overlay */}
+                        {cakeMessage && !showPriceBadge && (
+                            <div className="absolute bottom-4 right-4 bg-white/85 backdrop-blur-sm rounded-xl px-4 py-2.5 shadow-md border border-purple-200 animate-annotation-fade-in whitespace-nowrap">
+                                <span className="text-[10px] text-slate-400 block mb-0.5">Cake message</span>
+                                <span className="text-sm font-semibold text-slate-800">
+                                    {cakeMessage}
+                                    {showTypingCursor && <span className="text-purple-500 animate-pulse">|</span>}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                                <span className="text-[11px] text-white/80 font-medium">Same-day delivery</span>
+                        )}
+
+                        {/* Price badge overlay */}
+                        {showPriceBadge && (
+                            <div className="absolute inset-0 flex items-center justify-center animate-annotation-fade-in">
+                                <div className="bg-purple-400 rounded-2xl px-6 py-4 shadow-2xl flex flex-col items-center gap-2">
+                                    <span className="text-3xl font-extrabold text-white tracking-tight">₱{totalPrice.toLocaleString()}</span>
+                                    <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-2">
+                                        <ShoppingBag size={15} className="text-purple-400" />
+                                        <span className="text-sm font-bold text-purple-700">Add to Cart</span>
+                                    </div>
+                                </div>
                             </div>
+                        )}
+                    </div>
+
+                </div>
+
+                {/* Right: Options Panel */}
+                <div className="lg:col-span-2 flex flex-col gap-3">
+                    {/* Cake Type */}
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 shadow-sm border border-slate-100">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Cake Type</label>
+                        <div className="flex gap-2">
+                            {tiers.map((t, i) => (
+                                <button
+                                    key={t.label}
+                                    onClick={() => handleTierClick(i)}
+                                    className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${selectedTier === i
+                                            ? 'bg-purple-400 text-white shadow-md scale-[1.02]'
+                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                        } ${highlightedOption === t.label ? 'animate-option-glow' : ''}`}
+                                >
+                                    {t.label}
+                                    <span className="block text-[10px] opacity-70">₱{t.price.toLocaleString()}</span>
+                                </button>
+                            ))}
                         </div>
-                        <button
-                            onClick={onTryItClick}
-                            className="flex bg-white text-purple-700 font-bold py-2 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] text-sm whitespace-nowrap items-center gap-1.5"
-                        >
-                            Try It Yourself
-                            <ArrowRight size={14} />
-                        </button>
+                    </div>
+
+
+                    {/* Icing Details */}
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 shadow-sm border border-slate-100">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Icing Details</label>
+                        <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 pt-1 px-1 -mx-1">
+                            {icings.map((ic) => (
+                                <button
+                                    key={ic.label}
+                                    onClick={() => handleIcingToggle(ic.label)}
+                                    className={`shrink-0 flex flex-col items-center gap-1 min-w-[46px] ${highlightedOption === ic.label ? 'animate-option-glow rounded-full' : ''}`}
+                                >
+                                    <div className={`w-12 h-12 rounded-full border border-slate-200 overflow-hidden bg-white p-2 shadow-sm flex items-center justify-center transition-all duration-200 ${icingOn[ic.label]
+                                            ? 'ring-2 ring-purple-500 bg-purple-50'
+                                            : 'hover:border-purple-300'
+                                        } ${highlightedOption === ic.label ? 'ring-2 ring-purple-400' : ''}`}>
+                                        <img src={ic.src} alt={ic.label} className="w-full h-full object-contain" />
+                                    </div>
+                                    <span className="text-[9px] text-center text-slate-600 font-medium leading-tight max-w-[52px] line-clamp-2 mt-0.5">{ic.label}</span>
+                                    {ic.addonPrice > 0 && (
+                                        <span className="text-[8px] text-purple-500 font-semibold">+₱{ic.addonPrice}</span>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Toppers */}
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3 shadow-sm border border-slate-100">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Toppers</label>
+                        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 pt-0.5 px-1 -mx-1">
+                            {toppers.map((tp) => (
+                                <button
+                                    key={tp.label}
+                                    onClick={() => handleTopperToggle(tp.label)}
+                                    className={`shrink-0 flex flex-col items-center gap-0 p-1 rounded-lg transition-all duration-200 ${selectedToppers.has(tp.label)
+                                            ? 'bg-purple-50 border-2 border-purple-400'
+                                            : 'bg-slate-50 border-2 border-transparent hover:border-slate-200'
+                                        } ${highlightedOption === tp.label ? 'animate-option-glow' : ''}`}
+                                >
+                                    <span className="text-base leading-tight">{tp.emoji}</span>
+                                    <span className="text-[8px] font-medium text-slate-600 mt-0.5">{tp.label}</span>
+                                    <span className="text-[8px] text-purple-500 font-semibold">+₱100</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Cake Message */}
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 shadow-sm border border-slate-100">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Cake Message</label>
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200">
+                            <span className="text-[10px] font-bold text-purple-500 uppercase tracking-wider shrink-0">TOP</span>
+                            <span className="text-sm text-slate-700 flex-1 truncate">
+                                {cakeMessage || <span className="text-slate-400 italic">Your message here...</span>}
+                                {showTypingCursor && <span className="text-purple-500 animate-pulse font-bold">|</span>}
+                            </span>
+                            <div className="w-3 h-3 rounded-full bg-pink-400 shrink-0 shadow-sm" />
+                        </div>
+                    </div>
+
+                    {/* Price Bar */}
+                    <div className="bg-purple-400 rounded-2xl p-3.5 shadow-xl">
+                        <div className="flex items-center justify-between gap-3">
+                            <div>
+                                <div className="relative h-8 overflow-hidden flex items-center">
+                                    <span
+                                        key={totalPrice}
+                                        className={`text-xl font-extrabold text-white inline-block ${priceDirection === 'up' ? 'animate-price-slide-in-up' :
+                                                priceDirection === 'down' ? 'animate-price-slide-in-down' : ''
+                                            }`}
+                                    >
+                                        ₱{totalPrice.toLocaleString()}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                                    <span className="text-[11px] text-white/80 font-medium">Same-day delivery</span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={onTryItClick}
+                                className="flex bg-white text-purple-700 font-bold py-2 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] text-sm whitespace-nowrap items-center gap-1.5"
+                            >
+                                Try It Yourself
+                                <ArrowRight size={14} />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        {/* Sticky mobile price bar — visible only while demo section is on screen */}
-        <div className={`lg:hidden fixed bottom-20 left-0 right-0 z-50 px-4 transition-all duration-500 ${isDemoVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-            <div className="bg-linear-to-r from-purple-600 to-pink-500 rounded-2xl p-3.5 shadow-2xl flex items-center justify-between gap-3">
+            {/* Sticky mobile price bar — visible only while demo section is on screen */}
+            <div className={`lg:hidden fixed bottom-20 left-0 right-0 z-50 px-4 transition-all duration-500 ${isDemoVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+                <div className="bg-purple-400 rounded-2xl p-3.5 shadow-2xl flex items-center justify-between gap-3">
                     <div>
                         <span className="text-xl font-extrabold text-white">₱{totalPrice.toLocaleString()}</span>
                         <div className="flex items-center gap-1.5 mt-0.5">
@@ -695,7 +984,7 @@ const DiscountCapture = () => {
     return null;
 };
 
-const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns = [], heroCollections = [], blogPosts = [], reviews = [] }) => {
+const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections = [], blogPosts = [], reviews = [] }) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
@@ -705,8 +994,78 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     const [reviewZoomSrc, setReviewZoomSrc] = useState<string | null>(null);
     const [isInteracting, setIsInteracting] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const heroMobilePreviewRef = useRef<HTMLElement>(null);
     const uploadToastId = useRef<string | null>(null);
     const isMounted = React.useSyncExternalStore(subscribeToHydration, () => true, () => false);
+
+    const [heroProductIndex, setHeroProductIndex] = useState(0);
+
+    // ── Hero upload analysis state ─────────────────────────────────────────
+    const [heroUploadState, setHeroUploadState] = useState<HeroUploadState>('idle');
+    const [heroUploadedImageSrc, setHeroUploadedImageSrc] = useState<string | null>(null);
+    const [heroProgressAnimate, setHeroProgressAnimate] = useState(false);
+    const [heroAnalysis, setHeroAnalysis] = useState<HeroAnalysisSummary>({ price: null, size: null, availability: null, slug: null });
+    const [heroUploadError, setHeroUploadError] = useState<string | null>(null);
+    // ───────────────────────────────────────────────────────────────────────
+
+    const handleHeroPrev = useCallback(() => {
+        setHeroProductIndex((prev) => (prev - 1 + HERO_PRODUCTS.length) % HERO_PRODUCTS.length);
+    }, []);
+
+    const handleHeroNext = useCallback(() => {
+        setHeroProductIndex((prev) => (prev + 1) % HERO_PRODUCTS.length);
+    }, []);
+
+    const resetHeroUploadPreview = useCallback(() => {
+        setHeroUploadState('idle');
+        setHeroUploadedImageSrc(null);
+        setHeroUploadError(null);
+    }, []);
+
+    const handleHeroResultAction = useCallback(() => {
+        if (heroUploadState === 'error') {
+            resetHeroUploadPreview();
+            setIsUploaderOpen(true);
+            return;
+        }
+
+        if (heroAnalysis.slug) {
+            router.push(`/customizing/${heroAnalysis.slug}`);
+        }
+    }, [heroAnalysis.slug, heroUploadState, resetHeroUploadPreview, router]);
+
+    const scrollToHeroMobilePreview = useCallback(() => {
+        if (typeof window === 'undefined' || !window.matchMedia('(max-width: 767px)').matches) {
+            return;
+        }
+
+        window.setTimeout(() => {
+            window.requestAnimationFrame(() => {
+                heroMobilePreviewRef.current?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start',
+                });
+            });
+        }, 180);
+    }, []);
+
+    // Auto-advance carousel every 4 s; pauses while upload analysis is running
+    useEffect(() => {
+        if (heroUploadState !== 'idle') return;
+        const timer = setTimeout(() => {
+            setHeroProductIndex((prev) => (prev + 1) % HERO_PRODUCTS.length);
+        }, 4000);
+        return () => clearTimeout(timer);
+    }, [heroProductIndex, heroUploadState]);
+
+    // Trigger progress-bar CSS transition one tick after analysis starts
+    useEffect(() => {
+        const t = setTimeout(
+            () => setHeroProgressAnimate(heroUploadState === 'analyzing'),
+            heroUploadState === 'analyzing' ? 50 : 0
+        );
+        return () => clearTimeout(t);
+    }, [heroUploadState]);
 
     const { itemCount } = useCart();
     const { user, isAuthenticated } = useAuth();
@@ -734,67 +1093,129 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
     };
 
     const handleAppImageUpload = useCallback((file: File) => {
-        if (isUploading) return;
-
-        const uploadToSupabase = async () => {
-            const supabase = getSupabaseClient();
-            const ext = file.name.split('.').pop() || 'jpg';
-            const filename = `customizations/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
-
-            try {
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('cakegenie')
-                    .upload(filename, file);
-
-                if (uploadError) {
-                    console.error('Upload failed:', uploadError);
-                    showError('Failed to upload. Please try again.');
-                    return null;
-                }
-
-                const { data: urlData } = supabase.storage
-                    .from('cakegenie')
-                    .getPublicUrl(uploadData.path);
-
-                return urlData.publicUrl;
-            } catch (err) {
-                console.error('Upload catch error:', err);
-                showError('Failed to upload. Please try again.');
-                return null;
-            }
-        };
-
         const processUpload = async () => {
-            setIsUploading(true);
-            uploadToastId.current = showLoading('Uploading your design...');
+            // 1. Show the uploaded image immediately
+            const objectUrl = URL.createObjectURL(file);
+            setHeroUploadedImageSrc(objectUrl);
+            setHeroUploadState('analyzing');
+            setHeroAnalysis({ price: null, size: null, availability: null, slug: null });
+            setHeroUploadError(null);
+            scrollToHeroMobilePreview();
+            trackImageUpload('landing');
+
+            // 2. Compress the image before analysis and caching
+            let finalFileToCache = file;
+            let imageData = await fileToBase64(file);
 
             try {
-                const publicUrl = await uploadToSupabase();
+                // Compress to standard size (same as customizer)
+                const compressedFile = await compressImage(file, {
+                    maxSizeMB: 0.5,
+                    maxWidthOrHeight: 1024,
+                    fileType: 'image/webp',
+                });
+                finalFileToCache = compressedFile;
+                imageData = await fileToBase64(compressedFile);
+            } catch (compressionErr) {
+                console.warn("Failed to compress hero image, using original", compressionErr);
+            }
 
-                if (publicUrl) {
-                    trackImageUpload('landing');
-                    const encodedUrl = encodeURIComponent(publicUrl);
-                    // Clear stale image data before navigating so the customizing page
-                    // doesn't briefly show a previously-uploaded image from IndexedDB.
-                    const { clearIndexedDB } = await import('@/lib/utils/storage');
-                    await clearIndexedDB();
-                    if (uploadToastId.current) {
-                        toast.dismiss(uploadToastId.current);
-                        uploadToastId.current = null;
-                    }
-                    router.push(`/customizing?ref=${encodedUrl}&source=landing`);
+            const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
+
+            // 3. Minimum 11-second UX timer runs concurrently
+            const minTimer = new Promise<void>(r => setTimeout(r, 11000));
+
+            // 4. pHash → cache lookup
+            const pHash = await generatePerceptualHash(imageSrc);
+            const cacheHit = pHash ? await findSimilarAnalysisByHash(pHash) : null;
+
+            let slug: string | null = null;
+            let price: number | null = null;
+            let size: string | null = null;
+            let availability: 'rush' | 'same-day' | 'normal' | null = null;
+
+            if (cacheHit) {
+                // ⚡ Cache hit — pull everything from stored metadata
+                slug = cacheHit.seoMetadata.slug ?? null;
+                price = cacheHit.seoMetadata.price ?? null;
+                availability = (cacheHit.seoMetadata.availability as 'rush' | 'same-day' | 'normal') ?? null;
+                try {
+                    const prices = await getCakeBasePriceOptions(
+                        cacheHit.analysisResult.cakeType,
+                        cacheHit.analysisResult.cakeThickness
+                    );
+                    size = prices.length > 0 ? `${prices[0].size} ${cacheHit.analysisResult.cakeThickness.replace(' in', '"')} Height` : null;
+                } catch { /* non-critical */ }
+
+                // ⚡ Background Enhancement: If cache hit is missing coordinate data, enrich it now
+                if (pHash && !hasBoundingBoxData(cacheHit.analysisResult)) {
+                    (async () => {
+                        try {
+                            const enriched = await enrichAnalysisWithRoboflow(imageData.data, imageData.mimeType, cacheHit.analysisResult);
+                            await cacheAnalysisResult(pHash, enriched);
+                            console.log('✅ Background enrichment completed for cache hit.');
+                        } catch (e) {
+                            console.warn('❌ Background enrichment failed:', e);
+                        }
+                    })();
                 }
-            } finally {
-                setIsUploading(false);
-                if (uploadToastId.current) {
-                    toast.dismiss(uploadToastId.current);
-                    uploadToastId.current = null;
+            } else {
+                // 🤖 Cache miss — run the real AI analysis (same as customizing page)
+                const analysis = await analyzeCakeFeaturesOnly(imageData.data, imageData.mimeType);
+
+                if (analysis && !analysis.rejection?.isRejected) {
+                    // Get pricing size label
+                    try {
+                        const prices = await getCakeBasePriceOptions(analysis.cakeType, analysis.cakeThickness);
+                        size = prices.length > 0 ? `${prices[0].size} ${analysis.cakeThickness.replace(' in', '"')} Height` : null;
+                    } catch { /* non-critical */ }
+
+                    // Compute availability (same logic as customizing page)
+                    availability = getDesignAvailability({
+                        cakeType: analysis.cakeType,
+                        cakeSize: size ?? '6" Round',
+                        icingBase: analysis.icing_design?.base ?? 'soft_icing',
+                        drip: analysis.icing_design?.drip ?? false,
+                        gumpasteBaseBoard: analysis.icing_design?.gumpasteBaseBoard ?? false,
+                        mainToppers: (analysis.main_toppers ?? []).map((t) => ({ type: t.type, description: t.description ?? '' })),
+                        supportElements: (analysis.support_elements ?? []).map((s) => ({ type: s.type, description: s.description ?? '' })),
+                    });
+
+                    // Cache Phase 1 results immediately so user gets a slug
+                    const cacheResultData = pHash ? await cacheAnalysisResult(pHash, analysis, undefined, finalFileToCache) : null;
+                    slug = cacheResultData?.slug ?? null;
+
+                    // 🤖 Phase 2: Background Coordinate Enrichment (Roboflow)
+                    // We don't block the UI for this; it just makes the transition more polished
+                    if (pHash) {
+                        (async () => {
+                            try {
+                                const enriched = await enrichAnalysisWithRoboflow(imageData.data, imageData.mimeType, analysis);
+                                await cacheAnalysisResult(pHash, enriched);
+                                console.log('✅ Background enrichment completed for new upload.');
+                            } catch (e) {
+                                console.warn('❌ Background enrichment failed:', e);
+                            }
+                        })();
+                    }
                 }
             }
+
+            // 5. Enforce minimum timer before revealing results
+            await minTimer;
+
+            setHeroAnalysis({ price, size, availability, slug });
+            setHeroUploadState(slug ? 'done' : 'error');
         };
 
-        processUpload();
-    }, [router, isUploading]);
+        processUpload().catch(err => {
+            console.error('[Hero upload]', err);
+            const message = err instanceof Error ? err.message : 'Unable to analyze this cake image right now.';
+            setHeroUploadError(message);
+            setHeroUploadState('error');
+            showError(message.replace('AI_REJECTION: ', ''));
+        });
+    }, [scrollToHeroMobilePreview]);
 
     const [isScrolled, setIsScrolled] = useState(false);
     const [showCompactHeader, setShowCompactHeader] = useState(false);
@@ -905,7 +1326,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
             </Suspense>
 
             {/* ========== SAME-DAY CUTOFF COUNTDOWN BANNER ========== */}
-            <div className="w-full bg-purple-600 py-[4.5px] flex justify-center items-center">
+            <div className="w-full bg-purple-400 py-[4.5px] flex justify-center items-center">
                 <SameDayCutoffBanner />
             </div>
 
@@ -1017,7 +1438,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                                 placeholder="Search cakes..."
                                 value={searchQuery}
                                 onChange={setSearchQuery}
-                                className="flex-1 max-w-sm ml-4"
+                                className="flex-1 max-w-sm ml-4 lg:max-w-lg xl:max-w-2xl"
                                 inputClassName="w-full pl-5 pr-12 py-2.5 text-sm bg-white border-slate-200 border rounded-full shadow-sm focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
                             />
                         </div>
@@ -1030,7 +1451,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                             <Link href="/shop" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
                                 Our Bakers
                             </Link>
-{/* <Link href="/blog" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                            {/* <Link href="/blog" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
                                 Blog
                             </Link> */}
                             <Link href="/compare" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
@@ -1072,205 +1493,366 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
             {/* ========== MAIN CONTENT ========== */}
             <main className="flex-1">
                 {/* ===== HERO SECTION ===== */}
-                <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-0 pb-4 md:pb-6 lg:pb-8">
+                <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-0 pb-2 md:pb-1 lg:pb-1">
                     <div className="flex flex-col md:flex-row gap-8 md:gap-12 lg:gap-16 items-start">
-{/* Mobile Hero View */}
+                        {/* Mobile Hero View */}
+                        {/* Mobile Hero View - Simplified */}
                         <div className="md:hidden w-full flex flex-col">
-                            <h1 className="mb-3 whitespace-nowrap text-center text-[10.5px] font-bold uppercase leading-none tracking-[0.08em] text-purple-600 max-[390px]:text-[9.2px]">
+                            <h1 className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-600">
                                 Best Online Cake Delivery for Rush Orders in Metro Cebu
                             </h1>
-                            {/* Image container with centered message overlay */}
-                            <div className="relative left-1/2 mb-2 w-screen -translate-x-1/2 overflow-hidden">
-                                <div className="relative h-[38vw] min-h-[170px] max-h-[214px]">
-                                    <ImageWithSkeleton
-                                        src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP"
-                                        alt="Hero"
-                                        className="block h-full w-full object-cover object-center"
-                                        skeletonClassName="h-full w-full"
-                                        priority
-                                    />
-                                    <div className="absolute inset-0 bg-white/60" />
-                                    <div className="absolute inset-0 flex items-center justify-center px-4 pb-6 pt-4 text-center">
-                                        <h2 className="w-full text-[54px] max-[520px]:text-[47px] max-[414px]:text-[40px] font-extrabold leading-none tracking-tight text-gray-900">
-                                            <HeroTypingHeadlineLine className="block min-h-[1.05em] whitespace-nowrap text-center" />
-                                            <span className="block whitespace-nowrap text-purple-600 italic">For Spontaneous</span>
-                                            <span className="block whitespace-nowrap text-purple-600 italic">Celebrations</span>
-                                        </h2>
-                                    </div>
-                                </div>
+                            <div className="mb-3 text-center">
+                                <h2 className="text-[54px] max-[390px]:text-[47px] font-extrabold leading-[1.1] tracking-tight text-gray-900">
+                                    <HeroTypingHeadlineLine className="block min-h-[1.1em] whitespace-nowrap text-center" controlledPhraseIndex={HERO_PRODUCTS[heroProductIndex].headlineVariant} />
+                                    <span className="block whitespace-nowrap text-purple-400 italic">For Today&apos;s</span>
+                                    <span className="block whitespace-nowrap text-purple-400 italic">Celebrations</span>
+                                </h2>
                             </div>
 
-                            <div className="w-full">
-                                <ImageUploader
-                                    isOpen
-                                    variant="inline"
-                                    compact
-                                    compactAlignment="inline-center"
-                                    className="rounded-[1.6rem]"
-                                    title="Upload any Cake Design Image"
-                                    showBrowseButton={false}
-                                    iconImageSrc="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/upload-cake-image.webp"
-                                    iconImageAlt="Upload cake design"
-                                    onClose={() => {}}
-                                    onImageSelect={handleAppImageUpload}
-                                />
-                            </div>
-                            <div className="mt-3 grid w-full grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-1.5 max-[443px]:gap-1">
-                                <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[11px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] max-[443px]:gap-1 max-[443px]:px-2 max-[443px]:py-1.5 max-[443px]:text-[9px] max-[390px]:px-1.5 max-[390px]:text-[8.5px] max-[360px]:text-[8px]">
-                                    <ImagePlus size={14} className="shrink-0 text-purple-500 max-[443px]:size-3 max-[390px]:size-[11px] max-[360px]:size-[10px]" />
-                                    <span className="whitespace-nowrap">Any Cake Image</span>
-                                </div>
-                                <div className="flex items-center justify-center text-purple-400">
-                                    <ArrowRight size={14} className="max-[443px]:size-3 max-[390px]:size-[11px] max-[360px]:size-[10px]" />
-                                </div>
-                                <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[11px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] max-[443px]:gap-1 max-[443px]:px-2 max-[443px]:py-1.5 max-[443px]:text-[9px] max-[390px]:px-1.5 max-[390px]:text-[8.5px] max-[360px]:text-[8px]">
-                                    <Zap size={14} className="shrink-0 text-purple-500 max-[443px]:size-3 max-[390px]:size-[11px] max-[360px]:size-[10px]" />
-                                    <span className="whitespace-nowrap">Instant Pricing</span>
-                                </div>
-                                <div className="flex items-center justify-center text-purple-400">
-                                    <ArrowRight size={14} className="max-[443px]:size-3 max-[390px]:size-[11px] max-[360px]:size-[10px]" />
-                                </div>
-                                <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[11px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] max-[443px]:gap-1 max-[443px]:px-2 max-[443px]:py-1.5 max-[443px]:text-[9px] max-[390px]:px-1.5 max-[390px]:text-[8.5px] max-[360px]:text-[8px]">
-                                    <Truck size={14} className="shrink-0 text-purple-500 max-[443px]:size-3 max-[390px]:size-[11px] max-[360px]:size-[10px]" />
-                                    <span className="whitespace-nowrap">Same-day Delivery</span>
-                                </div>
-                            </div>
-                            <div className="mt-4 flex items-center gap-3">
-                                <div className="h-px flex-1 bg-purple-200/80" />
-                                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-purple-500">or</span>
-                                <div className="h-px flex-1 bg-purple-200/80" />
-                            </div>
-                            <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-purple-500 text-center">
-                                Browse Cake Designs Available for Delivery Today
-                            </div>
-                            <div className="mt-4 grid grid-cols-3 gap-3">
-                                {desktopHeroCollections.slice(0, 6).map((collection) => (
-                                    <Link
-                                        key={collection.slug}
-                                        href={`/collections/${collection.slug}`}
-                                        onClick={() => trackSelectItem({ item_list_name: 'hero_collections', item_id: collection.slug, item_name: collection.title })}
-                                        className="group overflow-hidden rounded-2xl border border-white/80 bg-white/85 shadow-[0_18px_40px_-34px_rgba(88,28,135,0.72)] transition-transform duration-300 hover:-translate-y-0.5"
-                                    >
-                                        <div className="relative aspect-square overflow-hidden">
-                                            <img
-                                                src={collection.sampleImage}
-                                                alt={`${collection.title} collection`}
-                                                loading="lazy"
-                                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                            />
-                                            <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/15 to-transparent" />
-                                            <p className="absolute bottom-2 left-2 right-2 text-[10px] font-semibold leading-tight text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.45)]">
-                                                {collection.title}
-                                            </p>
-                                        </div>
-                                    </Link>
-                                ))}
+                            <div className="w-full mb-3">
+                                <button
+                                    onClick={() => setIsUploaderOpen(true)}
+                                    className="flex w-full items-center justify-center gap-3 rounded-2xl bg-purple-400 py-4 px-6 font-bold text-white shadow-lg transition-all duration-200 hover:bg-purple-500 active:scale-[0.98]"
+                                >
+                                    <Cake size={20} />
+                                    <span className="whitespace-nowrap">Upload any Cake Design Image</span>
+                                </button>
                             </div>
                         </div>
 
-                        {/* Desktop Hero View: top-aligned text plus staggered collection cards */}
-                        <div className="hidden md:grid w-full grid-cols-[minmax(0,1.04fr)_minmax(280px,0.96fr)] items-start gap-5 min-[945px]:grid-cols-[minmax(0,0.82fr)_minmax(430px,1fr)] min-[945px]:gap-7 min-[1232px]:grid-cols-[minmax(0,0.78fr)_minmax(470px,1.06fr)] min-[1232px]:gap-8">
-                            <div className="relative z-10 flex min-h-[540px] flex-col items-center justify-center pr-2 text-center min-[945px]:pr-4">
-                                <h1 className="text-[11px] text-purple-600 font-bold tracking-[0.12em] uppercase">
-                                    Best Online Cake Delivery for Rush Orders in Metro Cebu
-                                </h1>
-                                <h2 className="mt-3 text-[2.95rem] min-[945px]:text-5xl min-[1232px]:text-6xl font-extrabold text-gray-900 leading-[1.05] tracking-tight">
-                                    <HeroTypingHeadlineLine className="block min-h-[1.1em] whitespace-nowrap text-center" />
-                                    <span className="block whitespace-nowrap text-purple-600 italic">For Spontaneous</span>
-                                    <span className="block whitespace-nowrap text-purple-600 italic">Celebrations</span>
-                                </h2>
-                                <div className="mt-6 w-full max-w-82 min-[945px]:max-w-md">
-                                    <ImageUploader
-                                        isOpen
-                                        variant="inline"
-                                        compact
-                                        compactAlignment="center"
-                                        title="Upload any Cake Design Image"
-                                        showBrowseButton={false}
-                                        iconImageSrc="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/upload-cake-image.webp"
-                                        iconImageAlt="Upload cake design"
-                                        onClose={() => {}}
-                                        onImageSelect={handleAppImageUpload}
-                                    />
-                                </div>
-                                <div className="mt-5 grid w-full max-w-lg grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2">
-                                    <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[10px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] min-[1232px]:text-[11px]">
-                                        <ImagePlus size={14} className="shrink-0 text-purple-500" />
-                                        <span className="whitespace-nowrap">Any Cake Image</span>
+                        {/* Desktop Hero View: 2-column layout */}
+                        <div className="hidden md:flex md:flex-col w-full pt-5 pb-2.5">
+                            {/* 5:4 grid ratio */}
+                            <div className="grid grid-cols-9 gap-12 items-center">
+                                {/* Left Column (5/9): Headlines and CTA */}
+                                <div className="col-span-5 flex flex-col items-center text-center">
+                                    <h1 className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-600">
+                                        Best Online Cake Delivery for Rush Orders in Metro Cebu
+                                    </h1>
+                                    <h2 className="mt-3 text-[3.79rem] min-[945px]:text-[3.85rem] min-[1232px]:text-[4.75rem] font-extrabold text-gray-900 leading-[1.05] tracking-tight">
+                                        <HeroTypingHeadlineLine className="block min-h-[1.1em] whitespace-nowrap text-center" controlledPhraseIndex={HERO_PRODUCTS[heroProductIndex].headlineVariant} />
+                                        <span className="block whitespace-nowrap text-purple-400 italic">For Today&apos;s</span>
+                                        <span className="block whitespace-nowrap text-purple-400 italic">Celebrations</span>
+                                    </h2>
+                                    <div className="mt-4 w-full max-w-sm">
+                                        <button
+                                            onClick={() => setIsUploaderOpen(true)}
+                                            className="flex w-full items-center justify-center gap-3 rounded-2xl bg-purple-400 py-4 px-8 text-lg font-bold text-white shadow-[0_20px_50px_-20px_rgba(168,85,247,0.45)] transition-all duration-200 hover:bg-purple-500 hover:shadow-[0_25px_60px_-20px_rgba(168,85,247,0.55)] active:scale-[0.99]"
+                                        >
+                                            <Cake size={24} />
+                                            <span className="whitespace-nowrap">Upload any Cake Design Image</span>
+                                        </button>
                                     </div>
-                                    <div className="flex items-center justify-center text-purple-400">
-                                        <ArrowRight size={14} />
-                                    </div>
-                                    <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[10px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] min-[1232px]:text-[11px]">
-                                        <Zap size={14} className="shrink-0 text-purple-500" />
-                                        <span className="whitespace-nowrap">Instant Pricing</span>
-                                    </div>
-                                    <div className="flex items-center justify-center text-purple-400">
-                                        <ArrowRight size={14} />
-                                    </div>
-                                    <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-purple-300/70 bg-purple-300/35 px-3 py-2 text-[10px] font-semibold text-purple-700 shadow-[0_18px_34px_-14px_rgba(88,28,135,0.48)] min-[1232px]:text-[11px]">
-                                        <Truck size={14} className="shrink-0 text-purple-500" />
-                                        <span className="whitespace-nowrap">Same-day Delivery</span>
+                                    <div className="mt-6 grid w-full max-w-[520px] grid-cols-3 gap-2">
+                                        <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-2 text-[10px] font-semibold text-neutral-600 shadow-sm xl:text-[11px]">
+                                            <ImagePlus size={14} className="shrink-0 text-neutral-500" />
+                                            <span className="whitespace-nowrap uppercase leading-none">Any Cake Image</span>
+                                        </div>
+                                        <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-2 text-[10px] font-semibold text-neutral-600 shadow-sm xl:text-[11px]">
+                                            <Zap size={14} className="shrink-0 text-neutral-500" />
+                                            <span className="whitespace-nowrap uppercase leading-none">Instant Pricing</span>
+                                        </div>
+                                        <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-2 text-[10px] font-semibold text-neutral-600 shadow-sm xl:text-[11px]">
+                                            <Truck size={14} className="shrink-0 text-neutral-500" />
+                                            <span className="whitespace-nowrap uppercase leading-none">Same-day Delivery</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="mt-4 flex items-center gap-3">
-                                    <div className="h-px flex-1 bg-purple-200/80" />
-                                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-purple-500 shrink-0">or</span>
-                                    <div className="h-px flex-1 bg-purple-200/80" />
+
+                                {/* Right Column (4/9): Featured Product Carousel / Upload Analysis */}
+                                <div className="col-span-4 relative flex flex-col items-center w-full gap-4">
+
+                                    {heroUploadState === 'idle' ? (
+                                        /* ── Carousel mode ── */
+                                        <>
+                                            {/* Image Card with Prev / Next arrows */}
+                                            <div className="relative w-full max-w-[480px]">
+                                                <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-neutral-100 transition-all duration-300 hover:shadow-2xl">
+                                                    <div className="relative w-full aspect-[5/4] overflow-hidden">
+                                                        <HeroProductCrossfadeImage heroProductIndex={heroProductIndex} />
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                                                        {/* Dot indicators */}
+                                                        <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+                                                            {HERO_PRODUCTS.map((_, i) => (
+                                                                <button
+                                                                    key={i}
+                                                                    onClick={() => setHeroProductIndex(i)}
+                                                                    aria-label={`View ${HERO_PRODUCTS[i].title}`}
+                                                                    className={`h-1.5 rounded-full transition-all duration-300 ${i === heroProductIndex
+                                                                            ? 'bg-white w-5'
+                                                                            : 'bg-white/55 w-1.5 hover:bg-white/80'
+                                                                        }`}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {/* Left arrow */}
+                                                <button onClick={handleHeroPrev} aria-label="Previous cake design" className="absolute left-0 top-[45%] -translate-y-1/2 -translate-x-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-lg text-neutral-600 transition-all hover:border-purple-300 hover:text-purple-700 hover:shadow-xl active:scale-95">
+                                                    <ChevronLeft size={18} />
+                                                </button>
+                                                {/* Right arrow */}
+                                                <button onClick={handleHeroNext} aria-label="Next cake design" className="absolute right-0 top-[45%] -translate-y-1/2 translate-x-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-lg text-neutral-600 transition-all hover:border-purple-300 hover:text-purple-700 hover:shadow-xl active:scale-95">
+                                                    <ChevronRight size={18} />
+                                                </button>
+                                            </div>
+
+                                            {/* Product Info & Action Card — carousel */}
+                                            <div className="w-full max-w-[480px] bg-white rounded-3xl shadow-xl border border-neutral-100 relative">
+                                                {/* Availability banner with Inverted Corners */}
+                                                <div className="relative bg-blue-100/80 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl transition-colors duration-300">
+                                                    <Clock className="w-3 h-3 text-blue-900" />
+                                                    <span className="text-blue-900 text-[10px] font-black uppercase tracking-wider">Same-Day Order! (Deliver in 3-5 hrs)</span>
+
+                                                    {/* Inverted Corner Left */}
+                                                    <div className="absolute top-full left-0 w-3 h-3 overflow-hidden">
+                                                        <div className="absolute top-0 left-0 w-full h-full bg-blue-100/80" />
+                                                        <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-xl" />
+                                                    </div>
+                                                    {/* Inverted Corner Right */}
+                                                    <div className="absolute top-full right-0 w-3 h-3 overflow-hidden">
+                                                        <div className="absolute top-0 right-0 w-full h-full bg-blue-100/80" />
+                                                        <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-xl" />
+                                                    </div>
+                                                </div>
+
+                                                <div className="py-4 px-5 flex items-center justify-between gap-3">
+                                                    <div className="flex flex-col">
+                                                        <p key={`price-${heroProductIndex}`} className="text-3xl font-black text-neutral-900 tracking-tight leading-none animate-in fade-in slide-in-from-bottom-1 duration-300">
+                                                            ₱{HERO_PRODUCTS[heroProductIndex].price.toLocaleString()}
+                                                        </p>
+                                                        <p key={`size-${heroProductIndex}`} className="text-[11px] font-bold text-neutral-500 uppercase tracking-tight mt-1.5 animate-in fade-in duration-300">
+                                                            {HERO_PRODUCTS[heroProductIndex].size}
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setIsUploaderOpen(true)}
+                                                        className="shrink-0 px-7 py-3.5 bg-purple-400 hover:bg-purple-500 text-white rounded-2xl font-bold text-[10px] lg:text-xs transition-all shadow-md active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
+                                                    >
+                                                        customize cake
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        /* ── Upload analysis mode ── */
+                                        <>
+                                            {/* Uploaded image + loading bar overlay */}
+                                            <div className="relative w-full max-w-[480px]">
+                                                <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-neutral-100">
+                                                    <div className="relative w-full aspect-[5/4] overflow-hidden">
+                                                        {heroUploadedImageSrc && (
+                                                            <img
+                                                                src={heroUploadedImageSrc}
+                                                                alt="Your uploaded cake design"
+                                                                className="w-full h-full object-cover animate-in fade-in duration-500"
+                                                            />
+                                                        )}
+                                                        {/* Overlay: visible during analysis */}
+                                                        {heroUploadState === 'analyzing' && (
+                                                            <div className="absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-black/70 via-black/10 to-transparent pb-5 px-5">
+                                                                <div className="w-full space-y-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Loader2 className="w-4 h-4 text-white animate-spin shrink-0" />
+                                                                        <span className="text-white text-[11px] font-bold uppercase tracking-widest">Analyzing your cake design…</span>
+                                                                    </div>
+                                                                    {/* 11-second fill bar */}
+                                                                    <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+                                                                        <div
+                                                                            className="h-full bg-gradient-to-r from-purple-400 to-purple-500 rounded-full"
+                                                                            style={{
+                                                                                width: heroProgressAnimate ? '100%' : '0%',
+                                                                                transition: heroProgressAnimate
+                                                                                    ? 'width 11s linear'
+                                                                                    : 'none',
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {/* Done tick overlay */}
+                                                        {heroUploadState === 'done' && (
+                                                            <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-green-500/90 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full shadow">
+                                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                                                Analysis complete
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {/* Reset button */}
+                                                <button
+                                                    onClick={() => {
+                                                        setHeroUploadState('idle');
+                                                        setHeroUploadedImageSrc(null);
+                                                        setHeroUploadError(null);
+                                                    }}
+                                                    aria-label="Back to cake designs"
+                                                    className="absolute -top-3 -right-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white border border-neutral-200 shadow text-neutral-500 hover:text-neutral-900 transition-all"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+
+                                            {/* Product Info & Action Card — analysis result */}
+                                            <div className="w-full max-w-[480px] bg-white rounded-3xl shadow-xl border border-neutral-100 relative">
+                                                {/* Availability bar with Inverted Corners */}
+                                                {heroUploadState === 'analyzing' ? (
+                                                    <div className="bg-neutral-100 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl">
+                                                        <Loader2 className="w-3 h-3 text-neutral-500 animate-spin" />
+                                                        <span className="text-neutral-500 text-[10px] font-black uppercase tracking-wider">Calculating availability…</span>
+
+                                                        {/* Inverted Corner Left */}
+                                                        <div className="absolute top-full left-0 w-3 h-3 overflow-hidden">
+                                                            <div className="absolute top-0 left-0 w-full h-full bg-neutral-100" />
+                                                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-xl" />
+                                                        </div>
+                                                        {/* Inverted Corner Right */}
+                                                        <div className="absolute top-full right-0 w-3 h-3 overflow-hidden">
+                                                            <div className="absolute top-0 right-0 w-full h-full bg-neutral-100" />
+                                                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-xl" />
+                                                        </div>
+                                                    </div>
+                                                ) : heroUploadState === 'error' ? (
+                                                    <div className="bg-red-50 py-2 px-4 flex items-center justify-center rounded-t-3xl">
+                                                        <span className="text-red-700 text-[10px] font-black uppercase tracking-wider">{heroUploadError ?? 'AI analysis is temporarily unavailable.'}</span>
+
+                                                        {/* Inverted Corner Left */}
+                                                        <div className="absolute top-full left-0 w-3 h-3 overflow-hidden">
+                                                            <div className="absolute top-0 left-0 w-full h-full bg-red-50" />
+                                                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-xl" />
+                                                        </div>
+                                                        {/* Inverted Corner Right */}
+                                                        <div className="absolute top-full right-0 w-3 h-3 overflow-hidden">
+                                                            <div className="absolute top-0 right-0 w-full h-full bg-red-50" />
+                                                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-xl" />
+                                                        </div>
+                                                    </div>
+                                                ) : heroAnalysis.availability === 'rush' ? (
+                                                    <div className="bg-green-100/80 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl">
+                                                        <Zap className="w-3 h-3 text-green-900" />
+                                                        <span className="text-green-900 text-[10px] font-black uppercase tracking-wider">Rush Order Available! (Ready in 30 mins)</span>
+
+                                                        {/* Inverted Corner Left */}
+                                                        <div className="absolute top-full left-0 w-3 h-3 overflow-hidden">
+                                                            <div className="absolute top-0 left-0 w-full h-full bg-green-100/80" />
+                                                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-xl" />
+                                                        </div>
+                                                        {/* Inverted Corner Right */}
+                                                        <div className="absolute top-full right-0 w-3 h-3 overflow-hidden">
+                                                            <div className="absolute top-0 right-0 w-full h-full bg-green-100/80" />
+                                                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-xl" />
+                                                        </div>
+                                                    </div>
+                                                ) : heroAnalysis.availability === 'same-day' ? (
+                                                    <div className="bg-blue-100/80 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl">
+                                                        <Clock className="w-3 h-3 text-blue-900" />
+                                                        <span className="text-blue-900 text-[10px] font-black uppercase tracking-wider">Same-Day Order! (Deliver in 3-5 hrs)</span>
+
+                                                        {/* Inverted Corner Left */}
+                                                        <div className="absolute top-full left-0 w-3 h-3 overflow-hidden">
+                                                            <div className="absolute top-0 left-0 w-full h-full bg-blue-100/80" />
+                                                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-xl" />
+                                                        </div>
+                                                        {/* Inverted Corner Right */}
+                                                        <div className="absolute top-full right-0 w-3 h-3 overflow-hidden">
+                                                            <div className="absolute top-0 right-0 w-full h-full bg-blue-100/80" />
+                                                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-xl" />
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="bg-slate-100 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl">
+                                                        <Calendar className="w-3 h-3 text-slate-900" />
+                                                        <span className="text-slate-900 text-[10px] font-black uppercase tracking-wider">Standard order. Receive this by tomorrow</span>
+
+                                                        {/* Inverted Corner Left */}
+                                                        <div className="absolute top-full left-0 w-3 h-3 overflow-hidden">
+                                                            <div className="absolute top-0 left-0 w-full h-full bg-slate-100" />
+                                                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-xl" />
+                                                        </div>
+                                                        {/* Inverted Corner Right */}
+                                                        <div className="absolute top-full right-0 w-3 h-3 overflow-hidden">
+                                                            <div className="absolute top-0 right-0 w-full h-full bg-slate-100" />
+                                                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-xl" />
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Price & action row */}
+                                                <div className="py-3 px-5 flex items-center justify-between gap-3">
+                                                    <div className="flex flex-col">
+                                                        {heroUploadState === 'analyzing' ? (
+                                                            <>
+                                                                <div className="h-7 w-24 rounded-lg bg-neutral-100 animate-pulse" />
+                                                                <div className="mt-1.5 h-3 w-32 rounded bg-neutral-100 animate-pulse" />
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <p className="text-2xl font-black text-neutral-900 tracking-tight leading-none animate-in fade-in slide-in-from-bottom-1 duration-300">
+                                                                    {heroUploadState === 'error' ? 'Unavailable' : heroAnalysis.price != null ? `₱${heroAnalysis.price.toLocaleString()}` : '—'}
+                                                                </p>
+                                                                <p className="text-[11px] font-bold text-neutral-500 uppercase tracking-tight mt-1 animate-in fade-in duration-300">
+                                                                    {heroUploadState === 'error' ? 'Please try again later' : heroAnalysis.size ?? 'Starting price'}
+                                                                </p>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    <button
+                                                        disabled={heroUploadState === 'analyzing' || (heroUploadState !== 'error' && !heroAnalysis.slug)}
+                                                        onClick={() => {
+                                                            if (heroUploadState === 'error') {
+                                                                setHeroUploadState('idle');
+                                                                setHeroUploadedImageSrc(null);
+                                                                setHeroUploadError(null);
+                                                                setIsUploaderOpen(true);
+                                                                return;
+                                                            }
+                                                            if (heroAnalysis.slug) {
+                                                                router.push(`/customizing/${heroAnalysis.slug}`);
+                                                            }
+                                                        }}
+                                                        className="shrink-0 px-6 py-3.5 bg-purple-400 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-wait text-white rounded-2xl font-bold text-[10px] lg:text-xs transition-all shadow-md active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
+                                                    >
+                                                        {heroUploadState === 'analyzing' ? 'Analyzing…' : heroUploadState === 'error' ? 'Upload another' : 'Customize cake'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
+                            </div>{/* /.grid */}
+                        </div>{/* /.flex-col outer */}
+                    </div>
+                </section>
+
+                <section ref={heroMobilePreviewRef} aria-label="Featured cake preview" className="md:hidden w-full scroll-mt-28 px-4 pb-8">
+                    <div className="mx-auto flex w-full max-w-[480px] flex-col gap-4">
+                        <HeroProductPreviewStack
+                            heroProductIndex={heroProductIndex}
+                            heroUploadState={heroUploadState}
+                            heroUploadedImageSrc={heroUploadedImageSrc}
+                            heroProgressAnimate={heroProgressAnimate}
+                            heroAnalysis={heroAnalysis}
+                            heroUploadError={heroUploadError}
+                            onPrev={handleHeroPrev}
+                            onNext={handleHeroNext}
+                            onSelectProduct={setHeroProductIndex}
+                            onOpenUploader={() => setIsUploaderOpen(true)}
+                            onResetUpload={resetHeroUploadPreview}
+                            onResultAction={handleHeroResultAction}
+                        />
+                        <div className="grid w-full grid-cols-3 gap-1.5 pt-1">
+                            <div className="flex min-w-0 items-center justify-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-1.5 py-2 text-[8px] font-semibold leading-none text-neutral-600 shadow-sm">
+                                <ImagePlus size={12} className="shrink-0 text-neutral-500" />
+                                <span className="whitespace-nowrap">Any Cake Image</span>
                             </div>
-
-                            <div className="relative z-10">
-                                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-purple-500 text-center">
-                                    Browse Cake Designs Available for Delivery Today
-                                </div>
-
-                                <div className="mt-4 min-[945px]:mt-[30px] mx-auto grid w-full grid-cols-2 gap-4 min-[945px]:hidden">
-                                    {TABLET_HERO_MASONRY_COLUMNS.map((column) => (
-                                        <div key={column.indexes.join('-')} className={`flex flex-col gap-4 ${column.className}`}>
-                                            {column.indexes.map((collectionIndex) => {
-                                                const collection = desktopHeroCollections[collectionIndex];
-
-                                                if (!collection) {
-                                                    return null;
-                                                }
-
-                                                return (
-                                                    <DesktopHeroCollectionCard
-                                                        key={collection.slug}
-                                                        title={collection.title}
-                                                        slug={collection.slug}
-                                                        sampleImage={collection.sampleImage}
-                                                        index={collectionIndex}
-                                                    />
-                                                );
-                                            })}
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="hidden min-[945px]:grid min-[945px]:grid-cols-3 min-[945px]:gap-3 min-[1232px]:gap-4 mt-4 min-[945px]:mt-[30px]">
-                                    {DESKTOP_HERO_MASONRY_COLUMNS.map((column) => (
-                                        <div key={column.indexes.join('-')} className={`flex flex-col gap-3 min-[1232px]:gap-4 ${column.className}`}>
-                                            {column.indexes.map((collectionIndex) => {
-                                                const collection = desktopHeroCollections[collectionIndex];
-
-                                                if (!collection) {
-                                                    return null;
-                                                }
-
-                                                return (
-                                                    <DesktopHeroCollectionCard
-                                                        key={collection.slug}
-                                                        title={collection.title}
-                                                        slug={collection.slug}
-                                                        sampleImage={collection.sampleImage}
-                                                        index={collectionIndex}
-                                                    />
-                                                );
-                                            })}
-                                        </div>
-                                    ))}
-                                </div>
+                            <div className="flex min-w-0 items-center justify-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-1.5 py-2 text-[8px] font-semibold leading-none text-neutral-600 shadow-sm">
+                                <Zap size={12} className="shrink-0 text-neutral-500" />
+                                <span className="whitespace-nowrap">Instant Pricing</span>
+                            </div>
+                            <div className="flex min-w-0 items-center justify-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-1.5 py-2 text-[8px] font-semibold leading-none text-neutral-600 shadow-sm">
+                                <Truck size={12} className="shrink-0 text-neutral-500" />
+                                <span className="whitespace-nowrap">Same-day Delivery</span>
                             </div>
                         </div>
                     </div>
@@ -1279,7 +1861,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 {/* ===== INTERACTIVE CUSTOMIZER DEMO ===== */}
                 <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
                     <h2 id="price-change-heading" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-2 text-center">
-                        See your price change <span className="text-purple-600">in real time.</span>
+                        See your price change <span className="text-purple-400">in real time.</span>
                     </h2>
                     <p className="text-base text-slate-500 mb-8 max-w-2xl mx-auto text-center">
                         Upload any cake design. Customize it. See your price instantly. Same-day delivery.
@@ -1315,12 +1897,28 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                     })()}
                 </section>
 
-                {/* ===== MINIMALIST CAKES FOR RUSH ORDERS ===== */}
-                <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
-                    <section aria-label="Popular designs" className="py-2 md:py-3">
-                        <PopularDesigns designs={popularDesigns} />
-                    </section>
-                </div>
+                {/* ===== BROWSE CAKE DESIGNS SECTION ===== */}
+                <section aria-label="Browse cake designs" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12 border-t border-purple-50">
+                    <div className="mb-8 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-600">
+                        <span className="block md:inline">Browse Cake Designs Available</span>{' '}
+                        <span className="block md:inline">for Delivery Today</span>
+                    </div>
+
+                    {/* Two-row mobile grid, one-row tablet/desktop grid */}
+                    <div className="grid grid-cols-3 gap-3 md:grid-cols-6 md:gap-4">
+                        {desktopHeroCollections.map((collection, index) => (
+                            <div key={collection.slug} className="min-w-0">
+                                <DesktopHeroCollectionCard
+                                    title={collection.title}
+                                    slug={collection.slug}
+                                    sampleImage={collection.sampleImage}
+                                    index={index}
+                                    className="!mt-0" // Force remove masonry offsets
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </section>
 
                 {/* ===== RECENT SEARCHES + WHAT IS GENIE.PH (Server-rendered children) ===== */}
                 <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
@@ -1333,7 +1931,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                     <section aria-label="Blog" className="py-8 md:py-12">
                         <div className="flex items-center justify-between mb-4 md:mb-6">
                             <h2 className="text-3xl sm:text-4xl font-black bg-linear-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent tracking-tight">Stories, Blogs and News</h2>
-                            <Link href="/blog" className="group flex items-center gap-1 md:gap-2 text-purple-600 font-semibold hover:text-purple-700 transition-colors text-[13px] md:text-base shrink-0">
+                            <Link href="/blog" className="group flex items-center gap-1 md:gap-2 text-purple-400 font-semibold hover:text-purple-700 transition-colors text-[13px] md:text-base shrink-0">
                                 View all
                                 <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                             </Link>
@@ -1382,7 +1980,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
                 {reviewCards.length > 0 && (
                     <section aria-label="Customer reviews" className="w-full overflow-hidden py-2 md:py-4">
                         <div className="mx-auto max-w-7xl px-4 pb-3 text-center sm:px-6 lg:px-8 md:pb-4">
-                            <Link href="/reviews" className="text-[10px] text-gray-600 hover:text-purple-600 md:text-[10px]">
+                            <Link href="/reviews" className="text-[10px] text-gray-600 hover:text-purple-500 md:text-[10px]">
                                 4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
                             </Link>
                         </div>
@@ -1459,6 +2057,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
             {isUploaderOpen ? (
                 <ImageUploader
                     isOpen={isUploaderOpen}
+                    title="Upload any Cake Design Image"
+                    iconImageSrc="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/upload-cake-image.webp"
+                    iconImageAlt="Upload cake design"
                     onClose={() => setIsUploaderOpen(false)}
                     onImageSelect={(file) => {
                         handleAppImageUpload(file);
@@ -1469,12 +2070,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, popularDesigns 
 
             {/* ========== REVIEW ZOOM MODAL ========== */}
             {reviewZoomSrc && (
-                <div 
+                <div
                     className="fixed inset-0 z-100 flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-200"
                     role="dialog"
                     aria-modal="true"
                 >
-                    <div 
+                    <div
                         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                         onClick={() => setReviewZoomSrc(null)}
                     />

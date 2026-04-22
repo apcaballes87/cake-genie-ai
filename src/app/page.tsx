@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import LandingClient from './LandingClient';
-import { getRecommendedProducts, getPopularDesigns, getHomepageBlogPreviews, getDesignCategories } from '@/services/supabaseService';
+import { getRecommendedProducts, getHomepageBlogPreviews, getDesignCategories } from '@/services/supabaseService';
 import { RecommendedProductsSection, IntroContent } from '@/components/landing';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import NewsletterPopup from '@/components/NewsletterPopup';
@@ -195,23 +195,21 @@ async function getReviews() {
 }
 
 export default async function Home() {
-    const [recommendedProductsRes, popularDesignsRes, blogsRes, categoriesRes, reviews] = await Promise.all([
+    const [recommendedProductsRes, blogsRes, categoriesRes, reviews] = await Promise.all([
         getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err })),
-        getPopularDesigns(8, { keyword: 'minimalist', availability: ['rush', 'same-day'] }).catch(err => ({ data: [], error: err })),
         getHomepageBlogPreviews(3).catch(err => ({ data: [], error: err })),
         getDesignCategories().catch(err => ({ data: [], error: err })),
         getReviews().catch(() => []),
     ]);
 
     const recommendedProducts = recommendedProductsRes.data || [];
-    const popularDesigns = popularDesignsRes.data || [];
     const blogPosts = blogsRes.data || [];
     const heroCollections = buildHeroCollections(categoriesRes.data || []);
 
     return (
         <>
             <WebSiteSchema />
-            <LandingClient popularDesigns={popularDesigns} heroCollections={heroCollections} blogPosts={blogPosts} reviews={reviews}>
+            <LandingClient heroCollections={heroCollections} blogPosts={blogPosts} reviews={reviews}>
                 {/* Server-rendered sections for LCP optimization */}
                 {/* <MerchantShowcase merchants={merchants} /> - Hidden for now */}
                 <RecommendedProductsSection products={recommendedProducts} />

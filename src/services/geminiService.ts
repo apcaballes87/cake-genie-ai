@@ -45,6 +45,11 @@ export const fileToBase64 = async (file: File): Promise<{ mimeType: string; data
     }
 };
 
+function shouldSurfaceAiRouteMessage(error: unknown): error is Error {
+    if (!(error instanceof Error)) return false;
+    return /AI .*?(temporarily unavailable|not authorized)|quota|rate limit/i.test(error.message);
+}
+
 /**
  * Validates if the image is a cake using the server-side API
  */
@@ -70,6 +75,9 @@ export const validateCakeImage = async (
 
     } catch (error) {
         console.error("Error validating cake image:", error);
+        if (shouldSurfaceAiRouteMessage(error)) {
+            throw error;
+        }
         throw new Error("The AI failed to validate the image. Please try again.");
     }
 };
@@ -105,6 +113,9 @@ export async function analyzeCakeFeaturesOnly(
     } catch (error) {
         console.error("Error analyzing cake:", error);
         if (error instanceof Error && error.message.startsWith('AI_REJECTION:')) {
+            throw error;
+        }
+        if (shouldSurfaceAiRouteMessage(error)) {
             throw error;
         }
         throw new Error("Failed to analyze cake image. Please try again.");

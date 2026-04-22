@@ -184,7 +184,7 @@ async function generatePerceptualHashWithScale(imageSrc: string, scale: number =
  * A null hash means "do not use cache" — the caller must skip both
  * cache lookup and cache storage to avoid false matches.
  */
-async function generatePerceptualHash(imageSrc: string): Promise<string | null> {
+export async function generatePerceptualHash(imageSrc: string): Promise<string | null> {
     // Attempt 1: Full resolution (with decode + resize + createImageBitmap)
     let hash = await generatePerceptualHashWithScale(imageSrc, 1);
     if (hash !== null) {

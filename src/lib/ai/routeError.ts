@@ -1,6 +1,7 @@
 interface NormalizeAiRouteErrorOptions {
     defaultMessage: string;
     quotaMessage: string;
+    authorizationMessage?: string;
 }
 
 interface NormalizedAiRouteError {
@@ -9,12 +10,13 @@ interface NormalizedAiRouteError {
 }
 
 function getErrorStatus(error: unknown): number | undefined {
-    if (!error || typeof error !== 'object' || !('status' in error)) {
-        return undefined;
+    if (error && typeof error === 'object' && 'status' in error) {
+        const status = Number((error as { status?: unknown }).status);
+        if (Number.isInteger(status)) return status;
     }
 
-    const status = Number((error as { status?: unknown }).status);
-    return Number.isInteger(status) ? status : undefined;
+    const providerStatus = getProviderError(getErrorMessage(error))?.code;
+    return Number.isInteger(providerStatus) ? providerStatus : undefined;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -22,13 +24,28 @@ function getErrorMessage(error: unknown): string {
     return String(error);
 }
 
+function getProviderError(message: string): { code?: number; status?: string; message?: string } | null {
+    try {
+        const parsed = JSON.parse(message) as {
+            error?: { code?: number; status?: string; message?: string };
+        };
+        return parsed.error ?? null;
+    } catch {
+        return null;
+    }
+}
+
 function isQuotaErrorMessage(message: string): boolean {
     return /RESOURCE_EXHAUSTED|check quota|quota|rate limit|too many requests|"code"\s*:\s*429/i.test(message);
 }
 
+function isAuthorizationErrorMessage(message: string): boolean {
+    return /PERMISSION_DENIED|UNAUTHENTICATED|denied access|forbidden|unauthorized|invalid api key|api key not valid|"code"\s*:\s*(401|403)/i.test(message);
+}
+
 export function normalizeAiRouteError(
     error: unknown,
-    { defaultMessage, quotaMessage }: NormalizeAiRouteErrorOptions,
+    { defaultMessage, quotaMessage, authorizationMessage }: NormalizeAiRouteErrorOptions,
 ): NormalizedAiRouteError {
     const status = getErrorStatus(error);
     const rawMessage = getErrorMessage(error).trim();
@@ -38,6 +55,13 @@ export function normalizeAiRouteError(
         return {
             status: 429,
             message: quotaMessage,
+        };
+    }
+
+    if (status === 401 || status === 403 || isAuthorizationErrorMessage(safeMessage)) {
+        return {
+            status: status === 401 ? 401 : 403,
+            message: authorizationMessage ?? 'AI service is not authorized. Please check the AI provider configuration and try again.',
         };
     }
 
