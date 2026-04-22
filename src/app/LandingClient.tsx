@@ -1488,9 +1488,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
             <nav className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm' : 'bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
                     {/* Mobile Header */}
-                    <div className="md:hidden relative w-full mb-4" style={{ height: '79px' }}>
+                    <div className="md:hidden relative w-full mb-4" style={{ height: '71px' }}>
                         <div
-                            className="absolute inset-0 grid grid-cols-[1fr_auto_1fr] items-center pt-[21.5px] transition-opacity duration-300"
+                            className="absolute inset-0 grid grid-cols-[1fr_auto_1fr] items-center pt-[25px] transition-opacity duration-300"
                             style={{ opacity: showCompactHeader ? 0 : 1, pointerEvents: showCompactHeader ? 'none' : 'auto' }}
                         >
                             <div className="flex items-center">
@@ -1507,9 +1507,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                 <img
                                     src={COMMON_ASSETS.logo}
                                     alt="Genie Logo"
-                                    width={144}
-                                    height={51}
-                                    className="h-[51px] w-auto object-contain"
+                                    width={130}
+                                    height={46}
+                                    className="h-[46px] w-auto object-contain"
                                 />
                             </Link>
 
@@ -1537,7 +1537,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                         </div>
 
                         <div
-                            className="absolute inset-0 flex items-center gap-2 pt-[21.5px] transition-opacity duration-300"
+                            className="absolute inset-0 flex items-center gap-2 pt-[25px] transition-opacity duration-300"
                             style={{ opacity: showCompactHeader ? 1 : 0, pointerEvents: showCompactHeader ? 'auto' : 'none' }}
                         >
                             {showCompactHeader ? (
@@ -1657,9 +1657,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                             </h1>
                             <div className="mb-5 text-center">
                                 <h2 className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-[0.88] tracking-tight text-gray-900">
-                                    <HeroTypingHeadlineLine className="block min-h-[1.1em] whitespace-nowrap text-center" controlledPhraseIndex={HERO_PRODUCTS[heroProductIndex].headlineVariant} />
-                                    <span className="block whitespace-nowrap text-purple-400 italic">For Today&apos;s</span>
-                                    <span className="block whitespace-nowrap text-purple-400 italic">Celebrations</span>
+                                    <HeroTypingHeadlineLine className="block min-h-[1.1em] whitespace-nowrap text-center text-purple-400" controlledPhraseIndex={HERO_PRODUCTS[heroProductIndex].headlineVariant} />
+                                    <span className="block whitespace-nowrap text-black italic">For Today&apos;s</span>
+                                    <span className="block whitespace-nowrap text-black italic">Celebrations</span>
                                 </h2>
                             </div>
 
@@ -1687,9 +1687,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                         Best Online Cake Delivery for Rush Orders in Cebu
                                     </h1>
                                     <h2 className="mt-3 text-[3.79rem] min-[945px]:text-[3.85rem] min-[1232px]:text-[4.75rem] font-extrabold text-gray-900 leading-[1.05] tracking-tight">
-                                        <HeroTypingHeadlineLine className="block min-h-[1.1em] whitespace-nowrap text-center" controlledPhraseIndex={HERO_PRODUCTS[heroProductIndex].headlineVariant} />
-                                        <span className="block whitespace-nowrap text-purple-400 italic">For Today&apos;s</span>
-                                        <span className="block whitespace-nowrap text-purple-400 italic">Celebrations</span>
+                                        <HeroTypingHeadlineLine className="block min-h-[1.1em] whitespace-nowrap text-center text-purple-400" controlledPhraseIndex={HERO_PRODUCTS[heroProductIndex].headlineVariant} />
+                                        <span className="block whitespace-nowrap text-black italic">For Today&apos;s</span>
+                                        <span className="block whitespace-nowrap text-black italic">Celebrations</span>
                                     </h2>
                                     <div className="mt-6 w-full max-w-md">
                                         <button
