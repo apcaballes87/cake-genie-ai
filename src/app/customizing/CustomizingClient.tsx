@@ -2906,6 +2906,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         onSupportElementImageReplace: onSupportElementImageReplace,
                                         openTopperSheet,
                                         separateIcingStep,
+                                        hideStepOne,
+                                        hideStepFour,
+                                        photoStepNode,
                                         aiChatNode: !analysisError && !hideAiChat ? (
                                             <CustomizingAiChatPanel
                                                 className="w-full"
