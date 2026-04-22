@@ -5,16 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart, useCartActions, readFromLocalStorage, batchSaveToLocalStorage, batchRemoveFromLocalStorage } from '@/contexts/CartContext';
 import { useAddresses, useAddAddress } from '@/hooks/useAddresses';
-import { showSuccess, showError, showInfo } from '@/lib/utils/toast';
-import { Loader2, CloseIcon, TrashIcon } from '@/components/icons';
-import { MapPin, Search, X, Users, User, ChevronDown, CalendarDays } from 'lucide-react';
-import { PaymentModeToggle } from '@/components/PaymentModeToggle';
-import { CartItem, CartItemDetails, CakeType } from '@/types';
+import { showSuccess, showError } from '@/lib/utils/toast';
+import { Loader2, CloseIcon } from '@/components/icons';
+import { MapPin, Users, User, ChevronDown, CalendarDays } from 'lucide-react';
+import { CartItem, CartItemDetails } from '@/types';
 import { CakeGenieAddress } from '@/lib/database.types';
 import { CartSkeleton } from '@/components/LoadingSkeletons';
-import { CITIES_AND_BARANGAYS, getDeliveryFeeByCity } from '@/constants';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
-import DetailItem from '@/components/UI/DetailItem';
+import { getDeliveryFeeByCity } from '@/constants';
 import { createOrderFromCart, createSplitOrderFromCart, getAvailableDeliveryDates, getBlockedDatesInRange, AvailableDate, BlockedDateInfo, createGuestUser } from '@/services/supabaseService';
 import { upgradeAnonymousToEmailAccount } from '@/services/accountActivation';
 import { createXenditPayment } from '@/services/xenditService';
@@ -23,15 +20,17 @@ import { AddressForm, StaticMap } from '@/components/AddressForm';
 import { SplitWithFriendsModal } from '@/components/SplitWithFriendsModal';
 import { SplitOrderShareModal } from '@/components/SplitOrderShareModal';
 import { useGoogleMapsLoader, GoogleMapsLoaderProvider } from '@/contexts/GoogleMapsLoaderContext';
-import { calculateCartAvailability, AvailabilityType } from '@/lib/utils/availability';
+import { calculateCartAvailability } from '@/lib/utils/availability';
 import CartItemCard from '@/components/CartItemCard';
 import { useQuery } from '@tanstack/react-query';
 import { useAvailabilitySettings } from '@/hooks/useAvailabilitySettings';
 import { validateDiscountCode, getUserDiscountCodes } from '@/services/discountService';
 import type { DiscountValidationResult } from '@/types';
 
-// FIX: Declare the global 'google' object to satisfy TypeScript.
-declare const google: any;
+const getErrorMessage = (error: unknown, fallback: string) => (
+    error instanceof Error ? error.message : fallback
+);
+type AddressCreateInput = Omit<CakeGenieAddress, 'address_id' | 'created_at' | 'updated_at' | 'user_id'>;
 
 const EVENT_TIME_SLOTS_MAP: { slot: string; startHour: number; endHour: number }[] = [
     { slot: "10AM - 12NN", startHour: 10, endHour: 12 },
@@ -101,8 +100,8 @@ function CartClient() {
             const { error } = await signInAnonymously();
             if (error) throw error;
             // User state will update automatically via useAuth
-        } catch (error: any) {
-            showError(error.message || 'Failed to start guest checkout');
+        } catch (error: unknown) {
+            showError(getErrorMessage(error, 'Failed to start guest checkout'));
         } finally {
             setIsGuestLoading(false);
         }
@@ -636,7 +635,7 @@ function CartClient() {
         }
 
         if (leadTimeDisabledByRpc) {
-            let reason = "Date unavailable for this order's lead time.";
+            const reason = "Date unavailable for this order's lead time.";
             return { isDisabled: true, reason };
         }
 
@@ -819,7 +818,7 @@ function CartClient() {
                     if (!user?.id) throw new Error("User ID missing.");
                     const newAddr = await addAddressMutation.mutateAsync({
                         userId: user.id,
-                        addressData: pendingAddressData as any // Type assertion as pendingData is Partial
+                        addressData: pendingAddressData as AddressCreateInput
                     });
                     if (!newAddr) throw new Error("Failed to save address.");
                     effectiveDeliveryAddressId = newAddr.address_id;
@@ -946,9 +945,9 @@ function CartClient() {
                 throw new Error('Payment URL not generated.');
             }
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Checkout error:', error);
-            showError(error.message || 'An error occurred during checkout.');
+            showError(getErrorMessage(error, 'An error occurred during checkout.'));
         } finally {
             setIsPlacingOrder(false);
             setIsCreatingPayment(false);
@@ -1005,7 +1004,7 @@ function CartClient() {
                     if (!user?.id) throw new Error("User ID missing.");
                     const newAddr = await addAddressMutation.mutateAsync({
                         userId: user.id,
-                        addressData: pendingAddressData as any
+                        addressData: pendingAddressData as AddressCreateInput
                     });
                     if (!newAddr) throw new Error("Failed to save address.");
                     effectiveDeliveryAddressId = newAddr.address_id;
@@ -1122,15 +1121,15 @@ function CartClient() {
                 batchRemoveFromLocalStorage('cart_guest_address');
             }
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Split order error:', error);
-            showError(error.message || 'Failed to create split order.');
+            showError(getErrorMessage(error, 'Failed to create split order.'));
         } finally {
             setIsPlacingOrder(false);
         }
     };
 
-    const inputStyle = "w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 disabled:bg-slate-50 disabled:cursor-not-allowed";
+    const inputStyle = "w-full px-3 py-2 text-sm bg-white border border-purple-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 disabled:bg-slate-50 disabled:cursor-not-allowed";
 
     const onRemoveItem = useCallback(async (id: string) => {
         try {
@@ -1177,13 +1176,13 @@ function CartClient() {
                 </div>
             )}
 
-            <div className="px-4 md:px-8 py-4 md:py-8">
-                <div className="max-w-4xl mx-auto bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 animate-fade-in">
+            <div className="px-4 md:px-8 py-4 md:py-8 genie-page-bg min-h-screen">
+                <div className="max-w-4xl mx-auto genie-card rounded-2xl animate-fade-in">
                     <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-fade-in-fast { animation: fadeInFast 0.2s ease-out; } @keyframes fadeInFast { from { opacity: 0; } to { opacity: 1; } } `}</style>
 
-                    <div className="flex justify-between items-center px-4 pt-4 pb-3 border-b border-slate-200">
+                    <div className="flex justify-between items-center px-4 pt-4 pb-3 border-b border-purple-100">
                         <h1 className="text-2xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">Your Cart</h1>
-                        <button onClick={handleClose} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Close cart">
+                        <button onClick={handleClose} className="p-2 genie-icon-button rounded-full transition-colors" aria-label="Close cart">
                             <CloseIcon />
                         </button>
                     </div>
@@ -1199,7 +1198,7 @@ function CartClient() {
                     ) : allItems.length === 0 ? (
                         <div className="text-center py-16 px-4">
                             <p className="text-slate-500">Your cart is empty.</p>
-                            <button onClick={handleContinueShopping} className="mt-4 text-purple-600 font-semibold hover:underline">
+                            <button onClick={handleContinueShopping} className="mt-4 genie-btn-secondary px-4 py-2 rounded-full text-sm font-semibold">
                                 Continue Shopping
                             </button>
                         </div>
@@ -1209,9 +1208,9 @@ function CartClient() {
                                 {Object.entries(groupedItems).map(([merchantName, items]) => (
                                     <div key={merchantName} className="mb-6 last:mb-0">
                                         {merchantName !== 'Cake Genie' && (
-                                            <div className="flex items-center gap-2 mb-3 pb-1 border-b border-slate-100">
-                                                <div className="bg-slate-100 p-1.5 rounded-full">
-                                                    <Users size={16} className="text-slate-500" />
+                                            <div className="flex items-center gap-2 mb-3 pb-1 border-b border-purple-100">
+                                                <div className="genie-icon-soft p-1.5 rounded-full">
+                                                    <Users size={16} />
                                                 </div>
                                                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
                                                     {merchantName}
@@ -1232,17 +1231,17 @@ function CartClient() {
                                 ))}
                             </div>
 
-                            <div className="pt-4 border-t border-slate-200 space-y-4">
+                            <div className="pt-4 border-t border-purple-100 space-y-4">
                                 <h2 className="text-lg font-semibold text-slate-700">Delivery Details</h2>
 
                                 {!isLoadingSettings && (
                                     (availabilitySettings && availabilitySettings.minimum_lead_time_days > 0 && cartAvailability === 'normal') ? (
-                                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800 animate-fade-in">
+                                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 animate-fade-in">
                                             <strong>Note:</strong> We are observing a minimum lead time of <strong>{availabilitySettings.minimum_lead_time_days} day(s)</strong>. The first available date has been adjusted.
                                         </div>
                                     ) : availabilityWasOverridden ? (
-                                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 animate-fade-in">
-                                            <strong>Note:</strong> Due to high demand, availability has been adjusted. Your order will now be processed as a <strong>'{cartAvailability.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}'</strong> order.
+                                        <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg text-xs text-purple-800 animate-fade-in">
+                                            <strong>Note:</strong> Due to high demand, availability has been adjusted. Your order will now be processed as a <strong>{cartAvailability.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}</strong> order.
                                         </div>
                                     ) : null
                                 )}
@@ -1256,7 +1255,7 @@ function CartClient() {
                                                     <button
                                                         type="button"
                                                         onClick={() => setIsMonthPickerOpen(prev => !prev)}
-                                                        className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-pink-600 hover:text-pink-700 hover:bg-pink-50 rounded-md transition-colors"
+                                                        className="genie-btn-ghost inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-md transition-colors"
                                                         aria-label="Pick a month"
                                                         aria-expanded={isMonthPickerOpen}
                                                     >
@@ -1265,11 +1264,11 @@ function CartClient() {
                                                         <ChevronDown className={`w-3 h-3 transition-transform ${isMonthPickerOpen ? 'rotate-180' : ''}`} />
                                                     </button>
                                                     {isMonthPickerOpen && (
-                                                        <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 min-w-[180px] py-1 animate-fade-in-fast">
+                                                        <div className="absolute top-full left-0 mt-1 genie-card rounded-lg z-50 min-w-[180px] py-1 animate-fade-in-fast">
                                                             <button
                                                                 type="button"
                                                                 onClick={() => { setSelectedMonth(null); setIsMonthPickerOpen(false); }}
-                                                                className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${!selectedMonth ? 'bg-pink-50 text-pink-700' : 'text-slate-700 hover:bg-slate-50'
+                                                                className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${!selectedMonth ? 'bg-purple-50 text-purple-700' : 'text-slate-700 hover:bg-purple-50'
                                                                     }`}
                                                             >
                                                                 Next 14 days
@@ -1281,7 +1280,7 @@ function CartClient() {
                                                                         key={`${m.year}-${m.month}`}
                                                                         type="button"
                                                                         onClick={() => { setSelectedMonth({ year: m.year, month: m.month }); setIsMonthPickerOpen(false); }}
-                                                                        className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${isActive ? 'bg-pink-50 text-pink-700' : 'text-slate-700 hover:bg-slate-50'
+                                                                        className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${isActive ? 'bg-purple-50 text-purple-700' : 'text-slate-700 hover:bg-purple-50'
                                                                             }`}
                                                                     >
                                                                         {m.label}
@@ -1295,7 +1294,7 @@ function CartClient() {
                                                     <button
                                                         type="button"
                                                         onClick={() => setSelectedMonth(null)}
-                                                        className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                                                        className="genie-btn-ghost text-xs px-1 rounded transition-colors"
                                                         aria-label="Clear month filter"
                                                     >
                                                         ✕
@@ -1303,7 +1302,7 @@ function CartClient() {
                                                 )}
                                             </div>
                                             {isLoadingDates || isLoadingBlockedDates ? (
-                                                <div className="h-16 flex items-center"><Loader2 className="animate-spin text-slate-400" /></div>
+                                                <div className="h-16 flex items-center"><Loader2 className="animate-spin genie-icon" /></div>
                                             ) : (
                                                 <div className="relative overflow-visible">
                                                     <div className="flex gap-2 overflow-x-auto pt-16 -mt-16 pb-2 -mb-2 scrollbar-hide" style={{ overflowY: 'visible' }}>
@@ -1337,8 +1336,8 @@ function CartClient() {
                                                                         onMouseEnter={() => isDisabled && reason && setTooltip({ date: dateInfo.available_date, reason })}
                                                                         onMouseLeave={() => setTooltip(null)}
                                                                         className={`w-16 text-center rounded-lg p-2 border-2 transition-all duration-200
-                                                                    ${isSelected ? 'border-pink-500 bg-pink-50 ring-2 ring-pink-200' : 'border-slate-200 bg-white'}
-                                                                    ${isDisabled ? 'opacity-50 bg-slate-50 cursor-not-allowed' : 'hover:border-pink-400'}
+                                                                    ${isSelected ? 'genie-control-selected text-purple-900' : 'border-purple-100 bg-white'}
+                                                                    ${isDisabled ? 'opacity-50 bg-slate-50 cursor-not-allowed' : 'hover:border-purple-300'}
     `}
                                                                     >
                                                                         <span className="block text-xs font-semibold text-slate-500">{month}</span>
@@ -1372,8 +1371,8 @@ function CartClient() {
                                                                 onClick={() => !isDisabled && setEventTime(slot)}
                                                                 disabled={isDisabled}
                                                                 className={`shrink-0 text-center rounded-lg p-2 border-2 transition-all duration-200
-                                                            ${isSelected ? 'border-pink-500 bg-pink-50 ring-2 ring-pink-200' : 'border-slate-200 bg-white'}
-                                                            ${isDisabled ? 'opacity-50 bg-slate-50 cursor-not-allowed' : 'hover:border-pink-400'}
+                                                            ${isSelected ? 'genie-control-selected text-purple-900' : 'border-purple-100 bg-white'}
+                                                            ${isDisabled ? 'opacity-50 bg-slate-50 cursor-not-allowed' : 'hover:border-purple-300'}
     `}
                                                             >
                                                                 <span className="block text-xs font-semibold text-slate-800 px-2">{slot}</span>
@@ -1390,29 +1389,29 @@ function CartClient() {
                                     {cartAvailability === 'rush' && <p className="text-xs text-slate-500 -mt-2">All items in your cart are available for rush delivery (60-min lead time).</p>}
 
                                     {/* Fulfillment Type Toggle */}
-                                    <div className="flex rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                                    <div className="flex rounded-xl border border-purple-100 overflow-hidden shadow-sm bg-white/80">
                                         <button
                                             type="button"
                                             id="fulfillment-delivery"
                                             aria-label="Select delivery"
                                             onClick={() => setFulfillmentType('delivery')}
                                             className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-all duration-200 ${fulfillmentType === 'delivery'
-                                                ? 'bg-linear-to-r from-pink-500 to-purple-600 text-white shadow-inner'
-                                                : 'bg-white text-slate-600 hover:bg-slate-50'
+                                                ? 'genie-btn-primary text-white shadow-inner'
+                                                : 'bg-white text-slate-600 hover:bg-purple-50'
                                                 }`}
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" rx="1" /><path d="M16 8h4l3 5v3h-7V8z" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></svg>
                                             Delivery
                                         </button>
-                                        <div className="w-px bg-slate-200" />
+                                        <div className="w-px bg-purple-100" />
                                         <button
                                             type="button"
                                             id="fulfillment-pickup"
                                             aria-label="Select pick-up"
                                             onClick={() => setFulfillmentType('pickup')}
                                             className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-all duration-200 ${fulfillmentType === 'pickup'
-                                                ? 'bg-linear-to-r from-pink-500 to-purple-600 text-white shadow-inner'
-                                                : 'bg-white text-slate-600 hover:bg-slate-50'
+                                                ? 'genie-btn-primary text-white shadow-inner'
+                                                : 'bg-white text-slate-600 hover:bg-purple-50'
                                                 }`}
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg>
@@ -1433,15 +1432,15 @@ function CartClient() {
                                                             type="button"
                                                             onClick={() => setSelectedPickupIndex(index)}
                                                             className={`flex items-start gap-3 p-3 rounded-xl border-2 transition-all text-left ${selectedPickupIndex === index
-                                                                ? 'border-pink-500 bg-pink-50 ring-1 ring-pink-500'
-                                                                : 'border-slate-200 bg-white hover:border-slate-300'
+                                                                ? 'genie-control-selected'
+                                                                : 'border-purple-100 bg-white hover:border-purple-300'
                                                                 }`}
                                                         >
-                                                            <div className={`mt-0.5 shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedPickupIndex === index ? 'border-pink-500 bg-pink-500' : 'border-slate-300'}`}>
+                                                            <div className={`mt-0.5 shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedPickupIndex === index ? 'border-purple-500 bg-purple-500' : 'border-purple-200'}`}>
                                                                 {selectedPickupIndex === index && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                                                             </div>
                                                             <div>
-                                                                <p className={`text-sm font-bold ${selectedPickupIndex === index ? 'text-pink-900' : 'text-slate-800'}`}>{location.name}</p>
+                                                                <p className={`text-sm font-bold ${selectedPickupIndex === index ? 'text-purple-900' : 'text-slate-800'}`}>{location.name}</p>
                                                                 <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{location.street_address}</p>
                                                             </div>
                                                         </button>
@@ -1452,7 +1451,7 @@ function CartClient() {
                                             {/* Selected Branch Details & Map */}
                                             <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl space-y-3">
                                                 <div className="flex items-start gap-3">
-                                                    <MapPin className="w-5 h-5 text-purple-500 mt-0.5 shrink-0" />
+                                                    <MapPin className="w-5 h-5 genie-icon mt-0.5 shrink-0" />
                                                     <div>
                                                         <p className="text-sm font-bold text-purple-800">{PICKUP_LOCATIONS[selectedPickupIndex].name}</p>
                                                         <p className="text-xs text-purple-600 mt-0.5">{PICKUP_LOCATIONS[selectedPickupIndex].street_address}, {PICKUP_LOCATIONS[selectedPickupIndex].city}</p>
@@ -1474,7 +1473,7 @@ function CartClient() {
                                                     href={PICKUP_LOCATIONS[selectedPickupIndex].googleMapsUrl}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-600 hover:text-purple-800 hover:underline transition-colors"
+                                                    className="genie-link inline-flex items-center gap-1.5 text-xs font-semibold hover:underline transition-colors"
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
                                                     Open in Google Maps
@@ -1482,14 +1481,14 @@ function CartClient() {
                                             </div>
 
                                             {/* Pickup Contact Information */}
-                                            <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl space-y-4">
-                                                <h3 className="text-sm font-bold text-blue-800 flex items-center gap-2">
-                                                    <User className="w-4 h-4" />
+                                            <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl space-y-4">
+                                                <h3 className="text-sm font-bold text-purple-800 flex items-center gap-2">
+                                                    <User className="w-4 h-4 genie-icon" />
                                                     Pickup Contact Person
                                                 </h3>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                     <div>
-                                                        <label htmlFor="pickupRecipientName" className="block text-xs font-semibold text-blue-700 mb-1">Recipient Name <span className="text-red-500">*</span></label>
+                                                        <label htmlFor="pickupRecipientName" className="block text-xs font-semibold text-purple-700 mb-1">Recipient Name <span className="text-red-500">*</span></label>
                                                         <input
                                                             id="pickupRecipientName"
                                                             type="text"
@@ -1501,7 +1500,7 @@ function CartClient() {
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label htmlFor="pickupRecipientPhone" className="block text-xs font-semibold text-blue-700 mb-1">Contact Number <span className="text-red-500">*</span></label>
+                                                        <label htmlFor="pickupRecipientPhone" className="block text-xs font-semibold text-purple-700 mb-1">Contact Number <span className="text-red-500">*</span></label>
                                                         <input
                                                             id="pickupRecipientPhone"
                                                             type="tel"
@@ -1517,8 +1516,8 @@ function CartClient() {
 
                                             {/* Guest Email for pickup (still need receipt) */}
                                             {isAuthenticated && user?.is_anonymous && (
-                                                <div className="p-4 bg-pink-50 border border-pink-100 rounded-lg animate-fade-in">
-                                                    <h3 className="text-sm font-bold text-pink-800 mb-3">Guest Contact Info</h3>
+                                                <div className="p-4 bg-purple-50 border border-purple-100 rounded-lg animate-fade-in">
+                                                    <h3 className="text-sm font-bold text-purple-800 mb-3">Guest Contact Info</h3>
                                                     <div>
                                                         <label htmlFor="guestEmailPickup" className="block text-sm font-medium text-slate-600 mb-1">Email Address <span className="text-red-500">*</span></label>
                                                         <input
@@ -1536,14 +1535,14 @@ function CartClient() {
                                             )}
 
                                             {!isAuthenticated && (
-                                                <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
+                                                <div className="p-5 genie-card rounded-xl space-y-4">
                                                     <div className="text-center space-y-3">
                                                         <h3 className="font-semibold text-slate-800">Almost there!</h3>
                                                         <p className="text-sm text-slate-600">Enter your email so we can send your receipt and order updates.</p>
                                                         <button
                                                             onClick={handleGuestCheckout}
                                                             disabled={isGuestLoading}
-                                                            className="w-full bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all text-sm disabled:opacity-70 disabled:hover:scale-100 flex justify-center items-center"
+                                                            className="w-full genie-btn-primary font-bold py-3 px-6 rounded-xl text-sm disabled:opacity-70 disabled:hover:scale-100 flex justify-center items-center"
                                                         >
                                                             {isGuestLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Setting up...</> : 'Continue as Guest'}
                                                         </button>
@@ -1552,7 +1551,7 @@ function CartClient() {
                                                         Have an account?{' '}
                                                         <button
                                                             onClick={() => router.push('/login')}
-                                                            className="text-pink-600 font-semibold hover:underline"
+                                                            className="genie-link font-semibold hover:underline"
                                                             tabIndex={0}
                                                             aria-label="Sign in to your account"
                                                         >
@@ -1571,13 +1570,13 @@ function CartClient() {
                                         /* ---- DELIVERY UI (existing) ---- */
                                         <div id="cart-address-section">
                                             {isAddressesLoading ? (
-                                                <div className="flex justify-center items-center h-24"><Loader2 className="w-6 h-6 animate-spin text-purple-500" /></div>
+                                                <div className="flex justify-center items-center h-24"><Loader2 className="w-6 h-6 animate-spin genie-icon" /></div>
                                             ) : isAuthenticated ? (
                                                 <>
                                                     {/* Guest Email Input */}
                                                     {user?.is_anonymous && (
-                                                        <div className="mb-6 p-4 bg-pink-50 border border-pink-100 rounded-lg animate-fade-in">
-                                                            <h3 className="text-sm font-bold text-pink-800 mb-3">Guest Contact Info</h3>
+                                                        <div className="mb-6 p-4 bg-purple-50 border border-purple-100 rounded-lg animate-fade-in">
+                                                            <h3 className="text-sm font-bold text-purple-800 mb-3">Guest Contact Info</h3>
                                                             <div>
                                                                 <label htmlFor="guestEmail" className="block text-sm font-medium text-slate-600 mb-1">Email Address <span className="text-red-500">*</span></label>
                                                                 <input
@@ -1609,12 +1608,12 @@ function CartClient() {
                                                                 </select>
                                                             </div>
                                                             {selectedAddress && (
-                                                                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm">
+                                                                <div className="p-3 bg-purple-50/60 rounded-lg border border-purple-100 text-sm">
                                                                     <p className="font-semibold text-slate-700">{selectedAddress.recipient_name}</p>
                                                                     <p className="text-slate-500">{selectedAddress.recipient_phone}</p>
                                                                     {selectedAddress.latitude && selectedAddress.longitude ? (
-                                                                        <a href={`https://www.google.com/maps?q=${selectedAddress.latitude},${selectedAddress.longitude}`} target="_blank" rel="noopener noreferrer" className="flex items-start gap-1.5 mt-1 text-pink-600 hover:text-pink-700 hover:underline">
-                                                                            <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                                                        <a href={`https://www.google.com/maps?q=${selectedAddress.latitude},${selectedAddress.longitude}`} target="_blank" rel="noopener noreferrer" className="genie-link flex items-start gap-1.5 mt-1 hover:underline">
+                                                                            <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 genie-icon" />
                                                                             <span>{selectedAddress.street_address}</span>
                                                                         </a>
                                                                     ) : (
@@ -1630,17 +1629,17 @@ function CartClient() {
 
                                                     {/* Guest Address Display */}
                                                     {isAnonymous && guestAddress && !isAddingAddress && (
-                                                        <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm relative group">
+                                                        <div className="mb-4 p-3 bg-purple-50/60 rounded-lg border border-purple-100 text-sm relative group">
                                                             <div className="flex justify-between items-start mb-2">
                                                                 <div>
                                                                     <div className="flex items-center gap-2">
                                                                         <p className="font-semibold text-slate-700">{guestAddress.recipient_name}</p>
-                                                                        <span className="px-2 py-0.5 bg-slate-200 text-slate-600 text-[10px] font-bold uppercase rounded-full tracking-wider">Guest</span>
+                                                                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold uppercase rounded-full tracking-wider">Guest</span>
                                                                     </div>
                                                                     <p className="text-slate-500">{guestAddress.recipient_phone}</p>
                                                                     {guestAddress.latitude && guestAddress.longitude ? (
-                                                                        <a href={`https://www.google.com/maps?q=${guestAddress.latitude},${guestAddress.longitude}`} target="_blank" rel="noopener noreferrer" className="flex items-start gap-1.5 mt-1 text-pink-600 hover:text-pink-700 hover:underline">
-                                                                            <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                                                        <a href={`https://www.google.com/maps?q=${guestAddress.latitude},${guestAddress.longitude}`} target="_blank" rel="noopener noreferrer" className="genie-link flex items-start gap-1.5 mt-1 hover:underline">
+                                                                            <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 genie-icon" />
                                                                             <span>{guestAddress.street_address}</span>
                                                                         </a>
                                                                     ) : (
@@ -1650,7 +1649,7 @@ function CartClient() {
                                                                 </div>
                                                                 <button
                                                                     onClick={() => setIsAddingAddress(true)}
-                                                                    className="text-pink-600 text-xs font-bold hover:underline uppercase tracking-wide"
+                                                                    className="genie-link text-xs font-bold hover:underline uppercase tracking-wide"
                                                                 >
                                                                     Edit
                                                                 </button>
@@ -1675,21 +1674,21 @@ function CartClient() {
                                                         </div>
                                                     ) : (
                                                         <div className="mt-2">
-                                                            <button type="button" onClick={() => setIsAddingAddress(true)} className="w-full text-center text-sm font-semibold text-pink-600 hover:text-pink-700 py-2 rounded-lg hover:bg-pink-50 transition-colors">
+                                                            <button type="button" onClick={() => setIsAddingAddress(true)} className="w-full genie-btn-secondary text-center text-sm font-semibold py-2 rounded-lg transition-colors">
                                                                 + Add a New Address
                                                             </button>
                                                         </div>
                                                     )}
                                                 </>
                                             ) : (
-                                                <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
+                                                <div className="p-5 genie-card rounded-xl space-y-4">
                                                     <div className="text-center space-y-3">
                                                         <h3 className="font-semibold text-slate-800">Where should we deliver?</h3>
                                                         <p className="text-sm text-slate-600">Continue as guest to enter your delivery address and email.</p>
                                                         <button
                                                             onClick={handleGuestCheckout}
                                                             disabled={isGuestLoading}
-                                                            className="w-full bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all text-sm disabled:opacity-70 disabled:hover:scale-100 flex justify-center items-center"
+                                                            className="w-full genie-btn-primary font-bold py-3 px-6 rounded-xl text-sm disabled:opacity-70 disabled:hover:scale-100 flex justify-center items-center"
                                                         >
                                                             {isGuestLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Setting up...</> : 'Continue as Guest'}
                                                         </button>
@@ -1698,7 +1697,7 @@ function CartClient() {
                                                         Have an account?{' '}
                                                         <button
                                                             onClick={() => router.push('/login')}
-                                                            className="text-pink-600 font-semibold hover:underline"
+                                                            className="genie-link font-semibold hover:underline"
                                                             tabIndex={0}
                                                             aria-label="Sign in to your account"
                                                         >
@@ -1717,10 +1716,10 @@ function CartClient() {
                                     )}
                                 </div>
 
-                                <div className="pt-4 pb-4 border-t border-slate-200 space-y-4">
+                                <div className="pt-4 pb-4 border-t border-purple-100 space-y-4">
                                     {/* Discount Code Section */}
                                     <div>
-                                        <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                                        <h3 className="text-sm font-semibold text-slate-700 mb-3">
                                             Have a Discount Code?
                                         </h3>
 
@@ -1732,7 +1731,7 @@ function CartClient() {
                                                         <button
                                                             key={code.code_id}
                                                             onClick={() => handleApplyDiscount(code.code)}
-                                                            className="px-3 py-1.5 text-xs bg-slate-100 text-slate-700 rounded-lg hover:bg-pink-100 hover:text-pink-700 border border-slate-200 transition-colors font-mono"
+                                                            className="genie-btn-secondary px-3 py-1.5 text-xs rounded-lg transition-colors font-mono"
                                                         >
                                                             {code.code}
                                                             {code.discount_amount && ` (₱${code.discount_amount} off)`}
@@ -1750,31 +1749,31 @@ function CartClient() {
                                                     value={discountCode}
                                                     onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
                                                     placeholder="Enter code"
-                                                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg uppercase font-mono focus:outline-none focus:ring-2 focus:ring-pink-500"
+                                                    className="flex-1 px-3 py-2 text-sm border border-purple-200 rounded-lg uppercase font-mono focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400"
                                                     maxLength={20}
                                                 />
                                                 <button
                                                     onClick={() => handleApplyDiscount()}
                                                     disabled={isValidatingCode || !discountCode.trim()}
-                                                    className="px-4 py-2 bg-pink-600 text-white text-sm font-semibold rounded-lg hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                    className="genie-btn-primary px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     {isValidatingCode ? <Loader2 className="animate-spin w-4 h-4" /> : 'Apply'}
                                                 </button>
                                             </div>
                                         ) : (
-                                            <div className="bg-green-50 border border-green-300 rounded-lg p-3">
+                                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
                                                 <div className="flex items-center justify-between">
                                                     <div>
-                                                        <p className="text-sm font-semibold text-green-800">
-                                                            ✅ Code Applied: <span className="font-mono">{discountCode}</span>
+                                                        <p className="text-sm font-semibold text-purple-800">
+                                                            Code Applied: <span className="font-mono">{discountCode}</span>
                                                         </p>
-                                                        <p className="text-xs text-green-700 mt-1">
+                                                        <p className="text-xs text-purple-700 mt-1">
                                                             Saving ₱{appliedDiscount.discountAmount?.toFixed(2)}
                                                         </p>
                                                     </div>
                                                     <button
                                                         onClick={handleRemoveDiscount}
-                                                        className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+                                                        className="genie-btn-ghost px-2 py-1 rounded text-sm font-medium"
                                                     >
                                                         Remove
                                                     </button>
@@ -1785,12 +1784,12 @@ function CartClient() {
 
                                     {/* Price Breakdown with Discount */}
                                     <div className="space-y-2 mt-4">
-                                        <div className="flex justify-between text-sm text-gray-600">
+                                        <div className="flex justify-between text-sm text-slate-600">
                                             <span>Subtotal:</span>
                                             <span>₱{subtotal.toFixed(2)}</span>
                                         </div>
 
-                                        <div className="flex justify-between text-sm text-gray-600">
+                                        <div className="flex justify-between text-sm text-slate-600">
                                             <span>{fulfillmentType === 'pickup' ? 'Pick-Up Fee:' : 'Delivery Fee:'}</span>
                                             <span>
                                                 {fulfillmentType === 'pickup'
@@ -1803,13 +1802,13 @@ function CartClient() {
                                         </div>
 
                                         {appliedDiscount && (
-                                            <div className="flex justify-between text-sm text-green-600 font-semibold">
+                                            <div className="flex justify-between text-sm text-purple-700 font-semibold">
                                                 <span>Discount ({discountCode}):</span>
                                                 <span>-₱{discountAmount.toFixed(2)}</span>
                                             </div>
                                         )}
 
-                                        <div className="flex justify-between text-lg font-bold border-t border-gray-200 pt-2 mt-2">
+                                        <div className="flex justify-between text-lg font-bold border-t border-purple-100 pt-2 mt-2">
                                             <span>Total:</span>
                                             <span>₱{total.toFixed(2)}</span>
                                         </div>
@@ -1862,7 +1861,7 @@ function CartClient() {
                                                 isCreatingPayment ||
                                                 getMissingRequirements().length > 0
                                             }
-                                            className="flex-1 bg-linear-to-r from-pink-500 to-purple-600 text-white py-4 rounded-full font-semibold hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                                            className="flex-1 genie-btn-primary py-4 rounded-full font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                                         >
                                             {isCreatingPayment ? (
                                                 <span className="flex items-center justify-center gap-2">
@@ -1887,7 +1886,7 @@ function CartClient() {
                                                 isCreatingPayment ||
                                                 getMissingRequirements().length > 0
                                             }
-                                            className="hidden flex-1 py-4 px-4 bg-white border-2 border-pink-500 text-pink-500 font-bold rounded-full hover:bg-pink-50 transition-colors items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="hidden flex-1 genie-btn-secondary py-4 px-4 font-bold rounded-full transition-colors items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <Users className="w-5 h-5" />
                                             <span>Split with Friends</span>

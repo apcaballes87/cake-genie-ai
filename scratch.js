@@ -1,12 +1,16 @@
-const sharp = require('sharp');
-async function run() {
-  const bg = sharp({ create: { width: 100, height: 100, channels: 4, background: { r: 255, g: 0, b: 0, alpha: 1 } } });
-  const overlay = await sharp({ create: { width: 50, height: 50, channels: 4, background: { r: 0, g: 255, b: 0, alpha: 1 } } }).png().toBuffer();
-  try {
-    await bg.composite([{ input: overlay, blend: 'over', opacity: 0.5 }]).png().toBuffer();
-    console.log("opacity supported!");
-  } catch (e) {
-    console.log("opacity failed: " + e.message);
-  }
+require('dotenv').config({ path: '.env.local' });
+const { createClient } = require('@supabase/supabase-js');
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+async function main() {
+  const { data, error } = await supabase
+    .from('cakegenie_analysis_cache')
+    .select('p_hash, studio_edit_status, studio_edit_error')
+    .order('created_at', { ascending: false })
+    .limit(3);
+  console.log('Error:', error);
+  console.log('Data:', data);
 }
-run();
+main();

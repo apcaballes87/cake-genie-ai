@@ -91,7 +91,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
 
     if (item.status === 'pending') {
         return (
-            <div className="flex flex-col gap-4 p-4 bg-white rounded-lg border border-slate-200">
+            <div className="flex flex-col gap-4 p-4 genie-card rounded-lg">
                 <div className="flex gap-4 w-full">
                     <div className="relative w-24 h-24 md:w-32 md:h-32 shrink-0 rounded-md bg-slate-100 overflow-hidden">
                         <LazyImage
@@ -111,7 +111,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
                                 <h2 className="font-semibold text-slate-800">{item.size}</h2>
                                 <p className="text-lg font-bold text-purple-600 mt-1">₱{item.totalPrice.toLocaleString()}</p>
                             </div>
-                            <button onClick={() => onRemove(item.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-colors" aria-label="Remove item">
+                            <button onClick={() => onRemove(item.id)} className="p-2 genie-icon-button rounded-full transition-colors" aria-label="Remove item">
                                 <TrashIcon className="w-5 h-5" />
                             </button>
                         </div>
@@ -119,7 +119,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
                 </div>
                 <details className="w-full">
                     <summary className="text-xs font-semibold text-slate-600 cursor-pointer">View Customization Details</summary>
-                    <div className="mt-2 pl-2 border-l-2 border-slate-200 space-y-1.5 text-xs text-slate-500">
+                    <div className="mt-2 pl-2 border-l-2 border-purple-100 space-y-1.5 text-xs text-slate-500">
                         <DetailItem label="Type" value={`${item.type}, ${item.thickness}, ${item.size}`} />
                         {item.details.flavors.length === 1 ? (
                             <DetailItem label="Flavor" value={item.details.flavors[0]} />
@@ -170,7 +170,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
                         <p className="font-semibold">Design Update Failed</p>
                         <p className="text-xs mt-1">{item.errorMessage}</p>
                     </div>
-                    <button onClick={() => onRemove(item.id)} className="p-1.5 text-red-500 hover:text-red-700 rounded-full hover:bg-red-100 transition-colors" aria-label="Remove item">
+                    <button onClick={() => onRemove(item.id)} className="p-1.5 rounded-full hover:bg-red-100 transition-colors" aria-label="Remove item">
                         <TrashIcon className="w-5 h-5" />
                     </button>
                 </div>
@@ -179,12 +179,12 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
     }
 
     return (
-        <div className="flex flex-col gap-4 p-4 bg-white rounded-lg border border-slate-200">
+        <div className="flex flex-col gap-4 p-4 genie-card rounded-lg">
             <div className="flex gap-4 w-full">
                 <button
                     type="button"
                     onClick={() => item.image && onZoom(item.image)}
-                    className="relative w-24 h-24 md:w-32 md:h-32 shrink-0 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-md transition-transform hover:scale-105"
+                    className="relative w-24 h-24 md:w-32 md:h-32 shrink-0 genie-focus rounded-md transition-transform hover:scale-105"
                     aria-label="Enlarge cake image"
                 >
                     <LazyImage src={item.image!} alt="Cake Design" fill className="w-full h-full object-cover rounded-md" />
@@ -195,7 +195,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
                             <h2 className="font-semibold text-slate-800">{item.size}</h2>
                             <p className="text-lg font-bold text-purple-600 mt-1">₱{item.totalPrice.toLocaleString()}</p>
                         </div>
-                        <button onClick={() => onRemove(item.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-colors" aria-label="Remove item">
+                        <button onClick={() => onRemove(item.id)} className="p-2 genie-icon-button rounded-full transition-colors" aria-label="Remove item">
                             <TrashIcon className="w-5 h-5" />
                         </button>
                     </div>
@@ -203,7 +203,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
             </div>
             <details className="w-full">
                 <summary className="text-xs font-semibold text-slate-600 cursor-pointer">View Customization Details</summary>
-                <div className="mt-2 pl-2 border-l-2 border-slate-200 space-y-1.5 text-xs text-slate-500">
+                <div className="mt-2 pl-2 border-l-2 border-purple-100 space-y-1.5 text-xs text-slate-500">
                     <DetailItem label="Type" value={`${item.type}, ${item.thickness}, ${item.size}`} />
                     {item.details.flavors.length === 1 ? (
                         <DetailItem label="Flavor" value={item.details.flavors[0]} />

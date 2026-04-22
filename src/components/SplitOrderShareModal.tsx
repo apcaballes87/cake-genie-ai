@@ -55,8 +55,8 @@ export const SplitOrderShareModal: React.FC<SplitOrderShareModalProps> = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-scale-in">
-                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-center">
+            <div className="genie-card rounded-2xl w-full max-w-md overflow-hidden animate-scale-in">
+                <div className="bg-purple-500 p-6 text-center">
                     <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4">
                         <Share2 className="text-white" size={32} />
                     </div>
@@ -84,13 +84,13 @@ export const SplitOrderShareModal: React.FC<SplitOrderShareModalProps> = ({
                                 type="text"
                                 readOnly
                                 value={shareLink}
-                                className="flex-1 px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-600 text-sm focus:outline-none"
+                                className="flex-1 px-4 py-2 bg-purple-50/60 border border-purple-200 rounded-lg text-slate-600 text-sm focus:outline-none"
                             />
                             <button
                                 onClick={handleCopy}
                                 className={`p-2 rounded-lg border transition-all ${copied
                                     ? 'bg-green-50 border-green-200 text-green-600'
-                                    : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'
+                                    : 'genie-icon-button'
                                     }`}
                                 title="Copy Link"
                             >
@@ -102,7 +102,7 @@ export const SplitOrderShareModal: React.FC<SplitOrderShareModalProps> = ({
                     <div className="grid grid-cols-2 gap-3">
                         <button
                             onClick={handleShare}
-                            className="flex items-center justify-center gap-2 py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-medium transition-colors"
+                            className="genie-btn-primary flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium transition-colors"
                         >
                             <Share2 size={18} />
                             <span>Share</span>
@@ -111,7 +111,7 @@ export const SplitOrderShareModal: React.FC<SplitOrderShareModalProps> = ({
                             href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink)}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center justify-center gap-2 py-2.5 px-4 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl font-medium transition-colors"
+                            className="genie-btn-secondary flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-medium transition-colors"
                         >
                             <ExternalLink size={18} />
                             <span>Messenger</span>
@@ -120,7 +120,7 @@ export const SplitOrderShareModal: React.FC<SplitOrderShareModalProps> = ({
 
                     <button
                         onClick={onClose}
-                        className="w-full py-3 text-slate-500 hover:text-slate-700 font-medium transition-colors"
+                        className="w-full py-3 genie-link font-medium transition-colors"
                     >
                         Close and view order
                     </button>

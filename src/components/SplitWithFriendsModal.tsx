@@ -37,17 +37,17 @@ export const SplitWithFriendsModal: React.FC<SplitWithFriendsModalProps> = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-scale-in">
-                <div className="flex justify-between items-center p-4 border-b border-slate-100">
+            <div className="genie-card rounded-2xl w-full max-w-md overflow-hidden animate-scale-in">
+                <div className="flex justify-between items-center p-4 border-b border-purple-100">
                     <div className="flex items-center gap-2">
-                        <div className="p-2 bg-purple-100 rounded-full text-purple-600">
+                        <div className="p-2 genie-icon-soft rounded-full">
                             <Users size={20} />
                         </div>
                         <h2 className="text-lg font-bold text-slate-800">Split with Friends</h2>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                        className="p-1 genie-icon-button rounded-full transition-colors"
                     >
                         <X size={20} />
                     </button>
@@ -80,7 +80,7 @@ export const SplitWithFriendsModal: React.FC<SplitWithFriendsModalProps> = ({
                                     max="50"
                                     value={splitCount}
                                     onChange={(e) => setSplitCount(parseInt(e.target.value) || 2)}
-                                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                                    className="w-full pl-10 pr-4 py-2 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-200 focus:border-purple-400 outline-none transition-all"
                                 />
                             </div>
                             <p className="text-xs text-slate-500 mt-1">
@@ -98,7 +98,7 @@ export const SplitWithFriendsModal: React.FC<SplitWithFriendsModalProps> = ({
                                     value={splitMessage}
                                     onChange={(e) => setSplitMessage(e.target.value)}
                                     rows={3}
-                                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all resize-none"
+                                    className="w-full pl-10 pr-4 py-2 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-200 focus:border-purple-400 outline-none transition-all resize-none"
                                     placeholder="Add a message..."
                                 />
                             </div>
@@ -109,7 +109,7 @@ export const SplitWithFriendsModal: React.FC<SplitWithFriendsModalProps> = ({
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-purple-200 transform transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="w-full genie-btn-primary py-3 px-4 font-bold rounded-xl transform transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {isLoading ? (
                                 <>
