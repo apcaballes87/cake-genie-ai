@@ -14,7 +14,7 @@ type Props = {
 
 // Availability Info Constant
 const AVAILABILITY_INFO: Record<AvailabilityType | string, { label: string; time: string; icon: string; bgColor: string; textColor: string }> = {
-    rush: { label: 'Rush Order', time: 'Ready in 30 minutes', icon: '⚡', bgColor: 'bg-green-600', textColor: 'text-white' },
+    rush: { label: 'Rush Order', time: 'Ready in 60 minutes', icon: '⚡', bgColor: 'bg-green-600', textColor: 'text-white' },
     'same-day': { label: 'Same-Day', time: 'Ready in 3 hours', icon: '🕐', bgColor: 'bg-blue-600', textColor: 'text-white' },
     normal: { label: 'Standard Order', time: '1-day lead time', icon: '📅', bgColor: 'bg-slate-100', textColor: 'text-slate-800' },
 };

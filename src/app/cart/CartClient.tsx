@@ -653,7 +653,7 @@ function CartClient() {
             if (cartAvailability === 'same-day') {
                 readyTime = new Date(now.getTime() + 3 * 60 * 60 * 1000); // +3 hours
             } else if (cartAvailability === 'rush') {
-                readyTime = new Date(now.getTime() + 30 * 60 * 1000); // +30 mins
+                readyTime = new Date(now.getTime() + 60 * 60 * 1000); // +60 mins
             }
 
             if (readyTime) {
@@ -1387,7 +1387,7 @@ function CartClient() {
 
                                     {cartAvailability === 'normal' && <p className="text-xs text-slate-500 -mt-2">Your cart items require a {availabilitySettings?.minimum_lead_time_days || 1}-day lead time. Order by 3 PM for next-day delivery.</p>}
                                     {cartAvailability === 'same-day' && <p className="text-xs text-slate-500 -mt-2">Your cart contains items available for same-day delivery (3-hour lead time).</p>}
-                                    {cartAvailability === 'rush' && <p className="text-xs text-slate-500 -mt-2">All items in your cart are available for rush delivery (30-min lead time).</p>}
+                                    {cartAvailability === 'rush' && <p className="text-xs text-slate-500 -mt-2">All items in your cart are available for rush delivery (60-min lead time).</p>}
 
                                     {/* Fulfillment Type Toggle */}
                                     <div className="flex rounded-xl border border-slate-200 overflow-hidden shadow-sm">

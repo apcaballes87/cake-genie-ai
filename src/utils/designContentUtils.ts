@@ -103,7 +103,7 @@ export function generateDesignDetails(design: any, prices?: BasePriceInfo[]): st
 
     // Sentence 7: Availability
     const availabilityMap: Record<string, string> = {
-        'rush': 'This is a simple design eligible for rush orders — you can have it ready in as little as 30 minutes to 1 hour.',
+        'rush': 'This is a simple design eligible for rush orders — you can have it ready in as little as 60 minutes.',
         'same-day': 'This design qualifies for same-day orders with approximately 3 to 4 hours of lead time.',
         'normal': 'Due to the complexity of this design, we recommend ordering at least 1 day in advance for the best results.',
     };
@@ -141,7 +141,7 @@ export function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { que
 
     // FAQ 2: Availability — varies by design complexity
     const availabilityAnswers: Record<string, string> = {
-        'rush': `This ${keywords} cake design is simple enough for a rush order. You can have it ready in as little as 30 minutes to 1 hour, making it perfect for last-minute celebrations. Rush orders are available for pickup or delivery within Metro Cebu.`,
+        'rush': `This ${keywords} cake design is simple enough for a rush order. You can have it ready in as little as 60 minutes, making it perfect for last-minute celebrations. Rush orders are available for pickup or delivery within Metro Cebu.`,
         'same-day': `This ${keywords} cake can be prepared as a same-day order with approximately 3 to 4 hours of lead time. The design includes elements that require some preparation time, but you can still order and receive it on the same day. Place your order before noon for the best availability.`,
         'normal': `This ${keywords} cake design requires at least 1 day of lead time due to its complexity. We recommend ordering at least 1 to 2 days in advance to ensure our bakers can craft every detail perfectly. Order by 3 PM for next-day delivery slots.`,
     };

@@ -158,7 +158,7 @@ const AVAILABILITY_MAP: Record<AvailabilityType, AvailabilityInfo> = {
     rush: {
         type: 'rush',
         label: 'Rush Order Available!',
-        time: 'Ready in 30 minutes',
+        time: 'Ready in 60 minutes',
         icon: '⚡',
         description: 'Simple design - we can make this super fast!',
         bgColor: 'bg-green-50',
@@ -276,6 +276,8 @@ const MotifPanel: React.FC<{
 interface RecentSearchDesignProp {
     p_hash: string;
     original_image_url: string | null;
+    studio_edited_image_url?: string | null;
+    studio_edit_image_url?: string | null;
     price: number | null;
     keywords: string | null;
     analysis_json: any;
@@ -287,6 +289,16 @@ interface RecentSearchDesignProp {
     availability?: string | null;
     tags?: string[] | null;
 }
+
+const firstNonBlankImageUrl = (...urls: unknown[]) => {
+    for (const url of urls) {
+        if (typeof url === 'string' && url.trim()) {
+            return url.trim();
+        }
+    }
+
+    return null;
+};
 
 interface CustomizingClientProps {
     product?: CakeGenieMerchantProduct;
@@ -1196,7 +1208,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
         // Unify the data source (Product Page vs Customizing Page)
         const targetSlug = product?.slug || recentSearchDesign?.slug || recentSearchDesign?.p_hash;
-        const targetImageUrl = product?.image_url || recentSearchDesign?.original_image_url;
+        const targetImageUrl = firstNonBlankImageUrl(
+            product?.image_url,
+            recentSearchDesign?.studio_edited_image_url,
+            recentSearchDesign?.studio_edit_image_url,
+            recentSearchDesign?.original_image_url,
+        );
         const targetPHash = product?.p_hash || recentSearchDesign?.p_hash;
         const targetTitle = product?.title || recentSearchDesign?.seo_title || 'Design';
 
@@ -2799,7 +2816,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             error={error}
                             originalImagePreview={originalImagePreview}
                             preloadedHeroImage={preloadedHeroImage}
-                            fallbackImageUrl={product?.image_url || recentSearchDesign?.original_image_url || null}
+                            fallbackImageUrl={firstNonBlankImageUrl(
+                                product?.image_url,
+                                recentSearchDesign?.studio_edited_image_url,
+                                recentSearchDesign?.studio_edit_image_url,
+                                recentSearchDesign?.original_image_url,
+                            )}
                             fallbackImageAlt={product?.alt_text || recentSearchRichAlt || recentSearchDesign?.alt_text || product?.title || recentSearchDesign?.keywords || 'Custom Cake Design - Cebu Philippines'}
                             fallbackImageTitle={product?.title || recentSearchDesign?.seo_title || recentSearchRichAlt || recentSearchDesign?.keywords || 'Cake Design'}
                             initialCaption={initialCaption}

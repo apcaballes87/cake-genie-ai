@@ -21,11 +21,12 @@ import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow } fro
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
 import { compressImage } from '@/lib/utils/imageOptimization';
 import { generatePerceptualHash } from '@/hooks/useImageManagement';
+import { CakeThickness, CakeType } from '@/types';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { batchSaveToLocalStorage } from '@/contexts/CartContext';
-import { COMMON_ASSETS } from '@/constants';
+import { COMMON_ASSETS, DEFAULT_THICKNESS_MAP } from '@/constants';
 import { trackImageUpload, trackSelectItem } from '@/lib/analytics';
 import {
     Search,
@@ -222,6 +223,44 @@ type HeroAnalysisSummary = {
     slug: string | null;
 };
 
+type HeroBasePriceSummary = {
+    displaySize: string | null;
+    baseSize: string | null;
+};
+
+const formatHeroAnalysisSize = (size: string, thickness: CakeThickness) =>
+    `${size} ${thickness.replace(/\s*in$/i, '"')} Height`;
+
+const getHeroBasePriceSummary = async (
+    cakeType: CakeType,
+    cakeThickness: CakeThickness
+): Promise<HeroBasePriceSummary> => {
+    let priceOptions = await getCakeBasePriceOptions(cakeType, cakeThickness);
+    let effectiveThickness = cakeThickness;
+
+    if (priceOptions.length === 0) {
+        const defaultThickness = DEFAULT_THICKNESS_MAP[cakeType];
+        if (defaultThickness && defaultThickness !== cakeThickness) {
+            const fallbackOptions = await getCakeBasePriceOptions(cakeType, defaultThickness);
+            if (fallbackOptions.length > 0) {
+                priceOptions = fallbackOptions;
+                effectiveThickness = defaultThickness;
+            }
+        }
+    }
+
+    if (priceOptions.length === 0) {
+        return { displaySize: null, baseSize: null };
+    }
+
+    const startingOption = [...priceOptions].sort((a, b) => a.price - b.price)[0];
+
+    return {
+        displaySize: formatHeroAnalysisSize(startingOption.size, effectiveThickness),
+        baseSize: startingOption.size,
+    };
+};
+
 const HeroTypingHeadlineLine: React.FC<{ className?: string; controlledPhraseIndex?: number }> = ({ className = '', controlledPhraseIndex }) => {
     const [phraseIndex, setPhraseIndex] = useState(controlledPhraseIndex ?? 0);
     const [displayText, setDisplayText] = useState('');
@@ -408,9 +447,20 @@ function HeroProductPreviewStack({
                 </div>
 
                 <div className="mx-auto w-full max-w-[480px] overflow-hidden rounded-3xl border border-neutral-100 bg-white shadow-xl">
-                    <div className="flex items-center justify-center gap-2 border-b border-blue-200/50 bg-blue-100 px-4 py-2">
+                    <div className="relative flex items-center justify-center gap-2 bg-blue-100 px-4 py-2 rounded-t-[23px]">
                         <Clock className="h-3 w-3 text-blue-800" />
                         <span className="text-[9px] font-bold uppercase tracking-wide text-blue-800">Same-Day Order! Ready in 3 hours</span>
+                        
+                        {/* Inverted Corner Left */}
+                        <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-full bg-blue-100" />
+                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
+                        </div>
+                        {/* Inverted Corner Right */}
+                        <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
+                            <div className="absolute top-0 right-0 w-full h-full bg-blue-100" />
+                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
+                        </div>
                     </div>
                     <div className="flex items-center justify-between gap-3 px-5 py-3">
                         <div className="flex min-w-0 flex-col">
@@ -423,9 +473,9 @@ function HeroProductPreviewStack({
                         </div>
                         <button
                             onClick={onOpenUploader}
-                            className="shrink-0 whitespace-nowrap rounded-2xl bg-purple-400 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-white shadow-md transition-all active:scale-[0.98]"
+                            className="shrink-0 whitespace-nowrap rounded-2xl bg-neutral-200 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-black shadow-md transition-all hover:bg-neutral-300 active:scale-[0.98]"
                         >
-                            customize cake
+                            Order This Cake
                         </button>
                     </div>
                 </div>
@@ -483,25 +533,80 @@ function HeroProductPreviewStack({
 
             <div className="mx-auto w-full max-w-[480px] overflow-hidden rounded-3xl border border-neutral-100 bg-white shadow-xl">
                 {heroUploadState === 'analyzing' ? (
-                    <div className="flex items-center justify-center gap-2 border-b border-neutral-200 bg-neutral-100 px-4 py-2">
+                    <div className="relative flex items-center justify-center gap-2 bg-neutral-100 px-4 py-2 rounded-t-[23px]">
                         <Loader2 className="h-3 w-3 animate-spin text-neutral-500" />
                         <span className="text-[9px] font-bold uppercase tracking-wide text-neutral-500">Calculating availability...</span>
+                        
+                        {/* Inverted Corner Left */}
+                        <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-full bg-neutral-100" />
+                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
+                        </div>
+                        {/* Inverted Corner Right */}
+                        <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
+                            <div className="absolute top-0 right-0 w-full h-full bg-neutral-100" />
+                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
+                        </div>
                     </div>
                 ) : heroUploadState === 'error' ? (
-                    <div className="bg-red-50 px-3 py-2 text-center text-[9px] font-bold uppercase tracking-wide text-red-700">
+                    <div className="relative bg-red-50 px-4 py-2 text-center text-[9px] font-bold uppercase tracking-wide text-red-700 rounded-t-[23px]">
                         {heroUploadError ?? 'AI analysis is temporarily unavailable.'}
+                        
+                        {/* Inverted Corner Left */}
+                        <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-full bg-red-50" />
+                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
+                        </div>
+                        {/* Inverted Corner Right */}
+                        <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
+                            <div className="absolute top-0 right-0 w-full h-full bg-red-50" />
+                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
+                        </div>
                     </div>
                 ) : heroAnalysis.availability === 'rush' ? (
-                    <div className="bg-green-100 p-1.5 text-center text-[9px] font-bold text-green-800">
-                        Rush Order Available! Ready in 30 mins
+                    <div className="relative bg-green-100 px-4 py-2 text-center text-[9px] font-bold text-green-800 rounded-t-[23px]">
+                        Rush Order Available! Ready in 60 mins
+                        
+                        {/* Inverted Corner Left */}
+                        <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-full bg-green-100" />
+                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
+                        </div>
+                        {/* Inverted Corner Right */}
+                        <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
+                            <div className="absolute top-0 right-0 w-full h-full bg-green-100" />
+                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
+                        </div>
                     </div>
                 ) : heroAnalysis.availability === 'same-day' ? (
-                    <div className="bg-blue-100 p-1.5 text-center text-[9px] font-bold text-blue-800">
+                    <div className="relative bg-blue-100 px-4 py-2 text-center text-[9px] font-bold text-blue-800 rounded-t-[23px]">
                         Same-Day Order! Ready in 3 hours
+                        
+                        {/* Inverted Corner Left */}
+                        <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-full bg-blue-100" />
+                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
+                        </div>
+                        {/* Inverted Corner Right */}
+                        <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
+                            <div className="absolute top-0 right-0 w-full h-full bg-blue-100" />
+                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
+                        </div>
                     </div>
                 ) : (
-                    <div className="bg-slate-100 p-1.5 text-center text-[9px] font-bold text-slate-700">
-                        Standard order. Receive this by tomorrow
+                    <div className="relative bg-blue-100 px-4 py-2 text-center text-[9px] font-bold text-blue-800 rounded-t-[23px]">
+                        Freshly Baked. Ready for Delivery Tomorrow
+                        
+                        {/* Inverted Corner Left */}
+                        <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-full bg-blue-100" />
+                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
+                        </div>
+                        {/* Inverted Corner Right */}
+                        <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
+                            <div className="absolute top-0 right-0 w-full h-full bg-blue-100" />
+                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
+                        </div>
                     </div>
                 )}
 
@@ -526,13 +631,51 @@ function HeroProductPreviewStack({
                     <button
                         disabled={heroUploadState === 'analyzing' || (heroUploadState !== 'error' && !heroAnalysis.slug)}
                         onClick={onResultAction}
-                        className="shrink-0 whitespace-nowrap rounded-2xl bg-purple-400 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-white shadow-md transition-all active:scale-[0.98] disabled:cursor-wait disabled:opacity-40"
+                        className="shrink-0 whitespace-nowrap rounded-2xl bg-neutral-200 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-black shadow-md transition-all hover:bg-neutral-300 active:scale-[0.98] disabled:cursor-wait disabled:opacity-40"
                     >
-                        {heroUploadState === 'analyzing' ? 'Analyzing...' : heroUploadState === 'error' ? 'Upload another' : 'Customize cake'}
+                        {heroUploadState === 'analyzing' ? 'Analyzing...' : heroUploadState === 'error' ? 'Upload another' : 'Order This Cake'}
                     </button>
                 </div>
             </div>
         </>
+    );
+}
+
+function DemoCakeAddOnOverlays({ showDrip, showBoard, showFlowers }: { showDrip: boolean; showBoard: boolean; showFlowers: boolean }) {
+    if (!showDrip && !showBoard && !showFlowers) return null;
+
+    const flower = (
+        <div className="relative h-full w-full">
+            <span className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 rounded-full bg-rose-200 shadow-sm" />
+            <span className="absolute bottom-0 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-pink-300 shadow-sm" />
+            <span className="absolute left-0 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-fuchsia-200 shadow-sm" />
+            <span className="absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-rose-300 shadow-sm" />
+            <span className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-100 shadow-sm" />
+        </div>
+    );
+
+    return (
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+            {showBoard && (
+                <div className="absolute bottom-[9%] left-[17%] right-[17%] h-[11%] rounded-[999px] border border-rose-100/90 bg-white/65 shadow-[0_20px_36px_-24px_rgba(15,23,42,0.85)] backdrop-blur-[1px]" />
+            )}
+
+            {showDrip && (
+                <div className="absolute left-[24%] right-[24%] top-[20%] h-[10%] rounded-b-[2rem] rounded-t-md bg-rose-300/70 shadow-[0_14px_28px_-18px_rgba(190,24,93,0.95)]">
+                    <span className="absolute left-[12%] top-[72%] h-7 w-2.5 rounded-full bg-rose-300/75" />
+                    <span className="absolute left-[35%] top-[58%] h-5 w-2 rounded-full bg-rose-300/75" />
+                    <span className="absolute right-[16%] top-[68%] h-8 w-2.5 rounded-full bg-rose-300/75" />
+                </div>
+            )}
+
+            {showFlowers && (
+                <>
+                    <div className="absolute left-[23%] top-[18%] h-8 w-8 rotate-[-18deg] drop-shadow-sm">{flower}</div>
+                    <div className="absolute right-[24%] top-[20%] h-8 w-8 rotate-[14deg] drop-shadow-sm">{flower}</div>
+                    <div className="absolute bottom-[22%] right-[28%] h-7 w-7 rotate-[28deg] drop-shadow-sm">{flower}</div>
+                </>
+            )}
+        </div>
     );
 }
 
@@ -608,13 +751,21 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
     const topperAddon = selectedToppers.size * 100;
     const totalPrice = tier.price + icingAddon + topperAddon;
 
-    const targetImageSrc = icingOn['Drip']
-        ? selectedToppers.has('Sugar Flowers')
-            ? icingOn['Board']
-                ? 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip-roses-base.webp'
-                : 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip-roses.webp'
-            : 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip.webp'
-        : tier.src;
+    const hasDrip = icingOn['Drip'];
+    const hasBoard = icingOn['Board'];
+    const hasSugarFlowers = selectedToppers.has('Sugar Flowers');
+    const twoTierDripVariantSrc = tier.label === '2 Tier' && hasDrip
+        ? hasSugarFlowers && hasBoard
+            ? 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip-roses-base.webp'
+            : hasSugarFlowers
+                ? 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip-roses.webp'
+                : 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake-drip.webp'
+        : null;
+    const targetImageSrc = twoTierDripVariantSrc ?? tier.src;
+    const isUsingTwoTierDripVariant = Boolean(twoTierDripVariantSrc);
+    const showDemoDripOverlay = hasDrip && !isUsingTwoTierDripVariant;
+    const showDemoBoardOverlay = hasBoard && !(isUsingTwoTierDripVariant && hasSugarFlowers && hasBoard);
+    const showDemoFlowersOverlay = hasSugarFlowers && !(isUsingTwoTierDripVariant && hasSugarFlowers);
     const [displayedImageSrc, setDisplayedImageSrc] = useState(targetImageSrc);
     const [imgVisible, setImgVisible] = useState(true);
     const imgFadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -791,6 +942,11 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                             alt={`${tier.label} cake preview`}
                             className="w-full h-full object-cover"
                             style={{ opacity: imgVisible ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
+                        />
+                        <DemoCakeAddOnOverlays
+                            showDrip={showDemoDripOverlay}
+                            showBoard={showDemoBoardOverlay}
+                            showFlowers={showDemoFlowersOverlay}
                         />
 
                         {/* Floating annotation during auto-play */}
@@ -1122,16 +1278,14 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
 
             const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
 
-            // 3. Minimum 11-second UX timer runs concurrently
-            const minTimer = new Promise<void>(r => setTimeout(r, 11000));
-
-            // 4. pHash → cache lookup
+            // 3. pHash → cache lookup
             const pHash = await generatePerceptualHash(imageSrc);
             const cacheHit = pHash ? await findSimilarAnalysisByHash(pHash) : null;
 
             let slug: string | null = null;
             let price: number | null = null;
             let size: string | null = null;
+            let baseSize: string | null = null;
             let availability: 'rush' | 'same-day' | 'normal' | null = null;
 
             if (cacheHit) {
@@ -1140,11 +1294,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                 price = cacheHit.seoMetadata.price ?? null;
                 availability = (cacheHit.seoMetadata.availability as 'rush' | 'same-day' | 'normal') ?? null;
                 try {
-                    const prices = await getCakeBasePriceOptions(
+                    const basePriceSummary = await getHeroBasePriceSummary(
                         cacheHit.analysisResult.cakeType,
                         cacheHit.analysisResult.cakeThickness
                     );
-                    size = prices.length > 0 ? `${prices[0].size} ${cacheHit.analysisResult.cakeThickness.replace(' in', '"')} Height` : null;
+                    size = basePriceSummary.displaySize;
+                    baseSize = basePriceSummary.baseSize;
                 } catch { /* non-critical */ }
 
                 // ⚡ Background Enhancement: If cache hit is missing coordinate data, enrich it now
@@ -1164,16 +1319,17 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                 const analysis = await analyzeCakeFeaturesOnly(imageData.data, imageData.mimeType);
 
                 if (analysis && !analysis.rejection?.isRejected) {
-                    // Get pricing size label
+                    // Get pricing size label using the same thickness fallback as the customizer.
                     try {
-                        const prices = await getCakeBasePriceOptions(analysis.cakeType, analysis.cakeThickness);
-                        size = prices.length > 0 ? `${prices[0].size} ${analysis.cakeThickness.replace(' in', '"')} Height` : null;
+                        const basePriceSummary = await getHeroBasePriceSummary(analysis.cakeType, analysis.cakeThickness);
+                        size = basePriceSummary.displaySize;
+                        baseSize = basePriceSummary.baseSize;
                     } catch { /* non-critical */ }
 
                     // Compute availability (same logic as customizing page)
                     availability = getDesignAvailability({
                         cakeType: analysis.cakeType,
-                        cakeSize: size ?? '6" Round',
+                        cakeSize: baseSize ?? '6" Round',
                         icingBase: analysis.icing_design?.base ?? 'soft_icing',
                         drip: analysis.icing_design?.drip ?? false,
                         gumpasteBaseBoard: analysis.icing_design?.gumpasteBaseBoard ?? false,
@@ -1184,6 +1340,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                     // Cache Phase 1 results immediately so user gets a slug
                     const cacheResultData = pHash ? await cacheAnalysisResult(pHash, analysis, undefined, finalFileToCache) : null;
                     slug = cacheResultData?.slug ?? null;
+                    price = cacheResultData?.price ?? null;
 
                     // 🤖 Phase 2: Background Coordinate Enrichment (Roboflow)
                     // We don't block the UI for this; it just makes the transition more polished
@@ -1200,9 +1357,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                     }
                 }
             }
-
-            // 5. Enforce minimum timer before revealing results
-            await minTimer;
 
             setHeroAnalysis({ price, size, availability, slug });
             setHeroUploadState(slug ? 'done' : 'error');
@@ -1498,24 +1652,24 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                         {/* Mobile Hero View */}
                         {/* Mobile Hero View - Simplified */}
                         <div className="md:hidden w-full flex flex-col">
-                            <h1 className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-600">
-                                Best Online Cake Delivery for Rush Orders in Metro Cebu
+                            <h1 className="mb-4 text-center text-[10px] min-[360px]:text-[11px] font-bold uppercase tracking-[0.06em] text-neutral-600 whitespace-nowrap">
+                                Best Online Cake Delivery for Rush Orders in Cebu
                             </h1>
-                            <div className="mb-3 text-center">
-                                <h2 className="text-[54px] max-[390px]:text-[47px] font-extrabold leading-[1.1] tracking-tight text-gray-900">
+                            <div className="mb-5 text-center">
+                                <h2 className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-[0.88] tracking-tight text-gray-900">
                                     <HeroTypingHeadlineLine className="block min-h-[1.1em] whitespace-nowrap text-center" controlledPhraseIndex={HERO_PRODUCTS[heroProductIndex].headlineVariant} />
                                     <span className="block whitespace-nowrap text-purple-400 italic">For Today&apos;s</span>
                                     <span className="block whitespace-nowrap text-purple-400 italic">Celebrations</span>
                                 </h2>
                             </div>
 
-                            <div className="w-full mb-3">
+                            <div className="mb-3 w-full min-[512px]:mx-auto min-[512px]:max-w-[480px]">
                                 <button
                                     onClick={() => setIsUploaderOpen(true)}
-                                    className="flex w-full items-center justify-center gap-3 rounded-2xl bg-purple-400 py-4 px-6 font-bold text-white shadow-lg transition-all duration-200 hover:bg-purple-500 active:scale-[0.98]"
+                                    className="flex w-full items-center justify-center gap-2 sm:gap-3 rounded-2xl bg-purple-400 py-4 px-3 sm:px-6 font-bold text-white shadow-lg transition-all duration-200 hover:bg-purple-500 active:scale-[0.98]"
                                 >
-                                    <Cake size={20} />
-                                    <span className="whitespace-nowrap">Upload any Cake Design Image</span>
+                                    <Cake size={20} className="shrink-0" />
+                                    <span className="whitespace-nowrap text-[12px] min-[360px]:text-[13px] min-[390px]:text-sm sm:text-base">Upload Cake Design - Get Instant Pricing</span>
                                 </button>
                             </div>
                         </div>
@@ -1526,21 +1680,24 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                             <div className="grid grid-cols-9 gap-12 items-center">
                                 {/* Left Column (5/9): Headlines and CTA */}
                                 <div className="col-span-5 flex flex-col items-center text-center">
-                                    <h1 className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-600">
-                                        Best Online Cake Delivery for Rush Orders in Metro Cebu
+                                    <Link href="/reviews" className="mb-2 text-[10px] text-gray-600 hover:text-purple-500">
+                                        4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
+                                    </Link>
+                                    <h1 className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.092em] text-neutral-600">
+                                        Best Online Cake Delivery for Rush Orders in Cebu
                                     </h1>
                                     <h2 className="mt-3 text-[3.79rem] min-[945px]:text-[3.85rem] min-[1232px]:text-[4.75rem] font-extrabold text-gray-900 leading-[1.05] tracking-tight">
                                         <HeroTypingHeadlineLine className="block min-h-[1.1em] whitespace-nowrap text-center" controlledPhraseIndex={HERO_PRODUCTS[heroProductIndex].headlineVariant} />
                                         <span className="block whitespace-nowrap text-purple-400 italic">For Today&apos;s</span>
                                         <span className="block whitespace-nowrap text-purple-400 italic">Celebrations</span>
                                     </h2>
-                                    <div className="mt-4 w-full max-w-sm">
+                                    <div className="mt-6 w-full max-w-md">
                                         <button
                                             onClick={() => setIsUploaderOpen(true)}
-                                            className="flex w-full items-center justify-center gap-3 rounded-2xl bg-purple-400 py-4 px-8 text-lg font-bold text-white shadow-[0_20px_50px_-20px_rgba(168,85,247,0.45)] transition-all duration-200 hover:bg-purple-500 hover:shadow-[0_25px_60px_-20px_rgba(168,85,247,0.55)] active:scale-[0.99]"
+                                            className="flex w-full items-center justify-center gap-3 rounded-2xl bg-purple-400 py-4 px-6 md:px-8 text-[17px] lg:text-lg font-bold text-white shadow-[0_20px_50px_-20px_rgba(168,85,247,0.45)] transition-all duration-200 hover:bg-purple-500 hover:shadow-[0_25px_60px_-20px_rgba(168,85,247,0.55)] active:scale-[0.99]"
                                         >
-                                            <Cake size={24} />
-                                            <span className="whitespace-nowrap">Upload any Cake Design Image</span>
+                                            <Cake size={24} className="shrink-0" />
+                                            <span className="whitespace-nowrap">Upload Cake Design - Get Instant Pricing</span>
                                         </button>
                                     </div>
                                     <div className="mt-6 grid w-full max-w-[520px] grid-cols-3 gap-2">
@@ -1602,17 +1759,17 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                                 {/* Availability banner with Inverted Corners */}
                                                 <div className="relative bg-blue-100/80 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl transition-colors duration-300">
                                                     <Clock className="w-3 h-3 text-blue-900" />
-                                                    <span className="text-blue-900 text-[10px] font-black uppercase tracking-wider">Same-Day Order! (Deliver in 3-5 hrs)</span>
+                                                    <span className="text-blue-900 text-[10px] font-black uppercase tracking-wider">Same-Day Order! Ready in 3 hours</span>
 
                                                     {/* Inverted Corner Left */}
-                                                    <div className="absolute top-full left-0 w-3 h-3 overflow-hidden">
+                                                    <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
                                                         <div className="absolute top-0 left-0 w-full h-full bg-blue-100/80" />
-                                                        <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-xl" />
+                                                        <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
                                                     </div>
                                                     {/* Inverted Corner Right */}
-                                                    <div className="absolute top-full right-0 w-3 h-3 overflow-hidden">
+                                                    <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
                                                         <div className="absolute top-0 right-0 w-full h-full bg-blue-100/80" />
-                                                        <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-xl" />
+                                                        <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
                                                     </div>
                                                 </div>
 
@@ -1627,9 +1784,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                                     </div>
                                                     <button
                                                         onClick={() => setIsUploaderOpen(true)}
-                                                        className="shrink-0 px-7 py-3.5 bg-purple-400 hover:bg-purple-500 text-white rounded-2xl font-bold text-[10px] lg:text-xs transition-all shadow-md active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
+                                                        className="shrink-0 px-7 py-3.5 bg-neutral-200 hover:bg-neutral-300 text-black rounded-2xl font-bold text-[10px] lg:text-xs transition-all shadow-md active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
                                                     >
-                                                        customize cake
+                                                        Order This Cake
                                                     </button>
                                                 </div>
                                             </div>
@@ -1700,17 +1857,17 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                                 {heroUploadState === 'analyzing' ? (
                                                     <div className="bg-neutral-100 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl">
                                                         <Loader2 className="w-3 h-3 text-neutral-500 animate-spin" />
-                                                        <span className="text-neutral-500 text-[10px] font-black uppercase tracking-wider">Calculating availability…</span>
+                                                        <span className="text-neutral-500 text-[10px] font-black uppercase tracking-wider">Calculating availability...</span>
 
                                                         {/* Inverted Corner Left */}
-                                                        <div className="absolute top-full left-0 w-3 h-3 overflow-hidden">
+                                                        <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
                                                             <div className="absolute top-0 left-0 w-full h-full bg-neutral-100" />
-                                                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-xl" />
+                                                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
                                                         </div>
                                                         {/* Inverted Corner Right */}
-                                                        <div className="absolute top-full right-0 w-3 h-3 overflow-hidden">
+                                                        <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
                                                             <div className="absolute top-0 right-0 w-full h-full bg-neutral-100" />
-                                                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-xl" />
+                                                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
                                                         </div>
                                                     </div>
                                                 ) : heroUploadState === 'error' ? (
@@ -1718,62 +1875,62 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                                         <span className="text-red-700 text-[10px] font-black uppercase tracking-wider">{heroUploadError ?? 'AI analysis is temporarily unavailable.'}</span>
 
                                                         {/* Inverted Corner Left */}
-                                                        <div className="absolute top-full left-0 w-3 h-3 overflow-hidden">
+                                                        <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
                                                             <div className="absolute top-0 left-0 w-full h-full bg-red-50" />
-                                                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-xl" />
+                                                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
                                                         </div>
                                                         {/* Inverted Corner Right */}
-                                                        <div className="absolute top-full right-0 w-3 h-3 overflow-hidden">
+                                                        <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
                                                             <div className="absolute top-0 right-0 w-full h-full bg-red-50" />
-                                                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-xl" />
+                                                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
                                                         </div>
                                                     </div>
                                                 ) : heroAnalysis.availability === 'rush' ? (
                                                     <div className="bg-green-100/80 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl">
                                                         <Zap className="w-3 h-3 text-green-900" />
-                                                        <span className="text-green-900 text-[10px] font-black uppercase tracking-wider">Rush Order Available! (Ready in 30 mins)</span>
+                                                        <span className="text-green-900 text-[10px] font-black uppercase tracking-wider">Rush Order Available! Ready in 60 mins</span>
 
                                                         {/* Inverted Corner Left */}
-                                                        <div className="absolute top-full left-0 w-3 h-3 overflow-hidden">
+                                                        <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
                                                             <div className="absolute top-0 left-0 w-full h-full bg-green-100/80" />
-                                                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-xl" />
+                                                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
                                                         </div>
                                                         {/* Inverted Corner Right */}
-                                                        <div className="absolute top-full right-0 w-3 h-3 overflow-hidden">
+                                                        <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
                                                             <div className="absolute top-0 right-0 w-full h-full bg-green-100/80" />
-                                                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-xl" />
+                                                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
                                                         </div>
                                                     </div>
                                                 ) : heroAnalysis.availability === 'same-day' ? (
                                                     <div className="bg-blue-100/80 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl">
                                                         <Clock className="w-3 h-3 text-blue-900" />
-                                                        <span className="text-blue-900 text-[10px] font-black uppercase tracking-wider">Same-Day Order! (Deliver in 3-5 hrs)</span>
+                                                        <span className="text-blue-900 text-[10px] font-black uppercase tracking-wider">Same-Day Order! Ready in 3 hours</span>
 
                                                         {/* Inverted Corner Left */}
-                                                        <div className="absolute top-full left-0 w-3 h-3 overflow-hidden">
+                                                        <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
                                                             <div className="absolute top-0 left-0 w-full h-full bg-blue-100/80" />
-                                                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-xl" />
+                                                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
                                                         </div>
                                                         {/* Inverted Corner Right */}
-                                                        <div className="absolute top-full right-0 w-3 h-3 overflow-hidden">
+                                                        <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
                                                             <div className="absolute top-0 right-0 w-full h-full bg-blue-100/80" />
-                                                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-xl" />
+                                                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="bg-slate-100 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl">
-                                                        <Calendar className="w-3 h-3 text-slate-900" />
-                                                        <span className="text-slate-900 text-[10px] font-black uppercase tracking-wider">Standard order. Receive this by tomorrow</span>
+                                                    <div className="bg-blue-100/80 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl">
+                                                        <Calendar className="w-3 h-3 text-blue-900" />
+                                                        <span className="text-blue-900 text-[10px] font-black uppercase tracking-wider">Freshly Baked. Ready for Delivery Tomorrow</span>
 
                                                         {/* Inverted Corner Left */}
-                                                        <div className="absolute top-full left-0 w-3 h-3 overflow-hidden">
-                                                            <div className="absolute top-0 left-0 w-full h-full bg-slate-100" />
-                                                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-xl" />
+                                                        <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
+                                                            <div className="absolute top-0 left-0 w-full h-full bg-blue-100/80" />
+                                                            <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
                                                         </div>
                                                         {/* Inverted Corner Right */}
-                                                        <div className="absolute top-full right-0 w-3 h-3 overflow-hidden">
-                                                            <div className="absolute top-0 right-0 w-full h-full bg-slate-100" />
-                                                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-xl" />
+                                                        <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
+                                                            <div className="absolute top-0 right-0 w-full h-full bg-blue-100/80" />
+                                                            <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
                                                         </div>
                                                     </div>
                                                 )}
@@ -1811,9 +1968,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                                                 router.push(`/customizing/${heroAnalysis.slug}`);
                                                             }
                                                         }}
-                                                        className="shrink-0 px-6 py-3.5 bg-purple-400 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-wait text-white rounded-2xl font-bold text-[10px] lg:text-xs transition-all shadow-md active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
+                                                        className="shrink-0 px-6 py-3.5 bg-neutral-200 hover:bg-neutral-300 disabled:opacity-40 disabled:cursor-wait text-black rounded-2xl font-bold text-[10px] lg:text-xs transition-all shadow-md active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
                                                     >
-                                                        {heroUploadState === 'analyzing' ? 'Analyzing…' : heroUploadState === 'error' ? 'Upload another' : 'Customize cake'}
+                                                        {heroUploadState === 'analyzing' ? 'Analyzing…' : heroUploadState === 'error' ? 'Upload another' : 'Order This Cake'}
                                                     </button>
                                                 </div>
                                             </div>
@@ -1979,7 +2136,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                 {/* ===== REVIEWS MARQUEE ===== */}
                 {reviewCards.length > 0 && (
                     <section aria-label="Customer reviews" className="w-full overflow-hidden py-2 md:py-4">
-                        <div className="mx-auto max-w-7xl px-4 pb-3 text-center sm:px-6 lg:px-8 md:pb-4">
+                        <div className="mx-auto max-w-7xl px-4 pb-3 text-center sm:px-6 lg:px-8 md:hidden">
                             <Link href="/reviews" className="text-[10px] text-gray-600 hover:text-purple-500 md:text-[10px]">
                                 4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
                             </Link>
@@ -2057,7 +2214,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
             {isUploaderOpen ? (
                 <ImageUploader
                     isOpen={isUploaderOpen}
-                    title="Upload any Cake Design Image"
+                    title="Upload Cake Design - Get Instant Pricing"
                     iconImageSrc="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/upload-cake-image.webp"
                     iconImageAlt="Upload cake design"
                     onClose={() => setIsUploaderOpen(false)}

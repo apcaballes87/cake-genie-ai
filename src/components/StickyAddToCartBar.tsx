@@ -176,7 +176,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                 <div className={`bg-green-100 ${isTopmost ? 'rounded-t-2xl' : ''}`}>
                     <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-green-800 text-[10px] sm:text-[11px] font-bold p-1">
                         <span>⚡</span>
-                        <span>Rush Order Available! Ready in 30 mins</span>
+                        <span>Rush Order Available! Ready in 60 mins</span>
                     </div>
                 </div>
             );
