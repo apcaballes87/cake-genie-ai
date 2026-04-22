@@ -20,7 +20,7 @@ export const StaticMap: React.FC<{ latitude: number; longitude: number }> = ({ l
     const imageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=15&size=300x150&markers=color:0xf472b6%7C${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`;
     const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
     return (
-        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="block mt-4 rounded-lg overflow-hidden border border-slate-200 hover:border-pink-300 hover:shadow-md transition-all group">
+        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="block mt-4 rounded-lg overflow-hidden border border-purple-100 hover:border-purple-300 hover:shadow-md transition-all group">
             <LazyImage 
                 src={imageUrl} 
                 alt="Map location" 
@@ -31,10 +31,10 @@ export const StaticMap: React.FC<{ latitude: number; longitude: number }> = ({ l
                     // Log or handle specific map loading error if needed
                 }}
             />
-            <div className="flex flex-col items-center justify-center gap-1.5 py-2 bg-slate-50 group-hover:bg-pink-50 transition-colors">
+            <div className="flex flex-col items-center justify-center gap-1.5 py-2 bg-purple-50/60 group-hover:bg-purple-50 transition-colors">
                 <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3 h-3 text-pink-500" />
-                    <span className="text-xs font-medium text-pink-600">Open in Google Maps</span>
+                    <MapPin className="w-3 h-3 genie-icon" />
+                    <span className="text-xs font-medium text-purple-600">Open in Google Maps</span>
                 </div>
             </div>
         </a>
@@ -262,10 +262,10 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
     return createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-9999 flex items-center justify-center p-4" onClick={onClose}>
 
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
-                <div className="p-4 border-b border-slate-200 flex justify-between items-center">
+            <div className="genie-card rounded-2xl w-full max-w-2xl h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                <div className="p-4 border-b border-purple-100 flex justify-between items-center">
                     <h3 className="text-lg font-bold text-slate-800">Set Delivery Location</h3>
-                    <button onClick={onClose} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors"><X size={20} /></button>
+                    <button onClick={onClose} className="p-2 genie-icon-button rounded-full transition-colors"><X size={20} /></button>
                 </div>
                 <div className="grow relative">
                     {loadError ? (
@@ -275,17 +275,17 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                             </div>
                             <h4 className="text-slate-800 font-bold mb-2">Map service unavailable</h4>
                             <p className="text-slate-500 text-sm max-w-xs mb-6">
-                                We're having trouble connecting to Google Maps. You can still enter your address manually below.
+                                We&apos;re having trouble connecting to Google Maps. You can still enter your address manually below.
                             </p>
                             <button 
                                 onClick={onClose}
-                                className="px-6 py-2 bg-white border border-slate-200 text-slate-700 rounded-full text-sm font-medium hover:bg-slate-50"
+                                className="genie-btn-secondary px-6 py-2 rounded-full text-sm font-medium"
                             >
                                 Enter address manually
                             </button>
                         </div>
                     ) : !isLoaded ? (
-                        <div className="absolute inset-0 flex items-center justify-center bg-slate-100"><Loader2 className="animate-spin text-pink-500 w-8 h-8" /></div>
+                        <div className="absolute inset-0 flex items-center justify-center bg-purple-50"><Loader2 className="animate-spin genie-icon w-8 h-8" /></div>
                     ) : (
                         <>
                             <GoogleMap
@@ -303,7 +303,7 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                             />
                             {/* Pin marker - positioned so the pin's point is at map center */}
                             <div className="absolute top-1/2 left-1/2 pointer-events-none z-20" style={{ transform: 'translate(-50%, -100%)' }}>
-                                <MapPin className="text-pink-500 w-12 h-12 drop-shadow-lg" fill="currentColor" strokeWidth={1.5} />
+                                <MapPin className="genie-icon w-12 h-12 drop-shadow-lg" fill="currentColor" strokeWidth={1.5} />
                             </div>
                             <div className="absolute top-4 left-0 right-0 flex justify-center px-4 pointer-events-none z-10">
                                 <div className="relative w-full max-w-lg pointer-events-auto">
@@ -316,27 +316,27 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                                         data-lpignore="true"
                                         data-1p-ignore
                                         data-form-type="other"
-                                        className="w-full px-4 py-3 bg-white rounded-full shadow-lg border border-slate-300 focus:ring-2 focus:ring-pink-500 focus:outline-none text-sm"
+                                        className="w-full px-4 py-3 bg-white rounded-full shadow-lg border border-purple-200 focus:ring-2 focus:ring-purple-200 focus:border-purple-400 focus:outline-none text-sm"
                                     />
                                 </div>
                             </div>
                         </>
                     )}
                 </div>
-                <div className="p-4 bg-slate-50 border-t border-slate-200">
+                <div className="p-4 bg-purple-50/70 border-t border-purple-100">
                     <label htmlFor="completeAddress" className="block text-sm font-medium text-slate-600 mb-1">Complete Address (Unit No., Building, Street) <span className="text-red-500">*</span></label>
                     <textarea
                         id="completeAddress"
                         value={completeAddress}
                         onChange={e => setCompleteAddress(e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-md shadow-sm focus:ring-pink-500 focus:border-pink-500"
+                        className="w-full px-3 py-2 text-sm bg-white border border-purple-200 rounded-md shadow-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-400"
                         rows={3}
                         placeholder="e.g., Unit 5B, The Padgett Place, Molave St..."
                         required
                     />
                     <div className="mt-1 min-h-8">
                         {suggestedAddress && !isGeocoding && (
-                            <div className={`text-xs p-2 rounded-md ${isServiceable ? 'text-slate-500 bg-slate-100' : 'text-red-600 bg-red-50 border border-red-200'}`}>
+                            <div className={`text-xs p-2 rounded-md ${isServiceable ? 'text-purple-700 bg-purple-100/70' : 'text-red-600 bg-red-50 border border-red-200'}`}>
                                 {isServiceable ? (
                                     <><strong>Suggested Location:</strong> {suggestedAddress}</>
                                 ) : (
@@ -348,7 +348,7 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                     <button
                         onClick={handleSubmit}
                         disabled={!completeAddress.trim() || isGeocoding || (!loadError && !isServiceable)}
-                        className="w-full mt-3 bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition-all disabled:opacity-50 flex items-center justify-center"
+                        className="w-full mt-3 genie-btn-primary font-bold py-3 px-4 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center"
                     >
                         {isGeocoding ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Locating...</> : 'Confirm Location'}
                     </button>
@@ -504,10 +504,10 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
         }
     };
 
-    const inputStyle = "w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-md shadow-sm focus:ring-pink-500 focus:border-pink-500 disabled:bg-slate-50";
+    const inputStyle = "w-full px-3 py-2 text-sm bg-white border border-purple-200 rounded-md shadow-sm focus:ring-2 focus:ring-purple-200 focus:border-purple-400 disabled:bg-slate-50";
 
     return (
-        <div className="bg-white rounded-2xl border-2 border-slate-200 p-6 mt-6 animate-fade-in">
+        <div className="genie-card rounded-2xl p-6 mt-6 animate-fade-in">
             <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
             <h3 className="text-lg font-bold text-slate-800 mb-4">{isEditing ? 'Edit Address' : 'Add a New Address'}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -596,14 +596,14 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
                 </div>
 
                 <div className="flex items-center pt-2">
-                    <input id="isDefault" type="checkbox" checked={isDefault} onChange={e => setIsDefault(e.target.checked)} className="h-4 w-4 text-pink-600 border-slate-300 rounded focus:ring-pink-500" />
+                    <input id="isDefault" type="checkbox" checked={isDefault} onChange={e => setIsDefault(e.target.checked)} className="h-4 w-4 text-purple-600 border-purple-200 rounded focus:ring-purple-400" />
                     <label htmlFor="isDefault" className="ml-2 block text-sm text-slate-800">Set as default address</label>
                 </div>
 
                 {!hideActions && (
                     <div className="flex items-center justify-end gap-3 pt-4">
-                        <button type="button" onClick={onCancel} className="bg-white border border-slate-300 text-slate-700 font-bold py-2 px-4 rounded-lg shadow-sm hover:bg-slate-50 transition-all text-sm">Cancel</button>
-                        <button type="submit" disabled={isSubmitting} className="flex justify-center items-center bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all text-sm disabled:opacity-75">
+                        <button type="button" onClick={onCancel} className="genie-btn-secondary font-bold py-2 px-4 rounded-lg transition-all text-sm">Cancel</button>
+                        <button type="submit" disabled={isSubmitting} className="genie-btn-primary flex justify-center items-center font-bold py-2 px-4 rounded-lg transition-all text-sm disabled:opacity-75">
                             {isSubmitting && <Loader2 className="animate-spin mr-2 w-4 h-4" />}
                             {isEditing ? 'Save Changes' : 'Save Address'}
                         </button>

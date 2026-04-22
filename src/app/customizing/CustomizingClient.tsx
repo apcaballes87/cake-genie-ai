@@ -323,9 +323,13 @@ interface CustomizingClientProps {
     useBasePriceAsFallback?: boolean;
     ediblePhotoAddonPrice?: number;
     separateIcingStep?: boolean;
+    hideBanner?: boolean;
+    hideStepOne?: boolean;
+    hideStepFour?: boolean;
+    photoStepNode?: React.ReactNode;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false, hideStickyBar = false, useBasePriceAsFallback = false, ediblePhotoAddonPrice = 0, separateIcingStep = false }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false, hideStickyBar = false, useBasePriceAsFallback = false, ediblePhotoAddonPrice = 0, separateIcingStep = false, hideBanner = false, hideStepOne = false, hideStepFour = false, photoStepNode = null }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const params = useParams();
@@ -2783,9 +2787,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         <>
             <h1 className="sr-only">{pageDisplayTitle}</h1>
             {/* Same-day cutoff countdown — live urgency signal */}
-            <div className="w-full bg-purple-400 py-[4.5px] flex justify-center items-center">
-                <SameDayCutoffBanner />
-            </div>
+            {!hideBanner && (
+                <div className="w-full bg-purple-400 py-[4.5px] flex justify-center items-center">
+                    <SameDayCutoffBanner />
+                </div>
+            )}
             <div className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${isTopSearchBarScrolled ? 'border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg' : 'border-transparent bg-transparent'}`}>
                 <div className="w-full max-w-7xl mx-auto px-4">
                     <div className="w-full flex items-center gap-2 md:gap-4 py-[11px] md:py-[14px]">
@@ -2985,6 +2991,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     openTopperSheet={openTopperSheet}
                                     onIcingTypeChange={handleIcingTypeChange}
                                     separateIcingStep={separateIcingStep}
+                                    hideStepOne={hideStepOne}
+                                    hideStepFour={hideStepFour}
+                                    photoStepNode={photoStepNode}
                                     aiChatNode={!analysisError && !hideAiChat ? (
                                         <CustomizingAiChatPanel
                                             className="w-full"
@@ -3050,6 +3059,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 onSupportElementImageReplace: onSupportElementImageReplace,
                                 openTopperSheet,
                                 separateIcingStep,
+                                hideStepOne,
+                                hideStepFour,
+                                photoStepNode,
                                 aiChatNode: !analysisError && !hideAiChat ? (
                                     <CustomizingAiChatPanel
                                         className="w-full"
