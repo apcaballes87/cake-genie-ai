@@ -1,5 +1,211 @@
 @import "tailwindcss";
 
+/* Genie landing-page theme tokens */
+:root {
+  --genie-primary: #c084fc;
+  --genie-primary-hover: #a855f7;
+  --genie-primary-strong: #9333ea;
+  --genie-accent: #ec4899;
+  --genie-accent-soft: #fce7f3;
+  --genie-indigo: #818cf8;
+  --genie-sky: #38bdf8;
+  --genie-success: #22c55e;
+  --genie-warning: #f59e0b;
+  --genie-ink: #111827;
+  --genie-muted: #64748b;
+  --genie-soft: #faf5ff;
+  --genie-soft-border: #eadcff;
+  --genie-card-shadow: 0 18px 44px -34px rgba(88, 28, 135, 0.72);
+  --genie-card-shadow-hover: 0 24px 52px -30px rgba(88, 28, 135, 0.78);
+  --genie-focus-ring: 0 0 0 3px rgba(192, 132, 252, 0.32);
+}
+
+::selection {
+  background: rgba(192, 132, 252, 0.28);
+  color: var(--genie-ink);
+}
+
+.genie-page-bg {
+  background:
+    radial-gradient(circle at top left, rgba(252, 231, 243, 0.82), transparent 34rem),
+    linear-gradient(135deg, #fdf2f8 0%, #faf5ff 46%, #e0e7ff 100%);
+}
+
+.genie-card {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow: var(--genie-card-shadow);
+  backdrop-filter: blur(16px);
+}
+
+.genie-card-hover {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.genie-card-hover:hover {
+  border-color: rgba(192, 132, 252, 0.45);
+  box-shadow: var(--genie-card-shadow-hover);
+}
+
+.genie-btn-primary,
+.genie-btn-secondary,
+.genie-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.genie-btn-primary {
+  background: var(--genie-primary);
+  color: #fff;
+  border: 1px solid rgba(192, 132, 252, 0.86);
+  box-shadow: 0 20px 50px -20px rgba(168, 85, 247, 0.45);
+}
+
+.genie-btn-primary:hover {
+  background: var(--genie-primary-hover);
+  border-color: var(--genie-primary-hover);
+  box-shadow: 0 25px 60px -20px rgba(168, 85, 247, 0.55);
+}
+
+.genie-btn-secondary {
+  background: rgba(255, 255, 255, 0.88);
+  color: #7e22ce;
+  border: 1px solid rgba(192, 132, 252, 0.38);
+  box-shadow: 0 10px 30px -22px rgba(88, 28, 135, 0.75);
+}
+
+.genie-btn-secondary:hover {
+  background: #faf5ff;
+  border-color: rgba(168, 85, 247, 0.55);
+  color: #6b21a8;
+  box-shadow: 0 16px 36px -24px rgba(88, 28, 135, 0.78);
+}
+
+.genie-btn-ghost {
+  color: #7e22ce;
+  border: 1px solid transparent;
+}
+
+.genie-btn-ghost:hover {
+  background: #faf5ff;
+  border-color: rgba(192, 132, 252, 0.22);
+  color: #6b21a8;
+}
+
+.genie-btn-primary:disabled,
+.genie-btn-secondary:disabled,
+.genie-btn-ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.genie-icon,
+.genie-icon-button {
+  color: var(--genie-primary-strong);
+}
+
+.genie-icon-button {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(192, 132, 252, 0.28);
+  box-shadow: 0 12px 30px -24px rgba(88, 28, 135, 0.8);
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.genie-icon-button:hover {
+  background: #faf5ff;
+  border-color: rgba(168, 85, 247, 0.5);
+  color: #6b21a8;
+  box-shadow: 0 18px 34px -26px rgba(88, 28, 135, 0.9);
+}
+
+.genie-icon-soft {
+  background: linear-gradient(135deg, #faf5ff 0%, #fce7f3 100%);
+  color: var(--genie-primary-strong);
+  border: 1px solid rgba(192, 132, 252, 0.22);
+}
+
+.genie-control-selected {
+  border-color: var(--genie-primary-hover) !important;
+  background: #faf5ff !important;
+  box-shadow: 0 0 0 3px rgba(192, 132, 252, 0.24);
+}
+
+.genie-focus {
+  outline: none;
+}
+
+.genie-focus:focus-visible {
+  box-shadow: var(--genie-focus-ring);
+}
+
+.genie-link {
+  color: #7e22ce;
+  transition: color 0.2s ease;
+}
+
+.genie-link:hover {
+  color: #6b21a8;
+}
+
+/* Keep older page/component utilities aligned with the landing palette. */
+.bg-purple-600,
+.bg-purple-500 {
+  background-color: var(--genie-primary) !important;
+}
+
+.hover\:bg-purple-700:hover,
+.hover\:bg-purple-600:hover,
+.hover\:bg-purple-500:hover {
+  background-color: var(--genie-primary-hover) !important;
+}
+
+.bg-pink-600,
+.bg-pink-500 {
+  background-color: var(--genie-accent) !important;
+}
+
+.hover\:bg-pink-700:hover,
+.hover\:bg-pink-600:hover {
+  background-color: #db2777 !important;
+}
+
+.text-purple-700,
+.text-purple-600,
+.text-purple-500 {
+  color: var(--genie-primary-strong) !important;
+}
+
+.text-pink-700,
+.text-pink-600,
+.text-pink-500 {
+  color: var(--genie-accent) !important;
+}
+
+.hover\:text-purple-800:hover,
+.hover\:text-purple-700:hover,
+.hover\:text-purple-600:hover {
+  color: #6b21a8 !important;
+}
+
+.border-purple-300,
+.border-purple-200,
+.border-purple-100 {
+  border-color: rgba(192, 132, 252, 0.36) !important;
+}
+
+.ring-purple-500,
+.ring-purple-400,
+.focus\:ring-purple-500:focus,
+.focus\:ring-purple-400:focus,
+.focus-visible\:ring-purple-400:focus-visible {
+  --tw-ring-color: rgba(192, 132, 252, 0.5) !important;
+}
+
 /* Custom styles from original React app */
 
 /* --- Utility Styles --- */

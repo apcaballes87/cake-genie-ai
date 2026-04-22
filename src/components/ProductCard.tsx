@@ -19,6 +19,7 @@ import { trackSelectItem } from '@/lib/analytics';
 export interface ProductCardProps {
     p_hash: string;
     original_image_url: string;
+    studio_edited_image_url?: string | null;
     price?: number | null;
     keywords?: string | null;
     slug?: string | null;
@@ -42,7 +43,7 @@ export interface ProductCardProps {
 
 type ProductCardContentProps = Pick<
     ProductCardProps,
-    'original_image_url' | 'price' | 'availability' | 'priority' | 'image_width' | 'image_height' | 'backgroundOnly'
+    'original_image_url' | 'studio_edited_image_url' | 'price' | 'availability' | 'priority' | 'image_width' | 'image_height' | 'backgroundOnly'
 > & {
     title: string;
 };
@@ -108,6 +109,7 @@ const isValidPrecomputedAnalysis = (analysis_json?: ProductCardProps['analysis_j
 
 const ProductCardContent = ({
     original_image_url,
+    studio_edited_image_url,
     price,
     availability,
     priority = false,
@@ -130,13 +132,13 @@ const ProductCardContent = ({
                            from being indexed as this page's images. Only the hero <img> is indexed. */
                         <div
                             className="absolute inset-0 w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-500"
-                            style={{ backgroundImage: `url(${original_image_url})` }}
+                            style={{ backgroundImage: `url(${studio_edited_image_url || original_image_url})` }}
                             role="img"
                             aria-label={title}
                         />
                     ) : (
                         <LazyImage
-                            src={original_image_url}
+                            src={studio_edited_image_url || original_image_url}
                             alt={title}
                             title={title}
                             fill

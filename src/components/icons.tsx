@@ -3,7 +3,7 @@ import React from 'react';
 import { LazyImage } from './LazyImage';
 
 export const UploadIcon: React.FC = () => (
-    <svg className="w-6 h-6 text-slate-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <svg className="w-6 h-6 genie-icon" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
     </svg>
 );
@@ -47,7 +47,7 @@ export const TrashIcon: React.FC<{ className?: string }> = ({ className = "w-5 h
 );
 
 export const PriceTagIcon: React.FC = () => (
-    <svg className="w-5 h-5 mr-2 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+    <svg className="w-5 h-5 mr-2 genie-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
         <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
     </svg>
@@ -135,7 +135,7 @@ export const PackageIcon: React.FC<{ className?: string }> = ({ className = "w-5
 
 
 // --- Icing Guide Icons ---
-const GuideIconBase: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className = "w-8 h-8 text-slate-400 shrink-0" }) => (
+const GuideIconBase: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className = "w-8 h-8 genie-icon shrink-0" }) => (
     <svg className={className} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M5 15H35V35H5V15Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
         <path d="M5 15C5 10 10 10 15 10H25C30 10 35 10 35 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

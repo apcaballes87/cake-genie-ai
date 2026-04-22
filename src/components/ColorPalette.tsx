@@ -8,7 +8,7 @@ interface ColorPaletteProps {
 }
 
 export const ColorPalette: React.FC<ColorPaletteProps> = React.memo(({ selectedColor, onColorChange }) => {
-  const ringClass = 'ring-2 ring-offset-2 ring-offset-slate-50';
+  const ringClass = 'ring-2 ring-offset-2 ring-offset-purple-50';
 
   return (
     <div className={`flex flex-wrap gap-1.5 justify-center`}>
@@ -18,7 +18,7 @@ export const ColorPalette: React.FC<ColorPaletteProps> = React.memo(({ selectedC
           type="button"
           onClick={() => onColorChange(color.hex)}
           className={`rounded-full transition-transform transform hover:scale-110 focus:outline-none w-6 h-6 ${selectedColor.toLowerCase() === color.hex.toLowerCase()
-            ? `ring-purple-500 ${ringClass}`
+            ? `ring-purple-400 ${ringClass}`
             : 'ring-2 ring-transparent'
             }`}
           style={{ backgroundColor: color.hex }}

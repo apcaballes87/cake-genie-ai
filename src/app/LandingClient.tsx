@@ -462,7 +462,7 @@ function HeroProductPreviewStack({
                             <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
                         </div>
                     </div>
-                    <div className="flex items-center justify-between gap-3 px-5 py-3">
+                    <div className="relative z-10 flex items-center justify-between gap-3 px-5 py-3">
                         <div className="flex min-w-0 flex-col">
                             <p key={`mobile-price-${heroProductIndex}`} className="text-2xl font-black leading-none tracking-tight text-neutral-900 animate-in fade-in slide-in-from-bottom-1 duration-300">
                                 ₱{HERO_PRODUCTS[heroProductIndex].price.toLocaleString()}
@@ -473,7 +473,7 @@ function HeroProductPreviewStack({
                         </div>
                         <button
                             onClick={onOpenUploader}
-                            className="shrink-0 whitespace-nowrap rounded-2xl bg-neutral-200 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-black shadow-md transition-all hover:bg-neutral-300 active:scale-[0.98]"
+                            className="shrink-0 whitespace-nowrap rounded-2xl bg-neutral-200 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-black border border-neutral-300 hover:bg-neutral-300 transition-colors active:scale-[0.98]"
                         >
                             Order This Cake
                         </button>
@@ -610,7 +610,7 @@ function HeroProductPreviewStack({
                     </div>
                 )}
 
-                <div className="flex items-center justify-between gap-3 px-5 py-3">
+                <div className="relative z-10 flex items-center justify-between gap-3 px-5 py-3">
                     <div className="flex min-w-0 flex-col">
                         {heroUploadState === 'analyzing' ? (
                             <>
@@ -631,7 +631,7 @@ function HeroProductPreviewStack({
                     <button
                         disabled={heroUploadState === 'analyzing' || (heroUploadState !== 'error' && !heroAnalysis.slug)}
                         onClick={onResultAction}
-                        className="shrink-0 whitespace-nowrap rounded-2xl bg-neutral-200 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-black shadow-md transition-all hover:bg-neutral-300 active:scale-[0.98] disabled:cursor-wait disabled:opacity-40"
+                        className="shrink-0 whitespace-nowrap rounded-2xl bg-neutral-200 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-black border border-neutral-300 hover:bg-neutral-300 transition-colors active:scale-[0.98] disabled:cursor-wait disabled:opacity-40"
                     >
                         {heroUploadState === 'analyzing' ? 'Analyzing...' : heroUploadState === 'error' ? 'Upload another' : 'Order This Cake'}
                     </button>
@@ -1089,7 +1089,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                             </div>
                             <button
                                 onClick={onTryItClick}
-                                className="flex bg-white text-purple-700 font-bold py-2 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] text-sm whitespace-nowrap items-center gap-1.5"
+                                    className="genie-btn-secondary font-bold py-2 px-4 rounded-xl text-sm whitespace-nowrap hover:scale-[1.02]"
                             >
                                 Try It Yourself
                                 <ArrowRight size={14} />
@@ -1113,7 +1113,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                     </div>
                     <button
                         onClick={onTryItClick}
-                        className="flex bg-white text-purple-700 font-bold py-2 px-4 rounded-xl shadow-lg text-sm whitespace-nowrap items-center gap-1.5"
+                        className="genie-btn-secondary font-bold py-2 px-4 rounded-xl text-sm whitespace-nowrap"
                     >
                         Try It Yourself
                         <ArrowRight size={14} />
@@ -1473,7 +1473,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
     }, [reviewZoomSrc]);
 
     return (
-        <div id="top" className="font-sans bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100 min-h-screen pb-24 md:pb-0 text-gray-800 flex flex-col">
+        <div id="top" className="font-sans genie-page-bg min-h-screen pb-24 md:pb-0 text-gray-800 flex flex-col">
             {/* Capture discount code from URL without blocking prerender */}
             <Suspense fallback={null}>
                 <DiscountCapture />
@@ -1488,15 +1488,15 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
             <nav className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm' : 'bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
                     {/* Mobile Header */}
-                    <div className="md:hidden relative w-full mb-4" style={{ height: '71px' }}>
+                    <div className="md:hidden relative w-full mb-4" style={{ height: '64px' }}>
                         <div
-                            className="absolute inset-0 grid grid-cols-[1fr_auto_1fr] items-center pt-[25px] transition-opacity duration-300"
+                            className="absolute inset-0 grid grid-cols-[1fr_auto_1fr] items-center pt-[22px] transition-opacity duration-300"
                             style={{ opacity: showCompactHeader ? 0 : 1, pointerEvents: showCompactHeader ? 'none' : 'auto' }}
                         >
                             <div className="flex items-center">
                                 <button
                                     onClick={() => setIsMenuOpen(true)}
-                                    className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                    className="p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                     aria-label="Open menu"
                                 >
                                     <Menu size={24} />
@@ -1507,23 +1507,23 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                 <img
                                     src={COMMON_ASSETS.logo}
                                     alt="Genie Logo"
-                                    width={130}
-                                    height={46}
-                                    className="h-[46px] w-auto object-contain"
+                                    width={117}
+                                    height={41}
+                                    className="h-[41px] w-auto object-contain"
                                 />
                             </Link>
 
                             <div className="flex items-center gap-1 justify-end">
                                 <button
                                     onClick={() => window.scrollTo({ top: scrollThreshold + 10, behavior: 'smooth' })}
-                                    className="p-2 text-slate-600 hover:text-purple-700 transition-all shrink-0"
+                                    className="p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                     aria-label="Search"
                                 >
                                     <Search size={24} />
                                 </button>
                                 <button
                                     onClick={() => router.push('/cart')}
-                                    className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                    className="relative p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                     aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
                                 >
                                     <ShoppingBag size={24} />
@@ -1537,7 +1537,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                         </div>
 
                         <div
-                            className="absolute inset-0 flex items-center gap-2 pt-[25px] transition-opacity duration-300"
+                            className="absolute inset-0 flex items-center gap-2 pt-[22px] transition-opacity duration-300"
                             style={{ opacity: showCompactHeader ? 1 : 0, pointerEvents: showCompactHeader ? 'auto' : 'none' }}
                         >
                             {showCompactHeader ? (
@@ -1548,12 +1548,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                     value={searchQuery}
                                     onChange={setSearchQuery}
                                     className="flex-1 min-w-0"
-                                    inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                                    inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
                                 />
                             ) : <div className="flex-1 min-w-0" aria-hidden="true" />}
                             <button
                                 onClick={() => router.push('/cart')}
-                                className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                className="relative p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                 aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
                             >
                                 <ShoppingBag size={24} />
@@ -1567,12 +1567,12 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                     </div>
 
                     {/* Desktop Header: Menu + Logo + Search (left) | Nav + Icons (right) */}
-                    <div className="hidden md:flex w-full items-center gap-6 py-[12.5px]">
+                    <div className="hidden md:flex w-full items-center gap-6 py-[11px]">
                         {/* Left: Menu + Logo + Search Bar */}
                         <div className="flex items-center gap-4 flex-1 min-w-0">
                             <button
                                 onClick={() => setIsMenuOpen(true)}
-                                className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                className="p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                 aria-label="Open menu"
                             >
                                 <Menu size={24} />
@@ -1581,9 +1581,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                 <img
                                     src={COMMON_ASSETS.logo}
                                     alt="Genie Logo"
-                                    width={150}
-                                    height={48}
-                                    className="h-10 w-auto object-contain"
+                                    width={135}
+                                    height={43}
+                                    className="h-[36px] w-auto object-contain"
                                 />
                             </Link>
                             <SearchAutocomplete
@@ -1593,22 +1593,22 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                 value={searchQuery}
                                 onChange={setSearchQuery}
                                 className="flex-1 max-w-sm ml-4 lg:max-w-lg xl:max-w-2xl"
-                                inputClassName="w-full pl-5 pr-12 py-2.5 text-sm bg-white border-slate-200 border rounded-full shadow-sm focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                                inputClassName="w-full pl-5 pr-12 py-2.5 text-sm bg-white border-purple-100 border rounded-full shadow-sm focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
                             />
                         </div>
 
                         {/* Right: Nav Links + Account + Cart */}
                         <div className="flex items-center gap-5 lg:gap-6 shrink-0">
-                            <Link href="/collections" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                            <Link href="/collections" className="text-sm font-medium genie-link whitespace-nowrap">
                                 Browse Cakes
                             </Link>
-                            <Link href="/shop" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                            <Link href="/shop" className="text-sm font-medium genie-link whitespace-nowrap">
                                 Our Bakers
                             </Link>
                             {/* <Link href="/blog" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
                                 Blog
                             </Link> */}
-                            <Link href="/compare" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
+                            <Link href="/compare" className="text-sm font-medium genie-link whitespace-nowrap">
                                 Compare
                             </Link>
 
@@ -1621,14 +1621,14 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                         router.push('/login');
                                     }
                                 }}
-                                className="p-1.5 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                className="p-1.5 genie-icon-button rounded-full shrink-0"
                                 aria-label="Account"
                             >
                                 <User size={22} />
                             </button>
                             <button
                                 onClick={() => router.push('/cart')}
-                                className="relative p-1.5 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                className="relative p-1.5 genie-icon-button rounded-full shrink-0"
                                 aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
                             >
                                 <ShoppingBag size={22} />
@@ -1666,7 +1666,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                             <div className="mb-3 w-full min-[512px]:mx-auto min-[512px]:max-w-[480px]">
                                 <button
                                     onClick={() => setIsUploaderOpen(true)}
-                                    className="flex w-full items-center justify-center gap-2 sm:gap-3 rounded-2xl bg-purple-400 py-4 px-3 sm:px-6 font-bold text-white shadow-lg transition-all duration-200 hover:bg-purple-500 active:scale-[0.98]"
+                            className="genie-btn-primary flex w-full items-center justify-center gap-2 sm:gap-3 rounded-2xl py-4 px-3 sm:px-6 font-bold active:scale-[0.98]"
                                 >
                                     <Cake size={20} className="shrink-0" />
                                     <span className="whitespace-nowrap text-[12px] min-[360px]:text-[13px] min-[390px]:text-sm sm:text-base">Upload Cake Design - Get Instant Pricing</span>
@@ -1694,7 +1694,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                     <div className="mt-6 w-full max-w-md">
                                         <button
                                             onClick={() => setIsUploaderOpen(true)}
-                                            className="flex w-full items-center justify-center gap-3 rounded-2xl bg-purple-400 py-4 px-6 md:px-8 text-[17px] lg:text-lg font-bold text-white shadow-[0_20px_50px_-20px_rgba(168,85,247,0.45)] transition-all duration-200 hover:bg-purple-500 hover:shadow-[0_25px_60px_-20px_rgba(168,85,247,0.55)] active:scale-[0.99]"
+                                            className="genie-btn-primary flex w-full items-center justify-center gap-3 rounded-2xl py-4 px-6 md:px-8 text-[17px] lg:text-lg font-bold active:scale-[0.99]"
                                         >
                                             <Cake size={24} className="shrink-0" />
                                             <span className="whitespace-nowrap">Upload Cake Design - Get Instant Pricing</span>
@@ -1773,7 +1773,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                                     </div>
                                                 </div>
 
-                                                <div className="py-4 px-5 flex items-center justify-between gap-3">
+                                                <div className="relative z-10 py-4 px-5 flex items-center justify-between gap-3">
                                                     <div className="flex flex-col">
                                                         <p key={`price-${heroProductIndex}`} className="text-3xl font-black text-neutral-900 tracking-tight leading-none animate-in fade-in slide-in-from-bottom-1 duration-300">
                                                             ₱{HERO_PRODUCTS[heroProductIndex].price.toLocaleString()}
@@ -1784,7 +1784,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                                     </div>
                                                     <button
                                                         onClick={() => setIsUploaderOpen(true)}
-                                                        className="shrink-0 px-7 py-3.5 bg-neutral-200 hover:bg-neutral-300 text-black rounded-2xl font-bold text-[10px] lg:text-xs transition-all shadow-md active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
+                                                        className="shrink-0 bg-neutral-200 text-black border border-neutral-300 hover:bg-neutral-300 transition-colors px-7 py-3.5 rounded-2xl font-bold text-[10px] lg:text-xs active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
                                                     >
                                                         Order This Cake
                                                     </button>
@@ -1968,7 +1968,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                                                 router.push(`/customizing/${heroAnalysis.slug}`);
                                                             }
                                                         }}
-                                                        className="shrink-0 px-6 py-3.5 bg-neutral-200 hover:bg-neutral-300 disabled:opacity-40 disabled:cursor-wait text-black rounded-2xl font-bold text-[10px] lg:text-xs transition-all shadow-md active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
+                                                        className="shrink-0 bg-neutral-200 text-black border border-neutral-300 hover:bg-neutral-300 transition-colors px-6 py-3.5 disabled:opacity-40 disabled:cursor-wait rounded-2xl font-bold text-[10px] lg:text-xs active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
                                                     >
                                                         {heroUploadState === 'analyzing' ? 'Analyzing…' : heroUploadState === 'error' ? 'Upload another' : 'Order This Cake'}
                                                     </button>

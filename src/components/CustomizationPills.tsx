@@ -57,8 +57,8 @@ export const CustomizationPills: React.FC<CustomizationPillsProps> = ({
                         className={`
                             flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 snap-center
                             ${isActive
-                                ? 'bg-purple-600 text-white shadow-lg shadow-purple-200 scale-105'
-                                : 'bg-white text-slate-600 border border-slate-200 hover:border-purple-300 hover:bg-purple-50 shadow-sm'
+                                ? 'genie-btn-primary text-white shadow-lg shadow-purple-200 scale-105'
+                                : 'genie-btn-secondary text-slate-600'
                             }
                         `}
                     >

@@ -30,10 +30,9 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         className={`
           flex items-center justify-center
           w-11 h-11 sm:w-auto sm:h-12 min-[420px]:max-[639px]:px-0 min-[420px]:max-[639px]:gap-0 sm:px-4 sm:gap-2
-          bg-white border-2 border-pink-500
-          text-pink-600 font-bold text-sm
+          genie-btn-secondary
+          font-bold text-sm
           rounded-xl shadow-sm
-          hover:bg-pink-50 hover:shadow-md
           transition-all
           disabled:opacity-50 disabled:cursor-not-allowed
           whitespace-nowrap
@@ -87,10 +86,9 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
       className={`
         flex items-center justify-center
         w-11 h-11 sm:w-auto sm:h-12 min-[420px]:max-[639px]:px-0 min-[420px]:max-[639px]:gap-0 sm:px-4 sm:gap-2
-        bg-white border-2 border-purple-500
-        text-purple-600 font-bold text-sm
+        genie-btn-secondary
+        font-bold text-sm
         rounded-xl shadow-sm
-        hover:bg-purple-50 hover:shadow-md
         transition-all
         disabled:opacity-50 disabled:cursor-not-allowed
         whitespace-nowrap

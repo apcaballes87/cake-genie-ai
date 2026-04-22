@@ -46,7 +46,7 @@ const RelatedDesignsSection = React.memo(({
 
     return (
         <div className="w-full pb-4 pt-1 mt-0">
-            <h2 className="text-lg font-semibold text-slate-800 mb-4">What other designs are trending in Cebu?</h2>
+            <h2 className="text-lg font-semibold text-slate-800 mb-4">Related Cake Designs</h2>
             <Masonry
                 breakpointCols={relatedDesignBreakpoints}
                 className="flex w-auto -ml-3"
@@ -64,7 +64,7 @@ const RelatedDesignsSection = React.memo(({
                     <button
                         onClick={onLoadMoreDesigns}
                         disabled={isLoadingMoreDesigns}
-                        className="px-8 py-3 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+                        className="genie-btn-secondary px-8 py-3 font-semibold rounded-full disabled:opacity-50 disabled:cursor-not-allowed mx-auto"
                         aria-label="Show more related designs"
                     >
                         {isLoadingMoreDesigns ? (
@@ -94,7 +94,7 @@ const RelatedCollectionsSection = React.memo(({
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                        <Star className="w-5 h-5 text-purple-500 fill-purple-500" />
+                        <Star className="w-5 h-5 genie-icon fill-purple-400" />
                         Explore Related Collections
                     </h2>
                     <p className="text-sm text-slate-500">Discover more designs in these curated categories</p>
@@ -105,7 +105,7 @@ const RelatedCollectionsSection = React.memo(({
                     <Link
                         key={collection.slug}
                         href={`/collections/${collection.slug}`}
-                        className="group relative overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-200/60"
+                        className="group relative overflow-hidden rounded-2xl genie-card genie-card-hover transition-all duration-500"
                     >
                         <div className="aspect-4/5 relative overflow-hidden">
                             {collection.sample_image && (

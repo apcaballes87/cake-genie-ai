@@ -127,7 +127,7 @@ const RecommendedProductsGridComponent = ({ initialProducts }: RecommendedProduc
                     <button
                         onClick={handleLoadMore}
                         disabled={isLoadingMore}
-                        className="px-8 py-3 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+                        className="genie-btn-secondary px-8 py-3 font-semibold rounded-full disabled:opacity-50 disabled:cursor-not-allowed mx-auto"
                     >
                         {isLoadingMore ? (
                             <>
