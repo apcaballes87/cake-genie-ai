@@ -2056,7 +2056,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
 
                 {/* ===== BROWSE CAKE DESIGNS SECTION ===== */}
                 <section aria-label="Browse cake designs" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12 border-t border-purple-50">
-                    <div className="mb-8 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-600">
+                    <div className="mb-4 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-600">
                         <span className="block md:inline">Browse Cake Designs Available</span>{' '}
                         <span className="block md:inline">for Delivery Today</span>
                     </div>
