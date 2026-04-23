@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, Sparkles } from 'lucide-react';
 import { Loader2 } from '../../components/icons';
 import { ColorPalette } from '../../components/ColorPalette';
 import type { ParsedAiChatPromptTemplate } from '@/utils/aiChatPromptComposer';
@@ -34,6 +34,7 @@ interface CustomizingAiChatPanelProps {
     onInputKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
     onSuggestionSelect: (suggestion: string) => void;
     placeholder?: string;
+    title?: string;
 }
 
 export const CustomizingAiChatPanel = React.memo(({
@@ -59,8 +60,15 @@ export const CustomizingAiChatPanel = React.memo(({
     onInputKeyDown,
     onSuggestionSelect,
     placeholder = "✨ Tell Genie your cake design wish...",
+    title,
 }: CustomizingAiChatPanelProps) => (
     <div className={className}>
+        {title && (
+            <h3 className="text-[13px] font-semibold text-slate-800 mb-2.5 px-1 flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                {title}
+            </h3>
+        )}
         <form onSubmit={(event) => { void onSubmit(event); }} className="relative" ref={containerRef}>
             {selectedAiPromptTemplate ? (
                 <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-12 shadow-sm">
