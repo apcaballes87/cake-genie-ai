@@ -1771,6 +1771,23 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                     <span className="block whitespace-nowrap text-black italic">Celebrations</span>
                                 </h2>
                             </div>
+                            <div className="mb-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+                                <div className="flex items-center gap-1">
+                                    <ImagePlus size={12} className="text-neutral-400" />
+                                    <span className="whitespace-nowrap">Any Cake Image</span>
+                                </div>
+                                <span className="text-neutral-300">•</span>
+                                <div className="flex items-center gap-1">
+                                    <Zap size={12} className="text-neutral-400" />
+                                    <span className="whitespace-nowrap">Instant Pricing</span>
+                                </div>
+                                <span className="text-neutral-300">•</span>
+                                <div className="flex items-center gap-1">
+                                    <Truck size={12} className="text-neutral-400" />
+                                    <span className="whitespace-nowrap">Same-day Delivery</span>
+                                </div>
+                            </div>
+
 
                             <div className="mb-3 w-full min-[512px]:mx-auto min-[512px]:max-w-[480px]">
                                 <button
@@ -1803,6 +1820,23 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                         <span className="block whitespace-nowrap text-black italic">For Today&apos;s</span>
                                         <span className="block whitespace-nowrap text-black italic">Celebrations</span>
                                     </h2>
+                                    <div className="mt-4 flex items-center justify-center gap-3 text-[11px] lg:text-[12px] font-bold uppercase tracking-widest text-neutral-500">
+                                        <div className="flex items-center gap-1.5">
+                                            <ImagePlus size={14} className="text-neutral-400" />
+                                            <span className="whitespace-nowrap">Any Cake Image</span>
+                                        </div>
+                                        <span className="text-neutral-300">•</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <Zap size={14} className="text-neutral-400" />
+                                            <span className="whitespace-nowrap">Instant Pricing</span>
+                                        </div>
+                                        <span className="text-neutral-300">•</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <Truck size={14} className="text-neutral-400" />
+                                            <span className="whitespace-nowrap">Same-day Delivery</span>
+                                        </div>
+                                    </div>
+
                                     <div className="mt-6 w-full max-w-md">
                                         <button
                                             onClick={() => setIsUploaderOpen(true)}
@@ -1812,20 +1846,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                             <span className="whitespace-nowrap">Upload Any Design - Get Instant Pricing</span>
                                         </button>
                                     </div>
-                                    <div className="mt-6 grid w-full max-w-[520px] grid-cols-3 gap-2">
-                                        <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-2 text-[10px] font-semibold text-neutral-600 shadow-sm xl:text-[11px]">
-                                            <ImagePlus size={14} className="shrink-0 text-neutral-500" />
-                                            <span className="whitespace-nowrap uppercase leading-none">Any Cake Image</span>
-                                        </div>
-                                        <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-2 text-[10px] font-semibold text-neutral-600 shadow-sm xl:text-[11px]">
-                                            <Zap size={14} className="shrink-0 text-neutral-500" />
-                                            <span className="whitespace-nowrap uppercase leading-none">Instant Pricing</span>
-                                        </div>
-                                        <div className="flex min-w-0 items-center justify-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-2 text-[10px] font-semibold text-neutral-600 shadow-sm xl:text-[11px]">
-                                            <Truck size={14} className="shrink-0 text-neutral-500" />
-                                            <span className="whitespace-nowrap uppercase leading-none">Same-day Delivery</span>
-                                        </div>
-                                    </div>
+
                                 </div>
 
                                 {/* Right Column (1/2): Featured Product Carousel / Upload Analysis */}
@@ -2106,20 +2127,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                             onResetUpload={resetHeroUploadPreview}
                             onResultAction={handleHeroResultAction}
                         />
-                        <div className="grid w-full grid-cols-3 gap-1.5 pt-1">
-                            <div className="flex min-w-0 items-center justify-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-1.5 py-2 text-[8px] font-semibold leading-none text-neutral-600 shadow-sm">
-                                <ImagePlus size={12} className="shrink-0 text-neutral-500" />
-                                <span className="whitespace-nowrap">Any Cake Image</span>
-                            </div>
-                            <div className="flex min-w-0 items-center justify-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-1.5 py-2 text-[8px] font-semibold leading-none text-neutral-600 shadow-sm">
-                                <Zap size={12} className="shrink-0 text-neutral-500" />
-                                <span className="whitespace-nowrap">Instant Pricing</span>
-                            </div>
-                            <div className="flex min-w-0 items-center justify-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-1.5 py-2 text-[8px] font-semibold leading-none text-neutral-600 shadow-sm">
-                                <Truck size={12} className="shrink-0 text-neutral-500" />
-                                <span className="whitespace-nowrap">Same-day Delivery</span>
-                            </div>
-                        </div>
+
                     </div>
                 </section>
 
