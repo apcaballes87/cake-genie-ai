@@ -60,11 +60,13 @@ const RecommendedProductsGridComponent = ({ initialProducts }: RecommendedProduc
     return (
         <>
             {/* Section Header */}
-            <div className="flex justify-between items-end mb-4 md:mb-6">
-                <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">Recent searches by users</h2>
-                    <p className="text-gray-500 text-sm md:text-base">Get the price in 10 seconds!</p>
-                </div>
+            <div className="text-center mb-8 md:mb-12">
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-3">
+                    <span className="text-purple-400">Trending Now:</span> What others are pricing
+                </h2>
+                <p className="text-base text-slate-500 max-w-2xl mx-auto">
+                    Join the community getting instant prices in under 10 seconds.
+                </p>
             </div>
 
             {/* Product Grid */}

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Camera, Cake, Tag, CreditCard, Facebook, Instagram, MessageCircle, Youtube, Star, Check, Mail, Phone, ChevronUp, ShieldCheck, Lock, X } from 'lucide-react';
 import LazyImage from '@/components/LazyImage';
+import { COMMON_ASSETS } from '@/constants';
 
 const featureCards = [
   { title: 'Instantly get the price', body: 'Upload your cake design and get your price in 10 seconds.', href: '/customizing', cta: 'Upload here', icon: Camera, accent: 'purple' },
@@ -27,7 +28,7 @@ export function LandingFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="genie-page-bg text-gray-900 pt-16 pb-24 md:pb-8 border-t border-purple-100">
+    <footer className="genie-page-bg text-gray-900 pt-0 pb-24 md:pb-8 border-t border-purple-100">
 
       <div className="border-y border-purple-100 bg-white/45 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
@@ -39,7 +40,7 @@ export function LandingFooter() {
             <span className="font-bold text-2xl text-gray-800">4.8</span>
             <div className="flex text-yellow-400">{Array.from({ length: 5 }).map((_, i) => <Star key={i} size={16} fill="currentColor" />)}</div>
             <span className="hidden md:inline text-gray-300">|</span>
-            <span className="text-gray-600">Customers rate us 4.8/5 based on 40 reviews.</span>
+            <span className="hidden md:inline text-gray-600">Customers rate us 4.8/5 based on 40 reviews.</span>
             <span className="hidden md:inline text-gray-300">|</span>
             <span className="flex items-center gap-1 text-green-500 font-bold">Verified <Check size={14} /></span>
           </div>
@@ -50,7 +51,7 @@ export function LandingFooter() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-8">
             <div className="md:col-span-2">
-              <img src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20logo%20long2.webp" alt="Genie Logo" width={150} height={40} className="h-10 w-auto object-contain mb-4" />
+              <img src={COMMON_ASSETS.logo} alt="Genie Logo" width={150} height={40} className="h-10 w-auto object-contain mb-4" />
               <div className="text-gray-600 text-sm leading-relaxed mb-4 space-y-3"><p>Genie.ph is where spontaneous celebrations get the cake they deserve. Custom cakes, ordered in minutes, delivered today across Metro Cebu. Your cake wish, granted.</p><p>Our delivery network covers Metro Cebu, including Cebu City, Mandaue City, Lapu-Lapu City, and Talisay City. Genie.ph specializes in custom birthday cakes, minimalist wedding cakes, personalized bento cakes, and edible photo prints with secure online payments via Maya and GCash.</p></div>
               <div className="space-y-2 text-sm text-gray-600 mb-4"><div className="flex items-center gap-2"><Mail size={15} className="genie-icon shrink-0" /><span>support@genie.ph</span></div><div className="flex items-center gap-2"><Phone size={15} className="genie-icon shrink-0" /><span>+63 908 940 8747</span></div></div>
               <div className="flex flex-wrap items-center gap-3">

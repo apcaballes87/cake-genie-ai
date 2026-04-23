@@ -554,47 +554,18 @@ function HeroProductPreviewStack({
                     </button>
                 </div>
 
-                <div className="mx-auto w-full max-w-[480px] overflow-hidden rounded-3xl border border-neutral-100 bg-white shadow-xl">
-                    {(() => {
-                        const config = getHeroAvailabilityConfig(HERO_PRODUCTS[heroProductIndex].title, false);
-                        const { Icon } = config;
-                        return (
-                            <div className={`relative flex items-center justify-center gap-2 px-4 py-2 rounded-t-[23px] ${config.bannerClass}`}>
-                                <Icon className={`h-3 w-3 ${config.iconClass}`} />
-                                <span className={`text-[9px] font-bold uppercase tracking-wide ${config.iconClass}`}>{config.text}</span>
-                                
-                                {/* Inverted Corner Left */}
-                                <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
-                                    <div className={`absolute top-0 left-0 w-full h-full ${config.invertedCornerClass}`} />
-                                    <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
-                                </div>
-                                {/* Inverted Corner Right */}
-                                <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
-                                    <div className={`absolute top-0 right-0 w-full h-full ${config.invertedCornerClass}`} />
-                                    <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
-                                </div>
-                            </div>
-                        );
-                    })()}
-                    <div className="relative z-10 flex items-center justify-between gap-3 px-5 py-3">
-                        <div className="flex min-w-0 flex-col">
-                            <p key={`mobile-price-${heroProductIndex}`} className="text-2xl font-black leading-none tracking-tight text-neutral-900 animate-in fade-in slide-in-from-bottom-1 duration-300">
-                                ₱{HERO_PRODUCTS[heroProductIndex].price.toLocaleString()}
-                            </p>
-                            <p key={`mobile-size-${heroProductIndex}`} className="mt-1 text-[11px] font-bold uppercase tracking-tight text-neutral-500 animate-in fade-in duration-300">
-                                {HERO_PRODUCTS[heroProductIndex].size}
-                            </p>
-                        </div>
-                        <button
-                            onClick={onOpenUploader}
-                            className="shrink-0 rounded-2xl bg-neutral-200 px-5 py-2.5 text-black border border-neutral-300 hover:bg-neutral-300 transition-colors active:scale-[0.98] uppercase tracking-tight"
-                        >
-                            <div className="flex items-center justify-center">
-                                <span className="text-[11px] font-black uppercase">Customize Yours</span>
-                            </div>
-                        </button>
-                    </div>
+
+                {/* Primary CTA - Mobile */}
+                <div className="mx-auto w-full max-w-[480px] mt-2 mb-1">
+                    <button
+                        onClick={onOpenUploader}
+                        className="genie-btn-primary flex w-full items-center justify-center gap-2 rounded-2xl py-4 px-3 font-bold active:scale-[0.98] shadow-md shadow-purple-50/50"
+                    >
+                        <ImagePlus size={20} className="shrink-0" />
+                        <span className="whitespace-nowrap text-[12px] min-[360px]:text-[13px] min-[390px]:text-sm">Upload Your Design - Get Instant Pricing</span>
+                    </button>
                 </div>
+
             </>
         );
     }
@@ -745,13 +716,25 @@ function HeroProductPreviewStack({
                             </>
                         )}
                     </div>
-                    <button
-                        disabled={heroUploadState === 'analyzing' || (heroUploadState !== 'error' && !heroAnalysis.slug)}
-                        onClick={onResultAction}
-                        className="shrink-0 whitespace-nowrap rounded-2xl bg-neutral-200 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-black border border-neutral-300 hover:bg-neutral-300 transition-colors active:scale-[0.98] disabled:cursor-wait disabled:opacity-40"
-                    >
-                        {heroUploadState === 'analyzing' ? 'Analyzing...' : heroUploadState === 'error' ? 'Upload another' : 'Order This Cake'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => {
+                                onResetUpload();
+                                onOpenUploader();
+                            }}
+                            className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl border border-neutral-300 bg-white text-neutral-600 transition-colors hover:bg-neutral-50 active:scale-[0.98] shadow-sm"
+                            aria-label="Upload another cake image"
+                        >
+                            <ImagePlus size={18} />
+                        </button>
+                        <button
+                            disabled={heroUploadState === 'analyzing' || (heroUploadState !== 'error' && !heroAnalysis.slug)}
+                            onClick={onResultAction}
+                            className="shrink-0 whitespace-nowrap rounded-2xl bg-neutral-200 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-black border border-neutral-300 hover:bg-neutral-300 transition-colors active:scale-[0.98] disabled:cursor-wait disabled:opacity-40"
+                        >
+                            {heroUploadState === 'analyzing' ? 'Analyzing...' : heroUploadState === 'error' ? 'Upload another' : 'Order This Cake'}
+                        </button>
+                    </div>
                 </div>
             </div>
         </>
@@ -971,45 +954,26 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                                     setAnnotationKey(prev => prev + 1);
                                     setIcingOn(prev => ({ ...prev, 'Board': true }));
 
-                                    // Step 6: Type message
+                                    // Step 6: Show price badge
                                     scheduleStep(() => {
                                         setHighlightedOption(null);
                                         setAnnotation(null);
-                                        setShowTypingCursor(true);
-                                        let charIndex = 0;
-                                        typingIntervalRef.current = setInterval(() => {
-                                            if (!isAutoPlayingRef.current) {
-                                                if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
-                                                return;
-                                            }
-                                            charIndex++;
-                                            if (charIndex <= DEMO_MESSAGE.length) {
-                                                setCakeMessage(DEMO_MESSAGE.slice(0, charIndex));
-                                            } else {
-                                                if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
-                                                setShowTypingCursor(false);
+                                        setShowPriceBadge(true);
 
-                                                // Step 7: Show price badge
-                                                scheduleStep(() => {
-                                                    setShowPriceBadge(true);
+                                        // Step 7: Reset and loop
+                                        scheduleStep(() => {
+                                            setShowPriceBadge(false);
+                                            setSelectedTier(2); // Reset to Bento
+                                            setSelectedFlavor(0);
+                                            setIcingOn({ 'Body Icing': false, 'Drip': false, 'Base Border': false, 'Top Border': false, 'Top Icing': false, 'Board': false });
+                                            setSelectedToppers(new Set());
+                                            setCakeMessage('');
+                                            setAnnotation(null);
+                                            setHighlightedOption(null);
 
-                                                    // Step 8: Reset and loop
-                                                    scheduleStep(() => {
-                                                        setShowPriceBadge(false);
-                                                        setSelectedTier(2); // Reset to Bento
-                                                        setSelectedFlavor(0);
-                                                        setIcingOn({ 'Body Icing': false, 'Drip': false, 'Base Border': false, 'Top Border': false, 'Top Icing': false, 'Board': false });
-                                                        setSelectedToppers(new Set());
-                                                        setCakeMessage('');
-                                                        setAnnotation(null);
-                                                        setHighlightedOption(null);
-
-                                                        scheduleStep(() => runDemo(), 1400);
-                                                    }, 2100);
-                                                }, 700);
-                                            }
-                                        }, 49);
-                                    }, 1050);
+                                            scheduleStep(() => runDemo(), 1400);
+                                        }, 2100);
+                                    }, 1400);
                                 }, 1400);
                             }, 1400);
                         }, 1400);
@@ -1072,16 +1036,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                             </div>
                         )}
 
-                        {/* Message overlay */}
-                        {cakeMessage && !showPriceBadge && (
-                            <div className="absolute bottom-4 right-4 bg-white/85 backdrop-blur-sm rounded-xl px-4 py-2.5 shadow-md border border-purple-200 animate-annotation-fade-in whitespace-nowrap">
-                                <span className="text-[10px] text-slate-400 block mb-0.5">Cake message</span>
-                                <span className="text-sm font-semibold text-slate-800">
-                                    {cakeMessage}
-                                    {showTypingCursor && <span className="text-purple-500 animate-pulse">|</span>}
-                                </span>
-                            </div>
-                        )}
+
 
                         {/* Price badge overlay */}
                         {showPriceBadge && (
@@ -1167,18 +1122,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                         </div>
                     </div>
 
-                    {/* Cake Message */}
-                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 shadow-sm border border-slate-100">
-                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Cake Message</label>
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200">
-                            <span className="text-[10px] font-bold text-purple-500 uppercase tracking-wider shrink-0">TOP</span>
-                            <span className="text-sm text-slate-700 flex-1 truncate">
-                                {cakeMessage || <span className="text-slate-400 italic">Your message here...</span>}
-                                {showTypingCursor && <span className="text-purple-500 animate-pulse font-bold">|</span>}
-                            </span>
-                            <div className="w-3 h-3 rounded-full bg-pink-400 shrink-0 shadow-sm" />
-                        </div>
-                    </div>
+
 
                     {/* Price Bar */}
                     <div className="bg-purple-400 rounded-2xl p-3.5 shadow-xl">
@@ -1761,17 +1705,17 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                             <h1 className="mb-4 text-center text-[10px] min-[360px]:text-[11px] font-bold uppercase tracking-[0.06em] text-neutral-600 whitespace-nowrap">
                                 Best Online Cake Delivery for Rush Orders in Cebu
                             </h1>
-                            <div className="mb-5 text-center">
-                                <h2 className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-[0.88] tracking-tight text-gray-900">
+                            <div className="mb-6 text-center">
+                                <h2 className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-[1.0] tracking-tight text-gray-900">
                                     <HeroTypingHeadlineLine 
-                                        className="block min-h-[1.1em] whitespace-nowrap text-center text-purple-400" 
+                                        className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
                                         controlledPhraseIndex={hasInteractedWithHero ? HERO_PRODUCTS[heroProductIndex].headlineVariant : 0} 
                                     />
                                     <span className="block whitespace-nowrap text-black italic">For Today&apos;s</span>
                                     <span className="block whitespace-nowrap text-black italic">Celebrations</span>
                                 </h2>
                             </div>
-                            <div className="mb-6 flex flex-nowrap items-center justify-center gap-x-2 min-[390px]:gap-x-3 text-[8px] min-[390px]:text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+                            <div className="mb-6 flex flex-nowrap items-center justify-center gap-x-1 min-[390px]:gap-x-1.5 text-[8px] min-[390px]:text-[10px] font-bold uppercase tracking-wide text-neutral-500">
                                 <div className="flex items-center gap-1">
                                     <ImagePlus size={12} className="text-neutral-400" />
                                     <span className="whitespace-nowrap">Any Cake Image</span>
@@ -1789,16 +1733,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                             </div>
 
 
-                            <div className="mb-3 w-full min-[512px]:mx-auto min-[512px]:max-w-[480px]">
-                                <button
-                                    onClick={() => setIsUploaderOpen(true)}
-                            className="genie-btn-primary flex w-full items-center justify-center gap-2 sm:gap-3 rounded-2xl py-4 px-3 sm:px-6 font-bold active:scale-[0.98]"
-                                >
-                                    <Cake size={20} className="shrink-0" />
-                                    <span className="whitespace-nowrap text-[12px] min-[360px]:text-[13px] min-[390px]:text-sm sm:text-base">Upload Any Design - Get Instant Pricing</span>
-                                </button>
-                            </div>
                         </div>
+
 
                         {/* Desktop Hero View: 2-column layout */}
                         <div className="hidden md:flex md:flex-col w-full pt-5 pb-2.5">
@@ -1806,21 +1742,18 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                             <div className="grid grid-cols-2 gap-12 items-center">
                                 {/* Left Column (1/2): Headlines and CTA */}
                                 <div className="col-span-1 flex flex-col items-center text-center">
-                                    <Link href="/reviews" className="mb-2 text-[10px] text-gray-600 hover:text-purple-500">
-                                        4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
-                                    </Link>
                                     <h1 className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.092em] text-neutral-600">
                                         Best Online Cake Delivery for Rush Orders in Cebu
                                     </h1>
-                                    <h2 className="mt-3 text-[3.79rem] min-[945px]:text-[3.85rem] min-[1232px]:text-[4.75rem] font-extrabold text-gray-900 leading-[1.05] tracking-tight">
+                                    <h2 className="mt-3 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-[1.0] tracking-tight">
                                         <HeroTypingHeadlineLine 
-                                            className="block min-h-[1.1em] whitespace-nowrap text-center text-purple-400" 
+                                            className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
                                             controlledPhraseIndex={hasInteractedWithHero ? HERO_PRODUCTS[heroProductIndex].headlineVariant : 0} 
                                         />
                                         <span className="block whitespace-nowrap text-black italic">For Today&apos;s</span>
                                         <span className="block whitespace-nowrap text-black italic">Celebrations</span>
                                     </h2>
-                                    <div className="mt-4 flex items-center justify-center gap-3 text-[11px] lg:text-[12px] font-bold uppercase tracking-widest text-neutral-500">
+                                    <div className="mt-8 flex items-center justify-center gap-2 text-[11px] lg:text-[12px] font-bold uppercase tracking-wider text-neutral-500">
                                         <div className="flex items-center gap-1.5">
                                             <ImagePlus size={14} className="text-neutral-400" />
                                             <span className="whitespace-nowrap">Any Cake Image</span>
@@ -1837,17 +1770,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                         </div>
                                     </div>
 
-                                    <div className="mt-6 w-full max-w-md">
-                                        <button
-                                            onClick={() => setIsUploaderOpen(true)}
-                                            className="genie-btn-primary flex w-full items-center justify-center gap-3 rounded-2xl py-4 px-6 md:px-8 text-[17px] lg:text-lg font-bold active:scale-[0.99]"
-                                        >
-                                            <Cake size={24} className="shrink-0" />
-                                            <span className="whitespace-nowrap">Upload Any Design - Get Instant Pricing</span>
-                                        </button>
-                                    </div>
-
                                 </div>
+
 
                                 {/* Right Column (1/2): Featured Product Carousel / Upload Analysis */}
                                 <div className="col-span-1 relative flex flex-col items-center w-full gap-4">
@@ -1874,50 +1798,17 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                                 </button>
                                             </div>
 
-                                            {/* Product Info & Action Card — carousel */}
-                                            <div className="w-full max-w-[480px] bg-white rounded-3xl shadow-xl border border-neutral-100 relative">
-                                                {/* Availability banner with Inverted Corners */}
-                                                {(() => {
-                                                    const config = getHeroAvailabilityConfig(HERO_PRODUCTS[heroProductIndex].title, true);
-                                                    const { Icon } = config;
-                                                    return (
-                                                        <div className={`relative py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl transition-colors duration-300 ${config.bannerClass}`}>
-                                                            <Icon className={`w-3 h-3 ${config.iconClass}`} />
-                                                            <span className={`text-[10px] font-black uppercase tracking-wider ${config.iconClass}`}>{config.text}</span>
-
-                                                            {/* Inverted Corner Left */}
-                                                            <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
-                                                                <div className={`absolute top-0 left-0 w-full h-full ${config.invertedCornerClass}`} />
-                                                                <div className="absolute top-0 left-0 w-full h-full bg-white rounded-tl-[24px]" />
-                                                            </div>
-                                                            {/* Inverted Corner Right */}
-                                                            <div className="absolute top-full right-0 w-6 h-6 overflow-hidden">
-                                                                <div className={`absolute top-0 right-0 w-full h-full ${config.invertedCornerClass}`} />
-                                                                <div className="absolute top-0 right-0 w-full h-full bg-white rounded-tr-[24px]" />
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })()}
-
-                                                <div className="relative z-10 py-4 px-5 flex items-center justify-between gap-3">
-                                                    <div className="flex flex-col">
-                                                        <p key={`price-${heroProductIndex}`} className="text-3xl font-black text-neutral-900 tracking-tight leading-none animate-in fade-in slide-in-from-bottom-1 duration-300">
-                                                            ₱{HERO_PRODUCTS[heroProductIndex].price.toLocaleString()}
-                                                        </p>
-                                                        <p key={`size-${heroProductIndex}`} className="text-[11px] font-bold text-neutral-500 uppercase tracking-tight mt-1.5 animate-in fade-in duration-300">
-                                                            {HERO_PRODUCTS[heroProductIndex].size}
-                                                        </p>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => setIsUploaderOpen(true)}
-                                                        className="shrink-0 bg-neutral-200 text-black border border-neutral-300 hover:bg-neutral-300 transition-colors px-6 py-2.5 rounded-2xl active:scale-[0.98] uppercase tracking-tight"
-                                                    >
-                                                        <div className="flex items-center justify-center">
-                                                            <span className="text-sm font-black uppercase">Customize Yours</span>
-                                                        </div>
-                                                    </button>
-                                                </div>
+                                            {/* Primary CTA - Right below image */}
+                                            <div className="w-full max-w-[480px] mt-4">
+                                                <button
+                                                    onClick={() => setIsUploaderOpen(true)}
+                                                    className="genie-btn-primary flex w-full items-center justify-center gap-3 rounded-2xl py-4 px-6 md:px-8 text-[17px] lg:text-lg font-bold active:scale-[0.99] shadow-lg shadow-purple-100/50"
+                                                >
+                                                    <ImagePlus size={22} className="shrink-0" />
+                                                    <span className="whitespace-nowrap">Upload Your Design - Get Instant Pricing</span>
+                                                </button>
                                             </div>
+
                                         </>
                                     ) : (
                                         /* ── Upload analysis mode ── */
@@ -2082,24 +1973,34 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                                             </>
                                                         )}
                                                     </div>
-                                                    <button
-                                                        disabled={heroUploadState === 'analyzing' || (heroUploadState !== 'error' && !heroAnalysis.slug)}
-                                                        onClick={() => {
-                                                            if (heroUploadState === 'error') {
-                                                                setHeroUploadState('idle');
-                                                                setHeroUploadedImageSrc(null);
-                                                                setHeroUploadError(null);
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => {
+                                                                resetHeroUploadPreview();
                                                                 setIsUploaderOpen(true);
-                                                                return;
-                                                            }
-                                                            if (heroAnalysis.slug) {
-                                                                router.push(`/customizing/${heroAnalysis.slug}`);
-                                                            }
-                                                        }}
-                                                        className="shrink-0 bg-neutral-200 text-black border border-neutral-300 hover:bg-neutral-300 transition-colors px-6 py-3.5 disabled:opacity-40 disabled:cursor-wait rounded-2xl font-bold text-[10px] lg:text-xs active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
-                                                    >
-                                                        {heroUploadState === 'analyzing' ? 'Analyzing…' : heroUploadState === 'error' ? 'Upload another' : 'Order This Cake'}
-                                                    </button>
+                                                            }}
+                                                            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl border border-neutral-300 bg-white text-neutral-600 transition-colors hover:bg-neutral-50 active:scale-[0.98] shadow-sm"
+                                                            aria-label="Upload another cake image"
+                                                        >
+                                                            <ImagePlus size={20} />
+                                                        </button>
+                                                        <button
+                                                            disabled={heroUploadState === 'analyzing' || (heroUploadState !== 'error' && !heroAnalysis.slug)}
+                                                            onClick={() => {
+                                                                if (heroUploadState === 'error') {
+                                                                    resetHeroUploadPreview();
+                                                                    setIsUploaderOpen(true);
+                                                                    return;
+                                                                }
+                                                                if (heroAnalysis.slug) {
+                                                                    router.push(`/customizing/${heroAnalysis.slug}`);
+                                                                }
+                                                            }}
+                                                            className="shrink-0 bg-neutral-200 text-black border border-neutral-300 hover:bg-neutral-300 transition-colors px-6 py-3.5 disabled:opacity-40 disabled:cursor-wait rounded-2xl font-bold text-[10px] lg:text-xs active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
+                                                        >
+                                                            {heroUploadState === 'analyzing' ? 'Analyzing…' : heroUploadState === 'error' ? 'Upload another' : 'Order This Cake'}
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </>
@@ -2135,8 +2036,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                 {/* ===== REVIEWS MARQUEE ===== */}
                 {reviewCards.length > 0 && (
                     <section aria-label="Customer reviews" className="w-full overflow-hidden py-2 md:py-4">
-                        <div className="mx-auto max-w-7xl px-4 pb-3 text-center sm:px-6 lg:px-8 md:hidden">
-                            <Link href="/reviews" className="text-[10px] text-gray-600 hover:text-purple-500 md:text-[10px]">
+                        <div className="mx-auto max-w-7xl px-4 pb-1 text-center sm:px-6 lg:px-8">
+                            <Link href="/reviews" className="text-[13px] md:text-[14px] text-gray-600 hover:text-purple-500">
                                 4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
                             </Link>
                         </div>
@@ -2242,14 +2143,14 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                     })()}
                 </section>
 
-                {/* ===== BROWSE CAKE DESIGNS SECTION ===== */}
+                {/* ===== BROWSE CAKE DESIGNS SECTION - Hidden for now ===== */}
+                {/* 
                 <section aria-label="Browse cake designs" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12 border-t border-purple-50">
                     <div className="mb-4 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-600">
                         <span className="block md:inline">Browse Cake Designs Available</span>{' '}
                         <span className="block md:inline">for Delivery Today</span>
                     </div>
 
-                    {/* Two-row mobile grid, one-row tablet/desktop grid */}
                     <div className="grid grid-cols-3 gap-3 md:grid-cols-6 md:gap-4">
                         {desktopHeroCollections.map((collection, index) => (
                             <div key={collection.slug} className="min-w-0">
@@ -2258,12 +2159,13 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                     slug={collection.slug}
                                     sampleImage={collection.sampleImage}
                                     index={index}
-                                    className="!mt-0" // Force remove masonry offsets
+                                    className="!mt-0" 
                                 />
                             </div>
                         ))}
                     </div>
                 </section>
+                */}
 
 
                 {/* ===== BLOG SECTION - Hidden as requested ===== */}
@@ -2331,7 +2233,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
             {isUploaderOpen ? (
                 <ImageUploader
                     isOpen={isUploaderOpen}
-                    title="Upload Any Design - Get Instant Pricing"
+                    title="Upload Your Design - Get Instant Pricing"
                     iconImageSrc="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/upload-cake-image.webp"
                     iconImageAlt="Upload cake design"
                     onClose={() => setIsUploaderOpen(false)}

@@ -36,7 +36,6 @@ import { buildKnownSeoMetadata } from './knownSeoMetadata';
 import { getRefLoadStrategy, parsePersistedAnalysis } from './refLoadStrategy';
 import {
     CustomizingDiscoverySections,
-    type CustomizingRelatedCollection,
     type CustomizingRelatedDesign,
 } from './CustomizingDiscoverySections';
 import { CustomizingPostAnalysisContent } from './CustomizingPostAnalysisContent';
@@ -509,8 +508,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [displayedRelatedDesigns, setDisplayedRelatedDesigns] = useState<CustomizingRelatedDesign[]>(relatedDesigns || []);
     const [isLoadingMoreDesigns, setIsLoadingMoreDesigns] = useState(false);
     const [hasMoreDesigns, setHasMoreDesigns] = useState(true);
-    const [relatedCollections, setRelatedCollections] = useState<CustomizingRelatedCollection[]>([]);
-    const [isLoadingCollections, setIsLoadingCollections] = useState(false);
 
     // Track "committed" state = UI state that matches the currently displayed image.
     // Only updates when dirty state is cleared (after analysis apply or design update sync).
@@ -532,7 +529,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const isResettingRef = useRef(false); // Guard against reloading the current design during Reset Everything
     const lastProcessedDesignRefUrl = useRef<string | null>(null);
     const lastAutoRelatedDesignRequestKeyRef = useRef<string | null>(null);
-    const lastRelatedCollectionsRequestKeyRef = useRef<string | null>(null);
     const aiChatMobileContainerRef = useRef<HTMLFormElement>(null);
     const aiChatDesktopContainerRef = useRef<HTMLFormElement>(null);
     const aiChatMobileInputRef = useRef<HTMLInputElement>(null);
@@ -567,13 +563,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         persistedSlug,
         recentSearchSlug: recentSearchDesign?.slug,
     }), [currentKeywords, recentSearchDesign?.keywords, analysisResult?.keyword, currentSlug, persistedSlug, recentSearchDesign?.slug]);
-
-    const relatedCollectionsTags = analysisResult?.tags || null;
-    const relatedCollectionsKeyword = analysisResult?.keyword || null;
-    const relatedCollectionsRequestKey = useMemo(
-        () => buildRelatedCollectionsRequestKey(relatedCollectionsTags, relatedCollectionsKeyword),
-        [relatedCollectionsTags, relatedCollectionsKeyword]
-    );
 
     const aiChatSuggestionAnalysis = useMemo(() => {
         // Prefer the current synced customization state, but fall back to the original design image analysis_json.
@@ -759,33 +748,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
         fetchRelated();
     }, [autoRelatedDesignRequest, displayedRelatedDesigns.length, isLoadingMoreDesigns]);
-
-    // Auto-load related collections when analysis is complete
-    useEffect(() => {
-        if (!relatedCollectionsRequestKey) return;
-        if (lastRelatedCollectionsRequestKeyRef.current === relatedCollectionsRequestKey) return;
-
-        lastRelatedCollectionsRequestKeyRef.current = relatedCollectionsRequestKey;
-
-        const fetchCollections = async () => {
-            setIsLoadingCollections(true);
-            try {
-                const tags = relatedCollectionsTags || [];
-                const keyword = relatedCollectionsKeyword || '';
-                const { data } = await getCollectionsForDesign(tags, keyword);
-                if (data) {
-                    setRelatedCollections(data);
-                }
-            } catch (error) {
-                lastRelatedCollectionsRequestKeyRef.current = null;
-                // Silently handle meta data fetch error
-            } finally {
-                setIsLoadingCollections(false);
-            }
-        };
-
-        fetchCollections();
-    }, [relatedCollectionsKeyword, relatedCollectionsRequestKey, relatedCollectionsTags]);
 
     // --- AI Chat Customization Handler ---
     const onAddToCart = useCallback(async () => {
@@ -3259,7 +3221,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         hasMoreDesigns={hasMoreDesigns}
                         isLoadingMoreDesigns={isLoadingMoreDesigns}
                         onLoadMoreDesigns={handleLoadMoreDesigns}
-                        relatedCollections={relatedCollections}
                     />
                 </div>
 
