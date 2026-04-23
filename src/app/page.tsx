@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import LandingClient from './LandingClient';
-import { getRecommendedProducts, getHomepageBlogPreviews, getDesignCategories } from '@/services/supabaseService';
+import { getRecommendedProducts, getHomepageBlogPreviews } from '@/services/supabaseService';
 import { RecommendedProductsSection, IntroContent } from '@/components/landing';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import NewsletterPopup from '@/components/NewsletterPopup';
@@ -41,85 +41,6 @@ export const metadata: Metadata = {
         }],
     },
 };
-
-type HeroCollectionCard = {
-    title: string;
-    slug: string;
-    count: number;
-    sampleImage: string;
-    caption: string;
-};
-
-type DesignCategory = {
-    keyword: string;
-    slug: string;
-    count: number;
-    sample_image: string;
-};
-
-const HERO_COLLECTION_BLUEPRINTS = [
-    {
-        title: 'Minimalist Cakes',
-        slug: 'minimalist-cake',
-        matchers: ['minimalist'],
-        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-minimalist-cake.webp',
-        caption: 'Clean lines, pastel finishes, and understated message cakes.',
-    },
-    {
-        title: 'Vintage Cakes',
-        slug: 'vintage-cake',
-        matchers: ['vintage', 'lambeth'],
-        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-vintage-cake.webp',
-        caption: 'Frilly piping, retro charm, and statement celebration cakes.',
-    },
-    {
-        title: 'Doodle Cakes',
-        slug: 'doodle-cake',
-        matchers: ['doodle'],
-        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-doodle-cake.webp',
-        caption: 'Playful hand-drawn details for expressive, modern birthdays.',
-    },
-    {
-        title: 'Edible Photo Cakes',
-        slug: 'edible-photo-cake',
-        matchers: ['edible photo', 'photo cake'],
-        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-edible-photo-cake.webp',
-        caption: 'Printed memories and personalized graphics wrapped into cake form.',
-    },
-    {
-        title: 'Floral Cakes',
-        slug: 'floral-cake',
-        matchers: ['floral', 'flower'],
-        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-floral-cake.webp',
-        caption: 'Soft blooms, romantic piping, and elegant garden-party finishes.',
-    },
-    {
-        title: 'Bento Cakes',
-        slug: 'bento-cake',
-        matchers: ['bento'],
-        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-bento-cake.webp',
-        caption: 'Compact celebration cakes with playful piping and giftable charm.',
-    },
-] as const;
-
-function buildHeroCollections(categories: DesignCategory[]): HeroCollectionCard[] {
-    return HERO_COLLECTION_BLUEPRINTS.map((blueprint) => {
-        const match = categories.find((category) => {
-            const keyword = category.keyword.toLowerCase();
-            const slug = category.slug.toLowerCase();
-
-            return slug === blueprint.slug || blueprint.matchers.some((matcher) => keyword.includes(matcher) || slug.includes(matcher.replace(/\s+/g, '-')));
-        });
-
-        return {
-            title: blueprint.title,
-            slug: match?.slug || blueprint.slug,
-            count: match?.count || 0,
-            sampleImage: blueprint.sampleImage,
-            caption: blueprint.caption,
-        };
-    });
-}
 
 function WebSiteSchema() {
     const schema = {
@@ -195,21 +116,19 @@ async function getReviews() {
 }
 
 export default async function Home() {
-    const [recommendedProductsRes, blogsRes, categoriesRes, reviews] = await Promise.all([
+    const [recommendedProductsRes, blogsRes, reviews] = await Promise.all([
         getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err })),
         getHomepageBlogPreviews(3).catch(err => ({ data: [], error: err })),
-        getDesignCategories().catch(err => ({ data: [], error: err })),
         getReviews().catch(() => []),
     ]);
 
     const recommendedProducts = recommendedProductsRes.data || [];
     const blogPosts = blogsRes.data || [];
-    const heroCollections = buildHeroCollections(categoriesRes.data || []);
 
     return (
         <>
             <WebSiteSchema />
-            <LandingClient heroCollections={heroCollections} blogPosts={blogPosts} reviews={reviews}>
+            <LandingClient blogPosts={blogPosts} reviews={reviews}>
                 {/* Server-rendered sections for LCP optimization */}
                 {/* <MerchantShowcase merchants={merchants} /> - Hidden for now */}
                 <RecommendedProductsSection products={recommendedProducts} />

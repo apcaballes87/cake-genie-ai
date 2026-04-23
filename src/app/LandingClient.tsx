@@ -23,7 +23,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { batchSaveToLocalStorage } from '@/contexts/CartContext';
 import { COMMON_ASSETS } from '@/constants';
-import { trackImageUpload, trackSelectItem } from '@/lib/analytics';
+import { trackImageUpload } from '@/lib/analytics';
 import {
     Search,
     ShoppingBag,
@@ -54,13 +54,6 @@ const ImageUploader = dynamic(
 
 interface LandingClientProps {
     children?: React.ReactNode;
-    heroCollections?: {
-        title: string;
-        slug: string;
-        count: number;
-        sampleImage: string;
-        caption: string;
-    }[];
     blogPosts?: BlogHomepagePreview[];
     reviews?: CakeGenieReview[];
 }
@@ -75,51 +68,6 @@ const HERO_HEADLINE_VARIANTS = [
     'Doodle Cakes',
 ] as const;
 const HERO_HEADLINE_A11Y_LABEL = 'Custom Cakes, Minimalist Cakes, Vintage Cakes, Floral Cakes, Photo Cakes, Bento Cakes, and Doodle Cakes.';
-const DEFAULT_HERO_COLLECTIONS = [
-    {
-        title: 'Minimalist Cakes',
-        slug: 'minimalist-cake',
-        count: 0,
-        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-minimalist-cake.webp',
-        caption: 'Clean lines, pastel finishes, and understated message cakes.',
-    },
-    {
-        title: 'Vintage Cakes',
-        slug: 'vintage-cake',
-        count: 0,
-        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-vintage-cake.webp',
-        caption: 'Frilly piping, retro charm, and statement celebration cakes.',
-    },
-    {
-        title: 'Doodle Cakes',
-        slug: 'doodle-cake',
-        count: 0,
-        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-doodle-cake.webp',
-        caption: 'Playful hand-drawn details for expressive, modern birthdays.',
-    },
-    {
-        title: 'Edible Photo Cakes',
-        slug: 'edible-photo-cake',
-        count: 0,
-        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-edible-photo-cake.webp',
-        caption: 'Printed memories and personalized graphics wrapped into cake form.',
-    },
-    {
-        title: 'Floral Cakes',
-        slug: 'floral-cake',
-        count: 0,
-        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-floral-cake.webp',
-        caption: 'Soft blooms, romantic piping, and elegant garden-party finishes.',
-    },
-    {
-        title: 'Bento Cakes',
-        slug: 'bento-cake',
-        count: 0,
-        sampleImage: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-bento-cake.webp',
-        caption: 'Compact celebration cakes with playful piping and giftable charm.',
-    },
-] as const;
-
 const HERO_PRODUCTS = [
     {
         title: 'Minimalist Cakes',
@@ -184,50 +132,6 @@ const getHeroAvailabilityConfig = (title: string, isDesktop: boolean = false) =>
         invertedCornerClass: isDesktop ? 'bg-blue-100/80' : 'bg-blue-100'
     };
 };
-
-const DESKTOP_HERO_CARD_STYLES = [
-    {
-        tintClassName: 'from-fuchsia-200/70 via-white/10 to-transparent',
-        placeholderClassName: 'from-[#f7d4ec] via-[#fef4fb] to-[#eadcff]',
-        cardClassName: 'mt-0',
-    },
-    {
-        tintClassName: 'from-amber-100/70 via-white/10 to-transparent',
-        placeholderClassName: 'from-[#ffe5d1] via-[#fff3eb] to-[#ffd7dc]',
-        cardClassName: 'mt-6',
-    },
-    {
-        tintClassName: 'from-sky-200/70 via-white/10 to-transparent',
-        placeholderClassName: 'from-[#d8efff] via-[#f2fbff] to-[#e3e8ff]',
-        cardClassName: 'mt-2',
-    },
-    {
-        tintClassName: 'from-violet-200/70 via-white/10 to-transparent',
-        placeholderClassName: 'from-[#ead9ff] via-[#faf5ff] to-[#fde7f3]',
-        cardClassName: 'mt-1',
-    },
-    {
-        tintClassName: 'from-emerald-100/70 via-white/10 to-transparent',
-        placeholderClassName: 'from-[#dff8e8] via-[#f7fff9] to-[#fef0f4]',
-        cardClassName: 'mt-8',
-    },
-    {
-        tintClassName: 'from-rose-200/70 via-white/10 to-transparent',
-        placeholderClassName: 'from-[#ffe1e8] via-[#fff5f7] to-[#efe4ff]',
-        cardClassName: 'mt-3',
-    },
-] as const;
-
-const DESKTOP_HERO_MASONRY_COLUMNS = [
-    { indexes: [0, 3], className: 'pt-0' },
-    { indexes: [1, 4], className: 'pt-5 lg:pt-6' },
-    { indexes: [2, 5], className: 'pt-2 lg:pt-3' },
-] as const;
-
-const TABLET_HERO_MASONRY_COLUMNS = [
-    { indexes: [0, 3, 4], className: 'pt-0' },
-    { indexes: [1, 2, 5], className: 'pt-5' },
-] as const;
 
 const subscribeToHydration = () => () => { };
 
@@ -297,51 +201,6 @@ const HeroTypingHeadlineLine: React.FC<{ className?: string; controlledPhraseInd
         </span>
     );
 };
-
-function DesktopHeroCollectionCard({
-    title,
-    slug,
-    sampleImage,
-    index,
-    className,
-}: {
-    title: string;
-    slug: string;
-    sampleImage: string;
-    index: number;
-    className?: string;
-}) {
-    const style = DESKTOP_HERO_CARD_STYLES[index % DESKTOP_HERO_CARD_STYLES.length];
-
-    return (
-        <Link
-            href={`/collections/${slug}`}
-            onClick={() => trackSelectItem({ item_list_name: 'hero_collections', item_id: slug, item_name: title })}
-            className={`group relative block w-full self-start overflow-hidden rounded-[1.35rem] border border-white/75 bg-white/80 shadow-[0_18px_44px_-34px_rgba(88,28,135,0.72)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_52px_-30px_rgba(88,28,135,0.78)] ${className || ''}`}
-        >
-            <div className="relative aspect-[4/5] overflow-hidden">
-                {sampleImage ? (
-                    <img
-                        src={sampleImage}
-                        alt={`${title} collection`}
-                        loading="lazy"
-                        className="block h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                ) : (
-                    <div className={`h-full w-full bg-linear-to-br ${style.placeholderClassName}`} />
-                )}
-                <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/30 to-transparent" />
-                <div className={`absolute inset-0 bg-linear-to-br ${style.tintClassName} opacity-80 mix-blend-screen`} />
-
-                <div className="absolute inset-x-0 bottom-0 p-3 lg:p-3.5">
-                    <h3 className="line-clamp-2 max-w-[94%] text-[0.72rem] font-semibold leading-tight text-white md:line-clamp-1 lg:text-[0.82rem] xl:text-[0.88rem]">
-                        {title}
-                    </h3>
-                </div>
-            </div>
-        </Link>
-    );
-}
 
 function HeroProductPeekCarousel({
     heroProductIndex,
@@ -1152,7 +1011,7 @@ const DiscountCapture = () => {
     return null;
 };
 
-const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections = [], blogPosts = [], reviews = [] }) => {
+const LandingClient: React.FC<LandingClientProps> = ({ children, blogPosts = [], reviews = [] }) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
@@ -1205,21 +1064,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
         }
     }, [heroAnalysis.slug, heroUploadState, resetHeroUploadPreview, router]);
 
-    const scrollToHeroMobilePreview = useCallback(() => {
-        if (typeof window === 'undefined' || !window.matchMedia('(max-width: 767px)').matches) {
-            return;
-        }
-
-        window.setTimeout(() => {
-            window.requestAnimationFrame(() => {
-                heroMobilePreviewRef.current?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start',
-                });
-            });
-        }, 180);
-    }, []);
-
     // Trigger progress-bar CSS transition one tick after analysis starts
     useEffect(() => {
         const t = setTimeout(
@@ -1241,12 +1085,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
         { id: 'Wedding', name: 'Wedding' },
         { id: 'Baptismal', name: 'Baptismal' },
     ];
-    const desktopHeroCollections = useMemo(
-        () => (heroCollections.length > 0 ? heroCollections : [...DEFAULT_HERO_COLLECTIONS]),
-        [heroCollections]
-    );
-
-
     const [searchQuery, setSearchQuery] = useState('');
 
     const handleSearch = (query: string) => {
@@ -2035,31 +1873,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                         return <InteractiveCustomizer tiers={TIERS} flavors={FLAVORS} icings={ICINGS} toppers={TOPPERS} onTryItClick={() => setIsUploaderOpen(true)} />;
                     })()}
                 </section>
-
-                {/* ===== BROWSE CAKE DESIGNS SECTION - Hidden for now ===== */}
-                {/* 
-                <section aria-label="Browse cake designs" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12 border-t border-purple-50">
-                    <div className="mb-4 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-600">
-                        <span className="block md:inline">Browse Cake Designs Available</span>{' '}
-                        <span className="block md:inline">for Delivery Today</span>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3 md:grid-cols-6 md:gap-4">
-                        {desktopHeroCollections.map((collection, index) => (
-                            <div key={collection.slug} className="min-w-0">
-                                <DesktopHeroCollectionCard
-                                    title={collection.title}
-                                    slug={collection.slug}
-                                    sampleImage={collection.sampleImage}
-                                    index={index}
-                                    className="!mt-0" 
-                                />
-                            </div>
-                        ))}
-                    </div>
-                </section>
-                */}
-
 
                 {/* ===== BLOG SECTION - Hidden as requested ===== */}
                 {/* 
