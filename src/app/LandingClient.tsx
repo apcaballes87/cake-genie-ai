@@ -1771,7 +1771,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                     <span className="block whitespace-nowrap text-black italic">Celebrations</span>
                                 </h2>
                             </div>
-                            <div className="mb-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+                            <div className="mb-6 flex flex-nowrap items-center justify-center gap-x-2 min-[390px]:gap-x-3 text-[8px] min-[390px]:text-[10px] font-bold uppercase tracking-wider text-neutral-500">
                                 <div className="flex items-center gap-1">
                                     <ImagePlus size={12} className="text-neutral-400" />
                                     <span className="whitespace-nowrap">Any Cake Image</span>
