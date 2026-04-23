@@ -2123,119 +2123,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                     </div>
                 </section>
 
-                {/* ===== INTERACTIVE CUSTOMIZER DEMO ===== */}
-                <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-                    <h2 id="price-change-heading" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-2 text-center">
-                        See your price change <span className="text-purple-400">in real time.</span>
-                    </h2>
-                    <p className="text-base text-slate-500 mb-8 max-w-2xl mx-auto text-center">
-                        Upload any cake design. Customize it. See your price instantly. Same-day delivery.
-                    </p>
-
-                    {(() => {
-                        const TIERS = [
-                            { label: '1 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/1-tier-ribbon-cake.webp', price: 1500, size: '8" Round 4 in height' },
-                            { label: '2 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake.webp', price: 2500, size: '6"9" 4 in height per tier' },
-                            { label: 'Bento', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/bento-ribbon-cake.png.webp', price: 399, size: '4" Round 2 in height' },
-                        ];
-                        const FLAVORS = [
-                            { label: 'Vanilla', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakevanilla.webp' },
-                            { label: 'Chocolate', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakechocolate.webp' },
-                            { label: 'Ube', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakeube.webp' },
-                        ];
-                        const BASE = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
-                        const ICINGS = [
-                            { label: 'Drip', src: `${BASE}drip_black.webp`, addonPrice: 100 },
-                            { label: 'Body Icing', src: `${BASE}icing_red.webp`, addonPrice: 0 },
-                            { label: 'Board', src: `${BASE}baseboardwhite.webp`, addonPrice: 100 },
-                        ];
-                        const TOPPERS = [
-                            { label: 'Sugar Flowers', emoji: '🌸' },
-                            { label: 'Sprinkles', emoji: '✨' },
-                            { label: 'Macaron', emoji: '🍪' },
-                        ];
-                        return <InteractiveCustomizer tiers={TIERS} flavors={FLAVORS} icings={ICINGS} toppers={TOPPERS} onTryItClick={() => setIsUploaderOpen(true)} />;
-                    })()}
-                </section>
-
-                {/* ===== BROWSE CAKE DESIGNS SECTION ===== */}
-                <section aria-label="Browse cake designs" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12 border-t border-purple-50">
-                    <div className="mb-4 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-600">
-                        <span className="block md:inline">Browse Cake Designs Available</span>{' '}
-                        <span className="block md:inline">for Delivery Today</span>
-                    </div>
-
-                    {/* Two-row mobile grid, one-row tablet/desktop grid */}
-                    <div className="grid grid-cols-3 gap-3 md:grid-cols-6 md:gap-4">
-                        {desktopHeroCollections.map((collection, index) => (
-                            <div key={collection.slug} className="min-w-0">
-                                <DesktopHeroCollectionCard
-                                    title={collection.title}
-                                    slug={collection.slug}
-                                    sampleImage={collection.sampleImage}
-                                    index={index}
-                                    className="!mt-0" // Force remove masonry offsets
-                                />
-                            </div>
-                        ))}
-                    </div>
-                </section>
-
-                {/* ===== RECENT SEARCHES + WHAT IS GENIE.PH (Server-rendered children) ===== */}
-                <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
-                    {children}
-                </div>
-
-                {/* ===== BLOG SECTION - Hidden as requested ===== */}
-                {/* 
-                <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
-                    <section aria-label="Blog" className="py-8 md:py-12">
-                        <div className="flex items-center justify-between mb-4 md:mb-6">
-                            <h2 className="text-3xl sm:text-4xl font-black bg-linear-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent tracking-tight">Stories, Blogs and News</h2>
-                            <Link href="/blog" className="group flex items-center gap-1 md:gap-2 text-purple-400 font-semibold hover:text-purple-700 transition-colors text-[13px] md:text-base shrink-0">
-                                View all
-                                <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-                            </Link>
-                        </div>
-                        <div className="space-y-4">
-                            {blogPosts.length === 0 ? (
-                                <p className="text-gray-500 text-sm">No blog posts available yet.</p>
-                            ) : (
-                                blogPosts.map((post) => {
-                                    const imageUrl = post.image;
-                                    return (
-                                        <article key={post.slug}>
-                                            <Link
-                                                href={`/blog/${post.slug}`}
-                                                className="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-purple-100 hover:shadow-md hover:border-purple-200 transition-all group flex gap-4 items-center justify-between"
-                                            >
-                                                <div className="flex-1 min-w-0">
-                                                    <h3 className="text-base md:text-lg font-bold text-gray-900 mb-2 group-hover:text-purple-700 transition-colors leading-snug">
-                                                        {post.title}
-                                                    </h3>
-                                                    <p className="text-gray-500 text-sm leading-relaxed line-clamp-2">
-                                                        {post.excerpt}
-                                                    </p>
-                                                </div>
-                                                {imageUrl && (
-                                                    <div className="shrink-0 w-20 h-20 md:w-28 md:h-28 rounded-xl overflow-hidden shadow-sm relative">
-                                                        <LazyImage
-                                                            src={imageUrl}
-                                                            alt={post.title}
-                                                            fill
-                                                            className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                                        />
-                                                    </div>
-                                                )}
-                                            </Link>
-                                        </article>
-                                    );
-                                })
-                            )}
-                        </div>
-                    </section>
-                </div>
-                */}
 
                 {/* ===== REVIEWS MARQUEE ===== */}
                 {reviewCards.length > 0 && (
@@ -2310,6 +2197,124 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                         </div>
                     </section>
                 )}
+
+                {/* ===== INTERACTIVE CUSTOMIZER DEMO ===== */}
+
+                <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+                    <h2 id="price-change-heading" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-2 text-center">
+                        See your price change <span className="text-purple-400">in real time.</span>
+                    </h2>
+                    <p className="text-base text-slate-500 mb-8 max-w-2xl mx-auto text-center">
+                        Upload any cake design. Customize it. See your price instantly. Same-day delivery.
+                    </p>
+
+                    {(() => {
+                        const TIERS = [
+                            { label: '1 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/1-tier-ribbon-cake.webp', price: 1500, size: '8" Round 4 in height' },
+                            { label: '2 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake.webp', price: 2500, size: '6"9" 4 in height per tier' },
+                            { label: 'Bento', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/bento-ribbon-cake.png.webp', price: 399, size: '4" Round 2 in height' },
+                        ];
+                        const FLAVORS = [
+                            { label: 'Vanilla', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakevanilla.webp' },
+                            { label: 'Chocolate', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakechocolate.webp' },
+                            { label: 'Ube', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakeube.webp' },
+                        ];
+                        const BASE = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
+                        const ICINGS = [
+                            { label: 'Drip', src: `${BASE}drip_black.webp`, addonPrice: 100 },
+                            { label: 'Body Icing', src: `${BASE}icing_red.webp`, addonPrice: 0 },
+                            { label: 'Board', src: `${BASE}baseboardwhite.webp`, addonPrice: 100 },
+                        ];
+                        const TOPPERS = [
+                            { label: 'Sugar Flowers', emoji: '🌸' },
+                            { label: 'Sprinkles', emoji: '✨' },
+                            { label: 'Macaron', emoji: '🍪' },
+                        ];
+                        return <InteractiveCustomizer tiers={TIERS} flavors={FLAVORS} icings={ICINGS} toppers={TOPPERS} onTryItClick={() => setIsUploaderOpen(true)} />;
+                    })()}
+                </section>
+
+                {/* ===== BROWSE CAKE DESIGNS SECTION ===== */}
+                <section aria-label="Browse cake designs" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12 border-t border-purple-50">
+                    <div className="mb-4 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-600">
+                        <span className="block md:inline">Browse Cake Designs Available</span>{' '}
+                        <span className="block md:inline">for Delivery Today</span>
+                    </div>
+
+                    {/* Two-row mobile grid, one-row tablet/desktop grid */}
+                    <div className="grid grid-cols-3 gap-3 md:grid-cols-6 md:gap-4">
+                        {desktopHeroCollections.map((collection, index) => (
+                            <div key={collection.slug} className="min-w-0">
+                                <DesktopHeroCollectionCard
+                                    title={collection.title}
+                                    slug={collection.slug}
+                                    sampleImage={collection.sampleImage}
+                                    index={index}
+                                    className="!mt-0" // Force remove masonry offsets
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+
+                {/* ===== BLOG SECTION - Hidden as requested ===== */}
+                {/* 
+                <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
+                    <section aria-label="Blog" className="py-8 md:py-12">
+                        <div className="flex items-center justify-between mb-4 md:mb-6">
+                            <h2 className="text-3xl sm:text-4xl font-black bg-linear-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent tracking-tight">Stories, Blogs and News</h2>
+                            <Link href="/blog" className="group flex items-center gap-1 md:gap-2 text-purple-400 font-semibold hover:text-purple-700 transition-colors text-[13px] md:text-base shrink-0">
+                                View all
+                                <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                            </Link>
+                        </div>
+                        <div className="space-y-4">
+                            {blogPosts.length === 0 ? (
+                                <p className="text-gray-500 text-sm">No blog posts available yet.</p>
+                            ) : (
+                                blogPosts.map((post) => {
+                                    const imageUrl = post.image;
+                                    return (
+                                        <article key={post.slug}>
+                                            <Link
+                                                href={`/blog/${post.slug}`}
+                                                className="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-purple-100 hover:shadow-md hover:border-purple-200 transition-all group flex gap-4 items-center justify-between"
+                                            >
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="text-base md:text-lg font-bold text-gray-900 mb-2 group-hover:text-purple-700 transition-colors leading-snug">
+                                                        {post.title}
+                                                    </h3>
+                                                    <p className="text-gray-500 text-sm leading-relaxed line-clamp-2">
+                                                        {post.excerpt}
+                                                    </p>
+                                                </div>
+                                                {imageUrl && (
+                                                    <div className="shrink-0 w-20 h-20 md:w-28 md:h-28 rounded-xl overflow-hidden shadow-sm relative">
+                                                        <LazyImage
+                                                            src={imageUrl}
+                                                            alt={post.title}
+                                                            fill
+                                                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </Link>
+                                        </article>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </section>
+                </div>
+                */}
+
+
+
+                {/* ===== RECENT SEARCHES + WHAT IS GENIE.PH (Server-rendered children) ===== */}
+                <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+                    {children}
+                </div>
             </main>
 
             {/* ========== MOBILE BOTTOM NAV ========== */}
