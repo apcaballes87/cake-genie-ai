@@ -21,6 +21,7 @@ import { SplitWithFriendsModal } from '@/components/SplitWithFriendsModal';
 import { SplitOrderShareModal } from '@/components/SplitOrderShareModal';
 import { useGoogleMapsLoader, GoogleMapsLoaderProvider } from '@/contexts/GoogleMapsLoaderContext';
 import { calculateCartAvailability } from '@/lib/utils/availability';
+import { getDisabledTimeSlotsForLeadTime, isDateAvailableForLeadTime } from '@/lib/utils/deliveryLeadTime';
 import CartItemCard from '@/components/CartItemCard';
 import { useQuery } from '@tanstack/react-query';
 import { useAvailabilitySettings } from '@/hooks/useAvailabilitySettings';
@@ -475,6 +476,10 @@ function CartClient() {
     }, [baseCartAvailability, availabilitySettings]);
 
     const availabilityWasOverridden = cartAvailability !== baseCartAvailability;
+    const leadTimeOptions = useMemo(() => ({
+        availability: cartAvailability,
+        minimumLeadTimeDays: availabilitySettings?.minimum_lead_time_days || 1,
+    }), [cartAvailability, availabilitySettings?.minimum_lead_time_days]);
 
     // Calculate how many days to fetch based on selected month
     const fetchRange = useMemo(() => {
@@ -625,6 +630,22 @@ function CartClient() {
             }
         }
 
+        if (!isDateAvailableForLeadTime(date, EVENT_TIME_SLOTS_MAP, leadTimeOptions)) {
+            if (cartAvailability === 'normal') {
+                const leadTimeDays = leadTimeOptions.minimumLeadTimeDays;
+                const plural = leadTimeDays > 1 ? 's' : '';
+                return {
+                    isDisabled: true,
+                    reason: `Requires a ${leadTimeDays} day${plural} lead time.`
+                };
+            }
+
+            return {
+                isDisabled: true,
+                reason: "Date unavailable for this order's lead time."
+            };
+        }
+
         // Check availability flags from the RPC, but *only* for rush and same-day.
         // The client-side logic above is the source of truth for 'normal' orders.
         let leadTimeDisabledByRpc = false;
@@ -640,38 +661,12 @@ function CartClient() {
         }
 
         return { isDisabled: false, reason: null };
-    }, [blockedDatesMap, cartAvailability, availabilitySettings]);
+    }, [blockedDatesMap, cartAvailability, availabilitySettings, leadTimeOptions]);
 
     const disabledSlots = useMemo(() => {
-        const newDisabledSlots: string[] = [];
-        const now = new Date();
-        const todayString = now.toISOString().split('T')[0];
-
-        if (eventDate === todayString) {
-            let readyTime: Date | null = null;
-            if (cartAvailability === 'same-day') {
-                readyTime = new Date(now.getTime() + 3 * 60 * 60 * 1000); // +3 hours
-            } else if (cartAvailability === 'rush') {
-                readyTime = new Date(now.getTime() + 60 * 60 * 1000); // +60 mins
-            }
-
-            if (readyTime) {
-                EVENT_TIME_SLOTS_MAP.forEach(timeSlot => {
-                    const slotEndDate = new Date(eventDate);
-                    slotEndDate.setHours(timeSlot.endHour, 0, 0, 0);
-                    if (slotEndDate < readyTime) {
-                        newDisabledSlots.push(timeSlot.slot);
-                    }
-                });
-            } else {
-                const currentHour = now.getHours();
-                EVENT_TIME_SLOTS_MAP.forEach(timeSlot => {
-                    if (timeSlot.endHour <= currentHour) {
-                        newDisabledSlots.push(timeSlot.slot);
-                    }
-                });
-            }
-        }
+        const newDisabledSlots = eventDate
+            ? getDisabledTimeSlotsForLeadTime(eventDate, EVENT_TIME_SLOTS_MAP, leadTimeOptions)
+            : [];
 
         if (partiallyBlockedSlots.length > 0) {
             const parseTime = (timeStr: string): number => parseInt(timeStr.split(':')[0], 10);
@@ -692,7 +687,32 @@ function CartClient() {
         }
 
         return [...new Set(newDisabledSlots)];
-    }, [cartAvailability, eventDate, partiallyBlockedSlots]);
+    }, [eventDate, leadTimeOptions, partiallyBlockedSlots]);
+
+    useEffect(() => {
+        if (!eventDate || isLoadingDates || isLoadingBlockedDates) {
+            return;
+        }
+
+        const selectedDateInfo = correctedDates.find((dateInfo) => dateInfo.available_date === eventDate);
+        if (!selectedDateInfo) {
+            return;
+        }
+
+        if (getDateStatus(selectedDateInfo).isDisabled) {
+            setEventDate('');
+            setEventTime('');
+            setPartiallyBlockedSlots([]);
+        }
+    }, [
+        correctedDates,
+        eventDate,
+        getDateStatus,
+        isLoadingBlockedDates,
+        isLoadingDates,
+        setEventDate,
+        setEventTime,
+    ]);
 
     useEffect(() => {
         if (eventTime && disabledSlots.includes(eventTime)) {
@@ -1384,9 +1404,9 @@ function CartClient() {
                                         </div>
                                     </div>
 
-                                    {cartAvailability === 'normal' && <p className="text-xs text-slate-500 -mt-2">Your cart items require a {availabilitySettings?.minimum_lead_time_days || 1}-day lead time. Order by 3 PM for next-day delivery.</p>}
-                                    {cartAvailability === 'same-day' && <p className="text-xs text-slate-500 -mt-2">Your cart contains items available for same-day delivery (3-hour lead time).</p>}
-                                    {cartAvailability === 'rush' && <p className="text-xs text-slate-500 -mt-2">All items in your cart are available for rush delivery (60-min lead time).</p>}
+                                    {cartAvailability === 'normal' && <p className="text-xs text-slate-500 -mt-2">Your cart items require a {availabilitySettings?.minimum_lead_time_days || 1}-day lead time. After the cutoff, lead time starts the next day at 10 AM.</p>}
+                                    {cartAvailability === 'same-day' && <p className="text-xs text-slate-500 -mt-2">Your cart contains items available for same-day delivery (3-hour lead time). After the cutoff, lead time starts the next day at 10 AM.</p>}
+                                    {cartAvailability === 'rush' && <p className="text-xs text-slate-500 -mt-2">All items in your cart are available for rush delivery (60-min lead time). After the cutoff, lead time starts the next day at 10 AM.</p>}
 
                                     {/* Fulfillment Type Toggle */}
                                     <div className="flex rounded-xl border border-purple-100 overflow-hidden shadow-sm bg-white/80">
