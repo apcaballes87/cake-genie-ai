@@ -206,10 +206,14 @@ function HeroProductPeekCarousel({
     heroProductIndex,
     onSelectProduct,
     onInteraction,
+    cardSpacingClassName = 'mx-1',
+    cardFlexStyle = '0 0 min(calc(50% - 8px), 232px)',
 }: {
     heroProductIndex: number;
     onSelectProduct: (index: number) => void;
     onInteraction?: () => void;
+    cardSpacingClassName?: string;
+    cardFlexStyle?: string;
 }) {
     const wheelGestures = useMemo(() => [WheelGesturesPlugin()], []);
     const [emblaRef, emblaApi] = useEmblaCarousel(
@@ -278,8 +282,9 @@ function HeroProductPeekCarousel({
                                 type="button"
                                 onClick={() => handleProductClick(productIndex)}
                                 aria-label={isCenter ? `${product.title} example` : `View ${product.title}`}
-                                className={`relative mx-1 h-full min-w-0 flex-[0_0_calc(50%_-_8px)] overflow-hidden rounded-[1.35rem] bg-transparent transition-shadow duration-500 ease-out ${isCenter ? 'shadow-[0_18px_45px_-28px_rgba(15,23,42,0.75)]' : ''
+                                className={`relative ${cardSpacingClassName} h-full min-w-0 overflow-hidden rounded-[1.35rem] bg-transparent transition-shadow duration-500 ease-out ${isCenter ? 'shadow-[0_18px_45px_-28px_rgba(15,23,42,0.75)]' : ''
                                     }`}
+                                style={{ flex: cardFlexStyle }}
                             >
                                 <img
                                     src={product.image}
@@ -1473,10 +1478,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, blogPosts = [],
                             <div className="grid grid-cols-2 gap-12 items-center">
                                 {/* Left Column (1/2): Headlines and CTA */}
                                 <div className="col-span-1 flex flex-col items-center text-center">
-                                    <h1 className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.092em] text-neutral-600">
+                                    <h1 className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.092em] text-neutral-600">
                                         Best Online Cake Delivery for Rush Orders in Cebu
                                     </h1>
-                                    <h2 className="mt-3 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-[1.0] tracking-tight">
+                                    <h2 className="mt-2 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-[1.0] tracking-tight">
                                         <HeroTypingHeadlineLine 
                                             className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
                                             controlledPhraseIndex={hasInteractedWithHero ? HERO_PRODUCTS[heroProductIndex].headlineVariant : 0} 
@@ -1500,6 +1505,17 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, blogPosts = [],
                                             <span className="whitespace-nowrap">Same-day Delivery</span>
                                         </div>
                                     </div>
+                                    {heroUploadState === 'idle' && (
+                                        <div className="mt-6 w-full max-w-[440px]">
+                                            <button
+                                                onClick={() => setIsUploaderOpen(true)}
+                                                className="genie-btn-primary flex w-full items-center justify-center gap-3 rounded-2xl py-[15px] px-6 md:px-8 text-[17px] lg:text-lg font-bold active:scale-[0.99] shadow-lg shadow-purple-100/50"
+                                            >
+                                                <ImagePlus size={22} className="shrink-0" />
+                                                <span className="whitespace-nowrap">Upload Your Design - Get Instant Pricing</span>
+                                            </button>
+                                        </div>
+                                    )}
 
                                 </div>
 
@@ -1511,12 +1527,14 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, blogPosts = [],
                                         /* ── Carousel mode ── */
                                         <>
                                             {/* Image Card with Prev / Next arrows */}
-                                            <div className="relative w-full max-w-[480px]">
+                                            <div className="relative w-full max-w-[600px]">
                                                 <div className="overflow-hidden bg-transparent transition-all duration-300 [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
                                                     <HeroProductPeekCarousel 
                                                         heroProductIndex={heroProductIndex} 
                                                         onSelectProduct={setHeroProductIndex} 
                                                         onInteraction={() => setHasInteractedWithHero(true)}
+                                                        cardSpacingClassName="mx-2"
+                                                        cardFlexStyle="0 0 min(calc(50% - 16px), 279px)"
                                                     />
                                                 </div>
                                                 {/* Left arrow */}
@@ -1526,17 +1544,6 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, blogPosts = [],
                                                 {/* Right arrow */}
                                                 <button onClick={handleHeroNext} aria-label="Next cake design" className="absolute right-0 top-[45%] -translate-y-1/2 translate-x-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-lg text-neutral-600 transition-all hover:border-purple-300 hover:text-purple-700 hover:shadow-xl active:scale-95">
                                                     <ChevronRight size={18} />
-                                                </button>
-                                            </div>
-
-                                            {/* Primary CTA - Right below image */}
-                                            <div className="w-full max-w-[480px] mt-4">
-                                                <button
-                                                    onClick={() => setIsUploaderOpen(true)}
-                                                    className="genie-btn-primary flex w-full items-center justify-center gap-3 rounded-2xl py-4 px-6 md:px-8 text-[17px] lg:text-lg font-bold active:scale-[0.99] shadow-lg shadow-purple-100/50"
-                                                >
-                                                    <ImagePlus size={22} className="shrink-0" />
-                                                    <span className="whitespace-nowrap">Upload Your Design - Get Instant Pricing</span>
                                                 </button>
                                             </div>
 
@@ -1767,7 +1774,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, blogPosts = [],
                 {/* ===== REVIEWS MARQUEE ===== */}
                 {reviewCards.length > 0 && (
                     <section aria-label="Customer reviews" className="w-full overflow-hidden py-2 md:py-4">
-                        <div className="mx-auto max-w-7xl px-4 pb-1 text-center sm:px-6 lg:px-8">
+                        <div className="mx-auto max-w-7xl px-4 pt-[8px] md:pt-[32px] pb-1 text-center sm:px-6 lg:px-8">
                             <Link href="/reviews" className="text-[13px] md:text-[14px] text-gray-600 hover:text-purple-500">
                                 4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
                             </Link>
