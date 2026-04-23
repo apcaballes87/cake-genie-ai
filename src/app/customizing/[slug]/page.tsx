@@ -911,7 +911,7 @@ export default async function RecentSearchPage({ params }: Props) {
     }
 
     if (relatedDesignsResult.status === 'fulfilled') {
-        relatedDesigns = relatedDesignsResult.value.data || [];
+        relatedDesigns = (relatedDesignsResult.value.data || []).map(withPreferredHeroImage);
     } else {
         console.error('Error fetching related designs:', relatedDesignsResult.reason);
     }

@@ -138,6 +138,28 @@ describe('RecentSearchPage', () => {
     consoleErrorSpy.mockRestore();
   });
 
+  it('prefers the studio-edited image for related cake designs when it is not blank', async () => {
+    vi.mocked(getRelatedProductsByKeywords).mockResolvedValueOnce({
+      data: [
+        {
+          slug: 'related-studio-edited-cake',
+          keywords: 'Related Studio Edited Cake',
+          alt_text: 'Related studio edited cake',
+          original_image_url: 'https://example.com/related-original-cake.webp',
+          studio_edited_image_url: ' https://example.com/related-studio-edited-cake.webp ',
+          price: 1399,
+        },
+      ],
+      error: null,
+    } as never);
+
+    const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'pink-minimalist-light-pink-bento-cake-f707' }) });
+    const staticMarkup = renderToStaticMarkup(page);
+
+    expect(staticMarkup).toContain('url(https://example.com/related-studio-edited-cake.webp)');
+    expect(staticMarkup).not.toContain('url(https://example.com/related-original-cake.webp)');
+  });
+
   it('applies the toy-to-printout policy for analyzed slug pages', async () => {
     const toyDesign = {
       slug: 'paw-patrol-cake-1135-cake-design',
