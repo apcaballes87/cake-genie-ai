@@ -28,24 +28,6 @@ export function LandingFooter() {
 
   return (
     <footer className="genie-page-bg text-gray-900 pt-16 pb-24 md:pb-8 border-t border-purple-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-          {featureCards.map(({ title, body, href, cta, icon: Icon, accent }) => (
-              <a 
-                key={title} 
-                href={href} 
-                target={href.startsWith('http') ? "_blank" : undefined}
-                rel={href.startsWith('http') ? "noopener noreferrer" : undefined}
-                className="genie-card genie-card-hover p-4 md:p-6 rounded-2xl text-center transition duration-300 block group"
-              >
-                <div className="w-12 h-12 genie-icon-soft rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform"><Icon size={24} /></div>
-                <h3 className={`font-bold text-lg mb-2 font-serif italic ${accent === 'pink' ? 'text-pink-600' : 'text-purple-700'}`}>{title}</h3>
-                <p className="text-gray-600 text-sm mb-4">{body}</p>
-                <div className="genie-btn-primary px-6 py-2 rounded-full text-sm font-bold">{cta}</div>
-              </a>
-          ))}
-        </div>
-      </div>
 
       <div className="border-y border-purple-100 bg-white/45 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
