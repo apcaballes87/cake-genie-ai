@@ -19,6 +19,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { showError } from '@/lib/utils/toast';
 import { AppState } from '@/hooks/useAppNavigation';
+import { LandingFooter } from '@/components/landing/LandingFooter';
 
 const SearchResultsSkeleton = ({ count = 8, showHeader = true }: { count?: number; showHeader?: boolean }) => (
     <div className="mb-6">
@@ -393,204 +394,205 @@ const SearchingClient: React.FC = () => {
     }, []);
 
     return (
-        <div className="w-full max-w-7xl mx-auto h-full flex flex-col min-h-screen px-4 pb-24 md:pb-0 overflow-hidden">
-            {/* Consistent Header */}
-            <div className="w-full flex items-center gap-2 md:gap-4 mb-4 pt-6">
-                <button onClick={goBack} className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label="Go back">
-                    <BackIcon />
-                </button>
-                <div className="relative grow">
-                    <SearchAutocomplete
-                        value={searchInput}
-                        onChange={setSearchInput}
-                        onSearch={handleSearch}
-                        showUploadButton={false}
-                        placeholder="Search for other designs..."
-                        inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
-                    />
+        <div className="min-h-screen">
+            <div className="w-full max-w-7xl mx-auto h-full flex flex-col px-4 pb-24 md:pb-0 overflow-hidden">
+                {/* Consistent Header */}
+                <div className="w-full flex items-center gap-2 md:gap-4 mb-4 pt-6">
+                    <button onClick={goBack} className="p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label="Go back">
+                        <BackIcon />
+                    </button>
+                    <div className="relative grow">
+                        <SearchAutocomplete
+                            value={searchInput}
+                            onChange={setSearchInput}
+                            onSearch={handleSearch}
+                            showUploadButton={false}
+                            placeholder="Search for other designs..."
+                            inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                        />
+                    </div>
+                    <button onClick={() => router.push('/cart')} className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label={`View cart with ${mounted ? itemCount : 0} items`}>
+                        <ShoppingBag size={24} />
+                        {mounted && itemCount > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
+                                {itemCount}
+                            </span>
+                        )}
+                    </button>
                 </div>
-                <button onClick={() => router.push('/cart')} className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label={`View cart with ${mounted ? itemCount : 0} items`}>
-                    <ShoppingBag size={24} />
-                    {mounted && itemCount > 0 && (
-                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
-                            {itemCount}
-                        </span>
-                    )}
-                </button>
-            </div>
 
-            <div className="flex flex-col items-center mb-6">
-                <p className="text-center text-slate-500 mb-4">
-                    Search results for: <span className="font-semibold text-slate-700">"{searchQuery}"</span>
-                </p>
+                <div className="flex flex-col items-center mb-6">
+                    <p className="text-center text-slate-500 mb-4">
+                        Search results for: <span className="font-semibold text-slate-700">"{searchQuery}"</span>
+                    </p>
 
-                {/* Minimalist Filter & Sort Bar */}
-                {searchQuery && (
-                    <div className="w-full overflow-x-auto no-scrollbar pb-2">
-                        <div className="flex items-center justify-center gap-2 min-w-max px-2">
-                            {/* Price Filters */}
-                            {[1000, 2000, 3000].map((price) => (
+                    {/* Minimalist Filter & Sort Bar */}
+                    {searchQuery && (
+                        <div className="w-full overflow-x-auto no-scrollbar pb-2">
+                            <div className="flex items-center justify-center gap-2 min-w-max px-2">
+                                {[1000, 2000, 3000].map((price) => (
+                                    <button
+                                        key={price}
+                                        onClick={() => setMaxPrice(maxPrice === price ? null : price)}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border ${
+                                            maxPrice === price
+                                                ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                                                : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300'
+                                        }`}
+                                    >
+                                        {maxPrice === price ? <Check size={12} /> : null}
+                                        Under ₱{price}
+                                    </button>
+                                ))}
+
+                                <div className="w-px h-4 bg-slate-200 mx-1"></div>
+
                                 <button
-                                    key={price}
-                                    onClick={() => setMaxPrice(maxPrice === price ? null : price)}
+                                    onClick={() => setSortBy(sortBy === 'price_asc' ? 'relevant' : 'price_asc')}
                                     className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border ${
-                                        maxPrice === price
+                                        sortBy === 'price_asc'
                                             ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
                                             : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300'
                                     }`}
                                 >
-                                    {maxPrice === price ? <Check size={12} /> : null}
-                                    Under ₱{price}
+                                    <ArrowUpDown size={12} />
+                                    Price: Low
                                 </button>
-                            ))}
-
-                            <div className="w-px h-4 bg-slate-200 mx-1"></div>
-
-                            {/* Sort Options */}
-                            <button
-                                onClick={() => setSortBy(sortBy === 'price_asc' ? 'relevant' : 'price_asc')}
-                                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border ${
-                                    sortBy === 'price_asc'
-                                        ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
-                                        : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300'
-                                }`}
-                            >
-                                <ArrowUpDown size={12} />
-                                Price: Low
-                            </button>
-                            <button
-                                onClick={() => setSortBy(sortBy === 'price_desc' ? 'relevant' : 'price_desc')}
-                                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border ${
-                                    sortBy === 'price_desc'
-                                        ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
-                                        : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300'
-                                }`}
-                            >
-                                <ArrowUpDown size={12} className="rotate-180" />
-                                Price: High
-                            </button>
-
-                            {(maxPrice || sortBy !== 'relevant') && (
                                 <button
-                                    onClick={() => {
-                                        setMaxPrice(null);
-                                        setSortBy('relevant');
-                                    }}
-                                    className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
-                                    title="Clear filters"
+                                    onClick={() => setSortBy(sortBy === 'price_desc' ? 'relevant' : 'price_desc')}
+                                    className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border ${
+                                        sortBy === 'price_desc'
+                                            ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                                            : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300'
+                                    }`}
                                 >
-                                    <X size={16} />
+                                    <ArrowUpDown size={12} className="rotate-180" />
+                                    Price: High
                                 </button>
+
+                                {(maxPrice || sortBy !== 'relevant') && (
+                                    <button
+                                        onClick={() => {
+                                            setMaxPrice(null);
+                                            setSortBy('relevant');
+                                        }}
+                                        className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                                        title="Clear filters"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+                {imageManagementError && (
+                    <div className="text-center p-4 my-4 bg-red-50 rounded-lg max-w-md mx-auto">
+                        <p className="font-semibold text-red-600">Error</p>
+                        <p className="text-sm text-red-500">{imageManagementError}</p>
+                    </div>
+                )}
+                <div className="relative grow">
+                    {isSearching && !isLoading && !isInternalLoading && internalResults.length === 0 && (
+                        <SearchResultsSkeleton />
+                    )}
+                    {isLoading && (
+                        <div className="fixed inset-0 bg-white/50 backdrop-blur-md flex flex-col items-center justify-center z-50 p-4">
+                            <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 text-center w-full max-w-xs">
+                                <LoadingSpinner />
+                                <p className="mt-4 text-slate-700 font-semibold text-lg">Working on it...</p>
+                                <div className="mt-4 text-left text-sm text-slate-600 space-y-2">
+                                    {loadingMessages.map((msg, index) => (
+                                        <div key={index} className={`transition-opacity duration-500 flex items-center gap-2 ${index <= loadingStep ? 'opacity-100' : 'opacity-30'}`}>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${index < loadingStep ? 'bg-green-500' : 'bg-slate-300 animate-pulse'}`}></div>
+                                            <span>{msg}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="mt-4 text-xs text-slate-500">Estimated time: 5-10 seconds</p>
+                            </div>
+                        </div>
+                    )}
+                    {searchQuery && !isLoading && (internalResults.length > 0 || isInternalLoading) && (
+                        <div className="mb-6" id="internal-designs-section">
+                            <div className="flex items-center justify-between mb-3">
+                                <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+                                    Cake Designs with Price
+                                    {!isInternalLoading && internalTotal > 0 && (
+                                        <span className="text-xs font-normal text-slate-400">
+                                            ({internalTotal} found)
+                                        </span>
+                                    )}
+                                </h2>
+                            </div>
+                            {isInternalLoading && processedResults.length === 0 && (
+                                <SearchResultsSkeleton count={12} showHeader={false} />
+                            )}
+                            {processedResults.length > 0 && (
+                                <Masonry
+                                    breakpointCols={masonryBreakpoints}
+                                    className="flex -ml-3 w-auto"
+                                    columnClassName="pl-3 bg-clip-padding"
+                                >
+                                    {processedResults.map((product, index) => (
+                                        <div key={product.slug || product.p_hash} className="mb-3">
+                                            <ProductCard
+                                                p_hash={product.p_hash}
+                                                original_image_url={product.original_image_url}
+                                                studio_edited_image_url={product.studio_edited_image_url}
+                                                price={product.price}
+                                                keywords={product.keywords}
+                                                slug={product.slug}
+                                                availability={product.availability}
+                                                analysis_json={product.analysis_json}
+                                                priority={index < 4}
+                                                image_width={product.image_width}
+                                                image_height={product.image_height}
+                                                listName="search_results"
+                                            />
+                                        </div>
+                                    ))}
+                                </Masonry>
+                            )}
+                            {internalResults.length > 0 && internalResults.length < internalTotal && (
+                                <div className="flex justify-center mt-6 mb-2">
+                                    <button
+                                        onClick={handleLoadMore}
+                                        disabled={isLoadingMore}
+                                        className="px-6 py-2.5 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-full border border-purple-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    >
+                                        {isLoadingMore ? (
+                                            <>
+                                                <LoadingSpinner />
+                                                Loading...
+                                            </>
+                                        ) : (
+                                            <>Load more designs</>
+                                        )}
+                                    </button>
+                                </div>
                             )}
                         </div>
-                    </div>
-                )}
-            </div>
-            {imageManagementError && (
-                <div className="text-center p-4 my-4 bg-red-50 rounded-lg max-w-md mx-auto">
-                    <p className="font-semibold text-red-600">Error</p>
-                    <p className="text-sm text-red-500">{imageManagementError}</p>
+                    )}
+
+                    {searchQuery && !isLoading && (
+                        <div className="mt-8 mb-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="h-px grow bg-slate-200"></div>
+                                <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2 shrink-0">
+                                    <Store className="w-4 h-4 opacity-50" />
+                                    Inspiration from the Web
+                                </h2>
+                                <div className="h-px grow bg-slate-200"></div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div id="google-search-container" className="grow min-h-[400px]"></div>
                 </div>
-            )}
-            <div className="relative grow">
-                {isSearching && !isLoading && !isInternalLoading && internalResults.length === 0 && (
-                    <SearchResultsSkeleton />
-                )}
-                {isLoading && (
-                    <div className="fixed inset-0 bg-white/50 backdrop-blur-md flex flex-col items-center justify-center z-50 p-4">
-                        <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 text-center w-full max-w-xs">
-                            <LoadingSpinner />
-                            <p className="mt-4 text-slate-700 font-semibold text-lg">Working on it...</p>
-                            <div className="mt-4 text-left text-sm text-slate-600 space-y-2">
-                                {loadingMessages.map((msg, index) => (
-                                    <div key={index} className={`transition-opacity duration-500 flex items-center gap-2 ${index <= loadingStep ? 'opacity-100' : 'opacity-30'}`}>
-                                        <div className={`w-1.5 h-1.5 rounded-full ${index < loadingStep ? 'bg-green-500' : 'bg-slate-300 animate-pulse'}`}></div>
-                                        <span>{msg}</span>
-                                    </div>
-                                ))}
-                            </div>
-                            <p className="mt-4 text-xs text-slate-500">Estimated time: 5-10 seconds</p>
-                        </div>
-                    </div>
-                )}
-                {/* Internal FTS Product Results */}
-                {searchQuery && !isLoading && (internalResults.length > 0 || isInternalLoading) && (
-                    <div className="mb-6" id="internal-designs-section">
-                        <div className="flex items-center justify-between mb-3">
-                            <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-2">
-                                Cake Designs with Price
-                                {!isInternalLoading && internalTotal > 0 && (
-                                    <span className="text-xs font-normal text-slate-400">
-                                        ({internalTotal} found)
-                                    </span>
-                                )}
-                            </h2>
-                        </div>
-                        {isInternalLoading && processedResults.length === 0 && (
-                            <SearchResultsSkeleton count={12} showHeader={false} />
-                        )}
-                        {processedResults.length > 0 && (
-                            <Masonry
-                                breakpointCols={masonryBreakpoints}
-                                className="flex -ml-3 w-auto"
-                                columnClassName="pl-3 bg-clip-padding"
-                            >
-                                {processedResults.map((product, index) => (
-                                    <div key={product.slug || product.p_hash} className="mb-3">
-                                        <ProductCard
-                                            p_hash={product.p_hash}
-                                            original_image_url={product.original_image_url}
-                                            studio_edited_image_url={product.studio_edited_image_url}
-                                            price={product.price}
-                                            keywords={product.keywords}
-                                            slug={product.slug}
-                                            availability={product.availability}
-                                            analysis_json={product.analysis_json}
-                                            priority={index < 4}
-                                            image_width={product.image_width}
-                                            image_height={product.image_height}
-                                            listName="search_results"
-                                        />
-                                    </div>
-                                ))}
-                            </Masonry>
-                        )}
-                        {internalResults.length > 0 && internalResults.length < internalTotal && (
-                            <div className="flex justify-center mt-6 mb-2">
-                                <button
-                                    onClick={handleLoadMore}
-                                    disabled={isLoadingMore}
-                                    className="px-6 py-2.5 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-full border border-purple-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                >
-                                    {isLoadingMore ? (
-                                        <>
-                                            <LoadingSpinner />
-                                            Loading...
-                                        </>
-                                    ) : (
-                                        <>Load more designs</>
-                                    )}
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Web Inspiration Results Title */}
-                {searchQuery && !isLoading && (
-                    <div className="mt-8 mb-6">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="h-px grow bg-slate-200"></div>
-                            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2 shrink-0">
-                                <Store className="w-4 h-4 opacity-50" />
-                                Inspiration from the Web
-                            </h2>
-                            <div className="h-px grow bg-slate-200"></div>
-                        </div>
-                    </div>
-                )}
-
-                <div id="google-search-container" className="grow min-h-[400px]"></div>
+            </div>
+            <div className="mt-8 md:mt-12">
+                <LandingFooter />
             </div>
             <MobileBottomNav />
         </div>
