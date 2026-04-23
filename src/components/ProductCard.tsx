@@ -107,6 +107,16 @@ const isValidPrecomputedAnalysis = (analysis_json?: ProductCardProps['analysis_j
     'icing_design' in analysis_json
 );
 
+const firstNonBlankImageUrl = (...urls: Array<string | null | undefined>) => {
+    for (const url of urls) {
+        if (typeof url === 'string' && url.trim()) {
+            return url.trim();
+        }
+    }
+
+    return '';
+};
+
 const ProductCardContent = ({
     original_image_url,
     studio_edited_image_url,
@@ -119,6 +129,7 @@ const ProductCardContent = ({
     title,
 }: ProductCardContentProps) => {
     const avail = availability || 'normal';
+    const preferredImageUrl = firstNonBlankImageUrl(studio_edited_image_url, original_image_url);
 
     return (
         <>
@@ -133,13 +144,13 @@ const ProductCardContent = ({
                            Only the hero <img> is indexed. */
                         <div
                             className="absolute inset-0 w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-500"
-                            style={{ backgroundImage: `url(/api/proxy-image?url=${encodeURIComponent(studio_edited_image_url || original_image_url)})` }}
+                            style={{ backgroundImage: `url(/api/proxy-image?url=${encodeURIComponent(preferredImageUrl)})` }}
                             role="img"
                             aria-label={title}
                         />
                     ) : (
                         <LazyImage
-                            src={studio_edited_image_url || original_image_url}
+                            src={preferredImageUrl}
                             alt={title}
                             title={title}
                             fill

@@ -113,4 +113,30 @@ describe('ProductCard', () => {
         expect(useImageManagementMock).toHaveBeenCalledTimes(1);
         expect(useCakeCustomizationMock).toHaveBeenCalledTimes(1);
     });
+
+    it('prefers a trimmed studio-edited image URL over the original image URL', () => {
+        const { container } = render(
+            <ProductCard
+                {...baseProps}
+                slug="birthday-cake"
+                studio_edited_image_url=" https://example.com/studio-edited-cake.webp "
+            />,
+        );
+
+        const image = container.querySelector('[data-src]');
+        expect(image).toHaveAttribute('data-src', 'https://example.com/studio-edited-cake.webp');
+    });
+
+    it('falls back to the original image URL when the studio-edited image URL is blank', () => {
+        const { container } = render(
+            <ProductCard
+                {...baseProps}
+                slug="birthday-cake"
+                studio_edited_image_url="   "
+            />,
+        );
+
+        const image = container.querySelector('[data-src]');
+        expect(image).toHaveAttribute('data-src', 'https://example.com/cake.webp');
+    });
 });

@@ -431,6 +431,7 @@ const SearchingClient: React.FC = () => {
                                         <ProductCard
                                             p_hash={product.p_hash}
                                             original_image_url={product.original_image_url}
+                                            studio_edited_image_url={product.studio_edited_image_url}
                                             price={product.price}
                                             keywords={product.keywords}
                                             slug={product.slug}
