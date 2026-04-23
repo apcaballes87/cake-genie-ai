@@ -601,7 +601,7 @@ function HeroProductPreviewStack({
 
     return (
         <>
-            <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px]">
+            <div className="relative mx-auto w-full max-w-[480px]">
                 <div className="overflow-hidden bg-transparent">
                     <div className="relative aspect-[3/2] w-full overflow-hidden rounded-3xl">
                         {heroUploadedImageSrc && (
@@ -1060,11 +1060,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                             className="w-full h-full object-cover"
                             style={{ opacity: imgVisible ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
                         />
-                        <DemoCakeAddOnOverlays
-                            showDrip={showDemoDripOverlay}
-                            showBoard={showDemoBoardOverlay}
-                            showFlowers={showDemoFlowersOverlay}
-                        />
+
 
                         {/* Floating annotation during auto-play */}
                         {annotation && (
@@ -1126,9 +1122,9 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                     </div>
 
 
-                    {/* Icing Details */}
+                    {/* Icing Details & Toppers */}
                     <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 shadow-sm border border-slate-100">
-                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Icing Details</label>
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Icing Details &amp; Toppers</label>
                         <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 pt-1 px-1 -mx-1">
                             {icings.map((ic) => (
                                 <button
@@ -1148,24 +1144,23 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                                     )}
                                 </button>
                             ))}
-                        </div>
-                    </div>
 
-                    {/* Toppers */}
-                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3 shadow-sm border border-slate-100">
-                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Toppers</label>
-                        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 pt-0.5 px-1 -mx-1">
+                            {/* Divider */}
+                            <div className="shrink-0 w-px bg-slate-200 self-stretch mx-1" />
+
                             {toppers.map((tp) => (
                                 <button
                                     key={tp.label}
                                     onClick={() => handleTopperToggle(tp.label)}
-                                    className={`shrink-0 flex flex-col items-center gap-0 p-1 rounded-lg transition-all duration-200 ${selectedToppers.has(tp.label)
+                                    className={`shrink-0 flex flex-col items-center gap-1 min-w-[46px] p-1 rounded-lg transition-all duration-200 ${selectedToppers.has(tp.label)
                                             ? 'bg-purple-50 border-2 border-purple-400'
                                             : 'bg-slate-50 border-2 border-transparent hover:border-slate-200'
                                         } ${highlightedOption === tp.label ? 'animate-option-glow' : ''}`}
                                 >
-                                    <span className="text-base leading-tight">{tp.emoji}</span>
-                                    <span className="text-[8px] font-medium text-slate-600 mt-0.5">{tp.label}</span>
+                                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl leading-none">
+                                        {tp.emoji}
+                                    </div>
+                                    <span className="text-[9px] text-center text-slate-600 font-medium leading-tight max-w-[52px] line-clamp-2 mt-0.5">{tp.label}</span>
                                     <span className="text-[8px] text-purple-500 font-semibold">+₱100</span>
                                 </button>
                             ))}
@@ -2151,15 +2146,11 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                         const BASE = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
                         const ICINGS = [
                             { label: 'Drip', src: `${BASE}drip_black.webp`, addonPrice: 100 },
-                            { label: 'Top Border', src: `${BASE}top_red.webp`, addonPrice: 0 },
-                            { label: 'Base Border', src: `${BASE}baseborder_red.webp`, addonPrice: 0 },
-                            { label: 'Top Icing', src: `${BASE}topicing_red.webp`, addonPrice: 0 },
                             { label: 'Body Icing', src: `${BASE}icing_red.webp`, addonPrice: 0 },
                             { label: 'Board', src: `${BASE}baseboardwhite.webp`, addonPrice: 100 },
                         ];
                         const TOPPERS = [
                             { label: 'Sugar Flowers', emoji: '🌸' },
-                            { label: 'Number', emoji: '🔢' },
                             { label: 'Sprinkles', emoji: '✨' },
                             { label: 'Macaron', emoji: '🍪' },
                         ];
