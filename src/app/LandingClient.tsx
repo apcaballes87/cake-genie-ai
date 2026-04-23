@@ -1785,10 +1785,10 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
 
                         {/* Desktop Hero View: 2-column layout */}
                         <div className="hidden md:flex md:flex-col w-full pt-5 pb-2.5">
-                            {/* 5:4 grid ratio */}
-                            <div className="grid grid-cols-9 gap-12 items-center">
-                                {/* Left Column (5/9): Headlines and CTA */}
-                                <div className="col-span-5 flex flex-col items-center text-center">
+                            {/* 1:1 grid ratio */}
+                            <div className="grid grid-cols-2 gap-12 items-center">
+                                {/* Left Column (1/2): Headlines and CTA */}
+                                <div className="col-span-1 flex flex-col items-center text-center">
                                     <Link href="/reviews" className="mb-2 text-[10px] text-gray-600 hover:text-purple-500">
                                         4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
                                     </Link>
@@ -1828,8 +1828,8 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
                                     </div>
                                 </div>
 
-                                {/* Right Column (4/9): Featured Product Carousel / Upload Analysis */}
-                                <div className="col-span-4 relative flex flex-col items-center w-full gap-4">
+                                {/* Right Column (1/2): Featured Product Carousel / Upload Analysis */}
+                                <div className="col-span-1 relative flex flex-col items-center w-full gap-4">
 
                                     {heroUploadState === 'idle' ? (
                                         /* ── Carousel mode ── */
