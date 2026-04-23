@@ -4,6 +4,7 @@ import sharp from 'sharp';
 import {
   ADMIN_IMAGE_STUDIO_PIN,
   buildImageStudioPrompt,
+  buildImageStudioSystemInstruction,
   getImageStudioOutputDimensions,
   getImageStudioStoragePath,
   IMAGE_STUDIO_PAGE_SIZE,
@@ -410,6 +411,7 @@ export async function POST(req: NextRequest) {
 
     const originalImage = await fetchImageAsInlineData(cacheRow.original_image_url);
     const prompt = buildImageStudioPrompt();
+    const systemInstruction = buildImageStudioSystemInstruction();
     const aiClient = getAI();
 
     const aiResponse = await aiClient.models.generateContent({
@@ -428,6 +430,7 @@ export async function POST(req: NextRequest) {
         },
       ],
       config: {
+        systemInstruction,
         responseModalities: ['TEXT', 'IMAGE'],
       },
     });

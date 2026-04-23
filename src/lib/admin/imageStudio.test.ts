@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildImageStudioPrompt,
+  buildImageStudioSystemInstruction,
   buildImageStudioWatermarkSvg,
   getImageStudioOutputDimensions,
   getImageStudioStoragePath,
@@ -19,13 +20,23 @@ describe('imageStudio helpers', () => {
   it('builds the required studio editing prompt', () => {
     const prompt = buildImageStudioPrompt();
 
-    expect(prompt).toContain('screenshot/product-grid capture');
-    expect(prompt).toContain('extract only the single main cake subject');
+    expect(prompt).toContain('screenshot/product-grid/social-media capture');
+    expect(prompt).toContain('use it only as a reference for the cake design');
     expect(prompt).toContain('phone frames, browser chrome, app UI');
-    expect(prompt).toContain('solid light pastel purple cyclorama studio background');
-    expect(prompt).toContain('soft diffused lighting');
-    expect(prompt).toContain('transparent genie.ph logo');
+    expect(prompt).toContain('Do NOT do a simple background replacement');
+    expect(prompt).toContain('fresh ecommerce product photoshoot');
+    expect(prompt).toContain('seamless light pastel purple cyclorama studio set');
+    expect(prompt).toContain('Output a photorealistic, high-resolution bakery catalog image');
     expect(prompt).toContain('exact same aspect ratio and dimensions');
+  });
+
+  it('builds a system instruction that prioritizes a real product photo result', () => {
+    const systemInstruction = buildImageStudioSystemInstruction();
+
+    expect(systemInstruction).toContain('professional bakery ecommerce image editor');
+    expect(systemInstruction).toContain('treat it only as design reference for the cake itself');
+    expect(systemInstruction).toContain('never like a screenshot');
+    expect(systemInstruction).toContain('simple background swap');
   });
 
   it('creates a deterministic storage path', () => {
