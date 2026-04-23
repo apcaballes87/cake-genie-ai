@@ -46,3 +46,6 @@ next-env.d.ts
 
 # local Claude worktrees
 .claude/worktrees/
+
+# scratch files
+scratch/
