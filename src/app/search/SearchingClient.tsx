@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { BackIcon, UserCircleIcon, LogOutIcon, MapPinIcon, PackageIcon } from '@/components/icons';
 import { useSmartBack } from '@/hooks/useSmartBack';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Filter, ArrowUpDown, Check, X, Store } from 'lucide-react';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import { ProductCard } from '@/components/ProductCard';
 import Masonry from 'react-masonry-css';
@@ -19,6 +19,34 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { showError } from '@/lib/utils/toast';
 import { AppState } from '@/hooks/useAppNavigation';
+
+const SearchResultsSkeleton = ({ count = 8, showHeader = true }: { count?: number; showHeader?: boolean }) => (
+    <div className="mb-6">
+        {showHeader && (
+            <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                    Cake Designs with Price
+                </h2>
+                <span className="h-4 w-24 rounded-full bg-slate-200 animate-pulse" aria-hidden="true" />
+            </div>
+        )}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            {Array.from({ length: count }).map((_, index) => (
+                <div
+                    key={index}
+                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                    aria-hidden="true"
+                >
+                    <div className="aspect-[4/5] bg-slate-200 animate-pulse" />
+                    <div className="space-y-2 p-3">
+                        <div className="h-4 w-4/5 rounded bg-slate-200 animate-pulse" />
+                        <div className="h-3 w-2/5 rounded bg-slate-200 animate-pulse" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    </div>
+);
 
 const SearchingClient: React.FC = () => {
     const router = useRouter();
@@ -55,6 +83,10 @@ const SearchingClient: React.FC = () => {
     const [internalTotal, setInternalTotal] = useState(0);
     const [isInternalLoading, setIsInternalLoading] = useState(false);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+    // Filter and Sort state
+    const [sortBy, setSortBy] = useState<'relevant' | 'price_asc' | 'price_desc'>('relevant');
+    const [maxPrice, setMaxPrice] = useState<number | null>(null);
 
     // Loading animation state
     const [loadingStep, setLoadingStep] = useState(0);
@@ -157,7 +189,7 @@ const SearchingClient: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialQuery]);
 
-    // Fetch internal FTS results when searchQuery changes
+    // Fetch internal FTS results when searchQuery or maxPrice changes
     useEffect(() => {
         if (!searchQuery || searchQuery.trim().length === 0) {
             setInternalResults([]);
@@ -168,7 +200,8 @@ const SearchingClient: React.FC = () => {
         const controller = new AbortController();
         setIsInternalLoading(true);
 
-        fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=12`, {
+        const priceParam = maxPrice ? `&maxPrice=${maxPrice}` : '';
+        fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=12${priceParam}`, {
             signal: controller.signal
         })
             .then(res => res.json())
@@ -186,7 +219,19 @@ const SearchingClient: React.FC = () => {
             .finally(() => setIsInternalLoading(false));
 
         return () => controller.abort();
-    }, [searchQuery]);
+    }, [searchQuery, maxPrice]);
+
+    // Apply client-side sorting
+    const processedResults = React.useMemo(() => {
+        let results = [...internalResults];
+        if (sortBy === 'price_asc') {
+            return results.sort((a, b) => (a.price || 0) - (b.price || 0));
+        }
+        if (sortBy === 'price_desc') {
+            return results.sort((a, b) => (b.price || 0) - (a.price || 0));
+        }
+        return results;
+    }, [internalResults, sortBy]);
 
     // Masonry breakpoints for internal results grid
     const masonryBreakpoints = {
@@ -203,7 +248,8 @@ const SearchingClient: React.FC = () => {
         if (!searchQuery || isLoadingMore) return;
         setIsLoadingMore(true);
 
-        fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=12&offset=${internalResults.length}`)
+        const priceParam = maxPrice ? `&maxPrice=${maxPrice}` : '';
+        fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=12&offset=${internalResults.length}${priceParam}`)
             .then(res => res.json())
             .then(json => {
                 const newResults = json.data || [];
@@ -215,7 +261,7 @@ const SearchingClient: React.FC = () => {
             })
             .catch(err => console.error('Load more error:', err))
             .finally(() => setIsLoadingMore(false));
-    }, [searchQuery, internalResults.length, isLoadingMore]);
+    }, [searchQuery, internalResults.length, isLoadingMore, maxPrice]);
 
     // Loading animation effect
     const isLoading = isFetchingWebImage; // Map to local loading state
@@ -373,22 +419,83 @@ const SearchingClient: React.FC = () => {
                 </button>
             </div>
 
-            <p className="text-center text-slate-500 mb-4">
-                Search results for: <span className="font-semibold text-slate-700">"{searchQuery}"</span>
-            </p>
+            <div className="flex flex-col items-center mb-6">
+                <p className="text-center text-slate-500 mb-4">
+                    Search results for: <span className="font-semibold text-slate-700">"{searchQuery}"</span>
+                </p>
+
+                {/* Minimalist Filter & Sort Bar */}
+                {searchQuery && (
+                    <div className="w-full overflow-x-auto no-scrollbar pb-2">
+                        <div className="flex items-center justify-center gap-2 min-w-max px-2">
+                            {/* Price Filters */}
+                            {[1000, 2000, 3000].map((price) => (
+                                <button
+                                    key={price}
+                                    onClick={() => setMaxPrice(maxPrice === price ? null : price)}
+                                    className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border ${
+                                        maxPrice === price
+                                            ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                                            : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300'
+                                    }`}
+                                >
+                                    {maxPrice === price ? <Check size={12} /> : null}
+                                    Under ₱{price}
+                                </button>
+                            ))}
+
+                            <div className="w-px h-4 bg-slate-200 mx-1"></div>
+
+                            {/* Sort Options */}
+                            <button
+                                onClick={() => setSortBy(sortBy === 'price_asc' ? 'relevant' : 'price_asc')}
+                                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border ${
+                                    sortBy === 'price_asc'
+                                        ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                                        : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300'
+                                }`}
+                            >
+                                <ArrowUpDown size={12} />
+                                Price: Low
+                            </button>
+                            <button
+                                onClick={() => setSortBy(sortBy === 'price_desc' ? 'relevant' : 'price_desc')}
+                                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border ${
+                                    sortBy === 'price_desc'
+                                        ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                                        : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300'
+                                }`}
+                            >
+                                <ArrowUpDown size={12} className="rotate-180" />
+                                Price: High
+                            </button>
+
+                            {(maxPrice || sortBy !== 'relevant') && (
+                                <button
+                                    onClick={() => {
+                                        setMaxPrice(null);
+                                        setSortBy('relevant');
+                                    }}
+                                    className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                                    title="Clear filters"
+                                >
+                                    <X size={16} />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
             {imageManagementError && (
                 <div className="text-center p-4 my-4 bg-red-50 rounded-lg max-w-md mx-auto">
                     <p className="font-semibold text-red-600">Error</p>
                     <p className="text-sm text-red-500">{imageManagementError}</p>
                 </div>
             )}
-            {isSearching && (
-                <div className="flex flex-col items-center justify-center min-h-[300px]">
-                    <LoadingSpinner />
-                    <p className="mt-4 text-slate-500">Searching for cakes...</p>
-                </div>
-            )}
             <div className="relative grow">
+                {isSearching && !isLoading && !isInternalLoading && internalResults.length === 0 && (
+                    <SearchResultsSkeleton />
+                )}
                 {isLoading && (
                     <div className="fixed inset-0 bg-white/50 backdrop-blur-md flex flex-col items-center justify-center z-50 p-4">
                         <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 text-center w-full max-w-xs">
@@ -412,7 +519,6 @@ const SearchingClient: React.FC = () => {
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-2">
                                 Cake Designs with Price
-                                {isInternalLoading && <LoadingSpinner />}
                                 {!isInternalLoading && internalTotal > 0 && (
                                     <span className="text-xs font-normal text-slate-400">
                                         ({internalTotal} found)
@@ -420,13 +526,16 @@ const SearchingClient: React.FC = () => {
                                 )}
                             </h2>
                         </div>
-                        {internalResults.length > 0 && (
+                        {isInternalLoading && processedResults.length === 0 && (
+                            <SearchResultsSkeleton count={12} showHeader={false} />
+                        )}
+                        {processedResults.length > 0 && (
                             <Masonry
                                 breakpointCols={masonryBreakpoints}
                                 className="flex -ml-3 w-auto"
                                 columnClassName="pl-3 bg-clip-padding"
                             >
-                                {internalResults.map((product, index) => (
+                                {processedResults.map((product, index) => (
                                     <div key={product.slug || product.p_hash} className="mb-3">
                                         <ProductCard
                                             p_hash={product.p_hash}
@@ -464,6 +573,20 @@ const SearchingClient: React.FC = () => {
                                 </button>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* Web Inspiration Results Title */}
+                {searchQuery && !isLoading && (
+                    <div className="mt-8 mb-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="h-px grow bg-slate-200"></div>
+                            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2 shrink-0">
+                                <Store className="w-4 h-4 opacity-50" />
+                                Inspiration from the Web
+                            </h2>
+                            <div className="h-px grow bg-slate-200"></div>
+                        </div>
                     </div>
                 )}
 
