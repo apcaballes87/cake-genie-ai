@@ -17,18 +17,12 @@ import SameDayCutoffBanner from '@/components/SameDayCutoffBanner';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { CakeGenieReview } from '@/lib/database.types';
 import { getReviewDisplayName } from '@/lib/reviews';
-import { BlogHomepagePreview, cacheAnalysisResult, findSimilarAnalysisByHash, getCakeBasePriceOptions } from '@/services/supabaseService';
-import { getDesignAvailability } from '@/lib/utils/availability';
-import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow } from '@/services/geminiService';
-import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
-import { compressImage } from '@/lib/utils/imageOptimization';
-import { generatePerceptualHash } from '@/hooks/useImageManagement';
-import { CakeThickness, CakeType } from '@/types';
+import { BlogHomepagePreview } from '@/services/supabaseService';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { batchSaveToLocalStorage } from '@/contexts/CartContext';
-import { COMMON_ASSETS, DEFAULT_THICKNESS_MAP } from '@/constants';
+import { COMMON_ASSETS } from '@/constants';
 import { trackImageUpload, trackSelectItem } from '@/lib/analytics';
 import {
     Search,
@@ -244,44 +238,6 @@ type HeroAnalysisSummary = {
     size: string | null;
     availability: 'rush' | 'same-day' | 'normal' | null;
     slug: string | null;
-};
-
-type HeroBasePriceSummary = {
-    displaySize: string | null;
-    baseSize: string | null;
-};
-
-const formatHeroAnalysisSize = (size: string, thickness: CakeThickness) =>
-    `${size} ${thickness.replace(/\s*in$/i, '"')} Height`;
-
-const getHeroBasePriceSummary = async (
-    cakeType: CakeType,
-    cakeThickness: CakeThickness
-): Promise<HeroBasePriceSummary> => {
-    let priceOptions = await getCakeBasePriceOptions(cakeType, cakeThickness);
-    let effectiveThickness = cakeThickness;
-
-    if (priceOptions.length === 0) {
-        const defaultThickness = DEFAULT_THICKNESS_MAP[cakeType];
-        if (defaultThickness && defaultThickness !== cakeThickness) {
-            const fallbackOptions = await getCakeBasePriceOptions(cakeType, defaultThickness);
-            if (fallbackOptions.length > 0) {
-                priceOptions = fallbackOptions;
-                effectiveThickness = defaultThickness;
-            }
-        }
-    }
-
-    if (priceOptions.length === 0) {
-        return { displaySize: null, baseSize: null };
-    }
-
-    const startingOption = [...priceOptions].sort((a, b) => a.price - b.price)[0];
-
-    return {
-        displaySize: formatHeroAnalysisSize(startingOption.size, effectiveThickness),
-        baseSize: startingOption.size,
-    };
 };
 
 const HeroTypingHeadlineLine: React.FC<{ className?: string; controlledPhraseIndex?: number }> = ({ className = '', controlledPhraseIndex }) => {
@@ -1299,127 +1255,64 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, heroCollections
     };
 
     const handleAppImageUpload = useCallback((file: File) => {
-        const processUpload = async () => {
-            // 1. Show the uploaded image immediately
-            const objectUrl = URL.createObjectURL(file);
-            setHeroUploadedImageSrc(objectUrl);
-            setHeroUploadState('analyzing');
-            setHeroAnalysis({ price: null, size: null, availability: null, slug: null });
-            setHeroUploadError(null);
-            scrollToHeroMobilePreview();
-            trackImageUpload('landing');
+        if (isUploading) return;
 
-            // 2. Compress the image before analysis and caching
-            let finalFileToCache = file;
-            let imageData = await fileToBase64(file);
+        const uploadToSupabase = async () => {
+            const supabase = getSupabaseClient();
+            const ext = file.name.split('.').pop() || 'jpg';
+            const filename = `customizations/${Date.now()}-${Math.random().toString(36).slice(2, 11)}.${ext}`;
 
             try {
-                // Compress to standard size (same as customizer)
-                const compressedFile = await compressImage(file, {
-                    maxSizeMB: 0.5,
-                    maxWidthOrHeight: 1024,
-                    fileType: 'image/webp',
-                });
-                finalFileToCache = compressedFile;
-                imageData = await fileToBase64(compressedFile);
-            } catch (compressionErr) {
-                console.warn("Failed to compress hero image, using original", compressionErr);
-            }
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('cakegenie')
+                    .upload(filename, file);
 
-            const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
-
-            // 3. pHash → cache lookup
-            const pHash = await generatePerceptualHash(imageSrc);
-            const cacheHit = pHash ? await findSimilarAnalysisByHash(pHash) : null;
-
-            let slug: string | null = null;
-            let price: number | null = null;
-            let size: string | null = null;
-            let baseSize: string | null = null;
-            let availability: 'rush' | 'same-day' | 'normal' | null = null;
-
-            if (cacheHit) {
-                // ⚡ Cache hit — pull everything from stored metadata
-                slug = cacheHit.seoMetadata.slug ?? null;
-                price = cacheHit.seoMetadata.price ?? null;
-                availability = (cacheHit.seoMetadata.availability as 'rush' | 'same-day' | 'normal') ?? null;
-                try {
-                    const basePriceSummary = await getHeroBasePriceSummary(
-                        cacheHit.analysisResult.cakeType,
-                        cacheHit.analysisResult.cakeThickness
-                    );
-                    size = basePriceSummary.displaySize;
-                    baseSize = basePriceSummary.baseSize;
-                } catch { /* non-critical */ }
-
-                // ⚡ Background Enhancement: If cache hit is missing coordinate data, enrich it now
-                if (pHash && !hasBoundingBoxData(cacheHit.analysisResult)) {
-                    (async () => {
-                        try {
-                            const enriched = await enrichAnalysisWithRoboflow(imageData.data, imageData.mimeType, cacheHit.analysisResult);
-                            await cacheAnalysisResult(pHash, enriched);
-                            console.log('✅ Background enrichment completed for cache hit.');
-                        } catch (e) {
-                            console.warn('❌ Background enrichment failed:', e);
-                        }
-                    })();
+                if (uploadError) {
+                    console.error('Upload failed:', uploadError);
+                    showError('Failed to upload. Please try again.');
+                    return null;
                 }
-            } else {
-                // 🤖 Cache miss — run the real AI analysis (same as customizing page)
-                const analysis = await analyzeCakeFeaturesOnly(imageData.data, imageData.mimeType);
 
-                if (analysis && !analysis.rejection?.isRejected) {
-                    // Get pricing size label using the same thickness fallback as the customizer.
-                    try {
-                        const basePriceSummary = await getHeroBasePriceSummary(analysis.cakeType, analysis.cakeThickness);
-                        size = basePriceSummary.displaySize;
-                        baseSize = basePriceSummary.baseSize;
-                    } catch { /* non-critical */ }
+                const { data: urlData } = supabase.storage
+                    .from('cakegenie')
+                    .getPublicUrl(uploadData.path);
 
-                    // Compute availability (same logic as customizing page)
-                    availability = getDesignAvailability({
-                        cakeType: analysis.cakeType,
-                        cakeSize: baseSize ?? '6" Round',
-                        icingBase: analysis.icing_design?.base ?? 'soft_icing',
-                        drip: analysis.icing_design?.drip ?? false,
-                        gumpasteBaseBoard: analysis.icing_design?.gumpasteBaseBoard ?? false,
-                        mainToppers: (analysis.main_toppers ?? []).map((t) => ({ type: t.type, description: t.description ?? '' })),
-                        supportElements: (analysis.support_elements ?? []).map((s) => ({ type: s.type, description: s.description ?? '' })),
-                    });
-
-                    // Cache Phase 1 results immediately so user gets a slug
-                    const cacheResultData = pHash ? await cacheAnalysisResult(pHash, analysis, undefined, finalFileToCache) : null;
-                    slug = cacheResultData?.slug ?? null;
-                    price = cacheResultData?.price ?? null;
-
-                    // 🤖 Phase 2: Background Coordinate Enrichment (Roboflow)
-                    // We don't block the UI for this; it just makes the transition more polished
-                    if (pHash) {
-                        (async () => {
-                            try {
-                                const enriched = await enrichAnalysisWithRoboflow(imageData.data, imageData.mimeType, analysis);
-                                await cacheAnalysisResult(pHash, enriched);
-                                console.log('✅ Background enrichment completed for new upload.');
-                            } catch (e) {
-                                console.warn('❌ Background enrichment failed:', e);
-                            }
-                        })();
-                    }
-                }
+                return urlData.publicUrl;
+            } catch (err) {
+                console.error('Upload catch error:', err);
+                showError('Failed to upload. Please try again.');
+                return null;
             }
-
-            setHeroAnalysis({ price, size, availability, slug });
-            setHeroUploadState(slug ? 'done' : 'error');
         };
 
-        processUpload().catch(err => {
-            console.error('[Hero upload]', err);
-            const message = err instanceof Error ? err.message : 'Unable to analyze this cake image right now.';
-            setHeroUploadError(message);
-            setHeroUploadState('error');
-            showError(message.replace('AI_REJECTION: ', ''));
-        });
-    }, [scrollToHeroMobilePreview]);
+        const processUpload = async () => {
+            resetHeroUploadPreview();
+            setIsUploading(true);
+            uploadToastId.current = showLoading('Uploading your design...');
+            trackImageUpload('landing');
+
+            try {
+                const publicUrl = await uploadToSupabase();
+
+                if (publicUrl) {
+                    const encodedUrl = encodeURIComponent(publicUrl);
+                    // Clear stale image data before navigating so the customizing page
+                    // doesn't briefly show a previously-uploaded image from IndexedDB.
+                    const { clearIndexedDB } = await import('@/lib/utils/storage');
+                    await clearIndexedDB();
+                    router.push(`/customizing?ref=${encodedUrl}&source=landing`);
+                }
+            } finally {
+                setIsUploading(false);
+                if (uploadToastId.current) {
+                    toast.dismiss(uploadToastId.current);
+                    uploadToastId.current = null;
+                }
+            }
+        };
+
+        void processUpload();
+    }, [isUploading, resetHeroUploadPreview, router]);
 
     const [isScrolled, setIsScrolled] = useState(false);
     const [showCompactHeader, setShowCompactHeader] = useState(false);

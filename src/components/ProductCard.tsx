@@ -128,11 +128,12 @@ const ProductCardContent = ({
                     style={image_width && image_height ? { aspectRatio: `${image_width} / ${image_height}` } : undefined}
                 >
                     {backgroundOnly ? (
-                        /* CSS background: invisible to Google Images — prevents related designs
-                           from being indexed as this page's images. Only the hero <img> is indexed. */
+                        /* CSS background: invisible to Google Images via robots.txt blocked proxy.
+                           Prevents related designs from being indexed as this page's images.
+                           Only the hero <img> is indexed. */
                         <div
                             className="absolute inset-0 w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-500"
-                            style={{ backgroundImage: `url(${studio_edited_image_url || original_image_url})` }}
+                            style={{ backgroundImage: `url(/api/proxy-image?url=${encodeURIComponent(studio_edited_image_url || original_image_url)})` }}
                             role="img"
                             aria-label={title}
                         />

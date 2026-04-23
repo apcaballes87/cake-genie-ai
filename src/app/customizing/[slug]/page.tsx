@@ -726,7 +726,7 @@ function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { desig
                                             // Only the hero <img> above (itemProp="image") is indexable.
                                             <div
                                                 className="aspect-square bg-slate-100 overflow-hidden bg-cover bg-center group-hover:scale-105 transition-transform duration-200"
-                                                style={{ backgroundImage: `url(${related.original_image_url})` }}
+                                                style={{ backgroundImage: `url(/api/proxy-image?url=${encodeURIComponent(related.original_image_url)})` }}
                                                 role="img"
                                                 aria-label={related.alt_text || `${related.keywords || 'Custom'} cake design`}
                                             />
