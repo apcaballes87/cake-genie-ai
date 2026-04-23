@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateCakeAnalysisSlug, downgradeCakeSlug } from './urlHelpers';
+import { generateCakeAnalysisSlug, downgradeCakeSlug, isValidRedirect } from './urlHelpers';
 
 describe('generateCakeAnalysisSlug', () => {
   it('generates a slug with all parameters provided', () => {
@@ -137,5 +137,33 @@ describe('downgradeCakeSlug', () => {
     // But "red" is a color name, so hex conversion is returned
     expect(downgradeCakeSlug('simple-red-cake'))
       .toEqual(['simple-ff0000-cake']);
+  });
+});
+
+describe('isValidRedirect', () => {
+  it('returns true for valid internal paths', () => {
+    expect(isValidRedirect('/')).toBe(true);
+    expect(isValidRedirect('/home')).toBe(true);
+    expect(isValidRedirect('/products/cake-123')).toBe(true);
+  });
+
+  it('returns false for null or undefined', () => {
+    expect(isValidRedirect(null)).toBe(false);
+    // @ts-ignore
+    expect(isValidRedirect(undefined)).toBe(false);
+  });
+
+  it('returns false for empty strings', () => {
+    expect(isValidRedirect('')).toBe(false);
+  });
+
+  it('returns false for paths not starting with /', () => {
+    expect(isValidRedirect('home')).toBe(false);
+    expect(isValidRedirect('https://example.com')).toBe(false);
+  });
+
+  it('returns false for protocol-relative URLs (starting with //)', () => {
+    expect(isValidRedirect('//example.com')).toBe(false);
+    expect(isValidRedirect('//')).toBe(false);
   });
 });
