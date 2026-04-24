@@ -4,6 +4,7 @@ import React, { memo, useState, useCallback } from 'react';
 import { getRecommendedProducts } from '@/services/supabaseService';
 import { ProductCard } from '@/components/ProductCard';
 import Masonry from 'react-masonry-css';
+import { Upload } from 'lucide-react';
 
 interface RecommendedProduct {
     p_hash: string;
@@ -30,6 +31,10 @@ const RecommendedProductsGridComponent = ({ initialProducts }: RecommendedProduc
     const [offset, setOffset] = useState(initialProducts.length);
     const [hasMore, setHasMore] = useState(initialProducts.length >= 8);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+    const handleOpenUploader = () => {
+        window.dispatchEvent(new Event('genie:open-upload-modal'));
+    };
 
     const fetchMoreProducts = useCallback(async (currentOffset: number) => {
         try {
@@ -67,6 +72,16 @@ const RecommendedProductsGridComponent = ({ initialProducts }: RecommendedProduc
                 <p className="text-base text-slate-500 max-w-2xl mx-auto">
                     Join the community getting instant prices in under 10 seconds.
                 </p>
+                <div className="mt-5 flex justify-center">
+                    <button
+                        type="button"
+                        onClick={handleOpenUploader}
+                        className="inline-flex items-center gap-2 rounded-full bg-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-200 transition-all hover:bg-purple-700 hover:shadow-xl hover:shadow-purple-200/80 active:scale-[0.99]"
+                    >
+                        <Upload className="h-4 w-4" />
+                        Upload any image, get instant pricing
+                    </button>
+                </div>
             </div>
 
             {/* Product Grid */}

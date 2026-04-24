@@ -1078,6 +1078,15 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, blogPosts = [],
         return () => clearTimeout(t);
     }, [heroUploadState]);
 
+    useEffect(() => {
+        const handleOpenUploadModal = () => {
+            setIsUploaderOpen(true);
+        };
+
+        window.addEventListener('genie:open-upload-modal', handleOpenUploadModal);
+        return () => window.removeEventListener('genie:open-upload-modal', handleOpenUploadModal);
+    }, []);
+
     const { itemCount } = useCart();
     const { user, isAuthenticated } = useAuth();
     const { recordNavigation } = useNavigation();

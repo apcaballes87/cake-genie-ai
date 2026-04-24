@@ -150,7 +150,7 @@ export const CustomizingHeroPanel = memo(({
                 <div className="grow">
                     <div
                         ref={markerContainerRef}
-                        className="relative w-full min-h-[300px] md:min-h-[400px] rounded-3xl overflow-hidden"
+                        className="relative w-full min-h-[270px] md:min-h-[400px] rounded-3xl overflow-hidden"
                         onContextMenu={(event) => event.preventDefault()}
                         style={{ aspectRatio: originalImageDimensions ? `${originalImageDimensions.width} / ${originalImageDimensions.height}` : '1 / 1' }}
                     >
