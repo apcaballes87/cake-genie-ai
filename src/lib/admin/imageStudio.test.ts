@@ -22,8 +22,12 @@ describe('imageStudio helpers', () => {
 
     expect(prompt).toContain('screenshot/product-grid/social-media capture');
     expect(prompt).toContain('use it only as a reference for the cake design');
+    expect(prompt).toContain('follow this exact sequence');
+    expect(prompt).toContain('extract or cut out only that cake subject');
+    expect(prompt).toContain('completely erase the entire original screenshot scene');
     expect(prompt).toContain('phone frames, browser chrome, app UI');
     expect(prompt).toContain('Do NOT do a simple background replacement');
+    expect(prompt).toContain('original screenshot must be considered fully discarded');
     expect(prompt).toContain('fresh ecommerce product photoshoot');
     expect(prompt).toContain('seamless light pastel purple cyclorama studio set');
     expect(prompt).toContain('Output a photorealistic, high-resolution bakery catalog image');
@@ -35,6 +39,9 @@ describe('imageStudio helpers', () => {
 
     expect(systemInstruction).toContain('professional bakery ecommerce image editor');
     expect(systemInstruction).toContain('treat it only as design reference for the cake itself');
+    expect(systemInstruction).toContain('cutout-and-restage workflow');
+    expect(systemInstruction).toContain('discard the entire original screenshot scene');
+    expect(systemInstruction).toContain('only the cake design should survive');
     expect(systemInstruction).toContain('never like a screenshot');
     expect(systemInstruction).toContain('simple background swap');
   });
