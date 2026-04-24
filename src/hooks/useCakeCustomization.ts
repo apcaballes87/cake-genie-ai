@@ -93,7 +93,9 @@ export const useCakeCustomization = () => {
                     return 1;
                 };
                 const newFlavorCount = getFlavorCount(newType);
-                const newFlavors: CakeFlavor[] = Array(newFlavorCount).fill('Chocolate Cake');
+                const newFlavors: CakeFlavor[] = updates.flavors && updates.flavors.length === newFlavorCount
+                    ? updates.flavors
+                    : Array(newFlavorCount).fill('Chocolate Cake');
                 newState.flavors = newFlavors;
             }
 

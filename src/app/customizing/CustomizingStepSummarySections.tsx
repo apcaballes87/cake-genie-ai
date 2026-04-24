@@ -2,14 +2,17 @@
 
 import React, { memo } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
+import { X } from 'lucide-react';
+import { CakeBaseOptions } from '@/components/CakeBaseOptions';
 import LazyImage from '@/components/LazyImage';
 import { findClosestColor } from '@/utils/colorUtils';
-import { CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, CAKE_TYPE_THUMBNAILS, FLAVOR_THUMBNAILS, SQUARE_RECT_SIZE_PATTERN } from '@/constants';
 import { TrashIcon } from '@/components/icons';
-import type { CakeInfoUI, CakeMessageUI, ClusteredMarker, IcingDesignUI, MainTopperType, MainTopperUI, SupportElementType, SupportElementUI } from '@/types';
+import type { BasePriceInfo, CakeInfoUI, CakeMessageUI, ClusteredMarker, IcingDesignUI, MainTopperType, MainTopperUI, SupportElementType, SupportElementUI } from '@/types';
 
 type LayoutMode = 'mobile' | 'desktop';
 type IcingImageType = 'top' | 'side' | 'drip' | 'borderTop' | 'borderBase' | 'gumpasteBaseBoard';
+type StepOneItemKind = 'type' | 'size' | 'height' | 'flavor' | 'icing';
+type StepOnePopupSection = Exclude<StepOneItemKind, 'flavor'>;
 
 interface CustomizingStepSummarySectionsProps {
     layout: LayoutMode;
@@ -18,6 +21,7 @@ interface CustomizingStepSummarySectionsProps {
     cakeMessages: CakeMessageUI[];
     mainToppers: MainTopperUI[];
     supportElements: SupportElementUI[];
+    basePriceOptions?: BasePriceInfo[] | null;
     markerMap: Map<string, string>;
     itemPrices?: Map<string, number>;
     isAdmin: boolean;
@@ -34,7 +38,9 @@ interface CustomizingStepSummarySectionsProps {
     onTopperImageReplace: (topperId: string, file: File) => void;
     onSupportElementImageReplace: (elementId: string, file: File) => void;
     openTopperSheet: (section?: 'main' | 'support' | null) => void;
-    onIcingTypeChange?: (newType: string) => void;
+    onCakeInfoChange?: (updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => void;
+    onIcingTypeChange?: (newType: IcingDesignUI['base']) => void;
+    addOnPricing?: number;
     separateIcingStep?: boolean;
     aiChatNode?: React.ReactNode;
     hideStepOne?: boolean;
@@ -88,27 +94,6 @@ const getIcingImage = (icingDesign: IcingDesignUI, type: IcingImageType, isTopSp
 const getMessagePositionLabel = (position: CakeMessageUI['position']) => (
     position === 'top' ? 'TOP' : position === 'side' ? 'FRONT' : 'BASE'
 );
-
-const renderCakeSizeOverlay = (size: string) => {
-    const sizePart = size.split(' ')[0] || '';
-    const tiers = sizePart.match(/\d+"/g) || [];
-    if (tiers.length > 0) {
-        return tiers.map((tier, index) => (
-            <React.Fragment key={`${tier}-${index}`}>
-                <span>&lt;- {tier} -&gt;</span><br />
-            </React.Fragment>
-        ));
-    }
-    const squareRect = sizePart.match(SQUARE_RECT_SIZE_PATTERN) || [];
-    if (squareRect.length > 0) {
-        return squareRect.map((dim, index) => (
-            <React.Fragment key={`${dim}-${index}`}>
-                <span>&lt;- {dim.replace(/\s*[xX×]\s*/g, '×')} -&gt;</span><br />
-            </React.Fragment>
-        ));
-    }
-    return <span>{size}</span>;
-};
 
 const buildCombinedDecorSummary = (mainToppers: MainTopperUI[], supportElements: SupportElementUI[]) => {
     const items = [...mainToppers, ...supportElements];
@@ -186,6 +171,95 @@ const getDecorationMaterialLabel = (item: MainTopperUI | SupportElementUI) => {
     return supportMaterialLabelMap[item.type] || item.type.replace(/_/g, ' ');
 };
 
+const SUMMARY_ICON_THEME: Record<StepOneItemKind, string> = {
+    type: 'text-slate-400',
+    size: 'text-slate-400',
+    height: 'text-slate-400',
+    flavor: 'text-slate-400',
+    icing: 'text-slate-400',
+};
+
+const StepOneOptionIcon = ({ kind }: { kind: StepOneItemKind }) => {
+    switch (kind) {
+        case 'type':
+            return (
+                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+                    <path d="M7 9.5C7 7.57 8.57 6 10.5 6h3C15.43 6 17 7.57 17 9.5V11H7V9.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M5 13.5C5 12.67 5.67 12 6.5 12h11c.83 0 1.5.67 1.5 1.5V18H5v-4.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M12 6V3.75" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M10.8 3.75h2.4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+            );
+        case 'size':
+            return (
+                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+                    <rect x="7.25" y="9.25" width="9.5" height="5.5" rx="2.75" stroke="currentColor" strokeWidth="1.8" />
+                    <path d="M3.5 12H7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M17 12h3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M5.25 10.25 3.5 12l1.75 1.75" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M18.75 10.25 20.5 12l-1.75 1.75" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+            );
+        case 'height':
+            return (
+                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+                    <rect x="8" y="7.75" width="8" height="8.5" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
+                    <path d="M5 5v14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="m3.5 6.75 1.5-1.75 1.5 1.75" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="m3.5 17.25 1.5 1.75 1.5-1.75" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+            );
+        case 'flavor':
+            return (
+                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+                    <path d="M6.25 17.75 11.5 6l6.25 11.75H6.25Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                    <path d="M10.2 12.1h.01" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                    <path d="M13.8 10.1h.01" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                    <path d="M12.6 14.5h.01" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                </svg>
+            );
+        case 'icing':
+            return (
+                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+                    <path d="M8.25 16.75c0-2.62 1.56-4.66 3.75-6.75 2.19 2.09 3.75 4.13 3.75 6.75 0 2.07-1.68 3.75-3.75 3.75s-3.75-1.68-3.75-3.75Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                    <path d="M10 9.25c0-1.8 1.36-3.25 3.05-3.25.78 0 1.38-.59 1.38-1.31 0-.36-.15-.69-.39-.93 1.84.38 3.21 1.96 3.21 3.85 0 1.09-.46 2.01-1.21 2.64" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+            );
+        default:
+            return null;
+    }
+};
+
+const getStepOneFlavorLabel = (index: number, total: number) => {
+    if (total === 2) return index === 0 ? 'Top Flavor' : 'Bottom Flavor';
+    if (total === 3) return ['Top Flavor', 'Middle Flavor', 'Bottom Flavor'][index] || 'Flavor';
+    return 'Flavor';
+};
+
+const formatFlavorLabel = (flavor: string) => flavor.replace(/\s+Cake$/i, '');
+
+const getIcingTypeValue = (cakeInfo: CakeInfoUI, icingDesign: IcingDesignUI | null) => {
+    if (cakeInfo.type.toLowerCase().includes('fondant') || icingDesign?.base === 'fondant') {
+        return 'Fondant';
+    }
+
+    return 'Soft Icing';
+};
+
+const STEP_ONE_POPUP_LABELS: Record<StepOnePopupSection, string> = {
+    type: 'Choose Cake Type',
+    size: 'Choose Size',
+    height: 'Choose Height',
+    icing: 'Choose Icing Type',
+};
+
+const STEP_ONE_POPUP_SECTIONS: Record<StepOnePopupSection, Array<'icing' | 'type' | 'size' | 'height'>> = {
+    type: ['type'],
+    size: ['size'],
+    height: ['height'],
+    icing: ['icing'],
+};
+
 export const CustomizingStepSummarySections = memo(function CustomizingStepSummarySections({
     layout,
     cakeInfo,
@@ -193,6 +267,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     cakeMessages,
     mainToppers,
     supportElements,
+    basePriceOptions,
     isAnalyzing,
     isRejectionError = false,
     activeCustomization,
@@ -202,7 +277,9 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     addCakeMessage,
     removeCakeMessage,
     openTopperSheet,
+    onCakeInfoChange,
     onIcingTypeChange,
+    addOnPricing = 0,
     separateIcingStep = false,
     aiChatNode,
     hideStepOne,
@@ -212,6 +289,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     // Default position when "+ Add" is clicked: Bento → front (side), all others → base_board
     const defaultMessagePosition = cakeInfo?.type === 'Bento' ? 'side' : 'base_board';
     const [showIcingChoice, setShowIcingChoice] = React.useState(true);
+    const [activeStepOnePopup, setActiveStepOnePopup] = React.useState<StepOnePopupSection | null>(null);
+    const stepOneCardRef = React.useRef<HTMLDivElement | null>(null);
     const isDesktop = layout === 'desktop';
     const containerClassName = isDesktop
         ? 'w-full hidden md:flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden gap-2 pb-6 md:pb-4 scrollbar-hide snap-x md:snap-none relative z-60'
@@ -221,9 +300,63 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
         : 'w-full min-w-0 genie-card p-2 rounded-2xl';
     const itemsClassName = isDesktop ? 'flex gap-[7px] pt-1 pb-1 w-max md:w-full flex-wrap' : 'flex gap-[7px] pt-1 pb-1 w-full flex-wrap';
     const stepOneItemsViewportClassName = 'w-full overflow-x-auto overflow-y-hidden scrollbar-hide';
-    const stepOneItemsClassName = 'flex gap-[7px] pt-1 pb-2 w-max min-w-max flex-nowrap snap-x snap-mandatory';
+    const stepOneItemsClassName = 'flex gap-2.5 pt-1 pb-2 w-max min-w-max flex-nowrap snap-x snap-mandatory';
 
     const isFondant = cakeInfo?.type.toLowerCase().includes('fondant');
+
+    React.useEffect(() => {
+        if (!activeStepOnePopup) return;
+
+        const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+            if (!stepOneCardRef.current?.contains(event.target as Node)) {
+                setActiveStepOnePopup(null);
+            }
+        };
+
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setActiveStepOnePopup(null);
+            }
+        };
+
+        document.addEventListener('mousedown', handlePointerDown);
+        document.addEventListener('touchstart', handlePointerDown);
+        document.addEventListener('keydown', handleEscape);
+
+        return () => {
+            document.removeEventListener('mousedown', handlePointerDown);
+            document.removeEventListener('touchstart', handlePointerDown);
+            document.removeEventListener('keydown', handleEscape);
+        };
+    }, [activeStepOnePopup]);
+
+    React.useEffect(() => {
+        if (activeCustomization === 'flavor' || activeCustomization === 'messages' || activeCustomization === 'icing' || activeCustomization === 'toppers' || activeCustomization === 'photos') {
+            setActiveStepOnePopup(null);
+        }
+    }, [activeCustomization]);
+
+    const toggleStepOnePopup = React.useCallback((section: StepOnePopupSection) => {
+        if (activeCustomization === 'options') {
+            setActiveCustomization(null);
+        }
+        setActiveStepOnePopup((current) => current === section ? null : section);
+    }, [activeCustomization, setActiveCustomization]);
+
+    const handleStepOneCakeInfoChange = React.useCallback((updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => {
+        onCakeInfoChange?.(updates, options);
+        setActiveStepOnePopup(null);
+    }, [onCakeInfoChange]);
+
+    const handleStepOneIcingChange = React.useCallback((newType: IcingDesignUI['base']) => {
+        onIcingTypeChange?.(newType);
+        setActiveStepOnePopup(null);
+    }, [onIcingTypeChange]);
+
+    const openFlavorEditor = React.useCallback(() => {
+        setActiveStepOnePopup(null);
+        setActiveCustomization('flavor');
+    }, [setActiveCustomization]);
 
     // Dynamic Step Numbering
     let currentStep = 1;
@@ -235,6 +368,48 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
     const combinedDecorItems = getCombinedDecorItems(mainToppers, supportElements);
     const combinedDecorSummary = buildCombinedDecorSummary(mainToppers, supportElements);
+    const stepOneSummaryItems = cakeInfo ? [
+        {
+            id: 'cake-type',
+            label: 'Cake Type',
+            value: cakeInfo.type,
+            kind: 'type' as const,
+            onClick: () => toggleStepOnePopup('type'),
+            isActive: activeStepOnePopup === 'type',
+        },
+        {
+            id: 'cake-size',
+            label: 'Size',
+            value: cakeInfo.size,
+            kind: 'size' as const,
+            onClick: () => toggleStepOnePopup('size'),
+            isActive: activeStepOnePopup === 'size',
+        },
+        {
+            id: 'cake-height',
+            label: 'Height',
+            value: cakeInfo.thickness,
+            kind: 'height' as const,
+            onClick: () => toggleStepOnePopup('height'),
+            isActive: activeStepOnePopup === 'height',
+        },
+        {
+            id: 'icing-type',
+            label: 'Icing Type',
+            value: getIcingTypeValue(cakeInfo, icingDesign),
+            kind: 'icing' as const,
+            onClick: () => toggleStepOnePopup('icing'),
+            isActive: activeStepOnePopup === 'icing',
+        },
+        ...cakeInfo.flavors.map((flavor, index) => ({
+            id: `flavor-${index}`,
+            label: getStepOneFlavorLabel(index, cakeInfo.flavors.length),
+            value: formatFlavorLabel(flavor),
+            kind: 'flavor' as const,
+            onClick: openFlavorEditor,
+            isActive: activeCustomization === 'flavor',
+        })),
+    ] : [];
     const icingSummaryItems = icingDesign && cakeInfo ? [
         { id: 'icing-edit-drip', description: 'Drip', label: 'Drip', alt: 'Drip', imageType: 'drip' as const, enabled: icingDesign.drip },
         { id: 'icing-edit-borderTop', description: 'Top', label: 'Top Border', alt: 'Top Border', imageType: 'borderTop' as const, enabled: icingDesign.border_top },
@@ -273,48 +448,69 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     return (
         <div className={containerClassName}>
             {cakeInfo && !isAnalyzing && !isRejectionError && !hideStepOne && (
-                <div className={cardClassName}>
+                <div ref={stepOneCardRef} className={`${cardClassName} relative`}>
                     <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {stepOneNumber}: Cake Options</h3>
                     <div className={stepOneItemsViewportClassName}>
                         <div className={stepOneItemsClassName}>
-                            <button onClick={() => setActiveCustomization('options')} className="group flex flex-col items-center gap-1 min-w-[60px]">
-                                <div className={`w-14 h-14 rounded-xl border border-purple-100 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'genie-control-selected' : ''}`}>
-                                    <LazyImage src={CAKE_TYPE_THUMBNAILS[cakeInfo.type]} alt={cakeInfo.type + ' Cake Design'} fill sizes="56px" imageClassName="object-contain" />
-                                    <div className="absolute inset-x-0 top-0 pt-[11px] text-black text-[9px] font-bold text-center leading-tight">
-                                        {cakeInfo.type}
-                                    </div>
-                                </div>
-                                <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">Cake Type</span>
-                            </button>
-
-                            <button onClick={() => setActiveCustomization('options')} className="group flex flex-col items-center gap-1 min-w-[60px]">
-                                <div className={`w-14 h-14 rounded-xl border border-purple-100 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'genie-control-selected' : ''}`}>
-                                    <LazyImage src={CAKE_SIZE_THUMBNAILS[cakeInfo.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]} alt={cakeInfo.size + ' Custom Cake'} fill sizes="56px" imageClassName="object-contain" />
-                                    <div className="absolute inset-x-0 top-0 pt-[11px] text-black text-[9px] font-bold text-center leading-tight">{renderCakeSizeOverlay(cakeInfo.size)}</div>
-                                </div>
-                                <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">Cake Size</span>
-                            </button>
-
-                            <button onClick={() => setActiveCustomization('options')} className="group flex flex-col items-center gap-1 min-w-[60px]">
-                                <div className={`w-14 h-14 rounded-xl border border-purple-100 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'options' ? 'genie-control-selected' : ''}`}>
-                                    <LazyImage src={CAKE_THICKNESS_THUMBNAILS[cakeInfo.thickness]} alt={cakeInfo.thickness + ' Thick Cake'} fill sizes="56px" imageClassName="object-contain" />
-                                </div>
-                                <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">Height</span>
-                            </button>
-
-                            {cakeInfo.flavors.map((flavor, index) => (
-                                <button key={`${flavor}-${index}`} onClick={() => setActiveCustomization('flavor')} className="group flex flex-col items-center gap-1 min-w-[60px]">
-                                    <div className={`w-14 h-14 rounded-xl border border-purple-100 overflow-hidden relative group-hover:border-purple-400 transition-all bg-purple-50/50 ${activeCustomization === 'flavor' ? 'genie-control-selected' : ''}`}>
-                                        <LazyImage src={FLAVOR_THUMBNAILS[flavor]} alt={flavor + ' Design'} fill sizes="56px" imageClassName="object-contain" />
-                                        <div className="absolute inset-x-0 top-0 pt-[11px] text-black text-[9px] font-bold text-center leading-tight">
-                                            {flavor.replace(/\s+Cake$/i, '')}
+                            {stepOneSummaryItems.map((item) => (
+                                <button
+                                    key={item.id}
+                                    onClick={item.onClick}
+                                    className={`group snap-start shrink-0 flex min-h-[112px] min-w-[92px] max-w-[92px] flex-col items-center rounded-[22px] border px-2.5 pb-2.5 pt-2.5 text-center transition-all duration-200 genie-focus ${
+                                        item.isActive
+                                            ? 'border-purple-300 bg-purple-50/70 shadow-sm shadow-purple-100/70'
+                                            : 'border-slate-200 bg-white hover:border-purple-200 hover:bg-slate-50/70'
+                                    }`}
+                                >
+                                    <div className="flex w-full justify-center">
+                                        <div className={`flex shrink-0 items-center justify-center transition-colors ${item.isActive ? 'text-purple-500' : SUMMARY_ICON_THEME[item.kind]}`}>
+                                            <StepOneOptionIcon kind={item.kind} />
                                         </div>
                                     </div>
-                                    <span className="text-[10px] text-center text-slate-500 font-medium leading-[1.1] max-w-[64px] line-clamp-2 mt-0.5">Flavor</span>
+                                    <div className="mt-2.5 flex min-w-0 flex-1 items-center justify-center">
+                                        <span className="line-clamp-2 text-[12px] font-semibold leading-[1.15] text-slate-700">
+                                            {item.value}
+                                        </span>
+                                    </div>
+                                    <span className="block text-[8px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                                        {item.label}
+                                    </span>
                                 </button>
                             ))}
                         </div>
                     </div>
+
+                    {activeStepOnePopup && cakeInfo && (
+                        <div className="absolute inset-x-2 top-full z-40 mt-2 rounded-[24px] border border-slate-200 bg-white p-3 shadow-[0_20px_50px_rgba(15,23,42,0.18)]">
+                            <div className="mb-3 flex items-center justify-between gap-3 border-b border-slate-100 pb-2">
+                                <div>
+                                    <h4 className="text-sm font-semibold text-slate-800">{STEP_ONE_POPUP_LABELS[activeStepOnePopup]}</h4>
+                                    <p className="text-[11px] text-slate-500">Tap an option to update this cake detail.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveStepOnePopup(null)}
+                                    className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700"
+                                    aria-label="Close cake option popup"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
+                            <CakeBaseOptions
+                                cakeInfo={cakeInfo}
+                                basePriceOptions={basePriceOptions ?? null}
+                                icingBase={icingDesign?.base ?? null}
+                                onCakeInfoChange={handleStepOneCakeInfoChange}
+                                onIcingBaseChange={handleStepOneIcingChange}
+                                isAnalyzing={false}
+                                addOnPricing={addOnPricing}
+                                compact
+                                hidePrices
+                                visibleSections={STEP_ONE_POPUP_SECTIONS[activeStepOnePopup]}
+                                showSectionLabels={false}
+                            />
+                        </div>
+                    )}
 
                     {isFondant && showIcingChoice && (
                         <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col items-center gap-2">
@@ -324,7 +520,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                     onClick={() => {
                                         onIcingTypeChange?.('soft_icing');
                                         setShowIcingChoice(false);
-                                        setActiveCustomization('options');
+                                        setActiveStepOnePopup('icing');
                                     }}
                                     className="genie-btn-primary px-4 py-1.5 rounded-full text-[11px] font-bold"
                                 >

@@ -8,6 +8,11 @@ vi.mock('@/components/LazyImage', () => ({
     default: ({ alt }: { alt: string }) => <span>{alt}</span>,
 }));
 
+Object.defineProperty(HTMLElement.prototype, 'scrollTo', {
+    value: vi.fn(),
+    writable: true,
+});
+
 const buildProps = (): React.ComponentProps<typeof CustomizingStepSummarySections> => ({
     layout: 'desktop' as const,
     cakeInfo: {
@@ -60,6 +65,10 @@ const buildProps = (): React.ComponentProps<typeof CustomizingStepSummarySection
         },
     ] satisfies MainTopperUI[],
     supportElements: [] satisfies SupportElementUI[],
+    basePriceOptions: [
+        { size: '6" Round', price: 1099 },
+        { size: '8" Round', price: 1499 },
+    ],
     markerMap: new Map<string, string>(),
     itemPrices: new Map<string, number>(),
     isAdmin: false,
@@ -75,19 +84,25 @@ const buildProps = (): React.ComponentProps<typeof CustomizingStepSummarySection
     onTopperImageReplace: vi.fn(),
     onSupportElementImageReplace: vi.fn(),
     openTopperSheet: vi.fn(),
+    onCakeInfoChange: vi.fn(),
+    onIcingTypeChange: vi.fn(),
+    addOnPricing: 0,
 });
 
 describe('CustomizingStepSummarySections', () => {
-    it('forwards step-summary interactions for specs and messages', () => {
+    it('opens a focused floating popup for cake specs and still forwards message actions', () => {
         const props = buildProps();
 
         render(<CustomizingStepSummarySections {...props} />);
 
         fireEvent.click(screen.getByRole('button', { name: /2 Tier/i }));
+        expect(screen.getByText('Choose Cake Type')).toBeInTheDocument();
+
+        fireEvent.click(screen.getAllByText('1 Tier (Soft icing)')[0]);
         fireEvent.click(screen.getByText('Happy Birthday'));
         fireEvent.click(screen.getByRole('button', { name: 'Delete message' }));
 
-        expect(props.setActiveCustomization).toHaveBeenCalledWith('options');
+        expect(props.onCakeInfoChange).toHaveBeenCalledWith({ type: '1 Tier' }, undefined);
         expect(props.setActiveCustomization).toHaveBeenCalledWith('messages');
         expect(props.setSelectedItem).toHaveBeenCalledWith(expect.objectContaining({
             id: 'message-1',
@@ -96,6 +111,22 @@ describe('CustomizingStepSummarySections', () => {
         }));
         expect(props.removeCakeMessage).toHaveBeenCalledWith('message-1');
         expect(screen.getByText('FRONT')).toBeInTheDocument();
+        expect(screen.queryByText('Choose Cake Type')).not.toBeInTheDocument();
+    });
+
+    it('opens the icing popup and forwards icing-type changes', () => {
+        const props = buildProps();
+
+        render(<CustomizingStepSummarySections {...props} />);
+
+        fireEvent.click(screen.getByRole('button', { name: /Soft Icing/i }));
+
+        expect(screen.getByText('Choose Icing Type')).toBeInTheDocument();
+
+        fireEvent.click(screen.getAllByText('Fondant')[0]);
+
+        expect(props.onIcingTypeChange).toHaveBeenCalledWith('fondant');
+        expect(screen.queryByText('Choose Icing Type')).not.toBeInTheDocument();
     });
 
     it('does not mix icing thumbnails into the default cake options step', () => {

@@ -1,19 +1,31 @@
 'use client';
 import React, { useRef } from 'react';
 import LazyImage from '@/components/LazyImage';
-import { CakeInfoUI, BasePriceInfo, CakeType } from '@/types';
-import { CAKE_TYPES, THICKNESS_OPTIONS_MAP, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_OPTIONS, FLAVOR_THUMBNAILS, SQUARE_RECT_SIZE_PATTERN } from '@/constants';
+import { CakeInfoUI, BasePriceInfo, CakeType, IcingDesign } from '@/types';
+import {
+    THICKNESS_OPTIONS_MAP,
+    CAKE_TYPE_THUMBNAILS,
+    CAKE_SIZE_THUMBNAILS,
+    CAKE_THICKNESS_THUMBNAILS,
+    SQUARE_RECT_SIZE_PATTERN,
+    getCakeTypesForIcingBase,
+    inferIcingBaseFromCakeType,
+} from '@/constants';
 import { CakeBaseSkeleton } from './LoadingSkeletons';
 import { roundDownToNearest99 } from '@/lib/utils/pricing';
 
 interface CakeBaseOptionsProps {
     cakeInfo: CakeInfoUI | null;
     basePriceOptions: BasePriceInfo[] | null;
+    icingBase: IcingDesign['base'] | null;
     onCakeInfoChange: (updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => void;
+    onIcingBaseChange: (base: IcingDesign['base']) => void;
     isAnalyzing: boolean;
     addOnPricing: number;
     hidePrices?: boolean;
     compact?: boolean;
+    visibleSections?: Array<'icing' | 'type' | 'size' | 'height'>;
+    showSectionLabels?: boolean;
 }
 
 const cakeTypeDisplayMap: Record<CakeType, string> = {
@@ -26,11 +38,15 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
 export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
     cakeInfo,
     basePriceOptions,
+    icingBase,
     onCakeInfoChange,
+    onIcingBaseChange,
     isAnalyzing,
     addOnPricing,
     hidePrices = false,
     compact = false,
+    visibleSections,
+    showSectionLabels = true,
 }) => {
     const cakeTypeScrollContainerRef = useRef<HTMLDivElement>(null);
     const cakeThicknessScrollContainerRef = useRef<HTMLDivElement>(null);
@@ -77,9 +93,10 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
 
     if (!cakeInfo) return null;
 
+    const resolvedIcingBase = icingBase ?? inferIcingBaseFromCakeType(cakeInfo.type);
+    const visibleCakeTypes = getCakeTypesForIcingBase(resolvedIcingBase);
     const currentThicknessOptions = THICKNESS_OPTIONS_MAP[cakeInfo.type] || [];
-    const tierCount = cakeInfo.flavors.length;
-    const tierLabels = tierCount === 2 ? ['Top Tier Flavor', 'Bottom Tier Flavor'] : tierCount === 3 ? ['Top Tier Flavor', 'Middle Tier Flavor', 'Bottom Tier Flavor'] : ['Cake Flavor'];
+    const shouldShowSection = (section: 'icing' | 'type' | 'size' | 'height') => !visibleSections || visibleSections.includes(section);
 
     if (isAnalyzing) return <CakeBaseSkeleton />;
 
@@ -89,14 +106,53 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
     const thumbText = compact ? 'text-[8px]' : 'text-[10px]';
     const sectionGap = compact ? 'space-y-1.5' : 'space-y-3';
     const labelMargin = compact ? 'mb-1' : 'mb-1.5';
+    const icingChoiceText = compact ? 'text-[11px]' : 'text-sm';
+    const renderSectionLabel = (label: string) => (
+        showSectionLabels ? <label className={`block ${labelSize} font-medium text-slate-700 ${labelMargin}`}>{label}</label> : null
+    );
 
     return (
         <div className={sectionGap}>
-            <div>
-                <label className={`block ${labelSize} font-medium text-slate-700 ${labelMargin}`}>Cake Type</label>
+            {shouldShowSection('icing') && (
+                <div>
+                    {renderSectionLabel('Icing Type')}
+                <div className="grid grid-cols-2 gap-2">
+                    {([
+                        { id: 'soft_icing', label: 'Soft Icing' },
+                        { id: 'fondant', label: 'Fondant' },
+                    ] as const).map((option) => {
+                        const isSelected = resolvedIcingBase === option.id;
+
+                        return (
+                            <button
+                                key={option.id}
+                                type="button"
+                                onClick={() => onIcingBaseChange(option.id)}
+                                className={`rounded-xl border px-4 py-3 text-left transition-all duration-200 genie-focus ${
+                                    isSelected
+                                        ? 'genie-control-selected'
+                                        : 'border-purple-100 bg-white hover:border-purple-300'
+                                }`}
+                                aria-pressed={isSelected}
+                            >
+                                <span className={`block ${icingChoiceText} font-semibold ${isSelected ? 'text-purple-800' : 'text-slate-700'}`}>
+                                    {option.label}
+                                </span>
+                                <span className="mt-1 block text-[11px] text-slate-500">
+                                    {option.id === 'soft_icing' ? 'Bento, tiered, square, or rectangle cakes' : 'Tiered, square, and rectangle fondant cakes'}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+                </div>
+            )}
+            {shouldShowSection('type') && (
+                <div>
+                    {renderSectionLabel('Cake Type')}
                 <div className="relative">
                     <div ref={cakeTypeScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
-                        {CAKE_TYPES.map(type => (
+                        {visibleCakeTypes.map(type => (
                             <button
                                 key={type}
                                 data-caketype={type}
@@ -118,10 +174,11 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                         ))}
                     </div>
                 </div>
-            </div>
-            {basePriceOptions && basePriceOptions.length > 0 && (
+                </div>
+            )}
+            {shouldShowSection('size') && basePriceOptions && basePriceOptions.length > 0 && (
                 <div>
-                    <label className={`block ${labelSize} font-medium text-slate-700 ${labelMargin}`}>Size (Diameter)</label>
+                    {renderSectionLabel('Size (Diameter)')}
                     {basePriceOptions.length === 1 ? (
                         <div className="p-3 genie-control-selected rounded-lg flex items-center justify-between">
                             <span className="text-sm font-semibold text-purple-800">{basePriceOptions[0].size}</span>
@@ -189,8 +246,9 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                 </div>
             )}
 
-            <div>
-                <label className={`block ${labelSize} font-medium text-slate-700 ${labelMargin}`}>Cake Height (All tiers)</label>
+            {shouldShowSection('height') && (
+                <div>
+                    {renderSectionLabel('Cake Height (All tiers)')}
                 <div className="relative">
                     <div ref={cakeThicknessScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
                         {currentThicknessOptions.map(thickness => (
@@ -215,7 +273,8 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                         ))}
                     </div>
                 </div>
-            </div>
+                </div>
+            )}
 
         </div>
     );

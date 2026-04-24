@@ -1,4 +1,4 @@
-import { Color, CakeType, CakeThickness, CakeSize, CakeFlavor } from '@/types';
+import { Color, CakeType, CakeThickness, CakeSize, CakeFlavor, IcingDesign } from '@/types';
 
 export const COLORS: Color[] = [
   { name: 'Dark Red', hex: '#8B0000' },
@@ -39,6 +39,89 @@ export const CAKE_TYPES: CakeType[] = [
   'Square', 'Rectangle',
   'Square Fondant', 'Rectangle Fondant'
 ];
+
+export const SOFT_ICING_CAKE_TYPES: CakeType[] = [
+  'Bento',
+  '1 Tier',
+  '2 Tier',
+  '3 Tier',
+  'Square',
+  'Rectangle',
+];
+
+export const FONDANT_CAKE_TYPES: CakeType[] = [
+  '1 Tier Fondant',
+  '2 Tier Fondant',
+  '3 Tier Fondant',
+  'Square Fondant',
+  'Rectangle Fondant',
+];
+
+export const inferIcingBaseFromCakeType = (cakeType: CakeType): IcingDesign['base'] =>
+  cakeType.toLowerCase().includes('fondant') ? 'fondant' : 'soft_icing';
+
+export const getCakeTypesForIcingBase = (base: IcingDesign['base']): CakeType[] =>
+  base === 'fondant' ? FONDANT_CAKE_TYPES : SOFT_ICING_CAKE_TYPES;
+
+export const getEquivalentCakeTypeForIcingBase = (
+  cakeType: CakeType,
+  base: IcingDesign['base']
+): CakeType => {
+  if (base === 'fondant') {
+    switch (cakeType) {
+      case '1 Tier':
+      case '1 Tier Fondant':
+      case 'Bento':
+        return '1 Tier Fondant';
+      case '2 Tier':
+      case '2 Tier Fondant':
+        return '2 Tier Fondant';
+      case '3 Tier':
+      case '3 Tier Fondant':
+        return '3 Tier Fondant';
+      case 'Square':
+      case 'Square Fondant':
+        return 'Square Fondant';
+      case 'Rectangle':
+      case 'Rectangle Fondant':
+        return 'Rectangle Fondant';
+      default:
+        return '1 Tier Fondant';
+    }
+  }
+
+  switch (cakeType) {
+    case '1 Tier':
+    case '1 Tier Fondant':
+      return '1 Tier';
+    case '2 Tier':
+    case '2 Tier Fondant':
+      return '2 Tier';
+    case '3 Tier':
+    case '3 Tier Fondant':
+      return '3 Tier';
+    case 'Square':
+    case 'Square Fondant':
+      return 'Square';
+    case 'Rectangle':
+    case 'Rectangle Fondant':
+      return 'Rectangle';
+    case 'Bento':
+    default:
+      return 'Bento';
+  }
+};
+
+export const getEquivalentCakeSizeForIcingBase = (
+  cakeSize: CakeSize,
+  base: IcingDesign['base']
+): CakeSize => {
+  if (base === 'fondant') {
+    return cakeSize.toLowerCase().includes('fondant') ? cakeSize : `${cakeSize} Fondant`;
+  }
+
+  return cakeSize.replace(/\s+Fondant$/i, '');
+};
 
 export const CAKE_THICKNESSES: CakeThickness[] = ['2 in', '3 in', '4 in', '5 in', '6 in'];
 

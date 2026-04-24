@@ -9,7 +9,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { findClosestColor, hexToColorNameProse } from '@/utils/colorUtils';
 import { generateDesignDetails, generateRichAltText } from '@/utils/designContentUtils';
 import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Cake, Zap, Clock, CalendarDays, ChevronRight } from 'lucide-react';
-import { CakeBaseOptions } from '@/components/CakeBaseOptions';
 
 import { SegmentationOverlay } from '../../components/SegmentationOverlay';
 import { SegmentationBottomSheet } from '../../components/SegmentationBottomSheet';
@@ -22,7 +21,18 @@ import { CakeGenieCartItem, CakeGenieMerchant, CakeGenieMerchantProduct } from '
 import { SearchAutocomplete } from '../../components/SearchAutocomplete';
 import { AvailabilityType } from '../../lib/utils/availability';
 
-import { COLORS, CAKE_TYPE_THUMBNAILS, CAKE_SIZE_THUMBNAILS, CAKE_THICKNESS_THUMBNAILS, FLAVOR_THUMBNAILS } from '@/constants';
+import {
+    COLORS,
+    CAKE_TYPE_THUMBNAILS,
+    CAKE_SIZE_THUMBNAILS,
+    CAKE_THICKNESS_THUMBNAILS,
+    FLAVOR_THUMBNAILS,
+    DEFAULT_ICING_DESIGN,
+    THICKNESS_OPTIONS_MAP,
+    getEquivalentCakeSizeForIcingBase,
+    getEquivalentCakeTypeForIcingBase,
+    inferIcingBaseFromCakeType,
+} from '@/constants';
 import { ColorPalette } from '../../components/ColorPalette';
 import StickyAddToCartBar from '../../components/StickyAddToCartBar';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
@@ -399,7 +409,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         getSyncedAnalysisResult,
         clearDirtyState,
         applyFullCustomizationState,
-        handleSwitchToSoftIcing,
         chatHistory, addChatEntry,
     } = useCakeCustomization();
 
@@ -2186,9 +2195,47 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const onCakeInfoChange = handleCakeInfoChange;
     const onTopperImageReplace = handleTopperImageReplace;
     const onSupportElementImageReplace = handleSupportElementImageReplace;
-    const handleIcingTypeChange = useCallback((_newBase: string) => {
-        handleSwitchToSoftIcing();
-    }, [handleSwitchToSoftIcing]);
+    const handleIcingTypeChange = useCallback((newBase: IcingDesignUI['base']) => {
+        if (!cakeInfo) return;
+
+        const currentBase = icingDesign?.base ?? inferIcingBaseFromCakeType(cakeInfo.type);
+        const nextType = getEquivalentCakeTypeForIcingBase(cakeInfo.type, newBase);
+        const hasTypeChanged = nextType !== cakeInfo.type;
+        const hasBaseChanged = currentBase !== newBase;
+
+        if (!hasTypeChanged && !hasBaseChanged) {
+            return;
+        }
+
+        const nextCakeInfoUpdates: Partial<CakeInfoUI> = {
+            type: nextType,
+        };
+
+        if (hasTypeChanged) {
+            if (cakeInfo.type !== 'Bento' && nextType !== 'Bento') {
+                nextCakeInfoUpdates.size = getEquivalentCakeSizeForIcingBase(cakeInfo.size, newBase);
+            }
+
+            if (THICKNESS_OPTIONS_MAP[nextType]?.includes(cakeInfo.thickness)) {
+                nextCakeInfoUpdates.thickness = cakeInfo.thickness;
+            }
+
+            const currentTierCount = cakeInfo.flavors.length;
+            const nextTierCount = nextType.includes('3 Tier') ? 3 : nextType.includes('2 Tier') ? 2 : 1;
+
+            if (currentTierCount === nextTierCount) {
+                nextCakeInfoUpdates.flavors = cakeInfo.flavors;
+            }
+        }
+
+        handleCakeInfoChange(nextCakeInfoUpdates);
+
+        const nextIcingDesign = icingDesign
+            ? { ...icingDesign, base: newBase }
+            : { ...DEFAULT_ICING_DESIGN, base: newBase };
+
+        onIcingDesignChange(nextIcingDesign);
+    }, [cakeInfo, icingDesign, handleCakeInfoChange, onIcingDesignChange]);
 
     const availability = AVAILABILITY_MAP[availabilityType];
     // Temporary state backups for modals (to discard changes on cancel)
@@ -2852,6 +2899,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         cakeMessages,
                                         mainToppers,
                                         supportElements,
+                                        basePriceOptions,
                                         markerMap,
                                         itemPrices,
                                         isAdmin,
@@ -2867,6 +2915,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         onTopperImageReplace: onTopperImageReplace,
                                         onSupportElementImageReplace: onSupportElementImageReplace,
                                         openTopperSheet,
+                                        onCakeInfoChange,
+                                        onIcingTypeChange: handleIcingTypeChange,
+                                        addOnPricing: addOnPricing?.addOnPrice ?? 0,
                                         separateIcingStep,
                                         hideStepOne,
                                         hideStepFour,
@@ -2940,6 +2991,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     cakeMessages={cakeMessages}
                                     mainToppers={mainToppers}
                                     supportElements={supportElements}
+                                    basePriceOptions={basePriceOptions}
                                     markerMap={markerMap}
                                     itemPrices={itemPrices}
                                     isAdmin={isAdmin}
@@ -2955,7 +3007,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     onTopperImageReplace={onTopperImageReplace}
                                     onSupportElementImageReplace={onSupportElementImageReplace}
                                     openTopperSheet={openTopperSheet}
+                                    onCakeInfoChange={onCakeInfoChange}
                                     onIcingTypeChange={handleIcingTypeChange}
+                                    addOnPricing={addOnPricing?.addOnPrice ?? 0}
                                     separateIcingStep={separateIcingStep}
                                     hideStepOne={hideStepOne}
                                     hideStepFour={hideStepFour}
@@ -3010,6 +3064,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 cakeMessages,
                                 mainToppers,
                                 supportElements,
+                                basePriceOptions,
                                 markerMap,
                                 itemPrices,
                                 isAdmin,
@@ -3025,6 +3080,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 onTopperImageReplace: onTopperImageReplace,
                                 onSupportElementImageReplace: onSupportElementImageReplace,
                                 openTopperSheet,
+                                onCakeInfoChange,
+                                onIcingTypeChange: handleIcingTypeChange,
+                                addOnPricing: addOnPricing?.addOnPrice ?? 0,
                                 separateIcingStep,
                                 hideStepOne,
                                 hideStepFour,
@@ -3116,7 +3174,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         isVisible={activeCustomization === 'options'}
                         cakeInfo={cakeInfo}
                         basePriceOptions={basePriceOptions}
+                        icingDesign={icingDesign}
                         onCakeInfoChange={onCakeInfoChange}
+                        onIcingBaseChange={handleIcingTypeChange}
                         isAnalyzing={isAnalyzing}
                         addOnPricing={addOnPricing?.addOnPrice ?? 0}
                     />
