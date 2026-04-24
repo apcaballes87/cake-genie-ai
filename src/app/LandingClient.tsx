@@ -1442,7 +1442,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, blogPosts = [],
             {/* ========== MAIN CONTENT ========== */}
             <main className="flex-1">
                 {/* ===== HERO SECTION ===== */}
-                <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-0 pb-2 md:pb-1 lg:pb-1">
+                <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-0 md:pt-[18px] pb-2 md:pb-1 lg:pb-1">
                     <div className="flex flex-col md:flex-row gap-8 md:gap-12 lg:gap-16 items-start">
                         {/* Mobile Hero View */}
                         {/* Mobile Hero View - Simplified */}
