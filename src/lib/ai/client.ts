@@ -16,7 +16,7 @@ export const getAI = () => {
         }
 
         const project = process.env.VERTEX_AI_PROJECT || 'project-d823a677-2d5f-4826-aaf';
-        const location = process.env.VERTEX_AI_LOCATION || 'us-central1';
+        const location = process.env.VERTEX_AI_LOCATION || 'global';
 
         const options: any = {
             vertexai: true,
