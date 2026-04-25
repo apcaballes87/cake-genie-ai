@@ -414,27 +414,51 @@ export async function POST(req: NextRequest) {
     const systemInstruction = buildImageStudioSystemInstruction();
     const aiClient = getAI(req);
 
-    const aiResponse = await aiClient.models.generateContent({
-      model: MODEL_NAME,
-      contents: [
-        {
-          role: 'user',
-          parts: [
+    // --- AI Image Editing with Retry Logic ---
+    let aiResponse;
+    const MAX_AI_RETRIES = 3;
+    
+    for (let attempt = 0; attempt <= MAX_AI_RETRIES; attempt += 1) {
+      try {
+        aiResponse = await aiClient.models.generateContent({
+          model: MODEL_NAME,
+          contents: [
             {
-              inlineData: {
-                mimeType: originalImage.mimeType,
-                data: originalImage.data,
-              },
+              role: 'user',
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: originalImage.mimeType,
+                    data: originalImage.data,
+                  },
+                },
+                { text: prompt },
+              ],
             },
-            { text: prompt },
           ],
-        },
-      ],
-      config: {
-        systemInstruction,
-        responseModalities: ['TEXT', 'IMAGE'],
-      },
-    });
+          config: {
+            systemInstruction,
+            responseModalities: ['TEXT', 'IMAGE'],
+          },
+        });
+        break; // Success, exit loop
+      } catch (error: any) {
+        const rawMessage = error instanceof Error ? error.message : String(error);
+        const isQuotaError = /RESOURCE_EXHAUSTED|quota|rate limit|429/i.test(rawMessage);
+
+        if (isQuotaError && attempt < MAX_AI_RETRIES) {
+          // Exponential backoff: 2s, 4s, 8s + random jitter
+          const backoffMs = Math.pow(2, attempt) * 2000 + Math.random() * 1000;
+          console.warn(`[AI Studio] Quota hit (429). Attempt ${attempt + 1}/${MAX_AI_RETRIES + 1}. Retrying in ${Math.round(backoffMs)}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, backoffMs));
+          continue;
+        }
+
+        // If we reach here, it's either not a quota error or we've exhausted retries
+        throw error;
+      }
+    }
+    // --- End Retry Logic ---
 
     const generatedImage = extractGeneratedImage(aiResponse);
 
