@@ -44,7 +44,7 @@ describe('/api/ai/validate', () => {
         );
         expect(generateContent).toHaveBeenNthCalledWith(
             2,
-            expect.objectContaining({ model: 'gemini-3-flash-preview' })
+            expect.objectContaining({ model: 'gemini-1.5-flash-002' })
         );
     });
 
@@ -75,7 +75,7 @@ describe('/api/ai/validate', () => {
         );
         expect(generateContent).toHaveBeenNthCalledWith(
             2,
-            expect.objectContaining({ model: 'gemini-3-flash-preview' })
+            expect.objectContaining({ model: 'gemini-1.5-flash-002' })
         );
     });
 
@@ -99,7 +99,7 @@ describe('/api/ai/validate', () => {
         await expect(response.json()).resolves.toEqual({ classification: 'valid_single_cake' });
         expect(generateContent).toHaveBeenCalledTimes(1);
         expect(generateContent).toHaveBeenCalledWith(
-            expect.objectContaining({ model: 'gemini-3-flash-preview' })
+            expect.objectContaining({ model: 'gemini-1.5-flash-002' })
         );
     });
 });

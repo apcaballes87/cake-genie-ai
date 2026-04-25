@@ -77,7 +77,7 @@ Cake Info: ${JSON.stringify(cakeInfo || {})}
 
         const aiClient = getAI();
         const response = await aiClient.models.generateContent({
-            model: "gemini-3-flash-preview",
+            model: "gemini-1.5-flash-002",
             contents: [{
                 parts: [
                     { text: prompt }
