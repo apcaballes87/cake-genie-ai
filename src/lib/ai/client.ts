@@ -8,6 +8,7 @@ export const getAI = () => {
         // Handle Vercel OIDC Token for Workload Identity Federation
         if (process.env.VERCEL_OIDC_TOKEN && typeof fs.writeFileSync === 'function') {
             try {
+                // Ensure the path exists or use a more reliable /tmp path
                 fs.writeFileSync('/tmp/vercel-oidc-token.txt', process.env.VERCEL_OIDC_TOKEN);
             } catch (e) {
                 console.error('Failed to write Vercel OIDC token:', e);
@@ -23,17 +24,29 @@ export const getAI = () => {
             location: location
         };
 
-        // Fallback for manual Service Account credentials if provided
-        const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
-        const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+        // Check for JSON credentials in environment variable (Best for Vercel)
+        const credentialsJson = process.env.GOOGLE_CREDENTIALS_JSON;
+        if (credentialsJson) {
+            try {
+                options.googleAuthOptions = {
+                    credentials: JSON.parse(credentialsJson)
+                };
+            } catch (parseError) {
+                console.error('Failed to parse GOOGLE_CREDENTIALS_JSON:', parseError);
+            }
+        } else {
+            // Fallback for manual Service Account credentials if provided (Legacy)
+            const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+            const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
-        if (clientEmail && privateKey) {
-            options.googleAuthOptions = {
-                credentials: {
-                    client_email: clientEmail,
-                    private_key: privateKey
-                }
-            };
+            if (clientEmail && privateKey) {
+                options.googleAuthOptions = {
+                    credentials: {
+                        client_email: clientEmail,
+                        private_key: privateKey
+                    }
+                };
+            }
         }
 
         try {
@@ -45,4 +58,5 @@ export const getAI = () => {
     }
     return ai;
 }
+
 
