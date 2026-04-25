@@ -15,6 +15,7 @@ async function classifyImageWithModel(
     const response = await aiClient.models.generateContent({
         model,
         contents: [{
+            role: 'user',
             parts: [
                 { inlineData: { mimeType, data: imageData } },
                 { text: VALIDATION_PROMPT }

@@ -79,6 +79,7 @@ Cake Info: ${JSON.stringify(cakeInfo || {})}
         const response = await aiClient.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: [{
+                role: 'user',
                 parts: [
                     { text: prompt }
                 ],

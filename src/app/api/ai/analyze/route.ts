@@ -173,6 +173,7 @@ export async function POST(req: NextRequest) {
         const response = await aiClient.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: [{
+                role: 'user',
                 parts: [
                     { inlineData: { mimeType, data: imageData } },
                     { text: activePrompt }

@@ -240,7 +240,12 @@ ${JSON.stringify(currentAnalysis, null, 2)}
 
         const response = await aiClient.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: [promptText],
+            contents: [
+                {
+                    role: 'user',
+                    parts: [{ text: promptText }],
+                },
+            ],
             config: {
                 systemInstruction,
                 responseMimeType: 'application/json',

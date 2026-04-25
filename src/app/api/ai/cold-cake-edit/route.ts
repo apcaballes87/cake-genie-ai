@@ -97,7 +97,7 @@ The result must look like a real professionally-made edible photo cake from a ba
         const aiClient = getAI();
         const response = await aiClient.models.generateContent({
             model: MODEL_NAME,
-            contents: [{ parts }],
+            contents: [{ role: 'user', parts }],
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
             },

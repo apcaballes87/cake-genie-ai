@@ -9,6 +9,14 @@ interface NormalizedAiRouteError {
     message: string;
 }
 
+function logAiRouteDiagnostics(details: Record<string, unknown>) {
+    if (process.env.NODE_ENV === 'test') {
+        return;
+    }
+
+    console.error('[AI Route Diagnostics]', details);
+}
+
 function getErrorStatus(error: unknown): number | undefined {
     if (error && typeof error === 'object' && 'status' in error) {
         const status = Number((error as { status?: unknown }).status);
@@ -50,15 +58,27 @@ export function normalizeAiRouteError(
     const status = getErrorStatus(error);
     const rawMessage = getErrorMessage(error).trim();
     const safeMessage = rawMessage && rawMessage !== '[object Object]' ? rawMessage : defaultMessage;
+    const providerError = getProviderError(rawMessage);
+    const quotaLike = status === 429 || isQuotaErrorMessage(safeMessage);
+    const authLike = status === 401 || status === 403 || isAuthorizationErrorMessage(safeMessage);
 
-    if (status === 429 || isQuotaErrorMessage(safeMessage)) {
+    logAiRouteDiagnostics({
+        rawStatus: status,
+        normalizedHint: quotaLike ? 'quota' : authLike ? 'auth' : 'other',
+        providerCode: providerError?.code,
+        providerStatus: providerError?.status,
+        providerMessage: providerError?.message,
+        rawMessage: safeMessage,
+    });
+
+    if (quotaLike) {
         return {
             status: 429,
             message: quotaMessage,
         };
     }
 
-    if (status === 401 || status === 403 || isAuthorizationErrorMessage(safeMessage)) {
+    if (authLike) {
         return {
             status: status === 401 ? 401 : 403,
             message: authorizationMessage ?? 'AI service is not authorized. Please check the AI provider configuration and try again.',

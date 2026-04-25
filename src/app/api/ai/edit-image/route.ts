@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
         });
         const response = await aiClient.models.generateContent({
             model: MODEL_NAME,
-            contents: [{ parts }],
+            contents: [{ role: 'user', parts }],
             config: {
                 systemInstruction: systemInstruction,
                 responseModalities: ['TEXT', 'IMAGE'],

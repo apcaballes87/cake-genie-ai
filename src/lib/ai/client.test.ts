@@ -191,4 +191,29 @@ describe('getAI', () => {
 
         consoleError.mockRestore();
     });
+
+    it('reports diagnostics for local API key fallback mode', async () => {
+        GoogleGenAI.mockImplementation(function GoogleGenAIMock() {
+            return { models: {} } as never;
+        });
+
+        vi.stubEnv('NODE_ENV', 'development');
+        vi.stubEnv('GOOGLE_AI_API_KEY', 'local-api-key');
+
+        const { getAI, getAIClientDiagnostics } = await import('./client');
+
+        getAI();
+
+        expect(getAIClientDiagnostics()).toEqual(
+            expect.objectContaining({
+                initialized: true,
+                mode: 'apiKey-fallback',
+                hasApiKey: true,
+                hasWifCredentials: false,
+                willUseApiKeyFallback: true,
+                shouldFallbackFromIncompleteWif: false,
+                nodeEnv: 'development',
+            })
+        );
+    });
 });

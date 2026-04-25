@@ -418,6 +418,7 @@ export async function POST(req: NextRequest) {
       model: MODEL_NAME,
       contents: [
         {
+          role: 'user',
           parts: [
             {
               inlineData: {
