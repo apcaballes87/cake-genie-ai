@@ -194,10 +194,11 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                     center: cebuCityCenter,
                     radius: 15000, // 15km
                 });
+                const cebuBounds = cebuCircle.getBounds() ?? undefined;
 
                 const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
                     componentRestrictions: { country: 'ph' },
-                    bounds: cebuCircle.getBounds(),
+                    bounds: cebuBounds,
                     strictBounds: true,
                 });
 
