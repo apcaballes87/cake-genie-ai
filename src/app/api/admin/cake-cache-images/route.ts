@@ -412,7 +412,7 @@ export async function POST(req: NextRequest) {
     const originalImage = await fetchImageAsInlineData(cacheRow.original_image_url);
     const prompt = buildImageStudioPrompt();
     const systemInstruction = buildImageStudioSystemInstruction();
-    const aiClient = getAI();
+    const aiClient = getAI(req);
 
     const aiResponse = await aiClient.models.generateContent({
       model: MODEL_NAME,

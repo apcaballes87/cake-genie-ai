@@ -3,6 +3,11 @@ import fs from 'fs';
 
 let ai: InstanceType<typeof GoogleGenAI> | null = null;
 type AIClientMode = 'vertex' | 'apiKey-fallback' | 'service-account-key';
+type AIRequestContext = {
+    headers?: {
+        get(name: string): string | null | undefined;
+    };
+} | null | undefined;
 
 type AIClientConfigState = {
     project: string;
@@ -11,6 +16,7 @@ type AIClientConfigState = {
     parsedCredentials: Record<string, any> | null;
     hasLegacyServiceAccount: boolean;
     oidcTokenPath: string | null;
+    runtimeOidcToken: string | null;
     hasOidcTokenSource: boolean;
     shouldFallbackFromIncompleteWif: boolean;
     useApiKeyFallback: boolean;
@@ -27,19 +33,23 @@ function logAIClientInitialization(details: Record<string, unknown>) {
     console.info('[AI Client] Initialized', details);
 }
 
-function writeVercelOidcToken() {
-    if (!process.env.VERCEL_OIDC_TOKEN || typeof fs.writeFileSync !== 'function') {
+function getRuntimeOidcToken(requestContext?: AIRequestContext) {
+    return requestContext?.headers?.get('x-vercel-oidc-token') ?? null;
+}
+
+function writeVercelOidcToken(token: string | null, oidcTokenPath: string | null) {
+    if (!token || typeof fs.writeFileSync !== 'function') {
         return;
     }
 
     try {
-        fs.writeFileSync('/tmp/vercel-oidc-token.txt', process.env.VERCEL_OIDC_TOKEN);
+        fs.writeFileSync(oidcTokenPath || '/tmp/vercel-oidc-token.txt', token);
     } catch (e) {
         console.error('Failed to write Vercel OIDC token:', e);
     }
 }
 
-function getAIClientConfigState(): AIClientConfigState {
+function getAIClientConfigState(requestContext?: AIRequestContext): AIClientConfigState {
     const project = process.env.VERTEX_AI_PROJECT || 'project-d823a677-2d5f-4826-aaf';
     const location = process.env.VERTEX_AI_LOCATION || 'global';
     const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY;
@@ -48,6 +58,7 @@ function getAIClientConfigState(): AIClientConfigState {
     const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
     const hasLegacyServiceAccount = Boolean(clientEmail && privateKey);
     const isDevelopment = process.env.NODE_ENV !== 'production';
+    const runtimeOidcToken = getRuntimeOidcToken(requestContext) || process.env.VERCEL_OIDC_TOKEN || null;
     let parsedCredentials: Record<string, any> | null = null;
 
     if (credentialsJson) {
@@ -65,7 +76,7 @@ function getAIClientConfigState(): AIClientConfigState {
     const needsOidcTokenFile =
         parsedCredentials?.type === 'external_account' && Boolean(oidcTokenPath);
     const hasOidcTokenSource =
-        Boolean(process.env.VERCEL_OIDC_TOKEN) ||
+        Boolean(runtimeOidcToken) ||
         Boolean(oidcTokenPath && typeof fs.existsSync === 'function' && fs.existsSync(oidcTokenPath));
     const shouldFallbackFromIncompleteWif =
         Boolean(apiKey) && needsOidcTokenFile && !hasOidcTokenSource;
@@ -87,6 +98,7 @@ function getAIClientConfigState(): AIClientConfigState {
         parsedCredentials,
         hasLegacyServiceAccount,
         oidcTokenPath,
+        runtimeOidcToken,
         hasOidcTokenSource,
         shouldFallbackFromIncompleteWif,
         useApiKeyFallback,
@@ -94,13 +106,13 @@ function getAIClientConfigState(): AIClientConfigState {
     };
 }
 
-export const getAI = () => {
+export const getAI = (requestContext?: AIRequestContext) => {
+    const state = getAIClientConfigState(requestContext);
     // Refresh the short-lived OIDC token on every call so warm serverless instances
     // do not keep using an expired token file after the first initialization.
-    writeVercelOidcToken();
+    writeVercelOidcToken(state.runtimeOidcToken, state.oidcTokenPath);
 
     if (!ai) {
-        const state = getAIClientConfigState();
         aiClientMode = state.mode;
 
         const options: any = state.useApiKeyFallback
@@ -147,6 +159,7 @@ export const getAI = () => {
             hasLegacyServiceAccount: state.hasLegacyServiceAccount,
             usedApiKeyFallback: state.useApiKeyFallback,
             wifTokenPath: state.oidcTokenPath,
+            hasRuntimeOidcToken: Boolean(state.runtimeOidcToken),
             hasOidcTokenSource: state.hasOidcTokenSource,
         });
 
@@ -164,8 +177,8 @@ export function getAIClientMode() {
     return aiClientMode;
 }
 
-export function getAIClientDiagnostics() {
-    const state = getAIClientConfigState();
+export function getAIClientDiagnostics(requestContext?: AIRequestContext) {
+    const state = getAIClientConfigState(requestContext);
 
     return {
         initialized: Boolean(ai),
@@ -175,7 +188,7 @@ export function getAIClientDiagnostics() {
         hasApiKey: Boolean(state.apiKey),
         hasWifCredentials: Boolean(state.parsedCredentials),
         hasLegacyServiceAccount: state.hasLegacyServiceAccount,
-        hasVercelOidcToken: Boolean(process.env.VERCEL_OIDC_TOKEN),
+        hasVercelOidcToken: Boolean(state.runtimeOidcToken),
         wifTokenPath: state.oidcTokenPath,
         hasOidcTokenSource: state.hasOidcTokenSource,
         willUseApiKeyFallback: state.useApiKeyFallback,

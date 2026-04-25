@@ -7,11 +7,12 @@ import { normalizeAiRouteError } from '@/lib/ai/routeError';
 export const maxDuration = 60; // Allow up to 60 seconds for AI processing
 
 async function classifyImageWithModel(
+    req: NextRequest,
     imageData: string,
     mimeType: string,
     model: string
 ) {
-    const aiClient = getAI();
+    const aiClient = getAI(req);
     const response = await aiClient.models.generateContent({
         model,
         contents: [{
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
 
         let result;
         try {
-            result = await classifyImageWithModel(imageData, mimeType, primaryModel);
+            result = await classifyImageWithModel(req, imageData, mimeType, primaryModel);
         } catch (primaryError) {
             const normalizedPrimaryError = normalizeAiRouteError(primaryError, {
                 defaultMessage: 'Failed to validate image',
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
                     `Chat validation failed with ${primaryModel}. Retrying with ${fallbackModel}.`,
                     primaryError
                 );
-                result = await classifyImageWithModel(imageData, mimeType, fallbackModel);
+                result = await classifyImageWithModel(req, imageData, mimeType, fallbackModel);
             } else {
                 throw primaryError;
             }

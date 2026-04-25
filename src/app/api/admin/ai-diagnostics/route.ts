@@ -18,13 +18,13 @@ export async function GET(req: NextRequest) {
   let initializationError: string | null = null;
 
   try {
-    getAI();
+    getAI(req);
   } catch (error) {
     initializationError = error instanceof Error ? error.message : String(error);
   }
 
   return NextResponse.json({
-    diagnostics: getAIClientDiagnostics(),
+    diagnostics: getAIClientDiagnostics(req),
     initializationError,
   });
 }

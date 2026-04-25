@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
             required: ['cakeType', 'cakeThickness', 'alt_text', 'seo_title', 'seo_description', 'rejection'],
         };
 
-        const aiClient = getAI();
+        const aiClient = getAI(req);
         const response = await aiClient.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: [{

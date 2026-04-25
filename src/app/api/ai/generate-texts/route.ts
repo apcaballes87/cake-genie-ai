@@ -75,7 +75,7 @@ Analysis Result: ${JSON.stringify(analysisResult)}
 Cake Info: ${JSON.stringify(cakeInfo || {})}
 `;
 
-        const aiClient = getAI();
+        const aiClient = getAI(req);
         const response = await aiClient.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: [{

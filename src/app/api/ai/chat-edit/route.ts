@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
         const supabase = createClient();
         const typeEnums = await getDynamicTypeEnums(supabase);
 
-        const aiClient = getAI();
+        const aiClient = getAI(req);
 
         const hybridAnalysisResponseSchema = {
             type: Type.OBJECT,

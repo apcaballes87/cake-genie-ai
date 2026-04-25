@@ -94,7 +94,7 @@ The result must look like a real professionally-made edible photo cake from a ba
             },
         ];
 
-        const aiClient = getAI();
+        const aiClient = getAI(req);
         const response = await aiClient.models.generateContent({
             model: MODEL_NAME,
             contents: [{ role: 'user', parts }],

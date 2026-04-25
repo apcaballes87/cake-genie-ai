@@ -296,7 +296,7 @@ export async function POST(req: NextRequest) {
 
         const base64Image = webpBuffer.toString('base64');
 
-        const aiClient = getAI();
+        const aiClient = getAI(req);
         const response = await aiClient.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: [{

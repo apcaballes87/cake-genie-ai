@@ -57,6 +57,45 @@ describe('getAI', () => {
         });
     });
 
+    it('initializes Vertex AI with the runtime OIDC header in Vercel Functions', async () => {
+        const credentials = {
+            type: 'external_account',
+            credential_source: {
+                file: '/tmp/vercel-oidc-token.txt',
+            },
+        };
+
+        const clientInstance = { models: {} };
+
+        GoogleGenAI.mockImplementation(function GoogleGenAIMock() {
+            return clientInstance as never;
+        });
+
+        vi.stubEnv('GOOGLE_CREDENTIALS_JSON', JSON.stringify(credentials));
+        vi.stubEnv('VERTEX_AI_PROJECT', 'genieph-prod');
+
+        const { getAI, getAIClientDiagnostics } = await import('./client');
+        const requestContext = {
+            headers: {
+                get(name: string) {
+                    return name === 'x-vercel-oidc-token' ? 'runtime-oidc-token' : null;
+                },
+            },
+        };
+
+        expect(getAI(requestContext)).toBe(clientInstance);
+        expect(writeFileSync).toHaveBeenCalledWith('/tmp/vercel-oidc-token.txt', 'runtime-oidc-token');
+        expect(getAIClientDiagnostics(requestContext)).toEqual(
+            expect.objectContaining({
+                mode: 'vertex',
+                hasVercelOidcToken: true,
+                hasOidcTokenSource: true,
+                hasWifCredentials: true,
+                willUseApiKeyFallback: false,
+            })
+        );
+    });
+
     it('defaults preview traffic to the global Vertex location', async () => {
         GoogleGenAI.mockImplementation(function GoogleGenAIMock() {
             return { models: {} } as never;

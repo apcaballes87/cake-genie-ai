@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
         // Add the main edit prompt
         parts.push({ text: prompt });
 
-        const aiClient = getAI();
+        const aiClient = getAI(req);
         // Use Gemini 3.1 Flash Image Preview for image editing experiments.
         console.log(`[AI TRACE ${traceId}] /api/ai/edit-image:calling-model`, {
             requestSource,
