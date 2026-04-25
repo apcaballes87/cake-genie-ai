@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
 
         const aiClient = getAI();
         const response = await aiClient.models.generateContent({
-            model: "gemini-1.5-flash-002",
+            model: "gemini-3-flash-preview",
             contents: [{
                 parts: [
                     { inlineData: { mimeType, data: imageData } },
