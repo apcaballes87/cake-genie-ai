@@ -139,6 +139,7 @@ export default function SearchAnalysisAdminPage() {
     const cseElementRef = useRef<GoogleCSEElement | null>(null);
     const imageQueueRef = useRef<string[]>([]);
     const processedUrlsRef = useRef<Set<string>>(new Set());
+    const seenPHashesRef = useRef<Set<string>>(new Set());
     const logsEndRef = useRef<HTMLDivElement>(null);
 
     const addLog = useCallback((msg: string) => {
@@ -175,6 +176,9 @@ export default function SearchAnalysisAdminPage() {
         setCurrentPage(1);
         currentPageRef.current = 1;
         isAutoModeRef.current = false;
+        imageQueueRef.current = [];
+        processedUrlsRef.current = new Set();
+        seenPHashesRef.current = new Set();
         addLog(`Searching for: "${searchInput.trim()}"`);
     };
 
@@ -489,24 +493,18 @@ export default function SearchAnalysisAdminPage() {
                 );
 
                 const imageData = await fileToBase64(normalizedFile);
-                const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
-                const pHash = await generatePerceptualHash(imageSrc);
+                const sourceFile = new File([blob], 'search-image-source', { type: blob.type || 'image/jpeg' });
+                const sourceImageData = await fileToBase64(sourceFile);
+                const sourceImageSrc = `data:${sourceImageData.mimeType};base64,${sourceImageData.data}`;
+                const pHash = await generatePerceptualHash(sourceImageSrc);
 
-                // --- GATE 1: FAST VALIDATION ---
-                addLog(`[${i + 1}/${currentQueueLength}] Running validation gate...`);
-                const validationResponse = await fetch('/api/ai/validate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ imageData: imageData.data, mimeType: imageData.mimeType })
-                });
-
-                if (!validationResponse.ok) {
-                    const validationErrorText = (await validationResponse.text()).trim();
-                    throw new Error(
-                        `Validation API error: ${validationResponse.status}${validationErrorText ? ` ${validationErrorText}` : ''}`
-                    );
+                if (seenPHashesRef.current.has(pHash)) {
+                    addLog(`[${i + 1}/${currentQueueLength}] Duplicate pHash in current run — skipped.`);
+                    skipped++;
+                    done++;
+                    continue;
                 }
-                const validationResult = await validationResponse.json();
+                seenPHashesRef.current.add(pHash);
 
                 const rejectionMessages: Record<string, string> = {
                     edible_photo_reference: "Edible photo reference",
@@ -519,20 +517,44 @@ export default function SearchAnalysisAdminPage() {
                     large_wedding_cake: "Large wedding cake",
                 };
 
-                if (validationResult.classification !== 'valid_single_cake') {
-                    const reason = rejectionMessages[validationResult.classification] || validationResult.classification;
-                    addLog(`[${i + 1}/${currentQueueLength}] 🚫 REJECTED (Validation): ${reason}`);
-                    skipped++;
-                    done++;
-                    continue;
-                }
-
-                // --- GATE 2: CACHE CHECK & SEMANTIC ANALYSIS ---
+                // --- GATE 1: CACHE CHECK ---
                 const cached = await findSimilarAnalysisByHash(pHash, targetImageUrl);
                 if (cached) {
                     addLog(`[${i + 1}/${currentQueueLength}] Already in cache — skipped.`);
                     skipped++;
                 } else {
+                    // --- GATE 2: FAST VALIDATION ---
+                    addLog(`[${i + 1}/${currentQueueLength}] Running validation gate...`);
+                    let validationResult: { classification?: string } | null = null;
+
+                    try {
+                        const validationResponse = await fetch('/api/ai/validate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ imageData: imageData.data, mimeType: imageData.mimeType })
+                        });
+
+                        if (!validationResponse.ok) {
+                            const validationErrorText = (await validationResponse.text()).trim();
+                            addLog(
+                                `[${i + 1}/${currentQueueLength}] Validation unavailable (${validationResponse.status}). Continuing with analysis fallback.${validationErrorText ? ` ${validationErrorText}` : ''}`
+                            );
+                        } else {
+                            validationResult = await validationResponse.json();
+                        }
+                    } catch (validationError) {
+                        const message = validationError instanceof Error ? validationError.message : 'Unknown validation error';
+                        addLog(`[${i + 1}/${currentQueueLength}] Validation skipped due to error: ${message}`);
+                    }
+
+                    if (validationResult?.classification && validationResult.classification !== 'valid_single_cake') {
+                        const reason = rejectionMessages[validationResult.classification] || validationResult.classification;
+                        addLog(`[${i + 1}/${currentQueueLength}] 🚫 REJECTED (Validation): ${reason}`);
+                        skipped++;
+                        done++;
+                        continue;
+                    }
+
                     // 4. AI Analysis
                     const aiResponse = await fetch('/api/ai/analyze', {
                         method: 'POST',
