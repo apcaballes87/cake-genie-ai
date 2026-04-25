@@ -49,12 +49,11 @@ export const getAI = () => {
             Boolean(process.env.VERCEL_OIDC_TOKEN) ||
             Boolean(oidcTokenPath && typeof fs.existsSync === 'function' && fs.existsSync(oidcTokenPath));
         const shouldFallbackFromIncompleteWif =
-            isDevelopment && Boolean(apiKey) && needsOidcTokenFile && !hasOidcTokenSource;
+            Boolean(apiKey) && needsOidcTokenFile && !hasOidcTokenSource;
         const useApiKeyFallback =
             Boolean(apiKey) &&
-            isDevelopment &&
             !hasLegacyServiceAccount &&
-            (!parsedCredentials || shouldFallbackFromIncompleteWif);
+            ((isDevelopment && !parsedCredentials) || shouldFallbackFromIncompleteWif);
 
         const options: any = useApiKeyFallback
             ? { apiKey }
@@ -67,7 +66,7 @@ export const getAI = () => {
         if (useApiKeyFallback) {
             if (shouldFallbackFromIncompleteWif && oidcTokenPath) {
                 console.warn(
-                    `Falling back to GOOGLE_AI_API_KEY for local development because the WIF subject token file is unavailable at ${oidcTokenPath}.`
+                    `Falling back to GOOGLE_AI_API_KEY because the WIF subject token file is unavailable at ${oidcTokenPath}.`
                 );
             } else {
                 console.warn('Using GOOGLE_AI_API_KEY fallback for local development. Production should use Vertex AI with Workload Identity Federation.');

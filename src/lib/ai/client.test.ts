@@ -107,7 +107,7 @@ describe('getAI', () => {
         consoleWarn.mockRestore();
     });
 
-    it('falls back to GOOGLE_AI_API_KEY for local development when WIF credentials exist but no OIDC token source is available', async () => {
+    it('falls back to GOOGLE_AI_API_KEY when WIF credentials exist but no OIDC token source is available', async () => {
         const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const clientInstance = { models: {} };
 
@@ -115,7 +115,7 @@ describe('getAI', () => {
             return clientInstance as never;
         });
 
-        vi.stubEnv('NODE_ENV', 'development');
+        vi.stubEnv('NODE_ENV', 'production');
         vi.stubEnv('GOOGLE_AI_API_KEY', 'local-api-key');
         vi.stubEnv(
             'GOOGLE_CREDENTIALS_JSON',
@@ -132,7 +132,7 @@ describe('getAI', () => {
         expect(getAI()).toBe(clientInstance);
         expect(GoogleGenAI).toHaveBeenCalledWith({ apiKey: 'local-api-key' });
         expect(consoleWarn).toHaveBeenCalledWith(
-            'Falling back to GOOGLE_AI_API_KEY for local development because the WIF subject token file is unavailable at /tmp/vercel-oidc-token.txt.'
+            'Falling back to GOOGLE_AI_API_KEY because the WIF subject token file is unavailable at /tmp/vercel-oidc-token.txt.'
         );
 
         consoleWarn.mockRestore();
