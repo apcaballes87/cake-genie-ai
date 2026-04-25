@@ -11,7 +11,7 @@ declare global {
       parsetags: string;
       callback: () => void;
     };
-    google?: GoogleCSE | any;
+    google?: GoogleCSE;
   }
 }
 

@@ -5,6 +5,7 @@ import { Search, Play, Pause, Square, CheckCircle2, LogOut } from 'lucide-react'
 import { toast } from 'react-hot-toast';
 import { cacheAnalysisResult, findSimilarAnalysisByHash } from '@/services/supabaseService';
 import { fileToBase64 } from '@/services/geminiService';
+import type { GoogleCSE, GoogleCSEElement } from '@/types';
 
 const ADMIN_PIN = '231323';
 const CSE_CONTAINER_ID = 'admin-search-container';
@@ -17,7 +18,7 @@ declare global {
             parsetags: string;
             callback: () => void;
         };
-        google?: any;
+        google?: GoogleCSE;
     }
 }
 
@@ -64,6 +65,57 @@ async function generatePerceptualHash(imageSrc: string): Promise<string> {
     });
 }
 
+function loadImageFromObjectUrl(objectUrl: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Failed to load image for AI normalization.'));
+        img.src = objectUrl;
+    });
+}
+
+async function normalizeImageForAi(blob: Blob): Promise<File> {
+    const objectUrl = URL.createObjectURL(blob);
+
+    try {
+        const img = await loadImageFromObjectUrl(objectUrl);
+        const maxDimension = 1600;
+        const largestDimension = Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height);
+        const scale = largestDimension > maxDimension ? maxDimension / largestDimension : 1;
+        const width = Math.max(1, Math.round((img.naturalWidth || img.width) * scale));
+        const height = Math.max(1, Math.round((img.naturalHeight || img.height) * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Could not get canvas context for AI normalization.');
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const normalizedBlob = await new Promise<Blob>((resolve, reject) => {
+            canvas.toBlob(
+                (result) => {
+                    if (result) {
+                        resolve(result);
+                    } else {
+                        reject(new Error('Failed to convert image for AI.'));
+                    }
+                },
+                'image/jpeg',
+                0.86
+            );
+        });
+
+        return new File([normalizedBlob], 'search-image.jpg', { type: 'image/jpeg' });
+    } finally {
+        URL.revokeObjectURL(objectUrl);
+    }
+}
+
 function delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -84,11 +136,9 @@ export default function SearchAnalysisAdminPage() {
     // Refs for process control
     const isPausedRef = useRef(false);
     const isStoppedRef = useRef(false);
-    const cseElementRef = useRef<any>(null);
+    const cseElementRef = useRef<GoogleCSEElement | null>(null);
     const imageQueueRef = useRef<string[]>([]);
-    const thumbnailMapRef = useRef<Map<string, string>>(new Map()); // Maps original URL to gstatic thumbnail
     const processedUrlsRef = useRef<Set<string>>(new Set());
-    const containerObserverRef = useRef<MutationObserver | null>(null);
     const logsEndRef = useRef<HTMLDivElement>(null);
 
     const addLog = useCallback((msg: string) => {
@@ -148,32 +198,6 @@ export default function SearchAnalysisAdminPage() {
             addLog('Stopping process...');
         }
     };
-
-    // Get the gstatic thumbnail URL (for fallback when original fails)
-    const getGstaticThumbnail = useCallback((): string | null => {
-        const container = document.getElementById(CSE_CONTAINER_ID);
-        if (!container) return null;
-
-        // Look for gstatic thumbnail in links
-        const links = container.querySelectorAll('a[href*="gstatic.com"]');
-        for (const link of Array.from(links)) {
-            const href = (link as HTMLAnchorElement).href;
-            if (href && href.includes('gstatic.com')) {
-                return href;
-            }
-        }
-
-        // Check img elements for gstatic
-        const images = container.querySelectorAll('img');
-        for (const img of Array.from(images)) {
-            const htmlImg = img as HTMLImageElement;
-            if (htmlImg.src.includes('gstatic.com')) {
-                return htmlImg.src;
-            }
-        }
-
-        return null;
-    }, []);
 
     // Highlight current image in CSE grid
 
@@ -322,10 +346,10 @@ export default function SearchAnalysisAdminPage() {
                         try {
                             clickTarget.focus?.();
                             clickTarget.click();
-                        } catch (e) {
+                        } catch {
                             try {
                                 clickTarget.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-                            } catch (err) { }
+                            } catch { }
                         }
                     }
 
@@ -425,8 +449,9 @@ export default function SearchAnalysisAdminPage() {
                     }
                     await delay(500); // Wait for modal to close
                 }
-            } catch (err: any) {
-                addLog(`[${i + 1}/${currentQueueLength}] Modal interaction failed: ${err.message}`);
+            } catch (err) {
+                const modalErrorMessage = err instanceof Error ? err.message : 'Unknown modal error';
+                addLog(`[${i + 1}/${currentQueueLength}] Modal interaction failed: ${modalErrorMessage}`);
             }
 
             try {
@@ -458,8 +483,12 @@ export default function SearchAnalysisAdminPage() {
                     }
                 }
 
-                const file = new File([blob], 'search-image.webp', { type: blob.type });
-                const imageData = await fileToBase64(file);
+                const normalizedFile = await normalizeImageForAi(blob);
+                addLog(
+                    `[${i + 1}/${currentQueueLength}] Normalized ${blob.type || 'unknown'} to ${normalizedFile.type} (${(normalizedFile.size / 1024 / 1024).toFixed(2)} MB).`
+                );
+
+                const imageData = await fileToBase64(normalizedFile);
                 const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
                 const pHash = await generatePerceptualHash(imageSrc);
 
@@ -471,7 +500,12 @@ export default function SearchAnalysisAdminPage() {
                     body: JSON.stringify({ imageData: imageData.data, mimeType: imageData.mimeType })
                 });
 
-                if (!validationResponse.ok) throw new Error(`Validation API error: ${validationResponse.status}`);
+                if (!validationResponse.ok) {
+                    const validationErrorText = (await validationResponse.text()).trim();
+                    throw new Error(
+                        `Validation API error: ${validationResponse.status}${validationErrorText ? ` ${validationErrorText}` : ''}`
+                    );
+                }
                 const validationResult = await validationResponse.json();
 
                 const rejectionMessages: Record<string, string> = {
@@ -506,7 +540,12 @@ export default function SearchAnalysisAdminPage() {
                         body: JSON.stringify({ imageData: imageData.data, mimeType: imageData.mimeType })
                     });
 
-                    if (!aiResponse.ok) throw new Error(`AI error: ${await aiResponse.text()}`);
+                    if (!aiResponse.ok) {
+                        const aiErrorText = (await aiResponse.text()).trim();
+                        throw new Error(
+                            `AI error: ${aiResponse.status}${aiErrorText ? ` ${aiErrorText}` : ''}`
+                        );
+                    }
                     const analysisResult = await aiResponse.json();
 
                     // Check for rejection (e.g., if it's not a cake)
@@ -598,7 +637,11 @@ export default function SearchAnalysisAdminPage() {
             isAutoModeRef.current = false;
         }
 
-        errors === 0 ? toast.success('Analysis complete!') : toast.error(`Completed with ${errors} errors.`);
+        if (errors === 0) {
+            toast.success('Analysis complete!');
+        } else {
+            toast.error(`Completed with ${errors} errors.`);
+        }
     };
 
     // Load Google CSE script on mount
