@@ -25,6 +25,11 @@ import { batchSaveToLocalStorage } from '@/contexts/CartContext';
 import { COMMON_ASSETS } from '@/constants';
 import { trackImageUpload } from '@/lib/analytics';
 import {
+    DEFAULT_LANDING_HERO_CONTENT,
+    type LandingHeroContent,
+    type LandingHeroProduct,
+} from '@/components/landing/landingHeroContent';
+import {
     Search,
     ShoppingBag,
     Home,
@@ -56,62 +61,10 @@ interface LandingClientProps {
     children?: React.ReactNode;
     blogPosts?: BlogHomepagePreview[];
     reviews?: CakeGenieReview[];
+    heroContent?: LandingHeroContent;
 }
 
-const HERO_HEADLINE_VARIANTS = [
-    'Custom Cakes',
-    'Minimalist Cakes',
-    'Vintage Cakes',
-    'Floral Cakes',
-    'Photo Cakes',
-    'Bento Cakes',
-    'Doodle Cakes',
-] as const;
-const HERO_HEADLINE_A11Y_LABEL = 'Custom Cakes, Minimalist Cakes, Vintage Cakes, Floral Cakes, Photo Cakes, Bento Cakes, and Doodle Cakes.';
-const HERO_PRODUCTS = [
-    {
-        title: 'Minimalist Cakes',
-        price: 999,
-        size: '6" Round 3" Height',
-        image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-minimalist-cake.webp',
-        headlineVariant: 1,
-    },
-    {
-        title: 'Vintage Cakes',
-        price: 1199,
-        size: '6" Round 4" Height',
-        image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-vintage-cake.webp',
-        headlineVariant: 2,
-    },
-    {
-        title: 'Doodle Cakes',
-        price: 999,
-        size: '6" Round 3" Height',
-        image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-doodle-cake.webp',
-        headlineVariant: 6,
-    },
-    {
-        title: 'Edible Photo Cakes',
-        price: 1099,
-        size: '6" Round 3" Height',
-        image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-edible-photo-cake.webp',
-        headlineVariant: 4,
-    },
-    {
-        title: 'Floral Cakes',
-        price: 1199,
-        size: '6" Round 4" Height',
-        image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-floral-cake.webp',
-        headlineVariant: 3,
-    },
-    {
-        title: 'Bento Cakes',
-        price: 499,
-        size: '4" Round 2" Height',
-        image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-bento-cake.webp',
-        headlineVariant: 5,
-    },
-] as const;
+const LANDING_PRIMARY_CTA_RADIUS = 'rounded-[1.35rem]';
 
 const getHeroAvailabilityConfig = (title: string, isDesktop: boolean = false) => {
     const isRush = ['Bento Cakes', 'Minimalist Cakes', 'Doodle Cakes'].includes(title);
@@ -144,7 +97,17 @@ type HeroAnalysisSummary = {
     slug: string | null;
 };
 
-const HeroTypingHeadlineLine: React.FC<{ className?: string; controlledPhraseIndex?: number }> = ({ className = '', controlledPhraseIndex }) => {
+const HeroTypingHeadlineLine: React.FC<{
+    className?: string;
+    controlledPhraseIndex?: number;
+    phrases?: readonly string[];
+    a11yLabel?: string;
+}> = ({
+    className = '',
+    controlledPhraseIndex,
+    phrases = DEFAULT_LANDING_HERO_CONTENT.headlineVariants,
+    a11yLabel,
+}) => {
     const [phraseIndex, setPhraseIndex] = useState(controlledPhraseIndex ?? 0);
     const [displayText, setDisplayText] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
@@ -162,7 +125,7 @@ const HeroTypingHeadlineLine: React.FC<{ className?: string; controlledPhraseInd
     }, [controlledPhraseIndex]);
 
     useEffect(() => {
-        const currentPhrase = HERO_HEADLINE_VARIANTS[phraseIndex];
+        const currentPhrase = phrases[phraseIndex] ?? phrases[0] ?? '';
         let timeoutId: ReturnType<typeof setTimeout>;
 
         if (!isDeleting && displayText === currentPhrase) {
@@ -178,7 +141,7 @@ const HeroTypingHeadlineLine: React.FC<{ className?: string; controlledPhraseInd
                     pendingIndexRef.current = null;
                 } else if (controlledPhraseIndex === undefined) {
                     // Free-running auto-cycle
-                    setPhraseIndex((currentIndex) => (currentIndex + 1) % HERO_HEADLINE_VARIANTS.length);
+                    setPhraseIndex((currentIndex) => (currentIndex + 1) % phrases.length);
                 }
             }, 150);
         } else {
@@ -189,10 +152,10 @@ const HeroTypingHeadlineLine: React.FC<{ className?: string; controlledPhraseInd
         }
 
         return () => clearTimeout(timeoutId);
-    }, [displayText, isDeleting, phraseIndex, controlledPhraseIndex]);
+    }, [displayText, isDeleting, phraseIndex, controlledPhraseIndex, phrases]);
 
     return (
-        <span className={className} aria-label={HERO_HEADLINE_A11Y_LABEL}>
+        <span className={className} aria-label={a11yLabel ?? phrases.join(', ')}>
             <span aria-hidden="true" className="italic">{displayText}</span>
             <span
                 aria-hidden="true"
@@ -203,12 +166,14 @@ const HeroTypingHeadlineLine: React.FC<{ className?: string; controlledPhraseInd
 };
 
 function HeroProductPeekCarousel({
+    products,
     heroProductIndex,
     onSelectProduct,
     onInteraction,
     cardSpacingClassName = 'mx-1',
     cardFlexStyle = '0 0 min(calc(50% - 8px), 232px)',
 }: {
+    products: readonly LandingHeroProduct[];
     heroProductIndex: number;
     onSelectProduct: (index: number) => void;
     onInteraction?: () => void;
@@ -273,7 +238,7 @@ function HeroProductPeekCarousel({
         <div className="relative aspect-[3/2] w-full overflow-hidden bg-transparent">
             <div ref={emblaRef} className="h-full overflow-hidden cursor-grab active:cursor-grabbing">
                 <div className="flex h-full touch-pan-y">
-                    {HERO_PRODUCTS.map((product, productIndex) => {
+                    {products.map((product, productIndex) => {
                         const isCenter = productIndex === heroProductIndex;
 
                         return (
@@ -303,12 +268,12 @@ function HeroProductPeekCarousel({
                 </div>
             </div>
             <div className="absolute bottom-3 left-0 right-0 z-30 flex justify-center gap-1.5">
-                {HERO_PRODUCTS.map((_, i) => (
+                {products.map((_, i) => (
                     <button
                         key={i}
                         type="button"
                         onClick={() => handleProductClick(i)}
-                        aria-label={`View ${HERO_PRODUCTS[i].title}`}
+                        aria-label={`View ${products[i].title}`}
                         className={`h-1.5 rounded-full transition-all duration-300 ${i === heroProductIndex ? 'w-5 bg-white shadow-sm' : 'w-1.5 bg-white/55 hover:bg-white/80'
                             }`}
                     />
@@ -319,6 +284,7 @@ function HeroProductPeekCarousel({
 }
 
 function HeroProductPreviewStack({
+    products,
     heroProductIndex,
     heroUploadState,
     heroUploadedImageSrc,
@@ -333,6 +299,7 @@ function HeroProductPreviewStack({
     onResetUpload,
     onResultAction,
 }: {
+    products: readonly LandingHeroProduct[];
     heroProductIndex: number;
     heroUploadState: HeroUploadState;
     heroUploadedImageSrc: string | null;
@@ -353,6 +320,7 @@ function HeroProductPreviewStack({
                 <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px] min-[505px]:[mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] min-[505px]:[-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
                     <div className="overflow-hidden bg-transparent">
                         <HeroProductPeekCarousel 
+                            products={products}
                             heroProductIndex={heroProductIndex} 
                             onSelectProduct={onSelectProduct} 
                             onInteraction={onInteraction}
@@ -379,7 +347,7 @@ function HeroProductPreviewStack({
                 <div className="mx-auto w-full max-w-[480px] mt-2 mb-1">
                     <button
                         onClick={onOpenUploader}
-                        className="genie-btn-primary flex w-full items-center justify-center gap-2 rounded-2xl py-4 px-3 font-bold active:scale-[0.98] shadow-md shadow-purple-50/50"
+                        className={`genie-btn-primary flex w-full items-center justify-center gap-2 ${LANDING_PRIMARY_CTA_RADIUS} py-4 px-3 font-bold active:scale-[0.98] shadow-md shadow-purple-50/50`}
                     >
                         <ImagePlus size={20} className="shrink-0" />
                         <span className="whitespace-nowrap text-[12px] min-[360px]:text-[13px] min-[390px]:text-sm">Upload Your Design - Get Instant Pricing</span>
@@ -550,8 +518,9 @@ function HeroProductPreviewStack({
                         <button
                             disabled={heroUploadState === 'analyzing' || (heroUploadState !== 'error' && !heroAnalysis.slug)}
                             onClick={onResultAction}
-                            className="shrink-0 whitespace-nowrap rounded-2xl bg-neutral-200 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-black border border-neutral-300 hover:bg-neutral-300 transition-colors active:scale-[0.98] disabled:cursor-wait disabled:opacity-40"
+                            className="shrink-0 flex items-center justify-center gap-1.5 whitespace-nowrap rounded-2xl bg-neutral-200 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-black border border-neutral-300 hover:bg-neutral-300 transition-colors active:scale-[0.98] disabled:cursor-wait disabled:opacity-40"
                         >
+                            <ImagePlus size={14} className="shrink-0" />
                             {heroUploadState === 'analyzing' ? 'Analyzing...' : heroUploadState === 'error' ? 'Upload another' : 'Order This Cake'}
                         </button>
                     </div>
@@ -1016,7 +985,12 @@ const DiscountCapture = () => {
     return null;
 };
 
-const LandingClient: React.FC<LandingClientProps> = ({ children, blogPosts = [], reviews = [] }) => {
+const LandingClient: React.FC<LandingClientProps> = ({
+    children,
+    blogPosts = [],
+    reviews = [],
+    heroContent = DEFAULT_LANDING_HERO_CONTENT,
+}) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
@@ -1040,16 +1014,26 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, blogPosts = [],
     const [heroAnalysis, setHeroAnalysis] = useState<HeroAnalysisSummary>({ price: null, size: null, availability: null, slug: null });
     const [heroUploadError, setHeroUploadError] = useState<string | null>(null);
     // ───────────────────────────────────────────────────────────────────────
+    const heroProducts = heroContent.products;
+    const heroProductCount = heroProducts.length;
+
+    useEffect(() => {
+        if (heroProductIndex >= heroProductCount) {
+            setHeroProductIndex(0);
+        }
+    }, [heroProductCount, heroProductIndex]);
 
     const handleHeroPrev = useCallback(() => {
-        setHeroProductIndex((prev) => (prev - 1 + HERO_PRODUCTS.length) % HERO_PRODUCTS.length);
+        if (!heroProductCount) return;
+        setHeroProductIndex((prev) => (prev - 1 + heroProductCount) % heroProductCount);
         setHasInteractedWithHero(true);
-    }, []);
+    }, [heroProductCount]);
 
     const handleHeroNext = useCallback(() => {
-        setHeroProductIndex((prev) => (prev + 1) % HERO_PRODUCTS.length);
+        if (!heroProductCount) return;
+        setHeroProductIndex((prev) => (prev + 1) % heroProductCount);
         setHasInteractedWithHero(true);
-    }, []);
+    }, [heroProductCount]);
 
     const resetHeroUploadPreview = useCallback(() => {
         setHeroUploadState('idle');
@@ -1448,16 +1432,18 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, blogPosts = [],
                         {/* Mobile Hero View - Simplified */}
                         <div className="md:hidden w-full flex flex-col">
                             <h1 className="mb-4 text-center text-[10px] min-[360px]:text-[11px] font-bold uppercase tracking-[0.06em] text-neutral-600 whitespace-nowrap">
-                                Best Online Cake Delivery for Rush Orders in Cebu
+                                {heroContent.eyebrow}
                             </h1>
                             <div className="mb-6 text-center">
                                 <h2 className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-[1.0] tracking-tight text-gray-900">
                                     <HeroTypingHeadlineLine 
                                         className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
-                                        controlledPhraseIndex={hasInteractedWithHero ? HERO_PRODUCTS[heroProductIndex].headlineVariant : 0} 
+                                        controlledPhraseIndex={hasInteractedWithHero ? (heroProducts[heroProductIndex]?.headlineVariant ?? 0) : 0}
+                                        phrases={heroContent.headlineVariants}
+                                        a11yLabel={heroContent.headlineA11yLabel}
                                     />
-                                    <span className="block whitespace-nowrap text-black italic">For Today&apos;s</span>
-                                    <span className="block whitespace-nowrap text-black italic">Celebrations</span>
+                                    <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
+                                    <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
                                 </h2>
                             </div>
                             <div className="mb-6 flex flex-nowrap items-center justify-center gap-x-1 min-[390px]:gap-x-1.5 text-[8px] min-[390px]:text-[10px] font-bold uppercase tracking-wide text-neutral-500">
@@ -1488,15 +1474,17 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, blogPosts = [],
                                 {/* Left Column (1/2): Headlines and CTA */}
                                 <div className="col-span-1 flex flex-col items-center text-center">
                                     <h1 className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.092em] text-neutral-600">
-                                        Best Online Cake Delivery for Rush Orders in Cebu
+                                        {heroContent.eyebrow}
                                     </h1>
                                     <h2 className="mt-2 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-[1.0] tracking-tight">
                                         <HeroTypingHeadlineLine 
                                             className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
-                                            controlledPhraseIndex={hasInteractedWithHero ? HERO_PRODUCTS[heroProductIndex].headlineVariant : 0} 
+                                            controlledPhraseIndex={hasInteractedWithHero ? (heroProducts[heroProductIndex]?.headlineVariant ?? 0) : 0}
+                                            phrases={heroContent.headlineVariants}
+                                            a11yLabel={heroContent.headlineA11yLabel}
                                         />
-                                        <span className="block whitespace-nowrap text-black italic">For Today&apos;s</span>
-                                        <span className="block whitespace-nowrap text-black italic">Celebrations</span>
+                                        <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
+                                        <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
                                     </h2>
                                     <div className="mt-8 flex items-center justify-center gap-2 text-[11px] lg:text-[12px] font-bold uppercase tracking-wider text-neutral-500">
                                         <div className="flex items-center gap-1.5">
@@ -1518,7 +1506,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, blogPosts = [],
                                         <div className="mt-6 w-full max-w-[440px]">
                                             <button
                                                 onClick={() => setIsUploaderOpen(true)}
-                                                className="genie-btn-primary flex w-full items-center justify-center gap-3 rounded-2xl py-[15px] px-6 md:px-8 text-[17px] lg:text-lg font-bold active:scale-[0.99] shadow-lg shadow-purple-100/50"
+                                                className={`genie-btn-primary flex w-full items-center justify-center gap-3 ${LANDING_PRIMARY_CTA_RADIUS} py-[15px] px-6 md:px-8 text-[17px] lg:text-lg font-bold active:scale-[0.99] shadow-lg shadow-purple-100/50`}
                                             >
                                                 <ImagePlus size={22} className="shrink-0" />
                                                 <span className="whitespace-nowrap">Upload Your Design - Get Instant Pricing</span>
@@ -1539,6 +1527,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, blogPosts = [],
                                             <div className="relative w-full max-w-[600px]">
                                                 <div className="overflow-hidden bg-transparent transition-all duration-300 [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
                                                     <HeroProductPeekCarousel 
+                                                        products={heroProducts}
                                                         heroProductIndex={heroProductIndex} 
                                                         onSelectProduct={setHeroProductIndex} 
                                                         onInteraction={() => setHasInteractedWithHero(true)}
@@ -1743,8 +1732,9 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, blogPosts = [],
                                                                     router.push(`/customizing/${heroAnalysis.slug}`);
                                                                 }
                                                             }}
-                                                            className="shrink-0 bg-neutral-200 text-black border border-neutral-300 hover:bg-neutral-300 transition-colors px-6 py-3.5 disabled:opacity-40 disabled:cursor-wait rounded-2xl font-bold text-[10px] lg:text-xs active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
+                                                            className="shrink-0 flex items-center justify-center gap-1.5 bg-neutral-200 text-black border border-neutral-300 hover:bg-neutral-300 transition-colors px-6 py-3.5 disabled:opacity-40 disabled:cursor-wait rounded-2xl font-bold text-[10px] lg:text-xs active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
                                                         >
+                                                            <ImagePlus size={12} className="shrink-0" />
                                                             {heroUploadState === 'analyzing' ? 'Analyzing…' : heroUploadState === 'error' ? 'Upload another' : 'Order This Cake'}
                                                         </button>
                                                     </div>
@@ -1761,6 +1751,7 @@ const LandingClient: React.FC<LandingClientProps> = ({ children, blogPosts = [],
                 <section ref={heroMobilePreviewRef} aria-label="Featured cake preview" className="md:hidden w-full scroll-mt-28 px-4 pb-8">
                     <div className="mx-auto flex w-full max-w-[480px] flex-col gap-4">
                         <HeroProductPreviewStack
+                            products={heroProducts}
                             heroProductIndex={heroProductIndex}
                             heroUploadState={heroUploadState}
                             heroUploadedImageSrc={heroUploadedImageSrc}

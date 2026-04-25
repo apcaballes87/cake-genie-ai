@@ -656,10 +656,16 @@ export const applyImageFallback = (item: any) => {
  * Fetches recommended products from the analysis cache.
  * Returns items that have an original_image_url and a price.
  */
+export interface RecommendedProductsQueryOptions {
+  keyword?: string;
+  keywords?: string[];
+  availability?: string[];
+}
+
 export async function getRecommendedProducts(
   limit: number = 8,
   offset: number = 0,
-  options?: { keyword?: string; availability?: string[] },
+  options?: RecommendedProductsQueryOptions,
   customClient?: SupabaseClient
 ): Promise<SupabaseServiceResponse<any[]>> {
   const client = customClient || (typeof window === 'undefined' ? publicSupabaseClient : supabase);
@@ -671,8 +677,21 @@ export async function getRecommendedProducts(
       .not('price', 'is', null)
       .neq('original_image_url', '');
 
-    if (options?.keyword) {
-      query = query.ilike('keywords', `%${options.keyword}%`);
+    const keywordTerms = [
+      options?.keyword,
+      ...(options?.keywords || []),
+    ]
+      .map(term => term?.trim())
+      .filter((term): term is string => Boolean(term));
+
+    if (keywordTerms.length === 1) {
+      query = query.ilike('keywords', `%${keywordTerms[0]}%`);
+    } else if (keywordTerms.length > 1) {
+      query = query.or(
+        keywordTerms
+          .map(term => `keywords.ilike.%${term.replaceAll(',', ' ').trim()}%`)
+          .join(',')
+      );
     }
 
     if (options?.availability && options.availability.length > 0) {

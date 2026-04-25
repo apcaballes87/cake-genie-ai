@@ -1,10 +1,10 @@
 'use client';
 
 import React, { memo, useState, useCallback } from 'react';
-import { getRecommendedProducts } from '@/services/supabaseService';
+import { getRecommendedProducts, type RecommendedProductsQueryOptions } from '@/services/supabaseService';
 import { ProductCard } from '@/components/ProductCard';
 import Masonry from 'react-masonry-css';
-import { Upload } from 'lucide-react';
+import { ImagePlus } from 'lucide-react';
 
 interface RecommendedProduct {
     p_hash: string;
@@ -24,12 +24,28 @@ interface RecommendedProduct {
 
 interface RecommendedProductsGridProps {
     initialProducts: RecommendedProduct[];
+    queryOptions?: RecommendedProductsQueryOptions;
+    headingHighlight?: string;
+    headingText?: string;
+    description?: string;
+    listName?: string;
+    emptyStateText?: string;
+    loadMoreEnabled?: boolean;
 }
 
-const RecommendedProductsGridComponent = ({ initialProducts }: RecommendedProductsGridProps) => {
+const RecommendedProductsGridComponent = ({
+    initialProducts,
+    queryOptions,
+    headingHighlight = 'Trending Now:',
+    headingText = 'What others are pricing',
+    description = 'Join the community getting instant prices in under 10 seconds.',
+    listName = 'recommended',
+    emptyStateText = 'No recommended cakes found at the moment.',
+    loadMoreEnabled = true,
+}: RecommendedProductsGridProps) => {
     const [products, setProducts] = useState<RecommendedProduct[]>(initialProducts);
     const [offset, setOffset] = useState(initialProducts.length);
-    const [hasMore, setHasMore] = useState(initialProducts.length >= 8);
+    const [hasMore, setHasMore] = useState(loadMoreEnabled && initialProducts.length >= 8);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
 
     const handleOpenUploader = () => {
@@ -38,7 +54,7 @@ const RecommendedProductsGridComponent = ({ initialProducts }: RecommendedProduc
 
     const fetchMoreProducts = useCallback(async (currentOffset: number) => {
         try {
-            const { data, error } = await getRecommendedProducts(8, currentOffset);
+            const { data, error } = await getRecommendedProducts(8, currentOffset, queryOptions);
 
             if (data) {
                 setProducts(prev => [...prev, ...data]);
@@ -53,7 +69,7 @@ const RecommendedProductsGridComponent = ({ initialProducts }: RecommendedProduc
         } finally {
             setIsLoadingMore(false);
         }
-    }, []);
+    }, [queryOptions]);
 
     const handleLoadMore = () => {
         const currentOffset = offset;
@@ -67,10 +83,10 @@ const RecommendedProductsGridComponent = ({ initialProducts }: RecommendedProduc
             {/* Section Header */}
             <div className="text-center mb-8 md:mb-12">
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-3">
-                    <span className="text-purple-400">Trending Now:</span> What others are pricing
+                    <span className="text-purple-400">{headingHighlight}</span> {headingText}
                 </h2>
                 <p className="text-base text-slate-500 max-w-2xl mx-auto">
-                    Join the community getting instant prices in under 10 seconds.
+                    {description}
                 </p>
             </div>
 
@@ -102,7 +118,7 @@ const RecommendedProductsGridComponent = ({ initialProducts }: RecommendedProduc
                                     priority={index < 4}
                                     image_width={item.image_width}
                                     image_height={item.image_height}
-                                    listName="recommended"
+                                    listName={listName}
                                 />
                             </div>
                         ))}
@@ -123,40 +139,42 @@ const RecommendedProductsGridComponent = ({ initialProducts }: RecommendedProduc
                     </Masonry>
                 ) : (
                     <div className="text-center py-10 text-gray-500">
-                        No recommended cakes found at the moment.
+                        {emptyStateText}
                     </div>
                 )}
             </div>
 
             {/* Load More Button */}
             <div className="text-center mt-1 pb-10">
-                {hasMore ? (
-                    <button
-                        onClick={handleLoadMore}
-                        disabled={isLoadingMore}
-                        className="genie-btn-secondary px-8 py-3 font-semibold rounded-full disabled:opacity-50 disabled:cursor-not-allowed mx-auto"
-                    >
-                        {isLoadingMore ? (
-                            <>
-                                <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-                                Loading...
-                            </>
-                        ) : (
-                            'Load More'
-                        )}
-                    </button>
-                ) : (
-                    <div className="text-gray-400 text-xs">End of results</div>
-                )}
+                {loadMoreEnabled ? (
+                    hasMore ? (
+                        <button
+                            onClick={handleLoadMore}
+                            disabled={isLoadingMore}
+                            className="genie-btn-secondary px-8 py-3 font-semibold rounded-full disabled:opacity-50 disabled:cursor-not-allowed mx-auto"
+                        >
+                            {isLoadingMore ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                                    Loading...
+                                </>
+                            ) : (
+                                'Load More'
+                            )}
+                        </button>
+                    ) : (
+                        <div className="text-gray-400 text-xs">End of results</div>
+                    )
+                ) : null}
 
-                <div className="mt-10 flex flex-col items-center">
+                <div className="mt-10 flex w-full max-w-[440px] flex-col items-center mx-auto">
                     <button
                         type="button"
                         onClick={handleOpenUploader}
-                        className="inline-flex items-center gap-2 rounded-full bg-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-200 transition-all hover:bg-purple-700 hover:shadow-xl hover:shadow-purple-200/80 active:scale-[0.99]"
+                        className="genie-btn-primary flex w-full items-center justify-center gap-3 rounded-[1.35rem] py-[15px] px-6 md:px-8 text-[12px] min-[360px]:text-[13px] min-[390px]:text-sm md:text-[17px] lg:text-lg font-bold active:scale-[0.99] shadow-lg shadow-purple-100/50"
                     >
-                        <Upload className="h-4 w-4" />
-                        Upload any image, get instant pricing
+                        <ImagePlus className="h-[22px] w-[22px] shrink-0" />
+                        <span className="whitespace-nowrap">Upload any image, get instant pricing</span>
                     </button>
                     <p className="mt-3 max-w-md text-sm leading-relaxed text-slate-500">
                         Have your own cake peg? Upload it and see an instant price in seconds.

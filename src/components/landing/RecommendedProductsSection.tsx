@@ -1,3 +1,4 @@
+import type { RecommendedProductsQueryOptions } from '@/services/supabaseService';
 import { RecommendedProductsGrid } from './RecommendedProductsGrid';
 
 interface RecommendedProduct {
@@ -15,10 +16,37 @@ interface RecommendedProduct {
 
 interface RecommendedProductsSectionProps {
     products: RecommendedProduct[];
+    queryOptions?: RecommendedProductsQueryOptions;
+    headingHighlight?: string;
+    headingText?: string;
+    description?: string;
+    listName?: string;
+    emptyStateText?: string;
+    loadMoreEnabled?: boolean;
 }
 
-export const RecommendedProductsSection = ({ products }: RecommendedProductsSectionProps) => {
-    return <RecommendedProductsGrid initialProducts={products} />;
+export const RecommendedProductsSection = ({
+    products,
+    queryOptions,
+    headingHighlight,
+    headingText,
+    description,
+    listName,
+    emptyStateText,
+    loadMoreEnabled,
+}: RecommendedProductsSectionProps) => {
+    return (
+        <RecommendedProductsGrid
+            initialProducts={products}
+            queryOptions={queryOptions}
+            headingHighlight={headingHighlight}
+            headingText={headingText}
+            description={description}
+            listName={listName}
+            emptyStateText={emptyStateText}
+            loadMoreEnabled={loadMoreEnabled}
+        />
+    );
 };
 
 export default RecommendedProductsSection;

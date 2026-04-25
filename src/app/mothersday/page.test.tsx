@@ -4,19 +4,20 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 vi.mock('@/services/supabaseService', () => ({
   getRecommendedProducts: vi.fn().mockResolvedValue({ data: [], error: null }),
-  getPopularDesigns: vi.fn().mockResolvedValue({ data: [], error: null }),
-  getDesignCategories: vi.fn().mockResolvedValue({ data: [], error: null }),
   getHomepageBlogPreviews: vi.fn().mockResolvedValue({ data: [], error: null }),
 }));
 
-vi.mock('./LandingClient', () => ({
+vi.mock('@/app/LandingClient', () => ({
   default: ({ children }: { children: ReactNode }) => <div data-testid="landing-client">{children}</div>,
 }));
 
-vi.mock('@/components/landing', () => ({
-  RecommendedProductsSection: () => <div>Recommended Products</div>,
-  IntroContent: () => <div>Intro Content</div>,
-}));
+vi.mock('@/components/landing', async () => {
+  const actual = await vi.importActual<typeof import('@/components/landing')>('@/components/landing');
+  return {
+    ...actual,
+    RecommendedProductsSection: () => <div>Mother&apos;s Day Recommended Products</div>,
+  };
+});
 
 vi.mock('@/components/NewsletterPopup', () => ({
   default: () => null,
@@ -30,13 +31,14 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn().mockRejectedValue(new Error('No database in unit test')),
 }));
 
-describe('home page SEO schema', () => {
-  it('keeps website schema but no longer renders FAQPage schema', async () => {
-    const { default: Home } = await import('./page');
-    const markup = renderToStaticMarkup(await Home());
+describe("mother's day landing page", () => {
+  it('renders mother-focused schema and copy', async () => {
+    const { default: MothersDayPage, metadata } = await import('./page');
+    const markup = renderToStaticMarkup(await MothersDayPage());
 
-    expect(markup).toContain('https://schema.org');
-    expect(markup).toContain('WebSite');
-    expect(markup).not.toContain('FAQPage');
+    expect(metadata.alternates?.canonical).toBe('https://genie.ph/mothersday');
+    expect(markup).toContain('CollectionPage');
+    expect(markup).toContain('May 10, 2026');
+    expect(markup).toContain('Looking for the best Mother');
   });
 });
