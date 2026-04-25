@@ -240,7 +240,7 @@ export async function POST(req: NextRequest) {
         const normalizedError = normalizeAiRouteError(error, {
             defaultMessage: 'Failed to analyze image',
             quotaMessage: 'AI cake analysis is temporarily unavailable due to quota limits. Please try again later.',
-            authorizationMessage: 'AI cake analysis is not authorized. Please check the Google AI API key and project access.',
+            authorizationMessage: 'AI cake analysis is not authorized. Please check the Vertex AI and Workload Identity configuration, then confirm project access.',
         });
 
         return NextResponse.json(

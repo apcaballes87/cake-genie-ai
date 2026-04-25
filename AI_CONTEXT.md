@@ -8,12 +8,14 @@
 
 ## 🚨 Critical Configuration: Google Gemini AI
 
-### Current Setup (as of January 2026)
+### Current Setup (as of April 2026)
 
 | Configuration | Value | DO NOT CHANGE TO |
 | :--- | :--- | :--- |
 | **SDK Package** | `@google/genai` | `@google/generative-ai` (old) |
 | **SDK Version** | `^1.38.0` or later | Any version below 1.38.0 |
+| **Server-side Auth** | Vertex AI + Workload Identity Federation (WIF) | JSON service account keys or Gemini API keys in API routes |
+| **Vertex Location** | `global` for preview Gemini models | `us-central1` for Gemini 3 preview routes |
 | **Model Name** | `gemini-3-flash-preview`, `gemini-3-pro-image-preview` | `gemini-2.0-flash`, `gemini-1.5-pro`, etc. |
 | **Thinking Config** | `thinkingLevel: ThinkingLevel.LOW/MEDIUM/HIGH` | `thinkingBudget`, `includeThoughts` |
 | **Thinking Config (`thinkingLevel`)**:
@@ -26,6 +28,18 @@
 1. **Gemini 3 models** use `thinkingLevel` (not `thinkingBudget`)
 2. **Gemini 2.5 models** use `thinkingBudget` (deprecated for our use case)
 3. The `includeThoughts: true` pattern is **incorrect** for Gemini 3
+4. **Production API routes** authenticate through Vertex AI using WIF, not static keys
+5. **Preview Gemini models** can fail on regional endpoints unless routed through `global`
+
+### Authentication Path (Server Routes)
+
+- Shared server-side client: `src/lib/ai/client.ts`
+- Runtime credentials source: `GOOGLE_CREDENTIALS_JSON`
+- OIDC subject token source: `VERCEL_OIDC_TOKEN`, written to `/tmp/vercel-oidc-token.txt`
+- Vertex project selector: `VERTEX_AI_PROJECT`
+- Vertex location selector: `VERTEX_AI_LOCATION`, defaulting to `global`
+- Do **not** commit loose `credentials.json` files for deployment
+- Some one-off scripts still use direct Gemini API keys; do not copy that pattern into API routes or shared server code
 
 ### Correct Import Statement
 
@@ -69,6 +83,7 @@ model: "gemini-pro"
 
 | Service | File Path | Purpose |
 | :--- | :--- | :--- |
+| Vertex AI Client | `src/lib/ai/client.ts` | Shared Vertex AI auth + client initialization |
 | Gemini AI Service | `src/services/geminiService.ts` | All AI analysis functions |
 | Roboflow Service | `src/services/roboflowService.ts` | Object detection |
 | Pricing Service | `src/services/pricingService.database.ts` | Pricing calculations |
@@ -110,6 +125,8 @@ model: "gemini-pro"
 
 | Date | Change | Reason |
 | :--- | :--- | :--- |
+| 2026-04-25 | Added Vertex AI + WIF auth guidance | Prevent assistants from reintroducing static keys or regional preview routing |
+| 2026-04-25 | Documented `global` location default for preview models | Avoid 404s on regional endpoints |
 | 2026-01-22 | Updated to `thinkingLevel` from `includeThoughts` | Gemini 3 API compatibility |
 | 2026-01-22 | Updated SDK to v1.38.0 | Full Gemini 3 support |
 | 2026-01-22 | Created this AI_CONTEXT.md file | Prevent AI assistants from reverting changes |
@@ -131,7 +148,7 @@ model: "gemini-pro"
 1. **DO NOT** downgrade to older model names
 2. **DO NOT** change `thinkingLevel` to `thinkingBudget`
 3. **DO** check for network/timeout issues first
-4. **DO** verify API key is configured correctly
+4. **DO** verify `GOOGLE_CREDENTIALS_JSON`, `VERCEL_OIDC_TOKEN`, `VERTEX_AI_PROJECT`, and `VERTEX_AI_LOCATION` are configured correctly
 5. **DO** check this file for current correct configuration
 
 ---
@@ -141,8 +158,9 @@ model: "gemini-pro"
 - [Gemini API Models](https://ai.google.dev/gemini-api/docs/models)
 - [Gemini Thinking Documentation](https://ai.google.dev/gemini-api/docs/thinking)
 - [@google/genai npm package](https://www.npmjs.com/package/@google/genai)
+- [Vertex AI WIF Migration Report](./docs/vertex-ai-wif-migration.md)
 
 ---
 
-*Last updated: 2026-01-22*
+*Last updated: 2026-04-25*
 *This file should be updated whenever critical configurations change.*

@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
             const normalizedPrimaryError = normalizeAiRouteError(primaryError, {
                 defaultMessage: 'Failed to validate image',
                 quotaMessage: 'AI image validation is temporarily unavailable due to quota limits. Please try again later.',
-                authorizationMessage: 'AI image validation is not authorized. Please check the Google AI API key and project access.',
+                authorizationMessage: 'AI image validation is not authorized. Please check the Vertex AI and Workload Identity configuration, then confirm project access.',
             });
 
             if (useCase === 'chat' && primaryModel !== fallbackModel && ![401, 403].includes(normalizedPrimaryError.status)) {
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
         const normalizedError = normalizeAiRouteError(error, {
             defaultMessage: 'Failed to validate image',
             quotaMessage: 'AI image validation is temporarily unavailable due to quota limits. Please try again later.',
-            authorizationMessage: 'AI image validation is not authorized. Please check the Google AI API key and project access.',
+            authorizationMessage: 'AI image validation is not authorized. Please check the Vertex AI and Workload Identity configuration, then confirm project access.',
         });
 
         return NextResponse.json(

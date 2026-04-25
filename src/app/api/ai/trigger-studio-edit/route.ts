@@ -10,7 +10,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'pHash is required' }, { status: 400 });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin;
+    // Always call back into the same origin that received the request so local
+    // development and previews do not accidentally post to another deployment.
+    const baseUrl = request.nextUrl.origin;
 
     // Use `after` to decouple the image synthesis so we don't block the UI
     after(async () => {
