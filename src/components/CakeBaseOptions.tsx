@@ -157,7 +157,10 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                 key={type}
                                 data-caketype={type}
                                 type="button"
-                                onClick={() => onCakeInfoChange({ type })}
+                                onClick={(e) => {
+                                    onCakeInfoChange({ type });
+                                    e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                                }}
                                 className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg genie-focus`}
                             >
                                 <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.type === type ? 'genie-control-selected' : 'border-purple-100 bg-white group-hover:border-purple-400'}`}>
@@ -192,7 +195,10 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                         key={option.size}
                                         data-cakesize={option.size}
                                         type="button"
-                                        onClick={() => onCakeInfoChange({ size: option.size })}
+                                        onClick={(e) => {
+                                            onCakeInfoChange({ size: option.size });
+                                            e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                                        }}
                                         className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg genie-focus`}
                                     >
                                         <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.size === option.size ? 'genie-control-selected' : 'border-purple-100 bg-white group-hover:border-purple-400'}`}>
@@ -256,7 +262,10 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                 key={thickness}
                                 data-cakethickness={thickness}
                                 type="button"
-                                onClick={() => onCakeInfoChange({ thickness })}
+                                onClick={(e) => {
+                                    onCakeInfoChange({ thickness });
+                                    e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                                }}
                                 className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg genie-focus`}
                             >
                                 <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.thickness === thickness ? 'genie-control-selected' : 'border-purple-100 bg-white group-hover:border-purple-400'}`}>
