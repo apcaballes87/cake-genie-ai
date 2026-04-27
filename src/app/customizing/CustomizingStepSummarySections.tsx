@@ -445,7 +445,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         <div 
                                             ref={sizeScrollRef}
                                             key={cakeInfo.type} 
-                                            className="flex flex-nowrap overflow-x-auto justify-start items-center gap-4 py-1.5 px-2 scrollbar-hide"
+                                            className="flex flex-nowrap overflow-x-auto justify-start items-center gap-2 py-1.5 px-2 scrollbar-hide"
                                         >
                                             {[...basePriceOptions]
                                                 .sort((a, b) => {
