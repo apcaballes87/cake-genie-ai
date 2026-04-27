@@ -363,6 +363,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         if (ssrContent) ssrContent.style.display = 'none';
     }, []);
 
+    // --- Context Hooks ---
+    const { user, isAuthenticated } = useAuth();
+    const { itemCount: supabaseItemCount, addToCartOptimistic, addToCartWithBackgroundUpload, removeItemOptimistic, authError, isLoading: isCartLoading } = useCart();
+    const { settings: availabilitySettings, loading: isLoadingAvailabilitySettings } = useAvailabilitySettings();
+    const { toggleSaveDesign, isDesignSaved } = useSavedItemsActions();
+    const { savedDesignHashes } = useSavedItemsData();
+
     // GA4: fire view_item once per design mount (price may be a fallback
     // before AI analysis completes; still useful for funnel counting).
     const viewItemFiredRef = useRef(false);
@@ -385,31 +392,80 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         viewItemFiredRef.current = true;
     }, [product, recentSearchDesign, slug]);
 
-    // --- Context Hooks ---
-    const { user, isAuthenticated } = useAuth();
-    const { itemCount: supabaseItemCount, addToCartOptimistic, addToCartWithBackgroundUpload, removeItemOptimistic, authError, isLoading: isCartLoading } = useCart();
-    const { settings: availabilitySettings, loading: isLoadingAvailabilitySettings } = useAvailabilitySettings();
-    const { toggleSaveDesign, isDesignSaved } = useSavedItemsActions();
-    const { savedDesignHashes } = useSavedItemsData();
+
+    // --- Refs ---
+    const accountMenuRef = useRef<HTMLDivElement>(null);
+    const mainImageContainerRef = useRef<HTMLDivElement>(null);
+    const isLoadingDesignRef = useRef(false);
+    const isLoadingShopifyCseRef = useRef(false);
+    const isResettingRef = useRef(false);
+    const lastProcessedDesignRefUrl = useRef<string | null>(null);
+    const lastAutoRelatedDesignRequestKeyRef = useRef<string | null>(null);
+    const aiChatMobileContainerRef = useRef<HTMLFormElement>(null);
+    const aiChatDesktopContainerRef = useRef<HTMLFormElement>(null);
+    const aiChatMobileInputRef = useRef<HTMLInputElement>(null);
+    const aiChatDesktopInputRef = useRef<HTMLInputElement>(null);
+    const chatEndMobileRef = useRef<HTMLDivElement>(null);
+    const chatEndDesktopRef = useRef<HTMLDivElement>(null);
+    const isDraftApplied = useRef(false);
+    const committedStateRef = useRef<CustomizationState | null>(null);
+    const addToCartInFlightRef = useRef(false);
+    const addToCartResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
     const {
         cakeInfo, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions,
         analysisResult, analysisId, isAnalyzing, analysisError, isCustomizationDirty, dirtyFields,
         setIsAnalyzing, setAnalysisError, setPendingAnalysisData, setIsCustomizationDirty,
         handleCakeInfoChange,
-        updateMainTopper, removeMainTopper, onMainTopperChange,
-        updateSupportElement, removeSupportElement, onSupportElementChange,
+        updateMainTopper: baseUpdateMainTopper, removeMainTopper, onMainTopperChange,
+        updateSupportElement: baseUpdateSupportElement, removeSupportElement, onSupportElementChange,
         updateCakeMessage, removeCakeMessage,
-        onIcingDesignChange, onAdditionalInstructionsChange, handleTopperImageReplace,
+        onIcingDesignChange: baseOnIcingDesignChange, onAdditionalInstructionsChange, handleTopperImageReplace,
         handleSupportElementImageReplace, clearCustomization, initializeDefaultState,
         availability: baseAvailability,
-        onCakeMessageChange,
+        onCakeMessageChange: baseOnCakeMessageChange,
         syncAnalysisResultWithCurrentState,
         getSyncedAnalysisResult,
         clearDirtyState,
         applyFullCustomizationState,
         chatHistory, addChatEntry,
     } = useCakeCustomization();
+
+    const scrollToHero = useCallback(() => {
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            mainImageContainerRef.current?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+            });
+        }
+    }, []);
+
+    const onIcingDesignChange = useCallback((nextDesign: IcingDesignUI) => {
+
+        baseOnIcingDesignChange(nextDesign);
+        scrollToHero();
+    }, [baseOnIcingDesignChange, scrollToHero]);
+
+    const onCakeMessageChange = useCallback((nextMessages: CakeMessageUI[]) => {
+        baseOnCakeMessageChange(nextMessages);
+        scrollToHero();
+    }, [baseOnCakeMessageChange, scrollToHero]);
+
+    const updateMainTopper = useCallback((id: string, updates: Partial<MainTopperUI>) => {
+        baseUpdateMainTopper(id, updates);
+        if (updates.color || updates.colors || updates.isEnabled !== undefined) {
+            scrollToHero();
+        }
+    }, [baseUpdateMainTopper, scrollToHero]);
+
+    const updateSupportElement = useCallback((id: string, updates: Partial<SupportElementUI>) => {
+        baseUpdateSupportElement(id, updates);
+        if (updates.color || updates.colors || updates.isEnabled !== undefined) {
+            scrollToHero();
+        }
+    }, [baseUpdateSupportElement, scrollToHero]);
+
 
     const {
         originalImageData, sourceImageData, previousImageData, originalImagePreview, editedImage, threeTierReferenceImage,
@@ -420,6 +476,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         seoMetadata, isAnalysisCached,
     } = useImageManagement();
 
+
     // --- Local State ---
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
     const [isPreSelectionModalOpen, setIsPreSelectionModalOpen] = useState(false);
@@ -427,12 +484,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [isChatModalOpen, setIsChatModalOpen] = useState(false);
     const [isReporting, setIsReporting] = useState(false);
     const [reportStatus, setReportStatus] = useState<'success' | 'error' | null>(null);
-    const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
-    const [pendingCartItems, setPendingCartItems] = useState<CartItem[]>([]);
-    const [isAddingToCart, setIsAddingToCart] = useState(false);
-    const [isPreparingSharedDesign, setIsPreparingSharedDesign] = useState(false);
-    const [previousUIState, setPreviousUIState] = useState<CustomizationState | null>(null);
-    const committedStateRef = useRef<CustomizationState | null>(null);
+
     const [searchInput, setSearchInput] = useState('');
     const [chatInput, setChatInput] = useState('');
     const [isAiProcessing, setIsAiProcessing] = useState(false);
@@ -441,8 +493,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [selectedAiPromptTemplate, setSelectedAiPromptTemplate] = useState<ParsedAiChatPromptTemplate | null>(null);
     const [selectedAiPromptColor, setSelectedAiPromptColor] = useState('');
     const [showAiPromptColorPicker, setShowAiPromptColorPicker] = useState(false);
-    const addToCartInFlightRef = useRef(false);
-    const addToCartResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+    const [pendingCartItems, setPendingCartItems] = useState<CartItem[]>([]);
+    const [isAddingToCart, setIsAddingToCart] = useState(false);
+    const [isPreparingSharedDesign, setIsPreparingSharedDesign] = useState(false);
+    const [previousUIState, setPreviousUIState] = useState<CustomizationState | null>(null);
+
 
     // Open pre-selection modal when arriving from search with analysis already in progress
     // (analysis was started in SearchingClient before navigating here)
@@ -529,18 +585,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, [isCustomizationDirty, cakeInfo, mainToppers, supportElements, cakeMessages,
         icingDesign, additionalInstructions, analysisResult, analysisId]);
 
-    // --- Refs ---
-    const accountMenuRef = useRef<HTMLDivElement>(null);
-    const mainImageContainerRef = useRef<HTMLDivElement>(null);
-    const isLoadingDesignRef = useRef(false); // Guard against duplicate analysis calls
-    const isLoadingShopifyCseRef = useRef(false); // Guard against duplicate Shopify CSE loads
-    const isResettingRef = useRef(false); // Guard against reloading the current design during Reset Everything
-    const lastProcessedDesignRefUrl = useRef<string | null>(null);
-    const lastAutoRelatedDesignRequestKeyRef = useRef<string | null>(null);
-    const aiChatMobileContainerRef = useRef<HTMLFormElement>(null);
-    const aiChatDesktopContainerRef = useRef<HTMLFormElement>(null);
-    const aiChatMobileInputRef = useRef<HTMLInputElement>(null);
-    const aiChatDesktopInputRef = useRef<HTMLInputElement>(null);
 
     const getActiveChatContainer = () => {
         if (typeof window === 'undefined') return null;
@@ -2260,7 +2304,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         mainToppers: MainTopperUI[];
         supportElements: SupportElementUI[];
     } | null>(null);
-    const isDraftApplied = useRef(false);
+
 
     // Capture snapshot when a customization panel is opened
     useEffect(() => {
@@ -2409,10 +2453,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
         isDraftApplied.current = true;
         void onUpdateDesign();
+        scrollToHero();
         setActiveCustomization(null);
         setActiveTopperSection(null);
         setSelectedItem(null);
-    }, [hasPendingVisualChanges, isUpdatingDesign, onUpdateDesign, originalImageData]);
+    }, [hasPendingVisualChanges, isUpdatingDesign, onUpdateDesign, originalImageData, scrollToHero]);
+
 
 
     // Show icing guide when image preview is available (before analysis completes)
@@ -2682,10 +2728,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         });
         onCakeMessageChange(newCakeMessages);
 
+        scrollToHero();
         setIsMotifPanelOpen(false);
         const newColorName = HEX_TO_COLOR_NAME_MAP[newHex.toLowerCase()] || 'new color';
         showSuccess(`Changed motif from ${dominantMotif.name} to ${newColorName}`);
-    }, [dominantMotif, icingDesign, mainToppers, supportElements, cakeMessages, onIcingDesignChange, updateMainTopper, updateSupportElement, onCakeMessageChange, HEX_TO_COLOR_NAME_MAP]);
+    }, [dominantMotif, icingDesign, mainToppers, supportElements, cakeMessages, onIcingDesignChange, updateMainTopper, updateSupportElement, onCakeMessageChange, HEX_TO_COLOR_NAME_MAP, scrollToHero]);
+
     const handleListItemClick = useCallback((item: AnalysisItem) => {
         setSelectedItem(item);
         mainImageContainerRef.current?.scrollIntoView({

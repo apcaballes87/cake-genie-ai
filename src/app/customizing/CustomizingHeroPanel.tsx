@@ -5,6 +5,8 @@ import LazyImage from '@/components/LazyImage';
 import { Heart, ShieldCheck } from 'lucide-react';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorIcon, ImageIcon, ResetIcon, SaveIcon, Loader2, ReportIcon } from '../../components/icons';
+import MagicGlitter from '@/components/MagicGlitter';
+
 
 type ImageTab = 'original' | 'customized';
 
@@ -155,16 +157,17 @@ export const CustomizingHeroPanel = memo(({
                         style={{ aspectRatio: originalImageDimensions ? `${originalImageDimensions.width} / ${originalImageDimensions.height}` : '1 / 1' }}
                     >
                         {isCombining ? (
-                            <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-20">
-                                <LoadingSpinner />
-                                <p className="mt-4 text-slate-500 font-semibold">Creating your cake design...</p>
+                            <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
+                                <MagicGlitter />
+                                <p className="mt-4 text-slate-700 font-bold drop-shadow-sm z-40 relative">Creating your cake design...</p>
                             </div>
                         ) : null}
 
+
                         {isUpdatingDesign ? (
-                            <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-20">
-                                <LoadingSpinner />
-                                <p className="mt-4 text-slate-500 font-semibold">{dynamicLoadingMessage}</p>
+                            <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
+                                <MagicGlitter />
+                                <p className="mt-4 text-slate-700 font-bold drop-shadow-sm z-40 relative">{dynamicLoadingMessage}</p>
                             </div>
                         ) : null}
 

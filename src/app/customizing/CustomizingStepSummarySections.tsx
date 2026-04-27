@@ -651,7 +651,9 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
                                 {/* Line 5: Height */}
                                 <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Height</span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                        {cakeInfo.type.toLowerCase().includes('2 tier') || cakeInfo.type.toLowerCase().includes('3 tier') ? 'Height per Cake' : 'Height'}
+                                    </span>
                                     <div 
                                         ref={heightScrollRef}
                                         key={cakeInfo.type} 

@@ -258,7 +258,7 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
 
             {shouldShowSection('height') && (
                 <div>
-                    {renderSectionLabel('Cake Height (All tiers)')}
+                    {renderSectionLabel(cakeInfo.type.toLowerCase().includes('2 tier') || cakeInfo.type.toLowerCase().includes('3 tier') ? 'Height per Cake' : 'Cake Height (All tiers)')}
                 <div className="relative">
                     <div ref={cakeThicknessScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
                         {currentThicknessOptions.map(thickness => (
