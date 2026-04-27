@@ -1423,6 +1423,20 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                 <User size={22} />
                             </button>
                         </div>
+
+                        {/* Cart Button - Visible in all states */}
+                        <button
+                            onClick={() => router.push('/cart')}
+                            className="relative p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                            aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
+                        >
+                            <ShoppingBag size={24} />
+                            {isMounted && itemCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
+                                    {itemCount}
+                                </span>
+                            )}
+                        </button>
                     </div>
                 </div>
             </nav>
