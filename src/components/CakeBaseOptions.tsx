@@ -17,9 +17,9 @@ import { roundDownToNearest99 } from '@/lib/utils/pricing';
 interface CakeBaseOptionsProps {
     cakeInfo: CakeInfoUI | null;
     basePriceOptions: BasePriceInfo[] | null;
-    icingBase: IcingDesign['base'] | null;
+    icingBase?: IcingDesign['base'] | null;
     onCakeInfoChange: (updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => void;
-    onIcingBaseChange: (base: IcingDesign['base']) => void;
+    onIcingBaseChange?: (base: IcingDesign['base']) => void;
     isAnalyzing: boolean;
     addOnPricing: number;
     hidePrices?: boolean;
@@ -127,7 +127,7 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                             <button
                                 key={option.id}
                                 type="button"
-                                onClick={() => onIcingBaseChange(option.id)}
+                                onClick={() => onIcingBaseChange?.(option.id)}
                                 className={`rounded-xl border px-4 py-3 text-left transition-all duration-200 genie-focus ${
                                     isSelected
                                         ? 'genie-control-selected'
