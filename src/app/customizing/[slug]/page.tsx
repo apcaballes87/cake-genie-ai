@@ -41,14 +41,12 @@ const firstNonBlankImageUrl = (...urls: unknown[]) => {
 type DesignWithHeroImageUrls = {
     original_image_url?: string | null;
     studio_edited_image_url?: string | null;
-    studio_edit_image_url?: string | null;
 };
 
 const withPreferredHeroImage = <T extends DesignWithHeroImageUrls>(design: T): T => ({
     ...design,
     original_image_url: firstNonBlankImageUrl(
         design.studio_edited_image_url,
-        design.studio_edit_image_url,
         design.original_image_url,
     ),
 });

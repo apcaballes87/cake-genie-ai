@@ -89,7 +89,7 @@ export default function FloatingChatBubble() {
     <>
       <div
         ref={bubbleRef}
-        className={`fixed hidden md:block z-50 transition-transform ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`fixed hidden md:block z-[110] transition-transform ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         style={{
           right: position.x,
           bottom: position.y,

@@ -12,7 +12,7 @@ import {
     FLAVOR_OPTIONS
 } from '@/constants';
 import { findClosestColor } from '@/utils/colorUtils';
-import { TrashIcon } from '@/components/icons';
+import { TrashIcon, MagicSparkleIcon } from '@/components/icons';
 import { roundDownToNearest99 } from '@/lib/utils/pricing';
 import type { BasePriceInfo, CakeInfoUI, CakeMessageUI, ClusteredMarker, IcingDesignUI, MainTopperType, MainTopperUI, SupportElementType, SupportElementUI } from '@/types';
 
@@ -52,6 +52,10 @@ interface CustomizingStepSummarySectionsProps {
     hideStepOne?: boolean;
     hideStepFour?: boolean;
     photoStepNode?: React.ReactNode;
+    onUpdateDesign?: () => void;
+    isUpdatingDesign?: boolean;
+    dirtyFields?: Set<string>;
+    originalCakeType?: string | null;
 }
 
 const getIcingImage = (icingDesign: IcingDesignUI, type: IcingImageType, isTopSpecific = false): string => {
@@ -203,6 +207,9 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     mainToppers,
     supportElements,
     basePriceOptions,
+    markerMap,
+    itemPrices,
+    isAdmin,
     isAnalyzing,
     isRejectionError = false,
     activeCustomization,
@@ -211,6 +218,10 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     setSelectedItem,
     addCakeMessage,
     removeCakeMessage,
+    updateMainTopper,
+    updateSupportElement,
+    onTopperImageReplace,
+    onSupportElementImageReplace,
     openTopperSheet,
     onCakeInfoChange,
     onIcingTypeChange,
@@ -220,6 +231,10 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     hideStepOne,
     hideStepFour,
     photoStepNode,
+    onUpdateDesign,
+    isUpdatingDesign,
+    dirtyFields,
+    originalCakeType,
 }: CustomizingStepSummarySectionsProps) {
     // Default position when "+ Add" is clicked: Bento → front (side), all others → base_board
     const defaultMessagePosition = cakeInfo?.type === 'Bento' ? 'side' : 'base_board';
@@ -380,7 +395,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                             onClick={() => onIcingTypeChange?.(option.id as any)}
                                             className={`flex-1 flex items-center justify-center p-2.5 rounded-xl border transition-all duration-300 ${
                                                 isSelected 
-                                                    ? 'border-purple-300 bg-purple-50 text-purple-700 shadow-sm ring-2 ring-purple-100' 
+                                                    ? 'genie-control-selected text-purple-700 scale-[1.02]' 
                                                     : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-200 hover:bg-slate-100/50'
                                             }`}
                                         >
@@ -421,7 +436,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                 onClick={() => onCakeInfoChange?.({ type })}
                                                 className={`min-h-[49px] min-w-[90px] flex-1 flex items-center justify-center px-4 rounded-xl border transition-all duration-300 ${
                                                     isSelected 
-                                                        ? 'border-purple-300 bg-purple-50 text-purple-700 shadow-sm ring-2 ring-purple-100 scale-[1.02]' 
+                                                        ? 'genie-control-selected text-purple-700 scale-[1.02]' 
                                                         : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-200 hover:bg-slate-100/50'
                                                 }`}
                                             >
@@ -433,12 +448,127 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             </div>
                         </div>
 
+                        {/* Update Design Button for specific cake types */}
+                        {(() => {
+                            if (!cakeInfo) return null;
+                            
+                            // Normalize types for comparison (strip " Fondant")
+                            const normalizeType = (t: string) => t.replace(/\s+Fondant$/i, '').trim();
+                            const currentBaseType = normalizeType(cakeInfo.type);
+                            const originalBaseType = originalCakeType ? normalizeType(originalCakeType) : null;
+                            
+                            // Show button ONLY if cake type changed from the original analysis
+                            const isTypeDirty = originalBaseType && currentBaseType !== originalBaseType;
+                            
+                            // Button only supports these specific types
+                            const isUpdateableType = ['Bento', '1 Tier', 'Square', 'Rectangle'].includes(currentBaseType);
+                            
+                            if (!isTypeDirty || !isUpdateableType) {
+                                return null;
+                            }
 
-                        {/* Size, Height, and Flavor 2-Column Container */}
+                            return (
+                                <div className="mt-3 px-1 animate-in fade-in slide-in-from-top-2 duration-300 flex flex-col items-center">
+                                    <button
+                                        onClick={() => onUpdateDesign?.()}
+                                        disabled={isUpdatingDesign}
+                                        className="w-auto px-8 py-2 rounded-full genie-btn-primary flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.98] group relative overflow-hidden"
+                                    >
+                                        <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+                                        {isUpdatingDesign ? (
+                                            <>
+                                                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                <span className="font-bold text-[10px] tracking-tight uppercase">Updating...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <MagicSparkleIcon className="w-3.5 h-3.5 text-white group-hover:rotate-12 transition-transform" />
+                                                <span className="font-bold text-[10px] tracking-tight uppercase italic whitespace-nowrap">Update design changes</span>
+                                            </>
+                                        )}
+                                    </button>
+                                    <p className="text-[9px] text-slate-400 mt-1.5 text-center font-medium italic opacity-80">
+                                        ✨ This will update the cake shape/type using AI
+                                    </p>
+                                </div>
+                            );
+                        })()}
+
+                        {/* Flavor, Size, and Height 2-Column Container */}
                         <div className="flex flex-row gap-4 w-full mt-2 bg-transparent">
-                            {/* Left Column (75%) */}
-                            <div className="flex-[3] min-w-0 flex flex-col gap-4">
-                                {/* Line 3: Size */}
+                            {/* Left Column (25% - Flavor) */}
+                            <div className="flex-[1] min-w-0 flex flex-col gap-4">
+                                {/* Line 3: Flavor */}
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Flavor</span>
+                                    <div className="flex flex-col gap-2">
+                                        {cakeInfo.flavors.map((currentFlavor, index) => (
+                                            <div key={index} className="flex flex-col gap-1">
+                                                {cakeInfo.flavors.length > 1 && (
+                                                    <span className="text-[9px] font-medium text-slate-500 uppercase">{getStepOneFlavorLabel(index, cakeInfo.flavors.length)}</span>
+                                                )}
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {FLAVOR_OPTIONS.map((flavor) => {
+                                                        const isSelected = currentFlavor === flavor;
+                                                        
+                                                        const isBento = cakeInfo.type === 'Bento';
+                                                        const normType = cakeInfo.type.toLowerCase();
+                                                        const isStandardOrMulti = normType.includes('1 tier') || 
+                                                                                    normType.includes('2 tier') || 
+                                                                                    normType.includes('3 tier') || 
+                                                                                    normType.includes('square') || 
+                                                                                    normType.includes('rectangle');
+
+                                                        let isDisabled = false;
+                                                        if (isBento) {
+                                                            isDisabled = flavor !== 'Chocolate Cake';
+                                                        } else if (isStandardOrMulti) {
+                                                            isDisabled = flavor === 'Mocha Cake';
+                                                        }
+
+                                                        const flavorStyles: Record<string, { bg: string, border: string, text: string }> = {
+                                                            'Chocolate Cake': { bg: 'bg-[#fdf0d5]', border: 'border-[#f2cc8f]', text: 'text-[#78350f]' },
+                                                            'Ube Cake': { bg: 'bg-[#f3e8ff]', border: 'border-[#e9d5ff]', text: 'text-[#6b21a8]' },
+                                                            'Vanilla Cake': { bg: 'bg-[#fffbeb]', border: 'border-[#fef3c7]', text: 'text-[#92400e]' },
+                                                            'Mocha Cake': { bg: 'bg-[#faf3e0]', border: 'border-[#e6ccb2]', text: 'text-[#9c6644]' },
+                                                        };
+
+                                                        const style = flavorStyles[flavor] || { 
+                                                            bg: 'bg-white', border: 'border-slate-100', text: 'text-slate-600'
+                                                        };
+
+                                                        return (
+                                                            <button
+                                                                key={flavor}
+                                                                disabled={isDisabled}
+                                                                onClick={() => {
+                                                                    if (isDisabled) return;
+                                                                    const newFlavors = [...cakeInfo.flavors];
+                                                                    newFlavors[index] = flavor;
+                                                                    onCakeInfoChange?.({ flavors: newFlavors });
+                                                                }}
+                                                                className={`min-h-[46px] min-w-[90px] flex-1 flex items-center justify-center px-3 rounded-xl border transition-all duration-300 shadow-sm ${
+                                                                    isDisabled
+                                                                        ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed opacity-50 grayscale'
+                                                                        : isSelected 
+                                                                            ? 'genie-control-selected text-purple-700 scale-[1.02]' 
+                                                                            : `${style.bg} ${style.border} ${style.text} opacity-80 hover:opacity-100 hover:scale-[1.02]`
+                                                                }`}
+                                                            >
+                                                                <span className="text-[10px] font-bold text-center leading-none uppercase tracking-tighter">{flavor.replace(' Cake', '')}</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Column (75% - Size and Height) */}
+                            <div className="flex-[3] min-w-0 border-l border-slate-100 pl-4 flex flex-col gap-4">
+                                {/* Line 4: Size */}
                                 {basePriceOptions && basePriceOptions.length > 0 && (
                                     <div className="flex flex-col gap-1">
                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Size</span>
@@ -478,7 +608,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                                 isSquare || isRectangle ? 'rounded-xl' : 'rounded-full'
                                                             } ${
                                                                 isSelected 
-                                                                    ? 'border-purple-400 bg-purple-50 text-purple-700 shadow-md ring-2 ring-purple-100 z-10 scale-105' 
+                                                                    ? 'genie-control-selected text-purple-700 z-10 scale-105' 
                                                                     : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-300 hover:bg-slate-100/50 hover:scale-105'
                                                             }`}
                                                         >
@@ -493,8 +623,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                     </div>
                                 )}
 
-                                {/* Line 4: Height */}
-                                <div className="flex flex-col gap-1">
+                                {/* Line 5: Height */}
+                                <div className="flex flex-col gap-1 mt-4">
                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Height</span>
                                     <div 
                                         ref={heightScrollRef}
@@ -527,10 +657,10 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                 >
                                                     <div 
                                                         style={{ width: `${rectWidth}px`, height: `${rectHeight}px` }}
-                                                        className={`rounded-lg border-2 transition-all duration-500 flex items-center justify-center relative ${
+                                                        className={`rounded-lg border transition-all duration-500 flex items-center justify-center relative ${
                                                             isSelected 
-                                                                ? 'bg-purple-100/50 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)] scale-110 z-10' 
-                                                                : 'bg-slate-50 border-slate-200 hover:border-purple-300 hover:bg-purple-50/30 hover:scale-105'
+                                                                ? 'genie-control-selected text-purple-700 z-10 scale-105 shadow-sm' 
+                                                                : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-300 hover:bg-slate-100/50 hover:scale-105'
                                                         }`}
                                                     >
                                                         <span className={`text-[10px] font-black ${isSelected ? 'text-purple-600' : 'text-slate-600 group-hover:text-purple-300'} transition-colors`}>
@@ -540,89 +670,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                 </button>
                                             );
                                         })}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Right Column (25%) */}
-                            <div className="flex-[1] min-w-0 border-l border-slate-100 pl-4 flex flex-col gap-4">
-                                {/* Line 5: Flavor */}
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Flavor</span>
-                                    <div className="flex flex-col gap-2">
-                                        {cakeInfo.flavors.map((currentFlavor, index) => (
-                                            <div key={index} className="flex flex-col gap-1">
-                                                {cakeInfo.flavors.length > 1 && (
-                                                    <span className="text-[9px] font-medium text-slate-500 uppercase">{getStepOneFlavorLabel(index, cakeInfo.flavors.length)}</span>
-                                                )}
-                                                <div className="flex flex-wrap gap-1.5">
-                                                    {FLAVOR_OPTIONS.map((flavor) => {
-                                                        const isSelected = currentFlavor === flavor;
-                                                        
-                                                        const isBento = cakeInfo.type === 'Bento';
-                                                        const normType = cakeInfo.type.toLowerCase();
-                                                        const isStandardOrMulti = normType.includes('1 tier') || 
-                                                                                    normType.includes('2 tier') || 
-                                                                                    normType.includes('3 tier') || 
-                                                                                    normType.includes('square') || 
-                                                                                    normType.includes('rectangle');
-
-                                                        let isDisabled = false;
-                                                        if (isBento) {
-                                                            isDisabled = flavor !== 'Chocolate Cake';
-                                                        } else if (isStandardOrMulti) {
-                                                            isDisabled = flavor === 'Mocha Cake';
-                                                        }
-
-                                                        const flavorStyles: Record<string, { bg: string, border: string, text: string, activeBg: string, activeBorder: string, activeText: string }> = {
-                                                            'Chocolate Cake': { 
-                                                                bg: 'bg-[#fdf0d5]', border: 'border-[#f2cc8f]', text: 'text-[#78350f]',
-                                                                activeBg: 'bg-[#DDB892]', activeBorder: 'border-[#7f5539]', activeText: 'text-white'
-                                                            },
-                                                            'Ube Cake': { 
-                                                                bg: 'bg-[#f3e8ff]', border: 'border-[#e9d5ff]', text: 'text-[#6b21a8]',
-                                                                activeBg: 'bg-[#c084fc]', activeBorder: 'border-[#7e22ce]', activeText: 'text-white'
-                                                            },
-                                                            'Vanilla Cake': { 
-                                                                bg: 'bg-[#fffbeb]', border: 'border-[#fef3c7]', text: 'text-[#92400e]',
-                                                                activeBg: 'bg-[#fde68a]', activeBorder: 'border-[#d97706]', activeText: 'text-[#92400e]'
-                                                            },
-                                                            'Mocha Cake': { 
-                                                                bg: 'bg-[#faf3e0]', border: 'border-[#e6ccb2]', text: 'text-[#9c6644]',
-                                                                activeBg: 'bg-[#e3d5ca]', activeBorder: 'border-[#9c6644]', activeText: 'text-[#5e3023]'
-                                                            },
-                                                        };
-
-                                                        const style = flavorStyles[flavor] || { 
-                                                            bg: 'bg-white', border: 'border-slate-100', text: 'text-slate-600',
-                                                            activeBg: 'bg-purple-50', activeBorder: 'border-purple-300', activeText: 'text-purple-700'
-                                                        };
-
-                                                        return (
-                                                            <button
-                                                                key={flavor}
-                                                                disabled={isDisabled}
-                                                                onClick={() => {
-                                                                    if (isDisabled) return;
-                                                                    const newFlavors = [...cakeInfo.flavors];
-                                                                    newFlavors[index] = flavor;
-                                                                    onCakeInfoChange?.({ flavors: newFlavors });
-                                                                }}
-                                                                className={`min-h-[46px] min-w-[90px] flex-1 flex items-center justify-center px-3 rounded-xl border transition-all duration-300 shadow-sm ${
-                                                                    isDisabled
-                                                                        ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed opacity-50 grayscale'
-                                                                        : isSelected 
-                                                                            ? `${style.activeBg} ${style.activeBorder} ${style.activeText} scale-[1.02] ring-2 ring-white/50` 
-                                                                            : `${style.bg} ${style.border} ${style.text} opacity-80 hover:opacity-100 hover:scale-[1.02]`
-                                                                }`}
-                                                            >
-                                                                <span className="text-[12px] font-bold text-center leading-none uppercase tracking-tighter">{flavor.replace(' Cake', '')}</span>
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        ))}
                                     </div>
                                 </div>
                             </div>

@@ -645,7 +645,6 @@ export const applyImageFallback = (item: any) => {
   if (item) {
     item.original_image_url = firstNonBlankImageUrl(
       item.studio_edited_image_url,
-      item.studio_edit_image_url,
       item.original_image_url,
     );
   }

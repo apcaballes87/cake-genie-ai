@@ -798,13 +798,13 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                 scheduleStep(() => {
                     setSelectedTier(0);
                     setHighlightedOption('1 Tier');
-                    setAnnotation('1 Tier — ₱1,500');
+                    setAnnotation('1 Tier — ₱1,499');
 
                     // Step 3: Switch to 2 Tier
                     scheduleStep(() => {
                         setSelectedTier(1);
                         setHighlightedOption('2 Tier');
-                        setAnnotation('2 Tier — ₱2,500');
+                        setAnnotation('2 Tier — ₱2,499');
                         setAnnotationKey(prev => prev + 1);
 
                         // Step 4: Toggle Drip
@@ -1259,30 +1259,15 @@ const LandingClient: React.FC<LandingClientProps> = ({
     }, [isUploading, resetHeroUploadPreview, router]);
 
     const [isScrolled, setIsScrolled] = useState(false);
-    const [showCompactHeader, setShowCompactHeader] = useState(false);
 
     useEffect(() => {
-        let ticking = false;
-
         const updateScrollState = () => {
-            const currentScrollY = window.scrollY;
-            const nextIsScrolled = currentScrollY > 20;
-            const nextShowCompactHeader = currentScrollY > 50;
-
-            setIsScrolled((prev) => prev === nextIsScrolled ? prev : nextIsScrolled);
-            setShowCompactHeader((prev) => prev === nextShowCompactHeader ? prev : nextShowCompactHeader);
-            ticking = false;
-        };
-
-        const handleScroll = () => {
-            if (ticking) return;
-            ticking = true;
-            window.requestAnimationFrame(updateScrollState);
+            setIsScrolled(window.scrollY > 12);
         };
 
         updateScrollState();
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
+        window.addEventListener('scroll', updateScrollState, { passive: true });
+        return () => window.removeEventListener('scroll', updateScrollState);
     }, []);
 
     useEffect(() => {
@@ -1372,134 +1357,58 @@ const LandingClient: React.FC<LandingClientProps> = ({
             </div>
 
             {/* ========== HEADER ========== */}
-            <nav className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm' : 'bg-transparent'}`}>
+            <nav className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${isScrolled ? 'border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg' : 'border-transparent bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
-                    {/* Mobile Header */}
-                    <div className="md:hidden relative w-full mb-4" style={{ height: '64px' }}>
-                        <div
-                            className="absolute inset-0 grid grid-cols-[1fr_auto_1fr] items-center pt-[22px] transition-opacity duration-300"
-                            style={{ opacity: showCompactHeader ? 0 : 1, pointerEvents: showCompactHeader ? 'none' : 'auto' }}
+                    <div className="w-full flex items-center gap-2 md:gap-4 py-[11px] md:py-[14px]">
+                        <button
+                            onClick={() => setIsMenuOpen(true)}
+                            className="p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                            aria-label="Open menu"
                         >
-                            <div className="flex items-center">
-                                <button
-                                    onClick={() => setIsMenuOpen(true)}
-                                    className="p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
-                                    aria-label="Open menu"
-                                >
-                                    <Menu size={24} />
-                                </button>
-                            </div>
-
-                            <Link href="/">
-                                <img
-                                    src={COMMON_ASSETS.logo}
-                                    alt="Genie Logo"
-                                    width={117}
-                                    height={41}
-                                    className="h-[41px] w-auto object-contain"
-                                />
-                            </Link>
-
-                            <div className="flex items-center gap-1 justify-end">
-                                <button
-                                    onClick={() => window.scrollTo({ top: scrollThreshold + 10, behavior: 'smooth' })}
-                                    className="p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
-                                    aria-label="Search"
-                                >
-                                    <Search size={24} />
-                                </button>
-                                <button
-                                    onClick={() => router.push('/cart')}
-                                    className="relative p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
-                                    aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
-                                >
-                                    <ShoppingBag size={24} />
-                                    {isMounted && itemCount > 0 && (
-                                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
-                                            {itemCount}
-                                        </span>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div
-                            className="absolute inset-0 flex items-center gap-2 pt-[22px] transition-opacity duration-300"
-                            style={{ opacity: showCompactHeader ? 1 : 0, pointerEvents: showCompactHeader ? 'auto' : 'none' }}
-                        >
-                            {showCompactHeader ? (
-                                <SearchAutocomplete
-                                    onSearch={handleSearch}
-                                    onUploadClick={() => setIsUploaderOpen(true)}
-                                    placeholder="Search for custom cakes..."
-                                    value={searchQuery}
-                                    onChange={setSearchQuery}
-                                    className="flex-1 min-w-0"
-                                    inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
-                                />
-                            ) : <div className="flex-1 min-w-0" aria-hidden="true" />}
-                            <button
-                                onClick={() => router.push('/cart')}
-                                className="relative p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
-                                aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
+                            <Menu size={24} />
+                        </button>
+                        
+                        <div className="relative grow flex items-center">
+                            {/* Logo - visible when not scrolled */}
+                            <Link 
+                                href="/" 
+                                className={`shrink-0 transition-all duration-300 ${isScrolled ? 'opacity-0 pointer-events-none absolute -translate-x-4' : 'opacity-100 translate-x-0'}`}
                             >
-                                <ShoppingBag size={24} />
-                                {isMounted && itemCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
-                                        {itemCount}
-                                    </span>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Desktop Header: Menu + Logo + Search (left) | Nav + Icons (right) */}
-                    <div className="hidden md:flex w-full items-center gap-6 py-[11px]">
-                        {/* Left: Menu + Logo + Search Bar */}
-                        <div className="flex items-center gap-4 flex-1 min-w-0">
-                            <button
-                                onClick={() => setIsMenuOpen(true)}
-                                className="p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
-                                aria-label="Open menu"
-                            >
-                                <Menu size={24} />
-                            </button>
-                            <Link href="/" className="shrink-0">
                                 <img
                                     src={COMMON_ASSETS.logo}
                                     alt="Genie Logo"
                                     width={135}
                                     height={43}
-                                    className="h-[36px] w-auto object-contain"
+                                    className="h-[32px] md:h-[41px] w-auto object-contain"
                                 />
                             </Link>
-                            <SearchAutocomplete
-                                onSearch={handleSearch}
-                                onUploadClick={() => setIsUploaderOpen(true)}
-                                placeholder="Search cakes..."
-                                value={searchQuery}
-                                onChange={setSearchQuery}
-                                className="flex-1 max-w-sm ml-4 lg:max-w-lg xl:max-w-2xl"
-                                inputClassName="w-full pl-5 pr-12 py-2.5 text-sm bg-white border-purple-100 border rounded-full shadow-sm focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
-                            />
+
+                            {/* Standard Search Bar - visible when scrolled */}
+                            <div className={`flex-1 transition-all duration-300 ${isScrolled ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}`}>
+                                <SearchAutocomplete
+                                    onSearch={handleSearch}
+                                    onUploadClick={() => setIsUploaderOpen(true)}
+                                    placeholder="Search for other designs..."
+                                    value={searchQuery}
+                                    onChange={setSearchQuery}
+                                    showUploadButton={false}
+                                    inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                                />
+                            </div>
                         </div>
 
-                        {/* Right: Nav Links + Account + Cart */}
-                        <div className="flex items-center gap-5 lg:gap-6 shrink-0">
+                        {/* Desktop Navigation Links - hidden when scrolled to maintain standard layout */}
+                        <div className={`hidden md:flex items-center gap-5 lg:gap-6 shrink-0 transition-all duration-300 ${isScrolled ? 'opacity-0 pointer-events-none absolute translate-x-4' : 'opacity-100 translate-x-0'}`}>
                             <Link href="/collections" className="text-sm font-medium genie-link whitespace-nowrap">
                                 Browse Cakes
                             </Link>
                             <Link href="/shop" className="text-sm font-medium genie-link whitespace-nowrap">
                                 Our Bakers
                             </Link>
-                            {/* <Link href="/blog" className="text-sm font-medium text-gray-700 hover:text-purple-700 transition-colors whitespace-nowrap">
-                                Blog
-                            </Link> */}
                             <Link href="/compare" className="text-sm font-medium genie-link whitespace-nowrap">
                                 Compare
                             </Link>
-
-                            <div className="w-px h-5 bg-gray-200" />
+                            <div className="w-px h-5 bg-gray-200 mx-1" />
                             <button
                                 onClick={() => {
                                     if (isAuthenticated && !user?.is_anonymous) {
@@ -1513,19 +1422,6 @@ const LandingClient: React.FC<LandingClientProps> = ({
                             >
                                 <User size={22} />
                             </button>
-                            <button
-                                onClick={() => router.push('/cart')}
-                                className="relative p-1.5 genie-icon-button rounded-full shrink-0"
-                                aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
-                            >
-                                <ShoppingBag size={22} />
-                                {isMounted && itemCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
-                                        {itemCount}
-                                    </span>
-                                )}
-                            </button>
-
                         </div>
                     </div>
                 </div>

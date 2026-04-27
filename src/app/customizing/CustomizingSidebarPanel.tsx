@@ -12,6 +12,9 @@ interface CustomizingSidebarPanelProps {
     analysisError?: string | null;
     onUploadAnother?: () => void;
     onGoBackHome?: () => void;
+    onUpdateDesign?: () => void;
+    isUpdatingDesign?: boolean;
+    dirtyFields?: Set<string>;
     className?: string;
 }
 
@@ -22,6 +25,9 @@ export const CustomizingSidebarPanel = memo(function CustomizingSidebarPanel({
     analysisError,
     onUploadAnother,
     onGoBackHome,
+    onUpdateDesign,
+    isUpdatingDesign,
+    dirtyFields,
     className = 'w-full flex-col gap-2 hidden md:flex',
 }: CustomizingSidebarPanelProps) {
     return (
@@ -84,6 +90,9 @@ export const CustomizingSidebarPanel = memo(function CustomizingSidebarPanel({
                     <CustomizingStepSummarySections
                         {...stepSummaryProps}
                         layout="desktop"
+                        onUpdateDesign={onUpdateDesign}
+                        isUpdatingDesign={isUpdatingDesign}
+                        dirtyFields={dirtyFields}
                     />
                 </>
             ) : (

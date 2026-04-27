@@ -9,7 +9,6 @@ export interface KnownRecentSearchDesignLike {
   slug: string | null;
   original_image_url: string | null;
   studio_edited_image_url?: string | null;
-  studio_edit_image_url?: string | null;
   price: number | null;
 }
 
@@ -49,7 +48,6 @@ export function buildKnownSeoMetadata(
       slug: recentSearchDesign.slug,
       original_image_url: firstNonBlankImageUrl(
         recentSearchDesign.studio_edited_image_url,
-        recentSearchDesign.studio_edit_image_url,
         recentSearchDesign.original_image_url,
       ),
       price: recentSearchDesign.price,

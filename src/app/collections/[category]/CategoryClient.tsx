@@ -59,9 +59,16 @@ const CategoryClient: React.FC<CategoryClientProps> = ({
 
     const [searchInput, setSearchInput] = useState('');
     const [mounted, setMounted] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
 
     useEffect(() => {
         setMounted(true);
+        const updateScrollState = () => {
+            setIsScrolled(window.scrollY > 12);
+        };
+        updateScrollState();
+        window.addEventListener('scroll', updateScrollState, { passive: true });
+        return () => window.removeEventListener('scroll', updateScrollState);
     }, []);
 
     const handleSearch = useCallback((query: string) => {
@@ -72,37 +79,42 @@ const CategoryClient: React.FC<CategoryClientProps> = ({
 
     return (
         <div className="min-h-screen pb-24 md:pb-0">
-            {/* Search Header */}
-            <div className="w-full max-w-7xl mx-auto px-4">
-                <div className="w-full flex items-center gap-2 md:gap-4 mb-4 pt-6">
-                    <Link href="/collections" className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors shrink-0" aria-label="Go back">
-                        <ArrowLeft />
-                    </Link>
-                    <div className="relative grow">
-                        <SearchAutocomplete
-                            value={searchInput}
-                            onChange={setSearchInput}
-                            onSearch={handleSearch}
-                            onUploadClick={() => router.push('/customizing')}
-                            showUploadButton={true}
-                            placeholder="Search cake designs..."
-                            inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-slate-200 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
-                        />
+            {/* Standard Sticky Header */}
+            <div className={`fixed top-0 left-0 right-0 z-80 border-b transition-all duration-200 ${isScrolled ? 'border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg' : 'border-transparent bg-white'}`}>
+                <div className="max-w-7xl mx-auto px-4">
+                    <div className="w-full flex items-center gap-2 md:gap-4 py-[11px] md:py-[14px]">
+                        <Link href="/collections" className="p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label="Go back">
+                            <ArrowLeft />
+                        </Link>
+                        <div className="relative grow">
+                            <SearchAutocomplete
+                                value={searchInput}
+                                onChange={setSearchInput}
+                                onSearch={handleSearch}
+                                onUploadClick={() => router.push('/customizing')}
+                                showUploadButton={true}
+                                placeholder="Search cake designs..."
+                                inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                            />
+                        </div>
+                        <button
+                            onClick={() => router.push('/cart')}
+                            className="relative p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                            aria-label={`View cart with ${mounted ? itemCount : 0} items`}
+                        >
+                            <ShoppingBag size={24} />
+                            {mounted && itemCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
+                                    {itemCount}
+                                </span>
+                            )}
+                        </button>
                     </div>
-                    <button
-                        onClick={() => router.push('/cart')}
-                        className="relative p-2 text-slate-600 hover:text-purple-700 transition-colors shrink-0"
-                        aria-label={`View cart with ${mounted ? itemCount : 0} items`}
-                    >
-                        <ShoppingBag size={24} />
-                        {mounted && itemCount > 0 && (
-                            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
-                                {itemCount}
-                            </span>
-                        )}
-                    </button>
                 </div>
             </div>
+
+            {/* Header Spacer */}
+            <div className="h-[66px] md:h-[74px]"></div>
 
             <div className="w-full max-w-7xl mx-auto px-4">
                 {/* Breadcrumb */}

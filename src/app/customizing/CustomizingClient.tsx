@@ -288,7 +288,6 @@ interface RecentSearchDesignProp {
     p_hash: string;
     original_image_url: string | null;
     studio_edited_image_url?: string | null;
-    studio_edit_image_url?: string | null;
     price: number | null;
     keywords: string | null;
     analysis_json: any;
@@ -1194,7 +1193,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         const targetImageUrl = firstNonBlankImageUrl(
             product?.image_url,
             recentSearchDesign?.studio_edited_image_url,
-            recentSearchDesign?.studio_edit_image_url,
             recentSearchDesign?.original_image_url,
         );
         const targetPHash = product?.p_hash || recentSearchDesign?.p_hash;
@@ -2857,7 +2855,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             fallbackImageUrl={firstNonBlankImageUrl(
                                 product?.image_url,
                                 recentSearchDesign?.studio_edited_image_url,
-                                recentSearchDesign?.studio_edit_image_url,
                                 recentSearchDesign?.original_image_url,
                             )}
                             fallbackImageAlt={product?.alt_text || recentSearchRichAlt || recentSearchDesign?.alt_text || product?.title || recentSearchDesign?.keywords || 'Custom Cake Design - Cebu Philippines'}
@@ -2919,9 +2916,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         onIcingTypeChange: handleIcingTypeChange,
                                         addOnPricing: addOnPricing?.addOnPrice ?? 0,
                                         separateIcingStep,
-                                        hideStepOne,
                                         hideStepFour,
                                         photoStepNode,
+                                        onUpdateDesign: handleUpdateDesign,
+                                        isUpdatingDesign: isUpdatingDesign,
+                                        dirtyFields: dirtyFields,
                                         aiChatNode: !analysisError && !hideAiChat ? (
                                             <CustomizingAiChatPanel
                                                 className="w-full"
@@ -3040,6 +3039,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             placeholder="✨ Describe the icing colors you want..."
                                         />
                                     ) : null}
+                                    onUpdateDesign={handleUpdateDesign}
+                                    isUpdatingDesign={isUpdatingDesign}
+                                    dirtyFields={dirtyFields}
+                                    originalCakeType={analysisResult?.cakeType}
                                 />
                             )}
                         </div>
@@ -3057,6 +3060,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             analysisError={analysisError}
                             onUploadAnother={handleUploadAnother}
                             onGoBackHome={() => router.push('/')}
+                            onUpdateDesign={handleUpdateDesign}
+                            isUpdatingDesign={isUpdatingDesign}
+                            dirtyFields={dirtyFields}
                             stepSummaryProps={{
                                 cakeInfo,
                                 icingDesign,
@@ -3086,6 +3092,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 hideStepOne,
                                 hideStepFour,
                                 photoStepNode,
+                                originalCakeType: analysisResult?.cakeType,
                                 aiChatNode: !analysisError && !hideAiChat ? (
                                     <CustomizingAiChatPanel
                                         className="w-full"
