@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import LandingClient from './LandingClient';
+import { headers } from 'next/headers';
 import { getRecommendedProducts, getHomepageBlogPreviews } from '@/services/supabaseService';
 import { RecommendedProductsSection, IntroContent } from '@/components/landing';
 import { LandingFooter } from '@/components/landing/LandingFooter';
@@ -116,11 +117,14 @@ async function getReviews() {
 }
 
 export default async function Home() {
-    const [recommendedProductsRes, blogsRes, reviews] = await Promise.all([
+    const [recommendedProductsRes, blogsRes, reviews, headersList] = await Promise.all([
         getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err })),
         getHomepageBlogPreviews(3).catch(err => ({ data: [], error: err })),
         getReviews().catch(() => []),
+        headers(),
     ]);
+
+    const abVariant = headersList.get('x-ab-variant') || 'control';
 
     const recommendedProducts = recommendedProductsRes.data || [];
     const blogPosts = blogsRes.data || [];
@@ -128,7 +132,7 @@ export default async function Home() {
     return (
         <>
             <WebSiteSchema />
-            <LandingClient blogPosts={blogPosts} reviews={reviews}>
+            <LandingClient blogPosts={blogPosts} reviews={reviews} abVariant={abVariant}>
                 {/* Server-rendered sections for LCP optimization */}
                 {/* <MerchantShowcase merchants={merchants} /> - Hidden for now */}
                 <RecommendedProductsSection products={recommendedProducts} />

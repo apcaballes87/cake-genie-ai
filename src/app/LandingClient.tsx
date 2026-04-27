@@ -26,9 +26,11 @@ import { COMMON_ASSETS } from '@/constants';
 import { trackImageUpload } from '@/lib/analytics';
 import {
     DEFAULT_LANDING_HERO_CONTENT,
+    VARIANT_B_HERO_CONTENT,
     type LandingHeroContent,
     type LandingHeroProduct,
 } from '@/components/landing/landingHeroContent';
+import { trackEvent } from '@/lib/analytics';
 import {
     Search,
     ShoppingBag,
@@ -62,6 +64,7 @@ interface LandingClientProps {
     blogPosts?: BlogHomepagePreview[];
     reviews?: CakeGenieReview[];
     heroContent?: LandingHeroContent;
+    abVariant?: string;
 }
 
 const LANDING_PRIMARY_CTA_RADIUS = 'rounded-[1.35rem]';
@@ -162,6 +165,76 @@ const HeroTypingHeadlineLine: React.FC<{
                 className="ml-1 inline-block h-[0.92em] w-[3px] translate-y-[2px] bg-purple-500 align-middle animate-pulse"
             />
         </span>
+    );
+};
+
+const HeroMasonryGrid: React.FC<{ 
+    products: readonly LandingHeroProduct[],
+    onSelectProduct?: (index: number) => void,
+    onInteraction?: () => void
+}> = ({ products, onSelectProduct, onInteraction }) => {
+    const handleInteraction = (index: number) => {
+        onSelectProduct?.(index);
+        onInteraction?.();
+    };
+
+    return (
+        <div className="grid grid-cols-3 gap-2 min-[450px]:gap-3 w-full animate-in fade-in zoom-in-95 duration-1000 ease-out">
+            <div className="flex flex-col gap-2 min-[450px]:gap-3">
+                <div 
+                    className="group relative rounded-xl min-[450px]:rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 aspect-[4/5] bg-slate-100 cursor-pointer"
+                    onMouseEnter={() => handleInteraction(0)}
+                    onClick={() => handleInteraction(0)}
+                >
+                    <img src={products[0]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[0]?.title} />
+                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
+                </div>
+                <div 
+                    className="group relative rounded-xl min-[450px]:rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 aspect-square bg-slate-100 cursor-pointer"
+                    onMouseEnter={() => handleInteraction(1)}
+                    onClick={() => handleInteraction(1)}
+                >
+                    <img src={products[1]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[1]?.title} />
+                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
+                </div>
+            </div>
+            <div className="flex flex-col gap-2 min-[450px]:gap-3 pt-6 min-[450px]:pt-10">
+                <div 
+                    className="group relative rounded-xl min-[450px]:rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 aspect-square bg-slate-100 cursor-pointer"
+                    onMouseEnter={() => handleInteraction(2)}
+                    onClick={() => handleInteraction(2)}
+                >
+                    <img src={products[2]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[2]?.title} />
+                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
+                </div>
+                <div 
+                    className="group relative rounded-xl min-[450px]:rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 aspect-[4/5] bg-slate-100 cursor-pointer"
+                    onMouseEnter={() => handleInteraction(3)}
+                    onClick={() => handleInteraction(3)}
+                >
+                    <img src={products[3]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[3]?.title} />
+                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
+                </div>
+            </div>
+            <div className="flex flex-col gap-2 min-[450px]:gap-3 pt-3 min-[450px]:pt-5">
+                <div 
+                    className="group relative rounded-xl min-[450px]:rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 aspect-[4/5] bg-slate-100 cursor-pointer"
+                    onMouseEnter={() => handleInteraction(4)}
+                    onClick={() => handleInteraction(4)}
+                >
+                    <img src={products[4]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[4]?.title} />
+                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
+                </div>
+                <div 
+                    className="group relative rounded-xl min-[450px]:rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 aspect-square bg-slate-100 cursor-pointer"
+                    onMouseEnter={() => handleInteraction(5)}
+                    onClick={() => handleInteraction(5)}
+                >
+                    <img src={products[5]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[5]?.title} />
+                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
+                </div>
+            </div>
+        </div>
     );
 };
 
@@ -298,6 +371,7 @@ function HeroProductPreviewStack({
     onOpenUploader,
     onResetUpload,
     onResultAction,
+    abVariant,
 }: {
     products: readonly LandingHeroProduct[];
     heroProductIndex: number;
@@ -313,34 +387,45 @@ function HeroProductPreviewStack({
     onOpenUploader: () => void;
     onResetUpload: () => void;
     onResultAction: () => void;
+    abVariant?: string;
 }) {
     if (heroUploadState === 'idle') {
         return (
             <>
-                <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px] min-[505px]:[mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] min-[505px]:[-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
-                    <div className="overflow-hidden bg-transparent">
-                        <HeroProductPeekCarousel 
-                            products={products}
-                            heroProductIndex={heroProductIndex} 
-                            onSelectProduct={onSelectProduct} 
+                {abVariant === 'variant-b' ? (
+                    <div className="relative mx-auto w-full max-w-[480px] px-4">
+                        <HeroMasonryGrid 
+                            products={products} 
+                            onSelectProduct={onSelectProduct}
                             onInteraction={onInteraction}
                         />
                     </div>
-                    <button
-                        onClick={onPrev}
-                        aria-label="Previous cake design"
-                        className="absolute left-2 top-[45%] z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-lg transition-all active:scale-95"
-                    >
-                        <ChevronLeft size={18} />
-                    </button>
-                    <button
-                        onClick={onNext}
-                        aria-label="Next cake design"
-                        className="absolute right-2 top-[45%] z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-lg transition-all active:scale-95"
-                    >
-                        <ChevronRight size={18} />
-                    </button>
-                </div>
+                ) : (
+                    <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px] min-[505px]:[mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] min-[505px]:[-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
+                        <div className="overflow-hidden bg-transparent">
+                            <HeroProductPeekCarousel 
+                                products={products}
+                                heroProductIndex={heroProductIndex} 
+                                onSelectProduct={onSelectProduct} 
+                                onInteraction={onInteraction}
+                            />
+                        </div>
+                        <button
+                            onClick={onPrev}
+                            aria-label="Previous cake design"
+                            className="absolute left-2 top-[45%] z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-lg transition-all active:scale-95"
+                        >
+                            <ChevronLeft size={18} />
+                        </button>
+                        <button
+                            onClick={onNext}
+                            aria-label="Next cake design"
+                            className="absolute right-2 top-[45%] z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-lg transition-all active:scale-95"
+                        >
+                            <ChevronRight size={18} />
+                        </button>
+                    </div>
+                )}
 
 
                 {/* Primary CTA - Mobile */}
@@ -989,7 +1074,8 @@ const LandingClient: React.FC<LandingClientProps> = ({
     children,
     blogPosts = [],
     reviews = [],
-    heroContent = DEFAULT_LANDING_HERO_CONTENT,
+    heroContent: propHeroContent,
+    abVariant = 'control',
 }) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
@@ -1003,6 +1089,22 @@ const LandingClient: React.FC<LandingClientProps> = ({
     const heroMobilePreviewRef = useRef<HTMLElement>(null);
     const uploadToastId = useRef<string | null>(null);
     const isMounted = React.useSyncExternalStore(subscribeToHydration, () => true, () => false);
+    
+    // Track A/B Test Variant View
+    useEffect(() => {
+        if (abVariant) {
+            trackEvent('ab_test_view', { 
+                variant_id: abVariant,
+                experiment_name: 'landing_page_headline_v1'
+            });
+        }
+    }, [abVariant]);
+
+    const heroContent = useMemo(() => {
+        if (propHeroContent) return propHeroContent;
+        if (abVariant === 'variant-b') return VARIANT_B_HERO_CONTENT;
+        return DEFAULT_LANDING_HERO_CONTENT;
+    }, [propHeroContent, abVariant]);
 
     const [heroProductIndex, setHeroProductIndex] = useState(0);
     const [hasInteractedWithHero, setHasInteractedWithHero] = useState(false);
@@ -1074,6 +1176,12 @@ const LandingClient: React.FC<LandingClientProps> = ({
     const { itemCount } = useCart();
     const { user, isAuthenticated } = useAuth();
     const { recordNavigation } = useNavigation();
+
+    const handleToggleVariant = useCallback(() => {
+        const newVariant = abVariant === 'control' ? 'variant-b' : 'control';
+        document.cookie = `ab-test-landing=${newVariant}; path=/; max-age=2592000`;
+        window.location.reload();
+    }, [abVariant]);
 
     const categoriesList = [
         { id: 'Birthdays', name: 'Birthdays' },
@@ -1513,38 +1621,43 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                             </button>
                                         </div>
                                     )}
-
                                 </div>
 
-
-                                {/* Right Column (1/2): Featured Product Carousel / Upload Analysis */}
-                                <div className="col-span-1 relative flex flex-col items-center w-full gap-4">
-
+                                {/* Right Column (1/2): Visuals */}
+                                <div className="col-span-1 flex flex-col items-center justify-center pl-8">
                                     {heroUploadState === 'idle' ? (
-                                        /* ── Carousel mode ── */
+                                        /* ── Carousel / Grid mode ── */
                                         <>
-                                            {/* Image Card with Prev / Next arrows */}
-                                            <div className="relative w-full max-w-[600px]">
-                                                <div className="overflow-hidden bg-transparent transition-all duration-300 [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
-                                                    <HeroProductPeekCarousel 
-                                                        products={heroProducts}
-                                                        heroProductIndex={heroProductIndex} 
-                                                        onSelectProduct={setHeroProductIndex} 
+                                            {abVariant === 'variant-b' ? (
+                                                <div className="w-full max-w-[600px]">
+                                                    <HeroMasonryGrid 
+                                                        products={heroProducts} 
+                                                        onSelectProduct={setHeroProductIndex}
                                                         onInteraction={() => setHasInteractedWithHero(true)}
-                                                        cardSpacingClassName="mx-2"
-                                                        cardFlexStyle="0 0 min(calc(50% - 16px), 279px)"
                                                     />
                                                 </div>
-                                                {/* Left arrow */}
-                                                <button onClick={handleHeroPrev} aria-label="Previous cake design" className="absolute left-0 top-[45%] -translate-y-1/2 -translate-x-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-lg text-neutral-600 transition-all hover:border-purple-300 hover:text-purple-700 hover:shadow-xl active:scale-95">
-                                                    <ChevronLeft size={18} />
-                                                </button>
-                                                {/* Right arrow */}
-                                                <button onClick={handleHeroNext} aria-label="Next cake design" className="absolute right-0 top-[45%] -translate-y-1/2 translate-x-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-lg text-neutral-600 transition-all hover:border-purple-300 hover:text-purple-700 hover:shadow-xl active:scale-95">
-                                                    <ChevronRight size={18} />
-                                                </button>
-                                            </div>
-
+                                            ) : (
+                                                <div className="relative w-full max-w-[600px]">
+                                                    <div className="overflow-hidden bg-transparent transition-all duration-300 [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
+                                                        <HeroProductPeekCarousel 
+                                                            products={heroProducts}
+                                                            heroProductIndex={heroProductIndex} 
+                                                            onSelectProduct={setHeroProductIndex} 
+                                                            onInteraction={() => setHasInteractedWithHero(true)}
+                                                            cardSpacingClassName="mx-2"
+                                                            cardFlexStyle="0 0 min(calc(50% - 16px), 279px)"
+                                                        />
+                                                    </div>
+                                                    {/* Left arrow */}
+                                                    <button onClick={handleHeroPrev} aria-label="Previous cake design" className="absolute left-0 top-[45%] -translate-y-1/2 -translate-x-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-lg text-neutral-600 transition-all hover:border-purple-300 hover:text-purple-700 hover:shadow-xl active:scale-95">
+                                                        <ChevronLeft size={18} />
+                                                    </button>
+                                                    {/* Right arrow */}
+                                                    <button onClick={handleHeroNext} aria-label="Next cake design" className="absolute right-0 top-[45%] -translate-y-1/2 translate-x-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-lg text-neutral-600 transition-all hover:border-purple-300 hover:text-purple-700 hover:shadow-xl active:scale-95">
+                                                        <ChevronRight size={18} />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </>
                                     ) : (
                                         /* ── Upload analysis mode ── */
@@ -1765,6 +1878,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                             onOpenUploader={() => setIsUploaderOpen(true)}
                             onResetUpload={resetHeroUploadPreview}
                             onResultAction={handleHeroResultAction}
+                            abVariant={abVariant}
                         />
 
                     </div>
@@ -1857,8 +1971,8 @@ const LandingClient: React.FC<LandingClientProps> = ({
 
                     {(() => {
                         const TIERS = [
-                            { label: '1 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/1-tier-ribbon-cake.webp', price: 1500, size: '8" Round 4 in height' },
-                            { label: '2 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake.webp', price: 2500, size: '6"9" 4 in height per tier' },
+                            { label: '1 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/1-tier-ribbon-cake.webp', price: 1499, size: '8" Round 4 in height' },
+                            { label: '2 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake.webp', price: 2499, size: '6"9" 4 in height per tier' },
                             { label: 'Bento', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/bento-ribbon-cake.png.webp', price: 399, size: '4" Round 2 in height' },
                         ];
                         const FLAVORS = [
@@ -1933,6 +2047,67 @@ const LandingClient: React.FC<LandingClientProps> = ({
                 */}
 
 
+
+                {/* ===== SAME-DAY FREE DELIVERY SECTION ===== */}
+                <section aria-label="Same-day free delivery" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+                    <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12 lg:gap-16">
+
+                        {/* Left Column: Copy + CTA (order-2 on mobile, md:order-1 on desktop) */}
+                        <div className="w-full md:w-1/2 flex flex-col items-center text-center order-2 md:order-1">
+                            {/* Eyebrow */}
+                            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-purple-500 mb-3">
+                                🚀 Same-Day Delivery
+                            </p>
+
+                            {/* Headline */}
+                            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-4">
+                                Your Cake.{' '}
+                                <span className="text-purple-400">Safely Delivered Today.</span>
+                            </h2>
+
+                            {/* Subheadline */}
+                            <p className="text-base md:text-lg text-slate-500 leading-relaxed mb-8 max-w-xl">
+                                Order before 4 PM for same day delivery. <span className="font-semibold text-purple-600 uppercase tracking-wide text-sm md:text-base">FREE DELIVERY within Cebu City</span>.
+                                {' '}Minimal fees for Mandaue, Mactan &amp; Talisay City.
+                            </p>
+
+                            {/* CTA Button */}
+                            <div className="w-full max-w-lg">
+                                <button
+                                    id="delivery-section-upload-cta"
+                                    onClick={() => setIsUploaderOpen(true)}
+                                    aria-label="Upload a cake design image to check if it qualifies for same-day or rush delivery"
+                                    className={`genie-btn-primary flex w-full items-center justify-center gap-2.5 ${LANDING_PRIMARY_CTA_RADIUS} py-4 px-7 text-[15px] font-bold shadow-lg shadow-purple-100/60 active:scale-[0.98] transition-transform`}
+                                >
+                                    <ImagePlus size={18} className="shrink-0" />
+                                    <span className="whitespace-nowrap">Upload design - Check same-day availability</span>
+                                </button>
+                                <p className="mt-3 text-[11px] text-slate-400 font-medium">
+                                    Upload now and we&apos;ll instantly tell you if it&apos;s available for today.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Right Column: Delivery photo (order-1 on mobile, md:order-2 on desktop) */}
+                        <div className="w-full md:w-1/2 shrink-0 order-1 md:order-2">
+                            <div className="relative rounded-3xl overflow-hidden shadow-2xl group">
+                                <img
+                                    src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/geniephdelivery.webp"
+                                    alt="Genie.ph same-day cake delivery in Cebu"
+                                    className="w-full h-full object-cover aspect-[4/3] transition-transform duration-700 group-hover:scale-105"
+                                    loading="lazy"
+                                />
+                                {/* Gradient overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-transparent pointer-events-none" />
+                                {/* Badge */}
+                                <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-green-500 text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full shadow-lg">
+                                    <Truck size={12} className="shrink-0" />
+                                    <span>Free in Cebu City</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
                 {/* ===== RECENT SEARCHES + WHAT IS GENIE.PH (Server-rendered children) ===== */}
                 <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
@@ -2104,6 +2279,19 @@ const LandingClient: React.FC<LandingClientProps> = ({
                     <p className="text-[10px] text-gray-400 text-center">&copy; {new Date().getFullYear()} Genie.ph — Your Cake Wish, Granted.</p>
                 </div>
             </aside>
+
+            {/* Admin A/B Toggle */}
+            {user?.email === 'apcaballes@gmail.com' && (
+                <div className="fixed bottom-24 right-6 z-[9999]">
+                    <button
+                        onClick={handleToggleVariant}
+                        className="flex items-center gap-2 bg-black/80 text-white px-4 py-2 rounded-full text-xs font-bold shadow-2xl backdrop-blur-md border border-white/10 hover:bg-black transition-all active:scale-95"
+                    >
+                        <div className={`w-2 h-2 rounded-full ${abVariant === 'variant-b' ? 'bg-green-400 animate-pulse' : 'bg-blue-400'}`} />
+                        <span>AB: {abVariant === 'variant-b' ? 'Variant B' : 'Control'}</span>
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

@@ -113,3 +113,6 @@ export const MOTHERS_DAY_HERO_CONTENT: LandingHeroContent = {
     },
   ],
 };
+export const VARIANT_B_HERO_CONTENT: LandingHeroContent = {
+  ...DEFAULT_LANDING_HERO_CONTENT,
+};
