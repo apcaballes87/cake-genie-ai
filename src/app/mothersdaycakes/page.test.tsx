@@ -36,7 +36,7 @@ describe("mother's day landing page", () => {
     const { default: MothersDayPage, metadata } = await import('./page');
     const markup = renderToStaticMarkup(await MothersDayPage());
 
-    expect(metadata.alternates?.canonical).toBe('https://genie.ph/mothersday');
+    expect(metadata.alternates?.canonical).toBe('https://genie.ph/mothersdaycakes');
     expect(markup).toContain('CollectionPage');
     expect(markup).toContain('May 10, 2026');
     expect(markup).toContain('Looking for the best Mother');

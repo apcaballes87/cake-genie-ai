@@ -126,11 +126,11 @@ export const metadata: Metadata = {
                 alt: "Genie.ph Mother's Day Cakes 2026",
             },
         ],
-        url: 'https://genie.ph/mothersday',
+        url: 'https://genie.ph/mothersdaycakes',
         type: 'website',
     },
     alternates: {
-        canonical: 'https://genie.ph/mothersday',
+        canonical: 'https://genie.ph/mothersdaycakes',
     },
     twitter: {
         card: 'summary_large_image',
@@ -157,7 +157,7 @@ function MothersDaySchema() {
                 name: "Mother's Day Cakes 2026 in Cebu",
                 description:
                     "Browse Mother's Day cakes in Cebu for Sunday, May 10, 2026, including floral, photo, and personalized cakes for mom.",
-                url: 'https://genie.ph/mothersday',
+                url: 'https://genie.ph/mothersdaycakes',
                 isPartOf: {
                     '@type': 'WebSite',
                     name: 'Genie.ph',
@@ -169,7 +169,7 @@ function MothersDaySchema() {
                 name: "Mother's Day Cakes",
                 description:
                     "Shop Mother's Day cakes, floral cakes, and photo cakes for mom in Cebu for Mother's Day on Sunday, May 10, 2026.",
-                url: 'https://genie.ph/mothersday',
+                url: 'https://genie.ph/mothersdaycakes',
                 hasPart: [
                     {
                         '@type': 'CreativeWork',
@@ -201,7 +201,7 @@ function MothersDaySchema() {
                         '@type': 'ListItem',
                         position: 2,
                         name: "Mother's Day Cakes",
-                        item: 'https://genie.ph/mothersday',
+                        item: 'https://genie.ph/mothersdaycakes',
                     },
                 ],
             },

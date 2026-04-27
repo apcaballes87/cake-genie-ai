@@ -119,6 +119,11 @@ const nextConfig: NextConfig = {
         destination: '/customizing/category/christening-cakes',
         permanent: true,
       },
+      {
+        source: '/mothersday',
+        destination: '/mothersdaycakes',
+        permanent: true,
+      },
     ]
   },
   // Remove console.log in production builds for cleaner output
