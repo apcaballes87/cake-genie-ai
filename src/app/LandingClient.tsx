@@ -1466,7 +1466,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                     <div className="flex flex-col md:flex-row gap-8 md:gap-12 lg:gap-16 items-start">
                         {/* Mobile Hero View */}
                         {/* Mobile Hero View - Simplified */}
-                        <div className="md:hidden w-full flex flex-col">
+                        <div className="md:hidden w-full flex flex-col mt-2">
                             <h1 className="mb-4 text-center text-[10px] min-[360px]:text-[11px] font-bold uppercase tracking-[0.06em] text-neutral-600 whitespace-nowrap">
                                 {heroContent.eyebrow}
                             </h1>
@@ -1508,7 +1508,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                             {/* 1:1 grid ratio */}
                             <div className="grid grid-cols-2 gap-12 items-center">
                                 {/* Left Column (1/2): Headlines and CTA */}
-                                <div className="col-span-1 flex flex-col items-center text-center">
+                                <div className="col-span-1 flex flex-col items-center text-center mt-2">
                                     <h1 className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.092em] text-neutral-600">
                                         {heroContent.eyebrow}
                                     </h1>
