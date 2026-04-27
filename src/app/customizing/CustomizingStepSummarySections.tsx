@@ -226,6 +226,44 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     const [showIcingChoice, setShowIcingChoice] = React.useState(true);
     const [showAdvanced, setShowAdvanced] = React.useState(false);
     const stepOneCardRef = React.useRef<HTMLDivElement | null>(null);
+    const sizeScrollRef = React.useRef<HTMLDivElement | null>(null);
+    const heightScrollRef = React.useRef<HTMLDivElement | null>(null);
+
+    // Helper to scroll selected item to center
+    const scrollToCenter = (container: HTMLDivElement | null, selector: string) => {
+        if (!container) return;
+        const element = container.querySelector(selector) as HTMLElement;
+        if (element) {
+            const containerRect = container.getBoundingClientRect();
+            const elementRect = element.getBoundingClientRect();
+            
+            // Distance of element relative to container's left edge
+            const relativeLeft = elementRect.left - containerRect.left;
+            
+            // Calculate target scroll: current + relative - (container/2) + (element/2)
+            const targetScrollLeft = container.scrollLeft + relativeLeft - (containerRect.width / 2) + (elementRect.width / 2);
+
+            container.scrollTo({
+                left: targetScrollLeft,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    // Auto-scroll on state change
+    React.useEffect(() => {
+        if (cakeInfo?.size && sizeScrollRef.current) {
+            const escapedSize = cakeInfo.size.replace(/"/g, '\\"');
+            setTimeout(() => scrollToCenter(sizeScrollRef.current, `[data-cakesize="${escapedSize}"]`), 100);
+        }
+    }, [cakeInfo?.size]);
+
+    React.useEffect(() => {
+        if (cakeInfo?.thickness && heightScrollRef.current) {
+            setTimeout(() => scrollToCenter(heightScrollRef.current, `[data-cakethickness="${cakeInfo.thickness}"]`), 100);
+        }
+    }, [cakeInfo?.thickness]);
+
     const isDesktop = layout === 'desktop';
     const containerClassName = isDesktop
         ? 'w-full hidden md:flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden gap-2 pb-6 md:pb-4 scrollbar-hide snap-x md:snap-none relative z-60'
@@ -396,184 +434,200 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                         </div>
 
 
-                        {/* Line 3: Size */}
-                        {basePriceOptions && basePriceOptions.length > 0 && (
-                            <div className="flex flex-col gap-1">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Size</span>
-                                <div key={cakeInfo.type} className="flex flex-nowrap overflow-x-auto justify-start sm:justify-center items-center gap-4 py-1.5 px-2 scrollbar-hide">
-                                    {[...basePriceOptions]
-                                        .sort((a, b) => {
-                                            const valA = parseInt(a.size.match(/\d+/)?.[0] || "0");
-                                            const valB = parseInt(b.size.match(/\d+/)?.[0] || "0");
-                                            return valA - valB;
-                                        })
-                                        .map((option, index) => {
-                                            const isSelected = cakeInfo.size === option.size;
-                                            const totalPrice = roundDownToNearest99(option.price + addOnPricing, option.price);
-                                        // Increasing diameter: 74, 84, 94, 104, etc.
-                                        const diameter = 74 + (index * 10);
-                                        
-                                        const isSquare = cakeInfo.type.toLowerCase().includes('square');
-                                        const isRectangle = cakeInfo.type.toLowerCase().includes('rectangle');
-                                        
-                                        return (
-                                            <button
-                                                key={option.size}
-                                                onClick={() => onCakeInfoChange?.({ size: option.size })}
-                                                style={{ 
-                                                    width: isRectangle ? `${diameter * 1.4}px` : `${diameter}px`, 
-                                                    height: `${diameter}px`,
-                                                    animationDelay: `${index * 50}ms`
-                                                }}
-                                                className={`shrink-0 flex flex-col items-center justify-center border transition-all duration-500 group relative animate-fade-in-scale opacity-0 ${
-                                                    isSquare || isRectangle ? 'rounded-xl' : 'rounded-full'
-                                                } ${
-                                                    isSelected 
-                                                        ? 'border-purple-400 bg-purple-50 text-purple-700 shadow-md ring-2 ring-purple-100 z-10 scale-105' 
-                                                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-300 hover:bg-slate-100/50 hover:scale-105'
-                                                }`}
-                                            >
-                                                <span className="text-[11px] font-extrabold text-center leading-none px-1 uppercase tracking-tight">{option.size.replace(' Round', '')}</span>
-                                                <span className={`text-[10px] font-bold mt-1 ${isSelected ? 'text-purple-600' : 'text-slate-400 group-hover:text-purple-400'}`}>
-                                                    ₱{totalPrice.toLocaleString()}
-                                                </span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Line 4: Height */}
-                        <div className="flex flex-col gap-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Height</span>
-                            <div key={cakeInfo.type} className="flex flex-nowrap overflow-x-auto justify-start sm:justify-center items-center gap-6 py-1.5 px-2 scrollbar-hide">
-                                {(THICKNESS_OPTIONS_MAP[cakeInfo.type] || []).map((thickness, index) => {
-                                    const isSelected = cakeInfo.thickness === thickness;
-                                    
-                                    // Parse Width (from cakeInfo.size)
-                                    // Handle cases like "6\" Round" or "6\"/8\" Round"
-                                    const allWidths = cakeInfo.size.match(/\d+/g) || ["6"];
-                                    const baseWidth = Math.max(...allWidths.map(Number));
-                                    
-                                    const heightValue = parseInt(thickness) || 4;
-                                    
-                                    // Scaling factor: Match the size circle diameter (74px + index * 10px)
-                                    // We find the index of the current size to keep it consistent with Line 3
-                                    const sizeIndex = (basePriceOptions || []).findIndex(opt => opt.size === cakeInfo.size);
-                                    const isRectangle = cakeInfo.type.toLowerCase().includes('rectangle');
-                                    const baseRectWidth = sizeIndex >= 0 ? (74 + sizeIndex * 10) : (baseWidth * 15);
-                                    const rectWidth = isRectangle ? baseRectWidth * 1.4 : baseRectWidth;
-                                    const rectHeight = heightValue * 12; // Keep height scale at 12px per inch
-
-                                    return (
-                                        <button
-                                            key={thickness}
-                                            onClick={() => onCakeInfoChange?.({ thickness })}
-                                            style={{ animationDelay: `${index * 50}ms` }}
-                                            className="flex flex-col items-center gap-2 group transition-all animate-fade-in-scale opacity-0"
+                        {/* Size, Height, and Flavor 2-Column Container */}
+                        <div className="flex flex-row gap-4 w-full mt-2 bg-transparent">
+                            {/* Left Column (75%) */}
+                            <div className="flex-[3] min-w-0 flex flex-col gap-4">
+                                {/* Line 3: Size */}
+                                {basePriceOptions && basePriceOptions.length > 0 && (
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Size</span>
+                                        <div 
+                                            ref={sizeScrollRef}
+                                            key={cakeInfo.type} 
+                                            className="flex flex-nowrap overflow-x-auto justify-start items-center gap-4 py-1.5 px-2 scrollbar-hide"
                                         >
-                                            <div 
-                                                style={{ width: `${rectWidth}px`, height: `${rectHeight}px` }}
-                                                className={`rounded-lg border-2 transition-all duration-500 flex items-center justify-center relative ${
-                                                    isSelected 
-                                                        ? 'bg-purple-100/50 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)] scale-110 z-10' 
-                                                        : 'bg-slate-50 border-slate-200 hover:border-purple-300 hover:bg-purple-50/30 hover:scale-105'
-                                                }`}
-                                            >
-                                                <span className={`text-[10px] font-black ${isSelected ? 'text-purple-600' : 'text-slate-600 group-hover:text-purple-300'} transition-colors`}>
-                                                    {heightValue}"
-                                                </span>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Line 5: Flavor */}
-                        <div className="flex flex-col gap-1">
-                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Flavor</span>
-                            <div className="flex flex-col gap-2">
-                                {cakeInfo.flavors.map((currentFlavor, index) => (
-                                    <div key={index} className="flex flex-col gap-1">
-                                        {cakeInfo.flavors.length > 1 && (
-                                            <span className="text-[9px] font-medium text-slate-500 uppercase">{getStepOneFlavorLabel(index, cakeInfo.flavors.length)}</span>
-                                        )}
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {FLAVOR_OPTIONS.map((flavor) => {
-                                                const isSelected = currentFlavor === flavor;
-                                                
-                                                // Bento Cake: Only Chocolate Cake is allowed
-                                                const isBento = cakeInfo.type === 'Bento';
-                                                const normType = cakeInfo.type.toLowerCase();
-                                                const isStandardOrMulti = normType.includes('1 tier') || 
-                                                                           normType.includes('2 tier') || 
-                                                                           normType.includes('3 tier') || 
-                                                                           normType.includes('square') || 
-                                                                           normType.includes('rectangle');
-
-                                                let isDisabled = false;
-                                                if (isBento) {
-                                                    isDisabled = flavor !== 'Chocolate Cake';
-                                                } else if (isStandardOrMulti) {
-                                                    isDisabled = flavor === 'Mocha Cake';
-                                                }
-
-                                                // If current flavor is disabled, we should ideally auto-switch it
-                                                // but for the UI display, we just show it as disabled.
-                                                // Flavor color mapping
-                                                const flavorStyles: Record<string, { bg: string, border: string, text: string, activeBg: string, activeBorder: string, activeText: string }> = {
-                                                    'Chocolate Cake': { 
-                                                        bg: 'bg-[#fdf0d5]', border: 'border-[#f2cc8f]', text: 'text-[#78350f]',
-                                                        activeBg: 'bg-[#DDB892]', activeBorder: 'border-[#7f5539]', activeText: 'text-white'
-                                                    },
-                                                    'Ube Cake': { 
-                                                        bg: 'bg-[#f3e8ff]', border: 'border-[#e9d5ff]', text: 'text-[#6b21a8]',
-                                                        activeBg: 'bg-[#c084fc]', activeBorder: 'border-[#7e22ce]', activeText: 'text-white'
-                                                    },
-                                                    'Vanilla Cake': { 
-                                                        bg: 'bg-[#fffbeb]', border: 'border-[#fef3c7]', text: 'text-[#92400e]',
-                                                        activeBg: 'bg-[#fde68a]', activeBorder: 'border-[#d97706]', activeText: 'text-[#92400e]'
-                                                    },
-                                                    'Mocha Cake': { 
-                                                        bg: 'bg-[#faf3e0]', border: 'border-[#e6ccb2]', text: 'text-[#9c6644]',
-                                                        activeBg: 'bg-[#e3d5ca]', activeBorder: 'border-[#9c6644]', activeText: 'text-[#5e3023]'
-                                                    },
-                                                };
-
-                                                const style = flavorStyles[flavor] || { 
-                                                    bg: 'bg-white', border: 'border-slate-100', text: 'text-slate-600',
-                                                    activeBg: 'bg-purple-50', activeBorder: 'border-purple-300', activeText: 'text-purple-700'
-                                                };
-
-                                                return (
-                                                    <button
-                                                        key={flavor}
-                                                        disabled={isDisabled}
-                                                        onClick={() => {
-                                                            if (isDisabled) return;
-                                                            const newFlavors = [...cakeInfo.flavors];
-                                                            newFlavors[index] = flavor;
-                                                            onCakeInfoChange?.({ flavors: newFlavors });
-                                                        }}
-                                                        className={`min-h-[46px] min-w-[90px] flex-1 flex items-center justify-center px-3 rounded-xl border transition-all duration-300 shadow-sm ${
-                                                            isDisabled
-                                                                ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed opacity-50 grayscale'
-                                                                : isSelected 
-                                                                    ? `${style.activeBg} ${style.activeBorder} ${style.activeText} scale-[1.02] ring-2 ring-white/50` 
-                                                                    : `${style.bg} ${style.border} ${style.text} opacity-80 hover:opacity-100 hover:scale-[1.02]`
-                                                        }`}
-                                                    >
-                                                        <span className="text-[12px] font-bold text-center leading-none uppercase tracking-tighter">{flavor.replace(' Cake', '')}</span>
-                                                    </button>
-                                                );
-                                            })}
+                                            {[...basePriceOptions]
+                                                .sort((a, b) => {
+                                                    const valA = parseInt(a.size.match(/\d+/)?.[0] || "0");
+                                                    const valB = parseInt(b.size.match(/\d+/)?.[0] || "0");
+                                                    return valA - valB;
+                                                })
+                                                .map((option, index) => {
+                                                    const isSelected = cakeInfo.size === option.size;
+                                                    const totalPrice = roundDownToNearest99(option.price + addOnPricing, option.price);
+                                                    const diameter = 74 + (index * 10);
+                                                    
+                                                    const isSquare = cakeInfo.type.toLowerCase().includes('square');
+                                                    const isRectangle = cakeInfo.type.toLowerCase().includes('rectangle');
+                                                    
+                                                    return (
+                                                        <button
+                                                            key={option.size}
+                                                            data-cakesize={option.size}
+                                                            onClick={() => {
+                                                                onCakeInfoChange?.({ size: option.size });
+                                                                setTimeout(() => scrollToCenter(sizeScrollRef.current, `[data-cakesize="${option.size.replace(/"/g, '\\"')}"]`), 50);
+                                                            }}
+                                                            style={{ 
+                                                                width: isRectangle ? `${diameter * 1.4}px` : `${diameter}px`, 
+                                                                height: `${diameter}px`,
+                                                                animationDelay: `${index * 50}ms`
+                                                            }}
+                                                            className={`shrink-0 flex flex-col items-center justify-center border transition-all duration-500 group relative animate-fade-in-scale opacity-0 ${
+                                                                isSquare || isRectangle ? 'rounded-xl' : 'rounded-full'
+                                                            } ${
+                                                                isSelected 
+                                                                    ? 'border-purple-400 bg-purple-50 text-purple-700 shadow-md ring-2 ring-purple-100 z-10 scale-105' 
+                                                                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-300 hover:bg-slate-100/50 hover:scale-105'
+                                                            }`}
+                                                        >
+                                                            <span className="text-[11px] font-extrabold text-center leading-none px-1 uppercase tracking-tight">{option.size.replace(' Round', '')}</span>
+                                                            <span className={`text-[10px] font-bold mt-1 ${isSelected ? 'text-purple-600' : 'text-slate-400 group-hover:text-purple-400'}`}>
+                                                                ₱{totalPrice.toLocaleString()}
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })}
                                         </div>
                                     </div>
-                                ))}
+                                )}
+
+                                {/* Line 4: Height */}
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Height</span>
+                                    <div 
+                                        ref={heightScrollRef}
+                                        key={cakeInfo.type} 
+                                        className="flex flex-nowrap overflow-x-auto justify-start items-center gap-3 py-1.5 px-2 scrollbar-hide"
+                                    >
+                                        {(THICKNESS_OPTIONS_MAP[cakeInfo.type] || []).map((thickness, index) => {
+                                            const isSelected = cakeInfo.thickness === thickness;
+                                            
+                                            const allWidths = cakeInfo.size.match(/\d+/g) || ["6"];
+                                            const baseWidth = Math.max(...allWidths.map(Number));
+                                            
+                                            const heightValue = parseInt(thickness) || 4;
+                                            const sizeIndex = (basePriceOptions || []).findIndex(opt => opt.size === cakeInfo.size);
+                                            const isRectangle = cakeInfo.type.toLowerCase().includes('rectangle');
+                                            const baseRectWidth = sizeIndex >= 0 ? (74 + sizeIndex * 10) : (baseWidth * 15);
+                                            const rectWidth = isRectangle ? baseRectWidth * 1.4 : baseRectWidth;
+                                            const rectHeight = heightValue * 12;
+
+                                            return (
+                                                <button
+                                                    key={thickness}
+                                                    data-cakethickness={thickness}
+                                                    onClick={() => {
+                                                        onCakeInfoChange?.({ thickness });
+                                                        setTimeout(() => scrollToCenter(heightScrollRef.current, `[data-cakethickness="${thickness}"]`), 50);
+                                                    }}
+                                                    style={{ animationDelay: `${index * 50}ms` }}
+                                                    className="flex flex-col items-center gap-2 group transition-all animate-fade-in-scale opacity-0"
+                                                >
+                                                    <div 
+                                                        style={{ width: `${rectWidth}px`, height: `${rectHeight}px` }}
+                                                        className={`rounded-lg border-2 transition-all duration-500 flex items-center justify-center relative ${
+                                                            isSelected 
+                                                                ? 'bg-purple-100/50 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)] scale-110 z-10' 
+                                                                : 'bg-slate-50 border-slate-200 hover:border-purple-300 hover:bg-purple-50/30 hover:scale-105'
+                                                        }`}
+                                                    >
+                                                        <span className={`text-[10px] font-black ${isSelected ? 'text-purple-600' : 'text-slate-600 group-hover:text-purple-300'} transition-colors`}>
+                                                            {heightValue}"
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Column (25%) */}
+                            <div className="flex-[1] min-w-0 border-l border-slate-100 pl-4 flex flex-col gap-4">
+                                {/* Line 5: Flavor */}
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Flavor</span>
+                                    <div className="flex flex-col gap-2">
+                                        {cakeInfo.flavors.map((currentFlavor, index) => (
+                                            <div key={index} className="flex flex-col gap-1">
+                                                {cakeInfo.flavors.length > 1 && (
+                                                    <span className="text-[9px] font-medium text-slate-500 uppercase">{getStepOneFlavorLabel(index, cakeInfo.flavors.length)}</span>
+                                                )}
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {FLAVOR_OPTIONS.map((flavor) => {
+                                                        const isSelected = currentFlavor === flavor;
+                                                        
+                                                        const isBento = cakeInfo.type === 'Bento';
+                                                        const normType = cakeInfo.type.toLowerCase();
+                                                        const isStandardOrMulti = normType.includes('1 tier') || 
+                                                                                    normType.includes('2 tier') || 
+                                                                                    normType.includes('3 tier') || 
+                                                                                    normType.includes('square') || 
+                                                                                    normType.includes('rectangle');
+
+                                                        let isDisabled = false;
+                                                        if (isBento) {
+                                                            isDisabled = flavor !== 'Chocolate Cake';
+                                                        } else if (isStandardOrMulti) {
+                                                            isDisabled = flavor === 'Mocha Cake';
+                                                        }
+
+                                                        const flavorStyles: Record<string, { bg: string, border: string, text: string, activeBg: string, activeBorder: string, activeText: string }> = {
+                                                            'Chocolate Cake': { 
+                                                                bg: 'bg-[#fdf0d5]', border: 'border-[#f2cc8f]', text: 'text-[#78350f]',
+                                                                activeBg: 'bg-[#DDB892]', activeBorder: 'border-[#7f5539]', activeText: 'text-white'
+                                                            },
+                                                            'Ube Cake': { 
+                                                                bg: 'bg-[#f3e8ff]', border: 'border-[#e9d5ff]', text: 'text-[#6b21a8]',
+                                                                activeBg: 'bg-[#c084fc]', activeBorder: 'border-[#7e22ce]', activeText: 'text-white'
+                                                            },
+                                                            'Vanilla Cake': { 
+                                                                bg: 'bg-[#fffbeb]', border: 'border-[#fef3c7]', text: 'text-[#92400e]',
+                                                                activeBg: 'bg-[#fde68a]', activeBorder: 'border-[#d97706]', activeText: 'text-[#92400e]'
+                                                            },
+                                                            'Mocha Cake': { 
+                                                                bg: 'bg-[#faf3e0]', border: 'border-[#e6ccb2]', text: 'text-[#9c6644]',
+                                                                activeBg: 'bg-[#e3d5ca]', activeBorder: 'border-[#9c6644]', activeText: 'text-[#5e3023]'
+                                                            },
+                                                        };
+
+                                                        const style = flavorStyles[flavor] || { 
+                                                            bg: 'bg-white', border: 'border-slate-100', text: 'text-slate-600',
+                                                            activeBg: 'bg-purple-50', activeBorder: 'border-purple-300', activeText: 'text-purple-700'
+                                                        };
+
+                                                        return (
+                                                            <button
+                                                                key={flavor}
+                                                                disabled={isDisabled}
+                                                                onClick={() => {
+                                                                    if (isDisabled) return;
+                                                                    const newFlavors = [...cakeInfo.flavors];
+                                                                    newFlavors[index] = flavor;
+                                                                    onCakeInfoChange?.({ flavors: newFlavors });
+                                                                }}
+                                                                className={`min-h-[46px] min-w-[90px] flex-1 flex items-center justify-center px-3 rounded-xl border transition-all duration-300 shadow-sm ${
+                                                                    isDisabled
+                                                                        ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed opacity-50 grayscale'
+                                                                        : isSelected 
+                                                                            ? `${style.activeBg} ${style.activeBorder} ${style.activeText} scale-[1.02] ring-2 ring-white/50` 
+                                                                            : `${style.bg} ${style.border} ${style.text} opacity-80 hover:opacity-100 hover:scale-[1.02]`
+                                                                }`}
+                                                            >
+                                                                <span className="text-[12px] font-bold text-center leading-none uppercase tracking-tighter">{flavor.replace(' Cake', '')}</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
                     </div>
 
                 </div>
