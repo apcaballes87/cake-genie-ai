@@ -24,14 +24,14 @@ const MODEL_NAME = 'gemini-3.1-flash-image-preview';
 const STORAGE_BUCKET = 'cakegenie';
 
 let cachedLogoBuffer: Buffer | null = null;
-async function getLogoBuffer() {
+const getLogoBuffer = async () => {
   if (cachedLogoBuffer) return cachedLogoBuffer;
   const res = await fetch(IMAGE_STUDIO_WATERMARK_LOGO_URL, { cache: 'force-cache' });
   if (!res.ok) throw new Error('Failed to fetch brand logo');
   const buffer = Buffer.from(await res.arrayBuffer());
   cachedLogoBuffer = buffer;
   return buffer;
-}
+};
 
 type AiInlineDataPart = {
   inlineData?: {
@@ -69,19 +69,19 @@ type CacheRow = {
   studio_edited_at?: string | null;
 };
 
-function isAuthorized(req: NextRequest) {
+const isAuthorized = (req: NextRequest) => {
   return req.headers.get('x-admin-pin') === ADMIN_IMAGE_STUDIO_PIN;
-}
+};
 
-function unauthorizedResponse() {
+const unauthorizedResponse = () => {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-}
+};
 
-function sanitizeSearchTerm(value: string) {
+const sanitizeSearchTerm = (value: string) => {
   return value.replace(/[^a-zA-Z0-9\s-]/g, ' ').trim().replace(/\s+/g, ' ');
-}
+};
 
-function parsePositiveInt(value: string | null, fallback: number, max: number) {
+const parsePositiveInt = (value: string | null, fallback: number, max: number) => {
   const parsed = Number.parseInt(value ?? '', 10);
 
   if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -89,9 +89,9 @@ function parsePositiveInt(value: string | null, fallback: number, max: number) {
   }
 
   return Math.min(parsed, max);
-}
+};
 
-function mapCacheRow(row: CacheRow) {
+const mapCacheRow = (row: CacheRow) => {
   return {
     ...row,
     studio_edit_status: normalizeImageStudioStatus(row.studio_edit_status),
@@ -99,9 +99,9 @@ function mapCacheRow(row: CacheRow) {
     studio_edit_error: row.studio_edit_error ?? null,
     studio_edited_at: row.studio_edited_at ?? null,
   };
-}
+};
 
-function extractGeneratedImage(response: AiGenerateContentResponse) {
+const extractGeneratedImage = (response: AiGenerateContentResponse | undefined | null) => {
   const candidate = response?.candidates?.[0];
   const partsResponse = candidate?.content?.parts;
   const imagePart = partsResponse?.find((part) => part.inlineData?.data);
@@ -121,9 +121,9 @@ function extractGeneratedImage(response: AiGenerateContentResponse) {
   }
 
   return null;
-}
+};
 
-function extractTextResponse(response: AiGenerateContentResponse) {
+const extractTextResponse = (response: AiGenerateContentResponse | undefined | null) => {
   if (typeof response?.text === 'string') {
     return response.text;
   }
@@ -141,9 +141,9 @@ function extractTextResponse(response: AiGenerateContentResponse) {
   ) ?? [];
 
   return textParts.map((part) => part.text).join('\n').trim();
-}
+};
 
-function detectMimeType(url: string, fallback: string | null) {
+const detectMimeType = (url: string, fallback: string | null) => {
   if (fallback?.startsWith('image/')) {
     return fallback;
   }
@@ -164,9 +164,9 @@ function detectMimeType(url: string, fallback: string | null) {
     default:
       return 'image/jpeg';
   }
-}
+};
 
-async function fetchImageAsInlineData(url: string) {
+const fetchImageAsInlineData = async (url: string) => {
   const response = await fetch(url, { cache: 'no-store' });
 
   if (!response.ok) {
@@ -180,12 +180,12 @@ async function fetchImageAsInlineData(url: string) {
     data: Buffer.from(arrayBuffer).toString('base64'),
     mimeType,
   };
-}
+};
 
-async function finalizeEditedImage(
+const finalizeEditedImage = async (
   buffer: Buffer,
   dimensions?: { width: number; height: number; wasUpscaled: boolean } | null
-) {
+) => {
   const image = sharp(buffer);
   const metadata = await image.metadata();
   const width = dimensions?.width ?? metadata.width ?? 1200;
@@ -257,22 +257,22 @@ async function finalizeEditedImage(
       effort: 6,
     })
     .toBuffer();
-}
+};
 
 
-function getErrorMessage(error: unknown) {
+const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
     return error.message;
   }
 
   return 'Image editing failed.';
-}
+};
 
-function createStatusError(status: number, message: string) {
+const createStatusError = (status: number, message: string) => {
   return Object.assign(new Error(message), { status });
-}
+};
 
-export async function GET(req: NextRequest) {
+export const GET = async (req: NextRequest) => {
   if (!isAuthorized(req)) {
     return unauthorizedResponse();
   }
@@ -349,9 +349,9 @@ export async function GET(req: NextRequest) {
     totalCount: count ?? items.length,
     totalPages: Math.max(1, Math.ceil((count ?? items.length) / pageSize)),
   });
-}
+};
 
-export async function POST(req: NextRequest) {
+export const POST = async (req: NextRequest) => {
   if (!isAuthorized(req)) {
     return unauthorizedResponse();
   }
@@ -415,7 +415,7 @@ export async function POST(req: NextRequest) {
     const aiClient = getAI(req);
 
     // --- AI Image Editing with Retry Logic ---
-    let aiResponse;
+    let aiResponse: any;
     const MAX_AI_RETRIES = 3;
     
     for (let attempt = 0; attempt <= MAX_AI_RETRIES; attempt += 1) {
@@ -554,4 +554,4 @@ export async function POST(req: NextRequest) {
       { status: normalizedError.status }
     );
   }
-}
+};
