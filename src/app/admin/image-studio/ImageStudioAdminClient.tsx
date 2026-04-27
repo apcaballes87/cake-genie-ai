@@ -123,8 +123,6 @@ export default function ImageStudioAdminClient() {
     label: string;
   } | null>(null);
   const [isAutoContinuing, setIsAutoContinuing] = useState(false);
-  const [isBatching, setIsBatching] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   const stopBatchRef = useRef(false);
 
@@ -378,53 +376,6 @@ export default function ImageStudioAdminClient() {
     }
   };
 
-  const handleBatchSubmit = async () => {
-    setIsBatching(true);
-    try {
-      const response = await fetch('/api/admin/cake-cache-images/batch/submit', {
-        method: 'POST',
-        headers: {
-          'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN,
-        },
-      });
-
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error || 'Failed to submit batch jobs.');
-      }
-
-      toast.success(payload.message || 'Batch jobs submitted successfully!');
-      refreshRecords();
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setIsBatching(false);
-    }
-  };
-
-  const handleBatchSync = async () => {
-    setIsSyncing(true);
-    try {
-      const response = await fetch('/api/admin/cake-cache-images/batch/sync', {
-        headers: {
-          'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN,
-        },
-      });
-
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error || 'Failed to sync batch jobs.');
-      }
-
-      toast.success(payload.message || 'Sync completed.');
-      refreshRecords();
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   if (isBooting) {
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-6xl items-center justify-center px-4">
@@ -605,35 +556,6 @@ export default function ImageStudioAdminClient() {
                 >
                   <Square className="size-4" />
                   Stop auto-edit
-                </button>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-violet-200/50 pt-4">
-                <button
-                  type="button"
-                  onClick={handleBatchSubmit}
-                  disabled={isBatching || loading}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-300"
-                >
-                  {isBatching ? (
-                    <LoaderCircle className="size-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="size-4" />
-                  )}
-                  Submit Batch Jobs
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBatchSync}
-                  disabled={isSyncing || loading}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-indigo-200 bg-white px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300"
-                >
-                  {isSyncing ? (
-                    <LoaderCircle className="size-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="size-4" />
-                  )}
-                  Sync Pending Jobs
                 </button>
               </div>
 
