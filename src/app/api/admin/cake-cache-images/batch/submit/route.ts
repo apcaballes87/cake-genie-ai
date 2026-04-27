@@ -117,7 +117,7 @@ export const POST = async (req: NextRequest) => {
     
     writeStream.end();
     await new Promise((resolve, reject) => {
-      writeStream.on('finish', resolve);
+      writeStream.on('finish', () => resolve(undefined));
       writeStream.on('error', reject);
     });
 
@@ -133,6 +133,10 @@ export const POST = async (req: NextRequest) => {
         displayName: `ImageStudioBatch_${Date.now()}`
       }
     });
+
+    if (!uploadedFile.name) {
+      throw new Error('Failed to get uploaded file name.');
+    }
 
     // Create Batch Job
     const batchJob = await aiClient.batches.create({
