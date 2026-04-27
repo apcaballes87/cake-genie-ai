@@ -186,7 +186,7 @@ export default function NewsletterPopup() {
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[69]" />
       <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-        <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-purple-100 overflow-hidden p-8">
+        <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-emerald-100 overflow-hidden p-8">
           {/* Close button */}
           <button
             onClick={closePopup}
@@ -203,8 +203,8 @@ export default function NewsletterPopup() {
               <h2 className="text-2xl font-extrabold text-gray-900 mb-3">YOU'RE ALL SET!</h2>
 
               <p className="text-base text-gray-600 mb-5">Here is your 20% off discount code:</p>
-              <div className="bg-purple-50 border-2 border-dashed border-purple-300 rounded-xl py-3 px-6 inline-block mb-4 shadow-sm">
-                <span className="text-2xl font-bold tracking-wider text-purple-700">{discountCode}</span>
+              <div className="bg-emerald-50 border-2 border-dashed border-emerald-300 rounded-xl py-3 px-6 inline-block mb-4 shadow-sm">
+                <span className="text-2xl font-bold tracking-wider text-emerald-700">{discountCode}</span>
               </div>
               <p className="text-sm text-gray-500 mb-6">
                 Use this code at checkout to claim your discount.
@@ -215,7 +215,7 @@ export default function NewsletterPopup() {
 
               <button
                 onClick={closePopup}
-                className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-all shadow-md active:scale-[0.98] w-full"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-8 rounded-xl transition-all shadow-md active:scale-[0.98] w-full"
               >
                 CONTINUE SHOPPING
               </button>
@@ -225,7 +225,7 @@ export default function NewsletterPopup() {
             /* ── Sign-up form ── */
             <div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-[1.15] mb-2 tracking-tight text-center">
-                CREATE AN ACCOUNT &amp; GET <span className="text-purple-600 italic">20% OFF</span> YOUR FIRST ORDER
+                CREATE AN ACCOUNT &amp; GET <span className="text-emerald-600 italic">20% OFF</span> YOUR FIRST ORDER
               </h2>
               <p className="text-gray-500 mb-6 text-sm text-center leading-relaxed">
                 Sign up for free to unlock your exclusive discount code.
@@ -262,7 +262,7 @@ export default function NewsletterPopup() {
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="First name"
                   autoComplete="given-name"
-                  className="w-full border border-slate-200 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-slate-50 text-gray-900 text-sm transition-shadow"
+                  className="w-full border border-slate-200 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 bg-slate-50 text-gray-900 text-sm transition-shadow"
                   disabled={status === 'loading'}
                 />
                 <input
@@ -271,7 +271,7 @@ export default function NewsletterPopup() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email address"
                   autoComplete="email"
-                  className="w-full border border-slate-200 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-slate-50 text-gray-900 text-sm transition-shadow"
+                  className="w-full border border-slate-200 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 bg-slate-50 text-gray-900 text-sm transition-shadow"
                   disabled={status === 'loading'}
                 />
                 <div className="relative">
@@ -281,7 +281,7 @@ export default function NewsletterPopup() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Password (min. 6 characters)"
                     autoComplete="new-password"
-                    className="w-full border border-slate-200 px-4 py-3 pr-11 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-slate-50 text-gray-900 text-sm transition-shadow"
+                    className="w-full border border-slate-200 px-4 py-3 pr-11 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 bg-slate-50 text-gray-900 text-sm transition-shadow"
                     disabled={status === 'loading'}
                   />
                   <button
@@ -302,7 +302,7 @@ export default function NewsletterPopup() {
                   <button
                     type="submit"
                     disabled={status === 'loading'}
-                    className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-3 px-2 rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-70 whitespace-nowrap text-[12px] sm:text-sm"
+                    className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-2 rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-70 whitespace-nowrap text-[12px] sm:text-sm"
                   >
                     {status === 'loading' ? 'SIGNING UP…' : 'SIGN UP & SAVE 20%'}
                   </button>

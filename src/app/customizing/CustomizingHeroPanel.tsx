@@ -42,7 +42,7 @@ interface CustomizingHeroPanelProps {
     onClearAll: () => void;
 }
 
-interface HeroActionButtonsRowProps {
+export interface HeroActionButtonsRowProps {
     editedImage: string | null;
     isLoading: boolean;
     isReporting: boolean;
@@ -52,7 +52,7 @@ interface HeroActionButtonsRowProps {
     onClearAll: () => void;
 }
 
-const HeroActionButtonsRow = ({ editedImage, isLoading, isReporting, isSaving, onOpenReportModal, onSave, onClearAll }: HeroActionButtonsRowProps) => {
+export const HeroActionButtonsRow = ({ editedImage, isLoading, isReporting, isSaving, onOpenReportModal, onSave, onClearAll }: HeroActionButtonsRowProps) => {
     const buttonClassName = 'flex items-center gap-1.5 text-[11px] font-bold py-2 px-3 rounded-full bg-white border border-slate-200 text-slate-600 shadow-sm hover:shadow-md hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap';
     const iconClassName = 'w-3.5 h-3.5';
 
@@ -275,7 +275,7 @@ export const CustomizingHeroPanel = memo(({
             </div>
 
             {showFooterActions ? (
-                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <div className="hidden md:block animate-in fade-in slide-in-from-bottom-2 duration-500">
                     <HeroActionButtonsRow editedImage={editedImage} isLoading={isLoading} isReporting={isReporting} isSaving={isSaving} onOpenReportModal={onOpenReportModal} onSave={onSave} onClearAll={onClearAll} />
                 </div>
             ) : null}

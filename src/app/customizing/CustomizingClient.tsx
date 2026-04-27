@@ -56,7 +56,7 @@ import {
     getRecentSearchDisplayTitle,
 } from './CustomizingPageMetaSections';
 import { CustomizingEditorSheet } from './CustomizingEditorSheet';
-import { CustomizingHeroPanel } from './CustomizingHeroPanel';
+import { CustomizingHeroPanel, HeroActionButtonsRow } from './CustomizingHeroPanel';
 import { CustomizingIcingEditorPanel } from './CustomizingIcingEditorPanel';
 import { CustomizingInstructionsPanel } from './CustomizingInstructionsPanel';
 import { CustomizingMessagesPanel } from './CustomizingMessagesPanel';
@@ -3044,6 +3044,21 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     dirtyFields={dirtyFields}
                                     originalCakeType={analysisResult?.cakeType}
                                 />
+                            )}
+                            
+                            {/* Mobile-only action buttons below the customization steps */}
+                            {Boolean(cakeInfo || analysisError) && (
+                                <div className="mt-4 px-1 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                    <HeroActionButtonsRow 
+                                        editedImage={editedImage} 
+                                        isLoading={isLoading} 
+                                        isReporting={isReporting} 
+                                        isSaving={isSaving} 
+                                        onOpenReportModal={onOpenReportModal} 
+                                        onSave={onSave} 
+                                        onClearAll={onClearAll} 
+                                    />
+                                </div>
                             )}
                         </div>
 
