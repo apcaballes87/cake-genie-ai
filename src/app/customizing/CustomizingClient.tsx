@@ -3038,7 +3038,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             onInputKeyDown={handleAiPromptInputKeyDown}
                                             onSuggestionSelect={handleAiPromptSuggestionSelect}
                                             placeholder="✨ Describe the icing colors you want..."
-                                            title="Step 4: Change Icing Colors"
                                         />
                                     ) : null}
                                 />
@@ -3111,7 +3110,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         onInputKeyDown={handleAiPromptInputKeyDown}
                                         onSuggestionSelect={handleAiPromptSuggestionSelect}
                                         placeholder="✨ Describe the icing colors you want..."
-                                        title="Step 4: Change Icing Colors"
                                     />
                                 ) : null,
                             }}

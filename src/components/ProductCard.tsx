@@ -207,11 +207,12 @@ const ProductCardShell = ({ children, isSaved, onSaveClick }: ProductCardShellPr
     </div>
 );
 
-const useProductCardCommon = ({ p_hash, original_image_url, analysis_json }: ProductCardProps) => {
+const useProductCardCommon = ({ p_hash, original_image_url, studio_edited_image_url, analysis_json }: ProductCardProps) => {
     const router = useRouter();
     const { user, isAuthenticated } = useAuth();
     const { toggleSaveDesign, isDesignSaved } = useSavedItemsActions();
     const isSaved = isDesignSaved(p_hash);
+    const preferredImageUrl = firstNonBlankImageUrl(studio_edited_image_url, original_image_url);
 
     const handleSaveClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation();
@@ -226,14 +227,14 @@ const useProductCardCommon = ({ p_hash, original_image_url, analysis_json }: Pro
         await toggleSaveDesign({
             analysisPHash: p_hash,
             customizationSnapshot: buildCustomizationSnapshot(analysis_json),
-            customizedImageUrl: original_image_url,
+            customizedImageUrl: preferredImageUrl,
         });
 
         const wasSaved = isDesignSaved(p_hash);
         toast.success(wasSaved ? 'Removed from saved' : 'Saved!');
     };
 
-    return { router, isSaved, handleSaveClick };
+    return { router, isSaved, handleSaveClick, preferredImageUrl };
 };
 
 const LinkedProductCard = (props: ProductCardProps & { slug: string }) => {
@@ -264,7 +265,7 @@ const LinkedProductCard = (props: ProductCardProps & { slug: string }) => {
 
 const InteractiveProductCard = (props: ProductCardProps) => {
     const title = buildProductTitle(props.keywords, props.collectionContext);
-    const { router, isSaved, handleSaveClick } = useProductCardCommon(props);
+    const { router, isSaved, handleSaveClick, preferredImageUrl } = useProductCardCommon(props);
     const { handleImageUpload: hookImageUpload, clearImages } = useImageManagement();
     const {
         setIsAnalyzing,
@@ -279,7 +280,7 @@ const InteractiveProductCard = (props: ProductCardProps) => {
             return;
         }
 
-        if (!props.original_image_url) return;
+        if (!preferredImageUrl) return;
 
         trackSelectItem({
             item_list_name: props.listName ?? 'unknown',
@@ -295,7 +296,7 @@ const InteractiveProductCard = (props: ProductCardProps) => {
         initializeDefaultState();
 
         try {
-            const response = await fetch(props.original_image_url);
+            const response = await fetch(preferredImageUrl);
             const blob = await response.blob();
             const file = new File([blob], 'design.jpg', { type: blob.type });
 
@@ -317,7 +318,7 @@ const InteractiveProductCard = (props: ProductCardProps) => {
                     }
                 },
                 {
-                    imageUrl: props.original_image_url,
+                    imageUrl: preferredImageUrl,
                     precomputedAnalysis: isValidPrecomputedAnalysis(props.analysis_json)
                         ? (props.analysis_json as unknown as HybridAnalysisResult)
                         : undefined,

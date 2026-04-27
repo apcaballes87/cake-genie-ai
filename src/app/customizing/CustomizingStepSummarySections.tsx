@@ -2,17 +2,23 @@
 
 import React, { memo } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { X } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, Wand2, Check } from 'lucide-react';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
 import LazyImage from '@/components/LazyImage';
+import { 
+    getCakeTypesForIcingBase, 
+    inferIcingBaseFromCakeType, 
+    THICKNESS_OPTIONS_MAP,
+    FLAVOR_OPTIONS
+} from '@/constants';
 import { findClosestColor } from '@/utils/colorUtils';
 import { TrashIcon } from '@/components/icons';
+import { roundDownToNearest99 } from '@/lib/utils/pricing';
 import type { BasePriceInfo, CakeInfoUI, CakeMessageUI, ClusteredMarker, IcingDesignUI, MainTopperType, MainTopperUI, SupportElementType, SupportElementUI } from '@/types';
 
 type LayoutMode = 'mobile' | 'desktop';
 type IcingImageType = 'top' | 'side' | 'drip' | 'borderTop' | 'borderBase' | 'gumpasteBaseBoard';
 type StepOneItemKind = 'type' | 'size' | 'height' | 'flavor' | 'icing';
-type StepOnePopupSection = Exclude<StepOneItemKind, 'flavor'>;
 
 interface CustomizingStepSummarySectionsProps {
     layout: LayoutMode;
@@ -171,64 +177,6 @@ const getDecorationMaterialLabel = (item: MainTopperUI | SupportElementUI) => {
     return supportMaterialLabelMap[item.type] || item.type.replace(/_/g, ' ');
 };
 
-const SUMMARY_ICON_THEME: Record<StepOneItemKind, string> = {
-    type: 'text-slate-400',
-    size: 'text-slate-400',
-    height: 'text-slate-400',
-    flavor: 'text-slate-400',
-    icing: 'text-slate-400',
-};
-
-const StepOneOptionIcon = ({ kind }: { kind: StepOneItemKind }) => {
-    switch (kind) {
-        case 'type':
-            return (
-                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-                    <path d="M7 9.5C7 7.57 8.57 6 10.5 6h3C15.43 6 17 7.57 17 9.5V11H7V9.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M5 13.5C5 12.67 5.67 12 6.5 12h11c.83 0 1.5.67 1.5 1.5V18H5v-4.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M12 6V3.75" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                    <path d="M10.8 3.75h2.4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
-            );
-        case 'size':
-            return (
-                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-                    <rect x="7.25" y="9.25" width="9.5" height="5.5" rx="2.75" stroke="currentColor" strokeWidth="1.8" />
-                    <path d="M3.5 12H7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                    <path d="M17 12h3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                    <path d="M5.25 10.25 3.5 12l1.75 1.75" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M18.75 10.25 20.5 12l-1.75 1.75" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-            );
-        case 'height':
-            return (
-                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-                    <rect x="8" y="7.75" width="8" height="8.5" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
-                    <path d="M5 5v14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                    <path d="m3.5 6.75 1.5-1.75 1.5 1.75" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="m3.5 17.25 1.5 1.75 1.5-1.75" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-            );
-        case 'flavor':
-            return (
-                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-                    <path d="M6.25 17.75 11.5 6l6.25 11.75H6.25Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-                    <path d="M10.2 12.1h.01" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-                    <path d="M13.8 10.1h.01" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-                    <path d="M12.6 14.5h.01" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-                </svg>
-            );
-        case 'icing':
-            return (
-                <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-                    <path d="M8.25 16.75c0-2.62 1.56-4.66 3.75-6.75 2.19 2.09 3.75 4.13 3.75 6.75 0 2.07-1.68 3.75-3.75 3.75s-3.75-1.68-3.75-3.75Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-                    <path d="M10 9.25c0-1.8 1.36-3.25 3.05-3.25.78 0 1.38-.59 1.38-1.31 0-.36-.15-.69-.39-.93 1.84.38 3.21 1.96 3.21 3.85 0 1.09-.46 2.01-1.21 2.64" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-            );
-        default:
-            return null;
-    }
-};
 
 const getStepOneFlavorLabel = (index: number, total: number) => {
     if (total === 2) return index === 0 ? 'Top Flavor' : 'Bottom Flavor';
@@ -246,19 +194,6 @@ const getIcingTypeValue = (cakeInfo: CakeInfoUI, icingDesign: IcingDesignUI | nu
     return 'Soft Icing';
 };
 
-const STEP_ONE_POPUP_LABELS: Record<StepOnePopupSection, string> = {
-    type: 'Choose Cake Type',
-    size: 'Choose Size',
-    height: 'Choose Height',
-    icing: 'Choose Icing Type',
-};
-
-const STEP_ONE_POPUP_SECTIONS: Record<StepOnePopupSection, Array<'icing' | 'type' | 'size' | 'height'>> = {
-    type: ['type'],
-    size: ['size'],
-    height: ['height'],
-    icing: ['icing'],
-};
 
 export const CustomizingStepSummarySections = memo(function CustomizingStepSummarySections({
     layout,
@@ -289,7 +224,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     // Default position when "+ Add" is clicked: Bento → front (side), all others → base_board
     const defaultMessagePosition = cakeInfo?.type === 'Bento' ? 'side' : 'base_board';
     const [showIcingChoice, setShowIcingChoice] = React.useState(true);
-    const [activeStepOnePopup, setActiveStepOnePopup] = React.useState<StepOnePopupSection | null>(null);
+    const [showAdvanced, setShowAdvanced] = React.useState(false);
     const stepOneCardRef = React.useRef<HTMLDivElement | null>(null);
     const isDesktop = layout === 'desktop';
     const containerClassName = isDesktop
@@ -302,61 +237,39 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     const stepOneItemsViewportClassName = 'w-full overflow-x-auto overflow-y-hidden scrollbar-hide';
     const stepOneItemsClassName = 'flex gap-2.5 pt-1 pb-2 w-max min-w-max flex-nowrap snap-x snap-mandatory';
 
-    const isFondant = cakeInfo?.type.toLowerCase().includes('fondant');
-
+    // Auto-correct flavors based on cake type restrictions
     React.useEffect(() => {
-        if (!activeStepOnePopup) return;
+        if (!cakeInfo?.flavors || !onCakeInfoChange) return;
 
-        const handlePointerDown = (event: MouseEvent | TouchEvent) => {
-            if (!stepOneCardRef.current?.contains(event.target as Node)) {
-                setActiveStepOnePopup(null);
+        const isBento = cakeInfo.type === 'Bento';
+        const normType = cakeInfo.type.toLowerCase();
+        const isStandardOrMulti = normType.includes('1 tier') || 
+                                   normType.includes('2 tier') || 
+                                   normType.includes('3 tier') || 
+                                   normType.includes('square') || 
+                                   normType.includes('rectangle');
+
+        let hasChange = false;
+        const newFlavors = [...cakeInfo.flavors];
+
+        newFlavors.forEach((flavor, index) => {
+            let isDisabled = false;
+            if (isBento) {
+                isDisabled = flavor !== 'Chocolate Cake';
+            } else if (isStandardOrMulti) {
+                isDisabled = flavor === 'Mocha Cake';
             }
-        };
 
-        const handleEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                setActiveStepOnePopup(null);
+            if (isDisabled) {
+                newFlavors[index] = 'Chocolate Cake';
+                hasChange = true;
             }
-        };
+        });
 
-        document.addEventListener('mousedown', handlePointerDown);
-        document.addEventListener('touchstart', handlePointerDown);
-        document.addEventListener('keydown', handleEscape);
-
-        return () => {
-            document.removeEventListener('mousedown', handlePointerDown);
-            document.removeEventListener('touchstart', handlePointerDown);
-            document.removeEventListener('keydown', handleEscape);
-        };
-    }, [activeStepOnePopup]);
-
-    React.useEffect(() => {
-        if (activeCustomization === 'flavor' || activeCustomization === 'messages' || activeCustomization === 'icing' || activeCustomization === 'toppers' || activeCustomization === 'photos') {
-            setActiveStepOnePopup(null);
+        if (hasChange) {
+            onCakeInfoChange({ flavors: newFlavors }, { isSystemCorrection: true });
         }
-    }, [activeCustomization]);
-
-    const toggleStepOnePopup = React.useCallback((section: StepOnePopupSection) => {
-        if (activeCustomization === 'options') {
-            setActiveCustomization(null);
-        }
-        setActiveStepOnePopup((current) => current === section ? null : section);
-    }, [activeCustomization, setActiveCustomization]);
-
-    const handleStepOneCakeInfoChange = React.useCallback((updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => {
-        onCakeInfoChange?.(updates, options);
-        setActiveStepOnePopup(null);
-    }, [onCakeInfoChange]);
-
-    const handleStepOneIcingChange = React.useCallback((newType: IcingDesignUI['base']) => {
-        onIcingTypeChange?.(newType);
-        setActiveStepOnePopup(null);
-    }, [onIcingTypeChange]);
-
-    const openFlavorEditor = React.useCallback(() => {
-        setActiveStepOnePopup(null);
-        setActiveCustomization('flavor');
-    }, [setActiveCustomization]);
+    }, [cakeInfo?.type, cakeInfo?.flavors, onCakeInfoChange]);
 
     // Dynamic Step Numbering
     let currentStep = 1;
@@ -364,52 +277,11 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     const icingStepNumber = (separateIcingStep && cakeInfo) ? currentStep++ : null;
     const photoStepNumber = photoStepNode ? currentStep++ : null;
     const messageStepNumber = currentStep++;
-    const topperStepNumber = !hideStepFour ? currentStep++ : null;
+    const topperStepNumber = showAdvanced && !hideStepFour ? currentStep++ : null;
+    const aiChatStepNumber = showAdvanced ? currentStep++ : null;
 
     const combinedDecorItems = getCombinedDecorItems(mainToppers, supportElements);
     const combinedDecorSummary = buildCombinedDecorSummary(mainToppers, supportElements);
-    const stepOneSummaryItems = cakeInfo ? [
-        {
-            id: 'cake-type',
-            label: 'Cake Type',
-            value: cakeInfo.type,
-            kind: 'type' as const,
-            onClick: () => toggleStepOnePopup('type'),
-            isActive: activeStepOnePopup === 'type',
-        },
-        {
-            id: 'cake-size',
-            label: 'Size',
-            value: cakeInfo.size,
-            kind: 'size' as const,
-            onClick: () => toggleStepOnePopup('size'),
-            isActive: activeStepOnePopup === 'size',
-        },
-        {
-            id: 'cake-height',
-            label: 'Height',
-            value: cakeInfo.thickness,
-            kind: 'height' as const,
-            onClick: () => toggleStepOnePopup('height'),
-            isActive: activeStepOnePopup === 'height',
-        },
-        {
-            id: 'icing-type',
-            label: 'Icing Type',
-            value: getIcingTypeValue(cakeInfo, icingDesign),
-            kind: 'icing' as const,
-            onClick: () => toggleStepOnePopup('icing'),
-            isActive: activeStepOnePopup === 'icing',
-        },
-        ...cakeInfo.flavors.map((flavor, index) => ({
-            id: `flavor-${index}`,
-            label: getStepOneFlavorLabel(index, cakeInfo.flavors.length),
-            value: formatFlavorLabel(flavor),
-            kind: 'flavor' as const,
-            onClick: openFlavorEditor,
-            isActive: activeCustomization === 'flavor',
-        })),
-    ] : [];
     const icingSummaryItems = icingDesign && cakeInfo ? [
         { id: 'icing-edit-drip', description: 'Drip', label: 'Drip', alt: 'Drip', imageType: 'drip' as const, enabled: icingDesign.drip },
         { id: 'icing-edit-borderTop', description: 'Top', label: 'Top Border', alt: 'Top Border', imageType: 'borderTop' as const, enabled: icingDesign.border_top },
@@ -448,93 +320,262 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     return (
         <div className={containerClassName}>
             {cakeInfo && !isAnalyzing && !isRejectionError && !hideStepOne && (
-                <div ref={stepOneCardRef} className={`${cardClassName} relative`}>
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {stepOneNumber}: Cake Options</h3>
-                    <div className={stepOneItemsViewportClassName}>
-                        <div className={stepOneItemsClassName}>
-                            {stepOneSummaryItems.map((item) => (
-                                <button
-                                    key={item.id}
-                                    onClick={item.onClick}
-                                    className={`group snap-start shrink-0 flex min-h-[112px] min-w-[92px] max-w-[92px] flex-col items-center rounded-[22px] border px-2.5 pb-2.5 pt-2.5 text-center transition-all duration-200 genie-focus ${
-                                        item.isActive
-                                            ? 'border-purple-300 bg-purple-50/70 shadow-sm shadow-purple-100/70'
-                                            : 'border-slate-200 bg-white hover:border-purple-200 hover:bg-slate-50/70'
-                                    }`}
-                                >
-                                    <div className="flex w-full justify-center">
-                                        <div className={`flex shrink-0 items-center justify-center transition-colors ${item.isActive ? 'text-purple-500' : SUMMARY_ICON_THEME[item.kind]}`}>
-                                            <StepOneOptionIcon kind={item.kind} />
+                <div 
+                    ref={stepOneCardRef} 
+                    className={`${cardClassName} relative z-10`}
+                >
+                    <h3 className="text-[13px] font-semibold text-slate-800 mb-1.5 px-1">Step {stepOneNumber}: Cake Options</h3>
+                    
+                    <div className="flex flex-col gap-2 px-1 pb-2">
+                        {/* Line 1: Icing Type */}
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Icing Type</span>
+                            <div className="flex flex-wrap gap-1.5">
+                                {[
+                                    { id: 'soft_icing', label: 'Soft Icing' },
+                                    { id: 'fondant', label: 'Fondant' },
+                                ].map((option) => {
+                                    const isSelected = getIcingTypeValue(cakeInfo, icingDesign) === (option.id === 'fondant' ? 'Fondant' : 'Soft Icing');
+                                    return (
+                                        <button
+                                            key={option.id}
+                                            onClick={() => onIcingTypeChange?.(option.id as any)}
+                                            className={`flex-1 flex items-center justify-center p-2.5 rounded-xl border transition-all duration-300 ${
+                                                isSelected 
+                                                    ? 'border-purple-300 bg-purple-50 text-purple-700 shadow-sm ring-2 ring-purple-100' 
+                                                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-200 hover:bg-slate-100/50'
+                                            }`}
+                                        >
+                                            <span className="text-[12px] font-bold">{option.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Line 2: Cake Type */}
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cake Type</span>
+                            <div className="flex flex-nowrap overflow-x-auto gap-3 py-1 px-1 scrollbar-hide">
+                                {(() => {
+                                    const currentIcingType = getIcingTypeValue(cakeInfo, icingDesign);
+                                    const allTypes = getCakeTypesForIcingBase(currentIcingType === 'Fondant' ? 'fondant' : 'soft_icing');
+                                    
+                                    // Normalize type by stripping " Fondant" suffix for grouping checks
+                                    const normalizeForGroup = (t: string) => t.replace(/\s+Fondant$/i, '');
+                                    
+                                    const standardGroup = ['Bento', '1 Tier', 'Square', 'Rectangle'];
+                                    const multiTierGroup = ['2 Tier', '3 Tier'];
+                                    
+                                    const currentBaseType = normalizeForGroup(cakeInfo.type);
+                                    const isCurrentlyStandard = standardGroup.includes(currentBaseType);
+                                    
+                                    const filteredTypes = allTypes.filter(t => {
+                                        const baseT = normalizeForGroup(t);
+                                        return isCurrentlyStandard ? standardGroup.includes(baseT) : multiTierGroup.includes(baseT);
+                                    });
+
+                                    return filteredTypes.map((type) => {
+                                        const isSelected = cakeInfo.type === type;
+                                        return (
+                                            <button
+                                                key={type}
+                                                onClick={() => onCakeInfoChange?.({ type })}
+                                                className={`min-h-[49px] min-w-[90px] flex-1 flex items-center justify-center px-4 rounded-xl border transition-all duration-300 ${
+                                                    isSelected 
+                                                        ? 'border-purple-300 bg-purple-50 text-purple-700 shadow-sm ring-2 ring-purple-100 scale-[1.02]' 
+                                                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-200 hover:bg-slate-100/50'
+                                                }`}
+                                            >
+                                                <span className="text-[12px] font-bold text-center leading-none whitespace-nowrap">{type}</span>
+                                            </button>
+                                        );
+                                    });
+                                })()}
+                            </div>
+                        </div>
+
+
+                        {/* Line 3: Size */}
+                        {basePriceOptions && basePriceOptions.length > 0 && (
+                            <div className="flex flex-col gap-1">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Size</span>
+                                <div key={cakeInfo.type} className="flex flex-nowrap overflow-x-auto justify-start sm:justify-center items-center gap-4 py-1.5 px-2 scrollbar-hide">
+                                    {[...basePriceOptions]
+                                        .sort((a, b) => {
+                                            const valA = parseInt(a.size.match(/\d+/)?.[0] || "0");
+                                            const valB = parseInt(b.size.match(/\d+/)?.[0] || "0");
+                                            return valA - valB;
+                                        })
+                                        .map((option, index) => {
+                                            const isSelected = cakeInfo.size === option.size;
+                                            const totalPrice = roundDownToNearest99(option.price + addOnPricing, option.price);
+                                        // Increasing diameter: 74, 84, 94, 104, etc.
+                                        const diameter = 74 + (index * 10);
+                                        
+                                        const isSquare = cakeInfo.type.toLowerCase().includes('square');
+                                        const isRectangle = cakeInfo.type.toLowerCase().includes('rectangle');
+                                        
+                                        return (
+                                            <button
+                                                key={option.size}
+                                                onClick={() => onCakeInfoChange?.({ size: option.size })}
+                                                style={{ 
+                                                    width: isRectangle ? `${diameter * 1.4}px` : `${diameter}px`, 
+                                                    height: `${diameter}px`,
+                                                    animationDelay: `${index * 50}ms`
+                                                }}
+                                                className={`shrink-0 flex flex-col items-center justify-center border transition-all duration-500 group relative animate-fade-in-scale opacity-0 ${
+                                                    isSquare || isRectangle ? 'rounded-xl' : 'rounded-full'
+                                                } ${
+                                                    isSelected 
+                                                        ? 'border-purple-400 bg-purple-50 text-purple-700 shadow-md ring-2 ring-purple-100 z-10 scale-105' 
+                                                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-300 hover:bg-slate-100/50 hover:scale-105'
+                                                }`}
+                                            >
+                                                <span className="text-[11px] font-extrabold text-center leading-none px-1 uppercase tracking-tight">{option.size.replace(' Round', '')}</span>
+                                                <span className={`text-[10px] font-bold mt-1 ${isSelected ? 'text-purple-600' : 'text-slate-400 group-hover:text-purple-400'}`}>
+                                                    ₱{totalPrice.toLocaleString()}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Line 4: Height */}
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Height</span>
+                            <div key={cakeInfo.type} className="flex flex-nowrap overflow-x-auto justify-start sm:justify-center items-center gap-6 py-1.5 px-2 scrollbar-hide">
+                                {(THICKNESS_OPTIONS_MAP[cakeInfo.type] || []).map((thickness, index) => {
+                                    const isSelected = cakeInfo.thickness === thickness;
+                                    
+                                    // Parse Width (from cakeInfo.size)
+                                    // Handle cases like "6\" Round" or "6\"/8\" Round"
+                                    const allWidths = cakeInfo.size.match(/\d+/g) || ["6"];
+                                    const baseWidth = Math.max(...allWidths.map(Number));
+                                    
+                                    const heightValue = parseInt(thickness) || 4;
+                                    
+                                    // Scaling factor: Match the size circle diameter (74px + index * 10px)
+                                    // We find the index of the current size to keep it consistent with Line 3
+                                    const sizeIndex = (basePriceOptions || []).findIndex(opt => opt.size === cakeInfo.size);
+                                    const isRectangle = cakeInfo.type.toLowerCase().includes('rectangle');
+                                    const baseRectWidth = sizeIndex >= 0 ? (74 + sizeIndex * 10) : (baseWidth * 15);
+                                    const rectWidth = isRectangle ? baseRectWidth * 1.4 : baseRectWidth;
+                                    const rectHeight = heightValue * 12; // Keep height scale at 12px per inch
+
+                                    return (
+                                        <button
+                                            key={thickness}
+                                            onClick={() => onCakeInfoChange?.({ thickness })}
+                                            style={{ animationDelay: `${index * 50}ms` }}
+                                            className="flex flex-col items-center gap-2 group transition-all animate-fade-in-scale opacity-0"
+                                        >
+                                            <div 
+                                                style={{ width: `${rectWidth}px`, height: `${rectHeight}px` }}
+                                                className={`rounded-lg border-2 transition-all duration-500 flex items-center justify-center relative ${
+                                                    isSelected 
+                                                        ? 'bg-purple-100/50 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)] scale-110 z-10' 
+                                                        : 'bg-slate-50 border-slate-200 hover:border-purple-300 hover:bg-purple-50/30 hover:scale-105'
+                                                }`}
+                                            >
+                                                <span className={`text-[10px] font-black ${isSelected ? 'text-purple-600' : 'text-slate-600 group-hover:text-purple-300'} transition-colors`}>
+                                                    {heightValue}"
+                                                </span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Line 5: Flavor */}
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Flavor</span>
+                            <div className="flex flex-col gap-2">
+                                {cakeInfo.flavors.map((currentFlavor, index) => (
+                                    <div key={index} className="flex flex-col gap-1">
+                                        {cakeInfo.flavors.length > 1 && (
+                                            <span className="text-[9px] font-medium text-slate-500 uppercase">{getStepOneFlavorLabel(index, cakeInfo.flavors.length)}</span>
+                                        )}
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {FLAVOR_OPTIONS.map((flavor) => {
+                                                const isSelected = currentFlavor === flavor;
+                                                
+                                                // Bento Cake: Only Chocolate Cake is allowed
+                                                const isBento = cakeInfo.type === 'Bento';
+                                                const normType = cakeInfo.type.toLowerCase();
+                                                const isStandardOrMulti = normType.includes('1 tier') || 
+                                                                           normType.includes('2 tier') || 
+                                                                           normType.includes('3 tier') || 
+                                                                           normType.includes('square') || 
+                                                                           normType.includes('rectangle');
+
+                                                let isDisabled = false;
+                                                if (isBento) {
+                                                    isDisabled = flavor !== 'Chocolate Cake';
+                                                } else if (isStandardOrMulti) {
+                                                    isDisabled = flavor === 'Mocha Cake';
+                                                }
+
+                                                // If current flavor is disabled, we should ideally auto-switch it
+                                                // but for the UI display, we just show it as disabled.
+                                                // Flavor color mapping
+                                                const flavorStyles: Record<string, { bg: string, border: string, text: string, activeBg: string, activeBorder: string, activeText: string }> = {
+                                                    'Chocolate Cake': { 
+                                                        bg: 'bg-[#fdf0d5]', border: 'border-[#f2cc8f]', text: 'text-[#78350f]',
+                                                        activeBg: 'bg-[#DDB892]', activeBorder: 'border-[#7f5539]', activeText: 'text-white'
+                                                    },
+                                                    'Ube Cake': { 
+                                                        bg: 'bg-[#f3e8ff]', border: 'border-[#e9d5ff]', text: 'text-[#6b21a8]',
+                                                        activeBg: 'bg-[#c084fc]', activeBorder: 'border-[#7e22ce]', activeText: 'text-white'
+                                                    },
+                                                    'Vanilla Cake': { 
+                                                        bg: 'bg-[#fffbeb]', border: 'border-[#fef3c7]', text: 'text-[#92400e]',
+                                                        activeBg: 'bg-[#fde68a]', activeBorder: 'border-[#d97706]', activeText: 'text-[#92400e]'
+                                                    },
+                                                    'Mocha Cake': { 
+                                                        bg: 'bg-[#faf3e0]', border: 'border-[#e6ccb2]', text: 'text-[#9c6644]',
+                                                        activeBg: 'bg-[#e3d5ca]', activeBorder: 'border-[#9c6644]', activeText: 'text-[#5e3023]'
+                                                    },
+                                                };
+
+                                                const style = flavorStyles[flavor] || { 
+                                                    bg: 'bg-white', border: 'border-slate-100', text: 'text-slate-600',
+                                                    activeBg: 'bg-purple-50', activeBorder: 'border-purple-300', activeText: 'text-purple-700'
+                                                };
+
+                                                return (
+                                                    <button
+                                                        key={flavor}
+                                                        disabled={isDisabled}
+                                                        onClick={() => {
+                                                            if (isDisabled) return;
+                                                            const newFlavors = [...cakeInfo.flavors];
+                                                            newFlavors[index] = flavor;
+                                                            onCakeInfoChange?.({ flavors: newFlavors });
+                                                        }}
+                                                        className={`min-h-[46px] min-w-[90px] flex-1 flex items-center justify-center px-3 rounded-xl border transition-all duration-300 shadow-sm ${
+                                                            isDisabled
+                                                                ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed opacity-50 grayscale'
+                                                                : isSelected 
+                                                                    ? `${style.activeBg} ${style.activeBorder} ${style.activeText} scale-[1.02] ring-2 ring-white/50` 
+                                                                    : `${style.bg} ${style.border} ${style.text} opacity-80 hover:opacity-100 hover:scale-[1.02]`
+                                                        }`}
+                                                    >
+                                                        <span className="text-[12px] font-bold text-center leading-none uppercase tracking-tighter">{flavor.replace(' Cake', '')}</span>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     </div>
-                                    <div className="mt-2.5 flex min-w-0 flex-1 items-center justify-center">
-                                        <span className="line-clamp-2 text-[12px] font-semibold leading-[1.15] text-slate-700">
-                                            {item.value}
-                                        </span>
-                                    </div>
-                                    <span className="block text-[8px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                                        {item.label}
-                                    </span>
-                                </button>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     </div>
 
-                    {activeStepOnePopup && cakeInfo && (
-                        <div className="absolute inset-x-2 top-full z-40 mt-2 rounded-[24px] border border-slate-200 bg-white p-3 shadow-[0_20px_50px_rgba(15,23,42,0.18)]">
-                            <div className="mb-3 flex items-center justify-between gap-3 border-b border-slate-100 pb-2">
-                                <div>
-                                    <h4 className="text-sm font-semibold text-slate-800">{STEP_ONE_POPUP_LABELS[activeStepOnePopup]}</h4>
-                                    <p className="text-[11px] text-slate-500">Tap an option to update this cake detail.</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveStepOnePopup(null)}
-                                    className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700"
-                                    aria-label="Close cake option popup"
-                                >
-                                    <X className="h-4 w-4" />
-                                </button>
-                            </div>
-                            <CakeBaseOptions
-                                cakeInfo={cakeInfo}
-                                basePriceOptions={basePriceOptions ?? null}
-                                icingBase={icingDesign?.base ?? null}
-                                onCakeInfoChange={handleStepOneCakeInfoChange}
-                                onIcingBaseChange={handleStepOneIcingChange}
-                                isAnalyzing={false}
-                                addOnPricing={addOnPricing}
-                                compact
-                                hidePrices
-                                visibleSections={STEP_ONE_POPUP_SECTIONS[activeStepOnePopup]}
-                                showSectionLabels={false}
-                            />
-                        </div>
-                    )}
-
-                    {isFondant && showIcingChoice && (
-                        <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col items-center gap-2">
-                            <span className="text-[11px] font-medium text-slate-600">Change Fondant to Soft Icing?</span>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => {
-                                        onIcingTypeChange?.('soft_icing');
-                                        setShowIcingChoice(false);
-                                        setActiveStepOnePopup('icing');
-                                    }}
-                                    className="genie-btn-primary px-4 py-1.5 rounded-full text-[11px] font-bold"
-                                >
-                                    Yes
-                                </button>
-                                <button
-                                    onClick={() => setShowIcingChoice(false)}
-                                    className="genie-btn-secondary px-4 py-1.5 rounded-full text-[11px] font-bold"
-                                >
-                                    No
-                                </button>
-                            </div>
-                        </div>
-                    )}
                 </div>
             )}
 
@@ -618,85 +659,124 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                 </div>
             )}
 
-            {cakeInfo && !isAnalyzing && !isRejectionError && !hideStepFour && (
-                <div className={cardClassName}>
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {topperStepNumber}: Cake Decorations</h3>
-                    {combinedDecorItems.length > 0 ? (
-                        <div className="space-y-2">
-                            {combinedDecorItems.slice(0, 3).map((item) => (
-                                <button
-                                    key={item.id}
-                                    type="button"
-                                    onClick={() => {
-                                        setSelectedItem({
-                                            ...item,
-                                            itemCategory: ('classification' in item ? 'topper' : 'element'),
-                                        } as ClusteredMarker);
-                                        openTopperSheet('classification' in item ? 'main' : 'support');
-                                    }}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-purple-100 bg-white/90 hover:bg-purple-50/70 transition-colors text-left"
-                                >
-                                    <div className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5">
-                                        <span className="shrink-0 font-semibold text-slate-700">
-                                            {item.quantity && item.quantity > 1 ? `${item.quantity}x` : '1x'}
-                                        </span>
-                                        <span className="truncate text-slate-500">
-                                            {item.description}{' '}
-                                            <span className="text-slate-400">
-                                                ({getDecorationMaterialLabel(item)})
-                                            </span>
-                                        </span>
-                                    </div>
-                                </button>
-                            ))}
-
-                            {combinedDecorItems.length > 3 && (
-                                <div className="flex justify-center pt-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setSelectedItem(null);
-                                            openTopperSheet();
-                                        }}
-                                        className="genie-btn-secondary text-[10px] font-bold py-2 px-5 rounded-full"
-                                    >
-                                        Show more
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-purple-100 bg-white/90 text-left">
-                            <div className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5">
-                                <span className="shrink-0 font-semibold text-slate-700">
-                                    Decorations (0):
-                                </span>
-                                <span className="truncate text-slate-500">
-                                    {combinedDecorSummary}
+            {cakeInfo && !isAnalyzing && !isRejectionError && (
+                <div className="px-1 py-1">
+                    <button
+                        onClick={() => setShowAdvanced(!showAdvanced)}
+                        className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-300 group shadow-sm ${
+                            showAdvanced 
+                                ? 'bg-purple-50 border-purple-200 text-purple-700' 
+                                : 'bg-white border-slate-100 text-slate-700 hover:border-purple-100 hover:bg-purple-50/30'
+                        }`}
+                        aria-expanded={showAdvanced}
+                        aria-controls="advanced-customization-steps"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors duration-300 ${
+                                showAdvanced ? 'bg-purple-200 text-purple-600' : 'bg-slate-50 text-slate-400 group-hover:bg-purple-100 group-hover:text-purple-500'
+                            }`}>
+                                <Wand2 className="w-5 h-5" />
+                            </div>
+                            <div className="text-left">
+                                <span className="block text-sm font-bold leading-tight">Advanced Customization</span>
+                                <span className="block text-[10px] font-medium text-slate-500 mt-0.5">
+                                    {showAdvanced ? 'Hide additional options' : 'Decorations, AI chat and more'}
                                 </span>
                             </div>
                         </div>
-                    )}
-
-                    {mainToppers.some((topper) => topper.type === 'toy') && (
-                        <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-2">
-                            <span className="text-amber-500 text-sm">💡</span>
-                            <p className="text-[11px] text-amber-700 leading-tight">
-                                <span className="font-semibold">Tip:</span> Switch from toy toppers to edible or printed toppers to reduce the total price!
-                            </p>
+                        <div className={`transition-transform duration-300 ${showAdvanced ? 'rotate-180' : ''}`}>
+                            <ChevronDown className={`w-5 h-5 ${showAdvanced ? 'text-purple-500' : 'text-slate-300'}`} />
                         </div>
-                    )}
+                    </button>
                 </div>
             )}
 
-            {cakeInfo && !isAnalyzing && !isRejectionError && aiChatNode && (
-                <div className={cardClassName}>
+            <div 
+                id="advanced-customization-steps" 
+                className={`flex flex-col gap-2 transition-all duration-500 ease-in-out overflow-hidden ${
+                    showAdvanced ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
+                }`}
+            >
+                {cakeInfo && !isAnalyzing && !isRejectionError && !hideStepFour && (
+                    <div className={cardClassName}>
+                        <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {topperStepNumber}: Cake Decorations</h3>
+                        {combinedDecorItems.length > 0 ? (
+                            <div className="space-y-2">
+                                {combinedDecorItems.slice(0, 3).map((item) => (
+                                    <button
+                                        key={item.id}
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedItem({
+                                                ...item,
+                                                itemCategory: ('classification' in item ? 'topper' : 'element'),
+                                            } as ClusteredMarker);
+                                            openTopperSheet('classification' in item ? 'main' : 'support');
+                                        }}
+                                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-purple-100 bg-white/90 hover:bg-purple-50/70 transition-colors text-left"
+                                    >
+                                        <div className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5">
+                                            <span className="shrink-0 font-semibold text-slate-700">
+                                                {item.quantity && item.quantity > 1 ? `${item.quantity}x` : '1x'}
+                                            </span>
+                                            <span className="truncate text-slate-500">
+                                                {item.description}{' '}
+                                                <span className="text-slate-400">
+                                                    ({getDecorationMaterialLabel(item)})
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </button>
+                                ))}
 
-                    <div className="mt-1">
-                        {aiChatNode}
+                                {combinedDecorItems.length > 3 && (
+                                    <div className="flex justify-center pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedItem(null);
+                                                openTopperSheet();
+                                            }}
+                                            className="genie-btn-secondary text-[10px] font-bold py-2 px-5 rounded-full"
+                                        >
+                                            Show more
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-purple-100 bg-white/90 text-left">
+                                <div className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5">
+                                    <span className="shrink-0 font-semibold text-slate-700">
+                                        Decorations (0):
+                                    </span>
+                                    <span className="truncate text-slate-500">
+                                        {combinedDecorSummary}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
+                        {mainToppers.some((topper) => topper.type === 'toy') && (
+                            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-2">
+                                <span className="text-amber-500 text-sm">💡</span>
+                                <p className="text-[11px] text-amber-700 leading-tight">
+                                    <span className="font-semibold">Tip:</span> Switch from toy toppers to edible or printed toppers to reduce the total price!
+                                </p>
+                            </div>
+                        )}
                     </div>
-                </div>
-            )}
+                )}
+
+                {cakeInfo && !isAnalyzing && !isRejectionError && aiChatNode && (
+                    <div className={cardClassName}>
+                        <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {aiChatStepNumber}: AI Customization Help</h3>
+                        <div className="mt-1">
+                            {aiChatNode}
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 });
