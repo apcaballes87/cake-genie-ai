@@ -288,19 +288,19 @@ export const DEFAULT_ICING_DESIGN = {
 
 // Delivery fees by city
 export const DELIVERY_FEES_BY_CITY: Record<string, number> = {
-  'Cebu City': 100,
-  'Cebu': 100, // Alias for Cebu City
-  'Mandaue': 150,
-  'Mandaue City': 150,
-  'Lapu-Lapu': 200,
-  'Lapu-Lapu City': 200,
-  'Lapu-lapu': 200,
-  'Lapu-lapu City': 200,
-  'Cordova': 300,
-  'Consolacion': 300,
-  'Liloan': 400,
-  'Talisay': 250,
-  'Talisay City': 250,
+  'Cebu City': 0,
+  'Cebu': 0, // Alias for Cebu City
+  'Mandaue': 50,
+  'Mandaue City': 50,
+  'Lapu-Lapu': 100,
+  'Lapu-Lapu City': 100,
+  'Lapu-lapu': 100,
+  'Lapu-lapu City': 100,
+  'Cordova': 200,
+  'Consolacion': 200,
+  'Liloan': 300,
+  'Talisay': 150,
+  'Talisay City': 150,
 };
 
 // Helper to get delivery fee by city name (flexible matching)
