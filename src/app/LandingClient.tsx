@@ -1368,11 +1368,11 @@ const LandingClient: React.FC<LandingClientProps> = ({
                             <Menu size={24} />
                         </button>
                         
-                        <div className="relative grow flex items-center">
-                            {/* Logo - visible when not scrolled */}
+                        <div className="relative grow flex items-center gap-2 md:gap-4">
+                            {/* Logo - visible when not scrolled on mobile, always visible on desktop */}
                             <Link 
                                 href="/" 
-                                className={`shrink-0 transition-all duration-300 ${isScrolled ? 'opacity-0 pointer-events-none absolute -translate-x-4' : 'opacity-100 translate-x-0'}`}
+                                className={`shrink-0 transition-all duration-300 ${isScrolled ? 'opacity-0 pointer-events-none absolute -translate-x-4 md:opacity-0 md:pointer-events-none' : 'opacity-100 translate-x-0'}`}
                             >
                                 <img
                                     src={COMMON_ASSETS.logo}
@@ -1383,8 +1383,8 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                 />
                             </Link>
 
-                            {/* Standard Search Bar - visible when scrolled */}
-                            <div className={`flex-1 transition-all duration-300 ${isScrolled ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}`}>
+                            {/* Standard Search Bar - visible when scrolled on mobile, always visible on desktop */}
+                            <div className={`flex-1 transition-all duration-300 ${isScrolled ? 'opacity-100 translate-x-0' : 'hidden md:block md:opacity-100 md:translate-x-0 opacity-0 translate-x-4 pointer-events-none'}`}>
                                 <SearchAutocomplete
                                     onSearch={handleSearch}
                                     onUploadClick={() => setIsUploaderOpen(true)}
@@ -1397,18 +1397,23 @@ const LandingClient: React.FC<LandingClientProps> = ({
                             </div>
                         </div>
 
-                        {/* Desktop Navigation Links - hidden when scrolled to maintain standard layout */}
-                        <div className={`hidden md:flex items-center gap-5 lg:gap-6 shrink-0 transition-all duration-300 ${isScrolled ? 'opacity-0 pointer-events-none absolute translate-x-4' : 'opacity-100 translate-x-0'}`}>
-                            <Link href="/collections" className="text-sm font-medium genie-link whitespace-nowrap">
-                                Browse Cakes
-                            </Link>
-                            <Link href="/shop" className="text-sm font-medium genie-link whitespace-nowrap">
-                                Our Bakers
-                            </Link>
-                            <Link href="/compare" className="text-sm font-medium genie-link whitespace-nowrap">
-                                Compare
-                            </Link>
-                            <div className="w-px h-5 bg-gray-200 mx-1" />
+                        {/* Right Area: Actions */}
+                        <div className="flex items-center gap-1 md:gap-2 shrink-0">
+                            {/* Mobile Search Icon - visible only when NOT scrolled */}
+                            {!isScrolled && (
+                                <button
+                                    onClick={() => {
+                                        // Scroll down slightly to trigger search bar or just scroll to top
+                                        window.scrollTo({ top: 50, behavior: 'smooth' });
+                                    }}
+                                    className="md:hidden p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors"
+                                    aria-label="Search"
+                                >
+                                    <Search size={24} />
+                                </button>
+                            )}
+
+                            {/* Account Button - visible on desktop when not scrolled */}
                             <button
                                 onClick={() => {
                                     if (isAuthenticated && !user?.is_anonymous) {
@@ -1417,7 +1422,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                         router.push('/login');
                                     }
                                 }}
-                                className="p-1.5 genie-icon-button rounded-full shrink-0"
+                                className={`hidden md:flex p-1.5 genie-icon-button rounded-full transition-all duration-300 ${isScrolled ? 'opacity-0 pointer-events-none absolute translate-x-4' : 'opacity-100 translate-x-0'}`}
                                 aria-label="Account"
                             >
                                 <User size={22} />
