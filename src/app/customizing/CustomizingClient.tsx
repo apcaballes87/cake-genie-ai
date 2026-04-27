@@ -434,10 +434,20 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     const scrollToHero = useCallback(() => {
         if (typeof window !== 'undefined' && window.innerWidth < 768) {
-            mainImageContainerRef.current?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start',
-            });
+            // Small timeout to allow any bottom sheet transitions to start
+            setTimeout(() => {
+                // More robust scroll for mobile
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+                
+                // Also try scrollIntoView as backup if window.scrollTo is tricky
+                mainImageContainerRef.current?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start',
+                });
+            }, 150);
         }
     }, []);
 
@@ -1992,7 +2002,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     };
     const onOpenReportModal = () => setIsReportModalOpen(true);
 
-    const onUpdateDesign = handleUpdateDesign;
+    const onUpdateDesign = useCallback((instruction?: string) => {
+        handleUpdateDesign(instruction);
+        scrollToHero();
+    }, [handleUpdateDesign, scrollToHero]);
     const onSave = handleSave;
     const isSaving = false;
 
@@ -2249,6 +2262,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             return;
         }
 
+        scrollToHero();
+
         const nextCakeInfoUpdates: Partial<CakeInfoUI> = {
             type: nextType,
         };
@@ -2412,8 +2427,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, [mainToppers, supportElements, checkItemChanged]);
 
     const hasPendingVisualChanges = useMemo(() => {
-        return hasIcingChanges || hasMessageChanges || hasToppersChanges || hasPhotoChanges || hasTypeChanges;
-    }, [hasIcingChanges, hasMessageChanges, hasToppersChanges, hasPhotoChanges, hasTypeChanges]);
+        return hasIcingChanges || hasMessageChanges || hasToppersChanges || hasPhotoChanges || hasTypeChanges || additionalInstructions.trim().length > 0;
+    }, [hasIcingChanges, hasMessageChanges, hasToppersChanges, hasPhotoChanges, hasTypeChanges, additionalInstructions]);
 
     const hasToyTopper = useMemo(() => {
         if (!mainToppers || !supportElements) return false;
@@ -2653,6 +2668,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     const handleMotifColorChange = useCallback((newHex: string) => {
         if (!dominantMotif || !icingDesign) return;
+        
+        scrollToHero();
 
         const oldHex = dominantMotif.hex.toLowerCase();
 

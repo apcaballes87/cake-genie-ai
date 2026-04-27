@@ -323,9 +323,9 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     }
 
     // Handle core icing colors with explicit preservation (case-insensitive comparison)
-    const originalIcingColors = originalIcing.colors;
+    const originalIcingColors = originalIcing.colors || { side: '#FFFFFF', top: '#FFFFFF' };
     const sideColorChanged = newIcing.colors.side !== undefined &&
-        newIcing.colors.side.toUpperCase() !== originalIcingColors.side?.toUpperCase();
+        newIcing.colors.side.toUpperCase() !== (originalIcingColors.side || '#FFFFFF').toUpperCase();
     const topColorChanged = newIcing.colors.top !== undefined &&
         newIcing.colors.top.toUpperCase() !== originalIcingColors.top?.toUpperCase();
 
@@ -546,7 +546,7 @@ export async function updateDesign({
         const designChangeKeywords = [
             'remove', 'add', 'change the cake type', 'change the cake thickness',
             'reconstruct', 'erase', 'move', 'change the style', 'redraw',
-            're-sculpt', 'replace its image', 'bento box presentation',
+            're-sculpt', 'replace its image', 'bento box presentation', 'bento',
             'change the text', 'erase the text', 'add new text', 'regarding the message',
             // CRITICAL: 'preserve' is used when adding gumpaste base board - this is NOT a color-only change
             'preserve any existing decorations',
@@ -570,7 +570,7 @@ export async function updateDesign({
 
     // 5. Smart Prompt Filtering for Inpainting
     if (useInpaintingStyle && !isThreeTierReconstruction) {
-        const colorKeywords = ['re-hue', 'recolor', 'color shade', 'color to'];
+        const colorKeywords = ['re-hue', 'recolor', 'color shade', 'color to', 'icing', 'shade', 'dominant', 'theme', 're-color'];
         const colorChanges = changesList.filter(change =>
             colorKeywords.some(keyword => change.toLowerCase().includes(keyword)) ||
             change.toLowerCase().includes('primary user request') // Always preserve user chat requests
