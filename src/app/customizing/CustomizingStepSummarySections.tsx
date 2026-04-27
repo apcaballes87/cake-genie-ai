@@ -11,7 +11,7 @@ import {
     THICKNESS_OPTIONS_MAP,
     FLAVOR_OPTIONS
 } from '@/constants';
-import { findClosestColor } from '@/utils/colorUtils';
+import { findClosestColor, hexToColorNameProse } from '@/utils/colorUtils';
 import { TrashIcon, MagicSparkleIcon } from '@/components/icons';
 import { roundDownToNearest99 } from '@/lib/utils/pricing';
 import type { BasePriceInfo, CakeInfoUI, CakeMessageUI, ClusteredMarker, IcingDesignUI, MainTopperType, MainTopperUI, SupportElementType, SupportElementUI } from '@/types';
@@ -52,7 +52,7 @@ interface CustomizingStepSummarySectionsProps {
     hideStepOne?: boolean;
     hideStepFour?: boolean;
     photoStepNode?: React.ReactNode;
-    onUpdateDesign?: () => void;
+    onUpdateDesign?: (instruction?: string) => void;
     isUpdatingDesign?: boolean;
     dirtyFields?: Set<string>;
     originalCakeType?: string | null;
@@ -172,6 +172,31 @@ const supportMaterialLabelMap: Record<SupportElementType, string> = {
     fresh_flowers: 'Fresh Flowers',
     artificial_flowers: 'Artificial Flowers',
 };
+
+const THEME_COLORS = [
+    { name: 'red', hex: '#EF4444' },
+    { name: 'light red', hex: '#FCA5A5' },
+    { name: 'orange', hex: '#F97316' },
+    { name: 'yellow', hex: '#FACC15' },
+    { name: 'green', hex: '#22C55E' },
+    { name: 'light green', hex: '#86EFAC' },
+    { name: 'dark green', hex: '#15803D' },
+    { name: 'teal', hex: '#14B8A6' },
+    { name: 'blue', hex: '#3B82F6' },
+    { name: 'light blue', hex: '#93C5FD' },
+    { name: 'navy blue', hex: '#1E3A8A' },
+    { name: 'purple', hex: '#8B5CF6' },
+    { name: 'light purple', hex: '#C4B5FD' },
+    { name: 'dark purple', hex: '#581C87' },
+    { name: 'pink', hex: '#EC4899' },
+    { name: 'light pink', hex: '#FBCFE8' },
+    { name: 'dark pink', hex: '#9D174D' },
+    { name: 'brown', hex: '#92400E' },
+    { name: 'black', hex: '#000000' },
+    { name: 'gray', hex: '#6B7280' },
+    { name: 'white', hex: '#FFFFFF' },
+    { name: 'cream', hex: '#FFFDD0' },
+];
 
 const getDecorationMaterialLabel = (item: MainTopperUI | SupportElementUI) => {
     if ('classification' in item) {
@@ -329,6 +354,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     const stepOneNumber = !hideStepOne ? currentStep++ : null;
     const icingStepNumber = (separateIcingStep && cakeInfo) ? currentStep++ : null;
     const photoStepNumber = photoStepNode ? currentStep++ : null;
+    const colorStepNumber = currentStep++;
     const messageStepNumber = currentStep++;
     const topperStepNumber = showAdvanced && !hideStepFour ? currentStep++ : null;
     const aiChatStepNumber = showAdvanced ? currentStep++ : null;
@@ -567,7 +593,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             </div>
 
                             {/* Right Column (75% - Size and Height) */}
-                            <div className="flex-[3] min-w-0 border-l border-slate-100 pl-4 flex flex-col gap-4">
+                            <div className="flex-[3] min-w-0 border-l border-slate-100 pl-4 flex flex-col gap-2">
                                 {/* Line 4: Size */}
                                 {basePriceOptions && basePriceOptions.length > 0 && (
                                     <div className="flex flex-col gap-1">
@@ -612,7 +638,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                                     : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-300 hover:bg-slate-100/50 hover:scale-105'
                                                             }`}
                                                         >
-                                                            <span className="text-[11px] font-extrabold text-center leading-none px-1 uppercase tracking-tight">{option.size.replace(' Round', '')}</span>
+                                                            <span className="text-[11px] font-extrabold text-center leading-none px-1 uppercase tracking-tight">{option.size.replace(' Round', '').replace(' FONDANT', '')}</span>
                                                             <span className={`text-[10px] font-bold mt-1 ${isSelected ? 'text-purple-600' : 'text-slate-400 group-hover:text-purple-400'}`}>
                                                                 ₱{totalPrice.toLocaleString()}
                                                             </span>
@@ -624,7 +650,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                 )}
 
                                 {/* Line 5: Height */}
-                                <div className="flex flex-col gap-1 mt-4">
+                                <div className="flex flex-col gap-1">
                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Height</span>
                                     <div 
                                         ref={heightScrollRef}
@@ -695,6 +721,59 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                 <div className={cardClassName}>
                     <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {photoStepNumber}: Upload Your Photo</h3>
                     {photoStepNode}
+                </div>
+            )}
+
+            {cakeInfo && !isAnalyzing && !isRejectionError && (
+                <div className={cardClassName}>
+                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {colorStepNumber}: Color Themes</h3>
+                    <div className="flex items-center gap-4 px-1 pb-2">
+                        {/* Current Main Color */}
+                        <div className="flex flex-col items-center gap-1.5 shrink-0">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Main</span>
+                            <div 
+                                className="w-12 h-12 rounded-full border-2 border-white shadow-md ring-1 ring-slate-100 shrink-0"
+                                style={{ backgroundColor: icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF' }}
+                            />
+                        </div>
+
+                        {/* Separator */}
+                        <div className="w-[1px] h-12 bg-slate-100 shrink-0" />
+
+                        {/* Color Options */}
+                        <div className="flex-1 overflow-x-auto scrollbar-hide">
+                            <div className="flex gap-2.5 py-1 px-1">
+                                {THEME_COLORS.map((color) => {
+                                    const currentColorHex = icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF';
+                                    const currentColorName = hexToColorNameProse(currentColorHex);
+                                    
+                                    return (
+                                        <button
+                                            key={color.name}
+                                            onClick={() => {
+                                                if (isUpdatingDesign) return;
+                                                const instruction = currentColorName 
+                                                    ? `Change the dominant color of the cake from ${currentColorName} to ${color.name}.`
+                                                    : `Change the dominant color theme of the cake to ${color.name}.`;
+                                                onUpdateDesign?.(instruction);
+                                            }}
+                                            disabled={isUpdatingDesign}
+                                            className={`group relative flex flex-col items-center gap-1.5 shrink-0 transition-transform active:scale-95 ${isUpdatingDesign ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            title={color.name}
+                                        >
+                                            <div 
+                                                className="w-10 h-10 rounded-full border border-slate-100 shadow-sm group-hover:shadow-md group-hover:ring-2 group-hover:ring-purple-200 transition-all"
+                                                style={{ backgroundColor: color.hex }}
+                                            />
+                                            <span className="text-[8px] font-medium text-slate-500 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {color.name}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
