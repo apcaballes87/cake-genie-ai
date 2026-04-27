@@ -1359,51 +1359,64 @@ const LandingClient: React.FC<LandingClientProps> = ({
             {/* ========== HEADER ========== */}
             <nav className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${isScrolled ? 'border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg' : 'border-transparent bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
-                    <div className="w-full flex items-center gap-2 md:gap-4 py-[11px] md:py-[14px]">
-                        <button
-                            onClick={() => setIsMenuOpen(true)}
-                            className="p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
-                            aria-label="Open menu"
-                        >
-                            <Menu size={24} />
-                        </button>
-                        
-                        <div className="relative grow flex items-center gap-2 md:gap-4">
-                            {/* Logo - visible when not scrolled on mobile, always visible on desktop */}
-                            <Link 
-                                href="/" 
-                                className={`shrink-0 transition-all duration-300 ${isScrolled ? 'opacity-0 pointer-events-none absolute -translate-x-4 md:opacity-0 md:pointer-events-none' : 'opacity-100 translate-x-0'}`}
+                    <div className="w-full flex items-center justify-between py-[11px] md:py-[14px] relative">
+                        {/* Left Side: Menu & Desktop Logo */}
+                        <div className="flex items-center gap-2 md:gap-4 shrink-0">
+                            <button
+                                onClick={() => setIsMenuOpen(true)}
+                                className="p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors"
+                                aria-label="Open menu"
+                            >
+                                <Menu size={24} />
+                            </button>
+
+                            {/* Desktop Logo - visible when not scrolled */}
+                            <Link
+                                href="/"
+                                className={`hidden md:block shrink-0 transition-all duration-300 ${isScrolled ? 'opacity-0 pointer-events-none absolute -translate-x-4' : 'opacity-100 translate-x-0'}`}
                             >
                                 <img
                                     src={COMMON_ASSETS.logo}
                                     alt="Genie Logo"
                                     width={135}
                                     height={43}
-                                    className="h-[32px] md:h-[41px] w-auto object-contain"
+                                    className="h-[41px] w-auto object-contain"
                                 />
                             </Link>
-
-                            {/* Standard Search Bar - visible when scrolled on mobile, always visible on desktop */}
-                            <div className={`flex-1 transition-all duration-300 ${isScrolled ? 'opacity-100 translate-x-0' : 'hidden md:block md:opacity-100 md:translate-x-0 opacity-0 translate-x-4 pointer-events-none'}`}>
-                                <SearchAutocomplete
-                                    onSearch={handleSearch}
-                                    onUploadClick={() => setIsUploaderOpen(true)}
-                                    placeholder="Search for other designs..."
-                                    value={searchQuery}
-                                    onChange={setSearchQuery}
-                                    showUploadButton={false}
-                                    inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
-                                />
-                            </div>
                         </div>
 
-                        {/* Right Area: Actions */}
+                        {/* Mobile Centered Logo - only visible when not scrolled */}
+                        <div className={`md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${isScrolled ? 'opacity-0 pointer-events-none scale-90' : 'opacity-100 scale-100'}`}>
+                            <Link href="/" className="flex items-center">
+                                <img
+                                    src={COMMON_ASSETS.logo}
+                                    alt="Genie Logo"
+                                    width={105}
+                                    height={32}
+                                    className="h-[32px] w-auto object-contain"
+                                />
+                            </Link>
+                        </div>
+
+                        {/* Search Bar - transition between states */}
+                        <div className={`flex-1 mx-2 md:mx-4 transition-all duration-300 ${isScrolled ? 'opacity-100 translate-x-0' : 'hidden md:block md:opacity-100 md:translate-x-0 opacity-0 translate-x-4 pointer-events-none'}`}>
+                            <SearchAutocomplete
+                                onSearch={handleSearch}
+                                onUploadClick={() => setIsUploaderOpen(true)}
+                                placeholder="Search for other designs..."
+                                value={searchQuery}
+                                onChange={setSearchQuery}
+                                showUploadButton={false}
+                                inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                            />
+                        </div>
+
+                        {/* Right Side: Actions & Cart */}
                         <div className="flex items-center gap-1 md:gap-2 shrink-0">
                             {/* Mobile Search Icon - visible only when NOT scrolled */}
                             {!isScrolled && (
                                 <button
                                     onClick={() => {
-                                        // Scroll down slightly to trigger search bar or just scroll to top
                                         window.scrollTo({ top: 50, behavior: 'smooth' });
                                     }}
                                     className="md:hidden p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors"
@@ -1413,7 +1426,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                 </button>
                             )}
 
-                            {/* Account Button - visible on desktop when not scrolled */}
+                            {/* Account Button - desktop only, hidden when scrolled */}
                             <button
                                 onClick={() => {
                                     if (isAuthenticated && !user?.is_anonymous) {
@@ -1427,21 +1440,21 @@ const LandingClient: React.FC<LandingClientProps> = ({
                             >
                                 <User size={22} />
                             </button>
-                        </div>
 
-                        {/* Cart Button - Visible in all states */}
-                        <button
-                            onClick={() => router.push('/cart')}
-                            className="relative p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
-                            aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
-                        >
-                            <ShoppingBag size={24} />
-                            {isMounted && itemCount > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
-                                    {itemCount}
-                                </span>
-                            )}
-                        </button>
+                            {/* Cart Button */}
+                            <button
+                                onClick={() => router.push('/cart')}
+                                className="relative p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
+                            >
+                                <ShoppingBag size={24} />
+                                {isMounted && itemCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
+                                        {itemCount}
+                                    </span>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </nav>
