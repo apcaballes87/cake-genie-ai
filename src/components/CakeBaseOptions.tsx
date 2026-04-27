@@ -54,17 +54,19 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
 
     // Helper to scroll selected item to center
     const scrollToCenter = (container: HTMLDivElement, selector: string) => {
-        const selectedElement = container.querySelector(selector) as HTMLElement;
-        if (selectedElement) {
-            const containerWidth = container.offsetWidth;
-            const elementWidth = selectedElement.offsetWidth;
-            const elementLeft = selectedElement.offsetLeft;
-
-            // Calculate center position
-            const scrollLeft = elementLeft - (containerWidth / 2) + (elementWidth / 2);
+        const element = container.querySelector(selector) as HTMLElement;
+        if (element) {
+            const containerRect = container.getBoundingClientRect();
+            const elementRect = element.getBoundingClientRect();
+            
+            // Distance of element relative to container's left edge
+            const relativeLeft = elementRect.left - containerRect.left;
+            
+            // Calculate target scroll: current + relative - (container/2) + (element/2)
+            const targetScrollLeft = container.scrollLeft + relativeLeft - (containerRect.width / 2) + (elementRect.width / 2);
 
             container.scrollTo({
-                left: scrollLeft,
+                left: targetScrollLeft,
                 behavior: 'smooth'
             });
         }
@@ -159,7 +161,8 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                 type="button"
                                 onClick={(e) => {
                                     onCakeInfoChange({ type });
-                                    e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                                    const target = e.currentTarget;
+                                    setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }), 50);
                                 }}
                                 className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg genie-focus`}
                             >
@@ -197,7 +200,8 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                         type="button"
                                         onClick={(e) => {
                                             onCakeInfoChange({ size: option.size });
-                                            e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                                            const target = e.currentTarget;
+                                            setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }), 50);
                                         }}
                                         className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg genie-focus`}
                                     >
@@ -264,7 +268,8 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                 type="button"
                                 onClick={(e) => {
                                     onCakeInfoChange({ thickness });
-                                    e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                                    const target = e.currentTarget;
+                                    setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }), 50);
                                 }}
                                 className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg genie-focus`}
                             >
