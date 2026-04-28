@@ -63,7 +63,7 @@ describe('CustomizingHeroPanel', () => {
         render(<CustomizingHeroPanel {...props} />);
 
         expect(screen.getByText('Your creation will appear here')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Report an issue with this image' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Report an issue' })).toBeDisabled();
         expect(screen.getByRole('button', { name: 'Save customized image' })).toBeDisabled();
         expect(screen.getByRole('button', { name: 'Reset everything' })).toBeInTheDocument();
     });
@@ -87,10 +87,9 @@ describe('CustomizingHeroPanel', () => {
 
         render(<CustomizingHeroPanel {...props} />);
 
-        expect(screen.getByText('Analyzing design elements & pricing... You can start customizing below.')).toBeInTheDocument();
+        expect(screen.getByText('Analyzing design elements & pricing...')).toBeInTheDocument();
         expect(screen.getByRole('img', { name: 'Loading cake design...' })).toHaveAttribute('src', 'https://example.com/preloaded-cake.jpg');
         expect(screen.getByText('Analyzing your design...')).toBeInTheDocument();
-        expect(screen.getByText('loading-spinner')).toBeInTheDocument();
         expect(screen.getByText('Image Rejected')).toBeInTheDocument();
         expect(screen.getByText('Unsupported image')).toBeInTheDocument();
     });
@@ -110,7 +109,7 @@ describe('CustomizingHeroPanel', () => {
         fireEvent.load(screen.getByRole('img', { name: 'Hero cake' }));
         fireEvent.click(screen.getByRole('button', { name: 'Save this design' }));
         fireEvent.click(screen.getByRole('button', { name: 'Undo last change' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Report an issue with this image' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Report an issue' }));
         fireEvent.click(screen.getByRole('button', { name: 'Save customized image' }));
         fireEvent.click(screen.getByRole('button', { name: 'Reset everything' }));
 

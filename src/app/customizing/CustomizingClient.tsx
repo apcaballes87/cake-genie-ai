@@ -433,22 +433,22 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     } = useCakeCustomization();
 
     const scrollToHero = useCallback(() => {
-        if (typeof window !== 'undefined' && window.innerWidth < 768) {
-            // Small timeout to allow any bottom sheet transitions to start
-            setTimeout(() => {
-                // More robust scroll for mobile
-                window.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
-                });
-                
-                // Also try scrollIntoView as backup if window.scrollTo is tricky
-                mainImageContainerRef.current?.scrollIntoView({
+        if (typeof window === 'undefined') return;
+
+        const heroContainer = mainImageContainerRef.current;
+        if (!heroContainer) return;
+
+        // Wait for the current state update to settle so the hero stays in view
+        // after the design changes or the right-column panels re-render.
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                heroContainer.scrollIntoView({
                     behavior: 'smooth',
                     block: 'start',
+                    inline: 'nearest',
                 });
-            }, 150);
-        }
+            });
+        });
     }, []);
 
     const onIcingDesignChange = useCallback((nextDesign: IcingDesignUI) => {
@@ -2292,7 +2292,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             : { ...DEFAULT_ICING_DESIGN, base: newBase };
 
         onIcingDesignChange(nextIcingDesign);
-    }, [cakeInfo, icingDesign, handleCakeInfoChange, onIcingDesignChange]);
+    }, [cakeInfo, icingDesign, handleCakeInfoChange, onIcingDesignChange, scrollToHero]);
 
     const availability = AVAILABILITY_MAP[availabilityType];
     // Temporary state backups for modals (to discard changes on cancel)
@@ -2468,11 +2468,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
         isDraftApplied.current = true;
         void onUpdateDesign();
-        scrollToHero();
         setActiveCustomization(null);
         setActiveTopperSection(null);
         setSelectedItem(null);
-    }, [hasPendingVisualChanges, isUpdatingDesign, onUpdateDesign, originalImageData, scrollToHero]);
+    }, [hasPendingVisualChanges, isUpdatingDesign, onUpdateDesign, originalImageData]);
 
 
 
@@ -3104,7 +3103,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                             placeholder="✨ Describe the icing colors you want..."
                                         />
                                     ) : null}
-                                    onUpdateDesign={handleUpdateDesign}
+                                    onUpdateDesign={onUpdateDesign}
                                     isUpdatingDesign={isUpdatingDesign}
                                     dirtyFields={dirtyFields}
                                     originalCakeType={analysisResult?.cakeType}
@@ -3140,7 +3139,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             analysisError={analysisError}
                             onUploadAnother={handleUploadAnother}
                             onGoBackHome={() => router.push('/')}
-                            onUpdateDesign={handleUpdateDesign}
+                            onUpdateDesign={onUpdateDesign}
                             isUpdatingDesign={isUpdatingDesign}
                             dirtyFields={dirtyFields}
                             stepSummaryProps={{

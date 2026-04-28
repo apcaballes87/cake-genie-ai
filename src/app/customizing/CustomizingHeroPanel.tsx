@@ -3,7 +3,6 @@
 import { memo, useRef, useState, type RefObject } from 'react';
 import LazyImage from '@/components/LazyImage';
 import { Heart, ShieldCheck } from 'lucide-react';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorIcon, ImageIcon, ResetIcon, SaveIcon, Loader2, ReportIcon } from '../../components/icons';
 import MagicGlitter from '@/components/MagicGlitter';
 
@@ -139,7 +138,7 @@ export const CustomizingHeroPanel = memo(({
                 </div>
             ) : null}
 
-            <div ref={mainImageContainerRef} className="w-full flex flex-col overflow-hidden rounded-3xl">
+            <div ref={mainImageContainerRef} className="w-full flex flex-col overflow-hidden rounded-3xl scroll-mt-28 md:scroll-mt-32">
                 {isAnalyzing ? (
                     <div className="p-3 w-full text-center animate-fade-in mb-1">
                         <div className="w-full bg-slate-200 rounded-full h-1.5 relative overflow-hidden">
