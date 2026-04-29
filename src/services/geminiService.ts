@@ -2,7 +2,6 @@
 
 import type { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, IcingColorDetails, CakeInfoUI, CakeType, CakeThickness, IcingDesign, MainTopperType, CakeMessage, SupportElementType } from '@/types';
 import { CAKE_TYPES, CAKE_THICKNESSES, COLORS } from "@/constants";
-import { createClient } from '@/lib/supabase/client';
 import {
     detectObjectsWithRoboflow,
     roboflowBboxToAppCoordinates,
@@ -11,8 +10,6 @@ import {
 import { FEATURE_FLAGS, isRoboflowConfigured } from '@/config/features';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { getEditImageCompressionOptions } from '@/utils/editImageTuning';
-
-const supabase = createClient();
 
 // Cache the prompt for 10 minutes (Still used? Maybe optional if moved to server entirely)
 // Keeping simple cache struct for now if deemed necessary for other things, but prompt fetching is now server-side

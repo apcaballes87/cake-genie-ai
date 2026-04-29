@@ -447,8 +447,8 @@ export const POST = async (req: NextRequest) => {
         const isQuotaError = /RESOURCE_EXHAUSTED|quota|rate limit|429/i.test(rawMessage);
 
         if (isQuotaError && attempt < MAX_AI_RETRIES) {
-          // Exponential backoff: 2s, 4s, 8s + random jitter
-          const backoffMs = Math.pow(2, attempt) * 2000 + Math.random() * 1000;
+          // Exponential backoff: 4s, 8s, 16s + random jitter
+          const backoffMs = Math.pow(2, attempt) * 4000 + Math.random() * 2000;
           console.warn(`[AI Studio] Quota hit (429). Attempt ${attempt + 1}/${MAX_AI_RETRIES + 1}. Retrying in ${Math.round(backoffMs)}ms...`);
           await new Promise((resolve) => setTimeout(resolve, backoffMs));
           continue;

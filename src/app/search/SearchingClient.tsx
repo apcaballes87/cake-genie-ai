@@ -38,7 +38,7 @@ const SearchResultsSkeleton = ({ count = 8, showHeader = true }: { count?: numbe
                     className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
                     aria-hidden="true"
                 >
-                    <div className="aspect-[4/5] bg-slate-200 animate-pulse" />
+                    <div className="aspect-4/5 bg-slate-200 animate-pulse" />
                     <div className="space-y-2 p-3">
                         <div className="h-4 w-4/5 rounded bg-slate-200 animate-pulse" />
                         <div className="h-3 w-2/5 rounded bg-slate-200 animate-pulse" />

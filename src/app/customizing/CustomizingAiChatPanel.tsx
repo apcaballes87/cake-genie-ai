@@ -122,7 +122,7 @@ export const CustomizingAiChatPanel = React.memo(({
                 />
             )}
             {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isUpdatingDesign && (
-                <div className="absolute left-0 right-0 bottom-full z-[9999] mb-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <div className="absolute left-0 right-0 bottom-full z-9999 mb-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
                     <div className="max-h-72 overflow-y-auto py-1">
                         {filteredAiChatPromptSuggestions.map(({ suggestion, template }, index) => (
                             <button
