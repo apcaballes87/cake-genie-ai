@@ -10,13 +10,10 @@ import { WheelGesturesPlugin } from 'embla-carousel-wheel-gestures';
 import Link from 'next/link';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import LazyImage from '@/components/LazyImage';
-import { ImageWithSkeleton } from '@/components/ImageWithSkeleton';
 import { showError, showLoading, showInfo } from '@/lib/utils/toast';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import SameDayCutoffBanner from '@/components/SameDayCutoffBanner';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { CakeGenieReview } from '@/lib/database.types';
-import { getReviewDisplayName } from '@/lib/reviews';
 import { BlogHomepagePreview } from '@/services/supabaseService';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,11 +23,9 @@ import { COMMON_ASSETS } from '@/constants';
 import { trackImageUpload } from '@/lib/analytics';
 import {
     DEFAULT_LANDING_HERO_CONTENT,
-    VARIANT_B_HERO_CONTENT,
     type LandingHeroContent,
     type LandingHeroProduct,
 } from '@/components/landing/landingHeroContent';
-import { trackEvent } from '@/lib/analytics';
 import {
     Search,
     ShoppingBag,
@@ -62,9 +57,7 @@ const ImageUploader = dynamic(
 interface LandingClientProps {
     children?: React.ReactNode;
     blogPosts?: BlogHomepagePreview[];
-    reviews?: CakeGenieReview[];
     heroContent?: LandingHeroContent;
-    abVariant?: string;
 }
 
 const LANDING_PRIMARY_CTA_RADIUS = 'rounded-[1.35rem]';
@@ -179,10 +172,10 @@ const HeroMasonryGrid: React.FC<{
     };
 
     return (
-        <div className="grid grid-cols-3 gap-2 min-[450px]:gap-3 w-full animate-in fade-in zoom-in-95 duration-1000 ease-out">
-            <div className="flex flex-col gap-2 min-[450px]:gap-3">
+        <div className="grid w-full grid-cols-3 gap-2.5 min-[450px]:gap-3.5 lg:gap-4 animate-in fade-in zoom-in-95 duration-1000 ease-out">
+            <div className="flex flex-col gap-2.5 min-[450px]:gap-3.5 lg:gap-4">
                 <div 
-                    className="group relative rounded-xl min-[450px]:rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 aspect-[4/5] bg-slate-100 cursor-pointer"
+                    className="group relative aspect-[5/6] cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
                     onMouseEnter={() => handleInteraction(0)}
                     onClick={() => handleInteraction(0)}
                 >
@@ -190,7 +183,7 @@ const HeroMasonryGrid: React.FC<{
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
                 <div 
-                    className="group relative rounded-xl min-[450px]:rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 aspect-square bg-slate-100 cursor-pointer"
+                    className="group relative aspect-[5/6] cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
                     onMouseEnter={() => handleInteraction(1)}
                     onClick={() => handleInteraction(1)}
                 >
@@ -198,9 +191,9 @@ const HeroMasonryGrid: React.FC<{
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
             </div>
-            <div className="flex flex-col gap-2 min-[450px]:gap-3 pt-6 min-[450px]:pt-10">
+            <div className="flex flex-col gap-2.5 pt-7 min-[450px]:gap-3.5 min-[450px]:pt-12 lg:gap-4 lg:pt-14">
                 <div 
-                    className="group relative rounded-xl min-[450px]:rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 aspect-square bg-slate-100 cursor-pointer"
+                    className="group relative aspect-[5/6] cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
                     onMouseEnter={() => handleInteraction(2)}
                     onClick={() => handleInteraction(2)}
                 >
@@ -208,7 +201,7 @@ const HeroMasonryGrid: React.FC<{
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
                 <div 
-                    className="group relative rounded-xl min-[450px]:rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 aspect-[4/5] bg-slate-100 cursor-pointer"
+                    className="group relative aspect-[5/6] cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
                     onMouseEnter={() => handleInteraction(3)}
                     onClick={() => handleInteraction(3)}
                 >
@@ -216,9 +209,9 @@ const HeroMasonryGrid: React.FC<{
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
             </div>
-            <div className="flex flex-col gap-2 min-[450px]:gap-3 pt-3 min-[450px]:pt-5">
+            <div className="flex flex-col gap-2.5 pt-3.5 min-[450px]:gap-3.5 min-[450px]:pt-6 lg:gap-4 lg:pt-8">
                 <div 
-                    className="group relative rounded-xl min-[450px]:rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 aspect-[4/5] bg-slate-100 cursor-pointer"
+                    className="group relative aspect-[5/6] cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
                     onMouseEnter={() => handleInteraction(4)}
                     onClick={() => handleInteraction(4)}
                 >
@@ -226,7 +219,7 @@ const HeroMasonryGrid: React.FC<{
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
                 <div 
-                    className="group relative rounded-xl min-[450px]:rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 aspect-square bg-slate-100 cursor-pointer"
+                    className="group relative aspect-[5/6] cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
                     onMouseEnter={() => handleInteraction(5)}
                     onClick={() => handleInteraction(5)}
                 >
@@ -245,6 +238,7 @@ function HeroProductPeekCarousel({
     onInteraction,
     cardSpacingClassName = 'mx-1',
     cardFlexStyle = '0 0 min(calc(50% - 8px), 232px)',
+    aspectClassName = 'aspect-[3/2]',
 }: {
     products: readonly LandingHeroProduct[];
     heroProductIndex: number;
@@ -252,6 +246,7 @@ function HeroProductPeekCarousel({
     onInteraction?: () => void;
     cardSpacingClassName?: string;
     cardFlexStyle?: string;
+    aspectClassName?: string;
 }) {
     const wheelGestures = useMemo(() => [WheelGesturesPlugin()], []);
     const [emblaRef, emblaApi] = useEmblaCarousel(
@@ -308,7 +303,7 @@ function HeroProductPeekCarousel({
     };
 
     return (
-        <div className="relative aspect-[3/2] w-full overflow-hidden bg-transparent">
+        <div className={`relative w-full overflow-hidden bg-transparent ${aspectClassName}`}>
             <div ref={emblaRef} className="h-full overflow-hidden cursor-grab active:cursor-grabbing">
                 <div className="flex h-full touch-pan-y">
                     {products.map((product, productIndex) => {
@@ -356,6 +351,47 @@ function HeroProductPeekCarousel({
     );
 }
 
+function HeroReviewSummary({ compact = false }: { compact?: boolean }) {
+    return (
+        <Link
+            href="/reviews"
+            className={`inline-flex items-center justify-center gap-1.5 text-gray-600 hover:text-purple-500 ${compact ? 'text-[11px]' : 'text-[13px] md:text-[14px]'}`}
+        >
+            <span>4.8</span>
+            <span className="text-yellow-500">★★★★★</span>
+            <span>based on 6 reviews.</span>
+            <span>|</span>
+            <span className="font-bold text-green-600">Verified ✓</span>
+        </Link>
+    );
+}
+
+function HeroFeatureHighlights({ compact = false, className = '' }: { compact?: boolean; className?: string }) {
+    return (
+        <div
+            className={`${compact
+                ? 'flex flex-nowrap items-center justify-center gap-x-1 min-[390px]:gap-x-1.5 text-[8px] min-[390px]:text-[10px]'
+                : 'flex items-center justify-center gap-2 text-[11px] lg:text-[12px]'
+                } font-bold uppercase tracking-wide text-neutral-500 ${className}`}
+        >
+            <div className={compact ? 'flex items-center gap-1' : 'flex items-center gap-1.5'}>
+                <ImagePlus size={compact ? 12 : 14} className="text-neutral-400" />
+                <span className="whitespace-nowrap">Any Cake Image</span>
+            </div>
+            <span className="text-neutral-300">•</span>
+            <div className={compact ? 'flex items-center gap-1' : 'flex items-center gap-1.5'}>
+                <Zap size={compact ? 12 : 14} className="text-neutral-400" />
+                <span className="whitespace-nowrap">Instant Pricing</span>
+            </div>
+            <span className="text-neutral-300">•</span>
+            <div className={compact ? 'flex items-center gap-1' : 'flex items-center gap-1.5'}>
+                <Truck size={compact ? 12 : 14} className="text-neutral-400" />
+                <span className="whitespace-nowrap">Same-day Delivery</span>
+            </div>
+        </div>
+    );
+}
+
 function HeroProductPreviewStack({
     products,
     heroProductIndex,
@@ -371,7 +407,6 @@ function HeroProductPreviewStack({
     onOpenUploader,
     onResetUpload,
     onResultAction,
-    abVariant,
 }: {
     products: readonly LandingHeroProduct[];
     heroProductIndex: number;
@@ -387,45 +422,34 @@ function HeroProductPreviewStack({
     onOpenUploader: () => void;
     onResetUpload: () => void;
     onResultAction: () => void;
-    abVariant?: string;
 }) {
     if (heroUploadState === 'idle') {
         return (
             <>
-                {abVariant === 'variant-b' ? (
-                    <div className="relative mx-auto w-full max-w-[480px] px-4">
-                        <HeroMasonryGrid 
-                            products={products} 
-                            onSelectProduct={onSelectProduct}
+                <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px] min-[505px]:[mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] min-[505px]:[-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
+                    <div className="overflow-hidden bg-transparent">
+                        <HeroProductPeekCarousel 
+                            products={products}
+                            heroProductIndex={heroProductIndex} 
+                            onSelectProduct={onSelectProduct} 
                             onInteraction={onInteraction}
                         />
                     </div>
-                ) : (
-                    <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px] min-[505px]:[mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] min-[505px]:[-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
-                        <div className="overflow-hidden bg-transparent">
-                            <HeroProductPeekCarousel 
-                                products={products}
-                                heroProductIndex={heroProductIndex} 
-                                onSelectProduct={onSelectProduct} 
-                                onInteraction={onInteraction}
-                            />
-                        </div>
-                        <button
-                            onClick={onPrev}
-                            aria-label="Previous cake design"
-                            className="absolute left-2 top-[45%] z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-lg transition-all active:scale-95"
-                        >
-                            <ChevronLeft size={18} />
-                        </button>
-                        <button
-                            onClick={onNext}
-                            aria-label="Next cake design"
-                            className="absolute right-2 top-[45%] z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-lg transition-all active:scale-95"
-                        >
-                            <ChevronRight size={18} />
-                        </button>
-                    </div>
-                )}
+                    <button
+                        onClick={onPrev}
+                        aria-label="Previous cake design"
+                        className="absolute left-2 top-[45%] z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-lg transition-all active:scale-95"
+                    >
+                        <ChevronLeft size={18} />
+                    </button>
+                    <button
+                        onClick={onNext}
+                        aria-label="Next cake design"
+                        className="absolute right-2 top-[45%] z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-lg transition-all active:scale-95"
+                    >
+                        <ChevronRight size={18} />
+                    </button>
+                </div>
 
 
                 {/* Primary CTA - Mobile */}
@@ -438,6 +462,7 @@ function HeroProductPreviewStack({
                         <span className="whitespace-nowrap text-[12px] min-[360px]:text-[13px] min-[390px]:text-sm">Upload Your Design - Get Instant Pricing</span>
                     </button>
                 </div>
+                <HeroFeatureHighlights compact className="mx-auto w-full max-w-[480px] px-2 pb-1" />
 
             </>
         );
@@ -1073,9 +1098,7 @@ const DiscountCapture = () => {
 const LandingClient: React.FC<LandingClientProps> = ({
     children,
     blogPosts = [],
-    reviews = [],
     heroContent: propHeroContent,
-    abVariant = 'control',
 }) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
@@ -1083,28 +1106,14 @@ const LandingClient: React.FC<LandingClientProps> = ({
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isOccasionOpen, setIsOccasionOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
-    const [reviewZoomSrc, setReviewZoomSrc] = useState<string | null>(null);
-    const [isInteracting, setIsInteracting] = useState(false);
-    const scrollRef = useRef<HTMLDivElement>(null);
     const heroMobilePreviewRef = useRef<HTMLElement>(null);
     const uploadToastId = useRef<string | null>(null);
     const isMounted = React.useSyncExternalStore(subscribeToHydration, () => true, () => false);
-    
-    // Track A/B Test Variant View
-    useEffect(() => {
-        if (abVariant) {
-            trackEvent('ab_test_view', { 
-                variant_id: abVariant,
-                experiment_name: 'landing_page_headline_v1'
-            });
-        }
-    }, [abVariant]);
 
     const heroContent = useMemo(() => {
         if (propHeroContent) return propHeroContent;
-        if (abVariant === 'variant-b') return VARIANT_B_HERO_CONTENT;
         return DEFAULT_LANDING_HERO_CONTENT;
-    }, [propHeroContent, abVariant]);
+    }, [propHeroContent]);
 
     const [heroProductIndex, setHeroProductIndex] = useState(0);
     const [hasInteractedWithHero, setHasInteractedWithHero] = useState(false);
@@ -1176,12 +1185,6 @@ const LandingClient: React.FC<LandingClientProps> = ({
     const { itemCount } = useCart();
     const { user, isAuthenticated } = useAuth();
     const { recordNavigation } = useNavigation();
-
-    const handleToggleVariant = useCallback(() => {
-        const newVariant = abVariant === 'control' ? 'variant-b' : 'control';
-        document.cookie = `ab-test-landing=${newVariant}; path=/; max-age=2592000`;
-        window.location.reload();
-    }, [abVariant]);
 
     const categoriesList = [
         { id: 'Birthdays', name: 'Birthdays' },
@@ -1269,80 +1272,6 @@ const LandingClient: React.FC<LandingClientProps> = ({
         window.addEventListener('scroll', updateScrollState, { passive: true });
         return () => window.removeEventListener('scroll', updateScrollState);
     }, []);
-
-    useEffect(() => {
-        const setScroll = () => {
-            if (reviewZoomSrc || isInteracting || !scrollRef.current) return;
-            const container = scrollRef.current;
-            container.scrollLeft += 0.5; // ~30px per second
-
-            if (container.scrollLeft >= container.scrollWidth / 2) {
-                container.scrollLeft = 0;
-            }
-        };
-
-        let frameId: number;
-        const animate = () => {
-            setScroll();
-            frameId = requestAnimationFrame(animate);
-        };
-
-        frameId = requestAnimationFrame(animate);
-        return () => cancelAnimationFrame(frameId);
-    }, [reviewZoomSrc, isInteracting]);
-
-    // Build review cards for marquee from actual reviews
-    const reviewCards = useMemo(() => {
-        const cards: {
-            id: string;
-            photo: string | null;
-            rating: number;
-            name: string;
-            text: string | null;
-            cakeType: string | null;
-            cakeSize: string | null;
-            date: string;
-        }[] = [];
-        for (const r of reviews) {
-            if (!r.comment) continue;
-            const orderItem = r.order_item ?? null;
-            const photos = r.photos?.length
-                ? r.photos
-                : orderItem?.customized_image_url
-                    ? [orderItem.customized_image_url]
-                    : [];
-            const name = getReviewDisplayName(r);
-            cards.push({
-                id: r.review_id,
-                photo: photos.length > 0 ? photos[0] : null,
-                rating: r.rating,
-                name,
-                text: r.comment,
-                cakeType: orderItem?.cake_type || null,
-                cakeSize: orderItem?.cake_size || null,
-                date: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            });
-        }
-        if (cards.length === 0) return [];
-        // Duplicate for seamless looping
-        return [...cards, ...cards];
-    }, [reviews]);
-
-    const scrollThreshold = 50;
-
-    useEffect(() => {
-        if (reviewZoomSrc) {
-            document.body.style.overflow = 'hidden';
-            const handleEsc = (e: KeyboardEvent) => {
-                if (e.key === 'Escape') setReviewZoomSrc(null);
-            };
-            window.addEventListener('keydown', handleEsc);
-            return () => {
-                document.body.style.overflow = '';
-                window.removeEventListener('keydown', handleEsc);
-            };
-        }
-    }, [reviewZoomSrc]);
 
     return (
         <div id="top" className="font-sans genie-page-bg min-h-screen pb-24 md:pb-0 text-gray-800 flex flex-col">
@@ -1467,6 +1396,9 @@ const LandingClient: React.FC<LandingClientProps> = ({
                         {/* Mobile Hero View */}
                         {/* Mobile Hero View - Simplified */}
                         <div className="md:hidden w-full flex flex-col mt-2">
+                            <div className="mb-3 text-center">
+                                <HeroReviewSummary compact />
+                            </div>
                             <h1 className="mb-4 text-center text-[10px] min-[360px]:text-[11px] font-bold uppercase tracking-[0.06em] text-neutral-600 whitespace-nowrap">
                                 {heroContent.eyebrow}
                             </h1>
@@ -1482,64 +1414,33 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                     <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
                                 </h2>
                             </div>
-                            <div className="mb-6 flex flex-nowrap items-center justify-center gap-x-1 min-[390px]:gap-x-1.5 text-[8px] min-[390px]:text-[10px] font-bold uppercase tracking-wide text-neutral-500">
-                                <div className="flex items-center gap-1">
-                                    <ImagePlus size={12} className="text-neutral-400" />
-                                    <span className="whitespace-nowrap">Any Cake Image</span>
-                                </div>
-                                <span className="text-neutral-300">•</span>
-                                <div className="flex items-center gap-1">
-                                    <Zap size={12} className="text-neutral-400" />
-                                    <span className="whitespace-nowrap">Instant Pricing</span>
-                                </div>
-                                <span className="text-neutral-300">•</span>
-                                <div className="flex items-center gap-1">
-                                    <Truck size={12} className="text-neutral-400" />
-                                    <span className="whitespace-nowrap">Same-day Delivery</span>
-                                </div>
-                            </div>
-
-
                         </div>
 
 
                         {/* Desktop Hero View: 2-column layout */}
                         <div className="hidden md:flex md:flex-col w-full pt-5 pb-2.5">
-                            {/* 1:1 grid ratio */}
-                            <div className="grid grid-cols-2 gap-12 items-center">
-                                {/* Left Column (1/2): Headlines and CTA */}
-                                <div className="col-span-1 flex flex-col items-center text-center mt-2">
-                                    <h1 className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.092em] text-neutral-600">
-                                        {heroContent.eyebrow}
-                                    </h1>
-                                    <h2 className="mt-2 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-[1.0] tracking-tight">
-                                        <HeroTypingHeadlineLine 
-                                            className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
-                                            controlledPhraseIndex={hasInteractedWithHero ? (heroProducts[heroProductIndex]?.headlineVariant ?? 0) : 0}
-                                            phrases={heroContent.headlineVariants}
-                                            a11yLabel={heroContent.headlineA11yLabel}
-                                        />
-                                        <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
-                                        <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
-                                    </h2>
-                                    <div className="mt-8 flex items-center justify-center gap-2 text-[11px] lg:text-[12px] font-bold uppercase tracking-wider text-neutral-500">
-                                        <div className="flex items-center gap-1.5">
-                                            <ImagePlus size={14} className="text-neutral-400" />
-                                            <span className="whitespace-nowrap">Any Cake Image</span>
+                            <div className="grid items-center gap-10 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-12 xl:gap-14">
+                                <div className="col-span-1 mt-2 flex flex-col items-center text-center">
+                                    <div className="w-full md:-translate-y-8">
+                                        <div className="mb-3 text-center">
+                                            <HeroReviewSummary />
                                         </div>
-                                        <span className="text-neutral-300">•</span>
-                                        <div className="flex items-center gap-1.5">
-                                            <Zap size={14} className="text-neutral-400" />
-                                            <span className="whitespace-nowrap">Instant Pricing</span>
-                                        </div>
-                                        <span className="text-neutral-300">•</span>
-                                        <div className="flex items-center gap-1.5">
-                                            <Truck size={14} className="text-neutral-400" />
-                                            <span className="whitespace-nowrap">Same-day Delivery</span>
-                                        </div>
+                                        <h1 className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.092em] text-neutral-600">
+                                            {heroContent.eyebrow}
+                                        </h1>
+                                        <h2 className="mt-2 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-[1.0] tracking-tight">
+                                            <HeroTypingHeadlineLine 
+                                                className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
+                                                controlledPhraseIndex={hasInteractedWithHero ? (heroProducts[heroProductIndex]?.headlineVariant ?? 0) : 0}
+                                                phrases={heroContent.headlineVariants}
+                                                a11yLabel={heroContent.headlineA11yLabel}
+                                            />
+                                            <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
+                                            <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
+                                        </h2>
                                     </div>
                                     {heroUploadState === 'idle' && (
-                                        <div className="mt-6 w-full max-w-[440px]">
+                                        <div className="mt-6 flex w-full max-w-[440px] flex-col items-center">
                                             <button
                                                 onClick={() => setIsUploaderOpen(true)}
                                                 className={`genie-btn-primary flex w-full items-center justify-center gap-3 ${LANDING_PRIMARY_CTA_RADIUS} py-[15px] px-6 md:px-8 text-[17px] lg:text-lg font-bold active:scale-[0.99] shadow-lg shadow-purple-100/50`}
@@ -1547,51 +1448,25 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                                 <ImagePlus size={22} className="shrink-0" />
                                                 <span className="whitespace-nowrap">Upload Your Design - Get Instant Pricing</span>
                                             </button>
+                                            <HeroFeatureHighlights className="mt-5" />
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Right Column (1/2): Visuals */}
-                                <div className="col-span-1 flex flex-col items-center justify-center pl-8">
+                                <div className="col-span-1 flex flex-col items-center justify-center md:pl-2 lg:pl-4">
                                     {heroUploadState === 'idle' ? (
-                                        /* ── Carousel / Grid mode ── */
                                         <>
-                                            {abVariant === 'variant-b' ? (
-                                                <div className="w-full max-w-[600px]">
-                                                    <HeroMasonryGrid 
-                                                        products={heroProducts} 
-                                                        onSelectProduct={setHeroProductIndex}
-                                                        onInteraction={() => setHasInteractedWithHero(true)}
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <div className="relative w-full max-w-[600px]">
-                                                    <div className="overflow-hidden bg-transparent transition-all duration-300 [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
-                                                        <HeroProductPeekCarousel 
-                                                            products={heroProducts}
-                                                            heroProductIndex={heroProductIndex} 
-                                                            onSelectProduct={setHeroProductIndex} 
-                                                            onInteraction={() => setHasInteractedWithHero(true)}
-                                                            cardSpacingClassName="mx-2"
-                                                            cardFlexStyle="0 0 min(calc(50% - 16px), 279px)"
-                                                        />
-                                                    </div>
-                                                    {/* Left arrow */}
-                                                    <button onClick={handleHeroPrev} aria-label="Previous cake design" className="absolute left-0 top-[45%] -translate-y-1/2 -translate-x-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-lg text-neutral-600 transition-all hover:border-purple-300 hover:text-purple-700 hover:shadow-xl active:scale-95">
-                                                        <ChevronLeft size={18} />
-                                                    </button>
-                                                    {/* Right arrow */}
-                                                    <button onClick={handleHeroNext} aria-label="Next cake design" className="absolute right-0 top-[45%] -translate-y-1/2 translate-x-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-lg text-neutral-600 transition-all hover:border-purple-300 hover:text-purple-700 hover:shadow-xl active:scale-95">
-                                                        <ChevronRight size={18} />
-                                                    </button>
-                                                </div>
-                                            )}
+                                            <div className="w-full max-w-[720px] xl:max-w-[780px]">
+                                                <HeroMasonryGrid 
+                                                    products={heroProducts} 
+                                                    onSelectProduct={setHeroProductIndex}
+                                                    onInteraction={() => setHasInteractedWithHero(true)}
+                                                />
+                                            </div>
                                         </>
                                     ) : (
-                                        /* ── Upload analysis mode ── */
                                         <>
-                                            {/* Uploaded image + loading bar overlay */}
-                                            <div className="relative w-full max-w-[480px]">
+                                            <div className="relative w-full max-w-[560px]">
                                                 <div className="overflow-hidden bg-transparent">
                                                     <div className="relative w-full aspect-[3/2] overflow-hidden rounded-3xl">
                                                         {heroUploadedImageSrc && (
@@ -1647,8 +1522,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                                 </button>
                                             </div>
 
-                                            {/* Product Info & Action Card — analysis result */}
-                                            <div className="w-full max-w-[480px] bg-white rounded-3xl shadow-xl border border-neutral-100 relative">
+                                            <div className="relative w-full max-w-[560px] rounded-3xl border border-neutral-100 bg-white shadow-xl">
                                                 {/* Availability bar with Inverted Corners */}
                                                 {heroUploadState === 'analyzing' ? (
                                                     <div className="bg-neutral-100 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl">
@@ -1806,87 +1680,10 @@ const LandingClient: React.FC<LandingClientProps> = ({
                             onOpenUploader={() => setIsUploaderOpen(true)}
                             onResetUpload={resetHeroUploadPreview}
                             onResultAction={handleHeroResultAction}
-                            abVariant={abVariant}
                         />
 
                     </div>
                 </section>
-
-
-                {/* ===== REVIEWS MARQUEE ===== */}
-                {reviewCards.length > 0 && (
-                    <section aria-label="Customer reviews" className="w-full overflow-hidden py-2 md:py-4">
-                        <div className="mx-auto max-w-7xl px-4 pt-[8px] md:pt-[32px] pb-1 text-center sm:px-6 lg:px-8">
-                            <Link href="/reviews" className="text-[13px] md:text-[14px] text-gray-600 hover:text-purple-500">
-                                4.8 <span className="text-yellow-500">★★★★★</span> based on 40 reviews. | <span className="text-green-600 font-bold">Verified ✓</span>
-                            </Link>
-                        </div>
-                        <div className="relative group">
-                            <div
-                                className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 md:w-24"
-                                style={{ background: 'linear-gradient(to right, rgba(250,245,255,1), transparent)' }}
-                            />
-                            <div
-                                className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 md:w-24"
-                                style={{ background: 'linear-gradient(to left, rgba(240,238,255,1), transparent)' }}
-                            />
-                            <div
-                                ref={scrollRef}
-                                className="flex gap-3 md:gap-4 overflow-x-auto scrollbar-hide py-2"
-                                onMouseDown={() => setIsInteracting(true)}
-                                onMouseUp={() => setIsInteracting(false)}
-                                onMouseLeave={() => setIsInteracting(false)}
-                                onTouchStart={() => setIsInteracting(true)}
-                                onTouchEnd={() => setIsInteracting(false)}
-                            >
-                                <div className="flex gap-3 md:gap-4 min-w-max pr-3 md:pr-4">
-                                    {reviewCards.map((card, i) => (
-                                        <div
-                                            key={`${card.id}-${i}`}
-                                            className={`shrink-0 w-[294px] md:w-[343px] bg-white rounded-xl shadow-md p-2.5 md:p-3 transition-shadow ${card.photo ? 'cursor-pointer hover:shadow-lg' : ''}`}
-                                            onClick={() => card.photo && setReviewZoomSrc(card.photo)}
-                                            role="button"
-                                            tabIndex={0}
-                                            aria-label={`Review by ${card.name}`}
-                                            onKeyDown={(e) => e.key === 'Enter' && card.photo && setReviewZoomSrc(card.photo)}
-                                        >
-                                            {/* Row 1: Stars + Name */}
-                                            <div className="flex items-center justify-between mb-1.5">
-                                                <div className="flex gap-px">
-                                                    {[1, 2, 3, 4, 5].map((star) => (
-                                                        <span key={star} className={`text-[10px] ${star <= card.rating ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
-                                                    ))}
-                                                </div>
-                                                <span className="text-[10px] font-medium text-slate-600 truncate ml-2">{card.name}</span>
-                                            </div>
-                                            {/* Row 2: Image thumbnail (left) + Review snippet (right) */}
-                                            <div className="flex gap-2">
-                                                {card.photo && (
-                                                    <div className="relative w-10 h-10 md:w-[47px] md:h-[47px] shrink-0 overflow-hidden rounded-md border border-slate-200">
-                                                        <ImageWithSkeleton
-                                                            src={card.photo}
-                                                            alt={card.cakeType ? `${card.cakeType} Cake` : 'Cake'}
-                                                            className="w-full h-full object-cover"
-                                                            skeletonClassName="rounded-md"
-                                                            priority
-                                                        />
-                                                    </div>
-                                                )}
-                                                <div className="min-w-0 flex-1">
-                                                    {card.cakeType && <p className="text-[10px] font-semibold text-slate-800 truncate mb-0.5">{card.cakeType} Cake{card.cakeSize ? ` · ${card.cakeSize}` : ''}</p>}
-                                                    {card.text && (
-                                                        <p className="text-[10px] text-slate-600 leading-relaxed line-clamp-2 whitespace-normal">{card.text}</p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                )}
-
                 {/* ===== INTERACTIVE CUSTOMIZER DEMO ===== */}
 
                 <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
@@ -2059,35 +1856,6 @@ const LandingClient: React.FC<LandingClientProps> = ({
                     }}
                 />
             ) : null}
-
-            {/* ========== REVIEW ZOOM MODAL ========== */}
-            {reviewZoomSrc && (
-                <div
-                    className="fixed inset-0 z-100 flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-200"
-                    role="dialog"
-                    aria-modal="true"
-                >
-                    <div
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                        onClick={() => setReviewZoomSrc(null)}
-                    />
-                    <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center animate-in zoom-in-95 duration-300">
-                        <button
-                            onClick={() => setReviewZoomSrc(null)}
-                            className="absolute -top-12 right-0 p-2 text-white/80 hover:text-white transition-colors"
-                            aria-label="Close zoom"
-                        >
-                            <X size={32} />
-                        </button>
-                        <img
-                            src={reviewZoomSrc}
-                            alt="Zoomed customer review"
-                            className="w-full h-full object-contain rounded-2xl shadow-2xl"
-                        />
-                    </div>
-                </div>
-            )}
-
             {/* ========== MOBILE SIDE MENU DRAWER ========== */}
             {/* Backdrop */}
             <div
@@ -2208,18 +1976,6 @@ const LandingClient: React.FC<LandingClientProps> = ({
                 </div>
             </aside>
 
-            {/* Admin A/B Toggle */}
-            {user?.email === 'apcaballes@gmail.com' && (
-                <div className="fixed bottom-24 right-6 z-[9999]">
-                    <button
-                        onClick={handleToggleVariant}
-                        className="flex items-center gap-2 bg-black/80 text-white px-4 py-2 rounded-full text-xs font-bold shadow-2xl backdrop-blur-md border border-white/10 hover:bg-black transition-all active:scale-95"
-                    >
-                        <div className={`w-2 h-2 rounded-full ${abVariant === 'variant-b' ? 'bg-green-400 animate-pulse' : 'bg-blue-400'}`} />
-                        <span>AB: {abVariant === 'variant-b' ? 'Variant B' : 'Control'}</span>
-                    </button>
-                </div>
-            )}
         </div>
     );
 };

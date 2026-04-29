@@ -1,13 +1,9 @@
 import { Metadata } from 'next';
 import LandingClient from './LandingClient';
-import { headers } from 'next/headers';
 import { getRecommendedProducts, getHomepageBlogPreviews } from '@/services/supabaseService';
 import { RecommendedProductsSection, IntroContent } from '@/components/landing';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import NewsletterPopup from '@/components/NewsletterPopup';
-import { createClient } from '@/lib/supabase/server';
-import { normalizePublicReviews, REVIEW_SELECT } from '@/lib/reviews';
-import { SupabaseClient } from '@supabase/supabase-js';
 
 // ISR: Revalidate every hour for fresh data while maintaining fast loads
 export const revalidate = 3600;
@@ -104,27 +100,11 @@ function WebSiteSchema() {
     );
 }
 
-async function getReviews() {
-    const supabase: SupabaseClient = await createClient();
-    const { data } = await supabase
-        .from('cakegenie_reviews')
-        .select(REVIEW_SELECT)
-        .eq('is_visible', true)
-        .eq('is_approved', true)
-        .order('created_at', { ascending: false })
-        .limit(20);
-    return normalizePublicReviews(data);
-}
-
 export default async function Home() {
-    const [recommendedProductsRes, blogsRes, reviews, headersList] = await Promise.all([
+    const [recommendedProductsRes, blogsRes] = await Promise.all([
         getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err })),
         getHomepageBlogPreviews(3).catch(err => ({ data: [], error: err })),
-        getReviews().catch(() => []),
-        headers(),
     ]);
-
-    const abVariant = headersList.get('x-ab-variant') || 'control';
 
     const recommendedProducts = recommendedProductsRes.data || [];
     const blogPosts = blogsRes.data || [];
@@ -132,7 +112,7 @@ export default async function Home() {
     return (
         <>
             <WebSiteSchema />
-            <LandingClient blogPosts={blogPosts} reviews={reviews} abVariant={abVariant}>
+            <LandingClient blogPosts={blogPosts}>
                 {/* Server-rendered sections for LCP optimization */}
                 {/* <MerchantShowcase merchants={merchants} /> - Hidden for now */}
                 <RecommendedProductsSection products={recommendedProducts} />

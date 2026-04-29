@@ -32,37 +32,37 @@ export const DEFAULT_LANDING_HERO_CONTENT: LandingHeroContent = {
     {
       title: 'Minimalist Cakes',
       image:
-        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-minimalist-cake.webp',
+        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-model-white-minimalist-cake.webp',
       headlineVariant: 1,
     },
     {
       title: 'Vintage Cakes',
       image:
-        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-vintage-cake.webp',
+        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-model-pink-vintage-cake.webp',
       headlineVariant: 2,
     },
     {
       title: 'Doodle Cakes',
       image:
-        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-doodle-cake.webp',
+        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-model-white-doodle-cake.webp',
       headlineVariant: 6,
     },
     {
       title: 'Edible Photo Cakes',
       image:
-        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-edible-photo-cake.webp',
+        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-model-edible-photo-cake.webp',
       headlineVariant: 4,
     },
     {
       title: 'Floral Cakes',
       image:
-        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-floral-cake.webp',
+        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-model-vintage-white-cake.webp',
       headlineVariant: 3,
     },
     {
       title: 'Bento Cakes',
       image:
-        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-bento-cake.webp',
+        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-model-pink-bento-cake.webp',
       headlineVariant: 5,
     },
   ],
