@@ -1440,7 +1440,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                         </h2>
                                     </div>
                                     {heroUploadState === 'idle' && (
-                                        <div className="mt-6 flex w-full max-w-[440px] flex-col items-center">
+                                        <div className="mt-3 flex w-full max-w-[440px] flex-col items-center">
                                             <button
                                                 onClick={() => setIsUploaderOpen(true)}
                                                 className={`genie-btn-primary flex w-full items-center justify-center gap-3 ${LANDING_PRIMARY_CTA_RADIUS} py-[15px] px-6 md:px-8 text-[17px] lg:text-lg font-bold active:scale-[0.99] shadow-lg shadow-purple-100/50`}
