@@ -1,5 +1,4 @@
 import { Metadata } from 'next';
-import { SupabaseClient } from '@supabase/supabase-js';
 import LandingClient from '@/app/LandingClient';
 import NewsletterPopup from '@/components/NewsletterPopup';
 import {
@@ -8,8 +7,6 @@ import {
 } from '@/components/landing';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { MOTHERS_DAY_HERO_CONTENT } from '@/components/landing/landingHeroContent';
-import { createClient } from '@/lib/supabase/server';
-import { normalizePublicReviews, REVIEW_SELECT } from '@/lib/reviews';
 import {
     getHomepageBlogPreviews,
     getRecommendedProducts,
@@ -216,23 +213,10 @@ function MothersDaySchema() {
     );
 }
 
-async function getReviews() {
-    const supabase: SupabaseClient = await createClient();
-    const { data } = await supabase
-        .from('cakegenie_reviews')
-        .select(REVIEW_SELECT)
-        .eq('is_visible', true)
-        .eq('is_approved', true)
-        .order('created_at', { ascending: false })
-        .limit(20);
-    return normalizePublicReviews(data);
-}
-
 export default async function MothersDayPage() {
-    const [recommendedProductsRes, blogsRes, reviews] = await Promise.all([
+    const [recommendedProductsRes, blogsRes] = await Promise.all([
         getMothersDayProducts(8).then(data => ({ data, error: null })).catch(err => ({ data: [], error: err })),
         getHomepageBlogPreviews(3).catch(err => ({ data: [], error: err })),
-        getReviews().catch(() => []),
     ]);
 
     const recommendedProducts = (recommendedProductsRes.data || []) as MothersDayProduct[];
@@ -242,7 +226,7 @@ export default async function MothersDayPage() {
     return (
         <>
             <MothersDaySchema />
-            <LandingClient heroContent={heroContent} blogPosts={blogPosts} reviews={reviews}>
+            <LandingClient heroContent={heroContent} blogPosts={blogPosts}>
                 <RecommendedProductsSection
                     products={recommendedProducts}
                     headingHighlight="Mother's Day Picks:"
