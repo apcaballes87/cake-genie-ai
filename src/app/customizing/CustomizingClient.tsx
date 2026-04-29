@@ -3072,6 +3072,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     openTopperSheet={openTopperSheet}
                                     onCakeInfoChange={onCakeInfoChange}
                                     onIcingTypeChange={handleIcingTypeChange}
+                                    onIcingDesignChange={onIcingDesignChange}
                                     addOnPricing={addOnPricing?.addOnPrice ?? 0}
                                     separateIcingStep={separateIcingStep}
                                     hideStepOne={hideStepOne}
@@ -3166,6 +3167,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 openTopperSheet,
                                 onCakeInfoChange,
                                 onIcingTypeChange: handleIcingTypeChange,
+                                onIcingDesignChange,
                                 addOnPricing: addOnPricing?.addOnPrice ?? 0,
                                 separateIcingStep,
                                 hideStepOne,

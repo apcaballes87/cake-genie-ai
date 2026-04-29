@@ -1399,7 +1399,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                         </div>
 
                         {/* Search Bar - transition between states */}
-                        <div className={`flex-1 mx-2 md:mx-4 transition-all duration-300 ${isScrolled ? 'opacity-100 translate-x-0' : 'hidden md:block md:opacity-100 md:translate-x-0 opacity-0 translate-x-4 pointer-events-none'}`}>
+                        <div className={`flex-1 mx-2 md:mx-4 transition-all duration-300 ${isScrolled ? 'opacity-100 translate-x-0' : 'hidden md:block md:opacity-100 md:translate-x-0 opacity-0 translate-x-4 pointer-events-none md:pointer-events-auto'}`}>
                             <SearchAutocomplete
                                 onSearch={handleSearch}
                                 onUploadClick={() => setIsUploaderOpen(true)}

@@ -46,6 +46,7 @@ interface CustomizingStepSummarySectionsProps {
     openTopperSheet: (section?: 'main' | 'support' | null) => void;
     onCakeInfoChange?: (updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => void;
     onIcingTypeChange?: (newType: IcingDesignUI['base']) => void;
+    onIcingDesignChange?: (newDesign: IcingDesignUI) => void;
     addOnPricing?: number;
     separateIcingStep?: boolean;
     aiChatNode?: React.ReactNode;
@@ -250,6 +251,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     openTopperSheet,
     onCakeInfoChange,
     onIcingTypeChange,
+    onIcingDesignChange,
     addOnPricing = 0,
     separateIcingStep = false,
     aiChatNode,
@@ -754,6 +756,16 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                             key={color.name}
                                             onClick={() => {
                                                 if (isUpdatingDesign) return;
+                                                if (icingDesign && onIcingDesignChange) {
+                                                    onIcingDesignChange({
+                                                        ...icingDesign,
+                                                        colors: {
+                                                            ...icingDesign.colors,
+                                                            top: color.hex,
+                                                            side: color.hex,
+                                                        },
+                                                    });
+                                                }
                                                 const instruction = currentColorName 
                                                     ? `Change the dominant color of the cake from ${currentColorName} to ${color.name}.`
                                                     : `Change the dominant color theme of the cake to ${color.name}.`;
@@ -764,7 +776,11 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                             title={color.name}
                                         >
                                             <div 
-                                                className="w-10 h-10 rounded-full border border-slate-100 shadow-sm group-hover:shadow-md group-hover:ring-2 group-hover:ring-purple-200 transition-all"
+                                                className={`w-10 h-10 rounded-full border shadow-sm transition-all ${
+                                                    currentColorHex.toLowerCase() === color.hex.toLowerCase()
+                                                        ? 'border-slate-300 ring-2 ring-slate-300'
+                                                        : 'border-slate-100 group-hover:shadow-md group-hover:ring-2 group-hover:ring-purple-200'
+                                                }`}
                                                 style={{ backgroundColor: color.hex }}
                                             />
                                             <span className="text-[8px] font-medium text-slate-500 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
