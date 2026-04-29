@@ -10,6 +10,8 @@ import type { GoogleCSE, GoogleCSEElement } from '@/types';
 const ADMIN_PIN = '231323';
 const CSE_CONTAINER_ID = 'admin-search-container';
 const CSE_CX = 'c2a4e68c125c04ab3';
+const SEARCH_ANALYSIS_VALIDATION_TO_ANALYZE_DELAY_MS = 1200;
+const SEARCH_ANALYSIS_BETWEEN_AI_ITEMS_DELAY_MS = 5000;
 
 // Global window type extension for Google CSE
 declare global {
@@ -129,6 +131,7 @@ export default function SearchAnalysisAdminPage() {
     const [status, setStatus] = useState<'idle' | 'processing' | 'paused'>('idle');
     const [progress, setProgress] = useState({ current: 0, total: 0 });
     const [logs, setLogs] = useState<string[]>([]);
+    const [studioQueueReadyItems, setStudioQueueReadyItems] = useState<Array<{ slug: string; seoTitle: string }>>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const currentPageRef = useRef(1);
     const isAutoModeRef = useRef(false);
@@ -140,16 +143,10 @@ export default function SearchAnalysisAdminPage() {
     const imageQueueRef = useRef<string[]>([]);
     const processedUrlsRef = useRef<Set<string>>(new Set());
     const seenPHashesRef = useRef<Set<string>>(new Set());
-    const logsEndRef = useRef<HTMLDivElement>(null);
 
     const addLog = useCallback((msg: string) => {
         setLogs((prev) => [...prev, `${new Date().toLocaleTimeString()} - ${msg}`]);
     }, []);
-
-    // Auto-scroll logs
-    useEffect(() => {
-        logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [logs]);
 
     // Cleanup process on unmount
     useEffect(() => {
@@ -179,6 +176,7 @@ export default function SearchAnalysisAdminPage() {
         imageQueueRef.current = [];
         processedUrlsRef.current = new Set();
         seenPHashesRef.current = new Set();
+        setStudioQueueReadyItems([]);
         addLog(`Searching for: "${searchInput.trim()}"`);
     };
 
@@ -517,6 +515,8 @@ export default function SearchAnalysisAdminPage() {
                     large_wedding_cake: "Large wedding cake",
                 };
 
+                let usedAiForCurrentItem = false;
+
                 // --- GATE 1: CACHE CHECK ---
                 const cached = await findSimilarAnalysisByHash(pHash, targetImageUrl);
                 if (cached) {
@@ -541,6 +541,7 @@ export default function SearchAnalysisAdminPage() {
                             );
                         } else {
                             validationResult = await validationResponse.json();
+                            usedAiForCurrentItem = true;
                         }
                     } catch (validationError) {
                         const message = validationError instanceof Error ? validationError.message : 'Unknown validation error';
@@ -556,11 +557,15 @@ export default function SearchAnalysisAdminPage() {
                     }
 
                     // 4. AI Analysis
+                    if (usedAiForCurrentItem) {
+                        await delay(SEARCH_ANALYSIS_VALIDATION_TO_ANALYZE_DELAY_MS);
+                    }
                     const aiResponse = await fetch('/api/ai/analyze', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ imageData: imageData.data, mimeType: imageData.mimeType })
                     });
+                    usedAiForCurrentItem = true;
 
                     if (!aiResponse.ok) {
                         const aiErrorText = (await aiResponse.text()).trim();
@@ -579,7 +584,19 @@ export default function SearchAnalysisAdminPage() {
                     }
 
                     // 5. Save to cache
-                    await cacheAnalysisResult(pHash, analysisResult, targetImageUrl, blob);
+                    const cachedResult = await cacheAnalysisResult(pHash, analysisResult, targetImageUrl, blob, {
+                        triggerStudioEdit: false,
+                    });
+                    if (cachedResult) {
+                        setStudioQueueReadyItems((prev) => [
+                            ...prev,
+                            {
+                                slug: cachedResult.slug,
+                                seoTitle: cachedResult.seo_title,
+                            },
+                        ]);
+                        addLog(`[${i + 1}/${currentQueueLength}] Ready for Image Studio follow-up: ${cachedResult.slug}`);
+                    }
                     addLog(`[${i + 1}/${currentQueueLength}] Cached and uploaded successfully.`);
                     done++;
                 }
@@ -595,6 +612,9 @@ export default function SearchAnalysisAdminPage() {
                 highlightCurrentImage(imageUrl, false);
                 setProgress({ current: i + 1, total: currentQueueLength });
                 i++;
+                if (!isStoppedRef.current && i < currentQueueLength) {
+                    await delay(SEARCH_ANALYSIS_BETWEEN_AI_ITEMS_DELAY_MS);
+                }
             }
         }
 
@@ -907,6 +927,45 @@ export default function SearchAnalysisAdminPage() {
                                 Images collected: {imageQueueRef.current.length}
                             </p>
                         )}
+
+                        {/* Studio follow-up queue */}
+                        <div className="bg-violet-50 border border-violet-200 rounded-xl p-4">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <h3 className="text-sm font-semibold text-violet-900">Image Studio follow-up</h3>
+                                    <p className="text-sm text-violet-700 mt-1">
+                                        New cache entries from this run are queued for a separate Image Studio pass.
+                                    </p>
+                                </div>
+                                <span className="inline-flex items-center rounded-full bg-violet-600 px-3 py-1 text-sm font-semibold text-white">
+                                    {studioQueueReadyItems.length}
+                                </span>
+                            </div>
+                            {studioQueueReadyItems.length > 0 ? (
+                                <div className="mt-3 space-y-2">
+                                    <p className="text-xs font-medium uppercase tracking-wide text-violet-700">
+                                        Ready on this search run
+                                    </p>
+                                    <div className="max-h-40 overflow-y-auto space-y-2">
+                                        {studioQueueReadyItems.slice(-8).reverse().map((item) => (
+                                            <div
+                                                key={item.slug}
+                                                className="rounded-lg border border-violet-200 bg-white px-3 py-2"
+                                            >
+                                                <p className="text-sm font-medium text-gray-900 line-clamp-2">
+                                                    {item.seoTitle}
+                                                </p>
+                                                <p className="text-xs text-violet-700 mt-1">{item.slug}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-violet-700 mt-3">
+                                    Nothing newly queued yet on this run.
+                                </p>
+                            )}
+                        </div>
                     </div>
 
                     {/* Right Panel - Logs & Google CSE Results */}
@@ -915,11 +974,14 @@ export default function SearchAnalysisAdminPage() {
                         <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 h-[300px] flex flex-col overflow-hidden">
                             <div className="px-4 py-3 border-b border-gray-800 flex justify-between items-center bg-gray-950">
                                 <span className="text-gray-300 font-mono text-sm">Execution Logs</span>
-                                <span className="flex items-center space-x-2">
-                                    <span className="h-3 w-3 rounded-full bg-red-500"></span>
-                                    <span className="h-3 w-3 rounded-full bg-yellow-500"></span>
-                                    <span className="h-3 w-3 rounded-full bg-green-500"></span>
-                                </span>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xs text-gray-500">Manual scroll</span>
+                                    <span className="flex items-center space-x-2">
+                                        <span className="h-3 w-3 rounded-full bg-red-500"></span>
+                                        <span className="h-3 w-3 rounded-full bg-yellow-500"></span>
+                                        <span className="h-3 w-3 rounded-full bg-green-500"></span>
+                                    </span>
+                                </div>
                             </div>
                             <div className="p-4 flex-1 overflow-y-auto font-mono text-sm space-y-2">
                                 {logs.length === 0 ? (
@@ -934,7 +996,6 @@ export default function SearchAnalysisAdminPage() {
                                         </div>
                                     ))
                                 )}
-                                <div ref={logsEndRef} />
                             </div>
                         </div>
 

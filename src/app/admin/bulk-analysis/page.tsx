@@ -211,7 +211,9 @@ export default function BulkAnalysisAdminPage() {
                 analysisResult.seo_title = title;
                 // Optionally update alt_text or descriptions if needed, but the prompt said overwrite title
 
-                await cacheAnalysisResult(pHash, analysisResult, linkImage);
+                await cacheAnalysisResult(pHash, analysisResult, linkImage, undefined, {
+                    triggerStudioEdit: false,
+                });
 
                 // 5. Update row 
                 updatedData[i]['Analysis Done?'] = 'true';

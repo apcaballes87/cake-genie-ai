@@ -20,7 +20,6 @@ import {
   normalizeRelatedSearchPhrase,
   rankRelatedProducts,
 } from './relatedProductSearch';
-import { fileToBase64 } from './geminiService';
 
 // The default client (uses @supabase/ssr browser client)
 const supabase: SupabaseClient = getSupabaseClient();
@@ -460,7 +459,10 @@ export async function cacheAnalysisResult(
   pHash: string,
   analysisResult: HybridAnalysisResult,
   imageUrl?: string,
-  imageBlob?: Blob
+  imageBlob?: Blob,
+  options?: {
+    triggerStudioEdit?: boolean;
+  }
 ): Promise<{ slug: string; seo_title: string; price: number; original_image_url: string | null } | null> {
   try {
     console.log('💾 Attempting to cache analysis result with pHash:', pHash);
@@ -605,8 +607,10 @@ export async function cacheAnalysisResult(
         notifyIndexNow(`https://genie.ph/customizing/${slug}`);
       }
 
-      // Trigger background Image Studio edit (Fire and forget)
-      if (pHash && typeof window !== 'undefined') {
+      // Trigger background Image Studio edit (Fire and forget) for interactive
+      // flows only. Bulk admin imports can create a second hidden AI pipeline
+      // that collides with analysis traffic and causes quota contention.
+      if (options?.triggerStudioEdit !== false && pHash && typeof window !== 'undefined') {
         fetch('/api/ai/trigger-studio-edit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

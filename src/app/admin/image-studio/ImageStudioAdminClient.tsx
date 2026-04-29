@@ -42,6 +42,7 @@ type ImageListResponse = {
 };
 
 const SESSION_KEY = 'genie-admin-image-studio-auth';
+const AUTO_EDIT_DELAY_MS = 8000;
 const STATUS_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
   { value: 'all', label: 'All statuses' },
   { value: 'not_started', label: 'Not started' },
@@ -337,6 +338,13 @@ export default function ImageStudioAdminClient() {
       });
 
       await processSingleRecord(record, { silentSuccess: true });
+
+      // Keep a generous gap between preview image-edit requests because this
+      // workflow often runs alongside analysis jobs and shared-capacity 429s
+      // are more likely during automation bursts.
+      if (index < queue.length - 1 && !stopBatchRef.current) {
+        await new Promise((resolve) => setTimeout(resolve, AUTO_EDIT_DELAY_MS));
+      }
     }
 
     const stopped = stopBatchRef.current;
