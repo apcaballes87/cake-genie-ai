@@ -323,7 +323,7 @@ function HeroProductPeekCarousel({
                                     src={product.image}
                                     alt={isCenter ? `${product.title} example` : ''}
                                     aria-hidden={!isCenter}
-                                    className="h-full w-full object-cover"
+                                    className={`h-full w-full object-cover transition-transform duration-700 ${isCenter ? 'scale-[1.1]' : 'scale-100'}`}
                                     draggable={false}
                                     loading={productIndex === 0 ? 'eager' : 'lazy'}
                                 />
