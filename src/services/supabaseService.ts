@@ -319,29 +319,38 @@ export interface CacheHitResult {
   seoMetadata: CacheSEOMetadata;
 }
 
-export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string): Promise<CacheHitResult | null> {
+export async function findSimilarAnalysisByHash(pHash: string | string[], imageUrl?: string): Promise<CacheHitResult | null> {
   try {
-    console.log(`🔍 Starting pHash cache lookup for hash: ${pHash}`);
+    const hashCandidates = [...new Set((Array.isArray(pHash) ? pHash : [pHash]).filter((candidate): candidate is string => !!candidate))];
 
-    console.log('🔍 Calling find_similar_analysis RPC with pHash:', pHash);
+    for (let i = 0; i < hashCandidates.length; i++) {
+      const candidate = hashCandidates[i];
+      console.log(`🔍 Starting pHash cache lookup for hash ${i + 1}/${hashCandidates.length}: ${candidate}`);
+      console.log('🔍 Calling find_similar_analysis RPC with pHash:', candidate);
 
-    const { data, error } = await supabase.rpc('find_similar_analysis', {
-      new_hash: pHash,
-    });
+      const { data, error } = await supabase.rpc('find_similar_analysis', {
+        new_hash: candidate,
+      });
 
-    if (data) {
-      console.log(`📡 RPC 'find_similar_analysis' returned ${data.length} potential hash matches.`);
-    }
+      if (data) {
+        console.log(`📡 RPC 'find_similar_analysis' returned ${data.length} potential hash matches.`);
+      }
 
-    if (error) {
-      console.error('❌ Analysis cache lookup error:', error);
-      console.error('Error details:', { code: error.code, message: error.message, hint: error.hint });
-      return null;
-    }
+      if (error) {
+        console.error('❌ Analysis cache lookup error:', error);
+        console.error('Error details:', { code: error.code, message: error.message, hint: error.hint });
+        return null;
+      }
 
-    if (data && data.length > 0) {
+      if (!data || data.length === 0) {
+        continue;
+      }
+
       const result = data[0];
-      console.log('✅ Cache HIT! Found matching analysis for pHash:', pHash);
+      const hitLabel = hashCandidates.length > 1 && candidate !== hashCandidates[0]
+        ? '✅ Cache HIT! Found matching analysis via compatibility pHash:'
+        : '✅ Cache HIT! Found matching analysis for pHash:';
+      console.log(hitLabel, candidate);
 
       // Check if we need to backfill
       const needsBackfill = result.price === null || result.keywords === null || (result.original_image_url === null && imageUrl);
@@ -363,11 +372,10 @@ export async function findSimilarAnalysisByHash(pHash: string, imageUrl?: string
       };
 
       return { analysisResult, seoMetadata };
-
-    } else {
-      console.log('⚫️ Cache MISS. No matching pHash found in database.');
-      return null;
     }
+
+    console.log('⚫️ Cache MISS. No matching pHash found in database.');
+    return null;
   } catch (err) {
     console.error('❌ Exception during analysis cache lookup:', err);
     return null;

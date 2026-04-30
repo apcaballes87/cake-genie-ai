@@ -55,4 +55,36 @@ describe('findSimilarAnalysisByHash', () => {
     expect(updateMock).not.toHaveBeenCalled();
     expect(eqMock).not.toHaveBeenCalled();
   });
+
+  it('retries compatibility hashes until one matches', async () => {
+    rpcMock
+      .mockResolvedValueOnce({
+        data: [],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            p_hash: 'compat456',
+            analysis_json: { cakeType: 'Bento', keyword: 'compat' },
+            seo_title: 'Compat Cake',
+            seo_description: 'Found via compatibility hash',
+            keywords: 'compat',
+            alt_text: 'Compat cake',
+            slug: 'compat-cake-compat456',
+            original_image_url: 'https://example.com/compat.webp',
+            price: 1299,
+            availability: 'made_to_order',
+          },
+        ],
+        error: null,
+      });
+
+    const { findSimilarAnalysisByHash } = await import('./supabaseService');
+    const result = await findSimilarAnalysisByHash(['primary123', 'compat456']);
+
+    expect(rpcMock).toHaveBeenNthCalledWith(1, 'find_similar_analysis', { new_hash: 'primary123' });
+    expect(rpcMock).toHaveBeenNthCalledWith(2, 'find_similar_analysis', { new_hash: 'compat456' });
+    expect(result?.seoMetadata.slug).toBe('compat-cake-compat456');
+  });
 });

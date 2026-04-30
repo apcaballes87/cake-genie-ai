@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import { cacheAnalysisResult, findSimilarAnalysisByHash } from '@/services/supabaseService';
 import { fileToBase64 } from '@/services/geminiService';
 import type { GoogleCSE, GoogleCSEElement } from '@/types';
+import { generatePerceptualHashCandidates } from '@/lib/utils/perceptualHash.client';
 
 const ADMIN_PIN = '231323';
 const CSE_CONTAINER_ID = 'admin-search-container';
@@ -22,49 +23,6 @@ declare global {
         };
         google?: GoogleCSE;
     }
-}
-
-// Helper for pHash (copied from bulk-analysis)
-async function generatePerceptualHash(imageSrc: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const size = 8;
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return reject('Could not get canvas context');
-
-            ctx.drawImage(img, 0, 0, size, size);
-            const imageData = ctx.getImageData(0, 0, size, size);
-            const grayscale = new Array(size * size);
-            let totalLuminance = 0;
-
-            for (let i = 0; i < imageData.data.length; i += 4) {
-                const r = imageData.data[i];
-                const g = imageData.data[i + 1];
-                const b = imageData.data[i + 2];
-                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-                grayscale[i / 4] = luminance;
-                totalLuminance += luminance;
-            }
-
-            const avgLuminance = totalLuminance / (size * size);
-            let hash = 0n;
-
-            for (let i = 0; i < grayscale.length; i++) {
-                if (grayscale[i] > avgLuminance) {
-                    hash |= 1n << BigInt(i);
-                }
-            }
-
-            resolve(hash.toString(16).padStart(16, '0'));
-        };
-        img.onerror = () => reject(new Error('Failed to load image for hashing.'));
-        img.src = imageSrc;
-    });
 }
 
 function loadImageFromObjectUrl(objectUrl: string): Promise<HTMLImageElement> {
@@ -494,7 +452,11 @@ export default function SearchAnalysisAdminPage() {
                 const sourceFile = new File([blob], 'search-image-source', { type: blob.type || 'image/jpeg' });
                 const sourceImageData = await fileToBase64(sourceFile);
                 const sourceImageSrc = `data:${sourceImageData.mimeType};base64,${sourceImageData.data}`;
-                const pHash = await generatePerceptualHash(sourceImageSrc);
+                const pHashCandidates = await generatePerceptualHashCandidates(sourceImageSrc, { crossOrigin: 'anonymous' });
+                const pHash = pHashCandidates[0];
+                if (!pHash) {
+                    throw new Error('Failed to generate image hash.');
+                }
 
                 if (seenPHashesRef.current.has(pHash)) {
                     addLog(`[${i + 1}/${currentQueueLength}] Duplicate pHash in current run — skipped.`);
@@ -518,7 +480,7 @@ export default function SearchAnalysisAdminPage() {
                 let usedAiForCurrentItem = false;
 
                 // --- GATE 1: CACHE CHECK ---
-                const cached = await findSimilarAnalysisByHash(pHash, targetImageUrl);
+                const cached = await findSimilarAnalysisByHash(pHashCandidates, targetImageUrl);
                 if (cached) {
                     addLog(`[${i + 1}/${currentQueueLength}] Already in cache — skipped.`);
                     skipped++;

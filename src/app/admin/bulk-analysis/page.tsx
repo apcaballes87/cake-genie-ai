@@ -2,56 +2,14 @@
 
 import { useState, useRef } from 'react';
 import Papa from 'papaparse';
-import { getSupabaseClient } from '@/lib/supabase/client';
-import { cacheAnalysisResult, findSimilarAnalysisByHash } from '@/services/supabaseService';
+import { cacheAnalysisResult } from '@/services/supabaseService';
 import { fileToBase64 } from '@/services/geminiService';
-import { Upload, Download, Play, AlertCircle, CheckCircle2, Copy, Pause, Square } from 'lucide-react';
+import { Upload, Download, Play, CheckCircle2, Pause, Square } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { generatePerceptualHashCandidates } from '@/lib/utils/perceptualHash.client';
 
 const ADMIN_PIN = '231323';
-
-// Helper for pHash
-async function generatePerceptualHash(imageSrc: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous'; // Important for CORS
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const size = 8;
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return reject('Could not get canvas context');
-
-            ctx.drawImage(img, 0, 0, size, size);
-            const imageData = ctx.getImageData(0, 0, size, size);
-            const grayscale = new Array(size * size);
-            let totalLuminance = 0;
-
-            for (let i = 0; i < imageData.data.length; i += 4) {
-                const r = imageData.data[i];
-                const g = imageData.data[i + 1];
-                const b = imageData.data[i + 2];
-                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-                grayscale[i / 4] = luminance;
-                totalLuminance += luminance;
-            }
-
-            const avgLuminance = totalLuminance / (size * size);
-            let hash = 0n;
-
-            for (let i = 0; i < grayscale.length; i++) {
-                if (grayscale[i] > avgLuminance) {
-                    hash |= 1n << BigInt(i);
-                }
-            }
-
-            resolve(hash.toString(16).padStart(16, '0'));
-        };
-        img.onerror = () => reject(new Error('Failed to load image for hashing.'));
-        img.src = imageSrc;
-    });
-}
+type CsvRow = Record<string, string | undefined>;
 
 function delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -61,7 +19,7 @@ export default function BulkAnalysisAdminPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [pin, setPin] = useState('');
 
-    const [csvData, setCsvData] = useState<any[]>([]);
+    const [csvData, setCsvData] = useState<CsvRow[]>([]);
     const [status, setStatus] = useState<'idle' | 'processing' | 'paused'>('idle');
     const [progress, setProgress] = useState(0);
     const [logs, setLogs] = useState<string[]>([]);
@@ -109,11 +67,11 @@ export default function BulkAnalysisAdminPage() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        Papa.parse(file, {
+        Papa.parse<CsvRow>(file, {
             header: true,
             skipEmptyLines: true,
             complete: (results) => {
-                setCsvData(results.data as any[]);
+                setCsvData(results.data);
                 addLog(`Loaded ${results.data.length} rows from CSV`);
             },
             error: (error) => {
@@ -188,7 +146,11 @@ export default function BulkAnalysisAdminPage() {
                 const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
 
                 // 2. Generate Hash
-                const pHash = await generatePerceptualHash(imageSrc);
+                const pHashCandidates = await generatePerceptualHashCandidates(imageSrc, { crossOrigin: 'anonymous' });
+                const pHash = pHashCandidates[0];
+                if (!pHash) {
+                    throw new Error('Failed to generate image hash.');
+                }
 
                 // 3. Call AI endpoint
                 const aiResponse = await fetch('/api/ai/analyze', {
@@ -225,8 +187,9 @@ export default function BulkAnalysisAdminPage() {
                 // 6. Wait to prevent rate limiting (1.5s as per plan)
                 await delay(1500);
 
-            } catch (error: any) {
-                addLog(`Row ${i + 1} ERROR: ${error.message}`);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Unknown error';
+                addLog(`Row ${i + 1} ERROR: ${message}`);
                 errorCount++;
             }
 

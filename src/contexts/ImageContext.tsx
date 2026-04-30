@@ -325,7 +325,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             // IMPORTANT: Validation MUST happen before we honour any cache hit —
             // a pHash collision could otherwise return a cached result for an image
             // that should be rejected (e.g. multiple cakes → Stranger Things cake bug).
-            let uploadedImageUrl = options?.imageUrl; // Use existing URL if from web search
+            const uploadedImageUrl = options?.imageUrl; // Use existing URL if from web search
             let compressedImageData = imageData; // Default to original
             let finalImageBlobToCache: Blob | undefined;
 

@@ -2,6 +2,7 @@ import sharp from 'sharp';
 
 export async function computeImageHash(imageBuffer: Buffer): Promise<string> {
   const img = sharp(imageBuffer)
+    .rotate()
     .grayscale()
     .resize(8, 8, { fit: 'fill' })
     .raw()
@@ -10,12 +11,14 @@ export async function computeImageHash(imageBuffer: Buffer): Promise<string> {
   const pixels = await img;
   const avg = pixels.reduce((a, b) => a + b, 0) / pixels.length;
 
-  let hash = '';
+  let hash = 0n;
   for (let i = 0; i < pixels.length; i++) {
-    hash += pixels[i] > avg ? '1' : '0';
+    if (pixels[i] > avg) {
+      hash |= 1n << BigInt(i);
+    }
   }
 
-  return parseInt(hash, 2).toString(16).padStart(16, '0');
+  return hash.toString(16).padStart(16, '0');
 }
 
 export async function convertToWebPBuffer(

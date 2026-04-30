@@ -8,6 +8,7 @@ import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supab
 import { HybridAnalysisResult } from '@/types';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
+import { generatePerceptualHashCandidates } from '@/lib/utils/perceptualHash.client';
 import Link from 'next/link';
 
 interface ChatMessage {
@@ -167,66 +168,6 @@ async function saveSystemMessage(conversationId: string, content: string): Promi
     }
 }
 
-async function generatePerceptualHash(imageSrc: string): Promise<string | null> {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = async () => {
-            try {
-                const canvas = document.createElement('canvas');
-                const size = 8;
-                canvas.width = size;
-                canvas.height = size;
-                const ctx = canvas.getContext('2d');
-                if (!ctx) return resolve(null);
-                ctx.imageSmoothingEnabled = true;
-                ctx.drawImage(
-                    img,
-                    0,
-                    0,
-                    img.naturalWidth,
-                    img.naturalHeight,
-                    0,
-                    0,
-                    size,
-                    size
-                );
-                const imageData = ctx.getImageData(0, 0, size, size);
-                const pixels = imageData.data;
-                const numPixels = size * size;
-                const grayscale = new Array(numPixels);
-                let totalLuminance = 0;
-                let allZero = true;
-                for (let i = 0; i < pixels.length; i += 4) {
-                    const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2], a = pixels[i + 3];
-                    if (r !== 0 || g !== 0 || b !== 0 || a !== 0) allZero = false;
-                    const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-                    grayscale[i / 4] = luminance;
-                    totalLuminance += luminance;
-                }
-                if (allZero) return resolve(null);
-                const avgLuminance = totalLuminance / numPixels;
-                let minLum = Infinity, maxLum = -Infinity;
-                for (let i = 0; i < numPixels; i++) {
-                    if (grayscale[i] < minLum) minLum = grayscale[i];
-                    if (grayscale[i] > maxLum) maxLum = grayscale[i];
-                }
-                if (maxLum - minLum < 1) return resolve(null);
-                let hash = 0n;
-                for (let i = 0; i < grayscale.length; i++) {
-                    if (grayscale[i] > avgLuminance) hash |= 1n << BigInt(i);
-                }
-                const hashStr = hash.toString(16).padStart(16, '0');
-                if (hashStr === '0000000000000000') return resolve(null);
-                resolve(hashStr);
-            } catch {
-                resolve(null);
-            }
-        };
-        img.onerror = () => resolve(null);
-        img.src = imageSrc;
-    });
-}
-
 async function generateStableFallbackHash(base64Data: string): Promise<string | null> {
     try {
         const binary = atob(base64Data);
@@ -251,7 +192,8 @@ async function analyzeImageWithCache(
     imageUrl?: string
 ): Promise<{ analysis: HybridAnalysisResult | null; slug: string | null; title: string | null; price: number | null; imageUrl: string | null; cacheKey: string | null }> {
     const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
-    const perceptualHash = await generatePerceptualHash(imageSrc);
+    const perceptualHashCandidates = await generatePerceptualHashCandidates(imageSrc);
+    const perceptualHash = perceptualHashCandidates[0] ?? null;
     const cacheKey = perceptualHash ?? await generateStableFallbackHash(imageData.data);
     console.log(
         `🖼️ Chat hash result: ${
@@ -264,7 +206,7 @@ async function analyzeImageWithCache(
     );
 
     if (perceptualHash) {
-        const cacheHit = await findSimilarAnalysisByHash(perceptualHash, imageUrl);
+        const cacheHit = await findSimilarAnalysisByHash(perceptualHashCandidates, imageUrl);
         if (cacheHit) {
             console.log('⚡ Chat: pHash Cache Hit! Using cached analysis.');
             return {
