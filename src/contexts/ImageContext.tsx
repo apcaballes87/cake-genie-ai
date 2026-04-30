@@ -13,221 +13,7 @@ import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supab
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils'
 import { COMMON_ASSETS } from '@/constants'
 import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers'
-
-/** Sentinel value returned when pHash generation fails or produces a degenerate hash. */
-const PHASH_FAILED = null;
-
-/**
- * Generates a perceptual hash (pHash) for an image with a specific scale factor.
- * Creates a scaled-down version of the image before processing.
- * @param imageSrc The data URI of the image.
- * @param scale Scale factor (0-1). 1 = original size, 0.5 = half size, 0.25 = quarter size.
- * @returns A 16-character hex string, or null if the hash could not be reliably computed.
- */
-async function generatePerceptualHashWithScale(imageSrc: string, scale: number = 1): Promise<string | null> {
-    return new Promise((resolve) => {
-        const img = new Image();
-
-        img.onload = async () => {
-            try {
-                // Strategy 1: Wait for decode (prevents "image not fully decoded" errors on mobile)
-                if (img.decode) {
-                    try {
-                        await img.decode();
-                    } catch (decodeErr) {
-                        console.warn('⚠️ pHash: decode() failed, proceeding anyway:', decodeErr);
-                    }
-                }
-
-                // Strategy 2: Resize before processing to reduce memory usage
-                const MAX_DIMENSION = 1024;
-                let width = img.naturalWidth;
-                let height = img.naturalHeight;
-
-                // Apply scale factor
-                if (scale < 1) {
-                    width = Math.floor(width * scale);
-                    height = Math.floor(height * scale);
-                }
-
-                // Limit max dimension to reduce memory usage
-                if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-                    if (width > height) {
-                        height = Math.floor((height / width) * MAX_DIMENSION);
-                        width = MAX_DIMENSION;
-                    } else {
-                        width = Math.floor((width / height) * MAX_DIMENSION);
-                        height = MAX_DIMENSION;
-                    }
-                }
-
-                // Strategy 3: Use createImageBitmap if available (more efficient memory handling)
-                let source: HTMLImageElement | ImageBitmap = img;
-                if (typeof createImageBitmap !== 'undefined' && scale === 1) {
-                    try {
-                        source = await createImageBitmap(img, {
-                            resizeWidth: 8,
-                            resizeHeight: 8,
-                            resizeQuality: 'low'
-                        });
-                    } catch (bitmapErr) {
-                        console.warn('⚠️ pHash: createImageBitmap failed, using img:', bitmapErr);
-                    }
-                }
-
-                const canvas = document.createElement('canvas');
-                const size = 8; // Create an 8x8 grayscale image
-                canvas.width = size;
-                canvas.height = size;
-                const ctx = canvas.getContext('2d');
-                if (!ctx) {
-                    console.warn('⚠️ pHash: Could not get canvas context');
-                    return resolve(PHASH_FAILED);
-                }
-
-                // If scaling, create a temporary canvas for the scaled image
-                if (scale < 1) {
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = width;
-                    tempCanvas.height = height;
-                    const tempCtx = tempCanvas.getContext('2d');
-                    if (!tempCtx) {
-                        console.warn('⚠️ pHash: Could not get temp canvas context');
-                        return resolve(PHASH_FAILED);
-                    }
-                    tempCtx.drawImage(img, 0, 0, width, height);
-                    ctx.drawImage(tempCanvas, 0, 0, size, size);
-                } else {
-                    ctx.drawImage(source, 0, 0, size, size);
-                }
-
-                // Clean up bitmap if used
-                if (source instanceof ImageBitmap) {
-                    source.close();
-                }
-
-                const imageData = ctx.getImageData(0, 0, size, size);
-                const pixels = imageData.data;
-                const numPixels = size * size;
-                const grayscale = new Array(numPixels);
-                let totalLuminance = 0;
-
-                // Check if the canvas actually rendered anything.
-                // A blank/transparent canvas has all RGBA = (0,0,0,0).
-                let allZero = true;
-
-                for (let i = 0; i < pixels.length; i += 4) {
-                    const r = pixels[i];
-                    const g = pixels[i + 1];
-                    const b = pixels[i + 2];
-                    const a = pixels[i + 3];
-
-                    if (r !== 0 || g !== 0 || b !== 0 || a !== 0) {
-                        allZero = false;
-                    }
-
-                    const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-                    grayscale[i / 4] = luminance;
-                    totalLuminance += luminance;
-                }
-
-                // GUARD: Blank canvas — image failed to render (CORS, memory, decode failure)
-                if (allZero) {
-                    console.warn(`⚠️ pHash: Canvas rendered blank at scale ${scale} — image likely failed to decode. Skipping cache.`);
-                    return resolve(PHASH_FAILED);
-                }
-
-                const avgLuminance = totalLuminance / numPixels;
-
-                // GUARD: All pixels identical luminance — solid color, hash would be all-zeros
-                // Check variance: if max-min luminance spread is < 1, it's effectively uniform
-                let minLum = Infinity;
-                let maxLum = -Infinity;
-                for (let i = 0; i < numPixels; i++) {
-                    if (grayscale[i] < minLum) minLum = grayscale[i];
-                    if (grayscale[i] > maxLum) maxLum = grayscale[i];
-                }
-                if (maxLum - minLum < 1) {
-                    console.warn(`⚠️ pHash: All pixels same luminance at scale ${scale} (solid color). Skipping cache.`);
-                    return resolve(PHASH_FAILED);
-                }
-
-                let hash = 0n; // Use BigInt for bitwise operations
-
-                for (let i = 0; i < grayscale.length; i++) {
-                    if (grayscale[i] > avgLuminance) {
-                        hash |= 1n << BigInt(i);
-                    }
-                }
-
-                const hashStr = hash.toString(16).padStart(16, '0');
-
-                // GUARD: Final sanity check — reject all-zero hash (shouldn't happen after above checks, but belt-and-suspenders)
-                if (hashStr === '0000000000000000') {
-                    console.warn(`⚠️ pHash: Computed all-zero hash at scale ${scale}. Skipping cache.`);
-                    return resolve(PHASH_FAILED);
-                }
-
-                resolve(hashStr);
-            } catch (err) {
-                // Canvas operations can throw (e.g. SecurityError on tainted canvas)
-                console.warn(`⚠️ pHash: Canvas operation failed at scale ${scale}:`, err);
-                resolve(PHASH_FAILED);
-            }
-        };
-
-        img.onerror = () => {
-            console.warn(`⚠️ pHash: Image failed to load at scale ${scale}`);
-            resolve(PHASH_FAILED);
-        };
-
-        img.src = imageSrc;
-    });
-}
-
-/**
- * Generates a perceptual hash (pHash) for an image with progressive retry.
- * If the first attempt fails, retries with half resolution, then quarter resolution.
- * @param imageSrc The data URI of the image.
- * @returns A 16-character hex string, or null if all attempts failed.
- *
- * Returns null (instead of a degenerate hash) when:
- *  - The canvas fails to render the image (blank/transparent canvas)
- *  - All pixels have the same luminance (solid-color image)
- *  - The image fails to load or the canvas context is unavailable
- *  - All retry attempts failed
- *
- * A null hash means "do not use cache" — the caller must skip both
- * cache lookup and cache storage to avoid false matches.
- */
-async function generatePerceptualHash(imageSrc: string): Promise<string | null> {
-    // Attempt 1: Full resolution (with decode + resize + createImageBitmap)
-    let hash = await generatePerceptualHashWithScale(imageSrc, 1);
-    if (hash !== null) {
-        console.log('✅ pHash: Success on first attempt');
-        return hash;
-    }
-
-    // Attempt 2: Half resolution
-    console.log('🔄 pHash: First attempt failed, retrying with half resolution...');
-    hash = await generatePerceptualHashWithScale(imageSrc, 0.5);
-    if (hash !== null) {
-        console.log('✅ pHash: Success on second attempt (half resolution)');
-        return hash;
-    }
-
-    // Attempt 3: Quarter resolution
-    console.log('🔄 pHash: Second attempt failed, retrying with quarter resolution...');
-    hash = await generatePerceptualHashWithScale(imageSrc, 0.25);
-    if (hash !== null) {
-        console.log('✅ pHash: Success on third attempt (quarter resolution)');
-        return hash;
-    }
-
-    // All attempts failed
-    console.warn('⚠️ pHash: All retry attempts failed, skipping cache');
-    return null;
-}
+import { generatePerceptualHashCandidates } from '@/lib/utils/perceptualHash.client'
 
 interface ImageContextType {
     originalImageData: { data: string; mimeType: string } | null;
@@ -596,7 +382,8 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             // Run image validation and cache lookup simultaneously.
             // Validation result gates the cache hit — a rejected image must NEVER
             // return a cached result, even if pHash collides with a valid cached entry.
-            const pHash = await generatePerceptualHash(imageSrc);
+            const pHashCandidates = await generatePerceptualHashCandidates(imageSrc);
+            const pHash = pHashCandidates[0] ?? null;
             console.log(`🔍 pHash result: ${pHash ?? 'FAILED (null) — cache will be skipped'}`);
             const shouldUseSimilarCacheLookup = !knownSeoMetadata && pHash !== null;
 
@@ -605,7 +392,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 validateCakeImage(compressedImageData.data, compressedImageData.mimeType).catch(() => 'valid_single_cake' as const),
                 // Cache lookup — only when hash is valid and not using known SEO metadata
                 shouldUseSimilarCacheLookup
-                    ? findSimilarAnalysisByHash(pHash, options?.imageUrl)
+                    ? findSimilarAnalysisByHash(pHashCandidates, options?.imageUrl)
                     : Promise.resolve(null),
             ]);
 

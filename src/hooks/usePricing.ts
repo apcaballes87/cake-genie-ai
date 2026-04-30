@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { calculatePriceFromDatabase } from '@/services/pricingService.database';
 import { getCakeBasePriceOptions } from '@/services/supabaseService';
 import {
@@ -116,6 +116,7 @@ export const usePricing = ({
         },
         enabled: !!cakeInfo?.type && !!cakeInfo?.thickness && !initialPriceInfo,
         staleTime: 5 * 60 * 1000,
+        placeholderData: keepPreviousData,
     });
 
     const basePriceOptions = useMemo(() => {
