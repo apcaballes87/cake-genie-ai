@@ -109,18 +109,28 @@ const HeroTypingHeadlineLine: React.FC<{
     const [isDeleting, setIsDeleting] = useState(false);
     const prevControlledRef = useRef(controlledPhraseIndex);
     const pendingIndexRef = useRef<number | null>(null);
+    const longestPhrase = phrases.reduce((longest, phrase) => (
+        phrase.length > longest.length ? phrase : longest
+    ), phrases[0] ?? '');
+    const isControlled = controlledPhraseIndex !== undefined;
+    const controlledPhrase = phrases[controlledPhraseIndex ?? 0] ?? phrases[0] ?? '';
+    const controlledPhraseClassName = controlledPhrase === 'Minimalist Cakes'
+        ? 'italic inline-block [font-size:0.9em]'
+        : 'italic';
 
     // When the controlled index changes externally, queue deletion + re-type
     useEffect(() => {
+        if (isControlled) return;
         if (controlledPhraseIndex !== undefined && controlledPhraseIndex !== prevControlledRef.current) {
             prevControlledRef.current = controlledPhraseIndex;
             pendingIndexRef.current = controlledPhraseIndex;
             const timeoutId = setTimeout(() => setIsDeleting(true), 0);
             return () => clearTimeout(timeoutId);
         }
-    }, [controlledPhraseIndex]);
+    }, [controlledPhraseIndex, isControlled]);
 
     useEffect(() => {
+        if (isControlled) return;
         const currentPhrase = phrases[phraseIndex] ?? phrases[0] ?? '';
         let timeoutId: ReturnType<typeof setTimeout>;
 
@@ -148,15 +158,32 @@ const HeroTypingHeadlineLine: React.FC<{
         }
 
         return () => clearTimeout(timeoutId);
-    }, [displayText, isDeleting, phraseIndex, controlledPhraseIndex, phrases]);
+    }, [displayText, isDeleting, phraseIndex, controlledPhraseIndex, phrases, isControlled]);
+
+    if (isControlled) {
+        return (
+            <span className={className} aria-label={a11yLabel ?? phrases.join(', ')}>
+                <span aria-hidden="true" className={controlledPhraseClassName}>
+                    {controlledPhrase}
+                </span>
+            </span>
+        );
+    }
 
     return (
         <span className={className} aria-label={a11yLabel ?? phrases.join(', ')}>
-            <span aria-hidden="true" className="italic">{displayText}</span>
-            <span
-                aria-hidden="true"
-                className="ml-1 inline-block h-[0.92em] w-[3px] translate-y-[2px] bg-purple-500 align-middle animate-pulse"
-            />
+            <span className="relative inline-grid">
+                <span aria-hidden="true" className="invisible whitespace-nowrap italic">
+                    {longestPhrase}
+                    <span className="ml-1 inline-block h-[0.92em] w-[3px] align-middle" />
+                </span>
+                <span aria-hidden="true" className="absolute inset-0 flex items-start justify-center whitespace-nowrap">
+                    <span className="italic">{displayText}</span>
+                    <span
+                        className="ml-1 inline-block h-[0.92em] w-[3px] translate-y-[2px] bg-purple-500 align-middle animate-pulse"
+                    />
+                </span>
+            </span>
         </span>
     );
 };
@@ -906,9 +933,9 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
 
     return (
         <div ref={demoRef}>
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] lg:gap-8">
                 {/* Left: Cake Preview */}
-                <div className="lg:col-span-3 relative">
+                <div className="relative">
                     {/* Live Demo badge */}
                     <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md">
                         <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -954,7 +981,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                 </div>
 
                 {/* Right: Options Panel */}
-                <div className="lg:col-span-2 flex flex-col gap-3">
+                <div className="flex flex-col gap-3">
                     {/* Cake Type */}
                     <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 shadow-sm border border-slate-100">
                         <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Cake Type</label>
@@ -1391,7 +1418,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
             {/* ========== MAIN CONTENT ========== */}
             <main className="flex-1">
                 {/* ===== HERO SECTION ===== */}
-                <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-0 md:pt-[18px] pb-2 md:pb-1 lg:pb-1">
+                <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-0 md:pt-[10px] pb-2 md:pb-1 lg:pb-1">
                     <div className="flex flex-col md:flex-row gap-8 md:gap-12 lg:gap-16 items-start">
                         {/* Mobile Hero View */}
                         {/* Mobile Hero View - Simplified */}
@@ -1418,9 +1445,9 @@ const LandingClient: React.FC<LandingClientProps> = ({
 
 
                         {/* Desktop Hero View: 2-column layout */}
-                        <div className="hidden md:flex md:flex-col w-full pt-5 pb-2.5">
-                            <div className="grid items-center gap-10 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-12 xl:gap-14">
-                                <div className="col-span-1 mt-2 flex flex-col items-center text-center">
+                        <div className="hidden md:flex md:flex-col w-full max-w-[1180px] mx-auto pt-3 pb-2.5">
+                            <div className="grid items-center gap-8 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-10 xl:gap-12">
+                                <div className="col-span-1 mt-2 flex flex-col items-center text-center md:pr-2">
                                     <div className="w-full md:-translate-y-8">
                                         <div className="mb-3 text-center">
                                             <HeroReviewSummary />
@@ -1453,13 +1480,13 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                     )}
                                 </div>
 
-                                <div className="col-span-1 flex flex-col items-center justify-center md:pl-2 lg:pl-4">
+                                <div className="col-span-1 flex flex-col items-center justify-center">
                                     {heroUploadState === 'idle' ? (
                                         <>
-                                            <div className="w-full max-w-[720px] xl:max-w-[780px]">
-                                                <HeroMasonryGrid 
-                                                    products={heroProducts} 
-                                                    onSelectProduct={setHeroProductIndex}
+                                                <div className="w-full max-w-[680px] xl:max-w-[720px]">
+                                                    <HeroMasonryGrid 
+                                                        products={heroProducts} 
+                                                        onSelectProduct={setHeroProductIndex}
                                                     onInteraction={() => setHasInteractedWithHero(true)}
                                                 />
                                             </div>
@@ -1686,7 +1713,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                 </section>
                 {/* ===== INTERACTIVE CUSTOMIZER DEMO ===== */}
 
-                <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+                <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:pt-6 md:pb-12">
                     <h2 id="price-change-heading" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-2 text-center">
                         See your price change <span className="text-purple-400">in real time.</span>
                     </h2>
@@ -1716,7 +1743,17 @@ const LandingClient: React.FC<LandingClientProps> = ({
                             { label: 'Sprinkles', emoji: '✨' },
                             { label: 'Macaron', emoji: '🍪' },
                         ];
-                        return <InteractiveCustomizer tiers={TIERS} flavors={FLAVORS} icings={ICINGS} toppers={TOPPERS} onTryItClick={() => setIsUploaderOpen(true)} />;
+                        return (
+                            <div className="mx-auto w-full max-w-[1180px]">
+                                <InteractiveCustomizer
+                                    tiers={TIERS}
+                                    flavors={FLAVORS}
+                                    icings={ICINGS}
+                                    toppers={TOPPERS}
+                                    onTryItClick={() => setIsUploaderOpen(true)}
+                                />
+                            </div>
+                        );
                     })()}
                 </section>
 
