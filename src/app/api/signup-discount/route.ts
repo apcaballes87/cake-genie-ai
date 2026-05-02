@@ -1,26 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
+import {
+    inspectExistingSignupDiscount,
+    generateUniqueSignupDiscountCode,
+} from '@/lib/server/signupDiscount';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 // Service role client — bypasses RLS so we can write to discount_codes
 const serviceClient = createServiceClient(supabaseUrl, supabaseServiceKey);
-
-/**
- * Generates a unique, human-readable discount code.
- * Uses a character set that avoids visual ambiguity (no 0/O/1/I).
- * Example: GENIE-K7MN3Q
- */
-function generateCode(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let suffix = '';
-    for (let i = 0; i < 7; i++) {
-        suffix += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return `GENIE${suffix}`;
-}
 
 export async function POST(request: NextRequest) {
     try {
@@ -36,46 +26,16 @@ export async function POST(request: NextRequest) {
         const userId = user.id;
         const email = user.email;
 
-        // Check if this user already has a discount code tied to their account
-        const { data: existingUserCode } = await serviceClient
-            .from('discount_codes')
-            .select('code')
-            .eq('user_id', userId)
-            .eq('is_active', true)
-            .maybeSingle();
-
-        if (existingUserCode?.code) {
-            return NextResponse.json({ success: true, code: existingUserCode.code });
+        const existingCode = await inspectExistingSignupDiscount(serviceClient, { userId, email });
+        if (existingCode.status === 'reusable') {
+            return NextResponse.json({ success: true, code: existingCode.code });
         }
 
-        // Also check the newsletter subscribers table for a legacy code linked to this email
-        if (email) {
-            const { data: existingSubscriber } = await serviceClient
-                .from('cakegenie_newsletter_subscribers')
-                .select('discount_code')
-                .eq('email', email.trim().toLowerCase())
-                .maybeSingle();
-
-            if (existingSubscriber?.discount_code) {
-                return NextResponse.json({ success: true, code: existingSubscriber.discount_code });
-            }
+        if (existingCode.status === 'blocked') {
+            return NextResponse.json({ success: false, error: existingCode.message }, { status: 409 });
         }
 
-        // Generate a unique code (retry on collision — extremely rare with 7-char suffix)
-        let code = '';
-        for (let attempt = 0; attempt < 5; attempt++) {
-            const candidate = generateCode();
-            const { data: collision } = await serviceClient
-                .from('discount_codes')
-                .select('code')
-                .eq('code', candidate)
-                .maybeSingle();
-            if (!collision) {
-                code = candidate;
-                break;
-            }
-        }
-
+        const code = await generateUniqueSignupDiscountCode(serviceClient);
         if (!code) {
             return NextResponse.json(
                 { success: false, error: 'Could not generate a unique code. Please try again.' },

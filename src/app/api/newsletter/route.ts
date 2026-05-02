@@ -1,25 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import {
+    inspectExistingSignupDiscount,
+    generateUniqueSignupDiscountCode,
+} from '@/lib/server/signupDiscount';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 // Service role client — bypasses RLS so we can write to discount_codes
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-/**
- * Generates a unique, human-readable discount code.
- * Uses a character set that avoids visual ambiguity (no 0/O/1/I).
- * Example: GENIE-K7MN3Q
- */
-function generateCode(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let suffix = '';
-    for (let i = 0; i < 7; i++) {
-        suffix += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return `GENIE${suffix}`;
-}
 
 export async function POST(request: NextRequest) {
     try {
@@ -35,33 +25,17 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'Invalid email address.' }, { status: 400 });
         }
 
-        // Check if subscriber already exists and has a code
-        const { data: existing } = await supabase
-            .from('cakegenie_newsletter_subscribers')
-            .select('discount_code')
-            .eq('email', normalizedEmail)
-            .maybeSingle();
-
-        if (existing?.discount_code) {
-            // Returning subscriber — give them back their existing code
-            return NextResponse.json({ success: true, code: existing.discount_code });
+        const existingCode = await inspectExistingSignupDiscount(supabase, { email: normalizedEmail });
+        if (existingCode.status === 'reusable') {
+            // Returning subscriber — give them back their existing still-usable code.
+            return NextResponse.json({ success: true, code: existingCode.code });
         }
 
-        // Generate a unique code (retry on collision — extremely rare with 7-char suffix)
-        let code = '';
-        for (let attempt = 0; attempt < 5; attempt++) {
-            const candidate = generateCode();
-            const { data: collision } = await supabase
-                .from('discount_codes')
-                .select('code')
-                .eq('code', candidate)
-                .maybeSingle();
-            if (!collision) {
-                code = candidate;
-                break;
-            }
+        if (existingCode.status === 'blocked') {
+            return NextResponse.json({ success: false, error: existingCode.message }, { status: 409 });
         }
 
+        const code = await generateUniqueSignupDiscountCode(supabase);
         if (!code) {
             return NextResponse.json({ success: false, error: 'Could not generate a unique code. Please try again.' }, { status: 500 });
         }

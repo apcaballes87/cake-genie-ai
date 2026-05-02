@@ -86,6 +86,11 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
 
       // Validate to get codeId so CartClient can use it at checkout
       const validationResult = await validateDiscountCode(code, basePrice);
+      if (!validationResult.valid) {
+        showError(validationResult.message || 'Could not apply your discount. Please try again.');
+        setStatus('idle');
+        return;
+      }
 
       localStorage.setItem('cart_discount_code', code);
       localStorage.setItem('cart_applied_discount', JSON.stringify(validationResult));
@@ -132,6 +137,12 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
 
       const code: string = data.code;
       const validationResult = await validateDiscountCode(code, basePrice);
+      if (!validationResult.valid) {
+        showError(validationResult.message || 'Could not apply your discount. Please try again.');
+        setStatus('idle');
+        return;
+      }
+
       localStorage.setItem('cart_discount_code', code);
       localStorage.setItem('cart_applied_discount', JSON.stringify(validationResult));
 
