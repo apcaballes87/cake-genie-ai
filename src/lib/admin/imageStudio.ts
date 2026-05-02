@@ -49,25 +49,22 @@ export function normalizeImageStudioStatus(value: unknown): ImageStudioStatus {
 
 export function buildImageStudioPrompt(brandLabel: string = 'genie.ph'): string {
   return [
-    'Transform this reference into a polished bakery catalog hero image.',
-    'First determine whether the source is a direct cake photo or a screenshot/product-grid/social-media capture.',
+    'Transform this reference into a polished product catalog hero image.',
+    'Extract the main cake and preserve the actual cake design exactly as-is while elevating it into a premium studio product shot. Remove screenshot-era lighting, perspective cues, compression artifacts, flat UI framing, grid/listing balance, and any leftover traces of the original screenshot environment.',
     'If the cake subject is a bento cake presented in a clamshell box (lunchbox), consider the box as an integral part of the cake subject and do not remove it.',
-    'If it is a direct cake photo, preserve the actual cake design exactly as-is while elevating it into a premium studio product shot.',
-    'If it is a screenshot, collage, phone screenshot, marketplace page, Pinterest pin, or product grid, use it only as a reference for the cake design. Do NOT preserve the screenshot composition, crop, framing, margins, or original scene.',
-    'For screenshot-like sources, follow this exact sequence: first identify the single hero cake subject and its essential board or bento box, second extract or cut out only that cake subject, third completely erase the entire original screenshot scene, and fourth place the extracted cake into a brand-new studio setup.',
-    'Carefully remove any existing logos, branding, or stickers from the background, the cake board/base, or the cake itself to ensure a clean, unbranded subject.',
-    'For screenshots, completely remove phone frames, browser chrome, app UI, buttons, search bars, text, icons, logos, watermarks, price tags, cards, borders, thumbnail shadows, multiple thumbnails, hands, tables, utensils, packaging, and any non-cake products.',
-    'For screenshots with multiple cakes or items, keep only the most prominent hero cake, ideally the largest or most centered cake, and do not include secondary cakes.',
+    'Carefully remove any existing logos, branding, watermarks, or stickers from the background, the cake board/base, or the cake itself to ensure a clean, unbranded subject.',
+    'Completely remove phone frames, browser chrome, app UI, buttons, search bars, text, icons, logos, watermarks, price tags, cards, borders, thumbnail shadows, multiple thumbnails, hands, tables, utensils, packaging, and any non-cake products.',
+    'Keep only the most prominent hero cake, ideally the largest or most centered cake, and do not include secondary cakes or cupcakes.',
     'When isolating a cake from a screenshot, rebuild any cropped, hidden, low-resolution, or partially occluded cake edges naturally so the cake looks whole and intentionally photographed.',
     'After extraction, the original screenshot must be considered fully discarded. No part of the Google Images page, listing tile, card layout, collage, screenshot crop, or original environment may remain visible or influence the final composition.',
-    'Do NOT do a simple background replacement. The final result must read as a fresh ecommerce product photoshoot, not as an edited screenshot, listing capture, collage, composite, or app card.',
-    'Restage the final cake (and its bento box if applicable) as a standalone hero product shot on a seamless light pastel purple cyclorama studio set with a clean floor-to-wall sweep.',
+    'Do NOT do a simple background replacement. The final result must read as a fresh ecommerce product photoshoot, not as an edited screenshot, listing capture, collage, composite, or app card. Restage the final cake as a standalone hero product shot on a seamless light pastel purple cyclorama studio set with a clean floor-to-wall sweep.',
     'Use premium bakery product photography: soft diffused key light, subtle fill light, gentle highlight rolloff, natural depth, and a realistic grounded contact shadow.',
-    'Remove screenshot-era lighting, perspective cues, compression artifacts, flat UI framing, grid/listing balance, and any leftover traces of the original screenshot environment.',
-    'Keep the cake design, decorations, topper placement, writing, shape, board, and proportions faithful to the source cake.',
     'If the cake subject is cut off, partially out of frame, or covers 90-100% of the source, zoom out or extend the scene so the entire cake is fully visible with breathing room and occupies approximately 70-80% of the frame. Otherwise, recompose it as a natural centered hero product shot instead of preserving a screenshot-like crop.',
     'Do not add props, flowers, ribbons, hands, extra cake decorations, text, UI elements, or watermarks.',
     'Output a photorealistic, high-resolution bakery catalog image in the exact same aspect ratio and dimensions as the original.',
+    'Make the aspect ratio 1:1.',
+    'Make the size of the cake cover 70% of the whole frame.',
+    'Retain the white round cake base board below the cake or create one if there is not any.',
   ].join(' ');
 }
 
