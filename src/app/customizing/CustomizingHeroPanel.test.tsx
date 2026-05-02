@@ -76,6 +76,9 @@ describe('CustomizingHeroPanel', () => {
 
         expect(screen.getByRole('img', { name: 'Fallback Cake' })).toHaveAttribute('src', 'https://example.com/fallback-cake.jpg');
         expect(screen.getByText('Initial caption')).toBeInTheDocument();
+        expect(screen.getByText('4.8')).toBeInTheDocument();
+        expect(screen.getByText('based on 6 reviews.')).toBeInTheDocument();
+        expect(screen.getByText('Verified')).toBeInTheDocument();
     });
 
     it('renders preloaded analyzing and update error overlays', () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useRef, useState, type RefObject } from 'react';
+import { memo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import LazyImage from '@/components/LazyImage';
 import { Heart, ShieldCheck } from 'lucide-react';
 import { ErrorIcon, ImageIcon, ResetIcon, SaveIcon, Loader2, ReportIcon } from '../../components/icons';
@@ -80,6 +80,18 @@ export const HeroActionButtonsRow = ({ editedImage, isLoading, isReporting, isSa
         </div>
     );
 };
+
+const reviewSeparator = (
+    <span aria-hidden="true" className="text-slate-300">
+        |
+    </span>
+);
+
+const reviewStars: ReactNode[] = Array.from({ length: 5 }, (_, index) => (
+    <span key={index} aria-hidden="true" className="tracking-tight text-amber-400">
+        ★
+    </span>
+));
 
 export const CustomizingHeroPanel = memo(({
     mainImageContainerRef,
@@ -274,6 +286,18 @@ export const CustomizingHeroPanel = memo(({
                         ) : null}
                     </div>
                 </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-2 text-center text-sm text-slate-600">
+                <span className="text-base font-semibold leading-none text-slate-900">4.8</span>
+                <span className="flex items-center gap-0.5" aria-label="5 star rating">
+                    {reviewStars}
+                </span>
+                <span>based on 6 reviews.</span>
+                {reviewSeparator}
+                <span className="inline-flex items-center gap-1 font-medium text-slate-700">
+                    Verified <span aria-hidden="true">✓</span>
+                </span>
             </div>
 
             {showFooterActions ? (
