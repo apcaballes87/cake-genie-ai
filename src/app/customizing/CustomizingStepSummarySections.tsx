@@ -421,7 +421,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         <button
                                             key={option.id}
                                             onClick={() => onIcingTypeChange?.(option.id as any)}
-                                            className={`flex-1 flex items-center justify-center p-2.5 rounded-xl border transition-all duration-300 ${
+                                            className={`flex-1 min-h-[49px] flex items-center justify-center p-2.5 rounded-xl border transition-all duration-300 ${
                                                 isSelected 
                                                     ? 'genie-control-selected text-purple-700 scale-[1.02]' 
                                                     : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-200 hover:bg-slate-100/50'
@@ -556,7 +556,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
                                                         const flavorStyles: Record<string, { bg: string, border: string, text: string }> = {
                                                             'Chocolate Cake': { bg: 'bg-[#fdf0d5]', border: 'border-[#f2cc8f]', text: 'text-[#78350f]' },
-                                                            'Ube Cake': { bg: 'bg-[#f3e8ff]', border: 'border-[#e9d5ff]', text: 'text-[#6b21a8]' },
+                                                            'Ube Cake': { bg: 'bg-[#faf5ff]', border: 'border-[#e9d5ff]', text: 'text-[#7e22ce]' },
                                                             'Vanilla Cake': { bg: 'bg-[#fffbeb]', border: 'border-[#fef3c7]', text: 'text-[#92400e]' },
                                                             'Mocha Cake': { bg: 'bg-[#faf3e0]', border: 'border-[#e6ccb2]', text: 'text-[#9c6644]' },
                                                         };
