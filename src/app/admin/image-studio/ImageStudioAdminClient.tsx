@@ -42,7 +42,9 @@ type ImageListResponse = {
 };
 
 const SESSION_KEY = 'genie-admin-image-studio-auth';
-const AUTO_EDIT_DELAY_MS = 8000;
+// Wait longer between auto-edit submissions so the background AI/image pipeline
+// has time to breathe and we avoid piling into shared rate limits.
+const AUTO_EDIT_DELAY_MS = 30000;
 const STATUS_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
   { value: 'all', label: 'All statuses' },
   { value: 'not_started', label: 'Not started' },
