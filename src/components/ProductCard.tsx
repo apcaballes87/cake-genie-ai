@@ -15,6 +15,7 @@ import { showError, showLoading } from '@/lib/utils/toast';
 import { formatStartingPrice } from '@/lib/utils/currency';
 import { HybridAnalysisResult } from '@/types';
 import { trackSelectItem } from '@/lib/analytics';
+import { getPreferredProductImageUrl } from '@/lib/utils/imageSelection';
 
 export interface ProductCardProps {
     p_hash: string;
@@ -107,16 +108,6 @@ const isValidPrecomputedAnalysis = (analysis_json?: ProductCardProps['analysis_j
     'icing_design' in analysis_json
 );
 
-const firstNonBlankImageUrl = (...urls: Array<string | null | undefined>) => {
-    for (const url of urls) {
-        if (typeof url === 'string' && url.trim()) {
-            return url.trim();
-        }
-    }
-
-    return '';
-};
-
 const ProductCardContent = ({
     original_image_url,
     studio_edited_image_url,
@@ -129,7 +120,7 @@ const ProductCardContent = ({
     title,
 }: ProductCardContentProps) => {
     const avail = availability || 'normal';
-    const preferredImageUrl = firstNonBlankImageUrl(studio_edited_image_url, original_image_url);
+    const preferredImageUrl = getPreferredProductImageUrl(studio_edited_image_url, original_image_url);
 
     return (
         <>
@@ -212,7 +203,7 @@ const useProductCardCommon = ({ p_hash, original_image_url, studio_edited_image_
     const { user, isAuthenticated } = useAuth();
     const { toggleSaveDesign, isDesignSaved } = useSavedItemsActions();
     const isSaved = isDesignSaved(p_hash);
-    const preferredImageUrl = firstNonBlankImageUrl(studio_edited_image_url, original_image_url);
+    const preferredImageUrl = getPreferredProductImageUrl(studio_edited_image_url, original_image_url);
 
     const handleSaveClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation();

@@ -9,6 +9,7 @@ import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem
 import { normalizePublicReviewRecord, normalizePublicReviews, REVIEW_SELECT, REVIEW_SELECT_WITH_ORDER_NUMBER } from '@/lib/reviews';
 
 import { compressImage, validateImageFile } from '@/lib/utils/imageOptimization';
+import { firstNonBlankImageUrl } from '@/lib/utils/imageSelection';
 import { calculatePriceFromDatabase } from './pricingService.database';
 import { roundDownToNearest99 } from '@/lib/utils/pricing';
 import { getDesignAvailability } from '@/lib/utils/availability';
@@ -639,16 +640,6 @@ export async function cacheAnalysisResult(
   }
 }
 
-const firstNonBlankImageUrl = (...urls: unknown[]) => {
-  for (const url of urls) {
-    if (typeof url === 'string' && url.trim()) {
-      return url.trim();
-    }
-  }
-
-  return null;
-};
-
 /**
  * Helper to prefer studio-edited images when present, with original image as backup.
  * Modifies the object in place and returns it.
@@ -1158,7 +1149,41 @@ export async function searchProductsFTS(
       return { data: null, error };
     }
 
-    return { data: data ? data.map(applyImageFallback) : [], error: null };
+    const rows = data || [];
+    const needsStudioHydration = rows.some((item: any) => item.studio_edited_image_url === undefined);
+
+    if (needsStudioHydration) {
+      const pHashes = rows
+        .map((item: any) => item.p_hash)
+        .filter((pHash: any): pHash is string => typeof pHash === 'string' && pHash.trim().length > 0);
+
+      if (pHashes.length > 0) {
+        const { data: studioRows, error: studioError } = await client
+          .from('cakegenie_analysis_cache')
+          .select('p_hash, original_image_url, studio_edited_image_url')
+          .in('p_hash', pHashes);
+
+        if (!studioError && studioRows) {
+          const studioByHash = new Map(
+            studioRows.map((row) => [row.p_hash, row]),
+          );
+
+          return {
+            data: rows.map((item: any) => {
+              const studioRow = studioByHash.get(item.p_hash);
+              return applyImageFallback({
+                ...item,
+                original_image_url: item.original_image_url ?? studioRow?.original_image_url ?? null,
+                studio_edited_image_url: item.studio_edited_image_url ?? studioRow?.studio_edited_image_url ?? null,
+              });
+            }),
+            error: null,
+          };
+        }
+      }
+    }
+
+    return { data: rows.map(applyImageFallback), error: null };
   } catch (err) {
     console.error('Exception in FTS search:', err);
     return { data: null, error: err as Error };
