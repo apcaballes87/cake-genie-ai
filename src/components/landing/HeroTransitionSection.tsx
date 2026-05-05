@@ -20,7 +20,7 @@ export function HeroTransitionSection() {
         </div>
 
         <div className="order-2 text-center md:order-none md:text-center">
-          <h2 className="max-w-2xl text-[clamp(1.7rem,3.7vw,3rem)] font-semibold leading-[0.98] tracking-tight text-slate-500">
+          <h2 className="max-w-2xl text-3xl sm:text-4xl lg:text-5xl font-bold leading-[0.98] tracking-tight text-slate-900">
             <span className="block">Generic cakes make generic celebrations.</span>
             <span className="mt-4 block max-w-xl text-base font-normal leading-relaxed text-slate-500 mx-auto">
               Give a cake that feels more personal and thoughtful. Available today.

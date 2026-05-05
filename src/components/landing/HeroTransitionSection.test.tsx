@@ -16,12 +16,17 @@ describe('HeroTransitionSection', () => {
         render(<HeroTransitionSection />);
 
         const headline = screen.getByText('Give a cake that feels more personal and thoughtful. Available today.');
+        const supportingLine = screen.getByText('Give a cake that feels more personal and thoughtful. Available today.');
         expect(screen.getByText('Generic cakes make generic celebrations.')).toBeInTheDocument();
         expect(headline).toBeInTheDocument();
-        expect(headline).toHaveClass('text-base');
-        expect(headline).toHaveClass('font-normal');
-        expect(headline).toHaveClass('text-slate-500');
+        expect(headline.parentElement).toHaveClass('text-3xl');
+        expect(headline.parentElement).toHaveClass('sm:text-4xl');
+        expect(headline.parentElement).toHaveClass('lg:text-5xl');
+        expect(headline.parentElement).toHaveClass('font-bold');
+        expect(headline.parentElement).toHaveClass('text-slate-900');
         expect(headline).toHaveClass('mx-auto');
+        expect(supportingLine).toHaveClass('text-base');
+        expect(supportingLine).toHaveClass('text-slate-500');
         const image = screen.getByAltText('Generic cake compared with a more personal cake');
         expect(image).toBeInTheDocument();
         expect(image.parentElement).toHaveClass('aspect-[21/9]');
