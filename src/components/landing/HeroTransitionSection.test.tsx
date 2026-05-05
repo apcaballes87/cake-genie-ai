@@ -22,6 +22,8 @@ describe('HeroTransitionSection', () => {
         expect(headline).toHaveClass('font-normal');
         expect(headline).toHaveClass('text-purple-300');
         expect(headline).toHaveClass('mx-auto');
-        expect(screen.getByAltText('Generic cake compared with a more personal cake')).toBeInTheDocument();
+        const image = screen.getByAltText('Generic cake compared with a more personal cake');
+        expect(image).toBeInTheDocument();
+        expect(image.parentElement).toHaveClass('aspect-[21/9]');
     });
 });
