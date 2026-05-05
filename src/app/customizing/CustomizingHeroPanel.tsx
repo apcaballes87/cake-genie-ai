@@ -288,15 +288,20 @@ export const CustomizingHeroPanel = memo(({
                 </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-2 text-center text-sm text-slate-600">
-                <span className="text-base font-semibold leading-none text-slate-900">4.8</span>
-                <span className="flex items-center gap-0.5" aria-label="5 star rating">
-                    {reviewStars}
-                </span>
-                <span>based on 6 reviews.</span>
-                {reviewSeparator}
-                <span className="inline-flex items-center gap-1 font-medium text-slate-700">
-                    Verified <span aria-hidden="true">✓</span>
+            <div className="flex flex-col items-center justify-center gap-1 px-2 text-center text-sm text-slate-600">
+                <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+                    <span className="text-base font-semibold leading-none text-slate-900">4.8</span>
+                    <span className="flex items-center gap-0.5" aria-label="5 star rating">
+                        {reviewStars}
+                    </span>
+                    <span>based on 6 Happy Customers.</span>
+                    {reviewSeparator}
+                    <span className="inline-flex items-center gap-1 font-medium text-slate-700">
+                        Verified <span aria-hidden="true">✓</span>
+                    </span>
+                </div>
+                <span className="text-xs font-semibold uppercase tracking-wide text-green-600">
+                    FREE Delivery within Cebu City
                 </span>
             </div>
 
