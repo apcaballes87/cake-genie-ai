@@ -5,3 +5,4 @@ export * from './RecommendedProductsSection';
 export * from './IntroContent';
 export * from './PopularDesigns';
 export * from './MothersDayIntroContent';
+export * from './HeroTransitionSection';

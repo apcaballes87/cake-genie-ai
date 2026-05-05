@@ -26,6 +26,7 @@ import {
     type LandingHeroContent,
     type LandingHeroProduct,
 } from '@/components/landing/landingHeroContent';
+import { HeroTransitionSection } from '@/components/landing';
 import {
     Search,
     ShoppingBag,
@@ -1711,6 +1712,9 @@ const LandingClient: React.FC<LandingClientProps> = ({
 
                     </div>
                 </section>
+
+                <HeroTransitionSection />
+
                 {/* ===== INTERACTIVE CUSTOMIZER DEMO ===== */}
 
                 <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:pt-6 md:pb-12">
