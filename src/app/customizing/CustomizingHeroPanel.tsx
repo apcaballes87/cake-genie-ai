@@ -288,22 +288,21 @@ export const CustomizingHeroPanel = memo(({
                 </div>
             </div>
 
-            <div className="flex flex-col items-center justify-center gap-1 px-2 text-center text-sm text-slate-600">
-                <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-                    <span className="text-base font-semibold leading-none text-slate-900">4.8</span>
-                    <span className="flex items-center gap-0.5" aria-label="5 star rating">
+            <div className="flex items-center justify-center gap-x-1.5 whitespace-nowrap overflow-x-auto px-2 text-center text-[11px] sm:text-sm text-slate-600 scrollbar-hide">
+                <span className="text-sm sm:text-base font-semibold leading-none text-slate-900">4.8</span>
+                <span className="flex items-center gap-0.5 shrink-0" aria-label="5 star rating">
                         {reviewStars}
-                    </span>
-                    <span>based on 6 Happy Customers.</span>
-                    {reviewSeparator}
-                    <span className="inline-flex items-center gap-1 font-medium text-slate-700">
-                        Verified <span aria-hidden="true">✓</span>
-                    </span>
-                </div>
-                <span className="text-xs font-semibold uppercase tracking-wide text-green-600">
-                    FREE Delivery within Cebu City
+                </span>
+                <span className="shrink-0">based on 6 Happy Customers.</span>
+                {reviewSeparator}
+                <span className="inline-flex items-center gap-1 font-semibold text-green-600 shrink-0">
+                    Verified <span aria-hidden="true" className="text-green-600">✓</span>
                 </span>
             </div>
+
+            <span className="text-xs font-semibold uppercase tracking-wide text-green-600 text-center">
+                FREE Delivery within Cebu City
+            </span>
 
             {showFooterActions ? (
                 <div className="hidden md:block animate-in fade-in slide-in-from-bottom-2 duration-500">
