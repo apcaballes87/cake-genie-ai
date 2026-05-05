@@ -1719,7 +1719,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
 
                 <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:pt-6 md:pb-12">
                     <h2 id="price-change-heading" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-2 text-center">
-                        See your price change <span className="text-purple-400">in real time.</span>
+                        Get your <span className="text-purple-400">Personalized Cake</span> today
                     </h2>
                     <p className="text-base text-slate-500 mb-8 max-w-2xl mx-auto text-center">
                         Upload any cake design. Customize it. See your price instantly. Same-day delivery.
