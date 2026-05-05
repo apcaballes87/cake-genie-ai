@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Camera, Cake, Tag, CreditCard, Facebook, Instagram, MessageCircle, Youtube, Star, Check, Mail, Phone, ChevronUp, ShieldCheck, Lock, X } from 'lucide-react';
+import { Camera, Cake, Tag, CreditCard, Facebook, Instagram, MessageCircle, Youtube, Star, Mail, Phone, ChevronUp, ShieldCheck, Lock, X } from 'lucide-react';
 import LazyImage from './LazyImage';
 
 export const Footer = () => {
@@ -109,11 +109,9 @@ export const Footer = () => {
                                 <Star size={16} fill="currentColor" />
                             </div>
                             <span className="hidden md:inline text-gray-300">|</span>
-                            <span className="text-gray-600">Customers rate us 4.8/5 based on 40 reviews.</span>
+                            <span className="text-gray-600">4.8/5 based on 6 Happy Customers.</span>
                             <span className="hidden md:inline text-gray-300">|</span>
-                            <span className="flex items-center gap-1 text-green-500 font-bold">
-                                Verified <Check size={14} />
-                            </span>
+                            <span className="flex items-center gap-1 text-green-500 font-bold">Verified</span>
                         </div>
                     </div>
                 </div>

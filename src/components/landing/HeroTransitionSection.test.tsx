@@ -12,12 +12,13 @@ vi.mock('next/image', () => ({
 }));
 
 describe('HeroTransitionSection', () => {
-    it('renders the transition copy and image', () => {
+    it('renders the split copy and image', () => {
         render(<HeroTransitionSection />);
 
+        const headline = screen.getByText('Give a cake that feels more personal and thoughtful');
         expect(screen.getByText('Generic Cakes make generic celebrations.')).toBeInTheDocument();
-        expect(screen.getByText('Give a cake that feels more personal and thoughtful.')).toBeInTheDocument();
-        expect(screen.getByText('Available Today.')).toBeInTheDocument();
+        expect(headline).toBeInTheDocument();
+        expect(headline).toHaveClass('text-[0.5em]');
         expect(screen.getByAltText('Generic cake compared with a more personal cake')).toBeInTheDocument();
     });
 });

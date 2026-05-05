@@ -387,7 +387,7 @@ function HeroReviewSummary({ compact = false }: { compact?: boolean }) {
         >
             <span>4.8</span>
             <span className="text-yellow-500">★★★★★</span>
-            <span>based on 6 reviews.</span>
+            <span>based on 6 Happy Customers.</span>
             <span>|</span>
             <span className="font-bold text-green-600">Verified ✓</span>
         </Link>

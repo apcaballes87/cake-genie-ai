@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Camera, Cake, Tag, CreditCard, Facebook, Instagram, MessageCircle, Youtube, Star, Check, Mail, Phone, ChevronUp, ShieldCheck, Lock, X } from 'lucide-react';
+import { Camera, Cake, Tag, CreditCard, Facebook, Instagram, MessageCircle, Youtube, Star, Mail, Phone, ChevronUp, ShieldCheck, Lock, X } from 'lucide-react';
 import LazyImage from '@/components/LazyImage';
 import { COMMON_ASSETS } from '@/constants';
 
@@ -40,9 +40,9 @@ export function LandingFooter() {
             <span className="font-bold text-2xl text-gray-800">4.8</span>
             <div className="flex text-yellow-400">{Array.from({ length: 5 }).map((_, i) => <Star key={i} size={16} fill="currentColor" />)}</div>
             <span className="hidden md:inline text-gray-300">|</span>
-            <span className="hidden md:inline text-gray-600">Customers rate us 4.8/5 based on 40 reviews.</span>
+            <span className="hidden md:inline text-gray-600">4.8/5 based on 6 Happy Customers.</span>
             <span className="hidden md:inline text-gray-300">|</span>
-            <span className="flex items-center gap-1 text-green-500 font-bold">Verified <Check size={14} /></span>
+            <span className="flex items-center gap-1 text-green-500 font-bold">Verified</span>
           </div>
         </div>
       </div>
