@@ -13,7 +13,10 @@ import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supab
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils'
 import { COMMON_ASSETS } from '@/constants'
 import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers'
-import { generatePerceptualHashCandidates } from '@/lib/utils/perceptualHash.client'
+import {
+    generateImageFingerprintWithLegacyCandidates,
+    toFingerprintLookup,
+} from '@/lib/utils/serverFingerprint.client'
 
 interface ImageContextType {
     originalImageData: { data: string; mimeType: string } | null;
@@ -382,17 +385,19 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             // Run image validation and cache lookup simultaneously.
             // Validation result gates the cache hit — a rejected image must NEVER
             // return a cached result, even if pHash collides with a valid cached entry.
-            const pHashCandidates = await generatePerceptualHashCandidates(imageSrc);
-            const pHash = pHashCandidates[0] ?? null;
-            console.log(`🔍 pHash result: ${pHash ?? 'FAILED (null) — cache will be skipped'}`);
-            const shouldUseSimilarCacheLookup = !knownSeoMetadata && pHash !== null;
+            const fingerprint = await generateImageFingerprintWithLegacyCandidates(file, imageSrc);
+            const pHash = fingerprint.pHash;
+            console.log(`🔍 Server pHash result: ${pHash ?? 'FAILED (null) — new cache writes will be skipped'}`);
+            const shouldUseSimilarCacheLookup = !knownSeoMetadata && (
+                pHash !== null || fingerprint.legacyPHashCandidates.length > 0
+            );
 
             const [validationClassification, cacheHitRaw] = await Promise.all([
                 // Validation — always runs, even on potential cache hits
                 validateCakeImage(compressedImageData.data, compressedImageData.mimeType).catch(() => 'valid_single_cake' as const),
                 // Cache lookup — only when hash is valid and not using known SEO metadata
                 shouldUseSimilarCacheLookup
-                    ? findSimilarAnalysisByHash(pHashCandidates, options?.imageUrl)
+                    ? findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), options?.imageUrl)
                     : Promise.resolve(null),
             ]);
 
@@ -470,9 +475,11 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                             // Better Process: Only update image if it's missing in cache
                             const blobToPass = cacheHit.seoMetadata.original_image_url ? undefined : bgBlob;
 
-                            // Update cache with bbox data (pHash is guaranteed non-null here
-                            // since we only enter cache-hit path when pHash is valid)
-                            await cacheAnalysisResult(pHash!, enrichedResult, undefined, blobToPass);
+                            if (pHash) {
+                                await cacheAnalysisResult(pHash, enrichedResult, undefined, blobToPass, {
+                                    fingerprintPipeline: fingerprint.pipeline,
+                                });
+                            }
                             setIsAnalysisCached(true);
 
                             // Notify UI of enriched coordinates
@@ -529,7 +536,9 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     }
 
                     if (pHash) {
-                        await cacheAnalysisResult(pHash!, enrichedResult, uploadedImageUrl, finalImageBlobToCache);
+                        await cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache, {
+                            fingerprintPipeline: fingerprint.pipeline,
+                        });
                         console.log(`✅ Analysis result cached successfully with pHash: ${pHash}`);
                         setIsAnalysisCached(true);
                     } else {
@@ -538,7 +547,9 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 }).catch(async enrichmentError => {
                     // Still cache the fast result even if enrichment fails
                     if (pHash) {
-                        await cacheAnalysisResult(pHash!, fastResult, uploadedImageUrl, finalImageBlobToCache);
+                        await cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
+                            fingerprintPipeline: fingerprint.pipeline,
+                        });
                         console.log(`✅ Analysis result (fast profile) cached successfully with pHash: ${pHash}`);
                         setIsAnalysisCached(true);
                     } else {

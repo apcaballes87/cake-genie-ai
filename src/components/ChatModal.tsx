@@ -8,7 +8,10 @@ import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supab
 import { HybridAnalysisResult } from '@/types';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
-import { generatePerceptualHashCandidates } from '@/lib/utils/perceptualHash.client';
+import {
+    generateImageFingerprintWithLegacyCandidates,
+    toFingerprintLookup,
+} from '@/lib/utils/serverFingerprint.client';
 import Link from 'next/link';
 
 interface ChatMessage {
@@ -192,21 +195,23 @@ async function analyzeImageWithCache(
     imageUrl?: string
 ): Promise<{ analysis: HybridAnalysisResult | null; slug: string | null; title: string | null; price: number | null; imageUrl: string | null; cacheKey: string | null }> {
     const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
-    const perceptualHashCandidates = await generatePerceptualHashCandidates(imageSrc);
-    const perceptualHash = perceptualHashCandidates[0] ?? null;
-    const cacheKey = perceptualHash ?? await generateStableFallbackHash(imageData.data);
+    const imageBlob = dataURItoBlob(imageSrc);
+    const fingerprint = await generateImageFingerprintWithLegacyCandidates(imageBlob, imageSrc);
+    const cacheKey = fingerprint.pHash
+        ?? fingerprint.legacyPHashCandidates[0]
+        ?? await generateStableFallbackHash(imageData.data);
     console.log(
         `🖼️ Chat hash result: ${
-            perceptualHash
-                ? `${perceptualHash} (perceptual)`
+            fingerprint.pHash
+                ? `${fingerprint.pHash} (server)`
                 : cacheKey
-                    ? `${cacheKey} (stable fallback)`
+                    ? `${cacheKey} (${fingerprint.legacyPHashCandidates.length > 0 ? 'legacy hint' : 'stable fallback'})`
                     : 'FAILED (null)'
         }`
     );
 
-    if (perceptualHash) {
-        const cacheHit = await findSimilarAnalysisByHash(perceptualHashCandidates, imageUrl);
+    if (fingerprint.pHash || fingerprint.legacyPHashCandidates.length > 0) {
+        const cacheHit = await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), imageUrl);
         if (cacheHit) {
             console.log('⚡ Chat: pHash Cache Hit! Using cached analysis.');
             return {
@@ -215,15 +220,14 @@ async function analyzeImageWithCache(
                 title: cacheHit.seoMetadata.seo_title,
                 price: cacheHit.seoMetadata.price,
                 imageUrl: cacheHit.seoMetadata.original_image_url,
-                cacheKey: perceptualHash,
+                cacheKey,
             };
         }
     } else {
-        console.log('ℹ️ Chat: skipping similarity cache lookup because perceptual hash was unavailable.');
+        console.log('ℹ️ Chat: skipping similarity cache lookup because no fingerprint candidate was available.');
     }
 
     console.log('🔄 Chat: Cache miss, running AI analysis...');
-    const imageBlob = dataURItoBlob(imageSrc);
     const file = new File([imageBlob], 'chat-image.webp', { type: imageData.mimeType });
     const compressedFile = await compressImage(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1024, fileType: 'image/webp' });
     const compressedData = await fileToBase64(new File([compressedFile], 'chat-image.webp', { type: 'image/webp' }));
@@ -238,9 +242,11 @@ async function analyzeImageWithCache(
             console.warn('Chat: enrichment failed, using fast result');
         }
     }
-    if (cacheKey && finalResult) {
+    if (fingerprint.pHash && finalResult) {
         const compressedBlob = await compressImage(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1024, fileType: 'image/webp' });
-        const cached = await cacheAnalysisResult(cacheKey, finalResult, imageUrl, compressedBlob);
+        const cached = await cacheAnalysisResult(fingerprint.pHash, finalResult, imageUrl, compressedBlob, {
+            fingerprintPipeline: fingerprint.pipeline,
+        });
         if (cached) {
             return {
                 analysis: finalResult,

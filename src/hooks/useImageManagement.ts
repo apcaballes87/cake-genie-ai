@@ -11,7 +11,10 @@ import { HybridAnalysisResult } from '@/types';
 import { COMMON_ASSETS } from '@/constants';
 import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService';
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
-import { generatePerceptualHashCandidates } from '@/lib/utils/perceptualHash.client';
+import {
+    generateImageFingerprintWithLegacyCandidates,
+    toFingerprintLookup,
+} from '@/lib/utils/serverFingerprint.client';
 export { generatePerceptualHash } from '@/lib/utils/perceptualHash.client';
 
 
@@ -80,12 +83,12 @@ export const useImageManagement = () => {
             let finalImageBlobToCache: Blob | undefined;
 
             // --- STEP 1: CHECK pHash CACHE (FASTEST) ---
-            const pHashCandidates = await generatePerceptualHashCandidates(imageSrc);
-            const pHash = pHashCandidates[0] ?? null;
-            console.log(`🖼️ pHash result: ${pHash ?? 'FAILED (null) — cache will be skipped'}`);
+            const fingerprint = await generateImageFingerprintWithLegacyCandidates(file, imageSrc);
+            const pHash = fingerprint.pHash;
+            console.log(`🖼️ Server pHash result: ${pHash ?? 'FAILED (null) — new cache writes will be skipped'}`);
 
-            const cacheHit = pHash
-                ? await findSimilarAnalysisByHash(pHashCandidates, uploadedImageUrl)
+            const cacheHit = pHash || fingerprint.legacyPHashCandidates.length > 0
+                ? await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), uploadedImageUrl)
                 : null;
 
             if (cacheHit) {
@@ -126,8 +129,12 @@ export const useImageManagement = () => {
                             // Better Process: Only update image if it's missing in cache
                             const blobToPass = cacheHit.seoMetadata.original_image_url ? undefined : bgBlob;
 
-                            // Update cache with bbox data (only if pHash is valid)
-                            if (pHash) cacheAnalysisResult(pHash!, enrichedResult, undefined, blobToPass);
+                            // Update cache with bbox data only when the authoritative server pHash is available.
+                            if (pHash) {
+                                cacheAnalysisResult(pHash, enrichedResult, undefined, blobToPass, {
+                                    fingerprintPipeline: fingerprint.pipeline,
+                                });
+                            }
 
                             // Notify UI of enriched coordinates
                             if (options?.onCoordinatesEnriched) {
@@ -189,10 +196,18 @@ export const useImageManagement = () => {
                     }
 
                     // Cache the fully enriched result (only if pHash is valid)
-                    if (pHash) cacheAnalysisResult(pHash!, enrichedResult, uploadedImageUrl, finalImageBlobToCache);
+                    if (pHash) {
+                        cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache, {
+                            fingerprintPipeline: fingerprint.pipeline,
+                        });
+                    }
                 }).catch(enrichmentError => {
                     // Still cache the fast result even if enrichment fails
-                    if (pHash) cacheAnalysisResult(pHash!, fastResult, uploadedImageUrl, finalImageBlobToCache);
+                    if (pHash) {
+                        cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
+                            fingerprintPipeline: fingerprint.pipeline,
+                        });
+                    }
                 });
 
             } catch (error) {

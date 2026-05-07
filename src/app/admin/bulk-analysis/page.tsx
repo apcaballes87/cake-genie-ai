@@ -6,7 +6,7 @@ import { cacheAnalysisResult } from '@/services/supabaseService';
 import { fileToBase64 } from '@/services/geminiService';
 import { Upload, Download, Play, CheckCircle2, Pause, Square } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { generatePerceptualHashCandidates } from '@/lib/utils/perceptualHash.client';
+import { generateImageFingerprintWithLegacyCandidates } from '@/lib/utils/serverFingerprint.client';
 
 const ADMIN_PIN = '231323';
 type CsvRow = Record<string, string | undefined>;
@@ -146,10 +146,10 @@ export default function BulkAnalysisAdminPage() {
                 const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
 
                 // 2. Generate Hash
-                const pHashCandidates = await generatePerceptualHashCandidates(imageSrc, { crossOrigin: 'anonymous' });
-                const pHash = pHashCandidates[0];
+                const fingerprint = await generateImageFingerprintWithLegacyCandidates(file, imageSrc, { crossOrigin: 'anonymous' });
+                const pHash = fingerprint.pHash;
                 if (!pHash) {
-                    throw new Error('Failed to generate image hash.');
+                    throw new Error('Failed to generate server image hash.');
                 }
 
                 // 3. Call AI endpoint
@@ -175,6 +175,7 @@ export default function BulkAnalysisAdminPage() {
 
                 await cacheAnalysisResult(pHash, analysisResult, linkImage, undefined, {
                     triggerStudioEdit: false,
+                    fingerprintPipeline: fingerprint.pipeline,
                 });
 
                 // 5. Update row 

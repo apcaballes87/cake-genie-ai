@@ -1,24 +1,8 @@
 import sharp from 'sharp';
+import { computeCanonicalImageHash } from '../server/imageFingerprint';
 
 export async function computeImageHash(imageBuffer: Buffer): Promise<string> {
-  const img = sharp(imageBuffer)
-    .rotate()
-    .grayscale()
-    .resize(8, 8, { fit: 'fill' })
-    .raw()
-    .toBuffer();
-
-  const pixels = await img;
-  const avg = pixels.reduce((a, b) => a + b, 0) / pixels.length;
-
-  let hash = 0n;
-  for (let i = 0; i < pixels.length; i++) {
-    if (pixels[i] > avg) {
-      hash |= 1n << BigInt(i);
-    }
-  }
-
-  return hash.toString(16).padStart(16, '0');
+  return computeCanonicalImageHash(imageBuffer);
 }
 
 export async function convertToWebPBuffer(

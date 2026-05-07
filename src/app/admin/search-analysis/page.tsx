@@ -6,7 +6,10 @@ import { toast } from 'react-hot-toast';
 import { cacheAnalysisResult, findSimilarAnalysisByHash } from '@/services/supabaseService';
 import { fileToBase64 } from '@/services/geminiService';
 import type { GoogleCSE, GoogleCSEElement } from '@/types';
-import { generatePerceptualHashCandidates } from '@/lib/utils/perceptualHash.client';
+import {
+    generateImageFingerprintWithLegacyCandidates,
+    toFingerprintLookup,
+} from '@/lib/utils/serverFingerprint.client';
 
 const ADMIN_PIN = '231323';
 const CSE_CONTAINER_ID = 'admin-search-container';
@@ -452,10 +455,10 @@ export default function SearchAnalysisAdminPage() {
                 const sourceFile = new File([blob], 'search-image-source', { type: blob.type || 'image/jpeg' });
                 const sourceImageData = await fileToBase64(sourceFile);
                 const sourceImageSrc = `data:${sourceImageData.mimeType};base64,${sourceImageData.data}`;
-                const pHashCandidates = await generatePerceptualHashCandidates(sourceImageSrc, { crossOrigin: 'anonymous' });
-                const pHash = pHashCandidates[0];
+                const fingerprint = await generateImageFingerprintWithLegacyCandidates(sourceFile, sourceImageSrc, { crossOrigin: 'anonymous' });
+                const pHash = fingerprint.pHash;
                 if (!pHash) {
-                    throw new Error('Failed to generate image hash.');
+                    throw new Error('Failed to generate server image hash.');
                 }
 
                 if (seenPHashesRef.current.has(pHash)) {
@@ -480,7 +483,7 @@ export default function SearchAnalysisAdminPage() {
                 let usedAiForCurrentItem = false;
 
                 // --- GATE 1: CACHE CHECK ---
-                const cached = await findSimilarAnalysisByHash(pHashCandidates, targetImageUrl);
+                const cached = await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), targetImageUrl);
                 if (cached) {
                     addLog(`[${i + 1}/${currentQueueLength}] Already in cache — skipped.`);
                     skipped++;
@@ -548,6 +551,7 @@ export default function SearchAnalysisAdminPage() {
                     // 5. Save to cache
                     const cachedResult = await cacheAnalysisResult(pHash, analysisResult, targetImageUrl, blob, {
                         triggerStudioEdit: false,
+                        fingerprintPipeline: fingerprint.pipeline,
                     });
                     if (cachedResult) {
                         setStudioQueueReadyItems((prev) => [
