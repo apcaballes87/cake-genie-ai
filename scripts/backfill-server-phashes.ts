@@ -76,7 +76,7 @@ function isDuplicatePHashError(error: unknown) {
 }
 
 async function updateRelatedReferences(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   previousHash: string,
   nextHash: string
 ) {
@@ -84,16 +84,18 @@ async function updateRelatedReferences(
     return;
   }
 
+  const db = supabase as any;
+
   const relatedUpdates = await Promise.all([
-    supabase
+    db
       .from('cakegenie_saved_items')
       .update({ analysis_p_hash: nextHash })
       .eq('analysis_p_hash', previousHash),
-    supabase
+    db
       .from('cakegenie_merchant_products')
       .update({ p_hash: nextHash })
       .eq('p_hash', previousHash),
-    supabase
+    db
       .from('cakegenie_pinterest_pins')
       .update({ p_hash: nextHash })
       .eq('p_hash', previousHash),
@@ -107,21 +109,23 @@ async function updateRelatedReferences(
 }
 
 async function findCanonicalRow(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   pHash: string
 ) {
-  const { data, error } = await supabase
+  const db = supabase as any;
+
+  const { data, error } = await db
     .from('cakegenie_analysis_cache')
     .select('id, p_hash')
     .eq('p_hash', pHash)
     .limit(1)
-    .maybeSingle<CacheReferenceTarget>();
+    .maybeSingle();
 
   if (error) {
     throw error;
   }
 
-  return data;
+  return data as CacheReferenceTarget | null;
 }
 
 interface RowResult {
@@ -132,7 +136,7 @@ interface RowResult {
 }
 
 async function processRow(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   row: CacheRow,
   dryRun: boolean
 ): Promise<RowResult> {
@@ -149,7 +153,9 @@ async function processRow(
       return { updated: 1, aliased: 0, skipped: 0, failed: 0 };
     }
 
-    const { error: updateError } = await supabase
+    const db = supabase as any;
+
+    const { error: updateError } = await db
       .from('cakegenie_analysis_cache')
       .update({
         p_hash: fingerprint.pHash,
@@ -169,7 +175,7 @@ async function processRow(
         await updateRelatedReferences(supabase, row.p_hash, canonicalRow.p_hash);
 
         const duplicateMarker = `${DUPLICATE_FINGERPRINT_PREFIX}${canonicalRow.p_hash}`;
-        const { error: aliasError } = await supabase
+        const { error: aliasError } = await db
           .from('cakegenie_analysis_cache')
           .update({
             fingerprint_pipeline: duplicateMarker,
