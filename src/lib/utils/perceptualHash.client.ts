@@ -2,7 +2,7 @@ const HASH_SIZE = 8;
 const MAX_DIMENSION = 1024;
 const RETRY_SCALES = [1, 0.5, 0.25] as const;
 
-type HashOptions = {
+export type HashOptions = {
   crossOrigin?: '' | 'anonymous' | 'use-credentials';
 };
 

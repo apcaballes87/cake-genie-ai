@@ -320,62 +320,157 @@ export interface CacheHitResult {
   seoMetadata: CacheSEOMetadata;
 }
 
-export async function findSimilarAnalysisByHash(pHash: string | string[], imageUrl?: string): Promise<CacheHitResult | null> {
-  try {
-    const hashCandidates = [...new Set((Array.isArray(pHash) ? pHash : [pHash]).filter((candidate): candidate is string => !!candidate))];
+export interface FingerprintHashLookup {
+  pHash?: string | null;
+  pipeline?: string | null;
+  legacyPHashes?: string[];
+}
 
-    for (let i = 0; i < hashCandidates.length; i++) {
-      const candidate = hashCandidates[i];
-      console.log(`🔍 Starting pHash cache lookup for hash ${i + 1}/${hashCandidates.length}: ${candidate}`);
-      console.log('🔍 Calling find_similar_analysis RPC with pHash:', candidate);
+function uniqueHashCandidates(candidates: Array<string | null | undefined>) {
+  return [...new Set(candidates.filter((candidate): candidate is string => Boolean(candidate)))];
+}
 
-      const { data, error } = await supabase.rpc('find_similar_analysis', {
-        new_hash: candidate,
-      });
+function normalizeHashLookup(input: string | string[] | FingerprintHashLookup) {
+  if (typeof input === 'object' && !Array.isArray(input)) {
+    const canonicalHash = input.pHash || null;
+    const legacyHashes = uniqueHashCandidates(input.legacyPHashes || [])
+      .filter((candidate) => candidate !== canonicalHash);
 
-      if (data) {
-        console.log(`📡 RPC 'find_similar_analysis' returned ${data.length} potential hash matches.`);
-      }
+    return {
+      canonicalHash,
+      pipeline: input.pipeline || null,
+      legacyHashes,
+      allCandidates: uniqueHashCandidates([canonicalHash, ...legacyHashes]),
+    };
+  }
 
-      if (error) {
-        console.error('❌ Analysis cache lookup error:', error);
-        console.error('Error details:', { code: error.code, message: error.message, hint: error.hint });
-        return null;
-      }
+  const legacyHashes = uniqueHashCandidates(Array.isArray(input) ? input : [input]);
+  return {
+    canonicalHash: null,
+    pipeline: null,
+    legacyHashes,
+    allCandidates: legacyHashes,
+  };
+}
 
-      if (!data || data.length === 0) {
-        continue;
-      }
+interface AnalysisCacheLookupRow {
+  p_hash: string;
+  analysis_json: HybridAnalysisResult;
+  seo_title?: string | null;
+  seo_description?: string | null;
+  keywords?: string | null;
+  alt_text?: string | null;
+  slug?: string | null;
+  original_image_url?: string | null;
+  price?: number | string | null;
+  availability?: CacheSEOMetadata['availability'] | null;
+}
 
-      const result = data[0];
-      const hitLabel = hashCandidates.length > 1 && candidate !== hashCandidates[0]
-        ? '✅ Cache HIT! Found matching analysis via compatibility pHash:'
-        : '✅ Cache HIT! Found matching analysis for pHash:';
-      console.log(hitLabel, candidate);
+function mapCacheHitResult(result: AnalysisCacheLookupRow): CacheHitResult {
+  const analysisResult: HybridAnalysisResult = result.analysis_json;
+  const seoMetadata: CacheSEOMetadata = {
+    seo_title: result.seo_title || null,
+    seo_description: result.seo_description || null,
+    keywords: result.keywords || null,
+    alt_text: result.alt_text || null,
+    slug: result.slug || null,
+    original_image_url: result.original_image_url || null,
+    price: result.price ? Number(result.price) : null,
+    availability: result.availability || null,
+  };
 
-      // Check if we need to backfill
-      const needsBackfill = result.price === null || result.keywords === null || (result.original_image_url === null && imageUrl);
+  return { analysisResult, seoMetadata };
+}
 
-      if (needsBackfill) {
-        backfillCacheFields(result.p_hash, result.analysis_json, imageUrl);
-      }
+async function findSimilarAnalysisByLegacyHashes(
+  hashCandidates: string[],
+  imageUrl?: string
+): Promise<CacheHitResult | null> {
+  for (let i = 0; i < hashCandidates.length; i++) {
+    const candidate = hashCandidates[i];
+    console.log(`🔍 Starting legacy pHash cache lookup for hash ${i + 1}/${hashCandidates.length}: ${candidate}`);
+    console.log('🔍 Calling find_similar_analysis RPC with pHash:', candidate);
 
-      const analysisResult: HybridAnalysisResult = result.analysis_json;
-      const seoMetadata: CacheSEOMetadata = {
-        seo_title: result.seo_title || null,
-        seo_description: result.seo_description || null,
-        keywords: result.keywords || null,
-        alt_text: result.alt_text || null,
-        slug: result.slug || null,
-        original_image_url: result.original_image_url || null,
-        price: result.price ? Number(result.price) : null,
-        availability: result.availability || null,
-      };
+    const { data, error } = await supabase.rpc('find_similar_analysis', {
+      new_hash: candidate,
+    });
 
-      return { analysisResult, seoMetadata };
+    if (data) {
+      console.log(`📡 RPC 'find_similar_analysis' returned ${data.length} potential hash matches.`);
     }
 
-    console.log('⚫️ Cache MISS. No matching pHash found in database.');
+    if (error) {
+      console.error('❌ Analysis cache lookup error:', error);
+      console.error('Error details:', { code: error.code, message: error.message, hint: error.hint });
+      return null;
+    }
+
+    if (!data || data.length === 0) {
+      continue;
+    }
+
+    const result = data[0];
+    const hitLabel = hashCandidates.length > 1 && candidate !== hashCandidates[0]
+      ? '✅ Cache HIT! Found matching analysis via compatibility pHash:'
+      : '✅ Cache HIT! Found matching analysis for pHash:';
+    console.log(hitLabel, candidate);
+
+    const needsBackfill = result.price === null || result.keywords === null || (result.original_image_url === null && imageUrl);
+
+    if (needsBackfill) {
+      backfillCacheFields(result.p_hash, result.analysis_json, imageUrl);
+    }
+
+    return mapCacheHitResult(result);
+  }
+
+  return null;
+}
+
+export async function findSimilarAnalysisByHash(pHash: string | string[] | FingerprintHashLookup, imageUrl?: string): Promise<CacheHitResult | null> {
+  try {
+    const lookup = normalizeHashLookup(pHash);
+
+    if (lookup.allCandidates.length === 0) {
+      console.log('⚫️ Cache MISS. No pHash candidates were available.');
+      return null;
+    }
+
+    if (lookup.canonicalHash || lookup.legacyHashes.length > 0) {
+      console.log('🔍 Calling canonical fingerprint lookup RPC:', {
+        canonicalHash: lookup.canonicalHash,
+        pipeline: lookup.pipeline,
+        legacyCandidates: lookup.legacyHashes.length,
+      });
+
+      const { data, error } = await supabase.rpc('find_similar_analysis_by_fingerprint', {
+        new_hash: lookup.canonicalHash,
+        new_pipeline: lookup.pipeline,
+        legacy_hashes: lookup.legacyHashes,
+      });
+
+      if (error) {
+        console.warn('⚠️ Canonical fingerprint lookup unavailable, falling back to legacy pHash RPC:', error.message);
+      } else if (data && data.length > 0) {
+        const result = data[0];
+        console.log('✅ Cache HIT! Found matching analysis via canonical fingerprint lookup:', lookup.canonicalHash || lookup.legacyHashes[0]);
+
+        const needsBackfill = result.price === null || result.keywords === null || (result.original_image_url === null && imageUrl);
+
+        if (needsBackfill) {
+          backfillCacheFields(result.p_hash, result.analysis_json, imageUrl);
+        }
+
+        return mapCacheHitResult(result);
+      }
+    }
+
+    const legacyHit = await findSimilarAnalysisByLegacyHashes(lookup.legacyHashes, imageUrl);
+    if (legacyHit) {
+      return legacyHit;
+    }
+
+    console.log('⚫️ Cache MISS. No matching fingerprint found in database.');
     return null;
   } catch (err) {
     console.error('❌ Exception during analysis cache lookup:', err);
@@ -471,10 +566,12 @@ export async function cacheAnalysisResult(
   imageBlob?: Blob,
   options?: {
     triggerStudioEdit?: boolean;
+    fingerprintPipeline?: string | null;
   }
 ): Promise<{ slug: string; seo_title: string; price: number; original_image_url: string | null } | null> {
   try {
     console.log('💾 Attempting to cache analysis result with pHash:', pHash);
+    const fingerprintPipeline = options?.fingerprintPipeline || null;
 
     // Calculate Price and Keywords before inserting
     const pricingState = mapAnalysisToPricingState(analysisResult);
@@ -582,6 +679,7 @@ export async function cacheAnalysisResult(
       .from('cakegenie_analysis_cache')
       .upsert({
         p_hash: pHash,
+        fingerprint_pipeline: fingerprintPipeline,
         analysis_json: analysisResult,
         original_image_url: finalImageUrl,
         price: totalPrice,

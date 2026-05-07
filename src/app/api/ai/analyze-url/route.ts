@@ -4,8 +4,10 @@ import { getAI } from '@/lib/ai/client';
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { createClient } from '@/lib/supabase/client';
 import { createServerClient } from '@supabase/ssr';
-import { computeImageHash, convertToWebPBuffer, getImageDimensions } from '@/lib/utils/imageHash';
+import { computeImageFingerprint } from '@/lib/server/imageFingerprint';
+import { convertToWebPBuffer, getImageDimensions } from '@/lib/utils/imageHash';
 
+export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 const ALLOWED_HOSTNAME_PATTERNS = [
@@ -154,10 +156,15 @@ export async function POST(req: NextRequest) {
         }
 
         const webpBuffer = await convertToWebPBuffer(imageBuffer);
-        const pHash = await computeImageHash(imageBuffer);
+        const fingerprint = await computeImageFingerprint(imageBuffer);
+        const pHash = fingerprint.pHash;
 
         const existingCache = await supabase
-            .rpc('find_similar_analysis', { new_hash: pHash });
+            .rpc('find_similar_analysis_by_fingerprint', {
+                new_hash: pHash,
+                new_pipeline: fingerprint.pipeline,
+                legacy_hashes: [],
+            });
 
         if (!existingCache.error && existingCache.data && existingCache.data.length > 0) {
             const cached = existingCache.data[0];
@@ -385,6 +392,7 @@ export async function POST(req: NextRequest) {
 
             await supabase.from('cakegenie_analysis_cache').insert({
                 p_hash: pHash,
+                fingerprint_pipeline: fingerprint.pipeline,
                 slug: slugForCache,
                 analysis_json: result,
                 original_image_url: publicUrl,
