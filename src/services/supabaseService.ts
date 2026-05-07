@@ -353,6 +353,62 @@ function normalizeHashLookup(input: string | string[] | FingerprintHashLookup) {
   };
 }
 
+function getHexHashHammingDistance(left: string, right: string): number | null {
+  if (!/^[0-9a-f]{16}$/i.test(left) || !/^[0-9a-f]{16}$/i.test(right)) {
+    return null;
+  }
+
+  let distance = 0;
+  let xor = BigInt(`0x${left}`) ^ BigInt(`0x${right}`);
+
+  while (xor > 0n) {
+    distance += Number(xor & 1n);
+    xor >>= 1n;
+  }
+
+  return distance;
+}
+
+const WRITE_TIME_DUPLICATE_DISTANCE_THRESHOLD = 2;
+
+async function resolveExistingWriteHash(
+  incomingHash: string,
+  fingerprintPipeline: string | null
+): Promise<string> {
+  if (!fingerprintPipeline) {
+    return incomingHash;
+  }
+
+  try {
+    const { data, error } = await supabase.rpc('find_similar_analysis_by_fingerprint', {
+      new_hash: incomingHash,
+      new_pipeline: fingerprintPipeline,
+      legacy_hashes: [],
+    });
+
+    if (error || !data || data.length === 0) {
+      return incomingHash;
+    }
+
+    const matchedHash = typeof data[0]?.p_hash === 'string' ? data[0].p_hash : null;
+    if (!matchedHash) {
+      return incomingHash;
+    }
+
+    const distance = getHexHashHammingDistance(incomingHash, matchedHash);
+
+    // Only collapse writes when the canonical match is effectively the same
+    // fingerprint. This avoids rewriting genuinely similar but distinct cakes.
+    if (distance !== null && distance <= WRITE_TIME_DUPLICATE_DISTANCE_THRESHOLD) {
+      return matchedHash;
+    }
+  } catch (error) {
+    console.warn('⚠️ Failed to resolve existing cache row before write:', error);
+  }
+
+  return incomingHash;
+}
+
 interface AnalysisCacheLookupRow {
   p_hash: string;
   analysis_json: HybridAnalysisResult;
@@ -572,6 +628,14 @@ export async function cacheAnalysisResult(
   try {
     console.log('💾 Attempting to cache analysis result with pHash:', pHash);
     const fingerprintPipeline = options?.fingerprintPipeline || null;
+    const resolvedPHash = await resolveExistingWriteHash(pHash, fingerprintPipeline);
+
+    if (resolvedPHash !== pHash) {
+      console.log('🧭 Reusing existing cache row for near-identical server fingerprint:', {
+        incoming: pHash,
+        resolved: resolvedPHash,
+      });
+    }
 
     // Calculate Price and Keywords before inserting
     const pricingState = mapAnalysisToPricingState(analysisResult);
@@ -590,7 +654,7 @@ export async function cacheAnalysisResult(
       keyword: keywords,
       icingColor,
       cakeType: analysisResult.cakeType,
-      pHash
+      pHash: resolvedPHash
     });
 
     // Generate fallback SEO fields if AI didn't provide them
@@ -678,7 +742,7 @@ export async function cacheAnalysisResult(
     const { error } = await supabase
       .from('cakegenie_analysis_cache')
       .upsert({
-        p_hash: pHash,
+        p_hash: resolvedPHash,
         fingerprint_pipeline: fingerprintPipeline,
         analysis_json: analysisResult,
         original_image_url: finalImageUrl,
@@ -707,7 +771,7 @@ export async function cacheAnalysisResult(
       }
       console.log('ℹ️ Analysis already cached (duplicate pHash or slug - this is fine).');
     } else {
-      console.log('✅ Analysis result cached successfully with pHash:', pHash, 'slug:', slug);
+      console.log('✅ Analysis result cached successfully with pHash:', resolvedPHash, 'slug:', slug);
 
       // Notify IndexNow participating search engines
       if (slug) {
@@ -717,11 +781,11 @@ export async function cacheAnalysisResult(
       // Trigger background Image Studio edit (Fire and forget) for interactive
       // flows only. Bulk admin imports can create a second hidden AI pipeline
       // that collides with analysis traffic and causes quota contention.
-      if (options?.triggerStudioEdit !== false && pHash && typeof window !== 'undefined') {
+      if (options?.triggerStudioEdit !== false && resolvedPHash && typeof window !== 'undefined') {
         fetch('/api/ai/trigger-studio-edit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pHash })
+          body: JSON.stringify({ pHash: resolvedPHash })
         }).catch(err => console.warn('Background trigger fetch error:', err));
       }
     }
