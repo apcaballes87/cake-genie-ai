@@ -7,9 +7,11 @@ const supabase = getSupabaseClient();
  */
 export async function generateContributorDiscountCode(
   userId: string,
-  contributionAmount: number
+  _contributionAmount: number
 ): Promise<string | null> {
   try {
+    void _contributionAmount;
+
     // Generate code: FRIEND{last 4 of user id}
     const code = `FRIEND${userId.slice(-4).toUpperCase()}`;
 
@@ -18,6 +20,7 @@ export async function generateContributorDiscountCode(
       .insert({
         user_id: userId,
         code: code,
+        public_code: true,
         discount_amount: 100, // ₱100 off
         reason: 'contributed',
         expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days

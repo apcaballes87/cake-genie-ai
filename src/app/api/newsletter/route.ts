@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
             .from('discount_codes')
             .insert({
                 code,
+                public_code: true,
                 is_active: true,
                 discount_percentage: 20,
                 max_uses: 1,
