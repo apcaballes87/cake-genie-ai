@@ -39,16 +39,6 @@ export const CustomizingPostAnalysisContent = React.memo(({
 
     return (
         <div className="w-full pb-4 pt-1 space-y-4">
-            {aboutDescription && (
-                <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
-                    <DesignAboutSection
-                        title={`About This ${keywords || 'Custom'} Cake`}
-                        description={aboutDescription}
-                        showDisclaimer={true}
-                    />
-                </section>
-            )}
-
             <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
                 <h2 className="text-xl font-bold text-slate-800 mb-4 text-center">Design Specifications</h2>
                 <div className="overflow-hidden rounded-xl border border-slate-200">
@@ -96,6 +86,16 @@ export const CustomizingPostAnalysisContent = React.memo(({
                     </table>
                 </div>
             </section>
+
+            {aboutDescription && (
+                <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
+                    <DesignAboutSection
+                        title={`About This ${keywords || 'Custom'} Cake`}
+                        description={aboutDescription}
+                        showDisclaimer={true}
+                    />
+                </section>
+            )}
 
             {faqs.length > 0 && (
                 <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">

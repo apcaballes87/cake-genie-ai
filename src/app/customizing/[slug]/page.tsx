@@ -774,17 +774,6 @@ function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceI
 
     return (
         <div className="w-full pb-4 pt-1 space-y-1">
-            {/* Design Details - now rendered in SSR for SEO */}
-            {designDetails && (
-                <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
-                    <DesignAboutSection
-                        title={`About This ${keywords || 'Custom'} Cake`}
-                        description={designDetails}
-                        showDisclaimer={true}
-                    />
-                </section>
-            )}
-
             {/* Structured Specifications Table for SEO */}
             <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
                 <h2 className="text-xl font-bold text-slate-800 mb-4 text-center">Design Specifications</h2>
@@ -837,6 +826,17 @@ function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceI
                     </table>
                 </div>
             </section>
+
+            {/* Design Details - now rendered in SSR for SEO */}
+            {designDetails && (
+                <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
+                    <DesignAboutSection
+                        title={`About This ${keywords || 'Custom'} Cake`}
+                        description={designDetails}
+                        showDisclaimer={true}
+                    />
+                </section>
+            )}
 
             {/* Combined FAQ — dynamic per-cake questions + general store info */}
             {dynamicFAQs.length > 0 && (
@@ -987,6 +987,7 @@ export default async function RecentSearchPage({ params }: Props) {
                         initialCaption={captionText}
                         postEditorSlot={<SSRDesignContent design={design} prices={prices} />}
                         hideAiChat={false}
+                        enableMobileHeroPan={true}
                     />
                 </CustomizationProvider>
             </Suspense>

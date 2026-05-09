@@ -52,7 +52,8 @@ describe('CustomizingPostAnalysisContent', () => {
         expect(screen.getByText('1 Tier Mermaid')).toBeInTheDocument();
         expect(screen.getByText('Shell topper')).toBeInTheDocument();
         expect(screen.getByText('Pearls')).toBeInTheDocument();
-        expect(screen.getByText('under the sea, girls birthday')).toBeInTheDocument();
+        expect(screen.getByText('under the sea,')).toBeInTheDocument();
+        expect(screen.getByText('girls birthday')).toBeInTheDocument();
         expect(screen.getByText('Frequently Asked Questions')).toBeInTheDocument();
         expect(screen.getByText('How much does this Mermaid cake cost?')).toBeInTheDocument();
     });
