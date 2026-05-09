@@ -1,4 +1,4 @@
-import { Metadata, ResolvingMetadata } from 'next'
+import { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 import Image from 'next/image'
 import LazyImage from '@/components/LazyImage'
@@ -20,8 +20,7 @@ const AVAILABILITY_INFO: Record<AvailabilityType | string, { label: string; time
 };
 
 export async function generateMetadata(
-    { params }: Props,
-    _parent: ResolvingMetadata
+    { params }: Props
 ): Promise<Metadata> {
     const { slug } = await params
     const supabase = await createClient()
@@ -69,7 +68,7 @@ export async function generateMetadata(
         openGraph: {
             title,
             description,
-            url: `https://genie.ph/designs/${slug}`,
+            url: `https://genie.ph/customizing/${slug}`,
             images: [
                 {
                     url: design.customized_image_url,
@@ -111,7 +110,7 @@ function DesignSchema({ design }: { design: SharedDesign }) {
     const sanitize = (str: string) => str ? str.replace(/<\/script/g, '<\\/script') : '';
 
     const imageUrl = design.customized_image_url;
-    const pageUrl = `https://genie.ph/designs/${design.url_slug || ''}`;
+    const pageUrl = `https://genie.ph/customizing/${design.url_slug || ''}`;
 
     // Product schema
     const productSchema = {

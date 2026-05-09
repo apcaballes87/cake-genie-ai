@@ -21,7 +21,7 @@ export default function ClientHashRedirect() {
         // Design routes
         const designMatch = path.match(/^\/designs?\/([a-z0-9-]+)\/?$/i)
         if (designMatch) {
-            router.replace(`/designs/${designMatch[1]}`)
+            router.replace(`/customizing/${designMatch[1]}`)
             return
         }
 

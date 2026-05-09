@@ -1,0 +1,254 @@
+import { unstable_cache } from 'next/cache'
+import { createClient } from '@supabase/supabase-js'
+import { upgradeLegacySlug } from '@/lib/utils/urlHelpers'
+
+export const SITEMAP_REVALIDATE_SECONDS = 86400
+export const SITEMAP_CHUNK_SIZE = 1000
+export const CUSTOMIZING_SITEMAP_MIN_AGE_DAYS = 7
+
+const SUPABASE_BATCH_SIZE = 1000
+const MS_PER_DAY = 24 * 60 * 60 * 1000
+const LEGACY_ANALYSIS_SLUG_RE = /[a-f0-9]{16}$/i
+
+type ImageLikeRow = {
+  original_image_url?: string | null
+  studio_edited_image_url?: string | null
+  customized_image_url?: string | null
+}
+
+type RawCustomizedCakeRow = {
+  slug: string | null
+  created_at: string
+  seo_title: string | null
+  alt_text: string | null
+  keywords: string | null
+  original_image_url: string | null
+  studio_edited_image_url: string | null
+}
+
+type RawSharedDesignRow = {
+  url_slug: string | null
+  created_at: string
+  title: string | null
+  alt_text: string | null
+  description: string | null
+  original_image_url: string | null
+  customized_image_url: string | null
+}
+
+export type IndexableCustomizedCakeRow = RawCustomizedCakeRow & {
+  slug: string
+  image_url: string
+}
+
+export type IndexableSharedDesignRow = RawSharedDesignRow & {
+  url_slug: string
+  image_url: string
+}
+
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  )
+}
+
+function hasTextValue(value: string | null | undefined): boolean {
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+export function getSitemapCutoffDate(now = new Date()): string {
+  return new Date(now.getTime() - CUSTOMIZING_SITEMAP_MIN_AGE_DAYS * MS_PER_DAY).toISOString()
+}
+
+export function isPastSitemapCutoff(createdAt: string, now = new Date()): boolean {
+  const createdAtMs = Date.parse(createdAt)
+
+  if (Number.isNaN(createdAtMs)) {
+    return false
+  }
+
+  return createdAtMs <= now.getTime() - CUSTOMIZING_SITEMAP_MIN_AGE_DAYS * MS_PER_DAY
+}
+
+export function getPreferredSitemapImage(row: ImageLikeRow): string | null {
+  const candidates = [
+    row.studio_edited_image_url,
+    row.original_image_url,
+    row.customized_image_url,
+  ]
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim()
+    }
+  }
+
+  return null
+}
+
+export function toIndexableCustomizedCakeRow(
+  row: RawCustomizedCakeRow,
+  now = new Date(),
+): IndexableCustomizedCakeRow | null {
+  const slug = row.slug?.trim()
+  if (!slug) {
+    return null
+  }
+
+  if (!isPastSitemapCutoff(row.created_at, now)) {
+    return null
+  }
+
+  const canonicalSlug = upgradeLegacySlug(slug)
+  if (canonicalSlug !== slug || LEGACY_ANALYSIS_SLUG_RE.test(slug)) {
+    return null
+  }
+
+  const imageUrl = getPreferredSitemapImage(row)
+  if (!imageUrl) {
+    return null
+  }
+
+  if (!hasTextValue(row.seo_title) && !hasTextValue(row.alt_text) && !hasTextValue(row.keywords)) {
+    return null
+  }
+
+  return {
+    ...row,
+    slug,
+    image_url: imageUrl,
+  }
+}
+
+export function toIndexableSharedDesignRow(
+  row: RawSharedDesignRow,
+  now = new Date(),
+): IndexableSharedDesignRow | null {
+  const urlSlug = row.url_slug?.trim()
+  if (!urlSlug) {
+    return null
+  }
+
+  if (!isPastSitemapCutoff(row.created_at, now)) {
+    return null
+  }
+
+  const canonicalSlug = upgradeLegacySlug(urlSlug)
+  if (canonicalSlug !== urlSlug) {
+    return null
+  }
+
+  const imageUrl = getPreferredSitemapImage(row)
+  if (!imageUrl) {
+    return null
+  }
+
+  if (!hasTextValue(row.title) && !hasTextValue(row.alt_text) && !hasTextValue(row.description)) {
+    return null
+  }
+
+  return {
+    ...row,
+    url_slug: urlSlug,
+    image_url: imageUrl,
+  }
+}
+
+async function fetchAllCustomizedCakeRows(): Promise<RawCustomizedCakeRow[]> {
+  const supabase = getSupabaseClient()
+  const rows: RawCustomizedCakeRow[] = []
+  const cutoffDate = getSitemapCutoffDate()
+  let offset = 0
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .select('slug, created_at, seo_title, alt_text, keywords, original_image_url, studio_edited_image_url')
+      .not('slug', 'is', null)
+      .lte('created_at', cutoffDate)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + SUPABASE_BATCH_SIZE - 1)
+      .returns<RawCustomizedCakeRow[]>()
+
+    if (error) {
+      throw new Error(`Failed to fetch sitemap-ready customized cakes: ${error.message}`)
+    }
+
+    if (!data?.length) {
+      break
+    }
+
+    rows.push(...data)
+
+    if (data.length < SUPABASE_BATCH_SIZE) {
+      break
+    }
+
+    offset += SUPABASE_BATCH_SIZE
+  }
+
+  return rows
+}
+
+async function fetchAllSharedDesignRows(): Promise<RawSharedDesignRow[]> {
+  const supabase = getSupabaseClient()
+  const cutoffDate = getSitemapCutoffDate()
+  const { data, error } = await supabase
+    .from('cakegenie_shared_designs')
+    .select('url_slug, created_at, title, alt_text, description, original_image_url, customized_image_url')
+    .not('url_slug', 'is', null)
+    .lte('created_at', cutoffDate)
+    .order('created_at', { ascending: false })
+    .returns<RawSharedDesignRow[]>()
+
+  if (error) {
+    throw new Error(`Failed to fetch sitemap-ready shared designs: ${error.message}`)
+  }
+
+  return data || []
+}
+
+export const getIndexableCustomizedCakeRows = unstable_cache(
+  async (): Promise<IndexableCustomizedCakeRow[]> => {
+    const seenSlugs = new Set<string>()
+    const rows = await fetchAllCustomizedCakeRows()
+    const results: IndexableCustomizedCakeRow[] = []
+
+    for (const row of rows) {
+      const candidate = toIndexableCustomizedCakeRow(row)
+      if (!candidate || seenSlugs.has(candidate.slug)) {
+        continue
+      }
+
+      seenSlugs.add(candidate.slug)
+      results.push(candidate)
+    }
+
+    return results
+  },
+  ['sitemap-indexable-customized-cakes-v1'],
+  { revalidate: SITEMAP_REVALIDATE_SECONDS },
+)
+
+export const getIndexableSharedDesignRows = unstable_cache(
+  async (): Promise<IndexableSharedDesignRow[]> => {
+    const seenSlugs = new Set<string>()
+    const rows = await fetchAllSharedDesignRows()
+    const results: IndexableSharedDesignRow[] = []
+
+    for (const row of rows) {
+      const candidate = toIndexableSharedDesignRow(row)
+      if (!candidate || seenSlugs.has(candidate.url_slug)) {
+        continue
+      }
+
+      seenSlugs.add(candidate.url_slug)
+      results.push(candidate)
+    }
+
+    return results
+  },
+  ['sitemap-indexable-shared-designs-v1'],
+  { revalidate: SITEMAP_REVALIDATE_SECONDS },
+)

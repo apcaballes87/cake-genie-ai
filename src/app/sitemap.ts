@@ -2,9 +2,15 @@ import { MetadataRoute } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import { getAllBlogSlugs } from '@/services/supabaseService'
 import { LOCAL_SEO_ROUTES } from '@/components/local-seo/cebuLandingData'
+import {
+    getIndexableCustomizedCakeRows,
+    getIndexableSharedDesignRows,
+    SITEMAP_CHUNK_SIZE,
+    SITEMAP_REVALIDATE_SECONDS,
+} from '@/lib/sitemap/indexability'
 
 // Cache the sitemaps for 24 hours to prevent Googlebot timeouts on cold starts
-export const revalidate = 86400;
+export const revalidate = SITEMAP_REVALIDATE_SECONDS;
 
 /**
  * Sanitize URL for XML sitemap
@@ -46,25 +52,10 @@ export async function generateSitemaps(): Promise<Array<{ id: number | string }>
     const ids: Array<{ id: number | string }> = [{ id: 0 }, { id: 1 }, { id: 2 }, { id: 3 }];
 
     try {
-        // Fetch total customized cakes count directly to avoid strict cookie requirements at build time
-        const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/cakegenie_analysis_cache?slug=not.is.null&select=id`, {
-            method: 'HEAD',
-            headers: {
-                'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
-                'Prefer': 'count=exact'
-            },
-            next: { revalidate: 86400 }
-        });
-
-        const countHeader = res.headers.get('content-range'); // e.g., "0-0/1095"
-        let totalCakes = 0;
-        if (countHeader) {
-            totalCakes = parseInt(countHeader.split('/')[1], 10) || 0;
-        }
-
-        const CHUNK_SIZE = 1000;
-        const chunks = Math.ceil(totalCakes / CHUNK_SIZE) || 1;
+        const customizedCakes = await getIndexableCustomizedCakeRows();
+        const chunks = customizedCakes.length > 0
+            ? Math.ceil(customizedCakes.length / SITEMAP_CHUNK_SIZE)
+            : 0;
 
         for (let i = 0; i < chunks; i++) {
             ids.push({ id: `customized-cakes-${i}` });
@@ -75,24 +66,12 @@ export async function generateSitemaps(): Promise<Array<{ id: number | string }>
     }
 
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/cakegenie_shared_designs?select=id`, {
-            method: 'HEAD',
-            headers: {
-                'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
-                'Prefer': 'count=exact'
-            },
-            next: { revalidate: 86400 } // Avoid dynamic server usage bailout, matches ISR
-        });
-
-        const countHeader = res.headers.get('content-range'); // e.g., "0-0/4095"
-        let totalDesigns = 0;
-        if (countHeader) {
-            totalDesigns = parseInt(countHeader.split('/')[1], 10) || 0;
-        }
-
-        const CHUNK_SIZE = 1000;
-        const chunks = Math.ceil(totalDesigns / CHUNK_SIZE) || 1;
+        const customizedCakeSlugs = new Set((await getIndexableCustomizedCakeRows()).map((cake) => cake.slug));
+        const designs = (await getIndexableSharedDesignRows())
+            .filter((design) => !customizedCakeSlugs.has(design.url_slug));
+        const chunks = designs.length > 0
+            ? Math.ceil(designs.length / SITEMAP_CHUNK_SIZE)
+            : 0;
 
         for (let i = 0; i < chunks; i++) {
             ids.push({ id: `designs-${i}` });
@@ -106,18 +85,6 @@ export async function generateSitemaps(): Promise<Array<{ id: number | string }>
 }
 
 type SitemapParam = number | string | Promise<number | string>;
-
-type CustomizedCakeSitemapRow = {
-    slug: string;
-    created_at: string;
-    original_image_url: string | null;
-};
-
-type SharedDesignSitemapRow = {
-    url_slug: string;
-    created_at: string;
-    customized_image_url: string | null;
-};
 
 type MerchantProductSitemapRow = {
     slug: string;
@@ -151,46 +118,33 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
         const idStr = String(resolvedId);
         if (idStr.startsWith('customized-cakes-')) {
             const page = parseInt(idStr.split('-').pop() || '0', 10);
-            const CHUNK_SIZE = 1000;
-            const offset = page * CHUNK_SIZE;
+            const offset = page * SITEMAP_CHUNK_SIZE;
+            const customizedCakes = await getIndexableCustomizedCakeRows();
+            const chunk = customizedCakes.slice(offset, offset + SITEMAP_CHUNK_SIZE);
 
-            const { data: customizedCakes } = await supabase
-                .from('cakegenie_analysis_cache')
-                .select('slug, created_at, original_image_url')
-                .not('slug', 'is', null)
-                .order('created_at', { ascending: false })
-                .range(offset, offset + CHUNK_SIZE - 1)
-                .returns<CustomizedCakeSitemapRow[]>();
-
-            return (customizedCakes || [])
-                .filter((cake) => !/[a-f0-9]{16}$/.test(cake.slug))
-                .map((cake) => ({
+            return chunk.map((cake) => ({
                 url: `${baseUrl}/customizing/${cake.slug}`,
                 lastModified: new Date(cake.created_at),
                 changeFrequency: 'weekly' as const,
                 priority: 0.6,
-                images: sanitizeUrl(cake.original_image_url) ? [sanitizeUrl(cake.original_image_url)] : [],
+                images: sanitizeUrl(cake.image_url) ? [sanitizeUrl(cake.image_url)] : [],
             }));
         }
 
         if (idStr.startsWith('designs-')) {
             const page = parseInt(idStr.split('-').pop() || '0', 10);
-            const CHUNK_SIZE = 1000;
-            const offset = page * CHUNK_SIZE;
+            const offset = page * SITEMAP_CHUNK_SIZE;
+            const customizedCakeSlugs = new Set((await getIndexableCustomizedCakeRows()).map((cake) => cake.slug));
+            const designs = (await getIndexableSharedDesignRows())
+                .filter((design) => !customizedCakeSlugs.has(design.url_slug))
+                .slice(offset, offset + SITEMAP_CHUNK_SIZE);
 
-            const { data: designs } = await supabase
-                .from('cakegenie_shared_designs')
-                .select('url_slug, created_at, customized_image_url')
-                .order('created_at', { ascending: false })
-                .range(offset, offset + CHUNK_SIZE - 1)
-                .returns<SharedDesignSitemapRow[]>();
-
-            return (designs || []).map((design) => ({
+            return designs.map((design) => ({
                 url: `${baseUrl}/customizing/${design.url_slug}`,
                 lastModified: new Date(design.created_at),
                 changeFrequency: 'weekly' as const,
                 priority: 0.7,
-                images: sanitizeUrl(design.customized_image_url) ? [sanitizeUrl(design.customized_image_url)] : [],
+                images: sanitizeUrl(design.image_url) ? [sanitizeUrl(design.image_url)] : [],
             }));
         }
 

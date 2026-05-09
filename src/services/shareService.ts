@@ -35,7 +35,7 @@ async function uploadImageToStorage(imageDataUri: string, designId: string): Pro
     const filePath = `customizations/shared-cake-images/${fileName}`;
 
     // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('cakegenie')
       .upload(filePath, blob, {
         contentType: 'image/jpeg',
@@ -474,8 +474,8 @@ export async function createContribution(
 
     // 4. Create Xendit invoice using existing Edge Function
     const domain = window.location.origin;
-    const successUrl = `${domain}/designs/${design.url_slug || design.design_id}?contribution=success&contribution_id=${contribution.contribution_id}&amount=${amount}&code=${discountCode || 'FRIEND100'}`;
-    const failureUrl = `${domain}/designs/${design.url_slug || design.design_id}?contribution=failed`;
+    const successUrl = `${domain}/customizing/${design.url_slug || design.design_id}?contribution=success&contribution_id=${contribution.contribution_id}&amount=${amount}&code=${discountCode || 'FRIEND100'}`;
+    const failureUrl = `${domain}/customizing/${design.url_slug || design.design_id}?contribution=failed`;
 
     const { data: paymentData, error: paymentError } = await supabase.functions.invoke(
       'create-xendit-payment',

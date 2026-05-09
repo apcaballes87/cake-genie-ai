@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import {
+    getIndexableCustomizedCakeRows,
+    SITEMAP_REVALIDATE_SECONDS,
+} from '@/lib/sitemap/indexability';
 
 // Cache for 24 hours
-export const revalidate = 86400;
-
-/** Regex matching old 16-char hex-hash slugs that should be excluded */
-const LEGACY_SLUG_RE = /[a-f0-9]{16}$/;
+export const revalidate = SITEMAP_REVALIDATE_SECONDS;
 
 /** Site-wide license URL, matching the JSON-LD ImageObject on the slug page */
 const LICENSE_URL = 'https://genie.ph/terms';
@@ -36,6 +37,30 @@ const escapeXml = (str: string): string =>
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&apos;');
 
+type ProductImageSitemapRow = {
+    slug: string | null;
+    title: string | null;
+    image_url: string | null;
+    alt_text: string | null;
+    short_description: string | null;
+    merchant: { slug: string } | { slug: string }[] | null;
+};
+
+type BlogImageSitemapRow = {
+    slug: string | null;
+    title: string | null;
+    image: string | null;
+    excerpt: string | null;
+};
+
+function getMerchantSlug(value: ProductImageSitemapRow['merchant']): string | null {
+    if (Array.isArray(value)) {
+        return value[0]?.slug ?? null;
+    }
+
+    return value?.slug ?? null;
+}
+
 export async function GET() {
     const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,34 +68,12 @@ export async function GET() {
     );
 
     const baseUrl = 'https://genie.ph';
-
-    // Fetch all entries in paginated batches (Supabase default limit is 1000)
-    const BATCH_SIZE = 1000;
-    const allItems: any[] = [];
-    let offset = 0;
-    let hasMore = true;
-
-    while (hasMore) {
-        const { data } = await supabase
-            .from('cakegenie_analysis_cache')
-            .select('slug, seo_title, alt_text, original_image_url, keywords')
-            .not('slug', 'is', null)
-            .not('original_image_url', 'is', null)
-            .order('created_at', { ascending: false })
-            .range(offset, offset + BATCH_SIZE - 1);
-
-        const batch = data || [];
-        allItems.push(...batch);
-        hasMore = batch.length === BATCH_SIZE;
-        offset += BATCH_SIZE;
-    }
+    const allItems = await getIndexableCustomizedCakeRows();
 
     // --- Customizing entries ---
     const customizingEntries = allItems
-        // Exclude old 16-char hex-hash slugs (same filter as main sitemap)
-        .filter((item: any) => !LEGACY_SLUG_RE.test(item.slug))
-        .map((item: any) => {
-            const imageLoc = sanitizeUrl(item.original_image_url);
+        .map((item) => {
+            const imageLoc = sanitizeUrl(item.image_url);
             if (!imageLoc) return '';
 
             // Title logic: strip suffix and ensure "Cake Design" is always present
@@ -98,16 +101,18 @@ export async function GET() {
 
     // --- Product entries ---
     // Products need merchant slug from the merchants table (joined via merchant_id)
-    const productItems: any[] = [];
-    offset = 0;
-    hasMore = true;
+    const BATCH_SIZE = 1000;
+    const productItems: ProductImageSitemapRow[] = [];
+    let offset = 0;
+    let hasMore = true;
     while (hasMore) {
         const { data } = await supabase
             .from('cakegenie_merchant_products')
             .select('slug, title, image_url, alt_text, short_description, merchant:cakegenie_merchants!merchant_id(slug)')
             .eq('is_active', true)
             .not('image_url', 'is', null)
-            .range(offset, offset + BATCH_SIZE - 1);
+            .range(offset, offset + BATCH_SIZE - 1)
+            .returns<ProductImageSitemapRow[]>();
 
         const batch = data || [];
         productItems.push(...batch);
@@ -116,9 +121,9 @@ export async function GET() {
     }
 
     const productEntries = productItems
-        .map((item: any) => {
+        .map((item) => {
             const imageLoc = sanitizeUrl(item.image_url);
-            const merchantSlug = item.merchant?.slug;
+            const merchantSlug = getMerchantSlug(item.merchant);
             if (!imageLoc || !merchantSlug) return '';
 
             const title = escapeXml(item.title || 'Custom Cake');
@@ -142,10 +147,11 @@ export async function GET() {
         .from('blogs')
         .select('slug, title, image, excerpt')
         .not('image', 'is', null)
-        .eq('is_published', true);
+        .eq('is_published', true)
+        .returns<BlogImageSitemapRow[]>();
 
     const blogEntries = (blogPosts || [])
-        .map((post: any) => {
+        .map((post) => {
             const imageLoc = sanitizeUrl(post.image);
             if (!imageLoc) return '';
 
@@ -178,7 +184,7 @@ export async function GET() {
         for (const col of collections) {
             // Find up to 5 designs that match this collection's slug/name in keywords
             const matchingDesigns = allItems
-                .filter((item: any) => {
+                .filter((item) => {
                     const kw = (item.keywords || '').toLowerCase();
                     const colName = (col.name || col.slug || '').toLowerCase().replace(/-/g, ' ');
                     return kw.includes(colName) || kw.includes(col.slug.replace(/-/g, ' '));
@@ -188,8 +194,8 @@ export async function GET() {
             if (matchingDesigns.length === 0) continue;
 
             const imageEntries = matchingDesigns
-                .map((item: any) => {
-                    const imageLoc = sanitizeUrl(item.original_image_url);
+                .map((item) => {
+                    const imageLoc = sanitizeUrl(item.image_url);
                     if (!imageLoc) return '';
                     const kw = item.keywords ? item.keywords.split(',')[0].trim() : col.name;
                     const title = escapeXml(`${kw} ${col.name} cake design`);

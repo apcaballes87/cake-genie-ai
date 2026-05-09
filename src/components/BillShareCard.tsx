@@ -38,7 +38,7 @@ const BillShareCard: React.FC<BillShareCardProps> = ({ design, onDesignUpdate })
     const remainingAmount = design.final_price - amountCollected;
     const isFullyFunded = remainingAmount <= 0;
 
-    const shareUrl = `${window.location.origin}/designs/${design.url_slug}`;
+    const shareUrl = `${window.location.origin}/customizing/${design.url_slug}`;
 
     const handleCopyLink = (e: React.MouseEvent) => {
         e.stopPropagation();

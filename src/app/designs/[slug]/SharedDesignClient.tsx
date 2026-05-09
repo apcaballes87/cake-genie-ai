@@ -156,7 +156,7 @@ export default function SharedDesignClient({ design: initialDesign }: SharedDesi
                     setShowSuccessModal(true);
 
                     if (design?.url_slug || design?.design_id) {
-                        window.history.replaceState(null, '', `/designs/${design.url_slug || design.design_id}`);
+                        window.history.replaceState(null, '', `/customizing/${design.url_slug || design.design_id}`);
                     }
                 }, 2000);
             } else {
@@ -187,7 +187,7 @@ export default function SharedDesignClient({ design: initialDesign }: SharedDesi
         } else if (params.get('contribution') === 'failed') {
             showError('Your contribution failed. Please try again.');
             if (design?.url_slug || design?.design_id) {
-                window.history.replaceState(null, '', `/designs/${design.url_slug || design.design_id}`);
+                window.history.replaceState(null, '', `/customizing/${design.url_slug || design.design_id}`);
             }
         }
     }, [design, handlePaymentVerification]);

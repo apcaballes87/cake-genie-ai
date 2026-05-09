@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAllBlogs } from '@/services/supabaseService';
+import {
+    getIndexableCustomizedCakeRows,
+    getIndexableSharedDesignRows,
+    SITEMAP_CHUNK_SIZE,
+    SITEMAP_REVALIDATE_SECONDS,
+} from '@/lib/sitemap/indexability';
 
 // Cache the sitemap index for 24 hours to prevent Googlebot timeouts
-export const revalidate = 86400;
+export const revalidate = SITEMAP_REVALIDATE_SECONDS;
 
 export async function GET() {
     const supabase = createClient(
@@ -31,24 +37,22 @@ export async function GET() {
         .single();
     const productsLastMod = latestProduct?.updated_at ? new Date(latestProduct.updated_at).toISOString() : today;
 
-    const { data: latestDesign, count: designCount } = await supabase
-        .from('cakegenie_shared_designs')
-        .select('created_at', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-    const designsLastMod = latestDesign?.created_at ? new Date(latestDesign.created_at).toISOString() : today;
-    const designChunks = Math.ceil((designCount || 0) / 1000) || 1;
+    const customizedCakes = await getIndexableCustomizedCakeRows();
+    const customizedCakeSlugs = new Set(customizedCakes.map((cake) => cake.slug));
+    const sharedDesigns = (await getIndexableSharedDesignRows())
+        .filter((design) => !customizedCakeSlugs.has(design.url_slug));
 
-    const { data: latestCustomized, count: customCount } = await supabase
-        .from('cakegenie_analysis_cache')
-        .select('created_at', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .not('slug', 'is', null)
-        .limit(1)
-        .single();
-    const customizedLastMod = latestCustomized?.created_at ? new Date(latestCustomized.created_at).toISOString() : today;
-    const customChunks = Math.ceil((customCount || 0) / 1000) || 1;
+    const customizedLastMod = customizedCakes[0]?.created_at
+        ? new Date(customizedCakes[0].created_at).toISOString()
+        : today;
+    const customChunks = customizedCakes.length > 0
+        ? Math.ceil(customizedCakes.length / SITEMAP_CHUNK_SIZE)
+        : 0;
+
+    const designsLastMod = sharedDesigns[0]?.created_at
+        ? new Date(sharedDesigns[0].created_at).toISOString()
+        : today;
+    const designChunks = Math.ceil(sharedDesigns.length / SITEMAP_CHUNK_SIZE) || 0;
 
     // Fetch blog posts from Supabase
     const { data: blogPosts } = await getAllBlogs();
