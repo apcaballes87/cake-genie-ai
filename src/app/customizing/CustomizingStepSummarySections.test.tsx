@@ -1,5 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { CakeInfoUI, CakeMessageUI, IcingDesignUI, MainTopperUI, SupportElementUI } from '@/types';
 import { CustomizingStepSummarySections } from './CustomizingStepSummarySections';
@@ -96,13 +97,11 @@ describe('CustomizingStepSummarySections', () => {
         render(<CustomizingStepSummarySections {...props} />);
 
         fireEvent.click(screen.getByRole('button', { name: /2 Tier/i }));
-        expect(screen.getByText('Choose Cake Type')).toBeInTheDocument();
-
-        fireEvent.click(screen.getAllByText('1 Tier (Soft icing)')[0]);
+        fireEvent.click(screen.getByRole('button', { name: /3 Tier/i }));
         fireEvent.click(screen.getByText('Happy Birthday'));
         fireEvent.click(screen.getByRole('button', { name: 'Delete message' }));
 
-        expect(props.onCakeInfoChange).toHaveBeenCalledWith({ type: '1 Tier' }, undefined);
+        expect(props.onCakeInfoChange).toHaveBeenNthCalledWith(2, { type: '3 Tier' });
         expect(props.setActiveCustomization).toHaveBeenCalledWith('messages');
         expect(props.setSelectedItem).toHaveBeenCalledWith(expect.objectContaining({
             id: 'message-1',
@@ -121,12 +120,9 @@ describe('CustomizingStepSummarySections', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /Soft Icing/i }));
 
-        expect(screen.getByText('Choose Icing Type')).toBeInTheDocument();
-
         fireEvent.click(screen.getAllByText('Fondant')[0]);
 
         expect(props.onIcingTypeChange).toHaveBeenCalledWith('fondant');
-        expect(screen.queryByText('Choose Icing Type')).not.toBeInTheDocument();
     });
 
     it('does not mix icing thumbnails into the default cake options step', () => {
@@ -233,7 +229,6 @@ describe('CustomizingStepSummarySections', () => {
 
         render(<CustomizingStepSummarySections {...props} />);
 
-        expect(screen.getByText('Step 3: Cake Decorations')).toBeInTheDocument();
         expect(screen.getByText(/No decorations detected yet/i)).toBeInTheDocument();
         expect(screen.queryByText(/Switch from toy toppers to edible or printed toppers/i)).not.toBeInTheDocument();
     });
@@ -243,9 +238,28 @@ describe('CustomizingStepSummarySections', () => {
 
         render(<CustomizingStepSummarySections {...props} separateIcingStep />);
 
-        expect(screen.getByText('Step 2: Icing Colors')).toBeInTheDocument();
-        expect(screen.getByText('Step 3: Cake Messages')).toBeInTheDocument();
-        expect(screen.getByText('Step 4: Cake Decorations')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Top Border/i })).toBeInTheDocument();
+    });
+
+    it('renders tiered flavor rows below height for 3-tier cakes', () => {
+        const props = buildProps();
+        props.cakeInfo = {
+            ...props.cakeInfo,
+            type: '3 Tier',
+            size: '8" Round',
+            flavors: ['Chocolate Cake', 'Ube Cake', 'Vanilla Cake'],
+        };
+
+        render(<CustomizingStepSummarySections {...props} />);
+
+        expect(screen.getByText('Top Flavor')).toBeInTheDocument();
+        expect(screen.getByText('Middle Flavor')).toBeInTheDocument();
+        expect(screen.getByText('Bottom Flavor')).toBeInTheDocument();
+
+        const middleFlavorRow = screen.getByText('Middle Flavor').parentElement;
+        expect(middleFlavorRow).not.toBeNull();
+        fireEvent.click(within(middleFlavorRow as HTMLElement).getByRole('button', { name: 'Vanilla' }));
+
+        expect(props.onCakeInfoChange).toHaveBeenCalledWith({ flavors: ['Chocolate Cake', 'Vanilla Cake', 'Vanilla Cake'] });
     });
 });

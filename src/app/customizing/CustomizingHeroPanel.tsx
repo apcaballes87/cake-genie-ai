@@ -1,9 +1,9 @@
 'use client';
 
-import { memo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { memo, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import LazyImage from '@/components/LazyImage';
 import { Heart, ShieldCheck } from 'lucide-react';
-import { ErrorIcon, ImageIcon, ResetIcon, SaveIcon, Loader2, ReportIcon } from '../../components/icons';
+import { CloseIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, Loader2, ReportIcon } from '../../components/icons';
 import MagicGlitter from '@/components/MagicGlitter';
 
 
@@ -34,6 +34,7 @@ interface CustomizingHeroPanelProps {
     showFooterActions: boolean;
     showPriceGuarantee: boolean;
     isCombining?: boolean;
+    enableMobileHeroPan?: boolean;
     onOriginalTabSelect: () => void;
     onCustomizedTabSelect: () => void;
     onToggleSaveDesign: () => void | Promise<void>;
@@ -118,6 +119,7 @@ export const CustomizingHeroPanel = memo(({
     showFooterActions,
     showPriceGuarantee,
     isCombining,
+    enableMobileHeroPan = false,
     onOriginalTabSelect,
     onCustomizedTabSelect,
     onToggleSaveDesign,
@@ -126,8 +128,130 @@ export const CustomizingHeroPanel = memo(({
     onSave,
     onClearAll,
 }: CustomizingHeroPanelProps) => {
-    const markerContainerRef = useRef<HTMLDivElement>(null);
     const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
+    const [heroImageModal, setHeroImageModal] = useState<{ src: string; alt: string; title: string } | null>(null);
+    const mobileHeroScrollRef = useRef<HTMLDivElement | null>(null);
+    const mobileHeroIntroPlayedRef = useRef(false);
+    const heroDisplaySrc = activeTab === 'customized'
+        ? (editedImage || originalImagePreview || preloadedHeroImage || fallbackImageUrl || '')
+        : (originalImagePreview || preloadedHeroImage || fallbackImageUrl || '');
+    const heroDisplayTitle = heroImageTitle;
+    const heroImageRatio = originalImageDimensions ? `${originalImageDimensions.width} / ${originalImageDimensions.height}` : '1 / 1';
+    const mobileHeroIntroStorageKey = 'genie:customizing-hero-autoscroll-v1';
+    const openHeroImageModal = (src: string, alt: string, title: string) => {
+        if (!src) return;
+        setHeroImageModal({ src, alt, title });
+    };
+    const closeHeroImageModal = () => setHeroImageModal(null);
+    const imageOnLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+        const image = event.currentTarget;
+        if (!originalImageDimensions || activeTab === 'original') {
+            setOriginalImageDimensions({ width: image.naturalWidth, height: image.naturalHeight });
+        }
+    };
+
+    useEffect(() => {
+        if (!heroImageModal) return;
+
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [heroImageModal]);
+
+    useEffect(() => {
+        if (!enableMobileHeroPan || heroImageModal) return;
+        if (typeof window === 'undefined') return;
+
+        const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+        if (prefersReducedMotion) return;
+
+        if (mobileHeroIntroPlayedRef.current) return;
+
+        try {
+            if (window.localStorage.getItem(mobileHeroIntroStorageKey) === '1') {
+                mobileHeroIntroPlayedRef.current = true;
+                return;
+            }
+        } catch {
+            // Ignore storage access issues and fall back to in-memory tracking.
+        }
+
+        const scrollContainer = mobileHeroScrollRef.current;
+        if (!scrollContainer) return;
+
+        const maxScrollTop = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+        if (maxScrollTop <= 0) return;
+
+        mobileHeroIntroPlayedRef.current = true;
+
+        try {
+            window.localStorage.setItem(mobileHeroIntroStorageKey, '1');
+        } catch {
+            // Ignore storage write failures.
+        }
+
+        scrollContainer.scrollTop = 0;
+
+        const timer = window.setTimeout(() => {
+            scrollContainer.scrollTo({
+                top: Math.round(maxScrollTop * 0.5),
+                behavior: 'smooth',
+            });
+        }, 450);
+
+        return () => window.clearTimeout(timer);
+    }, [enableMobileHeroPan, heroDisplaySrc, heroImageModal, mobileHeroIntroStorageKey]);
+
+    useEffect(() => {
+        if (!heroImageModal) return;
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                closeHeroImageModal();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [heroImageModal]);
+
+    const renderMobileScrollableImage = (src: string, alt: string, title: string, caption?: string) => (
+        <div className="absolute inset-0 md:hidden">
+            <div className="relative h-full w-full">
+                <div
+                    ref={mobileHeroScrollRef}
+                    className="h-full w-full overflow-y-auto overscroll-contain bg-white scroll-smooth"
+                    style={{ WebkitOverflowScrolling: 'touch' }}
+                    data-testid="mobile-hero-scroll-area"
+                >
+                    {/* eslint-disable-next-line @next/next/no-img-element -- Mobile hero uses a native scrolling image so the frame stays static and the image can be panned inside it. */}
+                    <img
+                        src={src}
+                        alt={alt}
+                        title={title}
+                        className="block w-full h-auto align-top cursor-zoom-in"
+                        onClick={() => openHeroImageModal(src, alt, title)}
+                        onLoad={imageOnLoad}
+                    />
+                </div>
+                <div className="pointer-events-none absolute right-1.5 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/28 px-1.5 py-2 text-white shadow-md backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-0.5 text-[8px] font-bold uppercase tracking-[0.18em] leading-none opacity-90">
+                        <span aria-hidden="true">↑</span>
+                        <span>Scroll</span>
+                        <span aria-hidden="true">↓</span>
+                    </div>
+                </div>
+                {caption ? (
+                    <div className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
+                        {caption}
+                    </div>
+                ) : null}
+            </div>
+        </div>
+    );
 
     return (
         <div className="w-full flex flex-col gap-1">
@@ -162,10 +286,17 @@ export const CustomizingHeroPanel = memo(({
 
                 <div className="grow">
                     <div
-                        ref={markerContainerRef}
-                        className="relative w-full min-h-[270px] md:min-h-[400px] rounded-3xl overflow-hidden"
+                        className={enableMobileHeroPan
+                            ? 'relative w-full aspect-[5/4] md:[aspect-ratio:var(--hero-image-ratio)] md:min-h-[400px] rounded-3xl overflow-hidden touch-none md:touch-auto overscroll-contain'
+                            : 'relative w-full min-h-[270px] md:min-h-[400px] rounded-3xl overflow-hidden'
+                        }
                         onContextMenu={(event) => event.preventDefault()}
-                        style={{ aspectRatio: originalImageDimensions ? `${originalImageDimensions.width} / ${originalImageDimensions.height}` : '1 / 1' }}
+                        style={enableMobileHeroPan
+                            ? {
+                                ['--hero-image-ratio' as string]: heroImageRatio,
+                            }
+                            : { aspectRatio: heroImageRatio }
+                        }
                     >
                         {isCombining ? (
                             <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
@@ -197,50 +328,102 @@ export const CustomizingHeroPanel = memo(({
                             </div>
                         ) : null}
 
-                        {!originalImagePreview && preloadedHeroImage && (
-                            <figure className="absolute inset-0 w-full h-full">
-                                <LazyImage src={preloadedHeroImage} alt="Loading cake design..." title="Loading your cake design" fill sizes="(max-width: 768px) 100vw, 50vw" imageClassName="object-contain rounded-3xl" priority fetchPriority="high" decoding="async" unoptimized />
-                                {isAnalyzing ? (
-                                    <figcaption className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
-                                        Analyzing your design...
-                                    </figcaption>
+                        {enableMobileHeroPan ? (
+                            <>
+                                {!originalImagePreview && preloadedHeroImage ? (
+                                    renderMobileScrollableImage(preloadedHeroImage, 'Loading cake design...', 'Loading your cake design', isAnalyzing ? 'Analyzing your design...' : undefined)
                                 ) : null}
-                            </figure>
-                        )}
 
-                        {!originalImagePreview && fallbackImageUrl && (
-                            <figure className="absolute inset-0 w-full h-full">
-                                <LazyImage src={fallbackImageUrl} alt={fallbackImageAlt} title={fallbackImageTitle} fill sizes="(max-width: 768px) 100vw, 50vw" imageClassName="object-contain rounded-3xl" priority fetchPriority="high" decoding="async" unoptimized />
-                                {initialCaption ? (
-                                    <figcaption className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
-                                        {initialCaption}
-                                    </figcaption>
+                                {!originalImagePreview && fallbackImageUrl ? (
+                                    renderMobileScrollableImage(fallbackImageUrl, fallbackImageAlt, fallbackImageTitle, initialCaption || undefined)
                                 ) : null}
-                            </figure>
+
+                                {originalImagePreview ? (
+                                    renderMobileScrollableImage(
+                                        heroDisplaySrc,
+                                        heroImageAlt,
+                                        heroDisplayTitle,
+                                        undefined,
+                                    )
+                                ) : null}
+                            </>
+                        ) : (
+                            <>
+                                {!originalImagePreview && preloadedHeroImage && (
+                                    <figure className="absolute inset-0 w-full h-full">
+                                        <LazyImage
+                                            src={preloadedHeroImage}
+                                            alt="Loading cake design..."
+                                            title="Loading your cake design"
+                                            fill
+                                            sizes="(max-width: 768px) 100vw, 50vw"
+                                            imageClassName="object-contain rounded-3xl cursor-zoom-in"
+                                            priority
+                                            fetchPriority="high"
+                                            decoding="async"
+                                            unoptimized
+                                            onClick={() => openHeroImageModal(preloadedHeroImage, 'Loading cake design...', 'Loading your cake design')}
+                                            onLoad={imageOnLoad}
+                                        />
+                                        {isAnalyzing ? (
+                                            <figcaption className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
+                                                Analyzing your design...
+                                            </figcaption>
+                                        ) : null}
+                                    </figure>
+                                )}
+
+                                {!originalImagePreview && fallbackImageUrl && (
+                                    <figure className="absolute inset-0 w-full h-full">
+                                        <LazyImage
+                                            src={fallbackImageUrl}
+                                            alt={fallbackImageAlt}
+                                            title={fallbackImageTitle}
+                                            fill
+                                            sizes="(max-width: 768px) 100vw, 50vw"
+                                            imageClassName="object-contain rounded-3xl cursor-zoom-in"
+                                            priority
+                                            fetchPriority="high"
+                                            decoding="async"
+                                            unoptimized
+                                            onClick={() => openHeroImageModal(fallbackImageUrl, fallbackImageAlt, fallbackImageTitle)}
+                                            onLoad={imageOnLoad}
+                                        />
+                                        {initialCaption ? (
+                                            <figcaption className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
+                                                {initialCaption}
+                                            </figcaption>
+                                        ) : null}
+                                    </figure>
+                                )}
+
+                                {originalImagePreview ? (
+                                    <LazyImage
+                                        key={activeTab}
+                                        src={activeTab === 'customized' ? (editedImage || originalImagePreview) : originalImagePreview}
+                                        alt={heroImageAlt}
+                                        title={heroImageTitle}
+                                        fill
+                                        sizes="(max-width: 768px) 100vw, 50vw"
+                                        imageClassName="object-contain rounded-3xl cursor-zoom-in"
+                                        priority
+                                        fetchPriority="high"
+                                        decoding="async"
+                                        unoptimized
+                                        onClick={() => openHeroImageModal(activeTab === 'customized' ? (editedImage || originalImagePreview) : originalImagePreview, heroImageAlt, heroImageTitle)}
+                                        onLoad={(event) => {
+                                            const image = event.currentTarget;
+                                            if (!originalImageDimensions || activeTab === 'original') {
+                                                setOriginalImageDimensions({ width: image.naturalWidth, height: image.naturalHeight });
+                                            }
+                                        }}
+                                    />
+                                ) : null}
+                            </>
                         )}
 
                         {originalImagePreview ? (
                             <>
-                                <LazyImage
-                                    key={activeTab}
-                                    src={activeTab === 'customized' ? (editedImage || originalImagePreview) : originalImagePreview}
-                                    alt={heroImageAlt}
-                                    title={heroImageTitle}
-                                    fill
-                                    sizes="(max-width: 768px) 100vw, 50vw"
-                                    imageClassName="object-contain rounded-3xl"
-                                    priority
-                                    fetchPriority="high"
-                                    decoding="async"
-                                    unoptimized
-                                    onLoad={(event) => {
-                                        const image = event.currentTarget;
-                                        if (!originalImageDimensions || activeTab === 'original') {
-                                            setOriginalImageDimensions({ width: image.naturalWidth, height: image.naturalHeight });
-                                        }
-                                    }}
-                                />
-
                                 {showPriceGuarantee ? (
                                     <div className="absolute top-3 left-3 z-10 transition-all duration-300">
                                         <div className="bg-green-600/90 backdrop-blur-sm text-white rounded-full px-3 py-1 shadow-md text-center whitespace-nowrap">
@@ -303,6 +486,44 @@ export const CustomizingHeroPanel = memo(({
             <span className="text-xs font-semibold uppercase tracking-wide text-green-600 text-center">
                 FREE Delivery within Cebu City
             </span>
+
+            {heroImageModal ? (
+                <div
+                    className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Full screen image preview"
+                    onClick={closeHeroImageModal}
+                    onContextMenu={(event) => event.preventDefault()}
+                >
+                    <div
+                        className="relative w-full max-w-[88vw] h-[72vh] sm:max-w-[72vw] sm:h-[72vh] lg:max-w-[56vw] lg:h-[68vh]"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            onClick={closeHeroImageModal}
+                            className="absolute top-3 right-3 z-20 rounded-full bg-black/45 text-white p-2 backdrop-blur-md shadow-lg hover:bg-black/60 transition-colors"
+                            aria-label="Close image preview"
+                        >
+                            <CloseIcon className="w-5 h-5" />
+                        </button>
+
+                        <LazyImage
+                            src={heroImageModal.src}
+                            alt={heroImageModal.alt}
+                            title={heroImageModal.title}
+                            fill
+                            sizes="(max-width: 640px) 88vw, (max-width: 1024px) 72vw, 56vw"
+                            imageClassName="object-contain rounded-2xl"
+                            priority
+                            fetchPriority="high"
+                            decoding="async"
+                            unoptimized
+                        />
+                    </div>
+                </div>
+            ) : null}
 
             {showFooterActions ? (
                 <div className="hidden md:block animate-in fade-in slide-in-from-bottom-2 duration-500">

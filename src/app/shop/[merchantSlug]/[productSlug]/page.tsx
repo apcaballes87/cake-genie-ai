@@ -153,6 +153,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                         merchant={merchant}
                         initialPrices={prices}
                         hideAiChat={true}
+                        enableMobileHeroPan={true}
                     />
                 </CustomizationProvider>
             </Suspense>

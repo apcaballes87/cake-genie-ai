@@ -3,10 +3,27 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { CustomizingHeroPanel } from './CustomizingHeroPanel';
 
+const scrollToMock = vi.fn();
+
+Object.defineProperty(HTMLDivElement.prototype, 'scrollTo', {
+    configurable: true,
+    value: scrollToMock,
+});
+
+Object.defineProperty(HTMLDivElement.prototype, 'scrollHeight', {
+    configurable: true,
+    get: () => 2000,
+});
+
+Object.defineProperty(HTMLDivElement.prototype, 'clientHeight', {
+    configurable: true,
+    get: () => 600,
+});
+
 vi.mock('@/components/LazyImage', () => ({
-    default: ({ src, alt, title, onLoad }: { src: string; alt: string; title?: string; onLoad?: React.ReactEventHandler<HTMLImageElement> }) => (
+    default: ({ src, alt, title, onLoad, onClick }: { src: string; alt: string; title?: string; onLoad?: React.ReactEventHandler<HTMLImageElement>; onClick?: React.MouseEventHandler<HTMLImageElement> }) => (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={alt} title={title} onLoad={onLoad} />
+        <img src={src} alt={alt} title={title} onLoad={onLoad} onClick={onClick} />
     ),
 }));
 
@@ -15,6 +32,7 @@ vi.mock('../../components/LoadingSpinner', () => ({
 }));
 
 vi.mock('../../components/icons', () => ({
+    CloseIcon: ({ className }: { className?: string }) => <div className={className}>close-icon</div>,
     ErrorIcon: () => <div>error-icon</div>,
     ImageIcon: () => <div>image-icon</div>,
     ResetIcon: ({ className }: { className?: string }) => <div className={className}>reset-icon</div>,
@@ -126,5 +144,56 @@ describe('CustomizingHeroPanel', () => {
         expect(props.onClearAll).toHaveBeenCalledTimes(1);
         expect(screen.getByRole('button', { name: 'Save this design' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Save customized image' })).toBeInTheDocument();
+    });
+
+    it('opens a fullscreen image modal when the hero image is clicked', () => {
+        const props = buildProps();
+        props.originalImagePreview = 'https://example.com/original-cake.jpg';
+
+        render(<CustomizingHeroPanel {...props} />);
+
+        fireEvent.click(screen.getByRole('img', { name: 'Hero cake' }));
+
+        expect(screen.getByRole('dialog', { name: 'Full screen image preview' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Close image preview' })).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Close image preview' }));
+
+        expect(screen.queryByRole('dialog', { name: 'Full screen image preview' })).not.toBeInTheDocument();
+    });
+
+    it('shows a mobile scroll cue when the hero uses the mobile scrollable image mode', () => {
+        const props = buildProps();
+        props.enableMobileHeroPan = true;
+        props.originalImagePreview = 'https://example.com/original-cake.jpg';
+
+        render(<CustomizingHeroPanel {...props} />);
+
+        expect(screen.getByText('Scroll')).toBeInTheDocument();
+        expect(screen.getByText('↑')).toBeInTheDocument();
+        expect(screen.getByText('↓')).toBeInTheDocument();
+    });
+
+    it('slowly auto-scrolls the mobile hero once on first open', () => {
+        const props = buildProps();
+        props.enableMobileHeroPan = true;
+        props.originalImagePreview = 'https://example.com/original-cake.jpg';
+
+        vi.useFakeTimers();
+        window.localStorage.clear();
+        scrollToMock.mockClear();
+
+        render(<CustomizingHeroPanel {...props} />);
+        fireEvent.load(screen.getByRole('img', { name: 'Hero cake' }));
+
+        vi.advanceTimersByTime(500);
+
+        expect(window.localStorage.getItem('genie:customizing-hero-autoscroll-v1')).toBe('1');
+        expect(scrollToMock).toHaveBeenCalledWith({
+            top: 700,
+            behavior: 'smooth',
+        });
+
+        vi.useRealTimers();
     });
 });
