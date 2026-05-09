@@ -28,6 +28,7 @@ interface ImageContextType {
     isLoading: boolean;
     error: string | null;
     currentSlug: string | null;
+    currentPHash: string | null;
     setEditedImage: (image: string | null) => void;
     setError: (error: string | null) => void;
     setIsLoading: (isLoading: boolean) => void;
@@ -91,6 +92,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [currentSlug, setCurrentSlugState] = useState<string | null>(null);
+    const [currentPHash, setCurrentPHash] = useState<string | null>(null);
     const [seoMetadata, setSeoMetadata] = useState<CacheSEOMetadata | null>(null);
     const [isAnalysisCached, setIsAnalysisCached] = useState<boolean>(false);
     const persistedImageStateRef = React.useRef<{
@@ -136,6 +138,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         setError(null);
         setIsLoading(false);
         setCurrentSlugState(null);
+        setCurrentPHash(null);
         setSeoMetadata(null);
         setIsAnalysisCached(false);
         persistedImageStateRef.current = {
@@ -297,6 +300,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         // Clear stale slug and seoMetadata from any previous upload
         // so the share button won't show an old link
         setCurrentSlugState(null);
+        setCurrentPHash(null);
         setSeoMetadata(null);
         setIsAnalysisCached(false);
         try {
@@ -432,6 +436,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             // --- PROCESS CACHE HIT (IF ANY) ---
             if (cacheHit) {
                 const cachedAnalysis = cacheHit.analysisResult;
+                setCurrentPHash(cacheHit.pHash);
                 setSeoMetadata(cacheHit.seoMetadata);
 
                 // Set slug from cache so share button has access to it
@@ -476,9 +481,12 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                             const blobToPass = cacheHit.seoMetadata.original_image_url ? undefined : bgBlob;
 
                             if (pHash) {
-                                await cacheAnalysisResult(pHash, enrichedResult, undefined, blobToPass, {
+                                const cacheWrite = await cacheAnalysisResult(pHash, enrichedResult, undefined, blobToPass, {
                                     fingerprintPipeline: fingerprint.pipeline,
                                 });
+                                if (cacheWrite) {
+                                    setCurrentPHash(cacheWrite.storedPHash);
+                                }
                             }
                             setIsAnalysisCached(true);
 
@@ -536,10 +544,13 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     }
 
                     if (pHash) {
-                        await cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache, {
+                        const cacheWrite = await cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache, {
                             fingerprintPipeline: fingerprint.pipeline,
                         });
-                        console.log(`✅ Analysis result cached successfully with pHash: ${pHash}`);
+                        if (cacheWrite) {
+                            setCurrentPHash(cacheWrite.storedPHash);
+                        }
+                        console.log(`✅ Analysis result cached successfully with pHash: ${cacheWrite?.storedPHash ?? pHash}`);
                         setIsAnalysisCached(true);
                     } else {
                         console.warn('⚠️ Skipping cache save — pHash was null (degenerate)');
@@ -547,10 +558,13 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 }).catch(async enrichmentError => {
                     // Still cache the fast result even if enrichment fails
                     if (pHash) {
-                        await cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
+                        const cacheWrite = await cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
                             fingerprintPipeline: fingerprint.pipeline,
                         });
-                        console.log(`✅ Analysis result (fast profile) cached successfully with pHash: ${pHash}`);
+                        if (cacheWrite) {
+                            setCurrentPHash(cacheWrite.storedPHash);
+                        }
+                        console.log(`✅ Analysis result (fast profile) cached successfully with pHash: ${cacheWrite?.storedPHash ?? pHash}`);
                         setIsAnalysisCached(true);
                     } else {
                         console.warn('⚠️ Skipping cache save — pHash was null (degenerate)');
@@ -578,6 +592,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         setOriginalImagePreview(null);
         setSeoMetadata(null);
         setCurrentSlugState(null);
+        setCurrentPHash(null);
         try {
             const fetchWithTimeout = async (targetUrl: string, timeoutMs: number) => {
                 const controller = new AbortController();
@@ -804,6 +819,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         error,
         currentSlug,
+        currentPHash,
         setEditedImage,
         setError,
         setIsLoading,
@@ -827,6 +843,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         error,
         currentSlug,
+        currentPHash,
         setCurrentSlug,
         handleImageUpload,
         loadImageWithoutAnalysis,

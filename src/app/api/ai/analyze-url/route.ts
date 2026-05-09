@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse, after } from 'next/server';
 import { ThinkingLevel, Type } from "@google/genai";
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { getAI } from '@/lib/ai/client';
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
-import { createClient } from '@/lib/supabase/client';
-import { createServerClient } from '@supabase/ssr';
+import { cacheAnalysisResult } from '@/services/supabaseService';
 import { computeImageFingerprint } from '@/lib/server/imageFingerprint';
-import { convertToWebPBuffer, getImageDimensions } from '@/lib/utils/imageHash';
+import { convertToWebPBuffer } from '@/lib/utils/imageHash';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -130,7 +130,11 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        supabase = createClient();
+        supabase = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            { auth: { persistSession: false } }
+        );
 
         const imageResponse = await fetch(url, {
             headers: {
@@ -358,8 +362,8 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const slug = `url-${pHash.substring(0, 8)}`;
-        const filePath = `url-analysis/${slug}.webp`;
+        const uploadSlug = `url-${pHash.substring(0, 8)}`;
+        const filePath = `url-analysis/${uploadSlug}.webp`;
 
         const { error: uploadError } = await supabase.storage
             .from('cakegenie')
@@ -379,36 +383,27 @@ export async function POST(req: NextRequest) {
         const publicUrl = urlData?.publicUrl || url;
 
         try {
-            const dimensions = await getImageDimensions(webpBuffer);
-            const keywords = result.keyword || '';
-            const icingColor = result.icing_design?.colors?.top || result.icing_design?.colors?.side || null;
-            const cakeType = result.cakeType || 'Unknown';
-            
-            const slugForCache = `${keywords.toLowerCase().replace(/\s+/g, '-')}-${cakeType.toLowerCase().replace(/\s+/g, '-')}-${pHash.substring(0, 4)}`;
+            const cachedResult = await cacheAnalysisResult(
+                pHash,
+                result,
+                publicUrl,
+                undefined,
+                {
+                    client: supabase,
+                    fingerprintPipeline: fingerprint.pipeline,
+                    triggerStudioEdit: false,
+                }
+            );
 
-            const seoTitle = result.seo_title || `${keywords || 'Custom'} Cake | Genie.ph`;
-            const seoDescription = result.seo_description || `Get instant pricing for this ${keywords || 'custom'} cake design. Customize and order at Genie.ph.`;
-            const altText = result.alt_text || `${keywords || 'Custom'} cake design`;
+            if (!cachedResult) {
+                throw new Error('Shared cache writer returned null');
+            }
 
-            await supabase.from('cakegenie_analysis_cache').insert({
-                p_hash: pHash,
-                fingerprint_pipeline: fingerprint.pipeline,
-                slug: slugForCache,
-                analysis_json: result,
-                original_image_url: publicUrl,
-                keywords,
-                alt_text: altText,
-                seo_title: seoTitle,
-                seo_description: seoDescription,
-                image_width: dimensions.width,
-                image_height: dimensions.height,
-            });
+            console.log('✅ Cached analysis result for pHash:', cachedResult.storedPHash);
 
-            console.log('✅ Cached analysis result for pHash:', pHash);
-
-            // Trigger background studio edit in parallel
+            // Trigger background studio edit in parallel with the canonical stored hash.
             after(async () => {
-                console.log(`[Background] Triggering studio edit for ${pHash} at ${req.nextUrl.origin}/api/admin/cake-cache-images`);
+                console.log(`[Background] Triggering studio edit for ${cachedResult.storedPHash} at ${req.nextUrl.origin}/api/admin/cake-cache-images`);
                 try {
                     const res = await fetch(`${req.nextUrl.origin}/api/admin/cake-cache-images`, {
                         method: 'POST',
@@ -416,13 +411,21 @@ export async function POST(req: NextRequest) {
                             'Content-Type': 'application/json',
                             'x-admin-pin': '231323',
                         },
-                        body: JSON.stringify({ pHash })
+                        body: JSON.stringify({ pHash: cachedResult.storedPHash })
                     });
                     const text = await res.text();
                     console.log(`[Background] Studio edit fetch response: ${res.status} ${res.statusText} - ${text.slice(0, 200)}`);
                 } catch (e) {
                     console.error('[Background] Background studio edit failed:', e);
                 }
+            });
+
+            return NextResponse.json({
+                analysis_json: result,
+                image_url: cachedResult.original_image_url || publicUrl,
+                cached: false,
+                slug: cachedResult.slug,
+                p_hash: cachedResult.storedPHash,
             });
         } catch (cacheError) {
             console.error('Failed to cache analysis result:', cacheError);

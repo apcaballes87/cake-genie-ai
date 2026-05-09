@@ -78,7 +78,7 @@ describe('cacheAnalysisResult', () => {
   it('stores fingerprint pipeline metadata with the canonical p_hash', async () => {
     const { cacheAnalysisResult } = await import('./supabaseService');
 
-    await cacheAnalysisResult(
+    const result = await cacheAnalysisResult(
       'serverabc1234567',
       {
         cakeType: 'Bento',
@@ -100,6 +100,7 @@ describe('cacheAnalysisResult', () => {
       }
     );
 
+    expect(result?.storedPHash).toBe('serverabc1234567');
     expect(upsertMock).toHaveBeenCalledWith(
       expect.objectContaining({
         p_hash: 'serverabc1234567',
@@ -119,7 +120,7 @@ describe('cacheAnalysisResult', () => {
 
     const { cacheAnalysisResult } = await import('./supabaseService');
 
-    await cacheAnalysisResult(
+    const result = await cacheAnalysisResult(
       'ff4f040c0703c7bf',
       {
         cakeType: 'Bento',
@@ -141,6 +142,7 @@ describe('cacheAnalysisResult', () => {
       }
     );
 
+    expect(result?.storedPHash).toBe('ff4f040c070347bf');
     expect(rpcMock).toHaveBeenCalledWith('find_similar_analysis_by_fingerprint', {
       new_hash: 'ff4f040c0703c7bf',
       new_pipeline: 'v1-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-ahash8',

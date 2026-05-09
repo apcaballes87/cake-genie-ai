@@ -316,8 +316,17 @@ export async function backfillCacheFields(pHash: string, analysisResult: HybridA
  * @returns The cached analysis JSON if a similar one is found, otherwise null.
  */
 export interface CacheHitResult {
+  pHash: string;
   analysisResult: HybridAnalysisResult;
   seoMetadata: CacheSEOMetadata;
+}
+
+export interface CacheWriteResult {
+  slug: string;
+  seo_title: string;
+  price: number;
+  original_image_url: string | null;
+  storedPHash: string;
 }
 
 export interface FingerprintHashLookup {
@@ -373,14 +382,15 @@ const WRITE_TIME_DUPLICATE_DISTANCE_THRESHOLD = 2;
 
 async function resolveExistingWriteHash(
   incomingHash: string,
-  fingerprintPipeline: string | null
+  fingerprintPipeline: string | null,
+  client: SupabaseClient
 ): Promise<string> {
   if (!fingerprintPipeline) {
     return incomingHash;
   }
 
   try {
-    const { data, error } = await supabase.rpc('find_similar_analysis_by_fingerprint', {
+    const { data, error } = await client.rpc('find_similar_analysis_by_fingerprint', {
       new_hash: incomingHash,
       new_pipeline: fingerprintPipeline,
       legacy_hashes: [],
@@ -435,7 +445,7 @@ function mapCacheHitResult(result: AnalysisCacheLookupRow): CacheHitResult {
     availability: result.availability || null,
   };
 
-  return { analysisResult, seoMetadata };
+  return { pHash: result.p_hash, analysisResult, seoMetadata };
 }
 
 async function findSimilarAnalysisByLegacyHashes(
@@ -621,14 +631,16 @@ export async function cacheAnalysisResult(
   imageUrl?: string,
   imageBlob?: Blob,
   options?: {
+    client?: SupabaseClient;
     triggerStudioEdit?: boolean;
     fingerprintPipeline?: string | null;
   }
-): Promise<{ slug: string; seo_title: string; price: number; original_image_url: string | null } | null> {
+): Promise<CacheWriteResult | null> {
   try {
     console.log('💾 Attempting to cache analysis result with pHash:', pHash);
+    const client = options?.client || (typeof window === 'undefined' ? publicSupabaseClient : supabase);
     const fingerprintPipeline = options?.fingerprintPipeline || null;
-    const resolvedPHash = await resolveExistingWriteHash(pHash, fingerprintPipeline);
+    const resolvedPHash = await resolveExistingWriteHash(pHash, fingerprintPipeline, client);
 
     if (resolvedPHash !== pHash) {
       console.log('🧭 Reusing existing cache row for near-identical server fingerprint:', {
@@ -700,7 +712,7 @@ export async function cacheAnalysisResult(
         const fileName = `${slug}.webp`;
         const filePath = `customizations/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await client.storage
           .from('cakegenie')
           .upload(filePath, webpBlob, {
             contentType: 'image/webp',
@@ -710,7 +722,7 @@ export async function cacheAnalysisResult(
         if (uploadError) {
           console.error('❌ Failed to upload image to Supabase storage:', uploadError);
         } else {
-          const { data: { publicUrl } } = supabase.storage
+          const { data: { publicUrl } } = client.storage
             .from('cakegenie')
             .getPublicUrl(filePath);
 
@@ -739,7 +751,7 @@ export async function cacheAnalysisResult(
     const tags = generateTagsForAnalysis(analysisResult, keywords, seoTitle, altText);
 
 
-    const { error } = await supabase
+    const { error } = await client
       .from('cakegenie_analysis_cache')
       .upsert({
         p_hash: resolvedPHash,
@@ -795,6 +807,7 @@ export async function cacheAnalysisResult(
       seo_title: seoTitle,
       price: totalPrice,
       original_image_url: finalImageUrl ?? null,
+      storedPHash: resolvedPHash,
     };
   } catch (err) {
     console.error('❌ Exception during cache write:', err);
