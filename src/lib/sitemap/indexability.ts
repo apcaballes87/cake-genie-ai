@@ -1,8 +1,6 @@
-import { unstable_cache } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
 import { upgradeLegacySlug } from '@/lib/utils/urlHelpers'
 
-export const SITEMAP_REVALIDATE_SECONDS = 86400
 export const SITEMAP_CHUNK_SIZE = 1000
 export const CUSTOMIZING_SITEMAP_MIN_AGE_DAYS = 7
 
@@ -209,46 +207,38 @@ async function fetchAllSharedDesignRows(): Promise<RawSharedDesignRow[]> {
   return data || []
 }
 
-export const getIndexableCustomizedCakeRows = unstable_cache(
-  async (): Promise<IndexableCustomizedCakeRow[]> => {
-    const seenSlugs = new Set<string>()
-    const rows = await fetchAllCustomizedCakeRows()
-    const results: IndexableCustomizedCakeRow[] = []
+export async function getIndexableCustomizedCakeRows(): Promise<IndexableCustomizedCakeRow[]> {
+  const seenSlugs = new Set<string>()
+  const rows = await fetchAllCustomizedCakeRows()
+  const results: IndexableCustomizedCakeRow[] = []
 
-    for (const row of rows) {
-      const candidate = toIndexableCustomizedCakeRow(row)
-      if (!candidate || seenSlugs.has(candidate.slug)) {
-        continue
-      }
-
-      seenSlugs.add(candidate.slug)
-      results.push(candidate)
+  for (const row of rows) {
+    const candidate = toIndexableCustomizedCakeRow(row)
+    if (!candidate || seenSlugs.has(candidate.slug)) {
+      continue
     }
 
-    return results
-  },
-  ['sitemap-indexable-customized-cakes-v1'],
-  { revalidate: SITEMAP_REVALIDATE_SECONDS },
-)
+    seenSlugs.add(candidate.slug)
+    results.push(candidate)
+  }
 
-export const getIndexableSharedDesignRows = unstable_cache(
-  async (): Promise<IndexableSharedDesignRow[]> => {
-    const seenSlugs = new Set<string>()
-    const rows = await fetchAllSharedDesignRows()
-    const results: IndexableSharedDesignRow[] = []
+  return results
+}
 
-    for (const row of rows) {
-      const candidate = toIndexableSharedDesignRow(row)
-      if (!candidate || seenSlugs.has(candidate.url_slug)) {
-        continue
-      }
+export async function getIndexableSharedDesignRows(): Promise<IndexableSharedDesignRow[]> {
+  const seenSlugs = new Set<string>()
+  const rows = await fetchAllSharedDesignRows()
+  const results: IndexableSharedDesignRow[] = []
 
-      seenSlugs.add(candidate.url_slug)
-      results.push(candidate)
+  for (const row of rows) {
+    const candidate = toIndexableSharedDesignRow(row)
+    if (!candidate || seenSlugs.has(candidate.url_slug)) {
+      continue
     }
 
-    return results
-  },
-  ['sitemap-indexable-shared-designs-v1'],
-  { revalidate: SITEMAP_REVALIDATE_SECONDS },
-)
+    seenSlugs.add(candidate.url_slug)
+    results.push(candidate)
+  }
+
+  return results
+}

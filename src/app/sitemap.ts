@@ -6,11 +6,9 @@ import {
     getIndexableCustomizedCakeRows,
     getIndexableSharedDesignRows,
     SITEMAP_CHUNK_SIZE,
-    SITEMAP_REVALIDATE_SECONDS,
 } from '@/lib/sitemap/indexability'
 
-// Cache the sitemaps for 24 hours to prevent Googlebot timeouts on cold starts
-export const revalidate = SITEMAP_REVALIDATE_SECONDS;
+export const dynamic = 'force-dynamic'
 
 /**
  * Sanitize URL for XML sitemap

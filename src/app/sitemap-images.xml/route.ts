@@ -2,11 +2,9 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import {
     getIndexableCustomizedCakeRows,
-    SITEMAP_REVALIDATE_SECONDS,
 } from '@/lib/sitemap/indexability';
 
-// Cache for 24 hours
-export const revalidate = SITEMAP_REVALIDATE_SECONDS;
+export const dynamic = 'force-dynamic';
 
 /** Site-wide license URL, matching the JSON-LD ImageObject on the slug page */
 const LICENSE_URL = 'https://genie.ph/terms';

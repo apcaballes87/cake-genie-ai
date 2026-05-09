@@ -5,11 +5,9 @@ import {
     getIndexableCustomizedCakeRows,
     getIndexableSharedDesignRows,
     SITEMAP_CHUNK_SIZE,
-    SITEMAP_REVALIDATE_SECONDS,
 } from '@/lib/sitemap/indexability';
 
-// Cache the sitemap index for 24 hours to prevent Googlebot timeouts
-export const revalidate = SITEMAP_REVALIDATE_SECONDS;
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
     const supabase = createClient(
