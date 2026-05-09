@@ -335,9 +335,10 @@ interface CustomizingClientProps {
     hideStepOne?: boolean;
     hideStepFour?: boolean;
     photoStepNode?: React.ReactNode;
+    enableMobileHeroPan?: boolean;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false, hideStickyBar = false, useBasePriceAsFallback = false, ediblePhotoAddonPrice = 0, separateIcingStep = false, hideBanner = false, hideStepOne = false, hideStepFour = false, photoStepNode = null }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false, hideStickyBar = false, useBasePriceAsFallback = false, ediblePhotoAddonPrice = 0, separateIcingStep = false, hideBanner = false, hideStepOne = false, hideStepFour = false, photoStepNode = null, enableMobileHeroPan = false }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const params = useParams();
@@ -483,7 +484,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setEditedImage, setError: setImageManagementError, setOriginalImageData, setPreviousImageData,
         handleImageUpload: hookImageUpload, handleSave, uploadCartImages, clearImages,
         loadImageWithoutAnalysis, setCurrentSlug, currentSlug: persistedSlug,
-        seoMetadata, isAnalysisCached,
+        currentPHash, seoMetadata, isAnalysisCached,
     } = useImageManagement();
 
 
@@ -2041,7 +2042,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         }
 
         try {
-            const pHash = analysisId || `design-${Date.now()}`;
+            const designPHash = currentPHash || product?.p_hash || recentSearchDesign?.p_hash || analysisId || `design-${Date.now()}`;
             let currentImageUrl = editedImage || originalImagePreview || '';
 
             if (currentImageUrl.startsWith('data:')) {
@@ -2082,12 +2083,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             };
 
             await toggleSaveDesign({
-                analysisPHash: pHash,
+                analysisPHash: designPHash,
                 customizationSnapshot,
                 customizedImageUrl: currentImageUrl,
             });
 
-            const wasSaved = isDesignSaved(pHash);
+            const wasSaved = isDesignSaved(designPHash);
             showSuccess(wasSaved ? 'Removed from saved' : 'Design saved!');
         } catch (err) {
             showError('Failed to save design. Please try again.');
@@ -2095,6 +2096,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, [
         additionalInstructions,
         analysisId,
+        currentPHash,
         cakeInfo?.flavors,
         cakeMessages,
         editedImage,
@@ -2103,6 +2105,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         isDesignSaved,
         mainToppers,
         originalImagePreview,
+        product?.p_hash,
+        recentSearchDesign?.p_hash,
         router,
         supportElements,
         toggleSaveDesign,
@@ -2927,7 +2931,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             heroImageAlt={product?.alt_text || (product ? `${product.title} - Custom cake${merchant ? ` from ${merchant.business_name}` : ''}` : (activeTab === 'customized' && editedImage ? 'Customized Cake Design - Genie.ph' : (recentSearchRichAlt || recentSearchDesign?.alt_text || recentSearchDesign?.keywords || 'Custom Cake Design - Browse Birthday, Wedding & Character Cakes in Cebu')))}
                             heroImageTitle={pageDisplayTitle || recentSearchRichAlt || (activeTab === 'customized' && editedImage ? 'Edited Cake' : 'Original Cake')}
                             showSaveDesignButton={Boolean(originalImagePreview && analysisResult)}
-                            isCurrentDesignSaved={isDesignSaved(analysisId || '')}
+                            isCurrentDesignSaved={isDesignSaved(currentPHash || product?.p_hash || recentSearchDesign?.p_hash || analysisId || '')}
                             canUndo={canUndo}
                             isLoading={isLoading}
                             isReporting={isReporting}
@@ -2935,6 +2939,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             showFooterActions={Boolean(cakeInfo || analysisError)}
                             showPriceGuarantee={finalPrice !== null && !isAnalyzing}
                             isCombining={isCombining}
+                            enableMobileHeroPan={enableMobileHeroPan}
                             onOriginalTabSelect={() => setActiveTab('original')}
                             onCustomizedTabSelect={handleCustomizedTabClick}
                             onToggleSaveDesign={handleToggleSavedDesign}

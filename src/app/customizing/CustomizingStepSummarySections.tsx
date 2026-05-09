@@ -307,6 +307,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     }, [cakeInfo?.thickness]);
 
     const isDesktop = layout === 'desktop';
+    const cakeType = cakeInfo?.type?.toLowerCase() || '';
+    const isTieredFlavorLayout = cakeType.includes('2 tier') || cakeType.includes('3 tier');
     const containerClassName = isDesktop
         ? 'w-full hidden md:flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden gap-2 pb-6 md:pb-4 scrollbar-hide snap-x md:snap-none relative z-60'
         : 'w-full mt-0 flex flex-col gap-2 pb-4 md:hidden';
@@ -316,6 +318,77 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     const itemsClassName = isDesktop ? 'flex gap-[7px] pt-1 pb-1 w-max md:w-full flex-wrap' : 'flex gap-[7px] pt-1 pb-1 w-full flex-wrap';
     const stepOneItemsViewportClassName = 'w-full overflow-x-auto overflow-y-hidden scrollbar-hide';
     const stepOneItemsClassName = 'flex gap-2.5 pt-1 pb-2 w-max min-w-max flex-nowrap snap-x snap-mandatory';
+    const renderFlavorOptions = (currentFlavor: string, index: number, tieredRow = false) => {
+        const currentFlavors = cakeInfo?.flavors ?? [];
+        const currentCakeType = cakeInfo?.type ?? '';
+        const rowClassName = tieredRow
+            ? 'flex flex-nowrap overflow-x-auto gap-1.5 pt-1 pl-1 pr-1 pb-1 scrollbar-hide'
+            : 'flex flex-wrap gap-1.5';
+        const buttonClassName = tieredRow
+            ? 'shrink-0 min-h-[37px] min-w-[92px] flex items-center justify-center px-2 rounded-xl border transition-all duration-300 shadow-sm'
+            : 'min-h-[37px] min-w-[90px] flex-1 flex items-center justify-center px-3 py-1 rounded-xl border transition-all duration-300 shadow-sm';
+
+        return (
+            <div key={index} className="flex flex-col gap-1">
+                {currentFlavors.length > 1 && (
+                    <span className="text-[9px] font-medium text-slate-500 uppercase">{getStepOneFlavorLabel(index, currentFlavors.length)}</span>
+                )}
+                <div className={rowClassName}>
+                    {FLAVOR_OPTIONS.map((flavor) => {
+                        const isSelected = currentFlavor === flavor;
+
+                        const isBento = currentCakeType === 'Bento';
+                        const normType = currentCakeType.toLowerCase();
+                        const isStandardOrMulti = normType.includes('1 tier') ||
+                                                    normType.includes('2 tier') ||
+                                                    normType.includes('3 tier') ||
+                                                    normType.includes('square') ||
+                                                    normType.includes('rectangle');
+
+                        let isDisabled = false;
+                        if (isBento) {
+                            isDisabled = flavor !== 'Chocolate Cake';
+                        } else if (isStandardOrMulti) {
+                            isDisabled = flavor === 'Mocha Cake';
+                        }
+
+                        const flavorStyles: Record<string, { bg: string, border: string, text: string }> = {
+                            'Chocolate Cake': { bg: 'bg-[#fdf0d5]', border: 'border-[#f2cc8f]', text: 'text-[#78350f]' },
+                            'Ube Cake': { bg: 'bg-[#faf5ff]', border: 'border-[#e9d5ff]', text: 'text-[#7e22ce]' },
+                            'Vanilla Cake': { bg: 'bg-[#fffbeb]', border: 'border-[#fef3c7]', text: 'text-[#92400e]' },
+                            'Mocha Cake': { bg: 'bg-[#faf3e0]', border: 'border-[#e6ccb2]', text: 'text-[#9c6644]' },
+                        };
+
+                        const style = flavorStyles[flavor] || {
+                            bg: 'bg-white', border: 'border-slate-100', text: 'text-slate-600'
+                        };
+
+                        return (
+                            <button
+                                key={flavor}
+                                disabled={isDisabled}
+                            onClick={() => {
+                                if (isDisabled) return;
+                                    const newFlavors = [...currentFlavors];
+                                    newFlavors[index] = flavor;
+                                    onCakeInfoChange?.({ flavors: newFlavors });
+                                }}
+                                className={`${buttonClassName} ${
+                                    isDisabled
+                                        ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed opacity-50 grayscale'
+                                        : isSelected
+                                            ? 'genie-control-selected text-purple-700 scale-[1.02]'
+                                            : `${style.bg} ${style.border} ${style.text} opacity-80 hover:opacity-100 hover:scale-[1.02]`
+                                }`}
+                            >
+                                <span className="text-[9px] font-bold text-center leading-none uppercase tracking-tighter">{flavor.replace(' Cake', '')}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
 
     // Auto-correct flavors based on cake type restrictions
     React.useEffect(() => {
@@ -350,16 +423,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
             onCakeInfoChange({ flavors: newFlavors }, { isSystemCorrection: true });
         }
     }, [cakeInfo?.type, cakeInfo?.flavors, onCakeInfoChange]);
-
-    // Dynamic Step Numbering
-    let currentStep = 1;
-    const stepOneNumber = !hideStepOne ? currentStep++ : null;
-    const icingStepNumber = (separateIcingStep && cakeInfo) ? currentStep++ : null;
-    const photoStepNumber = photoStepNode ? currentStep++ : null;
-    const colorStepNumber = currentStep++;
-    const messageStepNumber = currentStep++;
-    const topperStepNumber = showAdvanced && !hideStepFour ? currentStep++ : null;
-    const aiChatStepNumber = showAdvanced ? currentStep++ : null;
 
     const combinedDecorItems = getCombinedDecorItems(mainToppers, supportElements);
     const combinedDecorSummary = buildCombinedDecorSummary(mainToppers, supportElements);
@@ -405,8 +468,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                     ref={stepOneCardRef} 
                     className={`${cardClassName} relative z-10`}
                 >
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-1.5 px-1">Step {stepOneNumber}: Cake Options</h3>
-                    
                     <div className="flex flex-col gap-2 px-1 pb-2">
                         {/* Line 1: Icing Type */}
                         <div className="flex flex-col gap-1">
@@ -421,13 +482,13 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         <button
                                             key={option.id}
                                             onClick={() => onIcingTypeChange?.(option.id as any)}
-                                            className={`flex-1 min-h-[49px] flex items-center justify-center p-2.5 rounded-xl border transition-all duration-300 ${
+                                            className={`flex-1 min-h-[32px] flex items-center justify-center px-2.5 py-0.5 rounded-xl border transition-all duration-300 ${
                                                 isSelected 
                                                     ? 'genie-control-selected text-purple-700 scale-[1.02]' 
                                                     : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-200 hover:bg-slate-100/50'
                                             }`}
                                         >
-                                            <span className="text-[12px] font-bold">{option.label}</span>
+                                            <span className="text-[9px] font-bold">{option.label}</span>
                                         </button>
                                     );
                                 })}
@@ -462,13 +523,13 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                             <button
                                                 key={type}
                                                 onClick={() => onCakeInfoChange?.({ type })}
-                                                className={`min-h-[49px] min-w-[90px] flex-1 flex items-center justify-center px-4 rounded-xl border transition-all duration-300 ${
+                                                className={`min-h-[32px] min-w-[90px] flex-1 flex items-center justify-center px-2 rounded-xl border transition-all duration-300 ${
                                                     isSelected 
                                                         ? 'genie-control-selected text-purple-700 scale-[1.02]' 
                                                         : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-200 hover:bg-slate-100/50'
                                                 }`}
                                             >
-                                                <span className="text-[12px] font-bold text-center leading-none whitespace-nowrap">{type}</span>
+                                                <span className="text-[9px] font-bold text-center leading-none whitespace-nowrap">{type}</span>
                                             </button>
                                         );
                                     });
@@ -522,80 +583,21 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             );
                         })()}
 
-                        {/* Flavor, Size, and Height 2-Column Container */}
-                        <div className="flex flex-row gap-4 w-full mt-2 bg-transparent">
-                            {/* Left Column (25% - Flavor) */}
-                            <div className="flex-[1] min-w-0 flex flex-col gap-4">
-                                {/* Line 3: Flavor */}
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Flavor</span>
-                                    <div className="flex flex-col gap-2">
-                                        {cakeInfo.flavors.map((currentFlavor, index) => (
-                                            <div key={index} className="flex flex-col gap-1">
-                                                {cakeInfo.flavors.length > 1 && (
-                                                    <span className="text-[9px] font-medium text-slate-500 uppercase">{getStepOneFlavorLabel(index, cakeInfo.flavors.length)}</span>
-                                                )}
-                                                <div className="flex flex-wrap gap-1.5">
-                                                    {FLAVOR_OPTIONS.map((flavor) => {
-                                                        const isSelected = currentFlavor === flavor;
-                                                        
-                                                        const isBento = cakeInfo.type === 'Bento';
-                                                        const normType = cakeInfo.type.toLowerCase();
-                                                        const isStandardOrMulti = normType.includes('1 tier') || 
-                                                                                    normType.includes('2 tier') || 
-                                                                                    normType.includes('3 tier') || 
-                                                                                    normType.includes('square') || 
-                                                                                    normType.includes('rectangle');
-
-                                                        let isDisabled = false;
-                                                        if (isBento) {
-                                                            isDisabled = flavor !== 'Chocolate Cake';
-                                                        } else if (isStandardOrMulti) {
-                                                            isDisabled = flavor === 'Mocha Cake';
-                                                        }
-
-                                                        const flavorStyles: Record<string, { bg: string, border: string, text: string }> = {
-                                                            'Chocolate Cake': { bg: 'bg-[#fdf0d5]', border: 'border-[#f2cc8f]', text: 'text-[#78350f]' },
-                                                            'Ube Cake': { bg: 'bg-[#faf5ff]', border: 'border-[#e9d5ff]', text: 'text-[#7e22ce]' },
-                                                            'Vanilla Cake': { bg: 'bg-[#fffbeb]', border: 'border-[#fef3c7]', text: 'text-[#92400e]' },
-                                                            'Mocha Cake': { bg: 'bg-[#faf3e0]', border: 'border-[#e6ccb2]', text: 'text-[#9c6644]' },
-                                                        };
-
-                                                        const style = flavorStyles[flavor] || { 
-                                                            bg: 'bg-white', border: 'border-slate-100', text: 'text-slate-600'
-                                                        };
-
-                                                        return (
-                                                            <button
-                                                                key={flavor}
-                                                                disabled={isDisabled}
-                                                                onClick={() => {
-                                                                    if (isDisabled) return;
-                                                                    const newFlavors = [...cakeInfo.flavors];
-                                                                    newFlavors[index] = flavor;
-                                                                    onCakeInfoChange?.({ flavors: newFlavors });
-                                                                }}
-                                                                className={`min-h-[46px] min-w-[90px] flex-1 flex items-center justify-center px-3 rounded-xl border transition-all duration-300 shadow-sm ${
-                                                                    isDisabled
-                                                                        ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed opacity-50 grayscale'
-                                                                        : isSelected 
-                                                                            ? 'genie-control-selected text-purple-700 scale-[1.02]' 
-                                                                            : `${style.bg} ${style.border} ${style.text} opacity-80 hover:opacity-100 hover:scale-[1.02]`
-                                                                }`}
-                                                            >
-                                                                <span className="text-[10px] font-bold text-center leading-none uppercase tracking-tighter">{flavor.replace(' Cake', '')}</span>
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        ))}
+                        {/* Size, Height, and Flavor Container */}
+                        <div className={isTieredFlavorLayout ? 'flex flex-col gap-4 w-full mt-2 bg-transparent' : 'flex flex-row gap-4 w-full mt-2 bg-transparent'}>
+                            {!isTieredFlavorLayout ? (
+                                <div className="flex-[1] min-w-0 flex flex-col gap-4">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Flavor</span>
+                                        <div className="flex flex-col gap-2">
+                                            {cakeInfo.flavors.map((currentFlavor, index) => renderFlavorOptions(currentFlavor, index, false))}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            ) : null}
 
-                            {/* Right Column (75% - Size and Height) */}
-                            <div className="flex-[3] min-w-0 border-l border-slate-100 pl-4 flex flex-col gap-2">
+                            {/* Size and Height */}
+                            <div className={isTieredFlavorLayout ? 'flex-1 min-w-0 flex flex-col gap-2' : 'flex-[3] min-w-0 border-l border-slate-100 pl-4 flex flex-col gap-2'}>
                                 {/* Line 4: Size */}
                                 {basePriceOptions && basePriceOptions.length > 0 && (
                                     <div className="flex flex-col gap-1">
@@ -640,8 +642,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                                     : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-300 hover:bg-slate-100/50 hover:scale-105'
                                                             }`}
                                                         >
-                                                            <span className="text-[11px] font-extrabold text-center leading-none px-1 uppercase tracking-tight">{option.size.replace(' Round', '').replace(' FONDANT', '')}</span>
-                                                            <span className={`text-[10px] font-bold mt-1 ${isSelected ? 'text-purple-600' : 'text-slate-400 group-hover:text-purple-400'}`}>
+                                                            <span className="text-[9px] font-extrabold text-center leading-none px-1 uppercase tracking-tight">{option.size.replace(' Round', '').replace(' FONDANT', '')}</span>
+                                                            <span className={`text-[9px] font-bold mt-1 ${isSelected ? 'text-purple-600' : 'text-slate-400 group-hover:text-purple-400'}`}>
                                                                 ₱{totalPrice.toLocaleString()}
                                                             </span>
                                                         </button>
@@ -693,7 +695,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                                 : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-300 hover:bg-slate-100/50 hover:scale-105'
                                                         }`}
                                                     >
-                                                        <span className={`text-[10px] font-black ${isSelected ? 'text-purple-600' : 'text-slate-600 group-hover:text-purple-300'} transition-colors`}>
+                                                        <span className={`text-[9px] font-black ${isSelected ? 'text-purple-600' : 'text-slate-600 group-hover:text-purple-300'} transition-colors`}>
                                                             {heightValue}"
                                                         </span>
                                                     </div>
@@ -703,6 +705,16 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Multi-tier Flavor Rows */}
+                            {isTieredFlavorLayout ? (
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Flavor</span>
+                                    <div className="flex flex-col gap-2">
+                                        {cakeInfo.flavors.map((currentFlavor, index) => renderFlavorOptions(currentFlavor, index, true))}
+                                    </div>
+                                </div>
+                            ) : null}
                         </div>
 
                     </div>
@@ -713,7 +725,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
             {cakeInfo && !isAnalyzing && !isRejectionError && (
                 separateIcingStep ? (
                     <div className={cardClassName}>
-                        <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {icingStepNumber}: Icing Colors</h3>
                         <div className={itemsClassName}>
                             {icingSummaryItems}
                         </div>
@@ -723,14 +734,12 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
             {cakeInfo && !isAnalyzing && !isRejectionError && photoStepNode && (
                 <div className={cardClassName}>
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {photoStepNumber}: Upload Your Photo</h3>
                     {photoStepNode}
                 </div>
             )}
 
             {cakeInfo && !isAnalyzing && !isRejectionError && (
                 <div className={cardClassName}>
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {colorStepNumber}: Color Themes</h3>
                     <div className="flex items-center gap-4 px-1 pb-2">
                         {/* Current Main Color */}
                         <div className="flex flex-col items-center gap-1.5 shrink-0">
@@ -797,7 +806,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
             {cakeInfo && !isAnalyzing && !isRejectionError && (
                 <div className={cardClassName}>
-                    <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {messageStepNumber}: Cake Messages</h3>
                     {cakeMessages.length > 0 ? (
                         <div className="flex flex-col gap-2">
                             {cakeMessages.map((message, index) => (
@@ -897,7 +905,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
             >
                 {cakeInfo && !isAnalyzing && !isRejectionError && !hideStepFour && (
                     <div className={cardClassName}>
-                        <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {topperStepNumber}: Cake Decorations</h3>
                         {combinedDecorItems.length > 0 ? (
                             <div className="space-y-2">
                                 {combinedDecorItems.slice(0, 3).map((item) => (
@@ -968,7 +975,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
                 {cakeInfo && !isAnalyzing && !isRejectionError && aiChatNode && (
                     <div className={cardClassName}>
-                        <h3 className="text-[13px] font-semibold text-slate-800 mb-2 px-1">Step {aiChatStepNumber}: AI Customization Help</h3>
                         <div className="mt-1">
                             {aiChatNode}
                         </div>
