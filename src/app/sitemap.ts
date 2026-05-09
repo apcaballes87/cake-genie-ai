@@ -211,6 +211,7 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
             '/blog',
             '/about',
             '/cake-price-calculator',
+            '/chatgpt-cake-design-quote',
             '/mothersdaycakes',
             '/faq',
             '/how-to-order',
