@@ -408,7 +408,7 @@ async function resolveExistingWriteHash(
     const distance = getHexHashHammingDistance(incomingHash, matchedHash);
 
     // Only collapse writes when the canonical match is effectively the same
-    // fingerprint. This avoids rewriting genuinely similar but distinct cakes.
+    // fingerprint under our two-bit tolerance rule.
     if (distance !== null && distance <= WRITE_TIME_DUPLICATE_DISTANCE_THRESHOLD) {
       return matchedHash;
     }

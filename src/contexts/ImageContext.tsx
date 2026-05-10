@@ -477,17 +477,10 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                                 cachedAnalysis
                             );
 
-                            // Better Process: Only update image if it's missing in cache
-                            const blobToPass = cacheHit.seoMetadata.original_image_url ? undefined : bgBlob;
-
-                            if (pHash) {
-                                const cacheWrite = await cacheAnalysisResult(pHash, enrichedResult, undefined, blobToPass, {
-                                    fingerprintPipeline: fingerprint.pipeline,
-                                });
-                                if (cacheWrite) {
-                                    setCurrentPHash(cacheWrite.storedPHash);
-                                }
-                            }
+                            // On a confirmed cache hit, keep enrichment in-memory only.
+                            // Rewriting through cacheAnalysisResult() can split the hit into
+                            // a second row when the incoming fingerprint is "similar enough"
+                            // for lookup but not strict enough for write-time dedupe.
                             setIsAnalysisCached(true);
 
                             // Notify UI of enriched coordinates

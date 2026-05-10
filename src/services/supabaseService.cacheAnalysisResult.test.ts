@@ -157,4 +157,45 @@ describe('cacheAnalysisResult', () => {
       })
     );
   });
+
+  it('does not collapse writes when the matched hash is more than two bits away', async () => {
+    rpcMock.mockResolvedValue({
+      data: [{ p_hash: '0000000000000000' }],
+      error: null,
+    });
+
+    const { cacheAnalysisResult } = await import('./supabaseService');
+
+    const result = await cacheAnalysisResult(
+      '0000000000000007',
+      {
+        cakeType: 'Bento',
+        cakeThickness: '4 in',
+        keyword: 'separate-design',
+        icing_design: {
+          base: 'soft_icing',
+          colors: { top: 'white', side: 'white' },
+        },
+        main_toppers: [],
+        support_elements: [],
+        cake_messages: [],
+      } as unknown as HybridAnalysisResult,
+      'https://example.com/separate.webp',
+      undefined,
+      {
+        fingerprintPipeline: 'v1-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-ahash8',
+        triggerStudioEdit: false,
+      }
+    );
+
+    expect(result?.storedPHash).toBe('0000000000000007');
+    expect(upsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        p_hash: '0000000000000007',
+      }),
+      expect.objectContaining({
+        onConflict: 'p_hash',
+      })
+    );
+  });
 });
