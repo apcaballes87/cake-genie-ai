@@ -31,7 +31,8 @@ describe('imageStudio helpers', () => {
     expect(prompt).toContain('fresh ecommerce product photoshoot');
     expect(prompt).toContain('seamless light pastel purple cyclorama studio set');
     expect(prompt).toContain('Output a photorealistic, high-resolution bakery catalog image');
-    expect(prompt).toContain('exact same aspect ratio and dimensions');
+    expect(prompt).toContain('1:1 square aspect ratio');
+    expect(prompt).toContain('final image is perfectly square');
   });
 
   it('builds a system instruction that prioritizes a real product photo result', () => {

@@ -67,7 +67,7 @@ export function buildImageStudioPrompt(brandLabel: string = 'genie.ph'): string 
     'Keep the cake design, decorations, topper placement, writing, shape, board, and proportions faithful to the source cake.',
     'If the cake subject is cut off, partially out of frame, or covers 90-100% of the source, zoom out or extend the scene so the entire cake is fully visible with breathing room and occupies approximately 70-80% of the frame. Otherwise, recompose it as a natural centered hero product shot instead of preserving a screenshot-like crop.',
     'Do not add props, flowers, ribbons, hands, extra cake decorations, text, UI elements, or watermarks.',
-    'Output a photorealistic, high-resolution bakery catalog image in the exact same aspect ratio and dimensions as the original.',
+    'Output a photorealistic, high-resolution bakery catalog image in a 1:1 square aspect ratio. Reframe, expand, or extend the scene as needed so the final image is perfectly square while keeping the full cake comfortably visible.',
   ].join(' ');
 }
 
