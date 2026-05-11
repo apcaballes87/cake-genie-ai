@@ -218,8 +218,8 @@ export const CustomizingHeroPanel = memo(({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [heroImageModal]);
 
-    const renderMobileScrollableImage = (src: string, alt: string, title: string, caption?: string) => (
-        <div className="absolute inset-0 md:hidden">
+    const renderScrollableImage = (src: string, alt: string, title: string, caption?: string) => (
+        <div className="absolute inset-0">
             <div className="relative h-full w-full">
                 <div
                     ref={mobileHeroScrollRef}
@@ -287,16 +287,11 @@ export const CustomizingHeroPanel = memo(({
                 <div className="grow">
                     <div
                         className={enableMobileHeroPan
-                            ? 'relative w-full aspect-[5/4] md:[aspect-ratio:var(--hero-image-ratio)] md:min-h-[400px] rounded-3xl overflow-hidden touch-none md:touch-auto overscroll-contain'
+                            ? 'relative w-full aspect-[5/4] md:aspect-[2/3] md:min-h-[400px] rounded-3xl overflow-hidden touch-none md:touch-auto overscroll-contain'
                             : 'relative w-full min-h-[270px] md:min-h-[400px] rounded-3xl overflow-hidden'
                         }
                         onContextMenu={(event) => event.preventDefault()}
-                        style={enableMobileHeroPan
-                            ? {
-                                ['--hero-image-ratio' as string]: heroImageRatio,
-                            }
-                            : { aspectRatio: heroImageRatio }
-                        }
+                        style={enableMobileHeroPan ? undefined : { aspectRatio: heroImageRatio }}
                     >
                         {isCombining ? (
                             <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
@@ -331,15 +326,15 @@ export const CustomizingHeroPanel = memo(({
                         {enableMobileHeroPan ? (
                             <>
                                 {!originalImagePreview && preloadedHeroImage ? (
-                                    renderMobileScrollableImage(preloadedHeroImage, 'Loading cake design...', 'Loading your cake design', isAnalyzing ? 'Analyzing your design...' : undefined)
+                                    renderScrollableImage(preloadedHeroImage, 'Loading cake design...', 'Loading your cake design', isAnalyzing ? 'Analyzing your design...' : undefined)
                                 ) : null}
 
                                 {!originalImagePreview && fallbackImageUrl ? (
-                                    renderMobileScrollableImage(fallbackImageUrl, fallbackImageAlt, fallbackImageTitle, initialCaption || undefined)
+                                    renderScrollableImage(fallbackImageUrl, fallbackImageAlt, fallbackImageTitle, initialCaption || undefined)
                                 ) : null}
 
                                 {originalImagePreview ? (
-                                    renderMobileScrollableImage(
+                                    renderScrollableImage(
                                         heroDisplaySrc,
                                         heroImageAlt,
                                         heroDisplayTitle,
