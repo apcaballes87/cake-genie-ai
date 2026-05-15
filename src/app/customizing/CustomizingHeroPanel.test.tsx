@@ -184,7 +184,7 @@ describe('CustomizingHeroPanel', () => {
         scrollToMock.mockClear();
 
         render(<CustomizingHeroPanel {...props} />);
-        fireEvent.load(screen.getByRole('img', { name: 'Hero cake' }));
+        fireEvent.load(screen.getAllByRole('img', { name: 'Hero cake' })[0]);
 
         vi.advanceTimersByTime(500);
 

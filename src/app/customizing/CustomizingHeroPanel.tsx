@@ -132,7 +132,6 @@ export const CustomizingHeroPanel = memo(({
     const [heroImageModal, setHeroImageModal] = useState<{ src: string; alt: string; title: string } | null>(null);
     const mobileHeroScrollRef = useRef<HTMLDivElement | null>(null);
     const mobileHeroIntroPlayedRef = useRef(false);
-    const desktopHeroImageClassName = 'object-contain md:object-cover rounded-3xl cursor-zoom-in';
     const heroDisplaySrc = activeTab === 'customized'
         ? (editedImage || originalImagePreview || preloadedHeroImage || fallbackImageUrl || '')
         : (originalImagePreview || preloadedHeroImage || fallbackImageUrl || '');
@@ -254,6 +253,25 @@ export const CustomizingHeroPanel = memo(({
         </div>
     );
 
+    const renderStaticImage = (src: string, alt: string, title: string, caption?: string) => (
+        <figure className="relative w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element -- Desktop hero should size naturally to the source image aspect ratio. */}
+            <img
+                src={src}
+                alt={alt}
+                title={title}
+                className="block w-full h-auto rounded-3xl cursor-zoom-in"
+                onClick={() => openHeroImageModal(src, alt, title)}
+                onLoad={imageOnLoad}
+            />
+            {caption ? (
+                <figcaption className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
+                    {caption}
+                </figcaption>
+            ) : null}
+        </figure>
+    );
+
     return (
         <div className="w-full flex flex-col gap-1">
             {/* Tabs above the image container */}
@@ -288,7 +306,7 @@ export const CustomizingHeroPanel = memo(({
                 <div className="grow">
                     <div
                         className={enableMobileHeroPan
-                            ? 'relative w-full aspect-[5/4] md:aspect-[4/5] md:min-h-[400px] rounded-3xl overflow-hidden touch-none md:touch-auto overscroll-contain'
+                            ? 'relative w-full aspect-[5/4] md:aspect-auto md:min-h-0 rounded-3xl overflow-hidden touch-none md:touch-auto overscroll-contain'
                             : 'relative w-full min-h-[270px] md:min-h-[400px] rounded-3xl overflow-hidden'
                         }
                         onContextMenu={(event) => event.preventDefault()}
@@ -327,20 +345,46 @@ export const CustomizingHeroPanel = memo(({
                         {enableMobileHeroPan ? (
                             <>
                                 {!originalImagePreview && preloadedHeroImage ? (
-                                    renderScrollableImage(preloadedHeroImage, 'Loading cake design...', 'Loading your cake design', isAnalyzing ? 'Analyzing your design...' : undefined)
+                                    <>
+                                        <div className="md:hidden">
+                                            {renderScrollableImage(preloadedHeroImage, 'Loading cake design...', 'Loading your cake design', isAnalyzing ? 'Analyzing your design...' : undefined)}
+                                        </div>
+                                        <div className="hidden md:block">
+                                            {renderStaticImage(preloadedHeroImage, 'Loading cake design...', 'Loading your cake design', isAnalyzing ? 'Analyzing your design...' : undefined)}
+                                        </div>
+                                    </>
                                 ) : null}
 
                                 {!originalImagePreview && fallbackImageUrl ? (
-                                    renderScrollableImage(fallbackImageUrl, fallbackImageAlt, fallbackImageTitle, initialCaption || undefined)
+                                    <>
+                                        <div className="md:hidden">
+                                            {renderScrollableImage(fallbackImageUrl, fallbackImageAlt, fallbackImageTitle, initialCaption || undefined)}
+                                        </div>
+                                        <div className="hidden md:block">
+                                            {renderStaticImage(fallbackImageUrl, fallbackImageAlt, fallbackImageTitle, initialCaption || undefined)}
+                                        </div>
+                                    </>
                                 ) : null}
 
                                 {originalImagePreview ? (
-                                    renderScrollableImage(
-                                        heroDisplaySrc,
-                                        heroImageAlt,
-                                        heroDisplayTitle,
-                                        undefined,
-                                    )
+                                    <>
+                                        <div className="md:hidden">
+                                            {renderScrollableImage(
+                                                heroDisplaySrc,
+                                                heroImageAlt,
+                                                heroDisplayTitle,
+                                                undefined,
+                                            )}
+                                        </div>
+                                        <div className="hidden md:block">
+                                            {renderStaticImage(
+                                                heroDisplaySrc,
+                                                heroImageAlt,
+                                                heroDisplayTitle,
+                                                undefined,
+                                            )}
+                                        </div>
+                                    </>
                                 ) : null}
                             </>
                         ) : (
@@ -353,7 +397,7 @@ export const CustomizingHeroPanel = memo(({
                                             title="Loading your cake design"
                                             fill
                                             sizes="(max-width: 768px) 100vw, 50vw"
-                                            imageClassName={desktopHeroImageClassName}
+                                            imageClassName="object-contain rounded-3xl cursor-zoom-in"
                                             priority
                                             fetchPriority="high"
                                             decoding="async"
@@ -377,7 +421,7 @@ export const CustomizingHeroPanel = memo(({
                                             title={fallbackImageTitle}
                                             fill
                                             sizes="(max-width: 768px) 100vw, 50vw"
-                                            imageClassName={desktopHeroImageClassName}
+                                            imageClassName="object-contain rounded-3xl cursor-zoom-in"
                                             priority
                                             fetchPriority="high"
                                             decoding="async"
@@ -401,7 +445,7 @@ export const CustomizingHeroPanel = memo(({
                                         title={heroImageTitle}
                                         fill
                                         sizes="(max-width: 768px) 100vw, 50vw"
-                                        imageClassName={desktopHeroImageClassName}
+                                        imageClassName="object-contain rounded-3xl cursor-zoom-in"
                                         priority
                                         fetchPriority="high"
                                         decoding="async"
