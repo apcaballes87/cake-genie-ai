@@ -132,6 +132,7 @@ export const CustomizingHeroPanel = memo(({
     const [heroImageModal, setHeroImageModal] = useState<{ src: string; alt: string; title: string } | null>(null);
     const mobileHeroScrollRef = useRef<HTMLDivElement | null>(null);
     const mobileHeroIntroPlayedRef = useRef(false);
+    const desktopHeroImageClassName = 'object-contain md:object-cover rounded-3xl cursor-zoom-in';
     const heroDisplaySrc = activeTab === 'customized'
         ? (editedImage || originalImagePreview || preloadedHeroImage || fallbackImageUrl || '')
         : (originalImagePreview || preloadedHeroImage || fallbackImageUrl || '');
@@ -352,7 +353,7 @@ export const CustomizingHeroPanel = memo(({
                                             title="Loading your cake design"
                                             fill
                                             sizes="(max-width: 768px) 100vw, 50vw"
-                                            imageClassName="object-contain rounded-3xl cursor-zoom-in"
+                                            imageClassName={desktopHeroImageClassName}
                                             priority
                                             fetchPriority="high"
                                             decoding="async"
@@ -376,7 +377,7 @@ export const CustomizingHeroPanel = memo(({
                                             title={fallbackImageTitle}
                                             fill
                                             sizes="(max-width: 768px) 100vw, 50vw"
-                                            imageClassName="object-contain rounded-3xl cursor-zoom-in"
+                                            imageClassName={desktopHeroImageClassName}
                                             priority
                                             fetchPriority="high"
                                             decoding="async"
@@ -400,7 +401,7 @@ export const CustomizingHeroPanel = memo(({
                                         title={heroImageTitle}
                                         fill
                                         sizes="(max-width: 768px) 100vw, 50vw"
-                                        imageClassName="object-contain rounded-3xl cursor-zoom-in"
+                                        imageClassName={desktopHeroImageClassName}
                                         priority
                                         fetchPriority="high"
                                         decoding="async"
