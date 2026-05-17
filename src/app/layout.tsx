@@ -11,7 +11,6 @@ import FloatingChatBubble from '@/components/FloatingChatBubble'
 import ErrorLogger from '@/components/ErrorLogger'
 
 const inter = Inter({ subsets: ['latin'], display: 'optional' })
-const faviconUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/favicon48x48.png'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -64,17 +63,6 @@ export const metadata: Metadata = {
         alt: 'Genie.ph | Online Marketplace for Custom Cakes',
       },
     ],
-  },
-  icons: {
-    icon: [
-      {
-        url: faviconUrl,
-        type: 'image/png',
-        sizes: '48x48',
-      },
-    ],
-    shortcut: [faviconUrl],
-    apple: [faviconUrl],
   },
   other: {
     'p:domain_verify': '0a26251bc18b086ea69d8022ef9eeb05',

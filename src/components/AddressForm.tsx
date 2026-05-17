@@ -17,20 +17,22 @@ declare const google: any;
 // --- Static Map Component ---
 export const StaticMap: React.FC<{ latitude: number; longitude: number }> = ({ latitude, longitude }) => {
     if (!GOOGLE_MAPS_API_KEY || !latitude || !longitude) return null;
-    const imageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=15&size=300x150&markers=color:0xf472b6%7C${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`;
+    const imageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=15&size=640x320&scale=2&maptype=roadmap&markers=color:0xf472b6%7C${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`;
     const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
     return (
         <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="block mt-4 rounded-lg overflow-hidden border border-purple-100 hover:border-purple-300 hover:shadow-md transition-all group">
-            <LazyImage 
-                src={imageUrl} 
-                alt="Map location" 
-                width={300} 
-                height={150} 
-                className="w-full h-auto object-cover" 
-                onError={(e) => {
+            <div className="relative w-full aspect-[2/1] min-h-[180px] bg-purple-50">
+                <LazyImage
+                    src={imageUrl}
+                    alt="Map location"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 720px"
+                    imageClassName="object-cover"
+                    onError={(e) => {
                     // Log or handle specific map loading error if needed
-                }}
-            />
+                    }}
+                />
+            </div>
             <div className="flex flex-col items-center justify-center gap-1.5 py-2 bg-purple-50/60 group-hover:bg-purple-50 transition-colors">
                 <div className="flex items-center gap-1.5">
                     <MapPin className="w-3 h-3 genie-icon" />
