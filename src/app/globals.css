@@ -220,6 +220,13 @@
   /* Firefox */
 }
 
+body.genie-image-zoom-open [data-customizing-topbar],
+body.genie-image-zoom-open [data-sticky-add-to-cart-bar] {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 /* --- Progress Bar Animation --- */
 .progress-bar-fill {
   width: 0%;
@@ -927,4 +934,3 @@ div.gs-image-box div.gs-image {
     background-position: 200% 0;
   }
 }
-

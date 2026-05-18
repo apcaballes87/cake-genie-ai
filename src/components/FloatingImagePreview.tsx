@@ -1,7 +1,6 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
-import { MagicSparkleIcon, Loader2 } from './icons';
 import { HybridAnalysisResult } from '@/types';
 import { ImageZoomModal } from './ImageZoomModal';
 import LazyImage from './LazyImage';
@@ -16,10 +15,10 @@ interface FloatingImagePreviewProps {
   isUpdatingDesign: boolean;
   activeTab: ImageTab;
   onTabChange: (tab: ImageTab) => void;
-  onUpdateDesign: () => void;
   isAnalyzing: boolean;
   analysisResult: HybridAnalysisResult | null;
   isCustomizationDirty: boolean;
+  onUpdateDesign?: () => void;
 }
 
 export const FloatingImagePreview: React.FC<FloatingImagePreviewProps> = React.memo(({
@@ -30,56 +29,78 @@ export const FloatingImagePreview: React.FC<FloatingImagePreviewProps> = React.m
   isUpdatingDesign,
   activeTab,
   onTabChange,
-  onUpdateDesign,
   isAnalyzing,
   analysisResult,
   isCustomizationDirty,
+  onUpdateDesign,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [previewAspectRatio, setPreviewAspectRatio] = useState(1);
   const show = isVisible && originalImage;
+  const showPreview = show && !isModalOpen;
+  const currentPreviewImage = activeTab === 'customized' ? (customizedImage || originalImage) : originalImage;
+  const displayedAspectRatio = currentPreviewImage ? previewAspectRatio : 1;
 
   const handleCustomizedTabClick = () => {
     if (isCustomizationDirty) {
-      onUpdateDesign();
+      onUpdateDesign?.();
     } else {
       onTabChange('customized');
     }
   };
 
+  const handlePreviewImageLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    const image = event.currentTarget;
+    const naturalWidth = image.naturalWidth;
+    const naturalHeight = image.naturalHeight;
+
+    if (!naturalWidth || !naturalHeight) {
+      return;
+    }
+
+    const rawRatio = naturalWidth / naturalHeight;
+    const clampedRatio = Math.min(1, Math.max(0.75, rawRatio));
+    setPreviewAspectRatio(clampedRatio);
+  };
+
   return (
     <>
       <div
-        className={`fixed top-4 left-4 w-[43vw] max-w-xl md:w-[24vw] md:max-w-xs z-30 transition-all duration-300 ease-in-out ${show ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'
+        className={`fixed top-20 right-4 w-[43vw] max-w-[12rem] z-[90] md:hidden transition-all duration-300 ease-in-out ${showPreview ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-[calc(100%+1rem)] opacity-0 pointer-events-none'
           }`}
-        inert={!show ? true : undefined}
+        inert={!showPreview ? true : undefined}
         role="region"
         aria-label="Floating Image Preview"
       >
         <div className="w-full bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 flex flex-col">
-          <div className="p-1.5 shrink-0">
-            <div className="bg-slate-100 p-1 rounded-lg flex space-x-1">
+          {customizedImage ? (
+            <div className="p-1.5 shrink-0 flex gap-1">
               <button
                 onClick={() => onTabChange('original')}
-                className={`w-1/2 py-1 text-xs font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'original'
-                  ? 'bg-white shadow text-purple-700'
-                  : 'text-slate-600 hover:bg-white/50'
+                className={`flex-1 py-1 text-xs font-semibold rounded-full transition-all duration-200 ease-in-out ${activeTab === 'original'
+                  ? 'bg-purple-600 text-white shadow'
+                  : 'bg-white text-purple-700 shadow-sm hover:bg-white/90'
                   }`}
               >
                 Original
               </button>
               <button
                 onClick={handleCustomizedTabClick}
-                disabled={(!customizedImage && !isCustomizationDirty) || isUpdatingDesign}
-                className={`w-1/2 py-1 text-xs font-semibold rounded-md transition-all duration-200 ease-in-out ${activeTab === 'customized'
-                  ? 'bg-white shadow text-purple-700'
-                  : 'text-slate-600 hover:bg-white/50 disabled:text-slate-400 disabled:hover:bg-transparent disabled:cursor-not-allowed'
+                disabled={isUpdatingDesign}
+                className={`flex-1 py-1 text-xs font-semibold rounded-full transition-all duration-200 ease-in-out ${activeTab === 'customized'
+                  ? 'bg-purple-600 text-white shadow'
+                  : 'bg-white text-purple-700 shadow-sm hover:bg-white/90 disabled:text-slate-400 disabled:hover:bg-white disabled:cursor-not-allowed'
                   }`}
               >
                 Customized
               </button>
             </div>
-          </div>
-          <div className="relative grow flex items-center justify-center p-2 pt-0 aspect-square">
+          ) : null}
+          <div
+            className="relative grow flex items-center justify-center p-2 pt-0"
+            data-testid="floating-image-frame"
+            style={{ aspectRatio: String(displayedAspectRatio) }}
+          >
             {isUpdatingDesign && (
               <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-b-2xl z-20">
                 <LoadingSpinner />
@@ -95,39 +116,23 @@ export const FloatingImagePreview: React.FC<FloatingImagePreviewProps> = React.m
               >
                 <LazyImage
                   key={activeTab}
-                  src={activeTab === 'customized' ? (customizedImage || originalImage) : originalImage}
+                  src={currentPreviewImage}
                   alt={activeTab === 'customized' && customizedImage ? "Customized Cake" : "Original Cake"}
                   className="max-w-full max-h-full object-contain rounded-lg"
                   placeholderClassName="w-full h-full object-contain rounded-lg"
                   priority
+                  onLoad={handlePreviewImageLoad}
                 />
               </button>
             )}
           </div>
-          <div className="p-2 pt-0">
-            <button
-              onClick={onUpdateDesign}
-              disabled={isUpdatingDesign}
-              className="w-full bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center text-xs"
-            >
-              {isUpdatingDesign ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                <>
-                  <MagicSparkleIcon className="w-4 h-4 mr-2" />
-                  Update Design
-                </>
-              )}
-            </button>
-            {isAnalyzing && (
+          {isAnalyzing ? (
+            <div className="p-2 pt-0">
               <div className="w-full bg-slate-200 rounded-full h-1.5 relative overflow-hidden mt-2">
                 <div className="absolute h-full w-1/2 bg-linear-to-r from-pink-500 to-purple-600 animate-progress-slide"></div>
               </div>
-            )}
-          </div>
+            </div>
+          ) : null}
         </div>
       </div>
       <ImageZoomModal

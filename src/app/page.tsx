@@ -1,9 +1,11 @@
 import { Metadata } from 'next';
+import { Suspense } from 'react';
 import LandingClient from './LandingClient';
 import { getRecommendedProducts, getHomepageBlogPreviews } from '@/services/supabaseService';
 import { RecommendedProductsSection, IntroContent } from '@/components/landing';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import NewsletterPopup from '@/components/NewsletterPopup';
+import { LandingPageSkeleton } from '@/components/LoadingSkeletons';
 
 // ISR: Revalidate every hour for fresh data while maintaining fast loads
 export const revalidate = 3600;
@@ -100,7 +102,7 @@ function WebSiteSchema() {
     );
 }
 
-export default async function Home() {
+async function LandingServerSections() {
     const [recommendedProductsRes, blogsRes] = await Promise.all([
         getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err })),
         getHomepageBlogPreviews(3).catch(err => ({ data: [], error: err })),
@@ -110,14 +112,22 @@ export default async function Home() {
     const blogPosts = blogsRes.data || [];
 
     return (
+        <LandingClient blogPosts={blogPosts}>
+            {/* Server-rendered sections for LCP optimization */}
+            {/* <MerchantShowcase merchants={merchants} /> - Hidden for now */}
+            <RecommendedProductsSection products={recommendedProducts} />
+            <IntroContent />
+        </LandingClient>
+    );
+}
+
+export default function Home() {
+    return (
         <>
             <WebSiteSchema />
-            <LandingClient blogPosts={blogPosts}>
-                {/* Server-rendered sections for LCP optimization */}
-                {/* <MerchantShowcase merchants={merchants} /> - Hidden for now */}
-                <RecommendedProductsSection products={recommendedProducts} />
-                <IntroContent />
-            </LandingClient>
+            <Suspense fallback={<LandingPageSkeleton />}>
+                <LandingServerSections />
+            </Suspense>
             <NewsletterPopup />
             <LandingFooter />
         </>

@@ -35,6 +35,7 @@ import {
 } from '@/constants';
 import { ColorPalette } from '../../components/ColorPalette';
 import StickyAddToCartBar from '../../components/StickyAddToCartBar';
+import { FloatingImagePreview } from '../../components/FloatingImagePreview';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
 import { reportCustomization, uploadReportImage, getAnalysisByExactHash, getRelatedProductsByKeywords, getCollectionsForDesign } from '../../services/supabaseService';
 import { trackViewItem } from '@/lib/analytics';
@@ -259,7 +260,7 @@ const MotifPanel: React.FC<{
     if (!isOpen) return null;
 
     return (
-        <div className={`fixed bottom-28 right-4 w-80 max-w-[90vw] bg-white/90 backdrop-blur-lg shadow-2xl border border-slate-200 z-100 flex flex-col transform rounded-xl transition-transform duration-300 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)]'}`}>
+        <div className={`fixed bottom-28 right-4 w-80 max-w-[90vw] bg-white/90 backdrop-blur-lg shadow-2xl border border-slate-200 z-100 flex flex-col transform rounded-xl transition-transform duration-300 ease-out md:hidden ${isOpen ? 'translate-x-0' : 'translate-x-[calc(100%+2rem)]'}`}>
             <div className="p-4 flex justify-between items-center border-b border-slate-200">
                 <h2 className="text-sm font-bold text-slate-800">Change Motif Color</h2>
                 <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-full">
@@ -290,7 +291,7 @@ interface RecentSearchDesignProp {
     studio_edited_image_url?: string | null;
     price: number | null;
     keywords: string | null;
-    analysis_json: any;
+    analysis_json: unknown;
     slug: string | null;
     alt_text: string | null;
     seo_title: string | null;
@@ -1075,9 +1076,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 }
             }
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             rejectMergedAnalysis?.(err);
-            showError(err.message || 'Failed to process your request. Please try again.');
+            showError(err instanceof Error ? err.message : 'Failed to process your request. Please try again.');
         } finally {
             setIsAiProcessing(false);
         }
@@ -1548,7 +1549,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     }
                 );
 
-            } catch (err: any) {
+            } catch (_err: unknown) {
                 setIsAnalyzing(false);
                 setIsPreSelectionModalOpen(false);
                 isLoadingShopifyCseRef.current = false;
@@ -2246,7 +2247,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         if (!query || !query.trim()) return;
         router.push(`/search?q=${encodeURIComponent(query.trim())}`);
     };
-    const setAppState = (state: any) => {
+    const setAppState = (state: AppState) => {
         if (state === 'landing') router.push('/');
         if (state === 'cart') router.push('/cart');
     };
@@ -2305,6 +2306,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [tempEdiblePhotoBackup, setTempEdiblePhotoBackup] = useState<{ item: MainTopperUI | SupportElementUI, category: 'topper' | 'element' } | null>(null);
     const [selectedItem, setSelectedItem] = useState<ClusteredMarker | null>(null);
     const [isMotifPanelOpen, setIsMotifPanelOpen] = useState(false);
+    const [isHeroInView, setIsHeroInView] = useState(true);
     const [dynamicLoadingMessage, setDynamicLoadingMessage] = useState<string>('');
     const [showIcingGuide, setShowIcingGuide] = useState(false);
     const [hasShownGuide, setHasShownGuide] = useState(false);
@@ -2440,7 +2442,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, [mainToppers, supportElements]);
 
     const restoreOriginalCakeMessages = useCallback(() => {
-        const originalMessages = analysisResult?.cake_messages?.map((m: any, index: number) => ({
+        const originalMessages = analysisResult?.cake_messages?.map((m, index: number) => ({
             id: `msg-${index}`,
             type: m.type,
             text: m.text,
@@ -2669,6 +2671,27 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         return null;
     }, [analysisResult, HEX_TO_COLOR_NAME_MAP]);
 
+    useEffect(() => {
+        const heroContainer = mainImageContainerRef.current;
+        if (!heroContainer || typeof IntersectionObserver === 'undefined') return;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                setIsHeroInView(entry.isIntersecting);
+            },
+            { threshold: 0.01 }
+        );
+
+        observer.observe(heroContainer);
+
+        return () => observer.disconnect();
+    }, []);
+
+    const openMotifPanel = useCallback(() => {
+        setSelectedItem(null);
+        setIsMotifPanelOpen(true);
+    }, []);
+
     const handleMotifColorChange = useCallback((newHex: string) => {
         if (!dominantMotif || !icingDesign) return;
         
@@ -2857,6 +2880,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, []);
 
     const showStickyBar = finalPrice !== null || !!basePriceError || isAnalyzing || !!warningMessage || isSafetyFallback || hasPendingVisualChanges || isUpdatingDesign;
+    const floatingPreviewOriginalImage = firstNonBlankImageUrl(
+        originalImagePreview,
+        preloadedHeroImage,
+        product?.image_url,
+        recentSearchDesign?.studio_edited_image_url,
+        recentSearchDesign?.original_image_url,
+    );
 
     return (
         <>
@@ -2867,7 +2897,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     <SameDayCutoffBanner />
                 </div>
             )}
-            <div className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${isTopSearchBarScrolled ? 'border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg' : 'border-transparent bg-transparent'}`}>
+            <div
+                data-customizing-topbar
+                className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${isTopSearchBarScrolled ? 'border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg' : 'border-transparent bg-transparent'}`}
+            >
                 <div className="w-full max-w-7xl mx-auto px-4">
                     <div className="w-full flex items-center gap-2 md:gap-4 py-[11px] md:py-[14px]">
                         <button onClick={onClose} className="p-2 genie-icon-button rounded-full shrink-0" aria-label="Go back">
@@ -2938,12 +2971,14 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             isSaving={isSaving}
                             showFooterActions={Boolean(cakeInfo || analysisError)}
                             showPriceGuarantee={finalPrice !== null && !isAnalyzing}
+                            showMotifButton={Boolean(dominantMotif)}
                             isCombining={isCombining}
                             enableMobileHeroPan={enableMobileHeroPan}
                             onOriginalTabSelect={() => setActiveTab('original')}
                             onCustomizedTabSelect={handleCustomizedTabClick}
                             onToggleSaveDesign={handleToggleSavedDesign}
                             onUndo={handleUndoWithModalCleanup}
+                            onOpenMotifPanel={openMotifPanel}
                             onOpenReportModal={onOpenReportModal}
                             onSave={onSave}
                             onClearAll={onClearAll}
@@ -3227,6 +3262,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         onColorChange={handleMotifColorChange}
                     />
                 )}
+
+                <FloatingImagePreview
+                    isVisible={!isHeroInView}
+                    originalImage={floatingPreviewOriginalImage}
+                    customizedImage={editedImage}
+                    isLoading={isLoading}
+                    isUpdatingDesign={isUpdatingDesign}
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                    isAnalyzing={isAnalyzing}
+                    analysisResult={analysisResult}
+                    isCustomizationDirty={isCustomizationDirty}
+                />
 
                 <CustomizingEditorSheet
                     isOpen={activeCustomization !== null}

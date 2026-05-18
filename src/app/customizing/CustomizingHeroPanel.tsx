@@ -1,9 +1,10 @@
 'use client';
 
-import { memo, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { memo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import LazyImage from '@/components/LazyImage';
-import { Heart, ShieldCheck } from 'lucide-react';
-import { CloseIcon, ErrorIcon, ImageIcon, ResetIcon, SaveIcon, Loader2, ReportIcon } from '../../components/icons';
+import { ImageZoomModal } from '@/components/ImageZoomModal';
+import { Heart, ShieldCheck, Wand2 } from 'lucide-react';
+import { ErrorIcon, ImageIcon, ResetIcon, SaveIcon, Loader2, ReportIcon } from '../../components/icons';
 import MagicGlitter from '@/components/MagicGlitter';
 
 
@@ -33,12 +34,14 @@ interface CustomizingHeroPanelProps {
     isSaving: boolean;
     showFooterActions: boolean;
     showPriceGuarantee: boolean;
+    showMotifButton?: boolean;
     isCombining?: boolean;
     enableMobileHeroPan?: boolean;
     onOriginalTabSelect: () => void;
     onCustomizedTabSelect: () => void;
     onToggleSaveDesign: () => void | Promise<void>;
     onUndo: () => void;
+    onOpenMotifPanel?: () => void;
     onOpenReportModal: () => void;
     onSave: () => void;
     onClearAll: () => void;
@@ -118,105 +121,65 @@ export const CustomizingHeroPanel = memo(({
     isSaving,
     showFooterActions,
     showPriceGuarantee,
+    showMotifButton = false,
     isCombining,
     enableMobileHeroPan = false,
     onOriginalTabSelect,
     onCustomizedTabSelect,
     onToggleSaveDesign,
     onUndo,
+    onOpenMotifPanel,
     onOpenReportModal,
     onSave,
     onClearAll,
 }: CustomizingHeroPanelProps) => {
     const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
-    const [heroImageModal, setHeroImageModal] = useState<{ src: string; alt: string; title: string } | null>(null);
+    const [isHeroImageZoomOpen, setIsHeroImageZoomOpen] = useState(false);
     const mobileHeroScrollRef = useRef<HTMLDivElement | null>(null);
-    const mobileHeroIntroPlayedRef = useRef(false);
     const heroDisplaySrc = activeTab === 'customized'
         ? (editedImage || originalImagePreview || preloadedHeroImage || fallbackImageUrl || '')
         : (originalImagePreview || preloadedHeroImage || fallbackImageUrl || '');
     const heroDisplayTitle = heroImageTitle;
     const heroImageRatio = originalImageDimensions ? `${originalImageDimensions.width} / ${originalImageDimensions.height}` : '1 / 1';
-    const mobileHeroIntroStorageKey = 'genie:customizing-hero-autoscroll-v1';
-    const openHeroImageModal = (src: string, alt: string, title: string) => {
+    const zoomOriginalImage = originalImagePreview || preloadedHeroImage || fallbackImageUrl || null;
+    const zoomCustomizedImage = editedImage || null;
+    const zoomInitialTab: ImageTab = activeTab === 'customized' && zoomCustomizedImage ? 'customized' : 'original';
+    const openHeroImageModal = (src: string) => {
         if (!src) return;
-        setHeroImageModal({ src, alt, title });
+        setIsHeroImageZoomOpen(true);
     };
-    const closeHeroImageModal = () => setHeroImageModal(null);
-    const imageOnLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
-        const image = event.currentTarget;
-        if (!originalImageDimensions || activeTab === 'original') {
-            setOriginalImageDimensions({ width: image.naturalWidth, height: image.naturalHeight });
-        }
-    };
-
-    useEffect(() => {
-        if (!heroImageModal) return;
-
-        const previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-
-        return () => {
-            document.body.style.overflow = previousOverflow;
-        };
-    }, [heroImageModal]);
-
-    useEffect(() => {
-        if (!enableMobileHeroPan || heroImageModal) return;
-        if (typeof window === 'undefined') return;
-
-        const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
-        if (prefersReducedMotion) return;
-
-        if (mobileHeroIntroPlayedRef.current) return;
-
-        try {
-            if (window.localStorage.getItem(mobileHeroIntroStorageKey) === '1') {
-                mobileHeroIntroPlayedRef.current = true;
-                return;
-            }
-        } catch {
-            // Ignore storage access issues and fall back to in-memory tracking.
-        }
+    const closeHeroImageModal = () => setIsHeroImageZoomOpen(false);
+    const centerMobileHeroScrollPosition = () => {
+        if (!enableMobileHeroPan || isHeroImageZoomOpen) return;
 
         const scrollContainer = mobileHeroScrollRef.current;
         if (!scrollContainer) return;
 
         const maxScrollTop = scrollContainer.scrollHeight - scrollContainer.clientHeight;
-        if (maxScrollTop <= 0) return;
-
-        mobileHeroIntroPlayedRef.current = true;
-
-        try {
-            window.localStorage.setItem(mobileHeroIntroStorageKey, '1');
-        } catch {
-            // Ignore storage write failures.
+        if (maxScrollTop <= 0) {
+            scrollContainer.scrollTop = 0;
+            return;
         }
 
-        scrollContainer.scrollTop = 0;
+        const targetScrollTop = Math.round(maxScrollTop * 0.5);
 
-        const timer = window.setTimeout(() => {
+        if (typeof scrollContainer.scrollTo === 'function') {
             scrollContainer.scrollTo({
-                top: Math.round(maxScrollTop * 0.5),
-                behavior: 'smooth',
+                top: targetScrollTop,
+                behavior: 'auto',
             });
-        }, 450);
+            return;
+        }
 
-        return () => window.clearTimeout(timer);
-    }, [enableMobileHeroPan, heroDisplaySrc, heroImageModal, mobileHeroIntroStorageKey]);
-
-    useEffect(() => {
-        if (!heroImageModal) return;
-
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                closeHeroImageModal();
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [heroImageModal]);
+        scrollContainer.scrollTop = targetScrollTop;
+    };
+    const imageOnLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+        const image = event.currentTarget;
+        if (!originalImageDimensions || activeTab === 'original') {
+            setOriginalImageDimensions({ width: image.naturalWidth, height: image.naturalHeight });
+        }
+        centerMobileHeroScrollPosition();
+    };
 
     const renderScrollableImage = (src: string, alt: string, title: string, caption?: string) => (
         <div className="absolute inset-0">
@@ -233,7 +196,7 @@ export const CustomizingHeroPanel = memo(({
                         alt={alt}
                         title={title}
                         className="block w-full h-auto align-top cursor-zoom-in"
-                        onClick={() => openHeroImageModal(src, alt, title)}
+                        onClick={() => openHeroImageModal(src)}
                         onLoad={imageOnLoad}
                     />
                 </div>
@@ -261,7 +224,7 @@ export const CustomizingHeroPanel = memo(({
                 alt={alt}
                 title={title}
                 className="block w-full h-auto rounded-3xl cursor-zoom-in"
-                onClick={() => openHeroImageModal(src, alt, title)}
+                onClick={() => openHeroImageModal(src)}
                 onLoad={imageOnLoad}
             />
             {caption ? (
@@ -402,7 +365,7 @@ export const CustomizingHeroPanel = memo(({
                                             fetchPriority="high"
                                             decoding="async"
                                             unoptimized
-                                            onClick={() => openHeroImageModal(preloadedHeroImage, 'Loading cake design...', 'Loading your cake design')}
+                                            onClick={() => openHeroImageModal(preloadedHeroImage)}
                                             onLoad={imageOnLoad}
                                         />
                                         {isAnalyzing ? (
@@ -426,7 +389,7 @@ export const CustomizingHeroPanel = memo(({
                                             fetchPriority="high"
                                             decoding="async"
                                             unoptimized
-                                            onClick={() => openHeroImageModal(fallbackImageUrl, fallbackImageAlt, fallbackImageTitle)}
+                                            onClick={() => openHeroImageModal(fallbackImageUrl)}
                                             onLoad={imageOnLoad}
                                         />
                                         {initialCaption ? (
@@ -450,7 +413,7 @@ export const CustomizingHeroPanel = memo(({
                                         fetchPriority="high"
                                         decoding="async"
                                         unoptimized
-                                        onClick={() => openHeroImageModal(activeTab === 'customized' ? (editedImage || originalImagePreview) : originalImagePreview, heroImageAlt, heroImageTitle)}
+                                        onClick={() => openHeroImageModal(activeTab === 'customized' ? (editedImage || originalImagePreview) : originalImagePreview)}
                                         onLoad={(event) => {
                                             const image = event.currentTarget;
                                             if (!originalImageDimensions || activeTab === 'original') {
@@ -473,6 +436,21 @@ export const CustomizingHeroPanel = memo(({
                                             </div>
                                         </div>
                                     </div>
+                                ) : null}
+
+                                {showMotifButton ? (
+                                    <button
+                                        type="button"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            onOpenMotifPanel?.();
+                                        }}
+                                        className="absolute bottom-3 left-3 z-10 md:hidden bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-semibold hover:bg-black/60 transition-all shadow-md px-3 py-1.5 flex items-center gap-1.5"
+                                        aria-label="Change Motif Color"
+                                    >
+                                        <Wand2 className="w-4 h-4" />
+                                        Motif
+                                    </button>
                                 ) : null}
 
                                 <div className="absolute top-3 right-3 z-10 flex gap-2">
@@ -527,43 +505,13 @@ export const CustomizingHeroPanel = memo(({
                 FREE Delivery within Cebu City
             </span>
 
-            {heroImageModal ? (
-                <div
-                    className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label="Full screen image preview"
-                    onClick={closeHeroImageModal}
-                    onContextMenu={(event) => event.preventDefault()}
-                >
-                    <div
-                        className="relative w-full max-w-[88vw] h-[72vh] sm:max-w-[72vw] sm:h-[72vh] lg:max-w-[56vw] lg:h-[68vh]"
-                        onClick={(event) => event.stopPropagation()}
-                    >
-                        <button
-                            type="button"
-                            onClick={closeHeroImageModal}
-                            className="absolute top-3 right-3 z-20 rounded-full bg-black/45 text-white p-2 backdrop-blur-md shadow-lg hover:bg-black/60 transition-colors"
-                            aria-label="Close image preview"
-                        >
-                            <CloseIcon className="w-5 h-5" />
-                        </button>
-
-                        <LazyImage
-                            src={heroImageModal.src}
-                            alt={heroImageModal.alt}
-                            title={heroImageModal.title}
-                            fill
-                            sizes="(max-width: 640px) 88vw, (max-width: 1024px) 72vw, 56vw"
-                            imageClassName="object-contain rounded-2xl"
-                            priority
-                            fetchPriority="high"
-                            decoding="async"
-                            unoptimized
-                        />
-                    </div>
-                </div>
-            ) : null}
+            <ImageZoomModal
+                isOpen={isHeroImageZoomOpen}
+                onClose={closeHeroImageModal}
+                originalImage={zoomOriginalImage}
+                customizedImage={zoomCustomizedImage}
+                initialTab={zoomInitialTab}
+            />
 
             {showFooterActions ? (
                 <div className="hidden md:block animate-in fade-in slide-in-from-bottom-2 duration-500">

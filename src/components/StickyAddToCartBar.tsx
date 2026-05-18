@@ -216,7 +216,10 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     return (
         <>
             {/* Top Section: Warnings & Availability (z-60) */}
-            <div className={`fixed bottom-0 left-0 right-0 z-85 pointer-events-none transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}>
+            <div
+                data-sticky-add-to-cart-bar
+                className={`fixed bottom-0 left-0 right-0 z-85 pointer-events-none transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}
+            >
                 <div className={`pointer-events-auto transition-all duration-300 ${isBlurred ? 'blur-[2px] opacity-50 pointer-events-none' : ''}`}>
                     <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${hasTopNotification ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                         <div className="relative overflow-visible">
@@ -233,7 +236,10 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             </div>
 
             {/* Bottom Section: Main Action Bar (z-90) */}
-            <div className={`fixed bottom-0 left-0 right-0 z-90 pointer-events-none transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}>
+            <div
+                data-sticky-add-to-cart-bar
+                className={`fixed bottom-0 left-0 right-0 z-90 pointer-events-none transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}
+            >
                 <div className={`relative pointer-events-auto bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[20px] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] ${hasTopNotification ? 'border-t border-transparent' : 'border-t border-slate-200'} transition-all duration-300 ${isBlurred ? 'blur-[2px] opacity-50 pointer-events-none' : ''}`}>
                     <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
                         <div className="min-w-[80px] min-h-[48px] flex items-center">

@@ -7,6 +7,64 @@ export const Skeleton: React.FC<{ className?: string }> = React.memo(({ classNam
 ));
 Skeleton.displayName = 'Skeleton';
 
+const SkeletonPill: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <Skeleton className={`h-9 rounded-full ${className}`} />
+);
+
+const SearchHeaderSkeleton: React.FC<{ showFilters?: boolean }> = ({ showFilters = false }) => (
+  <>
+    <div className="fixed top-0 left-0 right-0 z-80 border-b border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="w-full flex items-center gap-2 md:gap-4 py-[11px] md:py-[14px]">
+          <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+          <Skeleton className="h-12 grow rounded-full" />
+          <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+        </div>
+      </div>
+    </div>
+    <div className="h-[66px] md:h-[74px]" />
+    <div className="flex flex-col items-center mb-6">
+      <Skeleton className="h-5 w-64 mb-4" />
+      {showFilters && (
+        <div className="w-full overflow-x-hidden pb-2">
+          <div className="flex items-center justify-center gap-2 min-w-max px-2">
+            <SkeletonPill className="w-28" />
+            <SkeletonPill className="w-28" />
+            <SkeletonPill className="w-28" />
+            <div className="w-px h-4 bg-slate-200 mx-1" />
+            <SkeletonPill className="w-24" />
+            <SkeletonPill className="w-24" />
+          </div>
+        </div>
+      )}
+    </div>
+  </>
+);
+
+const ProductCardSkeleton: React.FC = () => (
+  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_12px_30px_-24px_rgba(15,23,42,0.45)]">
+    <Skeleton className="aspect-4/5 w-full rounded-none" />
+    <div className="space-y-3 p-3">
+      <Skeleton className="h-4 w-4/5" />
+      <Skeleton className="h-3 w-1/2" />
+      <div className="flex items-center justify-between pt-1">
+        <Skeleton className="h-5 w-16 rounded-full" />
+        <Skeleton className="h-8 w-20 rounded-full" />
+      </div>
+    </div>
+  </div>
+);
+
+const CollectionCategoryCardSkeleton: React.FC = () => (
+  <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <Skeleton className="aspect-4/3 w-full rounded-none" />
+    <div className="space-y-2 p-3">
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-3 w-1/2" />
+    </div>
+  </div>
+);
+
 
 // Cart item skeleton
 export const CartItemSkeleton: React.FC = React.memo(() => (
@@ -26,16 +84,42 @@ CartItemSkeleton.displayName = 'CartItemSkeleton';
 // Cart loading skeleton (multiple items)
 export const CartSkeleton: React.FC<{ count?: number }> = React.memo(({ count = 2 }) => (
   <div className="space-y-4">
-    {Array.from({ length: count }).map((_, i) => (
-      <CartItemSkeleton key={i} />
-    ))}
+    <div className="space-y-3">
+      {Array.from({ length: count }).map((_, i) => (
+        <CartItemSkeleton key={i} />
+      ))}
+    </div>
     <div className="mt-6 pt-6 border-t border-purple-100 space-y-4">
-      <Skeleton className="h-8 w-1/2" />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-6 w-40" />
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-28" />
+        <div className="flex gap-2 overflow-hidden">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="w-16 h-16 rounded-lg shrink-0" />
+          ))}
+        </div>
       </div>
-      <Skeleton className="h-16 w-full" />
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-28" />
+        <div className="flex gap-2 overflow-hidden">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-11 w-28 rounded-lg shrink-0" />
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-3">
+        <Skeleton className="h-12 w-full rounded-xl" />
+        <Skeleton className="h-24 w-full rounded-xl" />
+      </div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-5 w-20" />
+        </div>
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+        <Skeleton className="h-11 w-full rounded-xl" />
+      </div>
     </div>
   </div>
 ));
@@ -134,19 +218,6 @@ export const ThumbnailListSkeleton: React.FC<{ count?: number }> = React.memo(({
   </div>
 ));
 ThumbnailListSkeleton.displayName = 'ThumbnailListSkeleton';
-
-const FlavorTierSkeleton: React.FC = () => (
-  <div className="bg-white p-3 rounded-md border border-slate-200 space-y-3">
-    <div className="flex items-center gap-3">
-      <Skeleton className="w-12 h-12 rounded-md" />
-      <Skeleton className="h-5 w-2/4" />
-    </div>
-    <div className="mt-3 pt-3 border-t border-slate-200">
-      <ThumbnailListSkeleton />
-    </div>
-  </div>
-);
-
 
 export const CakeBaseSkeleton: React.FC = React.memo(() => (
   <div className="bg-white p-3 rounded-md border border-slate-200 space-y-4 animate-pulse">
@@ -252,23 +323,25 @@ CustomizationSkeleton.displayName = 'CustomizationSkeleton';
 // Footer: Sticky Add to Cart Bar Skeleton
 export const StickyAddToCartBarSkeleton: React.FC = React.memo(() => (
   <div className="fixed bottom-0 left-0 right-0 z-90 pointer-events-none">
-    <div className="relative pointer-events-auto bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[20px] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] border-t border-slate-200">
-      {/* AI Chat Input Skeleton */}
-      <div className="max-w-4xl mx-auto mb-2 relative bg-white border border-slate-200 rounded-2xl p-0 shadow-inner h-[46px] flex items-center px-3">
-        <Skeleton className="h-4 w-40 bg-slate-200/60" />
-        <div className="absolute right-1 h-9 w-9 bg-slate-200 rounded-xl" />
-      </div>
-
-      <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
-        <div className="min-w-[100px] min-h-[44px] flex items-center">
-          <div className="flex flex-col gap-1">
-            <Skeleton className="h-6 w-20" /> {/* Price */}
-            <Skeleton className="h-3 w-12" /> {/* Label */}
-          </div>
+    <div className="pointer-events-auto">
+      <div className="h-4 bg-green-100 rounded-t-2xl">
+        <div className="max-w-4xl mx-auto h-full flex items-center justify-center">
+          <Skeleton className="h-3 w-48 bg-green-200/70" />
         </div>
-        <div className="flex flex-1 gap-3">
-          <Skeleton className="flex-1 h-12 rounded-xl" /> {/* Share Button */}
-          <Skeleton className="flex-1 h-12 rounded-xl" /> {/* Add to Cart Button */}
+      </div>
+      <div className="relative bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[20px] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] border-t border-transparent">
+        <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
+          <div className="min-w-[100px] min-h-[44px] flex items-center">
+            <div className="flex flex-col gap-1">
+              <Skeleton className="h-6 w-20" /> {/* Price */}
+              <Skeleton className="h-3 w-24" /> {/* Label */}
+            </div>
+          </div>
+          <div className="flex flex-1 gap-3">
+            <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
+            <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
+            <Skeleton className="flex-1 h-12 rounded-xl" /> {/* Add to Cart Button */}
+          </div>
         </div>
       </div>
     </div>
@@ -279,127 +352,294 @@ StickyAddToCartBarSkeleton.displayName = 'StickyAddToCartBarSkeleton';
 // Full Page Skeleton for Customizing Page
 export const CustomizingPageSkeleton: React.FC = React.memo(() => (
   <div className="w-full min-h-screen bg-slate-50/30">
-    {/* Header Section */}
-    <div className="w-full max-w-7xl mx-auto px-4">
-      <div className="w-full flex items-center gap-2 md:gap-4 mb-4 pt-6">
-        <Skeleton className="w-10 h-10 rounded-full shrink-0" /> {/* Back Button */}
-        <div className="relative grow">
-          <Skeleton className="w-full h-12 rounded-full" /> {/* Search Input */}
-        </div>
-        <Skeleton className="w-10 h-10 rounded-full shrink-0" /> {/* Cart Icon */}
+    <div className="w-full bg-purple-200/70 py-[4.5px]">
+      <div className="max-w-7xl mx-auto px-4">
+        <Skeleton className="h-4 w-56 mx-auto bg-white/60" />
       </div>
     </div>
 
-    <div className="flex flex-col items-center gap-6 w-full max-w-7xl mx-auto px-4 pb-32">
-      {/* Breadcrumbs */}
-      <div className="w-full flex items-center gap-2">
-        <Skeleton className="h-3 w-12" />
-        <span className="text-slate-200">/</span>
-        <Skeleton className="h-3 w-20" />
-        <span className="text-slate-200">/</span>
-        <Skeleton className="h-3 w-24" />
+    <div className="sticky top-0 z-80 w-full border-b border-purple-100 bg-white/80 backdrop-blur-lg">
+      <div className="w-full max-w-7xl mx-auto px-4">
+        <div className="w-full flex items-center gap-2 md:gap-4 py-[11px] md:py-[14px]">
+          <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+          <div className="relative grow">
+            <Skeleton className="w-full h-12 rounded-full" />
+          </div>
+          <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+        </div>
+      </div>
+    </div>
+
+    <div className="flex flex-col items-center gap-2 w-full max-w-7xl mx-auto px-4 pb-24">
+      <div className="w-full space-y-2 pt-2">
+        <div className="flex items-center gap-1">
+          <Skeleton className="h-3 w-10" />
+          <span className="text-slate-200">/</span>
+          <Skeleton className="h-3 w-20" />
+          <span className="text-slate-200">/</span>
+          <Skeleton className="h-3 w-28" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-7 w-64 max-w-[85%] rounded-lg" />
+          <Skeleton className="h-5 w-20 rounded-full" />
+        </div>
       </div>
 
-      {/* Title & Tag */}
-      <div className="w-full space-y-2">
-        <Skeleton className="h-8 w-3/4 md:w-1/3 rounded-lg" /> {/* Title */}
-        <Skeleton className="h-5 w-24 rounded-full" /> {/* Category Badge */}
-      </div>
-
-      {/* Main Two-Column Layout */}
       <div className="w-full flex flex-col md:flex-row gap-2">
-
-        {/* LEFT COLUMN: Image & Preview */}
         <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
-          <div className="w-full bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 flex flex-col min-h-[450px]">
-            {/* Tab Toggle */}
-            <div className="p-2 shrink-0">
-              <div className="bg-slate-100 p-1 rounded-lg flex space-x-1">
-                <div className="w-1/2 h-9 bg-white rounded shadow-sm" />
-                <div className="w-1/2 h-9" />
+          <div className="w-full flex flex-col gap-1">
+            <div className="flex w-full gap-2">
+              <Skeleton className="flex-1 h-9 rounded-full" />
+              <Skeleton className="flex-1 h-9 rounded-full" />
+            </div>
+
+            <div className="w-full flex flex-col overflow-hidden rounded-3xl">
+              <div className="p-3 w-full text-center mb-1">
+                <div className="w-full bg-slate-200 rounded-full h-1.5 relative overflow-hidden">
+                  <div className="h-full w-2/3 bg-linear-to-r from-pink-400 via-purple-400 to-indigo-400 rounded-full animate-pulse" />
+                </div>
+                <div className="flex justify-center mt-2">
+                  <Skeleton className="h-3 w-48" />
+                </div>
+              </div>
+
+              <div className="relative w-full aspect-[5/4] md:aspect-square rounded-3xl overflow-hidden bg-white">
+                <Skeleton className="absolute inset-0 rounded-3xl" />
+                <div className="absolute top-3 left-3">
+                  <Skeleton className="h-7 w-28 rounded-full bg-green-200/70" />
+                </div>
+                <div className="absolute top-3 right-3 flex gap-2">
+                  <Skeleton className="h-7 w-16 rounded-full" />
+                  <Skeleton className="h-7 w-16 rounded-full" />
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full border-4 border-slate-300 border-t-slate-400 animate-spin" />
+                </div>
               </div>
             </div>
 
-            {/* Image Area */}
-            <div className="p-2 pt-0 grow">
-              <div className="w-full aspect-square bg-slate-200/50 rounded-xl relative flex items-center justify-center overflow-hidden">
-                <div className="w-10 h-10 rounded-full border-4 border-slate-300 border-t-slate-400 animate-spin" />
+            <div className="flex items-center justify-center gap-x-1.5 whitespace-nowrap overflow-hidden px-2">
+              <Skeleton className="h-5 w-8" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-4 w-16" />
+            </div>
 
-                {/* Save Button Overlay */}
-                <div className="absolute top-3 left-3">
-                  <Skeleton className="h-7 w-16 rounded-full" />
+            <div className="flex justify-center">
+              <Skeleton className="h-4 w-44 bg-green-200/70" />
+            </div>
+
+            <div className="hidden md:block">
+              <div className="flex items-center justify-center gap-2">
+                <Skeleton className="h-9 w-28 rounded-full" />
+                <Skeleton className="h-9 w-24 rounded-full" />
+                <Skeleton className="h-9 w-36 rounded-full" />
+              </div>
+            </div>
+          </div>
+
+          <div className="md:hidden">
+            <div className="genie-card p-2 rounded-2xl">
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-purple-100">
+                <div className="p-2 genie-icon-soft rounded-lg">
+                  <div className="w-5 h-5 bg-purple-200 rounded animate-pulse" />
+                </div>
+                <div className="space-y-1">
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-3 w-44" />
+                </div>
+              </div>
+              <div className="mt-6">
+                <ChosenOptionsSkeleton />
+              </div>
+              <div className="mt-4 px-2">
+                <div className="bg-slate-50 rounded-lg p-3 space-y-2 border border-slate-200/50">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-16 w-full" />
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Step Summary (Mobile) */}
-          <div className="flex md:hidden gap-2 overflow-x-hidden -mx-4 px-4">
-              <div className="shrink-0 w-[280px] bg-white/70 backdrop-blur-lg p-3 rounded-2xl border border-slate-200 space-y-3">
-                  <Skeleton className="h-3 w-32" />
-                  <div className="flex gap-2">
-                      <Skeleton className="w-12 h-12 rounded-xl" />
-                      <Skeleton className="w-12 h-12 rounded-xl" />
-                      <Skeleton className="w-12 h-12 rounded-xl" />
-                      <Skeleton className="w-12 h-12 rounded-xl" />
-                  </div>
-              </div>
-              <div className="shrink-0 w-[280px] bg-white/70 backdrop-blur-lg p-3 rounded-2xl border border-slate-200 space-y-3">
-                  <Skeleton className="h-3 w-32" />
-                  <div className="flex gap-2">
-                       <Skeleton className="w-12 h-12 rounded-full" />
-                       <Skeleton className="w-12 h-12 rounded-full" />
-                       <Skeleton className="w-12 h-12 rounded-full" />
-                  </div>
-              </div>
-          </div>
         </div>
 
-        {/* RIGHT COLUMN: Controls (Desktop) or Sidebar */}
         <div className="hidden md:flex flex-col gap-2 w-full md:w-[calc(50%-6px)]">
-          <div className="bg-white/70 backdrop-blur-lg p-3 rounded-2xl shadow-lg border border-slate-200">
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-                  <div className="p-2 bg-purple-50 rounded-lg">
-                      <div className="w-5 h-5 bg-purple-200 rounded animate-pulse" />
+          <div className="genie-card p-2 rounded-2xl">
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-purple-100">
+                  <div className="p-2 genie-icon-soft rounded-lg">
+                    <div className="w-5 h-5 bg-purple-200 rounded animate-pulse" />
                   </div>
                   <div className="space-y-1">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-2 w-48" />
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="h-3 w-44" />
                   </div>
               </div>
-              <div className="space-y-6">
-                   <div className="space-y-3">
-                       <Skeleton className="h-3 w-24 ml-1" />
-                       <div className="flex gap-2">
-                           {[1,2,3,4,5].map(i => <Skeleton key={i} className="w-14 h-14 rounded-lg" />)}
-                       </div>
-                   </div>
-                   <div className="bg-slate-50 rounded-lg p-3 space-y-2 border border-slate-200/50">
-                       <Skeleton className="h-3 w-32" />
-                       <Skeleton className="h-12 w-full rounded" />
-                   </div>
+              <div className="mt-6">
+                <ChosenOptionsSkeleton />
+              </div>
+              <div className="mt-4 px-2">
+                <div className="bg-slate-50 rounded-lg p-3 space-y-2 border border-slate-200/50">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
               </div>
           </div>
-        </div>
-      </div>
-
-      {/* Trending / Related Designs Grid */}
-      <div className="w-full mt-8 space-y-6">
-        <Skeleton className="h-6 w-64" />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="space-y-2">
-              <Skeleton className="aspect-square rounded-2xl w-full" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-3 w-1/2" />
-            </div>
-          ))}
         </div>
       </div>
     </div>
 
-    {/* Sticky Bottom Bar */}
     <StickyAddToCartBarSkeleton />
   </div>
 ));
 CustomizingPageSkeleton.displayName = 'CustomizingPageSkeleton';
+
+export const SearchPageSkeleton: React.FC<{ showFilters?: boolean; count?: number }> = React.memo(({
+  showFilters = true,
+  count = 12,
+}) => (
+  <div className="min-h-screen">
+    <div className="w-full max-w-7xl mx-auto h-full flex flex-col px-4 pb-24 md:pb-0 overflow-hidden">
+      <SearchHeaderSkeleton showFilters={showFilters} />
+
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <Skeleton className="h-4 w-44" />
+          <Skeleton className="h-4 w-24 rounded-full" />
+        </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+          {Array.from({ length: count }).map((_, index) => (
+            <ProductCardSkeleton key={index} />
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-8 mb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-px grow bg-slate-200" />
+          <Skeleton className="h-4 w-44" />
+          <div className="h-px grow bg-slate-200" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+        </div>
+      </div>
+    </div>
+  </div>
+));
+SearchPageSkeleton.displayName = 'SearchPageSkeleton';
+
+export const CollectionsPageSkeleton: React.FC = React.memo(() => (
+  <div className="min-h-screen pb-24 md:pb-0">
+    <div className="w-full max-w-7xl mx-auto px-4">
+      <SearchHeaderSkeleton />
+
+      <div className="flex items-center gap-4 mb-8">
+        <div className="grow space-y-3">
+          <Skeleton className="h-9 w-72 max-w-full" />
+          <Skeleton className="h-4 w-full max-w-3xl" />
+          <Skeleton className="h-4 w-5/6 max-w-2xl" />
+        </div>
+      </div>
+
+      <section className="mb-10">
+        <Skeleton className="h-6 w-40 mb-4" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <CollectionCategoryCardSkeleton key={index} />
+          ))}
+        </div>
+      </section>
+
+      <section className="pt-6 border-t border-slate-200">
+        <div className="mb-4 space-y-2">
+          <Skeleton className="h-6 w-44" />
+          <Skeleton className="h-4 w-full max-w-xl" />
+        </div>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+          {Array.from({ length: 12 }).map((_, index) => (
+            <ProductCardSkeleton key={index} />
+          ))}
+        </div>
+      </section>
+    </div>
+  </div>
+));
+CollectionsPageSkeleton.displayName = 'CollectionsPageSkeleton';
+
+export const LandingPageSkeleton: React.FC = React.memo(() => (
+  <div className="space-y-10 pb-16">
+    <section className="px-4 pt-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="rounded-[2rem] border border-slate-200/80 bg-white/80 p-5 shadow-[0_30px_80px_-50px_rgba(15,23,42,0.35)] backdrop-blur-sm md:p-8">
+          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <SkeletonPill className="w-28" />
+                <SkeletonPill className="w-32" />
+              </div>
+              <Skeleton className="h-12 w-full max-w-xl" />
+              <Skeleton className="h-12 w-11/12 max-w-lg" />
+              <Skeleton className="h-5 w-full max-w-2xl" />
+              <Skeleton className="h-5 w-4/5 max-w-xl" />
+              <Skeleton className="h-14 w-full rounded-full" />
+              <div className="flex gap-3">
+                <Skeleton className="h-12 w-40 rounded-2xl" />
+                <Skeleton className="h-12 w-32 rounded-2xl" />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3 min-[450px]:gap-4">
+              <div className="flex flex-col gap-3 min-[450px]:gap-4">
+                <Skeleton className="aspect-[5/6] rounded-2xl" />
+                <Skeleton className="aspect-[5/6] rounded-2xl" />
+              </div>
+              <div className="flex flex-col gap-3 pt-8 min-[450px]:gap-4 min-[450px]:pt-12">
+                <Skeleton className="aspect-[5/6] rounded-2xl" />
+                <Skeleton className="aspect-[5/6] rounded-2xl" />
+              </div>
+              <div className="flex flex-col gap-3 pt-4 min-[450px]:gap-4 min-[450px]:pt-8">
+                <Skeleton className="aspect-[5/6] rounded-2xl" />
+                <Skeleton className="aspect-[5/6] rounded-2xl" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section className="px-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-5 space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-full max-w-lg" />
+        </div>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <ProductCardSkeleton key={index} />
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section className="px-4">
+      <div className="max-w-7xl mx-auto rounded-[2rem] border border-slate-200/70 bg-white/70 p-6 shadow-[0_28px_70px_-55px_rgba(15,23,42,0.4)]">
+        <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="space-y-3">
+            <SkeletonPill className="w-32" />
+            <Skeleton className="h-9 w-full max-w-md" />
+            <Skeleton className="h-9 w-4/5 max-w-sm" />
+            <Skeleton className="h-4 w-full max-w-lg" />
+            <Skeleton className="h-4 w-5/6 max-w-md" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Skeleton className="h-32 rounded-3xl" />
+            <Skeleton className="h-32 rounded-3xl" />
+            <Skeleton className="h-32 rounded-3xl" />
+            <Skeleton className="h-32 rounded-3xl" />
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+));
+LandingPageSkeleton.displayName = 'LandingPageSkeleton';

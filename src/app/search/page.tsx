@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 import SearchingClient from './SearchingClient';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { SearchPageSkeleton } from '@/components/LoadingSkeletons';
 import { buildNoIndexPageMetadata } from '@/lib/utils/metadata';
 
 type Props = {
@@ -26,7 +26,7 @@ export async function generateMetadata(
 
 export default function SearchingPage() {
     return (
-        <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
+        <Suspense fallback={<SearchPageSkeleton />}>
             <SearchingClient />
         </Suspense>
     );
