@@ -99,90 +99,85 @@ const HeroTypingHeadlineLine: React.FC<{
     controlledPhraseIndex?: number;
     phrases?: readonly string[];
     a11yLabel?: string;
+    onPhraseSettled?: (phraseIndex: number) => void;
 }> = ({
     className = '',
     controlledPhraseIndex,
     phrases = DEFAULT_LANDING_HERO_CONTENT.headlineVariants,
     a11yLabel,
+    onPhraseSettled,
 }) => {
-    const [phraseIndex, setPhraseIndex] = useState(controlledPhraseIndex ?? 0);
-    const [displayText, setDisplayText] = useState('');
-    const [isDeleting, setIsDeleting] = useState(false);
-    const prevControlledRef = useRef(controlledPhraseIndex);
+    const targetPhraseIndex = controlledPhraseIndex ?? 0;
+    const [phraseIndex, setPhraseIndex] = useState(targetPhraseIndex);
+    const [displayText, setDisplayText] = useState(phrases[targetPhraseIndex] ?? phrases[0] ?? '');
+    const [animationState, setAnimationState] = useState<'idle' | 'deleting' | 'typing'>('idle');
     const pendingIndexRef = useRef<number | null>(null);
     const longestPhrase = phrases.reduce((longest, phrase) => (
         phrase.length > longest.length ? phrase : longest
     ), phrases[0] ?? '');
-    const isControlled = controlledPhraseIndex !== undefined;
-    const controlledPhrase = phrases[controlledPhraseIndex ?? 0] ?? phrases[0] ?? '';
-    const controlledPhraseClassName = controlledPhrase === 'Minimalist Cakes'
+    const currentPhrase = phrases[phraseIndex] ?? phrases[0] ?? '';
+    const activePhraseClassName = currentPhrase === 'Minimalist Cakes'
+        ? 'italic inline-block [font-size:0.9em]'
+        : 'italic';
+    const placeholderPhraseClassName = longestPhrase === 'Minimalist Cakes'
         ? 'italic inline-block [font-size:0.9em]'
         : 'italic';
 
-    // When the controlled index changes externally, queue deletion + re-type
     useEffect(() => {
-        if (isControlled) return;
-        if (controlledPhraseIndex !== undefined && controlledPhraseIndex !== prevControlledRef.current) {
-            prevControlledRef.current = controlledPhraseIndex;
-            pendingIndexRef.current = controlledPhraseIndex;
-            const timeoutId = setTimeout(() => setIsDeleting(true), 0);
-            return () => clearTimeout(timeoutId);
+        if (targetPhraseIndex === phraseIndex) {
+            if (animationState === 'idle' && displayText !== currentPhrase) {
+                setDisplayText(currentPhrase);
+            }
+            return;
         }
-    }, [controlledPhraseIndex, isControlled]);
+
+        pendingIndexRef.current = targetPhraseIndex;
+        setAnimationState((currentState) => (currentState === 'idle' ? 'deleting' : currentState));
+    }, [animationState, currentPhrase, displayText, phraseIndex, targetPhraseIndex]);
 
     useEffect(() => {
-        if (isControlled) return;
-        const currentPhrase = phrases[phraseIndex] ?? phrases[0] ?? '';
+        if (animationState === 'idle') return;
+
         let timeoutId: ReturnType<typeof setTimeout>;
 
-        if (!isDeleting && displayText === currentPhrase) {
-            // Controlled mode with no pending change — stay on current phrase
-            if (controlledPhraseIndex !== undefined && pendingIndexRef.current === null) return;
-            timeoutId = setTimeout(() => setIsDeleting(true), 900);
-        } else if (isDeleting && displayText.length === 0) {
-            timeoutId = setTimeout(() => {
-                setIsDeleting(false);
-                if (pendingIndexRef.current !== null) {
-                    // Switch to the requested phrase
-                    setPhraseIndex(pendingIndexRef.current);
-                    pendingIndexRef.current = null;
-                } else if (controlledPhraseIndex === undefined) {
-                    // Free-running auto-cycle
-                    setPhraseIndex((currentIndex) => (currentIndex + 1) % phrases.length);
-                }
-            }, 150);
+        if (animationState === 'deleting') {
+            if (displayText.length === 0) {
+                const nextIndex = pendingIndexRef.current ?? phraseIndex;
+                pendingIndexRef.current = null;
+                setPhraseIndex(nextIndex);
+                setAnimationState('typing');
+            } else {
+                timeoutId = setTimeout(() => {
+                    setDisplayText((currentText) => currentText.slice(0, -1));
+                }, 30);
+            }
+        } else if (displayText === currentPhrase) {
+            setAnimationState('idle');
+            onPhraseSettled?.(phraseIndex);
         } else {
             timeoutId = setTimeout(() => {
-                const nextLength = isDeleting ? displayText.length - 1 : displayText.length + 1;
-                setDisplayText(currentPhrase.slice(0, nextLength));
-            }, isDeleting ? 34 : 56);
+                setDisplayText(currentPhrase.slice(0, displayText.length + 1));
+            }, 52);
         }
 
         return () => clearTimeout(timeoutId);
-    }, [displayText, isDeleting, phraseIndex, controlledPhraseIndex, phrases, isControlled]);
-
-    if (isControlled) {
-        return (
-            <span className={className} aria-label={a11yLabel ?? phrases.join(', ')}>
-                <span aria-hidden="true" className={controlledPhraseClassName}>
-                    {controlledPhrase}
-                </span>
-            </span>
-        );
-    }
+    }, [animationState, currentPhrase, displayText, onPhraseSettled, phraseIndex]);
 
     return (
         <span className={className} aria-label={a11yLabel ?? phrases.join(', ')}>
             <span className="relative inline-grid">
-                <span aria-hidden="true" className="invisible whitespace-nowrap italic">
-                    {longestPhrase}
+                <span aria-hidden="true" className="invisible whitespace-nowrap">
+                    <span className={placeholderPhraseClassName}>{longestPhrase}</span>
                     <span className="ml-1 inline-block h-[0.92em] w-[3px] align-middle" />
                 </span>
-                <span aria-hidden="true" className="absolute inset-0 flex items-start justify-center whitespace-nowrap">
-                    <span className="italic">{displayText}</span>
-                    <span
-                        className="ml-1 inline-block h-[0.92em] w-[3px] translate-y-[2px] bg-purple-500 align-middle animate-pulse"
-                    />
+                <span aria-hidden="true" className="absolute inset-0 inline-flex items-start justify-center whitespace-nowrap">
+                    <span className={activePhraseClassName}>{displayText}</span>
+                    {animationState !== 'idle' && (
+                        <span
+                            aria-hidden="true"
+                            className="ml-1 inline-block h-[0.92em] w-[3px] translate-y-[2px] bg-purple-500 align-middle animate-pulse"
+                        />
+                    )}
                 </span>
             </span>
         </span>
@@ -192,11 +187,11 @@ const HeroTypingHeadlineLine: React.FC<{
 const HeroMasonryGrid: React.FC<{ 
     products: readonly LandingHeroProduct[],
     onSelectProduct?: (index: number) => void,
-    onInteraction?: () => void
+    onInteraction?: (index: number) => void
 }> = ({ products, onSelectProduct, onInteraction }) => {
     const handleInteraction = (index: number) => {
         onSelectProduct?.(index);
-        onInteraction?.();
+        onInteraction?.(index);
     };
 
     return (
@@ -271,12 +266,13 @@ function HeroProductPeekCarousel({
     products: readonly LandingHeroProduct[];
     heroProductIndex: number;
     onSelectProduct: (index: number) => void;
-    onInteraction?: () => void;
+    onInteraction?: (index: number) => void;
     cardSpacingClassName?: string;
     cardFlexStyle?: string;
     aspectClassName?: string;
 }) {
     const wheelGestures = useMemo(() => [WheelGesturesPlugin()], []);
+    const userTriggeredSelectionRef = useRef(false);
     const [emblaRef, emblaApi] = useEmblaCarousel(
         {
             align: 'center',
@@ -297,35 +293,34 @@ function HeroProductPeekCarousel({
         if (!emblaApi) return;
 
         const syncSelectedProduct = () => {
-            onSelectProduct(emblaApi.selectedScrollSnap());
+            const selectedIndex = emblaApi.selectedScrollSnap();
+            onSelectProduct(selectedIndex);
+
+            if (userTriggeredSelectionRef.current) {
+                onInteraction?.(selectedIndex);
+                userTriggeredSelectionRef.current = false;
+            }
         };
 
         syncSelectedProduct();
         emblaApi.on('select', syncSelectedProduct);
         emblaApi.on('reInit', syncSelectedProduct);
 
-        // Listen for actual user interaction
-        const handlePointerDown = () => onInteraction?.();
-        const handleScroll = () => {
-            // Only trigger if it's not a programmatic scroll
-            if (emblaApi.internalEngine().scrollBody.velocity() !== 0) {
-                onInteraction?.();
-            }
+        const handlePointerDown = () => {
+            userTriggeredSelectionRef.current = true;
         };
 
         emblaApi.on('pointerDown', handlePointerDown);
-        emblaApi.on('scroll', handleScroll);
 
         return () => {
             emblaApi.off('select', syncSelectedProduct);
             emblaApi.off('reInit', syncSelectedProduct);
             emblaApi.off('pointerDown', handlePointerDown);
-            emblaApi.off('scroll', handleScroll);
         };
     }, [emblaApi, onSelectProduct, onInteraction]);
 
     const handleProductClick = (index: number) => {
-        onInteraction?.();
+        userTriggeredSelectionRef.current = true;
         onSelectProduct(index);
         emblaApi?.scrollTo(index);
     };
@@ -446,7 +441,7 @@ function HeroProductPreviewStack({
     onPrev: () => void;
     onNext: () => void;
     onSelectProduct: (index: number) => void;
-    onInteraction: () => void;
+    onInteraction: (index: number) => void;
     onOpenUploader: () => void;
     onResetUpload: () => void;
     onResultAction: () => void;
@@ -1141,7 +1136,8 @@ const LandingClient: React.FC<LandingClientProps> = ({
     }, [propHeroContent]);
 
     const [heroProductIndex, setHeroProductIndex] = useState(0);
-    const [hasInteractedWithHero, setHasInteractedWithHero] = useState(false);
+    const [heroHeadlineVariant, setHeroHeadlineVariant] = useState(0);
+    const heroHeadlineResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // ── Hero upload analysis state ─────────────────────────────────────────
     const [heroUploadState, setHeroUploadState] = useState<HeroUploadState>('idle');
@@ -1159,17 +1155,59 @@ const LandingClient: React.FC<LandingClientProps> = ({
         }
     }, [heroProductCount, heroProductIndex]);
 
+    useEffect(() => {
+        return () => {
+            if (heroHeadlineResetTimeoutRef.current) {
+                clearTimeout(heroHeadlineResetTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    const activateHeroHeadlineVariant = useCallback((productIndex: number) => {
+        const nextVariant = heroProducts[productIndex]?.headlineVariant ?? 0;
+        setHeroHeadlineVariant(nextVariant);
+
+        if (heroHeadlineResetTimeoutRef.current) {
+            clearTimeout(heroHeadlineResetTimeoutRef.current);
+            heroHeadlineResetTimeoutRef.current = null;
+        }
+    }, [heroProducts]);
+
+    const handleHeroHeadlineSettled = useCallback((phraseIndex: number) => {
+        if (heroHeadlineResetTimeoutRef.current) {
+            clearTimeout(heroHeadlineResetTimeoutRef.current);
+            heroHeadlineResetTimeoutRef.current = null;
+        }
+
+        if (phraseIndex !== 0) {
+            heroHeadlineResetTimeoutRef.current = setTimeout(() => {
+                setHeroHeadlineVariant(0);
+                heroHeadlineResetTimeoutRef.current = null;
+            }, 5000);
+        }
+    }, []);
+
     const handleHeroPrev = useCallback(() => {
         if (!heroProductCount) return;
-        setHeroProductIndex((prev) => (prev - 1 + heroProductCount) % heroProductCount);
-        setHasInteractedWithHero(true);
-    }, [heroProductCount]);
+        setHeroProductIndex((prev) => {
+            const nextIndex = (prev - 1 + heroProductCount) % heroProductCount;
+            activateHeroHeadlineVariant(nextIndex);
+            return nextIndex;
+        });
+    }, [activateHeroHeadlineVariant, heroProductCount]);
 
     const handleHeroNext = useCallback(() => {
         if (!heroProductCount) return;
-        setHeroProductIndex((prev) => (prev + 1) % heroProductCount);
-        setHasInteractedWithHero(true);
-    }, [heroProductCount]);
+        setHeroProductIndex((prev) => {
+            const nextIndex = (prev + 1) % heroProductCount;
+            activateHeroHeadlineVariant(nextIndex);
+            return nextIndex;
+        });
+    }, [activateHeroHeadlineVariant, heroProductCount]);
+
+    const handleHeroInteraction = useCallback((productIndex: number) => {
+        activateHeroHeadlineVariant(productIndex);
+    }, [activateHeroHeadlineVariant]);
 
     const resetHeroUploadPreview = useCallback(() => {
         setHeroUploadState('idle');
@@ -1431,9 +1469,10 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                 <h2 className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-[1.0] tracking-tight text-gray-900">
                                     <HeroTypingHeadlineLine 
                                         className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
-                                        controlledPhraseIndex={hasInteractedWithHero ? (heroProducts[heroProductIndex]?.headlineVariant ?? 0) : 0}
+                                        controlledPhraseIndex={heroHeadlineVariant}
                                         phrases={heroContent.headlineVariants}
                                         a11yLabel={heroContent.headlineA11yLabel}
+                                        onPhraseSettled={handleHeroHeadlineSettled}
                                     />
                                     <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
                                     <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
@@ -1459,9 +1498,10 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                         <h2 className="mt-2 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-[1.0] tracking-tight">
                                             <HeroTypingHeadlineLine 
                                                 className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
-                                                controlledPhraseIndex={hasInteractedWithHero ? (heroProducts[heroProductIndex]?.headlineVariant ?? 0) : 0}
+                                                controlledPhraseIndex={heroHeadlineVariant}
                                                 phrases={heroContent.headlineVariants}
                                                 a11yLabel={heroContent.headlineA11yLabel}
+                                                onPhraseSettled={handleHeroHeadlineSettled}
                                             />
                                             <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
                                             <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
@@ -1488,7 +1528,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                                     <HeroMasonryGrid 
                                                         products={heroProducts} 
                                                         onSelectProduct={setHeroProductIndex}
-                                                    onInteraction={() => setHasInteractedWithHero(true)}
+                                                    onInteraction={handleHeroInteraction}
                                                 />
                                             </div>
                                         </>
@@ -1704,7 +1744,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                             onPrev={handleHeroPrev}
                             onNext={handleHeroNext}
                             onSelectProduct={setHeroProductIndex}
-                            onInteraction={() => setHasInteractedWithHero(true)}
+                            onInteraction={handleHeroInteraction}
                             onOpenUploader={() => setIsUploaderOpen(true)}
                             onResetUpload={resetHeroUploadPreview}
                             onResultAction={handleHeroResultAction}
