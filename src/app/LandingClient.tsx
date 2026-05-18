@@ -464,7 +464,6 @@ function HeroProductPreviewStack({
                         <span className="whitespace-nowrap text-[12px] min-[360px]:text-[13px] min-[390px]:text-sm">Upload Your Design - Get Instant Pricing</span>
                     </button>
                 </div>
-                <HeroFeatureHighlights compact className="mx-auto w-full max-w-[480px] px-2 pb-1" />
 
                 <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px] min-[505px]:[mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] min-[505px]:[-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
                     <div className="overflow-hidden bg-transparent">
@@ -1428,7 +1427,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                             <h1 className="mb-4 text-center text-[10px] min-[360px]:text-[11px] font-bold uppercase tracking-[0.06em] text-neutral-600 whitespace-nowrap">
                                 {heroContent.eyebrow}
                             </h1>
-                            <div className="mb-6 text-center">
+                            <div className="mb-3 text-center">
                                 <h2 className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-[1.0] tracking-tight text-gray-900">
                                     <HeroTypingHeadlineLine 
                                         className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
@@ -1439,6 +1438,9 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                     <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
                                     <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
                                 </h2>
+                                {heroUploadState === 'idle' && (
+                                    <HeroFeatureHighlights compact className="mx-auto mt-3 w-full max-w-[480px] px-2" />
+                                )}
                             </div>
                         </div>
 
