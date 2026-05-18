@@ -454,6 +454,18 @@ function HeroProductPreviewStack({
     if (heroUploadState === 'idle') {
         return (
             <>
+                {/* Primary CTA - Mobile */}
+                <div className="mx-auto w-full max-w-[480px] mt-2 mb-1">
+                    <button
+                        onClick={onOpenUploader}
+                        className={`genie-btn-primary flex w-full items-center justify-center gap-2 ${LANDING_PRIMARY_CTA_RADIUS} py-4 px-3 font-bold active:scale-[0.98] shadow-md shadow-purple-50/50`}
+                    >
+                        <ImagePlus size={20} className="shrink-0" />
+                        <span className="whitespace-nowrap text-[12px] min-[360px]:text-[13px] min-[390px]:text-sm">Upload Your Design - Get Instant Pricing</span>
+                    </button>
+                </div>
+                <HeroFeatureHighlights compact className="mx-auto w-full max-w-[480px] px-2 pb-1" />
+
                 <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px] min-[505px]:[mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] min-[505px]:[-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
                     <div className="overflow-hidden bg-transparent">
                         <HeroProductPeekCarousel 
@@ -478,20 +490,6 @@ function HeroProductPreviewStack({
                         <ChevronRight size={18} />
                     </button>
                 </div>
-
-
-                {/* Primary CTA - Mobile */}
-                <div className="mx-auto w-full max-w-[480px] mt-2 mb-1">
-                    <button
-                        onClick={onOpenUploader}
-                        className={`genie-btn-primary flex w-full items-center justify-center gap-2 ${LANDING_PRIMARY_CTA_RADIUS} py-4 px-3 font-bold active:scale-[0.98] shadow-md shadow-purple-50/50`}
-                    >
-                        <ImagePlus size={20} className="shrink-0" />
-                        <span className="whitespace-nowrap text-[12px] min-[360px]:text-[13px] min-[390px]:text-sm">Upload Your Design - Get Instant Pricing</span>
-                    </button>
-                </div>
-                <HeroFeatureHighlights compact className="mx-auto w-full max-w-[480px] px-2 pb-1" />
-
             </>
         );
     }
