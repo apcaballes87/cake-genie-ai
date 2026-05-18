@@ -106,7 +106,7 @@ export const FloatingImagePreview: React.FC<FloatingImagePreviewProps> = React.m
                 <LoadingSpinner />
               </div>
             )}
-            {originalImage && (
+            {currentPreviewImage && (
               <button
                 type="button"
                 onClick={() => setIsModalOpen(true)}

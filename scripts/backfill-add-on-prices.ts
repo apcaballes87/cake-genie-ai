@@ -196,7 +196,7 @@ function mapAnalysisToPricingState(rawAnalysis: unknown): PricingState {
 }
 
 async function loadPricingCalculator() {
-  const pricingModule = (await import('../src/services/pricingService.database.ts')) as unknown as PricingModule;
+  const pricingModule = (await import('../src/services/pricingService.database')) as unknown as PricingModule;
   const calculatePriceFromDatabase =
     pricingModule.calculatePriceFromDatabase || pricingModule.default?.calculatePriceFromDatabase;
 
@@ -230,7 +230,7 @@ async function fetchBatch(offset: number) {
     throw new Error(`Failed to fetch cache rows: ${error.message}`);
   }
 
-  return (data || []) as AnalysisCacheRow[];
+  return (data || []) as unknown as AnalysisCacheRow[];
 }
 
 async function main() {
