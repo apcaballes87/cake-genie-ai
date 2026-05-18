@@ -1836,11 +1836,6 @@ function CartClient() {
 
 
 
-                                    {fulfillmentType === 'delivery' && (
-                                        <p className="text-xs text-center text-slate-500 pt-1">
-                                            For the safety of your cake, all deliveries are made via <strong>Lalamove Car</strong> to ensure it arrives in perfect condition.
-                                        </p>
-                                    )}
                                     {fulfillmentType === 'pickup' && (
                                         <p className="text-xs text-center text-slate-500 pt-1">
                                             Pick-up is available at <strong>Cakes and Memories Bakeshop – Treehouse</strong>. Please come within the selected time slot.
@@ -1909,9 +1904,13 @@ function CartClient() {
                                             className="hidden flex-1 genie-btn-secondary py-4 px-4 font-bold rounded-full transition-colors items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <Users className="w-5 h-5" />
-                                            <span>Split with Friends</span>
+                                            <span>Split Bill with Friends</span>
                                         </button>
                                     </div>
+
+                                    <p className="text-xs text-center text-slate-500 mt-2">
+                                        Send payment link to your friends, pay with GCash
+                                    </p>
 
                                     {/* Payment method logos moved under the button */}
                                     <div className="flex flex-col gap-4 items-center justify-center pt-2">
@@ -1934,10 +1933,6 @@ function CartClient() {
                                         </div>
                                     </div>
 
-                                    {/* Split with Friends explanation — hidden for now */}
-                                    <p className="hidden text-xs text-center text-slate-500 mt-2">
-                                        Share a payment link with friends, they chip in via GCash
-                                    </p>
                                 </div>
                             </div>
                         </div>
