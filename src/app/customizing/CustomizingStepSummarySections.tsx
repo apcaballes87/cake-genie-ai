@@ -740,72 +740,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
             {cakeInfo && !isAnalyzing && !isRejectionError && (
                 <div className={cardClassName}>
-                    <div className="flex items-center gap-4 px-1 pb-2">
-                        {/* Current Main Color */}
-                        <div className="flex flex-col items-center gap-1.5 shrink-0">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Main</span>
-                            <div 
-                                className="w-12 h-12 rounded-full border-2 border-white shadow-md ring-1 ring-slate-100 shrink-0"
-                                style={{ backgroundColor: icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF' }}
-                            />
-                        </div>
-
-                        {/* Separator */}
-                        <div className="w-[1px] h-12 bg-slate-100 shrink-0" />
-
-                        {/* Color Options */}
-                        <div className="flex-1 overflow-x-auto scrollbar-hide">
-                            <div className="flex gap-2.5 py-1 px-1">
-                                {THEME_COLORS.map((color) => {
-                                    const currentColorHex = icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF';
-                                    const currentColorName = hexToColorNameProse(currentColorHex);
-                                    
-                                    return (
-                                        <button
-                                            key={color.name}
-                                            onClick={() => {
-                                                if (isUpdatingDesign) return;
-                                                if (icingDesign && onIcingDesignChange) {
-                                                    onIcingDesignChange({
-                                                        ...icingDesign,
-                                                        colors: {
-                                                            ...icingDesign.colors,
-                                                            top: color.hex,
-                                                            side: color.hex,
-                                                        },
-                                                    });
-                                                }
-                                                const instruction = currentColorName 
-                                                    ? `Change the dominant color of the cake from ${currentColorName} to ${color.name}.`
-                                                    : `Change the dominant color theme of the cake to ${color.name}.`;
-                                                onUpdateDesign?.(instruction);
-                                            }}
-                                            disabled={isUpdatingDesign}
-                                            className={`group relative flex flex-col items-center gap-1.5 shrink-0 transition-transform active:scale-95 ${isUpdatingDesign ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            title={color.name}
-                                        >
-                                            <div 
-                                                className={`w-10 h-10 rounded-full border shadow-sm transition-all ${
-                                                    currentColorHex.toLowerCase() === color.hex.toLowerCase()
-                                                        ? 'border-slate-300 ring-2 ring-slate-300'
-                                                        : 'border-slate-100 group-hover:shadow-md group-hover:ring-2 group-hover:ring-purple-200'
-                                                }`}
-                                                style={{ backgroundColor: color.hex }}
-                                            />
-                                            <span className="text-[8px] font-medium text-slate-500 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {color.name}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {cakeInfo && !isAnalyzing && !isRejectionError && (
-                <div className={cardClassName}>
                     {cakeMessages.length > 0 ? (
                         <div className="flex flex-col gap-2">
                             {cakeMessages.map((message, index) => (
@@ -886,7 +820,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             <div className="text-left">
                                 <span className="block text-sm font-bold leading-tight">Advanced Customization</span>
                                 <span className="block text-[10px] font-medium text-slate-500 mt-0.5">
-                                    {showAdvanced ? 'Hide additional options' : 'Decorations, AI chat and more'}
+                                    {showAdvanced ? 'Hide additional options' : 'Colors, decorations, AI chat and more'}
                                 </span>
                             </div>
                         </div>
@@ -903,6 +837,69 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                     showAdvanced ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
                 }`}
             >
+                {cakeInfo && !isAnalyzing && !isRejectionError && (
+                    <div className={cardClassName}>
+                        <div className="flex items-center gap-4 px-1 pb-2">
+                            <div className="flex flex-col items-center gap-1.5 shrink-0">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Main</span>
+                                <div
+                                    className="w-12 h-12 rounded-full border-2 border-white shadow-md ring-1 ring-slate-100 shrink-0"
+                                    style={{ backgroundColor: icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF' }}
+                                />
+                            </div>
+
+                            <div className="w-[1px] h-12 bg-slate-100 shrink-0" />
+
+                            <div className="flex-1 overflow-x-auto scrollbar-hide">
+                                <div className="flex gap-2.5 py-1 px-1">
+                                    {THEME_COLORS.map((color) => {
+                                        const currentColorHex = icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF';
+                                        const currentColorName = hexToColorNameProse(currentColorHex);
+
+                                        return (
+                                            <button
+                                                key={color.name}
+                                                onClick={() => {
+                                                    if (isUpdatingDesign) return;
+                                                    if (icingDesign && onIcingDesignChange) {
+                                                        onIcingDesignChange({
+                                                            ...icingDesign,
+                                                            colors: {
+                                                                ...icingDesign.colors,
+                                                                top: color.hex,
+                                                                side: color.hex,
+                                                            },
+                                                        });
+                                                    }
+                                                    const instruction = currentColorName
+                                                        ? `Change the dominant color of the cake from ${currentColorName} to ${color.name}.`
+                                                        : `Change the dominant color theme of the cake to ${color.name}.`;
+                                                    onUpdateDesign?.(instruction);
+                                                }}
+                                                disabled={isUpdatingDesign}
+                                                className={`group relative flex flex-col items-center gap-1.5 shrink-0 transition-transform active:scale-95 ${isUpdatingDesign ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                title={color.name}
+                                            >
+                                                <div
+                                                    className={`w-10 h-10 rounded-full border shadow-sm transition-all ${
+                                                        currentColorHex.toLowerCase() === color.hex.toLowerCase()
+                                                            ? 'border-slate-300 ring-2 ring-slate-300'
+                                                            : 'border-slate-100 group-hover:shadow-md group-hover:ring-2 group-hover:ring-purple-200'
+                                                    }`}
+                                                    style={{ backgroundColor: color.hex }}
+                                                />
+                                                <span className="text-[8px] font-medium text-slate-500 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {color.name}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {cakeInfo && !isAnalyzing && !isRejectionError && !hideStepFour && (
                     <div className={cardClassName}>
                         {combinedDecorItems.length > 0 ? (

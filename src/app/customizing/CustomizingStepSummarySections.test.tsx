@@ -241,6 +241,25 @@ describe('CustomizingStepSummarySections', () => {
         expect(screen.getByRole('button', { name: /Top Border/i })).toBeInTheDocument();
     });
 
+    it('keeps the color swatches inside the advanced customization section', () => {
+        const props = buildProps();
+
+        render(<CustomizingStepSummarySections {...props} />);
+
+        const advancedToggle = screen.getByRole('button', { name: /Advanced Customization/i });
+        const advancedSection = document.getElementById('advanced-customization-steps');
+
+        expect(advancedToggle).toHaveAttribute('aria-expanded', 'false');
+        expect(advancedSection).toHaveClass('max-h-0', 'opacity-0', 'pointer-events-none');
+
+        fireEvent.click(advancedToggle);
+
+        expect(advancedToggle).toHaveAttribute('aria-expanded', 'true');
+        expect(advancedSection).toHaveClass('max-h-[2000px]', 'opacity-100');
+        expect(screen.getByText('Main')).toBeInTheDocument();
+        expect(screen.getByTitle('red')).toBeInTheDocument();
+    });
+
     it('renders tiered flavor rows below height for 3-tier cakes', () => {
         const props = buildProps();
         props.cakeInfo = {
