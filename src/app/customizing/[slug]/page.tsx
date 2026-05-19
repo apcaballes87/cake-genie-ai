@@ -1008,10 +1008,17 @@ export default async function RecentSearchPage({ params }: Props) {
         const cakeType: CakeType = analysis.cakeType || '1 Tier';
         // Note: Default thickness/size maps might be needed if not in analysis
         // Using basic defaults if missing from analysis
+        const getFlavorCount = (type: CakeType): number => {
+            if (!type) return 1;
+            if (type.includes('2 Tier')) return 2;
+            if (type.includes('3 Tier')) return 3;
+            return 1;
+        };
+        const flavorCount = getFlavorCount(cakeType);
         const defaultCakeInfo: CakeInfoUI = {
             type: cakeType,
-            thickness: analysis.cakeThickness || '3 in',
-            flavors: ['Chocolate Cake'], // Default flavor
+            thickness: analysis.cakeThickness || CAKE_TYPE_THICKNESS_MAP[cakeType] || '3 in',
+            flavors: Array(flavorCount).fill('Chocolate Cake'), // Default flavor array based on tier count
             size: '6" Round' // Default size, ideally mapped from type
         };
 
@@ -1019,7 +1026,7 @@ export default async function RecentSearchPage({ params }: Props) {
 
         initialState = {
             ...mappedState,
-            cakeInfo: defaultCakeInfo,
+            cakeInfo: mappedState.cakeInfo || defaultCakeInfo,
             analysisResult: analysis, // The full analysis result
             analysisId: design.slug, // Using slug or p_hash as ID
             availability: design.availability

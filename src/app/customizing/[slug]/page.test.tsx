@@ -210,6 +210,86 @@ describe('RecentSearchPage', () => {
     });
   });
 
+  it('correctly initializes the flavor slots count when cakeType is 2 Tier', async () => {
+    const twoTierDesign = {
+      slug: 'paw-patrol-cake-2-tier',
+      keywords: 'Paw Patrol Cake 2 Tier',
+      seo_title: 'Paw Patrol Cake 2 Tier | Genie.ph',
+      seo_description: 'Paw Patrol 2 tier cake design.',
+      alt_text: 'Paw Patrol 2 tier cake',
+      original_image_url: 'https://example.com/paw-patrol-2-tier.webp',
+      price: 3999,
+      availability: 'normal',
+      tags: ['paw patrol'],
+      analysis_json: {
+        cakeType: '2 Tier',
+        cakeThickness: '4 in',
+        icing_design: {},
+        main_toppers: [],
+        support_elements: [],
+        cake_messages: [],
+      },
+    };
+
+    vi.mocked(createClient).mockResolvedValueOnce({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            single: () => Promise.resolve({ data: twoTierDesign }),
+          }),
+        }),
+      }),
+    } as never);
+
+    const page = await RecentSearchPage({ params: Promise.resolve({ slug: twoTierDesign.slug }) });
+    render(page);
+
+    const initialData = capturedInitialData as { cakeInfo?: { flavors: string[]; type: string } };
+    expect(initialData.cakeInfo?.type).toBe('2 Tier');
+    expect(initialData.cakeInfo?.flavors).toHaveLength(2);
+    expect(initialData.cakeInfo?.flavors).toEqual(['Chocolate Cake', 'Chocolate Cake']);
+  });
+
+  it('correctly initializes the flavor slots count when cakeType is 3 Tier', async () => {
+    const threeTierDesign = {
+      slug: 'paw-patrol-cake-3-tier',
+      keywords: 'Paw Patrol Cake 3 Tier',
+      seo_title: 'Paw Patrol Cake 3 Tier | Genie.ph',
+      seo_description: 'Paw Patrol 3 tier cake design.',
+      alt_text: 'Paw Patrol 3 tier cake',
+      original_image_url: 'https://example.com/paw-patrol-3-tier.webp',
+      price: 4999,
+      availability: 'normal',
+      tags: ['paw patrol'],
+      analysis_json: {
+        cakeType: '3 Tier',
+        cakeThickness: '4 in',
+        icing_design: {},
+        main_toppers: [],
+        support_elements: [],
+        cake_messages: [],
+      },
+    };
+
+    vi.mocked(createClient).mockResolvedValueOnce({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            single: () => Promise.resolve({ data: threeTierDesign }),
+          }),
+        }),
+      }),
+    } as never);
+
+    const page = await RecentSearchPage({ params: Promise.resolve({ slug: threeTierDesign.slug }) });
+    render(page);
+
+    const initialData = capturedInitialData as { cakeInfo?: { flavors: string[]; type: string } };
+    expect(initialData.cakeInfo?.type).toBe('3 Tier');
+    expect(initialData.cakeInfo?.flavors).toHaveLength(3);
+    expect(initialData.cakeInfo?.flavors).toEqual(['Chocolate Cake', 'Chocolate Cake', 'Chocolate Cake']);
+  });
+
   describe('generateMetadata', () => {
     it('strips boilerplates, formats meta description to correct length, and injects price CTA', async () => {
       const design = {
