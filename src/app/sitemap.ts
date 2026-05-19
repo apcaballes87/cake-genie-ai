@@ -160,6 +160,7 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
             '/shop',
             '/customizing',
             '/collections',
+            '/collections/pickleball-cake',
             '/blog',
             '/about',
             '/cake-price-calculator',

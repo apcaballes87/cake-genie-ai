@@ -1099,6 +1099,8 @@ export async function getCollectionBySlug(slug: string): Promise<SupabaseService
  */
 export async function getDesignsByKeyword(keywordOrSlug: string, limit: number = 50, offset: number = 0): Promise<SupabaseServiceResponse<any[]>> {
   try {
+    const normalizedKeyword = decodeURIComponent(keywordOrSlug).replace(/-/g, ' ').trim();
+
     // Step 1: Check if this is a collection slug
     const { data: collection } = await supabase
       .from('cakegenie_collections')
@@ -1112,8 +1114,10 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
     // which is far too restrictive — most products only match one tag, not all.
     // A single term uses stemming (airplane = airplanes) and searches the full
     // search_vector including analysis_json, finding more results than ILIKE.
-    // For raw keyword searches: use the input as-is.
-    const ftsQuery = collection ? cleanCollectionName(collection.name) : keywordOrSlug;
+    // For raw keyword searches: normalize slug-like paths such as "pickleball-cake"
+    // into spaced phrases so collection pages can still resolve even before a
+    // corresponding collections-table row exists.
+    const ftsQuery = collection ? cleanCollectionName(collection.name) : normalizedKeyword;
 
     // Step 2: Use FTS search (ranked, searches keywords + analysis_json + alt_text + slug)
     const ftsResult = await searchProductsFTS(ftsQuery, limit, offset);
@@ -1124,7 +1128,7 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
     // Step 3: FTS returned nothing — fall back to ILIKE
     const orFilters = collection
       ? buildCollectionOrFilter(collection.name, collection.tags || [])
-      : buildCollectionOrFilter(keywordOrSlug);
+      : buildCollectionOrFilter(normalizedKeyword);
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
       .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url')
