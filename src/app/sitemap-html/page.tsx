@@ -13,6 +13,12 @@ export const revalidate = 86400; // Cache for 24 hours
 export default async function SitemapHtmlPage() {
     const supabase = await createClient();
 
+    const { data: collections } = await supabase
+        .from('cakegenie_collections')
+        .select('name, slug, item_count')
+        .gt('item_count', 0)
+        .order('name', { ascending: true });
+
     // Fetch up to 500 latest designs for the HTML sitemap
     const { data: recentSearches } = await supabase
         .from('cakegenie_analysis_cache')
@@ -39,7 +45,6 @@ export default async function SitemapHtmlPage() {
                             <li><Link href="/" className="text-slate-600 hover:text-purple-600 font-medium">Home</Link></li>
                             <li><Link href="/shop" className="text-slate-600 hover:text-purple-600 font-medium">Merchants & Shop</Link></li>
                             <li><Link href="/customizing" className="text-slate-600 hover:text-purple-600 font-medium">Custom Cake Designs</Link></li>
-                            <li><Link href="/collections/pickleball-cake" className="text-slate-600 hover:text-purple-600 font-medium">Pickleball Cake Collection</Link></li>
                             <li><Link href="/chatgpt-cake-design-quote" className="text-slate-600 hover:text-purple-600 font-medium">ChatGPT Cake Design Quote</Link></li>
                             <li><Link href="/collections" className="text-slate-600 hover:text-purple-600 font-medium">Collections</Link></li>
                             <li><Link href="/mothersdaycakes" className="text-slate-600 hover:text-purple-600 font-medium">Mother&apos;s Day Cakes</Link></li>
@@ -74,6 +79,31 @@ export default async function SitemapHtmlPage() {
                         </ul>
                     </section>
                 </div>
+
+                <section className="pt-8 border-t border-slate-200">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-2xl font-bold text-slate-800">Cake Collections</h2>
+                        <Link href="/collections" className="px-5 py-2.5 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all">
+                            Browse Collections →
+                        </Link>
+                    </div>
+                    {collections && collections.length > 0 ? (
+                        <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {collections.map((collection) => (
+                                <li key={collection.slug}>
+                                    <Link
+                                        href={`/collections/${collection.slug}`}
+                                        className="text-sm text-slate-600 hover:text-purple-600 transition-colors line-clamp-1 p-2 bg-slate-50 rounded-lg hover:bg-purple-50 border border-slate-100 hover:border-purple-200"
+                                    >
+                                        {collection.name}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-slate-500 italic">Collection links will appear here automatically as soon as they are added to the collections table.</p>
+                    )}
+                </section>
 
                 {/* Latest Designs */}
                 <section className="pt-8 border-t border-slate-200">

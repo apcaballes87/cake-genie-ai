@@ -1,15 +1,13 @@
 import { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { getDesignCategories, getDesignsByKeyword, getCollectionBySlug } from '@/services/supabaseService'
-import CategoryClient from './CategoryClient'
+import CategoryClient from '@/app/collections/[category]/CategoryClient'
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
-const FEATURED_COLLECTION_SLUGS = ['pickleball-cake'];
-
 const COLLECTION_SEO_FALLBACKS: Record<string, { description: string; keywords: string[] }> = {
     'pickleball-cake': {
-        description: 'Browse pickleball cake designs with paddles, courts, balls, and personalized toppers. Get instant pricing and order custom pickleball cakes on Genie.ph.',
+        description: 'Browse pickleball cake designs with paddles, courts, balls, and sporty birthday details. Perfect for pickleball lovers, club parties, and tournament celebrations. Get instant pricing and order custom pickleball cakes on Genie.ph.',
         keywords: [
             'pickleball cake',
             'pickleball cake design',
@@ -26,11 +24,16 @@ type Props = {
     params: Promise<{ category: string }>
 }
 
-type CategoryDesign = Awaited<ReturnType<typeof getDesignsByKeyword>> extends Promise<{ data: infer T }>
-    ? T extends Array<infer U>
-        ? U
-        : never
-    : never;
+type CategoryDesign = NonNullable<Awaited<ReturnType<typeof getDesignsByKeyword>>['data']>[number];
+
+type CollectionRecord = {
+    slug?: string;
+    name?: string | null;
+    description?: string | null;
+    tags?: string[] | null;
+    sample_image?: string | null;
+    item_count?: number | null;
+};
 
 function humanizeSlug(slug: string): string {
     return slug
@@ -39,56 +42,135 @@ function humanizeSlug(slug: string): string {
         .join(' ');
 }
 
-function stripCakeSuffix(label: string): string {
-    return label.replace(/\s+cake$/i, '').trim();
+function normalizeWhitespace(value: string): string {
+    return value.replace(/\s+/g, ' ').trim();
+}
+
+function normalizeCollectionBaseName(label: string): string {
+    const normalized = normalizeWhitespace(label);
+
+    if (!normalized) {
+        return normalized;
+    }
+
+    if (/\scakes$/i.test(normalized)) {
+        return normalized.replace(/\scakes$/i, ' Cake');
+    }
+
+    if (/\scake$/i.test(normalized)) {
+        return normalized.replace(/\scake$/i, ' Cake');
+    }
+
+    return normalized;
+}
+
+function stripCakeWord(label: string): string {
+    return normalizeCollectionBaseName(label).replace(/\scake$/i, '').trim();
+}
+
+function buildCollectionHeading(label: string): string {
+    const baseName = normalizeCollectionBaseName(label);
+    return /\scake$/i.test(baseName)
+        ? `${baseName} Designs`
+        : `${baseName} Cake Designs`;
+}
+
+function buildCollectionMetaTitle(label: string): string {
+    return `${buildCollectionHeading(label)} in Cebu | Genie.ph`;
+}
+
+function extractTagHighlights(tags?: string[] | null): string[] {
+    return (tags || [])
+        .map((tag) => normalizeWhitespace(tag))
+        .filter(Boolean)
+        .filter((tag, index, allTags) => allTags.findIndex((item) => item.toLowerCase() === tag.toLowerCase()) === index)
+        .filter((tag) => {
+            const lowered = tag.toLowerCase();
+            return lowered !== 'genie.ph' && lowered !== 'cake' && lowered !== 'cakes';
+        })
+        .slice(0, 3);
+}
+
+function truncateMetaDescription(description: string): string {
+    const trimmed = description.replace(/\s+/g, ' ').trim();
+    if (trimmed.length <= 160) {
+        return trimmed;
+    }
+
+    const shortened = trimmed.slice(0, 157).replace(/[,\s]+$/g, '');
+    return `${shortened}...`;
+}
+
+function buildCollectionMetaDescription(collection: CollectionRecord | null, readableTitle: string, fallbackCategory: string): string {
+    const defaultName = normalizeCollectionBaseName(readableTitle || humanizeSlug(fallbackCategory));
+    const collectionName = defaultName.toLowerCase();
+    const countText = collection?.item_count && collection.item_count > 0
+        ? `Browse ${collection.item_count.toLocaleString()} ${collectionName} designs on Genie.ph.`
+        : `Browse ${collectionName} designs on Genie.ph.`;
+    const tagHighlights = extractTagHighlights(collection?.tags);
+    const tagText = tagHighlights.length > 0
+        ? ` Explore ${tagHighlights.join(', ')}.`
+        : '';
+    const customDescription = normalizeWhitespace(collection?.description || COLLECTION_SEO_FALLBACKS[fallbackCategory]?.description || '');
+    const closingText = ' Customize your cake and get instant pricing from Cebu bakers.';
+
+    return truncateMetaDescription(
+        [countText, customDescription, tagText, closingText]
+            .filter(Boolean)
+            .join(' ')
+    );
 }
 
 function buildCollectionKeywords(title: string, category: string, tags?: string[] | null): string[] {
-    const coreTitle = stripCakeSuffix(title).toLowerCase();
+    const normalizedTitle = normalizeCollectionBaseName(title).toLowerCase();
+    const coreTitle = stripCakeWord(title).toLowerCase();
+    const keywordRoot = coreTitle || normalizedTitle;
     const fallbackKeywords = COLLECTION_SEO_FALLBACKS[category]?.keywords || [];
     const tagKeywords = (tags || []).map((tag) => tag.trim().toLowerCase()).filter(Boolean);
 
     return Array.from(new Set([
-        `${coreTitle} cake`,
-        `${coreTitle} cake ideas`,
-        `${coreTitle} cake design`,
-        `custom ${coreTitle} cake`,
+        normalizedTitle,
+        `${normalizedTitle} designs`,
+        `${normalizedTitle} cebu`,
+        `${normalizedTitle} delivery cebu`,
+        `${keywordRoot} cake ideas`,
+        `${keywordRoot} cake design`,
+        `custom ${keywordRoot} cake`,
         ...tagKeywords,
         ...fallbackKeywords,
     ]));
+}
+
+function buildItemListName(design: CategoryDesign, readableTitle: string): string {
+    const firstKeyword = typeof design.keywords === 'string'
+        ? design.keywords.split(',')[0].trim()
+        : readableTitle;
+    const normalizedKeyword = normalizeCollectionBaseName(firstKeyword);
+    const titleCore = stripCakeWord(readableTitle).toLowerCase();
+
+    if (!titleCore || normalizedKeyword.toLowerCase().includes(titleCore)) {
+        return buildCollectionHeading(normalizedKeyword);
+    }
+
+    return `${normalizedKeyword} in ${normalizeCollectionBaseName(readableTitle)}`;
 }
 
 export async function generateMetadata(
     { params }: Props
 ): Promise<Metadata> {
     const { category } = await params
-
-    // Try to find the exact collection
     const { data: collection } = await getCollectionBySlug(category);
+    const canonicalCategory = collection?.slug || category;
+    const title = collection?.name || humanizeSlug(category);
+    const description = buildCollectionMetaDescription(collection, title, category);
 
-    let title = collection?.name;
-    let desc = collection?.description || COLLECTION_SEO_FALLBACKS[category]?.description;
-
-    if (!title) {
-        // Fallback for random slugs
-        title = humanizeSlug(category)
-    }
-
-    if (!desc) {
-        desc = `Browse our collection of ${title.toLowerCase()} designs. Get instant AI pricing for any of these custom cakes from trusted local bakers.`
-    }
-
-    // Fetch designs to get the first image for og:image
-    const { data: designs } = await getDesignsByKeyword(category, 1);
+    const { data: designs } = await getDesignsByKeyword(canonicalCategory, 1);
     const ogImage = collection?.sample_image || designs?.[0]?.original_image_url;
-
-    // Avoid "Kuromi Cake Cake Ideas" — strip trailing "Cake" before appending
-    const titleForMeta = stripCakeSuffix(title);
-    const imageAlt = `${titleForMeta} cake design collection — browse ${titleForMeta.toLowerCase()} cake ideas on Genie.ph`;
+    const collectionHeading = buildCollectionHeading(title);
 
     return {
-        title: { absolute: `${titleForMeta} Cake Ideas & Designs | Genie.ph` },
-        description: desc,
+        title: { absolute: buildCollectionMetaTitle(title) },
+        description,
         keywords: buildCollectionKeywords(title, category, collection?.tags),
         robots: {
             index: true,
@@ -103,12 +185,12 @@ export async function generateMetadata(
         },
         category: 'Cake Design Collections',
         alternates: {
-            canonical: `https://genie.ph/collections/${category}`,
+            canonical: `https://genie.ph/collections/${canonicalCategory}`,
         },
         openGraph: {
-            title: `${titleForMeta} Cake Designs`,
-            description: desc,
-            url: `https://genie.ph/collections/${category}`,
+            title: collectionHeading,
+            description,
+            url: `https://genie.ph/collections/${canonicalCategory}`,
             type: 'website',
             siteName: 'Genie.ph',
             locale: 'en_PH',
@@ -117,20 +199,20 @@ export async function generateMetadata(
                     url: ogImage,
                     width: 1200,
                     height: 1200,
-                    alt: imageAlt,
+                    alt: `${collectionHeading} on Genie.ph`,
                 }],
             } : {}),
         },
         twitter: {
             card: 'summary_large_image',
-            title: `${titleForMeta} Cake Ideas & Designs | Genie.ph`,
-            description: desc,
+            title: buildCollectionMetaTitle(title),
+            description,
             ...(ogImage ? {
                 images: [{
                     url: ogImage,
                     width: 1200,
                     height: 1200,
-                    alt: imageAlt,
+                    alt: `${collectionHeading} on Genie.ph`,
                 }],
             } : {}),
         },
@@ -139,114 +221,104 @@ export async function generateMetadata(
 
 export async function generateStaticParams() {
     const { data: categories } = await getDesignCategories();
-    const slugs = new Set((categories || []).slice(0, 30).map((collection) => collection.slug));
-    FEATURED_COLLECTION_SLUGS.forEach((slug) => slugs.add(slug));
 
-    return Array.from(slugs).map((category) => ({ category }));
+    return (categories || [])
+        .filter((collection) => (collection.count || 0) > 0)
+        .map((collection) => ({ category: collection.slug }));
 }
 
 export default async function CategoryPage({ params }: Props) {
     const { category } = await params
-
-    // 1. Get the official collection details if it exists
     const { data: collection } = await getCollectionBySlug(category);
 
-    let readableTitle = collection?.name;
-    const description = collection?.description || COLLECTION_SEO_FALLBACKS[category]?.description || null;
-
-    if (!readableTitle) {
-        readableTitle = humanizeSlug(category);
+    if (collection?.slug && collection.slug !== category) {
+        permanentRedirect(`/collections/${collection.slug}`);
     }
 
-    // 2. Fetch designs using the slug (the service will resolve tags if it's a collection)
-    const { data: designs } = await getDesignsByKeyword(category, 30);
+    const canonicalCategory = collection?.slug || category;
+    const readableTitle = collection?.name || humanizeSlug(category);
+    const description = collection?.description || COLLECTION_SEO_FALLBACKS[category]?.description || null;
+    const pageDescription = buildCollectionMetaDescription(collection, readableTitle, category);
+    const collectionHeading = buildCollectionHeading(readableTitle);
+    const tagHighlights = extractTagHighlights(collection?.tags);
+    const { data: designs } = await getDesignsByKeyword(canonicalCategory, 30);
 
     if (!designs || designs.length === 0) {
         return notFound();
     }
 
-    // Build JSON-LD: CollectionPage + ImageGallery + BreadcrumbList
-    const pageUrl = `https://genie.ph/collections/${category}`;
-    const titleCap = readableTitle.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-
-    // Top 12 designs for ImageGallery schema (enough for rich results, not too heavy)
-    const titleLower = titleCap.toLowerCase();
-    // Core name without "cake" suffix for overlap detection (e.g. "debut" from "Debut Cake")
-    const titleCore = titleLower.replace(/\s*cake\s*$/i, '').trim();
-    const galleryImages = designs.slice(0, 12).map((d: CategoryDesign) => {
-        const kw = typeof d.keywords === 'string' ? d.keywords.split(',')[0].trim() : 'Custom';
-        // Avoid doubling: if keyword already contains the core collection name, don't append it
-        const kwLower = kw.toLowerCase();
-        const imageName = kwLower.includes(titleCore) || titleCore.includes(kwLower)
-            ? `${kw} cake design`
-            : `${kw} ${titleCap} cake design`;
-        return {
-            '@type': 'ImageObject',
-            url: d.original_image_url,
-            contentUrl: d.original_image_url,
-            name: imageName,
-            caption: `${kw} cake design — customize and order on Genie.ph`,
-            ...(d.image_width ? { width: d.image_width } : {}),
-            ...(d.image_height ? { height: d.image_height } : {}),
-            creditText: 'Genie.ph',
-            copyrightHolder: { '@type': 'Organization', name: 'Genie.ph' },
-            license: 'https://genie.ph/terms',
-            acquireLicensePage: 'https://genie.ph/terms',
-        };
-    });
+    const pageUrl = `https://genie.ph/collections/${canonicalCategory}`;
+    const topDesigns = designs.slice(0, 12);
 
     const jsonLd = [
-        // CollectionPage + ImageGallery
         {
             '@context': 'https://schema.org',
             '@type': 'CollectionPage',
             '@id': pageUrl,
-            name: `${titleCap} Cake Ideas & Designs`,
-            description: description || `Browse ${titleCap.toLowerCase()} cake designs. Get instant AI pricing for any of these custom cakes.`,
+            name: collectionHeading,
+            description: pageDescription,
             url: pageUrl,
+            inLanguage: 'en-PH',
             isPartOf: { '@type': 'WebSite', name: 'Genie.ph', url: 'https://genie.ph' },
-            mainEntity: {
-                '@type': 'ImageGallery',
-                name: titleLower.includes('cake') ? `${titleCap} Design Collection` : `${titleCap} Cake Design Collection`,
-                about: `${titleCap} cake designs available for customization and ordering in Cebu, Philippines`,
-                numberOfItems: designs.length,
-                image: galleryImages,
-            },
-            ...(designs[0]?.original_image_url ? {
-                primaryImageOfPage: {
-                    '@type': 'ImageObject',
-                    url: designs[0].original_image_url,
-                    representativeOfPage: true,
-                },
-            } : {}),
+            about: tagHighlights.length > 0
+                ? `${normalizeCollectionBaseName(readableTitle)} cake designs for Cebu celebrations featuring ${tagHighlights.join(', ')}.`
+                : `${normalizeCollectionBaseName(readableTitle)} cake designs available for customization and ordering in Cebu, Philippines.`,
+            mainEntity: { '@id': `${pageUrl}#itemlist` },
+            ...(collection?.sample_image || designs[0]?.original_image_url
+                ? {
+                    primaryImageOfPage: {
+                        '@type': 'ImageObject',
+                        url: collection?.sample_image || designs[0]?.original_image_url,
+                        representativeOfPage: true,
+                    },
+                }
+                : {}),
         },
-        // BreadcrumbList
+        {
+            '@context': 'https://schema.org',
+            '@type': 'ItemList',
+            '@id': `${pageUrl}#itemlist`,
+            name: collectionHeading,
+            itemListOrder: 'https://schema.org/ItemListOrderAscending',
+            numberOfItems: designs.length,
+            itemListElement: topDesigns.map((design: CategoryDesign, index: number) => ({
+                '@type': 'ListItem',
+                position: index + 1,
+                url: `https://genie.ph/customizing/${design.slug}`,
+                name: buildItemListName(design, readableTitle),
+                ...(design.original_image_url ? { image: design.original_image_url } : {}),
+            })),
+        },
         {
             '@context': 'https://schema.org',
             '@type': 'BreadcrumbList',
             itemListElement: [
                 { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://genie.ph' },
                 { '@type': 'ListItem', position: 2, name: 'Collections', item: 'https://genie.ph/collections' },
-                { '@type': 'ListItem', position: 3, name: `${titleCap} Designs`, item: pageUrl },
+                { '@type': 'ListItem', position: 3, name: collectionHeading, item: pageUrl },
             ],
         },
     ];
 
     return (
         <>
-            {jsonLd.map((schema, i) => (
+            {jsonLd.map((schema, index) => (
                 <script
-                    key={`collection-ld-${i}`}
+                    key={`collection-ld-${index}`}
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
                 />
             ))}
             <CategoryClient
                 designs={designs}
-                keyword={category}
+                keyword={canonicalCategory}
                 readableTitle={readableTitle}
-                category={category}
+                category={canonicalCategory}
                 description={description}
+                designCount={collection?.item_count || designs.length}
+                heading={collectionHeading}
+                intro={pageDescription}
+                tagHighlights={tagHighlights}
             />
         </>
     )

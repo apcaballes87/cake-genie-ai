@@ -9,15 +9,17 @@ INSERT INTO public.cakegenie_collections (
 VALUES (
     'Pickleball Cake',
     'pickleball-cake',
-    'Serve up a winning celebration with a Pickleball cake. Featuring paddles, court lines, neon green balls, and sporty details, this theme is perfect for birthdays, tournaments, and surprise parties for pickleball lovers.',
+    'Browse pickleball cake designs with paddles, courts, balls, and sporty birthday details. Perfect for pickleball lovers, club parties, and tournament celebrations. Get instant pricing and order custom pickleball cakes on Genie.ph.',
     ARRAY[
         'Pickleball Cake',
         'pickleball',
         'pickleball cake',
         'pickleball birthday cake',
         'pickleball themed cake',
-        'paddle sports',
-        'sports cake'
+        'pickleball paddle',
+        'pickleball court',
+        'sports cake',
+        'paddle sports'
     ],
     'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/pickleball-white-1-tier-cake-c1c1.webp',
     (

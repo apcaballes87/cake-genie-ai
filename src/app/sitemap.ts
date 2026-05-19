@@ -91,6 +91,13 @@ type MerchantProductSitemapRow = {
     cakegenie_merchants: { slug: string } | { slug: string }[] | null;
 };
 
+type CollectionSitemapRow = {
+    slug: string;
+    created_at: string | null;
+    sample_image: string | null;
+    item_count: number | null;
+};
+
 function getMerchantSlug(value: MerchantProductSitemapRow['cakegenie_merchants']): string | null {
     if (Array.isArray(value)) {
         return value[0]?.slug ?? null;
@@ -160,7 +167,6 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
             '/shop',
             '/customizing',
             '/collections',
-            '/collections/pickleball-cake',
             '/blog',
             '/about',
             '/cake-price-calculator',
@@ -219,7 +225,27 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
             priority: 0.85,
         }));
 
-        return [...coreRoutes, ...blogCategoryRoutes, ...customizingCategoryRoutes];
+        const { data: collections, error: collectionsError } = await supabase
+            .from('cakegenie_collections')
+            .select('slug, created_at, sample_image, item_count')
+            .gt('item_count', 0)
+            .returns<CollectionSitemapRow[]>()
+
+        if (collectionsError) {
+            console.error('Error fetching collection sitemap routes:', collectionsError)
+        }
+
+        const collectionRoutes = (collections || [])
+            .filter((collection) => collection.slug)
+            .map((collection) => ({
+                url: `${baseUrl}/collections/${collection.slug}`,
+                lastModified: collection.created_at ? new Date(collection.created_at) : new Date(),
+                changeFrequency: 'weekly' as const,
+                priority: 0.85,
+                images: sanitizeUrl(collection.sample_image) ? [sanitizeUrl(collection.sample_image)] : [],
+            }))
+
+        return [...coreRoutes, ...blogCategoryRoutes, ...customizingCategoryRoutes, ...collectionRoutes];
     }
 
     // Chunk 1: Bakeries (Merchants)

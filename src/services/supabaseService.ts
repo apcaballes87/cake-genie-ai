@@ -1062,30 +1062,62 @@ export async function getAllRecentDesigns(limit: number = 24, offset: number = 0
   }
 }
 
+function buildCollectionSlugCandidates(rawSlug: string): string[] {
+  const normalizedSlug = decodeURIComponent(rawSlug).trim().toLowerCase();
+  const candidates = new Set<string>();
+
+  if (!normalizedSlug) {
+    return [];
+  }
+
+  candidates.add(normalizedSlug);
+
+  if (normalizedSlug.endsWith('-cakes')) {
+    candidates.add(normalizedSlug.replace(/-cakes$/i, '-cake'));
+  } else if (normalizedSlug.endsWith('-cake')) {
+    candidates.add(normalizedSlug.replace(/-cake$/i, '-cakes'));
+  } else {
+    candidates.add(`${normalizedSlug}-cake`);
+    candidates.add(`${normalizedSlug}-cakes`);
+  }
+
+  return Array.from(candidates);
+}
+
 /**
  * Gets a specific collection by its slug.
  */
 export async function getCollectionBySlug(slug: string): Promise<SupabaseServiceResponse<any>> {
+  const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
   try {
-    // Try exact slug first, then with "-cake" suffix (368/389 collections use this pattern)
-    const slugsToTry = [slug, ...(slug.endsWith('-cake') ? [] : [`${slug}-cake`])];
+    const slugsToTry = buildCollectionSlugCandidates(slug);
 
-    const { data, error } = await supabase
+    if (slugsToTry.length === 0) {
+      return { data: null, error: null };
+    }
+
+    const { data, error } = await client
       .from('cakegenie_collections')
       .select('*')
       .in('slug', slugsToTry)
-      .limit(1)
-      .single();
+      .returns<any[]>();
 
     if (error) {
-      // Only log if it's not a simple "no rows" result
-      if (error.code !== 'PGRST116') {
-        console.error('Error fetching collection by slug:', error);
-      }
+      console.error('Error fetching collection by slug:', error);
       return { data: null, error };
     }
 
-    return { data, error: null };
+    if (!data || data.length === 0) {
+      return { data: null, error: null };
+    }
+
+    const rankedResults = [...data].sort((a, b) => {
+      const aIndex = slugsToTry.indexOf(a.slug);
+      const bIndex = slugsToTry.indexOf(b.slug);
+      return aIndex - bIndex;
+    });
+
+    return { data: rankedResults[0], error: null };
   } catch (err) {
     console.error('Exception fetching collection by slug:', err);
     return { data: null, error: err as Error };
@@ -1099,14 +1131,9 @@ export async function getCollectionBySlug(slug: string): Promise<SupabaseService
  */
 export async function getDesignsByKeyword(keywordOrSlug: string, limit: number = 50, offset: number = 0): Promise<SupabaseServiceResponse<any[]>> {
   try {
-    const normalizedKeyword = decodeURIComponent(keywordOrSlug).replace(/-/g, ' ').trim();
-
-    // Step 1: Check if this is a collection slug
-    const { data: collection } = await supabase
-      .from('cakegenie_collections')
-      .select('name, tags')
-      .eq('slug', keywordOrSlug)
-      .single();
+    // Step 1: Resolve collection aliases to the official collection row when possible.
+    const { data: collection } = await getCollectionBySlug(keywordOrSlug);
+    const normalizedKeyword = decodeURIComponent(collection?.slug || keywordOrSlug).replace(/-/g, ' ').trim();
 
     // Build the FTS query.
     // For collections: use ONLY the cleaned collection name (single key term).

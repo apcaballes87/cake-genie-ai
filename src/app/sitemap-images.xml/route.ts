@@ -35,6 +35,27 @@ const escapeXml = (str: string): string =>
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&apos;');
 
+const normalizeCollectionLabel = (value: string): string => value.replace(/\s+/g, ' ').trim();
+
+const buildCollectionImageTitle = (keyword: string, collectionName: string): string => {
+    const normalizedKeyword = normalizeCollectionLabel(keyword);
+    const normalizedCollection = normalizeCollectionLabel(collectionName);
+    const collectionCore = normalizedCollection.replace(/\scakes?$/i, '').trim().toLowerCase();
+    const keywordLower = normalizedKeyword.toLowerCase();
+
+    if (collectionCore && (keywordLower.includes(collectionCore) || collectionCore.includes(keywordLower))) {
+        return /cake design/i.test(normalizedKeyword)
+            ? normalizedKeyword
+            : `${normalizedKeyword} cake design`;
+    }
+
+    const keywordWithSuffix = /cake$/i.test(normalizedKeyword)
+        ? normalizedKeyword
+        : `${normalizedKeyword} cake`;
+
+    return `${keywordWithSuffix} - ${normalizedCollection} design`;
+};
+
 type ProductImageSitemapRow = {
     slug: string | null;
     title: string | null;
@@ -196,8 +217,8 @@ export async function GET() {
                     const imageLoc = sanitizeUrl(item.image_url);
                     if (!imageLoc) return '';
                     const kw = item.keywords ? item.keywords.split(',')[0].trim() : col.name;
-                    const title = escapeXml(`${kw} ${col.name} cake design`);
-                    const caption = escapeXml(`${kw} cake design — browse the ${col.name} collection on Genie.ph`);
+                    const title = escapeXml(buildCollectionImageTitle(kw, col.name));
+                    const caption = escapeXml(`${kw} cake design — browse the ${normalizeCollectionLabel(col.name)} collection on Genie.ph`);
                     return `    <image:image>
       <image:loc>${imageLoc}</image:loc>
       <image:title>${title}</image:title>
