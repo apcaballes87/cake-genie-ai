@@ -3,10 +3,19 @@ import { upgradeLegacySlug } from '@/lib/utils/urlHelpers'
 
 export const SITEMAP_CHUNK_SIZE = 1000
 export const CUSTOMIZING_SITEMAP_MIN_AGE_DAYS = 7
+export const MIN_SITEMAP_TEXT_LENGTH = 18
+export const MIN_SITEMAP_IMAGE_DIMENSION = 300
 
 const SUPABASE_BATCH_SIZE = 1000
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 const LEGACY_ANALYSIS_SLUG_RE = /[a-f0-9]{16}$/i
+const ADULT_SITEMAP_TERMS = [
+  'adult',
+  'bachelorette',
+  'cock',
+  'penis',
+  'vulva',
+]
 
 type ImageLikeRow = {
   original_image_url?: string | null
@@ -22,6 +31,8 @@ type RawCustomizedCakeRow = {
   keywords: string | null
   original_image_url: string | null
   studio_edited_image_url: string | null
+  image_width?: number | null
+  image_height?: number | null
 }
 
 type RawSharedDesignRow = {
@@ -32,6 +43,8 @@ type RawSharedDesignRow = {
   description: string | null
   original_image_url: string | null
   customized_image_url: string | null
+  image_width?: number | null
+  image_height?: number | null
 }
 
 export type IndexableCustomizedCakeRow = RawCustomizedCakeRow & {
@@ -53,6 +66,74 @@ function getSupabaseClient() {
 
 function hasTextValue(value: string | null | undefined): boolean {
   return typeof value === 'string' && value.trim().length > 0
+}
+
+function hasUsefulTextValue(value: string | null | undefined): boolean {
+  return typeof value === 'string' && value.trim().length >= MIN_SITEMAP_TEXT_LENGTH
+}
+
+function hasGenericTextValue(value: string | null | undefined): boolean {
+  const normalized = value?.trim().toLowerCase()
+  return normalized === 'custom cake'
+    || normalized === 'custom cake design'
+    || normalized === 'custom cake | genie.ph'
+}
+
+function containsBlockedAdultTerm(...values: Array<string | null | undefined>): boolean {
+  const haystack = values
+    .filter((value): value is string => typeof value === 'string')
+    .join(' ')
+    .toLowerCase()
+
+  return ADULT_SITEMAP_TERMS.some((term) => new RegExp(`\\b${term}\\b`, 'i').test(haystack))
+}
+
+function hasTinyMeasuredImage(row: { image_width?: number | null; image_height?: number | null }): boolean {
+  if (!row.image_width || !row.image_height) {
+    return false
+  }
+
+  return row.image_width < MIN_SITEMAP_IMAGE_DIMENSION || row.image_height < MIN_SITEMAP_IMAGE_DIMENSION
+}
+
+function passesCustomizedCakeQualityGate(row: RawCustomizedCakeRow, slug: string): boolean {
+  if (containsBlockedAdultTerm(slug, row.seo_title, row.alt_text, row.keywords)) {
+    return false
+  }
+
+  if (!row.image_width || !row.image_height) {
+    return false
+  }
+
+  if (hasTinyMeasuredImage(row)) {
+    return false
+  }
+
+  if (hasGenericTextValue(row.seo_title) || hasGenericTextValue(row.alt_text)) {
+    return false
+  }
+
+  return hasUsefulTextValue(row.seo_title)
+    || hasUsefulTextValue(row.alt_text)
+    || hasUsefulTextValue(row.keywords)
+}
+
+function passesSharedDesignQualityGate(row: RawSharedDesignRow, slug: string): boolean {
+  if (containsBlockedAdultTerm(slug, row.title, row.alt_text, row.description)) {
+    return false
+  }
+
+  if (hasTinyMeasuredImage(row)) {
+    return false
+  }
+
+  if (hasGenericTextValue(row.title) || hasGenericTextValue(row.alt_text)) {
+    return false
+  }
+
+  return hasUsefulTextValue(row.title)
+    || hasUsefulTextValue(row.alt_text)
+    || hasUsefulTextValue(row.description)
 }
 
 export function getSitemapCutoffDate(now = new Date()): string {
@@ -112,6 +193,10 @@ export function toIndexableCustomizedCakeRow(
     return null
   }
 
+  if (!passesCustomizedCakeQualityGate(row, slug)) {
+    return null
+  }
+
   return {
     ...row,
     slug,
@@ -146,6 +231,10 @@ export function toIndexableSharedDesignRow(
     return null
   }
 
+  if (!passesSharedDesignQualityGate(row, urlSlug)) {
+    return null
+  }
+
   return {
     ...row,
     url_slug: urlSlug,
@@ -162,7 +251,7 @@ async function fetchAllCustomizedCakeRows(): Promise<RawCustomizedCakeRow[]> {
   while (true) {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, created_at, seo_title, alt_text, keywords, original_image_url, studio_edited_image_url')
+      .select('slug, created_at, seo_title, alt_text, keywords, original_image_url, studio_edited_image_url, image_width, image_height')
       .not('slug', 'is', null)
       .lte('created_at', cutoffDate)
       .order('created_at', { ascending: false })

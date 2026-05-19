@@ -123,7 +123,7 @@ export async function calculatePriceFromDatabase(
     subtype?: string
   ): PricingRule | undefined => {
 
-    // Handle legacy type mapping for edible_2d_gumpaste
+    // Handle legacy type mapping for analyzer/UI values that predate current rule keys.
     let effectiveType = type;
     if (type === 'edible_2d_gumpaste') {
       if (category === 'main_topper') {
@@ -131,6 +131,8 @@ export async function calculatePriceFromDatabase(
       } else {
         effectiveType = 'edible_2d_support';
       }
+    } else if (category === 'message' && type === 'icing_text') {
+      effectiveType = 'icing_script';
     }
 
     // Helper to find match in a list of rules

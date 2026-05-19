@@ -63,6 +63,22 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
 
     const showAvailability = Boolean(availability && !isAnalyzing && !error);
     const hasTopNotification = !error && (Boolean(warningMessage) || (showAvailability && Boolean(availability)));
+    const addToCartDisabledReason = isAnalyzing
+        ? 'Wait for analysis to finish before buying'
+        : isLoading
+            ? 'Price is still calculating'
+            : error
+                ? 'Resolve the pricing issue before buying'
+                : price === null
+                    ? 'Upload or select a cake design first'
+                    : isAdding
+                        ? 'Adding this cake to your cart'
+                        : undefined;
+    const shareDisabledReason = isApplyingChanges
+        ? 'Apply pending changes before sharing'
+        : !canShare
+            ? 'Customize design to share'
+            : undefined;
 
 
     const [isCompact, setIsCompact] = React.useState(false);
@@ -259,6 +275,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                                 onClick={onShareClick}
                                 isLoading={isSharing}
                                 disabled={!canShare || isApplyingChanges}
+                                disabledReason={shareDisabledReason}
                                 className="shrink-0"
                                 showText={!isCompact}
                             />
@@ -272,6 +289,8 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                             <button
                                 onClick={onAddToCartClick}
                                 disabled={isLoading || !!error || price === null || isAdding || isAnalyzing}
+                                title={addToCartDisabledReason}
+                                aria-label={addToCartDisabledReason || 'Buy this cake now'}
                                 className="flex-1 min-w-0 h-12 genie-btn-primary font-bold py-3 px-4 rounded-xl text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md whitespace-nowrap"
                             >
                                 {isAdding ? (
@@ -285,6 +304,11 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                             </button>
                         </div>
                     </div>
+                    {addToCartDisabledReason && (
+                        <p className="mt-2 text-center text-[10px] font-medium text-slate-500 sm:hidden">
+                            {addToCartDisabledReason}
+                        </p>
+                    )}
                 </div>
             </div>
         </>

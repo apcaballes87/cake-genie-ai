@@ -8,6 +8,10 @@ vi.mock('./ShareButton', () => ({
     ChatButton: ({ onClick }: { onClick: () => void }) => <button onClick={onClick}>chat</button>,
 }));
 
+vi.mock('./DiscountOfferBubble', () => ({
+    DiscountOfferBubble: () => null,
+}));
+
 beforeAll(() => {
     class ResizeObserverMock {
         observe() { /* noop */ }
@@ -38,7 +42,6 @@ const buildProps = (): React.ComponentProps<typeof StickyAddToCartBar> => ({
     onApplyChangesClick: vi.fn(),
     isApplyingChanges: false,
     applyChangesLabel: 'Apply Changes',
-    hideAiChat: true,
 });
 
 describe('StickyAddToCartBar', () => {

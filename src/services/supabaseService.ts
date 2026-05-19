@@ -30,7 +30,14 @@ const supabase: SupabaseClient = getSupabaseClient();
 export const publicSupabaseClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  { auth: { persistSession: false } }
+  {
+    auth: {
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      persistSession: false,
+      storageKey: 'genie-public-supabase',
+    },
+  }
 );
 
 // Type for service responses
@@ -1207,18 +1214,9 @@ export async function getRelatedProductsByKeywords(
       return getRecommendedProducts(limit, offset);
     }
 
-    // Use FTS to get a broad set of candidates (fetch more than needed for re-ranking)
     const candidateLimit = Math.max(limit * 4, 72);
 
-    const { data: ftsResults, error: ftsError } = await client.rpc('search_products', {
-      p_query: normalizedPhrase,
-      p_limit: candidateLimit,
-      p_offset: 0,
-    });
-
-    if (ftsError) {
-      console.error('Error in FTS related search:', ftsError);
-      // Fallback to ILIKE approach if FTS fails
+    const fetchRelatedProductsWithFilters = async () => {
       const distinctiveTerms = getDistinctiveRelatedSearchTerms(keywords);
       const selectFields =
         'p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, usage_count, studio_edited_image_url';
@@ -1260,7 +1258,31 @@ export async function getRelatedProductsByKeywords(
 
       const filtered = data.filter((p: any) => !excludeSlug || p.slug !== excludeSlug);
       const rankedProducts = rankRelatedProducts(filtered, keywords, offset + limit).slice(offset);
-      return { data: rankedProducts.length > 0 ? rankedProducts.map(applyImageFallback) : (await getRecommendedProducts(limit, offset)).data || [], error: null };
+      return {
+        data: rankedProducts.length > 0
+          ? rankedProducts.map(applyImageFallback)
+          : (await getRecommendedProducts(limit, offset)).data || [],
+        error: null,
+      };
+    };
+
+    // During `next build`, many pages prerender related-product slots in parallel.
+    // The FTS RPC is great for runtime search, but it can hit Supabase statement
+    // timeouts when dozens of static pages call it at once. Use the lighter
+    // indexed column filters for SSG and keep FTS for normal runtime requests.
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return fetchRelatedProductsWithFilters();
+    }
+
+    const { data: ftsResults, error: ftsError } = await client.rpc('search_products', {
+      p_query: normalizedPhrase,
+      p_limit: candidateLimit,
+      p_offset: 0,
+    });
+
+    if (ftsError) {
+      console.error('Error in FTS related search:', ftsError);
+      return fetchRelatedProductsWithFilters();
     }
 
     // Filter out the excluded slug

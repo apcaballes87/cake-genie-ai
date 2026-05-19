@@ -38,4 +38,19 @@ describe('customizing category metadata', () => {
       expect.objectContaining({ url: 'https://example.com/lavender.webp' }),
     ]);
   });
+
+  it('does not duplicate cake/cakes in category metadata', async () => {
+    const { generateMetadata } = await import('./page');
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ keyword: 'birthday-cakes' }),
+    });
+
+    expect(metadata.title).toBe('Birthday Cake Designs in Cebu');
+    expect(metadata.description).toContain('Browse birthday cake designs');
+    expect(metadata.description).toContain('Order custom birthday cakes');
+    expect(metadata.description).not.toMatch(/cakes cake|cakes cakes/i);
+    expect(metadata.openGraph?.title).toBe('Birthday Cake Designs in Cebu | Genie.ph');
+    expect(JSON.stringify(metadata.openGraph?.images)).not.toMatch(/cakes cake|cakes cakes/i);
+  });
 });

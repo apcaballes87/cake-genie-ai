@@ -7,6 +7,7 @@ interface ShareButtonProps {
   onClick: () => void;
   isLoading?: boolean;
   disabled?: boolean;
+  disabledReason?: string;
   showText?: boolean;
   className?: string;
 }
@@ -15,11 +16,12 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
   onClick, 
   isLoading = false,
   disabled = false,
+  disabledReason = "Customize design to share",
   showText = true,
   className = '' 
 }) => {
   const isEffectivelyDisabled = isLoading || disabled;
-  const tooltipText = "Customize design to share";
+  const tooltipText = disabledReason;
   const showTooltip = disabled && !isLoading;
 
   return (
@@ -27,6 +29,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
       <button
         onClick={onClick}
         disabled={isEffectivelyDisabled}
+        title={showTooltip ? tooltipText : undefined}
         className={`
           flex items-center justify-center
           w-11 h-11 sm:w-auto sm:h-12 min-[420px]:max-[639px]:px-0 min-[420px]:max-[639px]:gap-0 sm:px-4 sm:gap-2
@@ -66,6 +69,7 @@ interface ChatButtonProps {
   onClick: () => void;
   isLoading?: boolean;
   disabled?: boolean;
+  disabledReason?: string;
   showText?: boolean;
   className?: string;
 }
@@ -74,6 +78,7 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
   onClick, 
   isLoading = false,
   disabled = false,
+  disabledReason,
   showText = true,
   className = '' 
 }) => {
@@ -83,6 +88,7 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
     <button
       onClick={onClick}
       disabled={isEffectivelyDisabled}
+      title={isEffectivelyDisabled ? disabledReason : undefined}
       className={`
         flex items-center justify-center
         w-11 h-11 sm:w-auto sm:h-12 min-[420px]:max-[639px]:px-0 min-[420px]:max-[639px]:gap-0 sm:px-4 sm:gap-2

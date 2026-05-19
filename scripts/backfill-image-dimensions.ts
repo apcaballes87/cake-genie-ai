@@ -2,7 +2,7 @@
  * backfill-image-dimensions.ts
  *
  * One-time script that reads all rows in `cakegenie_analysis_cache` where
- * `image_width IS NULL`, fetches each image, measures its dimensions using
+ * `image_width IS NULL OR image_height IS NULL`, fetches each image, measures its dimensions using
  * sharp, then writes image_width + image_height back to the row.
  *
  * USAGE:
@@ -119,7 +119,7 @@ const main = async () => {
     const { count } = await supabase
         .from('cakegenie_analysis_cache')
         .select('*', { count: 'exact', head: true })
-        .is('image_width', null)
+        .or('image_width.is.null,image_height.is.null')
         .not('original_image_url', 'is', null)
         .neq('original_image_url', '');
 
@@ -143,7 +143,7 @@ const main = async () => {
         const { data: rows, error } = await supabase
             .from('cakegenie_analysis_cache')
             .select('p_hash, original_image_url')
-            .is('image_width', null)
+            .or('image_width.is.null,image_height.is.null')
             .not('original_image_url', 'is', null)
             .neq('original_image_url', '')
             .order('created_at', { ascending: false })

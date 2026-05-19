@@ -202,7 +202,7 @@ const HeroMasonryGrid: React.FC<{
                     onMouseEnter={() => handleInteraction(0)}
                     onClick={() => handleInteraction(0)}
                 >
-                    <img src={products[0]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[0]?.title} />
+                    <img src={products[0]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[0]?.title || 'Custom cake design'} />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
                 <div 
@@ -210,7 +210,7 @@ const HeroMasonryGrid: React.FC<{
                     onMouseEnter={() => handleInteraction(1)}
                     onClick={() => handleInteraction(1)}
                 >
-                    <img src={products[1]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[1]?.title} />
+                    <img src={products[1]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[1]?.title || 'Custom cake design'} />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
             </div>
@@ -220,7 +220,7 @@ const HeroMasonryGrid: React.FC<{
                     onMouseEnter={() => handleInteraction(2)}
                     onClick={() => handleInteraction(2)}
                 >
-                    <img src={products[2]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[2]?.title} />
+                    <img src={products[2]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[2]?.title || 'Custom cake design'} />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
                 <div 
@@ -228,7 +228,7 @@ const HeroMasonryGrid: React.FC<{
                     onMouseEnter={() => handleInteraction(3)}
                     onClick={() => handleInteraction(3)}
                 >
-                    <img src={products[3]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[3]?.title} />
+                    <img src={products[3]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[3]?.title || 'Custom cake design'} />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
             </div>
@@ -238,7 +238,7 @@ const HeroMasonryGrid: React.FC<{
                     onMouseEnter={() => handleInteraction(4)}
                     onClick={() => handleInteraction(4)}
                 >
-                    <img src={products[4]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[4]?.title} />
+                    <img src={products[4]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[4]?.title || 'Custom cake design'} />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
                 <div 
@@ -246,7 +246,7 @@ const HeroMasonryGrid: React.FC<{
                     onMouseEnter={() => handleInteraction(5)}
                     onClick={() => handleInteraction(5)}
                 >
-                    <img src={products[5]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[5]?.title} />
+                    <img src={products[5]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[5]?.title || 'Custom cake design'} />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
             </div>
@@ -344,7 +344,7 @@ function HeroProductPeekCarousel({
                             >
                                 <img
                                     src={product.image}
-                                    alt={isCenter ? `${product.title} example` : ''}
+                                    alt={`${product.title} example`}
                                     aria-hidden={!isCenter}
                                     className={`h-full w-full object-cover transition-transform duration-700 ${isCenter ? 'scale-[1.1]' : 'scale-100'}`}
                                     draggable={false}
@@ -1462,11 +1462,11 @@ const LandingClient: React.FC<LandingClientProps> = ({
                             <div className="mb-3 text-center">
                                 <HeroReviewSummary compact />
                             </div>
-                            <h1 className="mb-4 text-center text-[10px] min-[360px]:text-[11px] font-bold uppercase tracking-[0.06em] text-neutral-600 whitespace-nowrap">
+                            <p className="mb-4 text-center text-[10px] min-[360px]:text-[11px] font-bold uppercase tracking-[0.06em] text-neutral-600 whitespace-nowrap">
                                 {heroContent.eyebrow}
-                            </h1>
+                            </p>
                             <div className="mb-3 text-center">
-                                <h2 className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-[1.0] tracking-tight text-gray-900">
+                                <h1 className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-[1.0] tracking-tight text-gray-900">
                                     <HeroTypingHeadlineLine 
                                         className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
                                         controlledPhraseIndex={heroHeadlineVariant}
@@ -1476,7 +1476,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                     />
                                     <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
                                     <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
-                                </h2>
+                                </h1>
                                 {heroUploadState === 'idle' && (
                                     <HeroFeatureHighlights compact className="mx-auto mt-3 w-full max-w-[480px] px-2" />
                                 )}
@@ -1492,10 +1492,10 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                         <div className="mb-3 text-center">
                                             <HeroReviewSummary />
                                         </div>
-                                        <h1 className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.092em] text-neutral-600">
+                                        <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.092em] text-neutral-600">
                                             {heroContent.eyebrow}
-                                        </h1>
-                                        <h2 className="mt-2 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-[1.0] tracking-tight">
+                                        </p>
+                                        <div className="mt-2 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-[1.0] tracking-tight">
                                             <HeroTypingHeadlineLine 
                                                 className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
                                                 controlledPhraseIndex={heroHeadlineVariant}
@@ -1505,7 +1505,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                             />
                                             <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
                                             <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
-                                        </h2>
+                                        </div>
                                     </div>
                                     {heroUploadState === 'idle' && (
                                         <div className="mt-3 flex w-full max-w-[440px] flex-col items-center">

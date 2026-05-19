@@ -212,6 +212,8 @@ export function generateRichAltText(design: any): string {
     const keywords = design.keywords || 'Custom';
     const tags = design.tags || [];
     const occasion = tags[0] ? tags[0].replace(/cake/i, '').trim() : '';
+    const keywordsLower = keywords.toLowerCase();
+    const occasionLower = occasion.toLowerCase();
 
     // Search-friendly tier names — match how Filipino users actually search:
     // GSC data shows top queries use "1 layer cake design", "2 tier cake", "1 tier cake"
@@ -224,7 +226,8 @@ export function generateRichAltText(design: any): string {
     };
     const rawCakeType = (analysis.cakeType || '').toLowerCase();
     const cakeType = tierMap[rawCakeType] || rawCakeType;
-    const icingBase = (analysis.icing_design?.base || 'icing').replace(/[-_]/g, ' ');
+    const rawIcingBase = (analysis.icing_design?.base || 'icing').replace(/[-_]/g, ' ');
+    const icingBase = cakeType.includes(rawIcingBase) ? '' : rawIcingBase;
 
     const topColor = hexToColorNameProse(analysis.icing_design?.colors?.top || '');
     const sideColor = hexToColorNameProse(analysis.icing_design?.colors?.side || '');
@@ -248,11 +251,13 @@ export function generateRichAltText(design: any): string {
     const parts: string[] = [];
 
     // Opening: always include "cake design" for search matching
-    const prefix = `${keywords}${occasion ? ` ${occasion}` : ''} cake design`.replace(/\s+/g, ' ').trim();
+    const shouldAppendOccasion = Boolean(occasion && !keywordsLower.includes(occasionLower));
+    const keywordPhrase = `${keywords}${shouldAppendOccasion ? ` ${occasion}` : ''}`.replace(/\s+/g, ' ').trim();
+    const prefix = `${keywordPhrase}${/\bcakes?\b/i.test(keywordPhrase) ? ' design' : ' cake design'}`.replace(/\s+/g, ' ').trim();
     parts.push(prefix);
 
     // Cake description
-    const cakeDesc = `${cakeType} ${icingBase} cake${colors ? ` in ${colors}` : ''}`.trim();
+    const cakeDesc = `${cakeType}${icingBase ? ` ${icingBase}` : ''} cake${colors ? ` in ${colors}` : ''}`.trim();
     if (cakeType || colors) parts.push(cakeDesc);
 
     // Decorations
@@ -287,4 +292,3 @@ export function generateRichAltText(design: any): string {
     // 4. Absolute fallback
     return `${keywords} cake design`;
 }
-

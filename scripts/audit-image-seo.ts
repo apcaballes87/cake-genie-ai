@@ -108,6 +108,11 @@ async function main() {
     const noSeoTitle = rows.filter(r => !r.seo_title || r.seo_title.trim() === '').length;
     const noSeoDesc = rows.filter(r => !r.seo_description || r.seo_description.trim() === '').length;
     const noDims = rows.filter(r => !r.image_width || !r.image_height).length;
+    const noDimsWithImage = rows.filter(r =>
+        (!r.image_width || !r.image_height) &&
+        Boolean((r.original_image_url || '').trim())
+    ).length;
+    const noImageUrl = rows.filter(r => !(r.original_image_url || '').trim()).length;
     const notWebp = rows.filter(r => {
         const url = (r.original_image_url || '').toLowerCase();
         if (!url) return false;
@@ -126,6 +131,8 @@ async function main() {
     console.log(`seo_title NULL/empty       : ${noSeoTitle} (${pct(noSeoTitle, total)})`);
     console.log(`seo_description NULL/empty : ${noSeoDesc} (${pct(noSeoDesc, total)})`);
     console.log(`image_width/height missing : ${noDims} (${pct(noDims, total)})`);
+    console.log(`missing dims with image URL: ${noDimsWithImage} (${pct(noDimsWithImage, total)})`);
+    console.log(`original_image_url missing : ${noImageUrl} (${pct(noImageUrl, total)})`);
     console.log(`original_image_url not .webp: ${notWebp} (${pct(notWebp, total)})`);
     console.log('');
 
@@ -153,8 +160,11 @@ async function main() {
         console.log(`Orientation                : ${square} square, ${portrait} portrait, ${landscape} landscape`);
         console.log(`Tiny images (<300px)       : ${tiny} (${pct(tiny, withDims.length)} of measured)`);
     }
-    if (noDims > 0) {
-        console.log(`NOTE: ${noDims} rows missing dimensions — run scripts/backfill-image-dimensions.ts to fix`);
+    if (noDimsWithImage > 0) {
+        console.log(`NOTE: ${noDimsWithImage} rows still have image URLs but missing dimensions — run scripts/backfill-image-dimensions.ts, then inspect failures for broken source images`);
+    }
+    if (noImageUrl > 0) {
+        console.log(`NOTE: ${noImageUrl} rows have no original_image_url, so dimensions cannot be measured until an image URL is restored`);
     }
     console.log('');
 

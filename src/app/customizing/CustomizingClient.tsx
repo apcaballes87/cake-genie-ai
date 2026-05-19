@@ -2888,9 +2888,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         recentSearchDesign?.original_image_url,
     );
 
+    const hasVisiblePageHeading = Boolean(product || recentSearchDesign);
+
     return (
         <>
-            <h1 className="sr-only">{pageDisplayTitle}</h1>
+            {!hasVisiblePageHeading && <h1 className="sr-only">{pageDisplayTitle}</h1>}
             {/* Same-day cutoff countdown — live urgency signal */}
             {!hideBanner && (
                 <div className="w-full bg-purple-400 py-[4.5px] flex justify-center items-center">

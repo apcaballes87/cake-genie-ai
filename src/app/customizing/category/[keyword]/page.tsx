@@ -22,6 +22,30 @@ function toTitleCase(str: string): string {
     return str.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function stripCakeSuffix(label: string): string {
+    return label.replace(/\s+cakes?$/i, '').trim();
+}
+
+function buildCategoryCopy(slug: string) {
+    const decodedKeyword = decodeKeyword(slug);
+    const displayName = toTitleCase(decodedKeyword);
+    const coreName = stripCakeSuffix(displayName) || displayName;
+    const coreNameLower = coreName.toLowerCase();
+    const designLabel = `${coreName} Cake Designs`;
+    const productLabel = `${coreName} Cakes`;
+    const productLabelLower = productLabel.toLowerCase();
+
+    return {
+        decodedKeyword,
+        displayName,
+        coreName,
+        coreNameLower,
+        designLabel,
+        productLabel,
+        productLabelLower,
+    };
+}
+
 const getCategoryDesigns = cache(async (keyword: string) => {
     const { data } = await getDesignsByKeyword(keyword, CATEGORY_PAGE_SIZE);
     return data || [];
@@ -29,12 +53,9 @@ const getCategoryDesigns = cache(async (keyword: string) => {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { keyword } = await params;
-    const decodedKeyword = decodeKeyword(keyword);
-    const displayName = toTitleCase(decodedKeyword);
-    // Avoid "Kuromi Cake Cake Designs" — strip trailing "cake" before building title
-    const titleForMeta = displayName.replace(/\s+cake$/i, '').trim();
-    const title = `${titleForMeta} Cake Designs in Cebu`;
-    const description = `Browse ${titleForMeta.toLowerCase()} cake designs with instant AI pricing. Order custom ${titleForMeta.toLowerCase()} cakes from trusted bakers in Cebu. Upload your own design or choose from our collection.`;
+    const { decodedKeyword, coreName, coreNameLower, designLabel, productLabelLower } = buildCategoryCopy(keyword);
+    const title = `${designLabel} in Cebu`;
+    const description = `Browse ${coreNameLower} cake designs with instant AI pricing. Order custom ${productLabelLower} from trusted bakers in Cebu. Upload your own design or choose from our collection.`;
 
     const designs = await getCategoryDesigns(decodedKeyword);
     const ogImage = designs[0]?.original_image_url || DEFAULT_OG_IMAGE;
@@ -51,7 +72,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
                 url: ogImage,
                 width: 1200,
                 height: 1200,
-                alt: `${titleForMeta} cake design collection — browse ${titleForMeta.toLowerCase()} cake ideas on Genie.ph`,
+                alt: `${coreName} cake design collection - browse ${coreNameLower} cake ideas on Genie.ph`,
             }],
         },
         twitter: {
@@ -76,10 +97,8 @@ export async function generateStaticParams() {
     }));
 }
 
-function CategorySchema({ keyword, displayName, designs, url }: { keyword: string; displayName: string; designs: any[]; url: string }) {
-    const titleLower = displayName.toLowerCase();
-    // Core name without "cake" suffix for overlap detection (e.g. "kuromi" from "Kuromi Cake")
-    const titleCore = titleLower.replace(/\s*cake\s*$/i, '').trim();
+function CategorySchema({ category, designs, url }: { category: ReturnType<typeof buildCategoryCopy>; designs: any[]; url: string }) {
+    const titleCore = category.coreNameLower;
 
     // Top 12 designs as full ImageObjects — triggers Google image rich results
     const galleryImages = designs.slice(0, 12).map((d: any) => {
@@ -88,7 +107,7 @@ function CategorySchema({ keyword, displayName, designs, url }: { keyword: strin
         // Avoid doubling: "Kuromi Kuromi Cake Design" → "Kuromi Cake Design"
         const imageName = kwLower.includes(titleCore) || titleCore.includes(kwLower)
             ? `${kw} cake design`
-            : `${kw} ${displayName} cake design`;
+            : `${kw} ${category.coreName} cake design`;
         return {
             '@type': 'ImageObject',
             url: d.original_image_url,
@@ -110,14 +129,14 @@ function CategorySchema({ keyword, displayName, designs, url }: { keyword: strin
             '@context': 'https://schema.org',
             '@type': 'CollectionPage',
             '@id': url,
-            name: titleLower.includes('cake') ? `${displayName} Designs` : `${displayName} Cake Designs`,
-            description: `Browse ${designs.length} ${titleLower} cake designs available for customization and ordering in Cebu, Philippines`,
+            name: category.designLabel,
+            description: `Browse ${designs.length} ${category.coreNameLower} cake designs available for customization and ordering in Cebu, Philippines`,
             url,
             isPartOf: { '@type': 'WebSite', name: 'Genie.ph', url: 'https://genie.ph' },
             mainEntity: {
                 '@type': 'ImageGallery',
-                name: titleLower.includes('cake') ? `${displayName} Design Collection` : `${displayName} Cake Design Collection`,
-                about: `${displayName} cake designs available for customization and ordering in Cebu, Philippines`,
+                name: `${category.coreName} Cake Design Collection`,
+                about: `${category.coreName} cake designs available for customization and ordering in Cebu, Philippines`,
                 numberOfItems: designs.length,
                 image: galleryImages,
             },
@@ -136,8 +155,7 @@ function CategorySchema({ keyword, displayName, designs, url }: { keyword: strin
             itemListElement: [
                 { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://genie.ph' },
                 { '@type': 'ListItem', position: 2, name: 'Cake Designs', item: 'https://genie.ph/customizing' },
-                // Strip trailing "cake/cakes" before appending "Designs" to avoid "Kuromi Cake Cakes"
-                { '@type': 'ListItem', position: 3, name: `${displayName.replace(/\s+cakes?$/i, '').trim()} Cake Designs`, item: url },
+                { '@type': 'ListItem', position: 3, name: category.designLabel, item: url },
             ],
         },
     ];
@@ -157,22 +175,19 @@ function CategorySchema({ keyword, displayName, designs, url }: { keyword: strin
 
 export default async function CategoryPage({ params }: Props) {
     const { keyword } = await params;
-    const decodedKeyword = decodeKeyword(keyword);
-    const displayName = toTitleCase(decodedKeyword);
+    const category = buildCategoryCopy(keyword);
 
-    const designs = await getCategoryDesigns(decodedKeyword);
+    const designs = await getCategoryDesigns(category.decodedKeyword);
 
     if (!designs || designs.length === 0) {
         notFound();
     }
 
     const url = `https://genie.ph/customizing/category/${keyword}`;
-    // Strip trailing "cake/cakes" to avoid "Kuromi Cake Cake Designs" in headings
-    const cleanName = displayName.replace(/\s+cakes?$/i, '').trim();
 
     return (
         <>
-            <CategorySchema keyword={decodedKeyword} displayName={displayName} designs={designs} url={url} />
+            <CategorySchema category={category} designs={designs} url={url} />
             <main className="min-h-screen py-10">
                 <div className="w-full max-w-7xl mx-auto px-4">
                     {/* Breadcrumb */}
@@ -182,17 +197,17 @@ export default async function CategoryPage({ params }: Props) {
                             <li>/</li>
                             <li><Link href="/customizing" className="hover:text-purple-600 transition-colors">Cake Designs</Link></li>
                             <li>/</li>
-                            <li className="text-slate-800 font-medium">{displayName}</li>
+                            <li className="text-slate-800 font-medium">{category.designLabel}</li>
                         </ol>
                     </nav>
 
                     {/* Header */}
                     <header className="mb-8">
                         <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text truncate">
-                            {cleanName} Cake Designs
+                            {category.designLabel}
                         </h1>
                         <p className="text-slate-500 font-medium mt-1">
-                            Browse {designs.length} {cleanName.toLowerCase()} cake designs. Get instant AI pricing and order from trusted bakers in Cebu.
+                            Browse {designs.length} {category.coreNameLower} cake designs. Get instant AI pricing and order from trusted bakers in Cebu.
                         </p>
                     </header>
 
@@ -200,18 +215,18 @@ export default async function CategoryPage({ params }: Props) {
                     <div className="mb-10">
                         <DesignGridWithLoadMore
                             initialDesigns={designs}
-                            keyword={decodedKeyword}
-                            collectionTitle={cleanName}
+                            keyword={category.decodedKeyword}
+                            collectionTitle={category.coreName}
                         />
                     </div>
 
                     {/* SEO Content */}
                     <div className="pt-6 border-t border-slate-200">
                         <h2 className="text-xl font-bold text-slate-800 mb-4">
-                            Order {cleanName} Cakes in Cebu
+                            Order {category.productLabel} in Cebu
                         </h2>
                         <p className="text-slate-600 leading-relaxed">
-                            Looking for the perfect {cleanName.toLowerCase()} cake? Genie.ph makes it easy to find and order custom {cleanName.toLowerCase()} cake designs from the best bakers in Cebu City, Mandaue, Lapu-Lapu, and Talisay. Simply choose a design you love, customize it with our AI-powered tools, and get an instant price. You can also <Link href="/" className="text-purple-600 hover:underline">upload your own {cleanName.toLowerCase()} cake image</Link> to get started.
+                            Looking for the perfect {category.coreNameLower} cake? Genie.ph makes it easy to find and order custom {category.productLabelLower} from the best bakers in Cebu City, Mandaue, Lapu-Lapu, and Talisay. Simply choose a design you love, customize it with our AI-powered tools, and get an instant price. You can also <Link href="/" className="text-purple-600 hover:underline">upload your own {category.coreNameLower} cake image</Link> to get started.
                         </p>
                         <div className="mt-6 flex flex-wrap gap-3">
                             <Link href="/cake-price-calculator" className="text-sm text-purple-600 hover:underline">Cake Price Calculator</Link>
