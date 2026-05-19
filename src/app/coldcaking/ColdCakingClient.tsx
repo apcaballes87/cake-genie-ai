@@ -767,7 +767,7 @@ const ColdCakingClient: React.FC = () => {
 
                 {/* Drawer Footer */}
                 <div className="px-5 py-5 border-t border-purple-50">
-                    <p className="text-[10px] text-gray-400 text-center">&copy; {new Date().getFullYear()} Genie.ph — Your Cake Wish, Granted.</p>
+                    <p className="text-[10px] text-gray-400 text-center" suppressHydrationWarning>&copy; {new Date().getFullYear()} Genie.ph — Your Cake Wish, Granted.</p>
                 </div>
             </aside>
 

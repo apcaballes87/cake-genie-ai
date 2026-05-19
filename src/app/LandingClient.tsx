@@ -1249,6 +1249,14 @@ const LandingClient: React.FC<LandingClientProps> = ({
     const { user, isAuthenticated } = useAuth();
     const { recordNavigation } = useNavigation();
 
+    // Record 'home' so that pages deeper in the funnel (search, customizing)
+    // have a valid previousPage to return to via useSmartBack.
+    useEffect(() => {
+        recordNavigation('home', null);
+    // Run once on mount only — recordNavigation is stable (useCallback)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const categoriesList = [
         { id: 'Birthdays', name: 'Birthdays' },
         { id: 'Anniversaries', name: 'Anniversaries' },
@@ -1495,7 +1503,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                         <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.092em] text-neutral-600">
                                             {heroContent.eyebrow}
                                         </p>
-                                        <div className="mt-2 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-[1.0] tracking-tight">
+                                        <h1 className="mt-2 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-[1.0] tracking-tight">
                                             <HeroTypingHeadlineLine 
                                                 className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
                                                 controlledPhraseIndex={heroHeadlineVariant}
@@ -1505,7 +1513,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                             />
                                             <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
                                             <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
-                                        </div>
+                                        </h1>
                                     </div>
                                     {heroUploadState === 'idle' && (
                                         <div className="mt-3 flex w-full max-w-[440px] flex-col items-center">
@@ -2053,7 +2061,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
 
                 {/* Drawer Footer */}
                 <div className="px-5 py-5 border-t border-purple-50">
-                    <p className="text-[10px] text-gray-400 text-center">&copy; {new Date().getFullYear()} Genie.ph — Your Cake Wish, Granted.</p>
+                    <p className="text-[10px] text-gray-400 text-center" suppressHydrationWarning>&copy; {new Date().getFullYear()} Genie.ph — Your Cake Wish, Granted.</p>
                 </div>
             </aside>
 

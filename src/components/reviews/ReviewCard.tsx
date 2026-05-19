@@ -74,7 +74,7 @@ export function ReviewCard({ review, showMerchantResponse = true, onRespond }: R
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <span className="font-medium text-gray-700">{displayName}</span>
             <span>•</span>
-            <time dateTime={review.created_at}>
+            <time dateTime={review.created_at} suppressHydrationWarning>
               {review.created_at
                 ? formatDate(review.created_at)
                 : 'Recently'}
@@ -97,7 +97,7 @@ export function ReviewCard({ review, showMerchantResponse = true, onRespond }: R
           <p className="text-sm font-medium text-gray-700 mb-1">Merchant Response</p>
           <p className="text-sm text-gray-600">{review.merchant_response}</p>
           {review.merchant_response_at && (
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-400 mt-1" suppressHydrationWarning>
               {formatDate(review.merchant_response_at)}
             </p>
           )}

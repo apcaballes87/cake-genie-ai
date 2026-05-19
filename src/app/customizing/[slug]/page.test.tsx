@@ -2,7 +2,7 @@ import { Children, isValidElement, type ReactElement, type ReactNode } from 'rea
 import { render, screen } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import RecentSearchPage from './page';
+import RecentSearchPage, { generateMetadata } from './page';
 import { createClient } from '@/lib/supabase/server';
 import { getCakeBasePriceOptions, getRelatedProductsByKeywords } from '@/services/supabaseService';
 
@@ -156,8 +156,8 @@ describe('RecentSearchPage', () => {
     const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'pink-minimalist-light-pink-bento-cake-f707' }) });
     const staticMarkup = renderToStaticMarkup(page);
 
-    expect(staticMarkup).toContain('url(https://example.com/related-studio-edited-cake.webp)');
-    expect(staticMarkup).not.toContain('url(https://example.com/related-original-cake.webp)');
+    expect(staticMarkup).toContain('url(/api/proxy-image?url=https%3A%2F%2Fexample.com%2Frelated-studio-edited-cake.webp)');
+    expect(staticMarkup).not.toContain('url(/api/proxy-image?url=https%3A%2F%2Fexample.com%2Frelated-original-cake.webp)');
   });
 
   it('applies the toy-to-printout policy for analyzed slug pages', async () => {
@@ -207,6 +207,47 @@ describe('RecentSearchPage', () => {
     expect(initialData.mainToppers?.[0]).toMatchObject({
       type: 'printout',
       original_type: 'toy',
+    });
+  });
+
+  describe('generateMetadata', () => {
+    it('strips boilerplates, formats meta description to correct length, and injects price CTA', async () => {
+      const design = {
+        slug: 'hot-wheels-jollibee-blue-2-tier-fondant-cake-80a1',
+        keywords: 'Hot Wheels Jollibee',
+        seo_title: 'Hot Wheels Jollibee | Genie.ph',
+        seo_description: 'This vibrant two-tier fondant cake is the ultimate celebration for a Hot Wheels and Jollibee fan. The design features a blue top tier with a custom name logo and a checkered bottom tier representing a racing finish line. An orange racing track spirals around both tiers, accented by traffic cones and miniature cars. The cake is topped with a detailed 3D boy figure in a racing suit and a Jollibee mascot figure at the base. This custom creation is perfect for a young boy\'s birthday party in Cebu. Order your dream custom cake today through Genie.ph for delivery in Cebu City, Mandaue, or Lapu-Lapu City.',
+        original_image_url: 'https://example.com/hot-wheels.webp',
+        price: 2500,
+        tags: ['hot wheels', 'jollibee'],
+        analysis_json: {},
+      };
+
+      vi.mocked(createClient).mockResolvedValueOnce({
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              single: () => Promise.resolve({ data: design }),
+            }),
+          }),
+        }),
+      } as never);
+
+      const metadata = await generateMetadata({ params: Promise.resolve({ slug: design.slug }) }, {} as never);
+
+      expect(metadata).toBeDefined();
+      // Description must be cleaned (no "Order your dream...", "Genie.ph", "Cebu City" boilerplate)
+      expect(metadata.description).not.toContain('Order your dream custom cake today');
+      expect(metadata.description).not.toContain('delivery in Cebu City');
+      
+      // Should preserve the descriptive body content
+      expect(metadata.description).toContain('This vibrant two-tier fondant cake is the ultimate celebration');
+      
+      // Should inject the beautiful CTR price CTA suffix
+      expect(metadata.description).toContain('Price starts at ₱2,500. Customize now!');
+      
+      // Total length should fit perfectly within limits (<= 155 chars)
+      expect(metadata.description?.length).toBeLessThanOrEqual(155);
     });
   });
 });

@@ -283,7 +283,7 @@ async function fetchAllSharedDesignRows(): Promise<RawSharedDesignRow[]> {
   const cutoffDate = getSitemapCutoffDate()
   const { data, error } = await supabase
     .from('cakegenie_shared_designs')
-    .select('url_slug, created_at, title, alt_text, description, original_image_url, customized_image_url')
+    .select('url_slug, created_at, title, alt_text, description, original_image_url, customized_image_url, image_width, image_height')
     .not('url_slug', 'is', null)
     .lte('created_at', cutoffDate)
     .order('created_at', { ascending: false })

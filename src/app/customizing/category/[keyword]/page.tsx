@@ -5,6 +5,93 @@ import Link from 'next/link';
 import { getDesignsByKeyword, getDesignCategories } from '@/services/supabaseService';
 import { DesignGridWithLoadMore } from '@/components/collections/DesignGridWithLoadMore';
 
+// ---------------------------------------------------------------------------
+// Related category cross-links (curated for internal link graph health)
+// ---------------------------------------------------------------------------
+const RELATED_CATEGORIES: Record<string, { slug: string; label: string }[]> = {
+  'birthday cakes': [
+    { slug: 'kids-birthday', label: "Kids' Birthday Cakes" },
+    { slug: 'debut', label: 'Debut Cakes' },
+    { slug: 'anniversary', label: 'Anniversary Cakes' },
+    { slug: 'bento-cakes', label: 'Bento Cakes' },
+    { slug: 'character-cakes', label: 'Character Cakes' },
+  ],
+  'debut': [
+    { slug: 'birthday-cakes', label: 'Birthday Cakes' },
+    { slug: 'floral-cakes', label: 'Floral Cakes' },
+    { slug: 'elegant-cakes', label: 'Elegant Cakes' },
+    { slug: 'princess-cakes', label: 'Princess Cakes' },
+  ],
+  'wedding': [
+    { slug: 'anniversary', label: 'Anniversary Cakes' },
+    { slug: 'elegant-cakes', label: 'Elegant Cakes' },
+    { slug: 'floral-cakes', label: 'Floral Cakes' },
+    { slug: 'multi-tier', label: 'Multi-Tier Cakes' },
+  ],
+  'bento cakes': [
+    { slug: 'birthday-cakes', label: 'Birthday Cakes' },
+    { slug: 'minimalist', label: 'Minimalist Cakes' },
+    { slug: 'korean-cakes', label: 'Korean Cakes' },
+  ],
+  'minimalist': [
+    { slug: 'bento-cakes', label: 'Bento Cakes' },
+    { slug: 'elegant-cakes', label: 'Elegant Cakes' },
+    { slug: 'floral-cakes', label: 'Floral Cakes' },
+  ],
+  'character cakes': [
+    { slug: 'birthday-cakes', label: 'Birthday Cakes' },
+    { slug: 'kids-birthday', label: "Kids' Birthday Cakes" },
+    { slug: 'anime-cakes', label: 'Anime Cakes' },
+  ],
+  'floral cakes': [
+    { slug: 'wedding', label: 'Wedding Cakes' },
+    { slug: 'debut', label: 'Debut Cakes' },
+    { slug: 'minimalist', label: 'Minimalist Cakes' },
+    { slug: 'anniversary', label: 'Anniversary Cakes' },
+  ],
+};
+
+// ---------------------------------------------------------------------------
+// FAQ data — category-specific Q&A for rich results & thin-content fix
+// ---------------------------------------------------------------------------
+type FaqItem = { q: string; a: string };
+
+const CATEGORY_FAQS: Record<string, FaqItem[]> = {
+  'birthday cakes': [
+    { q: 'How much does a custom birthday cake cost in Cebu?', a: 'Custom birthday cakes in Cebu typically range from ₱1,200 for a basic 6-inch single-tier cake up to ₱8,000+ for multi-tier or sculpted designs. On Genie.ph you get instant pricing before you commit — just upload your design or choose from our gallery.' },
+    { q: 'How far in advance should I order a birthday cake?', a: 'Most bakers on Genie.ph need 3–7 days lead time. For same-day or next-day delivery in Cebu City, filter by "rush orders" when browsing.' },
+    { q: 'Can I customize the cake message and colors?', a: 'Yes. After choosing a design on Genie.ph you can specify your message, preferred color palette, number of tiers, and serving size before sending your order to the baker.' },
+    { q: 'Do you deliver birthday cakes in Cebu?', a: 'Genie.ph works with bakers across Cebu City, Mandaue, Lapu-Lapu, Talisay, and Consolacion. Delivery availability and fees depend on the baker you choose.' },
+  ],
+  'wedding': [
+    { q: 'How much does a wedding cake cost in Cebu?', a: 'Wedding cakes in Cebu generally start at ₱4,000 for a simple two-tier design and can reach ₱25,000+ for multi-tier fondant showpieces. Genie.ph provides instant quotes from multiple bakers so you can compare prices easily.' },
+    { q: 'How far in advance do I need to book a wedding cake?', a: 'We recommend booking at least 4–8 weeks before your wedding, especially for peak season (December and summer months). Some bakers on Genie.ph accept bookings up to 6 months in advance.' },
+    { q: 'Can bakers on Genie.ph do multi-tier wedding cakes?', a: 'Yes. Many of our partner bakers specialize in multi-tier, fondant, and fresh-flower wedding cakes. Upload a reference photo and the AI will match you with the right baker.' },
+  ],
+  'debut': [
+    { q: 'How much does a debut cake cost in Cebu?', a: 'Debut cakes in Cebu start at around ₱2,500 for a 1-tier design and range up to ₱12,000 for elaborate multi-tier creations with gold accents and fresh flowers.' },
+    { q: 'What cake sizes are popular for debut parties?', a: 'A 2- or 3-tier cake (serving 60–100 guests) is most popular for debut celebrations. Genie.ph lets you select your exact serving size so pricing is accurate.' },
+    { q: 'Can I upload an inspiration photo for my debut cake?', a: 'Absolutely. Upload any reference image on Genie.ph and our AI will analyze the design, suggest the nearest matches in our gallery, and give you instant pricing.' },
+  ],
+};
+
+const getCategoryFaqs = (decodedKeyword: string, coreName: string, productLabel: string): FaqItem[] => {
+  const key = decodedKeyword.toLowerCase();
+  const exact = CATEGORY_FAQS[key];
+  if (exact) return exact;
+
+  const partial = Object.keys(CATEGORY_FAQS).find((k) => key.includes(k) || k.includes(key));
+  if (partial) return CATEGORY_FAQS[partial];
+
+  // Generic fallback for unconfigured categories
+  return [
+    { q: `How much do custom ${productLabel.toLowerCase()} cost in Cebu?`, a: `Prices vary depending on size, tiers, and complexity. On Genie.ph you get instant, accurate quotes from real Cebu bakers — just upload your design or choose from our gallery to see pricing.` },
+    { q: `How do I order a ${coreName.toLowerCase()} cake on Genie.ph?`, a: `Browse the designs above, click on one you love, customize the details (message, colors, serving size), and submit your order. A verified Cebu baker will confirm your request within hours.` },
+    { q: `Can I get same-day delivery for ${productLabel.toLowerCase()} in Cebu?`, a: `Some bakers on Genie.ph offer rush or same-day orders. Filter by "Rush Orders" when browsing to see available options near you.` },
+    { q: `Do I need to upload a photo to order?`, a: `No. You can choose any design from our gallery and customize it directly. Uploading your own photo is optional but helps bakers match your exact vision.` },
+  ];
+};
+
 export const revalidate = 3600; // ISR: revalidate every hour
 
 const CATEGORY_PAGE_SIZE = 30;
@@ -158,6 +245,16 @@ function CategorySchema({ category, designs, url }: { category: ReturnType<typeo
                 { '@type': 'ListItem', position: 3, name: category.designLabel, item: url },
             ],
         },
+        // FAQPage — qualifies for FAQ rich results & improves thin-content signal
+        {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: getCategoryFaqs(category.decodedKeyword, category.coreName, category.productLabel).map(({ q, a }) => ({
+                '@type': 'Question',
+                name: q,
+                acceptedAnswer: { '@type': 'Answer', text: a },
+            })),
+        },
     ];
 
     return (
@@ -236,6 +333,48 @@ export default async function CategoryPage({ params }: Props) {
                             <Link href="/customizing" className="text-sm text-purple-600 hover:underline">All Cake Designs</Link>
                         </div>
                     </div>
+
+                    {/* Related Categories — strengthens internal link graph */}
+                    {(() => {
+                        const related = RELATED_CATEGORIES[category.decodedKeyword.toLowerCase()] ?? [];
+                        if (related.length === 0) return null;
+                        return (
+                            <div className="mt-8">
+                                <h2 className="text-lg font-semibold text-slate-800 mb-3">Browse Similar Cake Categories</h2>
+                                <div className="flex flex-wrap gap-2">
+                                    {related.map(({ slug, label }) => (
+                                        <Link
+                                            key={slug}
+                                            href={`/customizing/category/${slug}`}
+                                            className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-4 py-1.5 text-sm font-medium text-purple-700 hover:bg-purple-100 transition-colors"
+                                        >
+                                            {label}
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })()}
+
+                    {/* FAQ Section — resolves thin-content & qualifies for FAQ rich results */}
+                    {(() => {
+                        const faqs = getCategoryFaqs(category.decodedKeyword, category.coreName, category.productLabel);
+                        return (
+                            <div className="mt-10 border-t border-slate-200 pt-8">
+                                <h2 className="text-xl font-bold text-slate-800 mb-6">
+                                    Frequently Asked Questions about {category.productLabel} in Cebu
+                                </h2>
+                                <dl className="space-y-5">
+                                    {faqs.map(({ q, a }, i) => (
+                                        <div key={i} className="rounded-xl border border-slate-100 bg-slate-50 px-5 py-4">
+                                            <dt className="font-semibold text-slate-900 mb-1.5">{q}</dt>
+                                            <dd className="text-slate-600 leading-relaxed text-sm">{a}</dd>
+                                        </div>
+                                    ))}
+                                </dl>
+                            </div>
+                        );
+                    })()}
                 </div>
             </main>
         </>

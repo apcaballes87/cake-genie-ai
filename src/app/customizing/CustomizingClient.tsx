@@ -1991,16 +1991,18 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
         // Check URL params for specific redirect logic (legacy support)
         if (searchParams.get('from') === 'search') {
-            // Use smart back to go back to search results
             goBack();
-        } else if (sessionStorage.getItem('cakegenie_from_saved') === 'true') {
-            // If came from saved page, go back to saved
+            return;
+        }
+
+        if (sessionStorage.getItem('cakegenie_from_saved') === 'true') {
             sessionStorage.removeItem('cakegenie_from_saved');
             router.push('/saved');
-        } else {
-            // Default: go home
-            router.push('/');
+            return;
         }
+
+        // Rely on smart back stack navigation for all other cases
+        goBack();
     };
     const onOpenReportModal = () => setIsReportModalOpen(true);
 

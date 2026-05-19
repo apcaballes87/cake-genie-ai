@@ -8,10 +8,16 @@ const PAYMENT_MODE_KEY = 'xendit_payment_mode';
 export type PaymentMode = 'test' | 'live';
 
 export function usePaymentMode() {
-    const [mode, setMode] = useState<PaymentMode>(() => {
-        if (typeof window === 'undefined') return 'test';
-        return (localStorage.getItem(PAYMENT_MODE_KEY) as PaymentMode) || 'test';
-    });
+    // Always start as 'test' on both server and client to avoid hydration mismatch.
+    // Actual persisted value is loaded from localStorage after mount.
+    const [mode, setMode] = useState<PaymentMode>('test');
+
+    useEffect(() => {
+        const stored = localStorage.getItem(PAYMENT_MODE_KEY) as PaymentMode | null;
+        if (stored === 'live' || stored === 'test') {
+            setMode(stored);
+        }
+    }, []);
 
     const toggleMode = (newMode: PaymentMode) => {
         setMode(newMode);

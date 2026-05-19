@@ -27,6 +27,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAvailabilitySettings } from '@/hooks/useAvailabilitySettings';
 import { validateDiscountCode, getUserDiscountCodes } from '@/services/discountService';
 import type { DiscountValidationResult } from '@/types';
+import { useSmartBack, useRecordNavigation } from '@/hooks/useSmartBack';
 
 const getErrorMessage = (error: unknown, fallback: string) => (
     error instanceof Error ? error.message : fallback
@@ -85,6 +86,14 @@ const PICKUP_LOCATIONS = [
 function CartClient() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { goBack } = useSmartBack('cart');
+    const recordNavigation = useRecordNavigation();
+
+    // Record that the user is on the cart page so the context tracks it.
+    useEffect(() => {
+        recordNavigation('cart', null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     const urlDiscount = searchParams.get('discount');
     const { user, signInAnonymously } = useAuth();
     const isRegisteredUser = !!(user && !user.is_anonymous);
@@ -1162,7 +1171,7 @@ function CartClient() {
     }, [removeItemOptimistic]);
 
     const handleClose = () => {
-        router.back();
+        goBack();
     };
 
     const handleContinueShopping = () => {

@@ -25,7 +25,6 @@ const helpLinks = ['/contact|Contact Us', '/faq|FAQ', '/how-to-order|How to Orde
 
 export function LandingFooter() {
   const [showDtiModal, setShowDtiModal] = useState(false);
-  const year = new Date().getFullYear();
 
   return (
     <footer className="genie-page-bg text-gray-900 pt-0 pb-24 md:pb-8 border-t border-purple-100">

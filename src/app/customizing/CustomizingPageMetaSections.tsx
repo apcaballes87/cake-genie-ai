@@ -40,6 +40,11 @@ export const CustomizingPageMetaHeader = React.memo(({
     const recentSearchTitle = getRecentSearchDisplayTitle(recentSearchDesign);
     const showBreadcrumbs = Boolean((product && merchant) || (recentSearchDesign && recentSearchDesign.slug));
 
+    const [isMounted, setIsMounted] = React.useState(false);
+    React.useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     if (!showBreadcrumbs && !product && !recentSearchDesign) {
         return null;
     }
@@ -74,9 +79,15 @@ export const CustomizingPageMetaHeader = React.memo(({
 
             {(product || recentSearchDesign) && (
                 <div className="w-full">
-                    <h1 className="text-xl md:text-2xl font-bold text-slate-800 leading-tight truncate whitespace-nowrap">
-                        {product ? productTitle : recentSearchTitle}
-                    </h1>
+                    {isMounted ? (
+                        <h1 className="text-xl md:text-2xl font-bold text-slate-800 leading-tight truncate whitespace-nowrap">
+                            {product ? productTitle : recentSearchTitle}
+                        </h1>
+                    ) : (
+                        <div className="text-xl md:text-2xl font-bold text-slate-800 leading-tight truncate whitespace-nowrap">
+                            {product ? productTitle : recentSearchTitle}
+                        </div>
+                    )}
                     {product?.category && (
                         <span className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
                             {product.category}

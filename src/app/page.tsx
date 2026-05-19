@@ -26,7 +26,7 @@ export const metadata: Metadata = {
         type: 'website',
     },
     alternates: {
-        canonical: 'https://genie.ph',
+        canonical: 'https://genie.ph/',
     },
     twitter: {
         card: 'summary_large_image',
