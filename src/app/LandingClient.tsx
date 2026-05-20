@@ -242,7 +242,7 @@ const HeroMasonryGrid: React.FC<{
                         src={products[0]?.image || ''}
                         alt={products[0]?.title || 'Custom cake design'}
                         priority={prioritizePrimaryImage}
-                        sizes="(max-width: 767px) 0px, (max-width: 1279px) 18vw, 220px"
+                        sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
@@ -255,7 +255,7 @@ const HeroMasonryGrid: React.FC<{
                     <HeroProductImage
                         src={products[1]?.image || ''}
                         alt={products[1]?.title || 'Custom cake design'}
-                        sizes="(max-width: 767px) 0px, (max-width: 1279px) 18vw, 220px"
+                        sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
@@ -270,7 +270,7 @@ const HeroMasonryGrid: React.FC<{
                     <HeroProductImage
                         src={products[2]?.image || ''}
                         alt={products[2]?.title || 'Custom cake design'}
-                        sizes="(max-width: 767px) 0px, (max-width: 1279px) 18vw, 220px"
+                        sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
@@ -283,7 +283,7 @@ const HeroMasonryGrid: React.FC<{
                     <HeroProductImage
                         src={products[3]?.image || ''}
                         alt={products[3]?.title || 'Custom cake design'}
-                        sizes="(max-width: 767px) 0px, (max-width: 1279px) 18vw, 220px"
+                        sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
@@ -298,7 +298,7 @@ const HeroMasonryGrid: React.FC<{
                     <HeroProductImage
                         src={products[4]?.image || ''}
                         alt={products[4]?.title || 'Custom cake design'}
-                        sizes="(max-width: 767px) 0px, (max-width: 1279px) 18vw, 220px"
+                        sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
@@ -311,7 +311,7 @@ const HeroMasonryGrid: React.FC<{
                     <HeroProductImage
                         src={products[5]?.image || ''}
                         alt={products[5]?.title || 'Custom cake design'}
-                        sizes="(max-width: 767px) 0px, (max-width: 1279px) 18vw, 220px"
+                        sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
@@ -415,7 +415,7 @@ function HeroProductPeekCarousel({
                                     src={product.image}
                                     alt={`${product.title} example`}
                                     priority={prioritizePrimaryImage && productIndex === 0}
-                                    sizes="(max-width: 767px) 50vw, 0px"
+                                    sizes="(max-width: 767px) 50vw, (max-width: 1279px) 40vw, 380px"
                                     imageClassName={`object-cover transition-transform duration-700 ${isCenter ? 'scale-[1.1]' : 'scale-100'}`}
                                     aria-hidden={!isCenter}
                                     draggable={false}

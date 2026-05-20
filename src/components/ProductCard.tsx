@@ -149,6 +149,8 @@ const ProductCardContent = ({
                             imageClassName="object-cover group-hover:scale-105 transition-transform duration-500 genie-internal-image"
                             priority={priority}
                             loading={priority ? 'eager' : 'lazy'}
+                            fetchPriority={priority ? 'high' : 'low'}
+                            decoding="async"
                         />
                     )}
 
