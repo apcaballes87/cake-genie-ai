@@ -458,6 +458,10 @@ function HeroProductPreviewStack({
                         <ImagePlus size={20} className="shrink-0" />
                         <span className="whitespace-nowrap text-[12px] min-[360px]:text-[13px] min-[390px]:text-sm">Upload Your Design - Get Instant Pricing</span>
                     </button>
+                    <div className="mt-2.5 text-center text-[13px] text-slate-500 font-medium">
+                        Don't have a photo?{' '}
+                        <Link href="/collections" className="text-purple-600 font-bold hover:underline hover:text-purple-700 transition-colors">Browse from 10,000+ cake designs</Link>
+                    </div>
                 </div>
 
                 <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px] min-[505px]:[mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] min-[505px]:[-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
@@ -1524,6 +1528,10 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                                 <ImagePlus size={22} className="shrink-0" />
                                                 <span className="whitespace-nowrap">Upload Your Design - Get Instant Pricing</span>
                                             </button>
+                                            <div className="mt-3.5 text-center text-[14px] text-slate-500 font-medium">
+                                                Don't have a photo?{' '}
+                                                <Link href="/collections" className="text-purple-600 font-bold hover:underline hover:text-purple-700 transition-colors">Browse from 10,000+ cake designs</Link>
+                                            </div>
                                             <HeroFeatureHighlights className="mt-5" />
                                         </div>
                                     )}
