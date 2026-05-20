@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
 import { LoadingSpinner } from '../../components/LoadingSpinner';

@@ -184,11 +184,47 @@ const HeroTypingHeadlineLine: React.FC<{
     );
 };
 
+function HeroProductImage({
+    src,
+    alt,
+    priority = false,
+    fill = true,
+    imageClassName = '',
+    sizes,
+    ...props
+}: {
+    src: string;
+    alt: string;
+    priority?: boolean;
+    fill?: boolean;
+    imageClassName?: string;
+    sizes: string;
+    draggable?: boolean;
+    'aria-hidden'?: boolean;
+}) {
+    return (
+        <LazyImage
+            src={src}
+            alt={alt}
+            fill={fill}
+            priority={priority}
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'low'}
+            decoding="async"
+            unoptimized
+            sizes={sizes}
+            imageClassName={imageClassName}
+            {...props}
+        />
+    );
+}
+
 const HeroMasonryGrid: React.FC<{ 
     products: readonly LandingHeroProduct[],
+    prioritizePrimaryImage?: boolean,
     onSelectProduct?: (index: number) => void,
     onInteraction?: (index: number) => void
-}> = ({ products, onSelectProduct, onInteraction }) => {
+}> = ({ products, prioritizePrimaryImage = false, onSelectProduct, onInteraction }) => {
     const handleInteraction = (index: number) => {
         onSelectProduct?.(index);
         onInteraction?.(index);
@@ -202,7 +238,13 @@ const HeroMasonryGrid: React.FC<{
                     onMouseEnter={() => handleInteraction(0)}
                     onClick={() => handleInteraction(0)}
                 >
-                    <img src={products[0]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[0]?.title || 'Custom cake design'} />
+                    <HeroProductImage
+                        src={products[0]?.image || ''}
+                        alt={products[0]?.title || 'Custom cake design'}
+                        priority={prioritizePrimaryImage}
+                        sizes="(max-width: 767px) 0px, (max-width: 1279px) 18vw, 220px"
+                        imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
                 <div 
@@ -210,7 +252,12 @@ const HeroMasonryGrid: React.FC<{
                     onMouseEnter={() => handleInteraction(1)}
                     onClick={() => handleInteraction(1)}
                 >
-                    <img src={products[1]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[1]?.title || 'Custom cake design'} />
+                    <HeroProductImage
+                        src={products[1]?.image || ''}
+                        alt={products[1]?.title || 'Custom cake design'}
+                        sizes="(max-width: 767px) 0px, (max-width: 1279px) 18vw, 220px"
+                        imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
             </div>
@@ -220,7 +267,12 @@ const HeroMasonryGrid: React.FC<{
                     onMouseEnter={() => handleInteraction(2)}
                     onClick={() => handleInteraction(2)}
                 >
-                    <img src={products[2]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[2]?.title || 'Custom cake design'} />
+                    <HeroProductImage
+                        src={products[2]?.image || ''}
+                        alt={products[2]?.title || 'Custom cake design'}
+                        sizes="(max-width: 767px) 0px, (max-width: 1279px) 18vw, 220px"
+                        imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
                 <div 
@@ -228,7 +280,12 @@ const HeroMasonryGrid: React.FC<{
                     onMouseEnter={() => handleInteraction(3)}
                     onClick={() => handleInteraction(3)}
                 >
-                    <img src={products[3]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[3]?.title || 'Custom cake design'} />
+                    <HeroProductImage
+                        src={products[3]?.image || ''}
+                        alt={products[3]?.title || 'Custom cake design'}
+                        sizes="(max-width: 767px) 0px, (max-width: 1279px) 18vw, 220px"
+                        imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
             </div>
@@ -238,7 +295,12 @@ const HeroMasonryGrid: React.FC<{
                     onMouseEnter={() => handleInteraction(4)}
                     onClick={() => handleInteraction(4)}
                 >
-                    <img src={products[4]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[4]?.title || 'Custom cake design'} />
+                    <HeroProductImage
+                        src={products[4]?.image || ''}
+                        alt={products[4]?.title || 'Custom cake design'}
+                        sizes="(max-width: 767px) 0px, (max-width: 1279px) 18vw, 220px"
+                        imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
                 <div 
@@ -246,7 +308,12 @@ const HeroMasonryGrid: React.FC<{
                     onMouseEnter={() => handleInteraction(5)}
                     onClick={() => handleInteraction(5)}
                 >
-                    <img src={products[5]?.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={products[5]?.title || 'Custom cake design'} />
+                    <HeroProductImage
+                        src={products[5]?.image || ''}
+                        alt={products[5]?.title || 'Custom cake design'}
+                        sizes="(max-width: 767px) 0px, (max-width: 1279px) 18vw, 220px"
+                        imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
             </div>
@@ -257,6 +324,7 @@ const HeroMasonryGrid: React.FC<{
 function HeroProductPeekCarousel({
     products,
     heroProductIndex,
+    prioritizePrimaryImage = false,
     onSelectProduct,
     onInteraction,
     cardSpacingClassName = 'mx-1',
@@ -265,6 +333,7 @@ function HeroProductPeekCarousel({
 }: {
     products: readonly LandingHeroProduct[];
     heroProductIndex: number;
+    prioritizePrimaryImage?: boolean;
     onSelectProduct: (index: number) => void;
     onInteraction?: (index: number) => void;
     cardSpacingClassName?: string;
@@ -342,13 +411,14 @@ function HeroProductPeekCarousel({
                                     }`}
                                 style={{ flex: cardFlexStyle }}
                             >
-                                <img
+                                <HeroProductImage
                                     src={product.image}
                                     alt={`${product.title} example`}
+                                    priority={prioritizePrimaryImage && productIndex === 0}
+                                    sizes="(max-width: 767px) 50vw, 0px"
+                                    imageClassName={`object-cover transition-transform duration-700 ${isCenter ? 'scale-[1.1]' : 'scale-100'}`}
                                     aria-hidden={!isCenter}
-                                    className={`h-full w-full object-cover transition-transform duration-700 ${isCenter ? 'scale-[1.1]' : 'scale-100'}`}
                                     draggable={false}
-                                    loading={productIndex === 0 ? 'eager' : 'lazy'}
                                 />
                                 {isCenter && (
                                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 to-transparent" />
@@ -418,6 +488,7 @@ function HeroFeatureHighlights({ compact = false, className = '' }: { compact?: 
 function HeroProductPreviewStack({
     products,
     heroProductIndex,
+    prioritizePrimaryImage = false,
     heroUploadState,
     heroUploadedImageSrc,
     heroProgressAnimate,
@@ -433,6 +504,7 @@ function HeroProductPreviewStack({
 }: {
     products: readonly LandingHeroProduct[];
     heroProductIndex: number;
+    prioritizePrimaryImage?: boolean;
     heroUploadState: HeroUploadState;
     heroUploadedImageSrc: string | null;
     heroProgressAnimate: boolean;
@@ -469,6 +541,7 @@ function HeroProductPreviewStack({
                         <HeroProductPeekCarousel 
                             products={products}
                             heroProductIndex={heroProductIndex} 
+                            prioritizePrimaryImage={prioritizePrimaryImage}
                             onSelectProduct={onSelectProduct} 
                             onInteraction={onInteraction}
                         />
@@ -1140,6 +1213,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isOccasionOpen, setIsOccasionOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [isDesktopHeroViewport, setIsDesktopHeroViewport] = useState<boolean | null>(null);
     const heroMobilePreviewRef = useRef<HTMLElement>(null);
     const uploadToastId = useRef<string | null>(null);
     const isMounted = React.useSyncExternalStore(subscribeToHydration, () => true, () => false);
@@ -1162,6 +1236,22 @@ const LandingClient: React.FC<LandingClientProps> = ({
     // ───────────────────────────────────────────────────────────────────────
     const heroProducts = heroContent.products;
     const heroProductCount = heroProducts.length;
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia('(min-width: 768px)');
+
+        const updateViewport = () => {
+            setIsDesktopHeroViewport(mediaQuery.matches);
+        };
+
+        updateViewport();
+
+        mediaQuery.addEventListener('change', updateViewport);
+
+        return () => {
+            mediaQuery.removeEventListener('change', updateViewport);
+        };
+    }, []);
 
     useEffect(() => {
         if (heroProductIndex >= heroProductCount) {
@@ -1552,10 +1642,11 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                 <div className="col-span-1 flex flex-col items-center justify-center">
                                     {heroUploadState === 'idle' ? (
                                         <>
-                                                <div className="w-full max-w-[680px] xl:max-w-[720px]">
-                                                    <HeroMasonryGrid 
-                                                        products={heroProducts} 
-                                                        onSelectProduct={setHeroProductIndex}
+                                            <div className="w-full max-w-[680px] xl:max-w-[720px]">
+                                                <HeroMasonryGrid
+                                                    products={heroProducts}
+                                                    prioritizePrimaryImage={isDesktopHeroViewport === true}
+                                                    onSelectProduct={setHeroProductIndex}
                                                     onInteraction={handleHeroInteraction}
                                                 />
                                             </div>
@@ -1764,6 +1855,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                         <HeroProductPreviewStack
                             products={heroProducts}
                             heroProductIndex={heroProductIndex}
+                            prioritizePrimaryImage={isDesktopHeroViewport === false}
                             heroUploadState={heroUploadState}
                             heroUploadedImageSrc={heroUploadedImageSrc}
                             heroProgressAnimate={heroProgressAnimate}
