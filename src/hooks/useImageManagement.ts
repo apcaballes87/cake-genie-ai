@@ -15,6 +15,7 @@ import {
     generateImageFingerprintWithLegacyCandidates,
     toFingerprintLookup,
 } from '@/lib/utils/serverFingerprint.client';
+import { findOrbCacheHit } from '@/services/orbMatchingService';
 export { generatePerceptualHash } from '@/lib/utils/perceptualHash.client';
 
 
@@ -85,28 +86,20 @@ export const useImageManagement = () => {
             // Step 1a: Try crop-resistant ORB+RANSAC backend first (handles crops/resizes/screenshots)
             let orbCacheHit: HybridAnalysisResult | null = null;
             try {
-                const formData = new FormData();
-                formData.append('file', file);
-                const matchResponse = await fetch('http://localhost:8000/api/match?mode=default&visualize=false', {
-                    method: 'POST',
-                    body: formData,
-                });
-                if (matchResponse.ok) {
-                    const matchData = await matchResponse.json();
-                    if (matchData.match && matchData.analysis_json) {
-                        console.log(
-                            '%c🎯 CACHE HIT (ORB+RANSAC)',
-                            'color: #22c55e; font-weight: bold;',
-                            `\nKeyword: "${matchData.analysis_json.keyword ?? 'unknown'}"`,
-                            `\nMatched ID: ${matchData.matched_image_id}`,
-                            `\nMatched URL: ${matchData.matched_image_url}`,
-                            `\nConfidence: ${((matchData.confidence ?? 0) * 100).toFixed(1)}%`,
-                            `\nLatency: ${matchData.execution_time_ms?.toFixed(0)}ms`,
-                        );
-                        orbCacheHit = matchData.analysis_json as HybridAnalysisResult;
-                    } else {
-                        console.log('%c⚫ CACHE MISS (ORB+RANSAC)', 'color: #94a3b8; font-weight: bold;', '— falling back to pHash lookup');
-                    }
+                const matchData = await findOrbCacheHit(file);
+                if (matchData) {
+                    console.log(
+                        '%c🎯 CACHE HIT (ORB+RANSAC)',
+                        'color: #22c55e; font-weight: bold;',
+                        `\nSlug: ${matchData.seoMetadata?.slug ? `"${matchData.seoMetadata.slug}"` : '(no slug)'}`,
+                        `\nMatched ID: ${matchData.matchedImageId ?? 'n/a'}`,
+                        `\nMatched URL: ${matchData.matchedImageUrl ?? matchData.seoMetadata?.original_image_url ?? 'n/a'}`,
+                        `\nConfidence: ${(matchData.confidence * 100).toFixed(1)}%`,
+                        `\nLatency: ${matchData.executionTimeMs?.toFixed(0) ?? 'n/a'}ms`,
+                    );
+                    orbCacheHit = matchData.analysisResult;
+                } else {
+                    console.log('%c⚫ CACHE MISS (ORB+RANSAC)', 'color: #94a3b8; font-weight: bold;', '— falling back to pHash lookup');
                 }
             } catch (err) {
                 console.warn('FastAPI backend offline, falling back to pHash matching:', err);

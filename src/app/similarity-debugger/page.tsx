@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -386,7 +388,7 @@ export const SimilarityDebugger: React.FC = () => {
                   disabled={isMatching || backendStatus?.status !== 'online'}
                   className="w-full mt-3 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-slate-800 disabled:to-slate-800 text-white font-extrabold rounded-xl transition-all duration-300 shadow-md shadow-purple-950/40 uppercase text-xs tracking-wider flex items-center justify-center gap-2"
                 >
-                  {isMatching ? <LoadingSpinner className="w-4 h-4 border-white" /> : '🔍'} Verify Similarity
+                  {isMatching ? <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div> : '🔍'} Verify Similarity
                 </button>
               </div>
             )}

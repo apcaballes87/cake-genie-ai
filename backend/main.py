@@ -292,15 +292,34 @@ async def match_image(
     matched_image_url = None
     analysis_json = None
     drawn_matches_b64 = None
+    cache_p_hash = None
+    cache_metadata = None
     
     if winner:
         winner_id = winner["id"]
         print(f"[DEBUG] Winner found: ID={winner_id}, stats={winner_stats}")
         try:
-            cache_res = supabase.table("cakegenie_analysis_cache").select("original_image_url, analysis_json").eq("id", winner_id).single().execute()
+            cache_res = (
+                supabase.table("cakegenie_analysis_cache")
+                .select("p_hash, seo_title, seo_description, keywords, alt_text, slug, original_image_url, price, availability, analysis_json")
+                .eq("id", winner_id)
+                .single()
+                .execute()
+            )
             if cache_res.data:
+                cache_p_hash = cache_res.data.get("p_hash")
                 matched_image_url = cache_res.data.get("original_image_url")
                 analysis_json = cache_res.data.get("analysis_json")
+                cache_metadata = {
+                    "seo_title": cache_res.data.get("seo_title"),
+                    "seo_description": cache_res.data.get("seo_description"),
+                    "keywords": cache_res.data.get("keywords"),
+                    "alt_text": cache_res.data.get("alt_text"),
+                    "slug": cache_res.data.get("slug"),
+                    "original_image_url": matched_image_url,
+                    "price": cache_res.data.get("price"),
+                    "availability": cache_res.data.get("availability"),
+                }
                 print(f"[DEBUG] Retrieved metadata: url={matched_image_url}")
         except Exception as e:
             print(f"Failed to fetch cached analysis metadata: {e}")
@@ -345,6 +364,8 @@ async def match_image(
             "matched_image_id": winner["id"],
             "matched_image_url": matched_image_url,
             "analysis_json": analysis_json,
+            "cache_p_hash": cache_p_hash,
+            "cache_metadata": cache_metadata,
             "drawn_matches_b64": drawn_matches_b64,
             "candidates_evaluated": len(candidates),
             "execution_time_ms": round(duration, 2)
@@ -359,6 +380,8 @@ async def match_image(
             "matched_image_id": None,
             "matched_image_url": None,
             "analysis_json": None,
+            "cache_p_hash": None,
+            "cache_metadata": None,
             "drawn_matches_b64": None,
             "candidates_evaluated": len(candidates),
             "execution_time_ms": round(duration, 2)

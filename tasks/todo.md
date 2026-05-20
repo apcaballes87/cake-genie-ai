@@ -39,3 +39,26 @@
 - Built-app verification on `http://127.0.0.1:3004/` confirmed homepage hero preloads now point at the proxied asset path, and `HEAD /api/proxy-image?...landing-page-model-white-minimalist-cake.webp` returns `cache-control: public, max-age=31536000, s-maxage=31536000, immutable`.
 - Follow-up note:
   one direct homepage logo preload was still visible in the first built snapshot, so `COMMON_ASSETS.logo` was also switched to the cached asset helper. The final rebuild re-entered the same long-running static generation path with the existing Supabase warnings, but this last logo change is the same kind of path substitution as the already-verified hero assets.
+
+---
+
+## ORB+RANSAC Landing Flow Regression
+
+### Plan
+- [x] Confirm which upload/analyze path the landing page actually uses and compare it with the similarity debugger path.
+- [x] Patch the shared landing/customizing upload flow so it calls the ORB+RANSAC backend before the existing pHash fallback, while preserving image validation guards.
+- [x] Ensure ORB cache hits hydrate canonical cache metadata needed by the UI, including `slug`, `original_image_url`, and cache identity.
+- [x] Run targeted verification on the touched backend/frontend paths and capture the result here.
+
+### Review
+- Root cause identified: the similarity debugger calls `http://localhost:8000/api/match` directly, but the landing page uploads to `/customizing?ref=...&source=landing`, which ultimately runs `handleImageUpload` from `src/contexts/ImageContext.tsx`. That shared path still only performed validation + pHash lookup, so ORB+RANSAC never ran for the actual landing/customizing funnel.
+- Fix applied:
+  added a shared `src/services/orbMatchingService.ts` helper, updated `ImageContext` to run ORB+RANSAC before pHash while keeping validation as the gate, and extended `backend/main.py` to return canonical cache metadata (`p_hash`, `slug`, SEO fields, `original_image_url`, `price`, `availability`) for verified ORB hits.
+- Targeted verification:
+  `python3 -m py_compile backend/main.py` passed.
+  Targeted TypeScript syntax transpile passed for `src/contexts/ImageContext.tsx`, `src/hooks/useImageManagement.ts`, and `src/services/orbMatchingService.ts`.
+- Verification limits in this worktree:
+  repo lint could not run because this worktree does not have a resolvable local `eslint` install.
+  repo build could not run directly because this worktree does not have local `next`, and reusing the main repo's binary hit a Next.js workspace-root resolution error before app compilation.
+  full `tsc --noEmit` is currently blocked by a pre-existing syntax error in `src/services/supabaseService.ts` at line 635, unrelated to this patch.
+  live FastAPI endpoint probing was not possible here because the Python environment in this shell does not have `fastapi` installed.
