@@ -214,10 +214,10 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                                 breakpointCols={{
                                     default: 6,
                                     1536: 6,
-                                    1280: 5,
-                                    1024: 4,
-                                    768: 3,
-                                    0: 2
+                                    1280: 6,
+                                    1024: 6,
+                                    768: 6,
+                                    0: 3
                                 }}
                                 className="flex w-auto -ml-4"
                                 columnClassName="pl-4 bg-clip-padding"
