@@ -563,7 +563,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         disabled={isUpdatingDesign}
                                         className="w-auto px-8 py-2 rounded-full genie-btn-primary flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.98] group relative overflow-hidden"
                                     >
-                                        <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+                                        <div className="absolute inset-0 bg-linear-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
                                         {isUpdatingDesign ? (
                                             <>
                                                 <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -586,7 +586,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                         {/* Size, Height, and Flavor Container */}
                         <div className={isTieredFlavorLayout ? 'flex flex-col gap-4 w-full mt-2 bg-transparent' : 'flex flex-row gap-4 w-full mt-2 bg-transparent'}>
                             {!isTieredFlavorLayout ? (
-                                <div className="flex-[1] min-w-0 flex flex-col gap-4">
+                                <div className="flex-1 min-w-0 flex flex-col gap-4">
                                     <div className="flex flex-col gap-1">
                                         <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Flavor</span>
                                         <div className="flex flex-col gap-2">
@@ -597,7 +597,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             ) : null}
 
                             {/* Size and Height */}
-                            <div className={isTieredFlavorLayout ? 'flex-1 min-w-0 flex flex-col gap-2' : 'flex-[3] min-w-0 border-l border-slate-100 pl-4 flex flex-col gap-2'}>
+                            <div className={isTieredFlavorLayout ? 'flex-1 min-w-0 flex flex-col gap-2' : 'flex-3 min-w-0 border-l border-slate-100 pl-4 flex flex-col gap-2'}>
                                 {/* Line 4: Size */}
                                 {basePriceOptions && basePriceOptions.length > 0 && (
                                     <div className="flex flex-col gap-1">
@@ -848,7 +848,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                 />
                             </div>
 
-                            <div className="w-[1px] h-12 bg-slate-100 shrink-0" />
+                            <div className="w-px h-12 bg-slate-100 shrink-0" />
 
                             <div className="flex-1 overflow-x-auto scrollbar-hide">
                                 <div className="flex gap-2.5 py-1 px-1">

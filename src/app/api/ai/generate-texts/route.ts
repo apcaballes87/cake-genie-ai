@@ -19,15 +19,19 @@ const TEXT_GENERATION_PROMPT = `You are an expert copywriter and SEO specialist 
     *   **Examples:** "Spiderman Themed 6-inch Cake", "Elegant Floral 2-Tier Wedding Cake", "Cute Bear Bento Cake".
 
 2.  **description:**
-    *   **Tone:** Enticing, descriptive, and professional.
+    *   **Tone:** Enticing, highly descriptive, unique, and professional.
     *   **Content:** Describe the design clearly. Mention the base color, the main toppers (e.g., "topped with edible gumpaste bears"), and key details.
-    *   **Call to Action:** End with a subtle nudging phrase like "Perfect for birthdays!" or "Customize yours today!".
-    *   **Length:** 1-2 sentences.
+    *   **GMC Compliance Rules (Strict):**
+        *   Absolutely NO pricing references (no starts at, no ₱, no PHP, no prices).
+        *   Absolutely NO URLs or website names (no genie.ph, no Genie.ph, no website).
+        *   Absolutely NO transactional calls-to-action (do not say "order now", "buy yours today", "get instant pricing").
+        *   Safe Suitability Closing: End with a subtle, celebration-oriented phrase like "Perfect for birthdays!" or "A wonderful centerpiece for themed celebrations."
+    *   **Length:** 2 sentences.
 
 3.  **altText:**
     *   **Purpose:** For screen readers and SEO.
-    *   **Content:** A literal, descriptive summary of the visual image. "A [color] [type] cake featuring [main elements] and [decorations]."
-    *   **No fluff:** Avoid "picture of" or promotional language.
+    *   **Content:** A literal, objective, and descriptive summary of the visual image. "A [color] [type] cake featuring [main elements] and [decorations]."
+    *   **No fluff:** Avoid subjective words ("beautiful", "delicious") or promotional language.
 
 **Output Format:** Your response MUST be a single, valid JSON object with the following structure:
 {
@@ -46,11 +50,11 @@ const textGenerationSchema = {
         },
         description: {
             type: Type.STRING,
-            description: "Enticing, descriptive, and professional. Describe the design clearly (base color, main toppers, key details). End with a subtle Call to Action. Length: 1-2 sentences."
+            description: "Enticing and professional. Describe the design clearly. End with a subtle, occasion-suited phrase. STRICTLY no pricing, no website URLs, and no transactional CTAs."
         },
         altText: {
             type: Type.STRING,
-            description: "Literal, descriptive summary of the visual image. Example: 'A [color] [type] cake featuring [main elements] and [decorations].' No fluff."
+            description: "Literal, objective descriptive summary of the visual image. Example: 'A [color] [type] cake featuring [main elements] and [decorations].' No promotional words."
         },
     },
     required: ['title', 'description', 'altText'],

@@ -21,7 +21,7 @@ export const StaticMap: React.FC<{ latitude: number; longitude: number }> = ({ l
     const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
     return (
         <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="block mt-4 rounded-lg overflow-hidden border border-purple-100 hover:border-purple-300 hover:shadow-md transition-all group">
-            <div className="relative w-full aspect-[2/1] min-h-[180px] bg-purple-50">
+            <div className="relative w-full aspect-2/1 min-h-[180px] bg-purple-50">
                 <LazyImage
                     src={imageUrl}
                     alt="Map location"
