@@ -20,6 +20,7 @@ This project uses the official modern `@google/genai` SDK (version `^1.38.0` or 
 ### Key API & Import Requirements
 
 1. **Import Statement**:
+
    ```typescript
    import { GoogleGenAI, Modality, Type, ThinkingLevel } from "@google/genai";
    ```
@@ -27,6 +28,7 @@ This project uses the official modern `@google/genai` SDK (version `^1.38.0` or 
 2. **Thinking Config (`thinkingLevel`)**:
    - **REQUIRED** for `gemini-3-flash-preview`
    - **NOT SUPPORTED** for `gemini-3-pro-image-preview`
+
    ```typescript
    config: {
        thinkingConfig: {
@@ -36,6 +38,7 @@ This project uses the official modern `@google/genai` SDK (version `^1.38.0` or 
    ```
 
 3. **❌ WRONG PATTERNS (DO NOT USE)**:
+
    ```typescript
    // WRONG: Old thinkingBudget (for Gemini 2.5 only)
    thinkingConfig: { thinkingBudget: 1024 }
@@ -52,36 +55,42 @@ This project uses the official modern `@google/genai` SDK (version `^1.38.0` or 
 ## 🔄 Workflow Orchestration Guidelines
 
 ### 1. Plan Mode Default
+
 - **Enter Plan Mode** for ANY non-trivial task (3+ steps or architectural decisions).
 - If something goes sideways, **STOP and re-plan immediately**.
 - Use plan mode for **verification steps**, not just building.
 - Write detailed specs upfront to reduce ambiguity.
 
 ### 2. Subagent Strategy
+
 - **Use subagents liberally** to keep the main context window clean.
 - Offload research, exploration, and parallel analysis to subagents.
 - For complex problems, throw more compute at it via subagents.
 - **One task per subagent** for focused execution.
 
 ### 3. Self-Improvement Loop
+
 - After **ANY correction** from the user: update `tasks/lessons.md` with the pattern.
 - Write rules for yourself that prevent the same mistake from happening again.
 - **Ruthlessly iterate** on these lessons until the mistake rate drops to zero.
 - Review these lessons at the start of each session for the relevant project.
 
 ### 4. Verification Before Done
+
 - **Never mark a task complete** without proving it works.
 - Diff behavior between `main` and your changes when relevant.
 - Ask yourself: *"Would a staff engineer approve this?"*
 - Run tests, check logs, and demonstrate correctness with clear evidence.
 
 ### 5. Demand Elegance (Balanced)
+
 - For non-trivial changes: **pause and ask**, *"Is there a more elegant way?"*
 - If a fix feels hacky: *"Knowing everything I know now, implement the elegant solution."*
 - Skip this for simple, obvious fixes — **do not over-engineer**.
 - Challenge your own work thoroughly before presenting it.
 
 ### 6. Autonomous Bug Fixing
+
 - When given a bug report: **just fix it**. Do not ask for hand-holding.
 - Point directly at logs, errors, or failing tests — then resolve them.
 - **Zero context switching** should be required from the user.

@@ -53,7 +53,7 @@ export const CustomizingEmptyLandingState: React.FC<CustomizingEmptyLandingState
                             <br />
                             For Today's
                             <br />
-                            <span className="bg-gradient-to-r from-purple-600 via-pink-500 to-amber-500 bg-clip-text text-transparent">
+                            <span className="bg-linear-to-r from-purple-600 via-pink-500 to-amber-500 bg-clip-text text-transparent">
                                 Celebrations
                             </span>
                         </h2>

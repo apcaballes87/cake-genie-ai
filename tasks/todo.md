@@ -2,13 +2,15 @@
 
 ## Desktop Layout Tweak - Move Feature Highlights below "Celebrations"
 
-### Plan
+### Layout Tweak Plan
+
 - [x] Locate the `<HeroFeatureHighlights>` component rendering in the desktop hero layout of `src/app/LandingClient.tsx`.
 - [x] Move it from below the primary CTA button/Browse link section to below the "Celebrations" text (`h1` element containing `{heroContent.lineThree}`) inside the desktop view.
 - [x] Adjust styling/margins if necessary to ensure it fits beautifully under the title.
 - [x] Verify the change by checking the file structure and build correctness.
 
-### Review
+### Layout Tweak Review
+
 - Identified the `<HeroFeatureHighlights>` component in `src/app/LandingClient.tsx`.
 - Successfully moved it from the interactive button CTA block to immediately below the `h1` element containing `heroContent.lineThree` ("Celebrations").
 - Verified using TypeScript type-checking that the change maintains compilation and build integrity.
@@ -17,14 +19,16 @@
 
 ## PageSpeed Review
 
-### Plan
+### PageSpeed Plan
+
 - [x] Confirm whether the shared desktop and mobile PageSpeed report URLs are accessible.
 - [x] Gather current performance signals from available sources if the shared reports or API are blocked.
 - [x] Inspect the local Next.js implementation for likely performance bottlenecks.
 - [x] Identify low-risk improvements with expected impact and implementation scope.
 - [x] Stop before implementation and confirm the plan, unless the requested change is analysis-only.
 
-### Review
+### PageSpeed Review Details
+
 - Shared report pages are accessible through a rendered browser session. The PageSpeed API is blocked in this environment with a 429 daily quota error, so findings came from the rendered reports plus production HTML inspection.
 - Desktop report: Performance 89, Accessibility 93, Best Practices 96, SEO 100. Lab metrics: FCP 0.3s, LCP 2.0s, TBT 100ms, CLS 0.001, Speed Index 1.3s. Field Core Web Vitals fail: LCP 3.3s, INP 83ms, CLS 0.59.
 - Mobile report: Performance 69, Accessibility 87, Best Practices 96, SEO 100. Lab metrics: FCP 1.4s, LCP 6.6s, TBT 190ms, CLS 0, Speed Index 5.9s. Field Core Web Vitals fail: LCP 3.6s, INP 166ms, CLS 0.05.
@@ -44,8 +48,15 @@
 
 ## Resolve Tailwind CSS and Markdown Lint Warnings
 
-### Plan
-- [/] Fix Markdown lint warnings in `gemini.md` (surround headings, code fences, and lists with blank lines).
-- [ ] Fix Tailwind CSS v4 class deprecation warning in `src/app/customizing/CustomizingEmptyLandingState.tsx` (replace `bg-gradient-to-r` with `bg-linear-to-r`).
-- [ ] Fix Tailwind CSS v4 class deprecation warnings in `src/app/LandingClient.tsx` (replace aspect ratios, gradients, masking, rotate classes, and font/tracking properties with modern Tailwind CSS v4 classes).
-- [ ] Verify the changes by running Next.js build or TypeScript compilation check if needed, or by inspecting code.
+### Resolve Warnings Plan
+
+- [x] Fix Markdown lint warnings in `gemini.md` (surround headings, code fences, and lists with blank lines).
+- [x] Fix Tailwind CSS v4 class deprecation warning in `src/app/customizing/CustomizingEmptyLandingState.tsx` (replace `bg-gradient-to-r` with `bg-linear-to-r`).
+- [x] Fix Tailwind CSS v4 class deprecation warnings in `src/app/LandingClient.tsx` (replace aspect ratios, gradients, masking, rotate classes, and font/tracking properties with modern Tailwind CSS v4 classes).
+- [x] Verify the changes by running Next.js build or TypeScript compilation check if needed, or by inspecting code.
+
+### Resolve Warnings Review
+
+- Successfully formatted `gemini.md` to remove all Markdown lint warnings regarding headings, list blocks, and code fences.
+- Migrated gradient and aspect-ratio styling rules in `CustomizingEmptyLandingState.tsx` and `LandingClient.tsx` to match Tailwind CSS v4 guidelines.
+- Confirmed that modified React components compile perfectly with type safety, resolving all IDE warnings for these files.

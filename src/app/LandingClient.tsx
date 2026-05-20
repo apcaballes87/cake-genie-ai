@@ -198,7 +198,7 @@ const HeroMasonryGrid: React.FC<{
         <div className="grid w-full grid-cols-3 gap-2.5 min-[450px]:gap-3.5 lg:gap-4 animate-in fade-in zoom-in-95 duration-1000 ease-out">
             <div className="flex flex-col gap-2.5 min-[450px]:gap-3.5 lg:gap-4">
                 <div 
-                    className="group relative aspect-[5/6] cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
+                    className="group relative aspect-5/6 cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
                     onMouseEnter={() => handleInteraction(0)}
                     onClick={() => handleInteraction(0)}
                 >
@@ -206,7 +206,7 @@ const HeroMasonryGrid: React.FC<{
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
                 <div 
-                    className="group relative aspect-[5/6] cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
+                    className="group relative aspect-5/6 cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
                     onMouseEnter={() => handleInteraction(1)}
                     onClick={() => handleInteraction(1)}
                 >
@@ -216,7 +216,7 @@ const HeroMasonryGrid: React.FC<{
             </div>
             <div className="flex flex-col gap-2.5 pt-7 min-[450px]:gap-3.5 min-[450px]:pt-12 lg:gap-4 lg:pt-14">
                 <div 
-                    className="group relative aspect-[5/6] cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
+                    className="group relative aspect-5/6 cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
                     onMouseEnter={() => handleInteraction(2)}
                     onClick={() => handleInteraction(2)}
                 >
@@ -224,7 +224,7 @@ const HeroMasonryGrid: React.FC<{
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
                 <div 
-                    className="group relative aspect-[5/6] cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
+                    className="group relative aspect-5/6 cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
                     onMouseEnter={() => handleInteraction(3)}
                     onClick={() => handleInteraction(3)}
                 >
@@ -234,7 +234,7 @@ const HeroMasonryGrid: React.FC<{
             </div>
             <div className="flex flex-col gap-2.5 pt-3.5 min-[450px]:gap-3.5 min-[450px]:pt-6 lg:gap-4 lg:pt-8">
                 <div 
-                    className="group relative aspect-[5/6] cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
+                    className="group relative aspect-5/6 cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
                     onMouseEnter={() => handleInteraction(4)}
                     onClick={() => handleInteraction(4)}
                 >
@@ -242,7 +242,7 @@ const HeroMasonryGrid: React.FC<{
                     <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
                 <div 
-                    className="group relative aspect-[5/6] cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
+                    className="group relative aspect-5/6 cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
                     onMouseEnter={() => handleInteraction(5)}
                     onClick={() => handleInteraction(5)}
                 >
@@ -351,7 +351,7 @@ function HeroProductPeekCarousel({
                                     loading={productIndex === 0 ? 'eager' : 'lazy'}
                                 />
                                 {isCenter && (
-                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/25 to-transparent" />
+                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 to-transparent" />
                                 )}
                             </button>
                         );
@@ -464,7 +464,7 @@ function HeroProductPreviewStack({
                     </div>
                 </div>
 
-                <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px] min-[505px]:[mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] min-[505px]:[-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
+                <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px] min-[505px]:mask-[linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] min-[505px]:[-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
                     <div className="overflow-hidden bg-transparent">
                         <HeroProductPeekCarousel 
                             products={products}
@@ -496,7 +496,7 @@ function HeroProductPreviewStack({
         <>
             <div className="relative mx-auto w-full max-w-[480px]">
                 <div className="overflow-hidden bg-transparent">
-                    <div className="relative aspect-[3/2] w-full overflow-hidden rounded-3xl">
+                    <div className="relative aspect-3/2 w-full overflow-hidden rounded-3xl">
                         {heroUploadedImageSrc && (
                             <img
                                 src={heroUploadedImageSrc}
@@ -505,7 +505,7 @@ function HeroProductPreviewStack({
                             />
                         )}
                         {heroUploadState === 'analyzing' && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-black/70 via-black/10 to-transparent px-5 pb-5">
+                            <div className="absolute inset-0 flex flex-col items-center justify-end bg-linear-to-t from-black/70 via-black/10 to-transparent px-5 pb-5">
                                 <div className="w-full space-y-2">
                                     <div className="flex items-center gap-2">
                                         <Loader2 className="h-4 w-4 shrink-0 animate-spin text-white" />
@@ -513,7 +513,7 @@ function HeroProductPreviewStack({
                                     </div>
                                     <div className="h-1.5 overflow-hidden rounded-full bg-white/20">
                                         <div
-                                            className="h-full rounded-full bg-gradient-to-r from-purple-400 to-purple-500"
+                                            className="h-full rounded-full bg-linear-to-r from-purple-400 to-purple-500"
                                             style={{
                                                 width: heroProgressAnimate ? '100%' : '0%',
                                                 transition: heroProgressAnimate ? 'width 11s linear' : 'none',
@@ -684,7 +684,7 @@ function DemoCakeAddOnOverlays({ showDrip, showBoard, showFlowers }: { showDrip:
             )}
 
             {showDrip && (
-                <div className="absolute left-[24%] right-[24%] top-[20%] h-[10%] rounded-b-[2rem] rounded-t-md bg-rose-300/70 shadow-[0_14px_28px_-18px_rgba(190,24,93,0.95)]">
+                <div className="absolute left-[24%] right-[24%] top-[20%] h-[10%] rounded-b-4xl rounded-t-md bg-rose-300/70 shadow-[0_14px_28px_-18px_rgba(190,24,93,0.95)]">
                     <span className="absolute left-[12%] top-[72%] h-7 w-2.5 rounded-full bg-rose-300/75" />
                     <span className="absolute left-[35%] top-[58%] h-5 w-2 rounded-full bg-rose-300/75" />
                     <span className="absolute right-[16%] top-[68%] h-8 w-2.5 rounded-full bg-rose-300/75" />
@@ -694,8 +694,8 @@ function DemoCakeAddOnOverlays({ showDrip, showBoard, showFlowers }: { showDrip:
             {showFlowers && (
                 <>
                     <div className="absolute left-[23%] top-[18%] h-8 w-8 rotate-[-18deg] drop-shadow-sm">{flower}</div>
-                    <div className="absolute right-[24%] top-[20%] h-8 w-8 rotate-[14deg] drop-shadow-sm">{flower}</div>
-                    <div className="absolute bottom-[22%] right-[28%] h-7 w-7 rotate-[28deg] drop-shadow-sm">{flower}</div>
+                    <div className="absolute right-[24%] top-[20%] h-8 w-8 rotate-14 drop-shadow-sm">{flower}</div>
+                    <div className="absolute bottom-[22%] right-[28%] h-7 w-7 rotate-28 drop-shadow-sm">{flower}</div>
                 </>
             )}
         </div>
@@ -1488,7 +1488,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                 {heroContent.eyebrow}
                             </p>
                             <div className="mb-3 text-center">
-                                <h1 className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-[1.0] tracking-tight text-gray-900">
+                                <h1 className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-none tracking-tight text-gray-900">
                                     <HeroTypingHeadlineLine 
                                         className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
                                         controlledPhraseIndex={heroHeadlineVariant}
@@ -1517,7 +1517,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                         <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.092em] text-neutral-600">
                                             {heroContent.eyebrow}
                                         </p>
-                                        <h1 className="mt-2 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-[1.0] tracking-tight">
+                                        <h1 className="mt-2 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-none tracking-tight">
                                             <HeroTypingHeadlineLine 
                                                 className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
                                                 controlledPhraseIndex={heroHeadlineVariant}
@@ -1564,7 +1564,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                         <>
                                             <div className="relative w-full max-w-[560px]">
                                                 <div className="overflow-hidden bg-transparent">
-                                                    <div className="relative w-full aspect-[3/2] overflow-hidden rounded-3xl">
+                                                    <div className="relative w-full aspect-3/2 overflow-hidden rounded-3xl">
                                                         {heroUploadedImageSrc && (
                                                             <img
                                                                 src={heroUploadedImageSrc}
@@ -1574,7 +1574,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                                         )}
                                                         {/* Overlay: visible during analysis */}
                                                         {heroUploadState === 'analyzing' && (
-                                                            <div className="absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-black/70 via-black/10 to-transparent pb-5 px-5">
+                                                            <div className="absolute inset-0 flex flex-col items-center justify-end bg-linear-to-t from-black/70 via-black/10 to-transparent pb-5 px-5">
                                                                 <div className="w-full space-y-2">
                                                                     <div className="flex items-center gap-2">
                                                                         <Loader2 className="w-4 h-4 text-white animate-spin shrink-0" />
@@ -1583,7 +1583,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                                                     {/* 11-second fill bar */}
                                                                     <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
                                                                         <div
-                                                                            className="h-full bg-gradient-to-r from-purple-400 to-purple-500 rounded-full"
+                                                                            className="h-full bg-linear-to-r from-purple-400 to-purple-500 rounded-full"
                                                                             style={{
                                                                                 width: heroProgressAnimate ? '100%' : '0%',
                                                                                 transition: heroProgressAnimate
@@ -1889,7 +1889,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                         {/* Left Column: Copy + CTA (order-2 on mobile, md:order-1 on desktop) */}
                         <div className="w-full md:w-1/2 flex flex-col items-center text-center order-2 md:order-1">
                             {/* Eyebrow */}
-                            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-purple-500 mb-3">
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-purple-500 mb-3">
                                 🚀 Same-Day Delivery
                             </p>
 
@@ -1928,13 +1928,13 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                 <img
                                     src={HOMEPAGE_ASSETS.delivery}
                                     alt="Genie.ph same-day cake delivery in Cebu"
-                                    className="w-full h-full object-cover aspect-[4/3] transition-transform duration-700 group-hover:scale-105"
+                                    className="w-full h-full object-cover aspect-4/3 transition-transform duration-700 group-hover:scale-105"
                                     loading="lazy"
                                     decoding="async"
                                     fetchPriority="low"
                                 />
                                 {/* Gradient overlay */}
-                                <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-transparent pointer-events-none" />
+                                <div className="absolute inset-0 bg-linear-to-tr from-black/20 via-transparent to-transparent pointer-events-none" />
                                 {/* Badge */}
                                 <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-green-500 text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full shadow-lg">
                                     <Truck size={12} className="shrink-0" />
