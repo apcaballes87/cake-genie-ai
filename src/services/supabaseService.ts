@@ -334,6 +334,7 @@ export interface CacheWriteResult {
   price: number;
   original_image_url: string | null;
   storedPHash: string;
+  id?: string;
 }
 
 export interface FingerprintHashLookup {
@@ -758,7 +759,7 @@ export async function cacheAnalysisResult(
     const tags = generateTagsForAnalysis(analysisResult, keywords, seoTitle, altText);
 
 
-    const { error } = await client
+    const { data: upsertData, error } = await client
       .from('cakegenie_analysis_cache')
       .upsert({
         p_hash: resolvedPHash,
@@ -778,7 +779,25 @@ export async function cacheAnalysisResult(
       }, {
         onConflict: 'p_hash',
         ignoreDuplicates: false // We set to false because we want to update with the new persistent image URL if it was already cached without one
-      });
+      })
+      .select('id')
+      .single();
+
+    let returnedId = upsertData?.id || undefined;
+    if (!returnedId && resolvedPHash) {
+      try {
+        const { data: existingData } = await client
+          .from('cakegenie_analysis_cache')
+          .select('id')
+          .eq('p_hash', resolvedPHash)
+          .single();
+        if (existingData?.id) {
+          returnedId = existingData.id;
+        }
+      } catch (err) {
+        console.warn('⚠️ Could not fetch existing ID after upsert:', err);
+      }
+    }
 
 
     if (error) {
@@ -815,6 +834,7 @@ export async function cacheAnalysisResult(
       price: totalPrice,
       original_image_url: finalImageUrl ?? null,
       storedPHash: resolvedPHash,
+      id: returnedId,
     };
   } catch (err) {
     console.error('❌ Exception during cache write:', err);

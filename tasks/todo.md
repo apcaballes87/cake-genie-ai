@@ -39,3 +39,13 @@
 - Built-app verification on `http://127.0.0.1:3004/` confirmed homepage hero preloads now point at the proxied asset path, and `HEAD /api/proxy-image?...landing-page-model-white-minimalist-cake.webp` returns `cache-control: public, max-age=31536000, s-maxage=31536000, immutable`.
 - Follow-up note:
   one direct homepage logo preload was still visible in the first built snapshot, so `COMMON_ASSETS.logo` was also switched to the cached asset helper. The final rebuild re-entered the same long-running static generation path with the existing Supabase warnings, but this last logo change is the same kind of path substitution as the already-verified hero assets.
+
+---
+
+## Resolve Tailwind CSS and Markdown Lint Warnings
+
+### Plan
+- [/] Fix Markdown lint warnings in `gemini.md` (surround headings, code fences, and lists with blank lines).
+- [ ] Fix Tailwind CSS v4 class deprecation warning in `src/app/customizing/CustomizingEmptyLandingState.tsx` (replace `bg-gradient-to-r` with `bg-linear-to-r`).
+- [ ] Fix Tailwind CSS v4 class deprecation warnings in `src/app/LandingClient.tsx` (replace aspect ratios, gradients, masking, rotate classes, and font/tracking properties with modern Tailwind CSS v4 classes).
+- [ ] Verify the changes by running Next.js build or TypeScript compilation check if needed, or by inspecting code.
