@@ -174,35 +174,41 @@ export async function findSimilarAnalysisByHash(pHash: string): Promise<HybridAn
  * @param analysisResult The JSON result from the AI analysis.
  * @param imageUrl The public URL of the original image being cached.
  */
-export function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysisResult, imageUrl?: string): void {
-  // FIX: Converted to an async IIFE to use try/catch for error handling,
-  // as the Supabase query builder is a 'thenable' but may not have a .catch method.
-  (async () => {
-    try {
-      console.log('💾 Attempting to cache analysis result with pHash:', pHash);
-      const { error } = await supabase
-        .from('cakegenie_analysis_cache')
-        .insert({
-          p_hash: pHash,
-          analysis_json: analysisResult,
-          original_image_url: imageUrl,
-        });
+export async function cacheAnalysisResult(pHash: string, analysisResult: HybridAnalysisResult, imageUrl?: string): Promise<string | null> {
+  try {
+    console.log('💾 Attempting to cache analysis result with pHash:', pHash);
+    const { data, error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .insert({
+        p_hash: pHash,
+        analysis_json: analysisResult,
+        original_image_url: imageUrl,
+      })
+      .select('id')
+      .single();
 
-      if (error) {
-        // Log error but don't interrupt the user. A unique constraint violation is expected and fine.
-        if (error.code !== '23505') { // 23505 is unique_violation
-          console.error('❌ Failed to cache analysis result:', error);
-          console.error('Error details:', { code: error.code, message: error.message, hint: error.hint });
-        } else {
-          console.log('ℹ️ Analysis already cached (duplicate pHash - this is fine).');
-        }
+    if (error) {
+      if (error.code === '23505') { // 23505 is unique_violation
+        console.log('ℹ️ Analysis already cached (duplicate pHash). Retrieving existing ID...');
+        const { data: existingData } = await supabase
+          .from('cakegenie_analysis_cache')
+          .select('id')
+          .eq('p_hash', pHash)
+          .single();
+        return existingData?.id || null;
       } else {
-        console.log('✅ Analysis result cached successfully with pHash:', pHash);
+        console.error('❌ Failed to cache analysis result:', error);
+        console.error('Error details:', { code: error.code, message: error.message, hint: error.hint });
+        return null;
       }
-    } catch (err) {
-        console.error('❌ Exception during fire-and-forget cache write:', err);
+    } else {
+      console.log('✅ Analysis result cached successfully with pHash:', pHash, 'ID:', data?.id);
+      return data?.id || null;
     }
-  })();
+  } catch (err) {
+      console.error('❌ Exception during cache write:', err);
+      return null;
+  }
 }
 
 

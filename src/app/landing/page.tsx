@@ -5,7 +5,7 @@ import { SearchAutocomplete } from '../../components/SearchAutocomplete';
 import LazyImage from '../../components/LazyImage';
 import { useCanonicalUrl } from '../../hooks';
 
-type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'pricing_sandbox';
+type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'pricing_sandbox' | 'similarity_debugger';
 
 interface LandingPageProps {
   onSearch: (query: string) => void;

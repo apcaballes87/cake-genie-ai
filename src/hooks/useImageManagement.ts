@@ -113,18 +113,46 @@ export const useImageManagement = () => {
             setOriginalImagePreview(imageSrc);
             setIsLoading(false); // File processing done
 
-            // --- STEP 1: CHECK CACHE FIRST (FAST PATH) ---
+            // --- STEP 1: CHECK CROP-RESISTANT CACHE FIRST (FAST PATH) ---
+            let cachedAnalysis: HybridAnalysisResult | null = null;
+            let pHash = '';
 
-            const pHash = await generatePerceptualHash(imageSrc);
-            const cachedAnalysis = await findSimilarAnalysisByHash(pHash);
+            try {
+                // Try crop-resistant backend ORB matching first
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const matchResponse = await fetch('http://localhost:8000/api/match?mode=default&visualize=false', {
+                    method: 'POST',
+                    body: formData,
+                });
+                
+                if (matchResponse.ok) {
+                    const matchData = await matchResponse.json();
+                    if (matchData.match && matchData.analysis_json) {
+                        console.log('🎯 Crop-resistant match found! Latency:', matchData.execution_time_ms, 'ms');
+                        cachedAnalysis = matchData.analysis_json as HybridAnalysisResult;
+                    }
+                }
+            } catch (err) {
+                console.warn('FastAPI backend offline, falling back to standard whole-image pHash matching:', err);
+            }
+
+            if (!cachedAnalysis) {
+                // Fallback to standard client-side average pHash matching
+                pHash = await generatePerceptualHash(imageSrc);
+                cachedAnalysis = await findSimilarAnalysisByHash(pHash);
+            }
 
             if (cachedAnalysis) {
-
                 onSuccess(cachedAnalysis);
                 return; // Skip compression and AI call entirely!
             }
 
-
+            // Ensure pHash is precomputed for indexing/caching phase
+            if (!pHash) {
+                pHash = await generatePerceptualHash(imageSrc);
+            }
 
             // --- STEP 2: COMPRESS IMAGE FOR AI & STORAGE (ONLY ON CACHE MISS) ---
             let uploadedImageUrl = options?.imageUrl; // Use existing URL if from web search
@@ -196,11 +224,41 @@ export const useImageManagement = () => {
                     }
 
                     // Cache the fully enriched result
-                    cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl);
+                    cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl).then(async (cacheId) => {
+                        if (cacheId) {
+                            try {
+                                const formDataIdx = new FormData();
+                                formDataIdx.append('cache_id', cacheId);
+                                formDataIdx.append('file', file);
+                                await fetch('http://localhost:8000/api/index', {
+                                    method: 'POST',
+                                    body: formDataIdx,
+                                });
+                                console.log('✅ Newly analyzed image features successfully indexed in crop-resistant backend.');
+                            } catch (idxErr) {
+                                console.warn('Failed to index new image features (backend might be offline):', idxErr);
+                            }
+                        }
+                    });
                 }).catch(enrichmentError => {
                     console.warn('⚠️ Coordinate enrichment failed, but features are still available:', enrichmentError);
                     // Still cache the fast result even if enrichment fails
-                    cacheAnalysisResult(pHash, fastResult, uploadedImageUrl);
+                    cacheAnalysisResult(pHash, fastResult, uploadedImageUrl).then(async (cacheId) => {
+                        if (cacheId) {
+                            try {
+                                const formDataIdx = new FormData();
+                                formDataIdx.append('cache_id', cacheId);
+                                formDataIdx.append('file', file);
+                                await fetch('http://localhost:8000/api/index', {
+                                    method: 'POST',
+                                    body: formDataIdx,
+                                });
+                                console.log('✅ Newly analyzed image features successfully indexed in crop-resistant backend (fast-result).');
+                            } catch (idxErr) {
+                                console.warn('Failed to index new image features:', idxErr);
+                            }
+                        }
+                    });
                 });
 
             } catch (error) {

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 // Define and export the AppState type for use in other components
-export type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'shopify_customizing' | 'pricing_sandbox';
+export type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'shopify_customizing' | 'pricing_sandbox' | 'similarity_debugger';
 
 export const useAppNavigation = () => {
     // State
@@ -47,6 +47,7 @@ export const useAppNavigation = () => {
             const shopifyMatch = path.match(/^\/cakesandmemories\/([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})\/?$/);
             const orderConfirmationMatch = path.match(/^\/order-confirmation\/?$/);
             const oldDesignMatch = path.match(/^\/design\/([a-zA-Z0-9-]+)\/?$/);
+            const similarityDebuggerMatch = path.match(/^\/similarity-debugger\/?$/);
 
             if (orderConfirmationMatch && params.get('order_id')) {
                 const orderId = params.get('order_id');
@@ -67,6 +68,8 @@ export const useAppNavigation = () => {
                 const sessionId = shopifyMatch[1];
                 setViewingShopifySessionId(sessionId);
                 setAppState('shopify_customizing');
+            } else if (similarityDebuggerMatch) {
+                setAppState('similarity_debugger');
             } else {
                 // If the hash is cleared or doesn't match a special route, reset to landing.
                 if (appStateRef.current === 'shared_design' || appStateRef.current === 'shopify_customizing') {

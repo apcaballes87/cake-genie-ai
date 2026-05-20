@@ -45,6 +45,7 @@ const ContactPage = lazy(() => import('./app/contact/page'));
 const ReviewsPage = lazy(() => import('./app/reviews/page'));
 const ShopifyCustomizingPage = lazy(() => import('./app/shopify-customizing/page'));
 const PricingSandboxPage = lazy(() => import('./app/pricing-sandbox/page'));
+const SimilarityDebuggerPage = lazy(() => import('./app/similarity-debugger/page'));
 
 // Lazy load heavy modal components
 const ImageUploader = lazy(() => import('./components/ImageUploader').then(module => ({ default: module.ImageUploader })));
@@ -520,6 +521,7 @@ ${prompt}
       case 'contact': return <ContactPage onClose={() => setAppState('landing')} />;
       case 'reviews': return <ReviewsPage onClose={() => setAppState('landing')} />;
       case 'pricing_sandbox': return <PricingSandboxPage onClose={() => setAppState('landing')} />;
+      case 'similarity_debugger': return <SimilarityDebuggerPage />;
       default: return <LandingPage user={user} onSearch={(q) => { setSearchInput(q); handleSearch(q); }} onUploadClick={() => setIsUploaderOpen(true)} setAppState={setAppState as React.Dispatch<React.SetStateAction<AppState>>} />;
     }
   }
@@ -529,7 +531,7 @@ ${prompt}
       case 'landing': return 'p-4';
       case 'customizing': case 'shopify_customizing': return 'py-8 px-4';
       case 'searching': return 'py-8 px-4';
-      case 'cart': case 'order_confirmation': case 'shared_design': case 'about': case 'how_to_order': case 'contact': case 'reviews': case 'pricing_sandbox': return 'py-20 px-4';
+      case 'cart': case 'order_confirmation': case 'shared_design': case 'about': case 'how_to_order': case 'contact': case 'reviews': case 'pricing_sandbox': case 'similarity_debugger': return 'py-20 px-4';
       // Let the AuthPage control its own centering without extra padding from the main container
       case 'auth': return 'p-4';
       case 'addresses': case 'orders': return 'py-12 px-4';
