@@ -212,6 +212,12 @@ export const STORAGE_BUCKETS = {
 export const getAssetUrl = (bucket: keyof typeof STORAGE_BUCKETS, path: string): string =>
   `${STORAGE_BASE_URL}/${STORAGE_BUCKETS[bucket]}/${path}`;
 
+export const getProxiedImageUrl = (url: string): string =>
+  `/api/proxy-image?url=${encodeURIComponent(url)}`;
+
+export const getCachedAssetUrl = (bucket: keyof typeof STORAGE_BUCKETS, path: string): string =>
+  getProxiedImageUrl(getAssetUrl(bucket, path));
+
 /**
  * Common application assets - use these instead of hardcoding URLs
  */
@@ -226,6 +232,19 @@ export const COMMON_ASSETS = {
 
   // Landing page
   callForBakeshops: getAssetUrl('cakegenie', 'call%20for%20bakeshops.webp'),
+} as const;
+
+export const HOMEPAGE_ASSETS = {
+  heroProducts: {
+    minimalist: getCachedAssetUrl('landingpage', 'landing-page-model-white-minimalist-cake.webp'),
+    vintage: getCachedAssetUrl('landingpage', 'landing-page-model-pink-vintage-cake.webp'),
+    doodle: getCachedAssetUrl('landingpage', 'landing-page-model-white-doodle-cake.webp'),
+    photo: getCachedAssetUrl('landingpage', 'landing-page-model-edible-photo-cake.webp'),
+    floral: getCachedAssetUrl('landingpage', 'landing-page-model-vintage-white-cake.webp'),
+    bento: getCachedAssetUrl('landingpage', 'landing-page-model-pink-bento-cake.webp'),
+  },
+  transition: getCachedAssetUrl('landingpage', 'generic-vs-personal-cake.webp'),
+  delivery: getCachedAssetUrl('landingpage', 'geniephdelivery.webp'),
 } as const;
 
 /**

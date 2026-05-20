@@ -1,11 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter, usePathname } from 'next/navigation';
 import { Home, Cake, ImagePlus, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { MessageCircle } from './icons';
-import ChatModal from './ChatModal';
+
+const ChatModal = dynamic(() => import('./ChatModal'), {
+    ssr: false,
+});
 
 interface MobileBottomNavProps {
     onUploadClick?: () => void;
@@ -109,13 +113,15 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
 
             <style>{`@keyframes fadeInFast { from { opacity: 0; transform: translate(-50%, 5px); } to { opacity: 1; transform: translate(-50%, 0); } }`}</style>
 
-            <ChatModal
-                isOpen={isChatModalOpen}
-                onClose={() => setIsChatModalOpen(false)}
-                userId={user?.id}
-                userEmail={user?.email}
-                userName={user?.email?.split('@')[0]}
-            />
+            {isChatModalOpen ? (
+                <ChatModal
+                    isOpen={isChatModalOpen}
+                    onClose={() => setIsChatModalOpen(false)}
+                    userId={user?.id}
+                    userEmail={user?.email}
+                    userName={user?.email?.split('@')[0]}
+                />
+            ) : null}
         </>
     );
 };

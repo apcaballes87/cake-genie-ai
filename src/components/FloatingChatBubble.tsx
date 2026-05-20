@@ -1,9 +1,13 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { MessageCircle } from './icons';
-import ChatModal from './ChatModal';
 import { createClient } from '@/lib/supabase/client';
+
+const ChatModal = dynamic(() => import('./ChatModal'), {
+  ssr: false,
+});
 
 interface Position {
   x: number;
@@ -118,13 +122,15 @@ export default function FloatingChatBubble() {
         </button>
       </div>
 
-      <ChatModal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        userId={user?.id}
-        userEmail={user?.email}
-        userName={user?.user_metadata?.full_name}
-      />
+      {isOpen ? (
+        <ChatModal
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          userId={user?.id}
+          userEmail={user?.email}
+          userName={user?.user_metadata?.full_name}
+        />
+      ) : null}
     </>
   );
 }

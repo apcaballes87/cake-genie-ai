@@ -945,6 +945,9 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                             src={displayedImageSrc}
                             alt={`${tier.label} cake preview`}
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                            fetchPriority="low"
                             style={{ opacity: imgVisible ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
                         />
 
@@ -1014,7 +1017,14 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                                             ? 'ring-2 ring-purple-500 bg-purple-50'
                                             : 'hover:border-purple-300'
                                         } ${highlightedOption === ic.label ? 'ring-2 ring-purple-400' : ''}`}>
-                                        <img src={ic.src} alt={ic.label} className="w-full h-full object-contain" />
+                                        <img
+                                            src={ic.src}
+                                            alt={ic.label}
+                                            className="w-full h-full object-contain"
+                                            loading="lazy"
+                                            decoding="async"
+                                            fetchPriority="low"
+                                        />
                                     </div>
                                     <span className="text-[9px] text-center text-slate-600 font-medium leading-tight max-w-[52px] line-clamp-2 mt-0.5">{ic.label}</span>
                                     {ic.addonPrice > 0 && (
@@ -1918,6 +1928,8 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                     alt="Genie.ph same-day cake delivery in Cebu"
                                     className="w-full h-full object-cover aspect-[4/3] transition-transform duration-700 group-hover:scale-105"
                                     loading="lazy"
+                                    decoding="async"
+                                    fetchPriority="low"
                                 />
                                 {/* Gradient overlay */}
                                 <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-transparent pointer-events-none" />

@@ -43,3 +43,11 @@ Follow these rules when you write code:
 Before modifying UI flows, navigation logic, or global event listeners, you **MUST** review the specialized guidelines in the following directory:
 
 - [Regression Prevention and UI Stability](file:///Users/apcaballes/genieph-nextjs/.agent/rules/regression_prevention.md)
+
+## 🔄 Agent & Workflow Rules
+
+For all agent activities, workflow orchestration, task management, core developer principles, and Google Gemini AI SDK configurations, you **MUST** strictly adhere to the guidelines documented here:
+
+- [Agent Guidelines & Workflow Orchestration](file:///Users/apcaballes/genieph-nextjs/agent.md)
+- [Gemini Agent Instructions & SDK Context](file:///Users/apcaballes/genieph-nextjs/gemini.md)
+

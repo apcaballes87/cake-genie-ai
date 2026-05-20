@@ -66,6 +66,7 @@ import { CakeFlavorBottomSheet } from '@/components/CakeFlavorBottomSheet';
 import { CustomizingPhotosPanel } from './CustomizingPhotosPanel';
 import { CustomizingSidebarPanel } from './CustomizingSidebarPanel';
 import { CustomizingStepSummarySections } from './CustomizingStepSummarySections';
+import { CustomizingEmptyLandingState } from './CustomizingEmptyLandingState';
 import { CustomizingAiChatPanel } from './CustomizingAiChatPanel';
 import { CustomizingToppersPanel } from './CustomizingToppersPanel';
 import {
@@ -579,6 +580,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             setPreloadedHeroImage(preloadImageUrl);
         }
     }, [preloadImageUrl]);
+
+    const isEmptyState = !originalImagePreview && !preloadedHeroImage && !product && !recentSearchDesign;
 
     // Related Designs Pagination State
     const [displayedRelatedDesigns, setDisplayedRelatedDesigns] = useState<CustomizingRelatedDesign[]>(relatedDesigns || []);
@@ -2933,13 +2936,16 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             </div>
 
             <div className={`flex flex-col items-center gap-2 w-full max-w-7xl mx-auto px-4 transition-all duration-300 ${showStickyBar ? 'pb-2' : 'pb-4'}`}>
-
-                {/* SEO Breadcrumbs - Visible for both Shop Product and SEO Landing Pages */}
-                <CustomizingPageMetaHeader
-                    product={product}
-                    merchant={merchant}
-                    recentSearchDesign={recentSearchDesign}
-                />
+                {isEmptyState && !isAnalyzing ? (
+                    <CustomizingEmptyLandingState onImageSelect={handleImageSelect} />
+                ) : (
+                    <>
+                        {/* SEO Breadcrumbs - Visible for both Shop Product and SEO Landing Pages */}
+                        <CustomizingPageMetaHeader
+                            product={product}
+                            merchant={merchant}
+                            recentSearchDesign={recentSearchDesign}
+                        />
 
 
 
@@ -3454,6 +3460,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     isApplyingChanges={hideStickyBar ? false : isUpdatingDesign}
                     applyChangesLabel="Apply Design Changes"
                 />
+                    </>
+                )}
                 <ReportModal
                     isOpen={isReportModalOpen}
                     onClose={() => setIsReportModalOpen(false)}

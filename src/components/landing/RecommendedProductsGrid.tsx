@@ -115,7 +115,6 @@ const RecommendedProductsGridComponent = ({
                                     slug={item.slug}
                                     availability={item.availability}
                                     analysis_json={item.analysis_json}
-                                    priority={index < 4}
                                     image_width={item.image_width}
                                     image_height={item.image_height}
                                     listName={listName}

@@ -28,7 +28,7 @@ const ImageUploader = dynamic(
 );
 
 const CustomizingClient = dynamic(
-    () => import('../customizing/CustomizingClient'),
+    () => import('../customizing/CustomizingClient').then((mod) => mod.default),
     { ssr: false, loading: () => <div className="flex justify-center py-12"><LoadingSpinner /></div> }
 );
 

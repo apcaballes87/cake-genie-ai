@@ -83,6 +83,9 @@ export function LandingFooter() {
                     src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/backed%20by%20stellar.webp" 
                     alt="Backed by Stellar" 
                     className="h-full w-auto object-contain"
+                    loading="lazy"
+                    decoding="async"
+                    fetchPriority="low"
                   />
                 </a>
               </div>
