@@ -474,7 +474,7 @@ function HeroFeatureHighlights({ compact = false, className = '' }: { compact?: 
             <span className="text-neutral-300">•</span>
             <div className={compact ? 'flex items-center gap-1' : 'flex items-center gap-1.5'}>
                 <Zap size={compact ? 12 : 14} className="text-neutral-400" />
-                <span className="whitespace-nowrap">Instant Pricing</span>
+                <span className="whitespace-nowrap">Instant AI Pricing</span>
             </div>
             <span className="text-neutral-300">•</span>
             <div className={compact ? 'flex items-center gap-1' : 'flex items-center gap-1.5'}>
