@@ -17,6 +17,7 @@ import {
     generateImageFingerprintWithLegacyCandidates,
     toFingerprintLookup,
 } from '@/lib/utils/serverFingerprint.client'
+import { findOrbCacheHit } from '@/services/orbMatchingService'
 
 interface ImageContextType {
     originalImageData: { data: string; mimeType: string } | null;
@@ -385,10 +386,16 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 // Silently handle compression failure — continue with original imageData
             }
 
-            // --- STEP 2: VALIDATE + pHash LOOKUP IN PARALLEL ---
-            // Run image validation and cache lookup simultaneously.
+            // --- STEP 2: VALIDATE + ORB/pHash LOOKUPS IN PARALLEL ---
+            // Run image validation and both cache lookups simultaneously.
             // Validation result gates the cache hit — a rejected image must NEVER
             // return a cached result, even if pHash collides with a valid cached entry.
+            const orbCacheHitPromise = findOrbCacheHit(file);
+            const validationPromise = validateCakeImage(
+                compressedImageData.data,
+                compressedImageData.mimeType
+            ).catch(() => 'valid_single_cake' as const);
+
             const fingerprint = await generateImageFingerprintWithLegacyCandidates(file, imageSrc);
             const pHash = fingerprint.pHash;
             console.log(`🔍 Server pHash result: ${pHash ?? 'FAILED (null) — new cache writes will be skipped'}`);
@@ -396,10 +403,12 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 pHash !== null || fingerprint.legacyPHashCandidates.length > 0
             );
 
-            const [validationClassification, cacheHitRaw] = await Promise.all([
-                // Validation — always runs, even on potential cache hits
-                validateCakeImage(compressedImageData.data, compressedImageData.mimeType).catch(() => 'valid_single_cake' as const),
-                // Cache lookup — only when hash is valid and not using known SEO metadata
+            const [validationClassification, orbCacheHit, cacheHitRaw] = await Promise.all([
+                validationPromise,
+                orbCacheHitPromise.catch((orbError) => {
+                    console.warn('FastAPI backend offline, falling back to pHash matching:', orbError);
+                    return null;
+                }),
                 shouldUseSimilarCacheLookup
                     ? findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), options?.imageUrl)
                     : Promise.resolve(null),
@@ -424,23 +433,49 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 return;
             }
 
-            // Validation passed — honour cache hit if present
-            const cacheHit = cacheHitRaw;
+            let cacheHit = cacheHitRaw;
 
-            if (cacheHit) {
+            if (orbCacheHit) {
+                cacheHit = {
+                    pHash: orbCacheHit.pHash ?? cacheHitRaw?.pHash ?? '',
+                    analysisResult: orbCacheHit.analysisResult,
+                    seoMetadata: orbCacheHit.seoMetadata ?? cacheHitRaw?.seoMetadata ?? {
+                        seo_title: null,
+                        seo_description: null,
+                        keywords: null,
+                        alt_text: null,
+                        slug: null,
+                        original_image_url: orbCacheHit.matchedImageUrl,
+                        price: null,
+                        availability: null,
+                    },
+                };
+                console.log(
+                    '%c🎯 CACHE HIT (ORB+RANSAC)',
+                    'color: #22c55e; font-weight: bold;',
+                    `\nSlug: ${cacheHit.seoMetadata?.slug ? `"${cacheHit.seoMetadata.slug}"` : '(no slug)'}`,
+                    `\nMatched ID: ${orbCacheHit.matchedImageId ?? 'n/a'}`,
+                    `\nMatched URL: ${orbCacheHit.matchedImageUrl ?? cacheHit.seoMetadata?.original_image_url ?? 'n/a'}`,
+                    `\nConfidence: ${(orbCacheHit.confidence * 100).toFixed(1)}%`,
+                    `\nLatency: ${orbCacheHit.executionTimeMs?.toFixed(0) ?? 'n/a'}ms`,
+                );
+            } else if (cacheHitRaw) {
                 console.log(`✅ pHash Cache HIT! Found matching analysis for hash: ${pHash}`);
-            } else if (shouldUseSimilarCacheLookup) {
-                console.log('⚫️ Cache MISS. No matching pHash found in database.');
+            } else {
+                console.log('%c⚫ CACHE MISS (ORB+RANSAC)', 'color: #94a3b8; font-weight: bold;', '— falling back to pHash lookup');
+                if (shouldUseSimilarCacheLookup) {
+                    console.log('⚫️ Cache MISS. No matching pHash found in database.');
+                }
             }
 
             // --- PROCESS CACHE HIT (IF ANY) ---
             if (cacheHit) {
                 const cachedAnalysis = cacheHit.analysisResult;
-                setCurrentPHash(cacheHit.pHash);
-                setSeoMetadata(cacheHit.seoMetadata);
+                setCurrentPHash(cacheHit.pHash || null);
+                setSeoMetadata(cacheHit.seoMetadata ?? null);
 
                 // Set slug from cache so share button has access to it
-                if (cacheHit.seoMetadata.slug) {
+                if (cacheHit.seoMetadata?.slug) {
                     setCurrentSlugState(cacheHit.seoMetadata.slug);
                 }
                 setIsAnalysisCached(true);
