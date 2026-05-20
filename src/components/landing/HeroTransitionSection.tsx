@@ -1,8 +1,8 @@
 import Image from 'next/image';
 import React from 'react';
+import { HOMEPAGE_ASSETS } from '@/constants';
 
-const TRANSITION_IMAGE_SRC =
-  'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/generic-vs-personal-cake.webp';
+const TRANSITION_IMAGE_SRC = HOMEPAGE_ASSETS.transition;
 
 export function HeroTransitionSection() {
   return (

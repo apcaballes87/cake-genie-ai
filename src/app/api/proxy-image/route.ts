@@ -48,6 +48,7 @@ const PRIVATE_IP_PATTERNS = [
 
 const TIMEOUT_MS = 10000; // 10 seconds
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+const SUPABASE_PUBLIC_PATH = '/storage/v1/object/public/';
 
 const isAllowedHostname = (hostname: string): boolean => {
     return ALLOWED_HOSTNAME_PATTERNS.some(pattern => pattern.test(hostname));
@@ -55,6 +56,18 @@ const isAllowedHostname = (hostname: string): boolean => {
 
 const isPrivateIP = (hostname: string): boolean => {
     return PRIVATE_IP_PATTERNS.some(pattern => pattern.test(hostname));
+};
+
+const isSiteOwnedSupabaseAsset = (url: URL): boolean => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!supabaseUrl) return false;
+
+    try {
+        const parsedSupabaseUrl = new URL(supabaseUrl);
+        return parsedSupabaseUrl.hostname === url.hostname && url.pathname.includes(SUPABASE_PUBLIC_PATH);
+    } catch {
+        return false;
+    }
 };
 
 export async function GET(request: NextRequest) {
@@ -171,11 +184,21 @@ export async function GET(request: NextRequest) {
         }
 
         const contentType = response.headers.get('content-type');
+        if (!contentType?.startsWith('image/')) {
+            return NextResponse.json(
+                { error: 'Fetched resource is not an image' },
+                { status: 415, headers: CORS_HEADERS }
+            );
+        }
+
+        const cacheControl = isSiteOwnedSupabaseAsset(parsedUrl)
+            ? 'public, max-age=31536000, s-maxage=31536000, immutable'
+            : 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400';
 
         return new NextResponse(buffer, {
             headers: {
-                'Content-Type': contentType || 'application/octet-stream',
-                'Cache-Control': 'public, max-age=3600',
+                'Content-Type': contentType,
+                'Cache-Control': cacheControl,
                 ...CORS_HEADERS
             }
         });

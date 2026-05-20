@@ -19,7 +19,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { batchSaveToLocalStorage } from '@/contexts/CartContext';
-import { COMMON_ASSETS } from '@/constants';
+import { COMMON_ASSETS, HOMEPAGE_ASSETS } from '@/constants';
 import { trackImageUpload } from '@/lib/analytics';
 import {
     DEFAULT_LANDING_HERO_CONTENT,
@@ -1528,6 +1528,9 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                             <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
                                             <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
                                         </h1>
+                                        {heroUploadState === 'idle' && (
+                                            <HeroFeatureHighlights className="mt-6" />
+                                        )}
                                     </div>
                                     {heroUploadState === 'idle' && (
                                         <div className="mt-3 flex w-full max-w-[440px] flex-col items-center">
@@ -1542,7 +1545,6 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                                 Don't have a photo?{' '}
                                                 <Link href="/collections" className="text-purple-600 font-bold hover:underline hover:text-purple-700 transition-colors">Browse from 10,000+ cake designs</Link>
                                             </div>
-                                            <HeroFeatureHighlights className="mt-5" />
                                         </div>
                                     )}
                                 </div>
@@ -1924,7 +1926,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                         <div className="w-full md:w-1/2 shrink-0 order-1 md:order-2">
                             <div className="relative rounded-3xl overflow-hidden shadow-2xl group">
                                 <img
-                                    src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/geniephdelivery.webp"
+                                    src={HOMEPAGE_ASSETS.delivery}
                                     alt="Genie.ph same-day cake delivery in Cebu"
                                     className="w-full h-full object-cover aspect-[4/3] transition-transform duration-700 group-hover:scale-105"
                                     loading="lazy"

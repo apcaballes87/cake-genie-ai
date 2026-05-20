@@ -1,3 +1,5 @@
+import { HOMEPAGE_ASSETS } from '@/constants';
+
 export interface LandingHeroProduct {
   title: string;
   image: string;
@@ -31,38 +33,32 @@ export const DEFAULT_LANDING_HERO_CONTENT: LandingHeroContent = {
   products: [
     {
       title: 'Minimalist Cakes',
-      image:
-        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-model-white-minimalist-cake.webp',
+      image: HOMEPAGE_ASSETS.heroProducts.minimalist,
       headlineVariant: 1,
     },
     {
       title: 'Vintage Cakes',
-      image:
-        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-model-pink-vintage-cake.webp',
+      image: HOMEPAGE_ASSETS.heroProducts.vintage,
       headlineVariant: 2,
     },
     {
       title: 'Doodle Cakes',
-      image:
-        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-model-white-doodle-cake.webp',
+      image: HOMEPAGE_ASSETS.heroProducts.doodle,
       headlineVariant: 6,
     },
     {
       title: 'Edible Photo Cakes',
-      image:
-        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-model-edible-photo-cake.webp',
+      image: HOMEPAGE_ASSETS.heroProducts.photo,
       headlineVariant: 4,
     },
     {
       title: 'Floral Cakes',
-      image:
-        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-model-vintage-white-cake.webp',
+      image: HOMEPAGE_ASSETS.heroProducts.floral,
       headlineVariant: 3,
     },
     {
       title: 'Bento Cakes',
-      image:
-        'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/landing-page-model-pink-bento-cake.webp',
+      image: HOMEPAGE_ASSETS.heroProducts.bento,
       headlineVariant: 5,
     },
   ],
