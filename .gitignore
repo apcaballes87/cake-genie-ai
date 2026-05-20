@@ -49,3 +49,11 @@ next-env.d.ts
 
 # scratch files
 scratch/
+
+# Python cache
+backend/__pycache__/
+backend/*.pyc
+
+# Python cache
+backend/__pycache__/
+*.pyc

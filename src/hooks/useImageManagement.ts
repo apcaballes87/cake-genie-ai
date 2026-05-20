@@ -77,12 +77,47 @@ export const useImageManagement = () => {
             setOriginalImagePreview(imageSrc);
             setIsLoading(false); // File processing done
 
-            // --- STEP 1: CHECK CACHE FIRST (FAST PATH) ---
+            // --- STEP 1: CHECK CACHE (FAST PATH) ---
             const uploadedImageUrl = options?.imageUrl; // Use existing URL if from web search
             let compressedImageData = imageData; // Default to original
             let finalImageBlobToCache: Blob | undefined;
 
-            // --- STEP 1: CHECK pHash CACHE (FASTEST) ---
+            // Step 1a: Try crop-resistant ORB+RANSAC backend first (handles crops/resizes/screenshots)
+            let orbCacheHit: HybridAnalysisResult | null = null;
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const matchResponse = await fetch('http://localhost:8000/api/match?mode=default&visualize=false', {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (matchResponse.ok) {
+                    const matchData = await matchResponse.json();
+                    if (matchData.match && matchData.analysis_json) {
+                        console.log(
+                            '%c🎯 CACHE HIT (ORB+RANSAC)',
+                            'color: #22c55e; font-weight: bold;',
+                            `\nKeyword: "${matchData.analysis_json.keyword ?? 'unknown'}"`,
+                            `\nMatched ID: ${matchData.matched_image_id}`,
+                            `\nMatched URL: ${matchData.matched_image_url}`,
+                            `\nConfidence: ${((matchData.confidence ?? 0) * 100).toFixed(1)}%`,
+                            `\nLatency: ${matchData.execution_time_ms?.toFixed(0)}ms`,
+                        );
+                        orbCacheHit = matchData.analysis_json as HybridAnalysisResult;
+                    } else {
+                        console.log('%c⚫ CACHE MISS (ORB+RANSAC)', 'color: #94a3b8; font-weight: bold;', '— falling back to pHash lookup');
+                    }
+                }
+            } catch (err) {
+                console.warn('FastAPI backend offline, falling back to pHash matching:', err);
+            }
+
+            if (orbCacheHit) {
+                onSuccess(orbCacheHit);
+                return; // Skip AI entirely — exact visual match found
+            }
+
+            // Step 1b: Fallback to server pHash fingerprint lookup
             const fingerprint = await generateImageFingerprintWithLegacyCandidates(file, imageSrc);
             const pHash = fingerprint.pHash;
             console.log(`🖼️ Server pHash result: ${pHash ?? 'FAILED (null) — new cache writes will be skipped'}`);
@@ -92,7 +127,13 @@ export const useImageManagement = () => {
                 : null;
 
             if (cacheHit) {
-                console.log('⚡ pHash Cache Hit! Skipping AI analysis.');
+                const hitSlug = cacheHit.seoMetadata?.slug;
+                console.log(
+                    '%c⚡ CACHE HIT (pHash)',
+                    'color: #f59e0b; font-weight: bold;',
+                    `\nSlug: ${hitSlug ? `"${hitSlug}"` : '(no slug)'}`,
+                    `\nURL: ${hitSlug ? `https://genie.ph/customizing/${hitSlug}` : 'n/a'}`,
+                );
                 const cachedAnalysis = cacheHit.analysisResult;
                 onSuccess(cachedAnalysis);
 
@@ -149,6 +190,8 @@ export const useImageManagement = () => {
                 return; // Skip compression and AI call entirely!
             }
 
+            console.log('%c⚫ CACHE MISS (all methods)', 'color: #94a3b8; font-weight: bold;', '— running Gemini AI analysis');
+
             // --- STEP 2: COMPRESS IMAGE FOR AI & STORAGE (ONLY ON CACHE MISS) ---
             try {
                 // Compress image for both AI analysis and storage. 1024x1024 is optimal for Gemini.
@@ -199,13 +242,65 @@ export const useImageManagement = () => {
                     if (pHash) {
                         cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache, {
                             fingerprintPipeline: fingerprint.pipeline,
+                        }).then(async (cacheResult) => {
+                            if (cacheResult?.slug) {
+                                console.log(
+                                    '%c💾 NEW ROW CREATED (cakegenie_analysis_cache)',
+                                    'color: #818cf8; font-weight: bold;',
+                                    `\nSlug: "${cacheResult.slug}"`,
+                                    `\nURL: https://genie.ph/customizing/${cacheResult.slug}`,
+                                    `\nPrice: ₱${cacheResult.price?.toLocaleString() ?? 'n/a'}`,
+                                );
+                            }
+                            // Also index into crop-resistant ORB backend (fire-and-forget)
+                            const cacheId = cacheResult?.storedPHash;
+                            if (cacheId) {
+                                try {
+                                    const formDataIdx = new FormData();
+                                    formDataIdx.append('cache_id', cacheId);
+                                    formDataIdx.append('file', file);
+                                    await fetch('http://localhost:8000/api/index', {
+                                        method: 'POST',
+                                        body: formDataIdx,
+                                    });
+                                    console.log('%c🔎 ORB features indexed', 'color: #818cf8;', `for slug "${cacheResult?.slug}"`);
+                                } catch (idxErr) {
+                                    console.warn('Failed to index image features (backend might be offline):', idxErr);
+                                }
+                            }
                         });
                     }
                 }).catch(enrichmentError => {
+                    console.warn('⚠️ Coordinate enrichment failed, caching fast result instead:', enrichmentError);
                     // Still cache the fast result even if enrichment fails
                     if (pHash) {
                         cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
                             fingerprintPipeline: fingerprint.pipeline,
+                        }).then(async (cacheResult) => {
+                            if (cacheResult?.slug) {
+                                console.log(
+                                    '%c💾 NEW ROW CREATED (cakegenie_analysis_cache — fast result)',
+                                    'color: #818cf8; font-weight: bold;',
+                                    `\nSlug: "${cacheResult.slug}"`,
+                                    `\nURL: https://genie.ph/customizing/${cacheResult.slug}`,
+                                    `\nPrice: ₱${cacheResult.price?.toLocaleString() ?? 'n/a'}`,
+                                );
+                            }
+                            const cacheId = cacheResult?.storedPHash;
+                            if (cacheId) {
+                                try {
+                                    const formDataIdx = new FormData();
+                                    formDataIdx.append('cache_id', cacheId);
+                                    formDataIdx.append('file', file);
+                                    await fetch('http://localhost:8000/api/index', {
+                                        method: 'POST',
+                                        body: formDataIdx,
+                                    });
+                                    console.log('%c🔎 ORB features indexed (fast-result fallback)', 'color: #818cf8;', `for slug "${cacheResult?.slug}"`);
+                                } catch (idxErr) {
+                                    console.warn('Failed to index image features (backend might be offline):', idxErr);
+                                }
+                            }
                         });
                     }
                 });

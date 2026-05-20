@@ -632,7 +632,7 @@ export async function convertToWebP(blob: Blob): Promise<Blob> {
  * @param imageUrl The public URL of the original image being cached.
  * @param imageBlob Optional Blob of the processed image to be converted and uploaded to Supabase.
  */
-export async function cacheAnalysisResult(
+export async function cacheAnalysisResult(export async function cacheAnalysisResult(
   pHash: string,
   analysisResult: HybridAnalysisResult,
   imageUrl?: string,

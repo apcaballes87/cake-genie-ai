@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 // Define and export the AppState type for use in other components
-export type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'not_found' | 'set_password' | 'contribute';
+export type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'not_found' | 'set_password' | 'contribute' | 'shopify_customizing' | 'pricing_sandbox' | 'similarity_debugger';
 
 export const useAppNavigation = () => {
     // State
@@ -73,6 +73,7 @@ export const useAppNavigation = () => {
             const oldDesignMatch = path.match(/^\/design\/([a-zA-Z0-9-]+)\/?$/);
             const discountMatch = path.match(/^\/([A-Za-z0-9]+)\/?$/i);
             const contributeMatch = path.match(/^\/contribute\/([a-zA-Z0-9-]+)\/?$/);
+            const similarityDebuggerMatch = path.match(/^\/similarity-debugger\/?$/);
 
             // Static route matching
             const aboutMatch = path.match(/^\/about\/?$/);
@@ -110,12 +111,11 @@ export const useAppNavigation = () => {
             } else if (oldDesignMatch && oldDesignMatch[1]) { // Keep for backward compatibility
                 setViewingDesignId(oldDesignMatch[1]);
                 setAppState('shared_design');
-            } else if (oldDesignMatch && oldDesignMatch[1]) { // Keep for backward compatibility
-                setViewingDesignId(oldDesignMatch[1]);
-                setAppState('shared_design');
             } else if (contributeMatch && contributeMatch[1]) {
                 setContributeOrderId(contributeMatch[1]);
                 setAppState('contribute');
+            } else if (similarityDebuggerMatch) {
+                setAppState('similarity_debugger');
             } else if (aboutMatch) {
                 setAppState('about');
             } else if (contactMatch) {
