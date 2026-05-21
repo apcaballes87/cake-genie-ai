@@ -386,10 +386,10 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 // Silently handle compression failure — continue with original imageData
             }
 
-            // --- STEP 2: VALIDATE + ORB/pHash LOOKUPS IN PARALLEL ---
-            // Run image validation and both cache lookups simultaneously.
-            // Validation result gates the cache hit — a rejected image must NEVER
-            // return a cached result, even if pHash collides with a valid cached entry.
+            // --- STEP 2: VALIDATE + ORB/pHash LOOKUPS SEQUENTIALLY ---
+            // Run image validation and crop-resistant matching.
+            // If the FastAPI backend is online, we rely on its authoritative crop-resistant matching.
+            // We fall back to database pHash matching ONLY if the FastAPI backend is offline or errors.
             const checkToastId = showStatus('Checking your image…', { duration: 30000 });
             const orbCacheHitPromise = findOrbCacheHit(file);
             const validationPromise = validateCakeImage(
@@ -397,25 +397,32 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 compressedImageData.mimeType
             ).catch(() => 'valid_single_cake' as const);
 
-            const fingerprint = await generateImageFingerprintWithLegacyCandidates(file, imageSrc);
-            const pHash = fingerprint.pHash;
-            console.log(`🔍 Server pHash result: ${pHash ?? 'FAILED (null) — new cache writes will be skipped'}`);
-            const shouldUseSimilarCacheLookup = !knownSeoMetadata && (
-                pHash !== null || fingerprint.legacyPHashCandidates.length > 0
-            );
+            let validationClassification = 'valid_single_cake';
+            let orbCacheHit = null;
+            let orbBackendOfflineOrFailed = false;
 
-            const [validationClassification, orbCacheHit, cacheHitRaw] = await Promise.all([
-                validationPromise,
-                orbCacheHitPromise.catch((orbError) => {
-                    console.warn('FastAPI backend offline, falling back to pHash matching:', orbError);
-                    toastHot.dismiss(checkToastId);
-                    showStatus('Verifying your image…', { duration: 8000 });
-                    return null;
-                }),
-                shouldUseSimilarCacheLookup
-                    ? findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), options?.imageUrl)
-                    : Promise.resolve(null),
-            ]);
+            try {
+                // Perform validation and ORB lookup in parallel to minimize latency
+                const [valClass, orbResult] = await Promise.all([
+                    validationPromise,
+                    orbCacheHitPromise
+                ]);
+                validationClassification = valClass;
+                orbCacheHit = orbResult;
+            } catch (orbError) {
+                console.warn('FastAPI backend offline or error during ORB match, falling back to legacy pHash cache:', orbError);
+                orbBackendOfflineOrFailed = true;
+                
+                toastHot.dismiss(checkToastId);
+                showStatus('Verifying your image…', { duration: 8000 });
+
+                // Make sure we still wait for image validation classification
+                try {
+                    validationClassification = await validationPromise;
+                } catch (_) {
+                    validationClassification = 'valid_single_cake';
+                }
+            }
 
             // Gate: reject invalid images before honouring cache or running AI
             const rejectionMessages: Record<string, string> = {
@@ -430,21 +437,26 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             };
 
             if (validationClassification !== 'valid_single_cake') {
+                toastHot.dismiss(checkToastId);
                 const message = rejectionMessages[validationClassification] ?? "This image is not suitable for processing. Please upload a valid cake image.";
                 console.log(`🚫 Validation rejected image: ${validationClassification}`);
                 onError(new Error(message));
                 return;
             }
 
-            let cacheHit = cacheHitRaw;
+            let cacheHit = null;
+            const fingerprint = await generateImageFingerprintWithLegacyCandidates(file, imageSrc);
+            const pHash = fingerprint.pHash;
+            console.log(`🔍 Server pHash result: ${pHash ?? 'FAILED (null) — new cache writes will be skipped'}`);
 
             if (orbCacheHit) {
+                // Case A: Crop-resistant match found in FastAPI database
                 toastHot.dismiss(checkToastId);
                 showStatus('We found your cake photo! 🎉');
                 cacheHit = {
-                    pHash: orbCacheHit.pHash ?? cacheHitRaw?.pHash ?? '',
+                    pHash: orbCacheHit.pHash ?? '',
                     analysisResult: orbCacheHit.analysisResult,
-                    seoMetadata: orbCacheHit.seoMetadata ?? cacheHitRaw?.seoMetadata ?? {
+                    seoMetadata: orbCacheHit.seoMetadata ?? {
                         seo_title: null,
                         seo_description: null,
                         keywords: null,
@@ -464,17 +476,34 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     `\nConfidence: ${(orbCacheHit.confidence * 100).toFixed(1)}%`,
                     `\nLatency: ${orbCacheHit.executionTimeMs?.toFixed(0) ?? 'n/a'}ms`,
                 );
-            } else if (cacheHitRaw) {
-                toastHot.dismiss(checkToastId);
-                showStatus('We found your cake photo! 🎉');
-                console.log(`✅ pHash Cache HIT! Found matching analysis for hash: ${pHash}`);
+            } else if (orbBackendOfflineOrFailed) {
+                // Case B: FastAPI is offline/errored. Fallback to standard pHash lookup in Supabase
+                const shouldUseSimilarCacheLookup = !knownSeoMetadata && (
+                    pHash !== null || fingerprint.legacyPHashCandidates.length > 0
+                );
+
+                if (shouldUseSimilarCacheLookup) {
+                    console.log('🔍 Starting legacy pHash cache lookup for offline/failed ORB backend...');
+                    const cacheHitRaw = await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), options?.imageUrl);
+                    if (cacheHitRaw) {
+                        toastHot.dismiss(checkToastId);
+                        showStatus('We found your cake photo! 🎉');
+                        cacheHit = cacheHitRaw;
+                        console.log(`✅ pHash Cache HIT! Found matching analysis for hash: ${pHash}`);
+                    } else {
+                        toastHot.dismiss(checkToastId);
+                        showStatus('Analyzing your design with AI…', { duration: 15000 });
+                        console.log('⚫️ Cache MISS. No matching pHash found in database.');
+                    }
+                } else {
+                    toastHot.dismiss(checkToastId);
+                    showStatus('Analyzing your design with AI…', { duration: 15000 });
+                }
             } else {
+                // Case C: FastAPI online and returned match = false. Authoritative Cache MISS. Skip pHash database lookup entirely!
                 toastHot.dismiss(checkToastId);
                 showStatus('Analyzing your design with AI…', { duration: 15000 });
-                console.log('%c⚫ CACHE MISS (ORB+RANSAC)', 'color: #94a3b8; font-weight: bold;', '— falling back to pHash lookup');
-                if (shouldUseSimilarCacheLookup) {
-                    console.log('⚫️ Cache MISS. No matching pHash found in database.');
-                }
+                console.log('%c⚫ CACHE MISS (ORB+RANSAC)', 'color: #94a3b8; font-weight: bold;', '— skipping pHash database lookup');
             }
 
             // --- PROCESS CACHE HIT (IF ANY) ---

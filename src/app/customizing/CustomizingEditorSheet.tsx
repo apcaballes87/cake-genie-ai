@@ -10,7 +10,6 @@ interface CustomizingEditorSheetProps {
     activeCustomization: string | null;
     activeTopperSection: 'main' | 'support' | null;
     showAvailabilityOffset: boolean;
-    showWarningOffset: boolean;
     hasCakeInfoChanges: boolean;
     hasPendingVisualChanges: boolean;
     isUpdatingDesign: boolean;
@@ -43,7 +42,6 @@ export const CustomizingEditorSheet = memo(function CustomizingEditorSheet({
     activeCustomization,
     activeTopperSection,
     showAvailabilityOffset,
-    showWarningOffset,
     hasCakeInfoChanges,
     hasPendingVisualChanges,
     isUpdatingDesign,
@@ -61,7 +59,7 @@ export const CustomizingEditorSheet = memo(function CustomizingEditorSheet({
     const baseOffset = 72;
     const bottomOffset = hideStickyBar
         ? 0
-        : baseOffset + (showAvailabilityOffset ? 32 : 0) + (showWarningOffset ? 32 : 0);
+        : baseOffset + (showAvailabilityOffset ? 32 : 0);
 
     const isOptionsSheet = activeCustomization === 'options';
     const isVisualSheet = activeCustomization === 'icing' || activeCustomization === 'messages' || activeCustomization === 'toppers' || activeCustomization === 'photos';

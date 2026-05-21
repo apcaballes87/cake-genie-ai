@@ -59,10 +59,10 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     ediblePhotoAddonNote = false,
     isBlurred = false,
 }) => {
-    const show = Boolean(price !== null || error || isAnalyzing || warningMessage || hasPendingDesignChanges || isApplyingChanges || availability);
+    const show = Boolean(price !== null || error || isAnalyzing || hasPendingDesignChanges || isApplyingChanges || availability);
 
     const showAvailability = Boolean(availability && !isAnalyzing && !error);
-    const hasTopNotification = !error && (Boolean(warningMessage) || (showAvailability && Boolean(availability)));
+    const hasTopNotification = !error && showAvailability && Boolean(availability);
     const addToCartDisabledReason = isAnalyzing
         ? 'Wait for analysis to finish before buying'
         : isLoading
@@ -162,34 +162,12 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         return null;
     };
 
-    const renderWarningNotification = (isTopmost: boolean) => {
-        if (!warningMessage) return null;
-
-        return (
-            <div
-                className={`bg-red-50 group relative transition-colors ${isTopmost ? 'rounded-t-2xl' : ''} ${onWarningClick ? 'cursor-pointer hover:bg-red-100' : ''}`}
-                onClick={onWarningClick}
-            >
-                <div className={`max-w-4xl mx-auto flex items-center justify-center gap-2 text-red-800 text-[10px] sm:text-[11px] font-bold p-1 ${!onWarningClick ? 'cursor-help' : ''}`}>
-                    <AlertTriangleIcon className="w-5 h-5 text-red-600 shrink-0" />
-                    <span>{warningMessage}</span>
-                </div>
-                {warningDescription && (
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-72 p-3 bg-slate-800 text-white text-xs rounded-lg shadow-xl z-50 text-center font-normal leading-relaxed pointer-events-none">
-                        {warningDescription}
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800"></div>
-                    </div>
-                )}
-            </div>
-        );
-    };
-
-    const renderAvailabilityNotification = (isTopmost: boolean) => {
+    const renderAvailabilityNotification = () => {
         if (!availability || !showAvailability) return null;
 
         if (availability === 'rush') {
             return (
-                <div className={`bg-green-100 ${isTopmost ? 'rounded-t-2xl' : ''}`}>
+                <div className="bg-green-100 rounded-t-2xl">
                     <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-green-800 text-[10px] sm:text-[11px] font-bold p-1">
                         <span>⚡</span>
                         <span>Rush Order Available! Ready in 60 mins</span>
@@ -199,7 +177,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         }
         if (availability === 'same-day') {
             return (
-                <div className={`bg-blue-100 ${isTopmost ? 'rounded-t-2xl' : ''}`}>
+                <div className="bg-blue-100 rounded-t-2xl">
                     <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-blue-800 text-[10px] sm:text-[11px] font-bold p-1">
                         <span>🕐</span>
                         <span>Same-Day Order! Ready in 3 hours</span>
@@ -209,7 +187,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         }
         if (availability === 'normal') {
             return (
-                <div className={`bg-slate-100 ${isTopmost ? 'rounded-t-2xl' : ''}`}>
+                <div className="bg-slate-100 rounded-t-2xl">
                     <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-slate-700 text-[10px] sm:text-[11px] font-bold p-1">
                         <span>📅</span>
                         <span>Standard order. Receive this by tomorrow</span>
@@ -223,8 +201,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     const bottomNotificationColor =
         showAvailability && availability === 'rush' ? 'bg-green-100' :
         showAvailability && availability === 'same-day' ? 'bg-blue-100' :
-        showAvailability && availability === 'normal' ? 'bg-slate-100' :
-        warningMessage ? 'bg-red-50' : '';
+        showAvailability && availability === 'normal' ? 'bg-slate-100' : '';
 
     const notificationBridgeColor =
         bottomNotificationColor;
@@ -239,8 +216,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                 <div className={`pointer-events-auto transition-all duration-300 ${isBlurred ? 'blur-[2px] opacity-50 pointer-events-none' : ''}`}>
                     <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${hasTopNotification ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                         <div className="relative overflow-visible">
-                            {renderWarningNotification(true)}
-                            {renderAvailabilityNotification(!warningMessage)}
+                            {renderAvailabilityNotification()}
                         </div>
                     </div>
                     {/* Bridge: 16px of matching color outside overflow-hidden, fills the transparent

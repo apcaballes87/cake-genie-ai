@@ -45,7 +45,7 @@ const buildProps = (): React.ComponentProps<typeof StickyAddToCartBar> => ({
 });
 
 describe('StickyAddToCartBar', () => {
-    it('stacks the toy warning above the availability bar', () => {
+    it('renders the availability bar at the top and ignores warning messages', () => {
         const props = buildProps();
         props.warningMessage = 'Toy is subject for availability';
         props.warningDescription = 'Please message our partner shop for the availability of the toy.';
@@ -54,12 +54,10 @@ describe('StickyAddToCartBar', () => {
 
         render(<StickyAddToCartBar {...props} />);
 
-        const warning = screen.getByText('Toy is subject for availability');
+        const warning = screen.queryByText('Toy is subject for availability');
         const availability = screen.getByText('Standard order. Receive this by tomorrow');
 
-        expect(warning.compareDocumentPosition(availability) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-
-        fireEvent.click(warning);
-        expect(props.onWarningClick).toHaveBeenCalledTimes(1);
+        expect(warning).toBeNull();
+        expect(availability).toBeDefined();
     });
 });

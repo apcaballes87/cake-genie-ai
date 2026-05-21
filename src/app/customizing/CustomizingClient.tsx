@@ -2977,7 +2977,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         return () => window.removeEventListener('scroll', updateTopSearchBarState);
     }, []);
 
-    const showStickyBar = finalPrice !== null || !!basePriceError || isAnalyzing || !!warningMessage || isSafetyFallback || hasPendingVisualChanges || isUpdatingDesign;
+    const showStickyBar = finalPrice !== null || !!basePriceError || isAnalyzing || hasPendingVisualChanges || isUpdatingDesign;
     const floatingPreviewOriginalImage = firstNonBlankImageUrl(
         originalImagePreview,
         preloadedHeroImage,
@@ -3386,7 +3386,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     hideStickyBar={hideStickyBar}
                     hideAiChat={hideAiChat}
                     showAvailabilityOffset={!hideStickyBar && Boolean(availabilityType) && !isAnalyzing}
-                    showWarningOffset={!hideStickyBar && Boolean(warningMessage)}
                     hasCakeInfoChanges={dirtyFields.has('cakeInfo')}
                     hasPendingVisualChanges={hasPendingVisualChanges}
                     isUpdatingDesign={isUpdatingDesign}
@@ -3544,9 +3543,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     // DISABLED: Preselection modal disabled
                     // isBlurred={isPreSelectionModalOpen}
                     cakeInfo={cakeInfo}
-                    warningMessage={hideStickyBar ? undefined : (isSafetyFallback ? "AI editing disabled for adult-themed content. Your design changes will still be saved." : warningMessage)}
-                    warningDescription={hideStickyBar ? undefined : warningDescription}
-                    onWarningClick={warningMessage && !isSafetyFallback ? () => openTopperSheet() : undefined}
                     availability={hideStickyBar ? undefined : availabilityType}
                     hasPendingDesignChanges={hideStickyBar ? false : hasPendingVisualChanges}
                     onApplyChangesClick={handleApplyPendingDesignChanges}

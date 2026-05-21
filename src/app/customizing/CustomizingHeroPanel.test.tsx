@@ -64,6 +64,7 @@ const buildProps = (): React.ComponentProps<typeof CustomizingHeroPanel> => ({
     isReporting: false,
     isSaving: false,
     showFooterActions: false,
+    showPriceGuarantee: false,
     showMotifButton: false,
     onOriginalTabSelect: vi.fn(),
     onCustomizedTabSelect: vi.fn(),

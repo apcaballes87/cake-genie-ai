@@ -89,6 +89,7 @@ export const useImageManagement = () => {
             let cachedAnalysis: HybridAnalysisResult | null = null;
             let pHash = '';
             let cacheHit = null;
+            let orbBackendOfflineOrFailed = false;
 
             try {
                 // Try crop-resistant backend ORB matching first
@@ -116,17 +117,23 @@ export const useImageManagement = () => {
                                 original_image_url: matchData.matched_image_url || null
                             }
                         };
+                    } else {
+                        console.log('🔍 Crop-resistant backend successfully verified NO match. Skipping pHash fallback.');
                     }
+                } else {
+                    console.warn(`FastAPI backend returned status ${matchResponse.status}. Falling back to pHash.`);
+                    orbBackendOfflineOrFailed = true;
                 }
             } catch (err) {
-                console.warn('FastAPI backend offline, falling back to standard whole-image pHash matching:', err);
+                console.warn('FastAPI backend offline or error, falling back to standard whole-image pHash matching:', err);
+                orbBackendOfflineOrFailed = true;
             }
 
             // --- STEP 1: CHECK pHash CACHE (FASTEST FALLBACK) ---
             const fingerprint = await generateImageFingerprintWithLegacyCandidates(file, imageSrc);
             pHash = fingerprint.pHash || '';
 
-            if (!cachedAnalysis) {
+            if (!cachedAnalysis && orbBackendOfflineOrFailed) {
                 console.log(`🖼️ Server pHash result: ${pHash ?? 'FAILED (null) — new cache writes will be skipped'}`);
                 
                 cacheHit = pHash || fingerprint.legacyPHashCandidates.length > 0

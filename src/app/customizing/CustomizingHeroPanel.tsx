@@ -269,7 +269,7 @@ export const CustomizingHeroPanel = memo(({
                 <div className="grow">
                     <div
                         className={enableMobileHeroPan
-                            ? 'relative w-full aspect-[5/4] md:aspect-auto md:min-h-0 rounded-3xl overflow-hidden touch-none md:touch-auto overscroll-contain'
+                            ? 'relative w-full aspect-[5/4] md:aspect-auto md:min-h-0 rounded-3xl overflow-hidden touch-none md:touch-auto overscroll-contain md:overscroll-auto'
                             : 'relative w-full min-h-[270px] md:min-h-[400px] rounded-3xl overflow-hidden'
                         }
                         onContextMenu={(event) => event.preventDefault()}
