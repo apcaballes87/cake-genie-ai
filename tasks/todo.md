@@ -1,5 +1,18 @@
 # Tasks
 
+## Merchant Center Price Compliance
+
+### Plan
+
+- [ ] Audit the current merchant-product feed and landing-page price output against Google Merchant Center's current price and structured-data requirements.
+- [ ] Normalize merchant-product and customizing page schema so SSR HTML always exposes a Merchant Center-compatible `Offer` with an active price.
+- [ ] Fix merchant-product SSR copy and feed export fallbacks so products without `custom_price` still surface the same starting price users see on the page.
+- [ ] Verify the affected pages/scripts with targeted checks and capture the root cause plus fix summary here.
+
+### Review
+
+- Pending.
+
 ## Backfill ORB Indexing For Fresh AI Uploads
 
 ### Plan
@@ -24,6 +37,21 @@
   `python3 -m py_compile backend/main.py backend/utils.py backend/sync_features.py` passed.
   `git diff --check -- backend/main.py src/services/supabaseService.ts src/hooks/useImageManagement.ts src/app/api/ai/analyze-url/route.ts src/app/admin/bulk-analysis/page.tsx src/services/supabaseService.cacheAnalysisResult.test.ts tasks/todo.md tasks/lessons.md` passed.
   Targeted eslint on the touched TS files still reports many pre-existing `no-explicit-any` / unused-variable issues in `src/services/supabaseService.ts` and `src/app/api/ai/analyze-url/route.ts`, plus older warnings in `src/hooks/useImageManagement.ts`; I did not widen the scope to clean those unrelated lint debts in this fix.
+- One-time historical backfill follow-up:
+  measured `24` cache rows missing ORB features before the run,
+  backfilled `13` directly via VPS-side feature extraction,
+  recovered `3` more by replacing broken `original_image_url` values with live merchant-product `image_url` values and indexing those,
+  final remaining historical gap is `8` rows.
+  Remaining blocked cache row IDs:
+  `fa0dde92-28a8-414b-9a6b-020b11480263`
+  `22ad782c-b038-4fd5-b717-e396aab064df`
+  `6898e6a5-3d15-4262-a71e-42a2890349d6`
+  `b4e475ba-f0ab-4845-ad5e-991f000d7dba`
+  `ad8bc20e-0995-4019-a6d0-9ff506f749e0`
+  `71a1e024-0f81-48df-af5b-ce11e476684d`
+  `c00774c7-2a4f-4d3a-a71d-91e63783a6db`
+  `13b71aef-f231-47af-9999-b5f7c29c5025`
+  Those `8` still point at invalid source objects: `2` return Supabase `400` responses and `6` shop-bucket URLs return `200` with zero-byte bodies, so there is no image data left to index automatically.
 
 ## Machine-Readable Commerce Normalization
 
