@@ -236,15 +236,15 @@ export const COMMON_ASSETS = {
 
 export const HOMEPAGE_ASSETS = {
   heroProducts: {
-    minimalist: getCachedAssetUrl('landingpage', 'landing-page-model-white-minimalist-cake.webp'),
-    vintage: getCachedAssetUrl('landingpage', 'landing-page-model-pink-vintage-cake.webp'),
-    doodle: getCachedAssetUrl('landingpage', 'landing-page-model-white-doodle-cake.webp'),
-    photo: getCachedAssetUrl('landingpage', 'landing-page-model-edible-photo-cake.webp'),
-    floral: getCachedAssetUrl('landingpage', 'landing-page-model-vintage-white-cake.webp'),
-    bento: getCachedAssetUrl('landingpage', 'landing-page-model-pink-bento-cake.webp'),
+    minimalist: getCachedAssetUrl('landingpage', 'landing-page-model-white-minimalist-cake-small.webp'),
+    vintage: getCachedAssetUrl('landingpage', 'landing-page-model-pink-vintage-cake-small.webp'),
+    doodle: getCachedAssetUrl('landingpage', 'landing-page-model-white-doodle-cake-small.webp'),
+    photo: getCachedAssetUrl('landingpage', 'landing-page-model-edible-photo-cake-small.webp'),
+    floral: getCachedAssetUrl('landingpage', 'landing-page-model-vintage-white-cake-small.webp'),
+    bento: getCachedAssetUrl('landingpage', 'landing-page-model-pink-bento-cake-small.webp'),
   },
   transition: getCachedAssetUrl('landingpage', 'generic-vs-personal-cake.webp'),
-  delivery: getCachedAssetUrl('landingpage', 'geniephdelivery.webp'),
+  delivery: getCachedAssetUrl('landingpage', 'geniephdelivery-small.webp'),
 } as const;
 
 /**

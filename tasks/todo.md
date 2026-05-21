@@ -1,5 +1,114 @@
 # Tasks
 
+## Landing Page Asset Swap
+
+### Plan
+
+- [x] Identify the homepage hero and Genie Delivery image constants that drive the landing page.
+- [x] Replace those constants with the new `landingpage` bucket filenames provided by the user.
+- [x] Verify the changed URLs and inspect the diff to confirm only the intended landing-page asset references changed.
+
+### Review
+
+- Confirmed the landing-page hero and Genie Delivery assets are sourced from `HOMEPAGE_ASSETS` in `src/constants.ts`, which keeps the image swap isolated from the surrounding landing-page layout and behavior.
+- Replaced all six homepage hero image filenames with the new `-small.webp` versions from the `landingpage` bucket:
+  `landing-page-model-white-doodle-cake-small.webp`,
+  `landing-page-model-vintage-white-cake-small.webp`,
+  `landing-page-model-white-minimalist-cake-small.webp`,
+  `landing-page-model-pink-bento-cake-small.webp`,
+  `landing-page-model-edible-photo-cake-small.webp`,
+  `landing-page-model-pink-vintage-cake-small.webp`.
+- Replaced the Genie Delivery image filename with `geniephdelivery-small.webp`.
+- Verified with `rg` and `git diff` that the intended runtime change is confined to `src/constants.ts`; `tasks/todo.md` was updated only to track and document this scoped asset swap.
+
+## ORB Backend VPS Deployment
+
+### Plan
+
+- [x] Confirm the public DNS delegation for `genie.ph` and determine whether Hostinger DNS is authoritative.
+- [x] Inspect the local FastAPI backend entrypoint and Python requirements from `backend/main.py` and `backend/requirements.txt`.
+- [x] Establish SSH access to VPS `973201` and inspect which services already use ports `80` and `443`.
+- [x] Prepare a production deployment for the backend at `orb.genie.ph` with a Python virtualenv, requirements install, a systemd `uvicorn` service, a reverse proxy, and SSL.
+- [ ] Add the required DNS record in the active DNS provider if `orb.genie.ph` is not yet delegated to the VPS.
+- [ ] Verify `https://orb.genie.ph/api/status` and record the exact frontend environment variable value for Vercel.
+
+### Review
+
+- Confirmed `genie.ph` is delegated to `dns1.domains.ph` and `dns2.domains.ph`, while Hostinger `DNS_getDNSRecordsV1` returns an empty zone for `genie.ph`; DNS is therefore managed outside Hostinger.
+- Established SSH access on VPS `973201` by attaching a dedicated Hostinger SSH key and then adding that key to `/root/.ssh/authorized_keys` after initial password access.
+- Verified port ownership before deployment:
+  Docker `root-traefik-1` already owns `0.0.0.0:80` and `0.0.0.0:443`,
+  Docker `root_n8n_1` is published only on `127.0.0.1:5678`,
+  no host-level `nginx`, `caddy`, or `apache2` binaries are installed or active.
+- Deployed the FastAPI backend to `/opt/orb-backend/backend` with a virtualenv at `/opt/orb-backend/.venv`, runtime env file `/etc/orb-backend.env`, and systemd service `orb-backend.service`.
+- Bound `uvicorn` to `172.17.0.1:8000` so Traefik can reach it through Docker's host gateway without exposing the backend directly on the public interfaces.
+- Extended `/root/docker-compose.yml` to enable Traefik's file provider and mounted `/root/traefik/dynamic/orb.yml`, which routes `Host(\`orb.genie.ph\`)` to `http://host.docker.internal:8000`.
+- Verified the app locally and through the reverse proxy path:
+  `curl http://172.17.0.1:8000/api/status` returns `status: online`,
+  `docker exec root-traefik-1 wget -qO- http://host.docker.internal:8000/api/status` succeeds,
+  `curl -sk --resolve orb.genie.ph:443:127.0.0.1 https://orb.genie.ph/api/status` succeeds from the VPS.
+- Public HTTPS issuance is currently blocked only by missing DNS:
+  Traefik/Let's Encrypt reports `NXDOMAIN looking up A for orb.genie.ph` and `NXDOMAIN looking up AAAA for orb.genie.ph`.
+
+## ORB Backend Production Wiring
+
+### Plan
+
+- [x] Bring the local branch onto the currently deployed ORB cache-matching code so the fix applies to the real production path.
+- [x] Replace hardcoded `localhost:8000` ORB client calls with a shared environment-backed resolver that only falls back to localhost during local development.
+- [x] Update the similarity debugger and any remaining frontend ORB callers to use the shared resolver and fail clearly when no production backend URL is configured.
+- [x] Verify there are no remaining hardcoded ORB localhost calls in active frontend code, and document the exact env var needed for Vercel.
+
+### Review
+
+- Cherry-picked the deployed ORB landing-flow commit (`49da373`) into this local branch so the production fix is layered onto the same code Vercel is running.
+- Added `src/services/orbBackendConfig.ts` to resolve the ORB backend base URL from `NEXT_PUBLIC_ORB_BACKEND_URL`, with `http://localhost:8000` kept only as a local-browser fallback.
+- Updated `src/services/orbMatchingService.ts`, `src/app/similarity-debugger/page.tsx`, and `src/hooks/useImageManagement.ts` to use the shared resolver instead of hardcoded localhost endpoints.
+- Documented `NEXT_PUBLIC_ORB_BACKEND_URL` in `.env.example` so Vercel can point deployed clients at the real FastAPI host.
+- Verified with `rg` that the only remaining `localhost:8000` reference under `src/` is the intentional local-dev fallback constant in `src/services/orbBackendConfig.ts`.
+- Verification notes:
+  `tsc --noEmit` still fails on pre-existing unrelated test/type issues in blog, customizing, robots, pricing, and utility tests.
+  Targeted eslint on the touched files surfaced one existing `no-explicit-any` error in `src/app/similarity-debugger/page.tsx` plus older warnings in surrounding files, but no new ORB wiring errors from the added helper/service changes.
+
+## Resume SEO Metadata Recreation
+
+### Plan
+
+- [x] Verify whether `scripts/recreate-seo-metadata.ts --write` is still running and avoid launching a duplicate worker.
+- [x] Confirm the remaining number of non-compliant `cakegenie_analysis_cache` rows that still need regeneration.
+- [x] Relaunch the script against the remaining candidates with persistent logging so progress can be monitored safely.
+- [x] Capture the restarted process details and log location in this task note for follow-up.
+
+### Review
+
+- Confirmed the original `tsx scripts/recreate-seo-metadata.ts --write` process was no longer active.
+- Queried Supabase directly and found `5,869` rows still matching the script's non-compliant metadata filter, consistent with the previous run having already completed `1,905` of `7,438`.
+- Restarted the job inside detached `screen` session `71921.seo-metadata` so it can keep running independently of this chat.
+- Active log file: `logs/recreate-seo-metadata-20260520-215551.log`.
+- Verified the restarted run initialized Vertex AI successfully, loaded all `5,869` remaining candidates, and began processing with both workers active.
+
+## Facebook Sharing Debugger Unblock for Collections
+
+### Unblock Plan
+
+- [x] Verify whether `/collections` and `/collections/[slug]` already return SSR Open Graph metadata to a Facebook crawler user-agent.
+- [x] Inspect the repo for bot-facing config that could confuse Meta crawlers or diverge between `src/app/robots.ts` and `public/robots.txt`.
+- [x] Update crawler rules so Meta sharing crawlers are explicitly allowed for public collection pages while private/internal paths remain blocked.
+- [x] Add a focused regression test for the Next.js robots metadata route.
+- [ ] Apply the narrow Vercel Firewall or system-bypass rule for Meta crawler traffic on production.
+- [ ] Re-run Facebook Sharing Debugger against `https://genie.ph/collections` and an affected slug after the Vercel rule is in place.
+
+### Unblock Review
+
+- Confirmed by live fetch that both `https://genie.ph/collections` and `https://genie.ph/collections/pickleball-cake` return `200 OK` and include server-rendered `og:*`, canonical, and robots tags when requested with the `facebookexternalhit` user-agent.
+- Narrowed the likely production failure to Vercel edge protection rather than missing collection metadata.
+- Updated `src/app/robots.ts` and `public/robots.txt` so Meta crawler identifiers are explicitly covered: `facebookexternalhit`, `Facebot`, `FacebookBot`, and `meta-externalagent`.
+- Kept private/internal routes blocked for those crawlers: `/admin/`, `/api/`, `/account/`, and `/_next/`.
+- Added a focused test for the Next.js robots metadata route to prevent the Meta crawler allowlist from regressing.
+- Vercel-side automation is still blocked in this workspace because there is no CLI auth or API token available, and the existing browser session could not be reliably driven to the dashboard from the available tooling. The remaining production step is to add the narrow firewall bypass in Vercel and then re-check the Sharing Debugger.
+
+---
+
 ## Desktop Layout Tweak - Move Feature Highlights below "Celebrations"
 
 ### Layout Tweak Plan
