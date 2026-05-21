@@ -15,6 +15,10 @@ import {
     generateImageFingerprintWithLegacyCandidates,
     toFingerprintLookup,
 } from '@/lib/utils/serverFingerprint.client';
+import {
+    getOrbBackendUnavailableMessage,
+    getOrbBackendUrl,
+} from '@/services/orbBackendConfig';
 export { generatePerceptualHash } from '@/lib/utils/perceptualHash.client';
 
 
@@ -88,10 +92,15 @@ export const useImageManagement = () => {
 
             try {
                 // Try crop-resistant backend ORB matching first
+                const matchUrl = getOrbBackendUrl('/api/match');
+                if (!matchUrl) {
+                    throw new Error(getOrbBackendUnavailableMessage());
+                }
+
                 const formData = new FormData();
                 formData.append('file', file);
                 
-                const matchResponse = await fetch('http://localhost:8000/api/match?mode=default&visualize=false', {
+                const matchResponse = await fetch(`${matchUrl}?mode=default&visualize=false`, {
                     method: 'POST',
                     body: formData,
                 });
@@ -173,10 +182,15 @@ export const useImageManagement = () => {
                                 }).then(async (cacheResult) => {
                                     if (cacheResult && cacheResult.id) {
                                         try {
+                                            const indexUrl = getOrbBackendUrl('/api/index');
+                                            if (!indexUrl) {
+                                                throw new Error(getOrbBackendUnavailableMessage());
+                                            }
+
                                             const formDataIdx = new FormData();
                                             formDataIdx.append('cache_id', cacheResult.id);
                                             formDataIdx.append('file', file);
-                                            await fetch('http://localhost:8000/api/index', {
+                                            await fetch(indexUrl, {
                                                 method: 'POST',
                                                 body: formDataIdx,
                                             });
@@ -254,10 +268,15 @@ export const useImageManagement = () => {
                         }).then(async (cacheResult) => {
                             if (cacheResult && cacheResult.id) {
                                 try {
+                                    const indexUrl = getOrbBackendUrl('/api/index');
+                                    if (!indexUrl) {
+                                        throw new Error(getOrbBackendUnavailableMessage());
+                                    }
+
                                     const formDataIdx = new FormData();
                                     formDataIdx.append('cache_id', cacheResult.id);
                                     formDataIdx.append('file', file);
-                                    await fetch('http://localhost:8000/api/index', {
+                                    await fetch(indexUrl, {
                                         method: 'POST',
                                         body: formDataIdx,
                                     });
@@ -276,10 +295,15 @@ export const useImageManagement = () => {
                         }).then(async (cacheResult) => {
                             if (cacheResult && cacheResult.id) {
                                 try {
+                                    const indexUrl = getOrbBackendUrl('/api/index');
+                                    if (!indexUrl) {
+                                        throw new Error(getOrbBackendUnavailableMessage());
+                                    }
+
                                     const formDataIdx = new FormData();
                                     formDataIdx.append('cache_id', cacheResult.id);
                                     formDataIdx.append('file', file);
-                                    await fetch('http://localhost:8000/api/index', {
+                                    await fetch(indexUrl, {
                                         method: 'POST',
                                         body: formDataIdx,
                                     });

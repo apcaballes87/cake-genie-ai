@@ -1,4 +1,5 @@
 import { CacheSEOMetadata, HybridAnalysisResult } from '@/types';
+import { getOrbBackendUnavailableMessage, getOrbBackendUrl } from '@/services/orbBackendConfig';
 
 export type OrbMatchingMode = 'default' | 'strict' | 'loose';
 
@@ -22,8 +23,6 @@ export interface OrbCacheHitResult {
   pHash: string | null;
   seoMetadata: CacheSEOMetadata | null;
 }
-
-const ORB_BACKEND_ENDPOINT = 'http://localhost:8000/api/match';
 
 function normalizeSeoMetadata(
   metadata: Partial<CacheSEOMetadata> | null | undefined,
@@ -57,11 +56,16 @@ export async function findOrbCacheHit(
     mode: options?.mode ?? 'default',
     visualize: String(options?.visualize ?? false),
   });
+  const endpoint = options?.endpoint ?? getOrbBackendUrl('/api/match');
+
+  if (!endpoint) {
+    throw new Error(getOrbBackendUnavailableMessage());
+  }
 
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(`${options?.endpoint ?? ORB_BACKEND_ENDPOINT}?${params.toString()}`, {
+  const response = await fetch(`${endpoint}?${params.toString()}`, {
     method: 'POST',
     body: formData,
   });

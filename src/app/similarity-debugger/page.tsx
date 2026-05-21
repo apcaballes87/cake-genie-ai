@@ -4,6 +4,10 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { getSupabaseClient } from '../../lib/supabase/client';
+import {
+  getOrbBackendUnavailableMessage,
+  getOrbBackendUrl,
+} from '@/services/orbBackendConfig';
 
 interface MatchResult {
   match: boolean;
@@ -62,15 +66,22 @@ export const SimilarityDebugger: React.FC = () => {
 
   // Check Backend Status on mount
   const checkBackend = useCallback(async () => {
+    const statusUrl = getOrbBackendUrl('/api/status');
+    if (!statusUrl) {
+      console.warn(getOrbBackendUnavailableMessage());
+      setBackendStatus({ status: 'offline', database: 'unconfigured', indexed_images: 0 });
+      return;
+    }
+
     try {
-      const response = await fetch('http://localhost:8000/api/status');
+      const response = await fetch(statusUrl);
       if (!response.ok) {
         throw new Error('Backend offline');
       }
       const data = await response.json();
       setBackendStatus(data);
     } catch (err) {
-      console.warn('FastAPI backend seems offline. Run the Python uvicorn server on port 8000.');
+      console.warn('FastAPI backend seems offline or unreachable from this environment.');
       setBackendStatus({ status: 'offline', database: 'unknown', indexed_images: 0 });
     }
   }, []);
@@ -121,10 +132,18 @@ export const SimilarityDebugger: React.FC = () => {
 
     const formData = new FormData();
     formData.append('file', file);
+    const configUrl = getOrbBackendUrl('/api/config');
+    const matchUrl = getOrbBackendUrl('/api/match');
+
+    if (!configUrl || !matchUrl) {
+      showError(getOrbBackendUnavailableMessage());
+      setIsMatching(false);
+      return;
+    }
 
     try {
       // Sync configurations with backend first
-      await fetch('http://localhost:8000/api/config', {
+      await fetch(configUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -138,8 +157,7 @@ export const SimilarityDebugger: React.FC = () => {
       });
 
       // Execute matching call
-      const matchUrl = `http://localhost:8000/api/match?mode=${matchingMode}&visualize=true`;
-      const response = await fetch(matchUrl, {
+      const response = await fetch(`${matchUrl}?mode=${matchingMode}&visualize=true`, {
         method: 'POST',
         body: formData,
       });
