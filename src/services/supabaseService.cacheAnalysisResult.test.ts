@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HybridAnalysisResult } from '@/types';
 
 const upsertMock = vi.fn();
+const selectAfterUpsertMock = vi.fn();
+const singleAfterUpsertMock = vi.fn();
 const maybeSingleMock = vi.fn();
 const fromMock = vi.fn();
 const rpcMock = vi.fn();
@@ -20,6 +22,11 @@ productSizesQuery.eq = vi.fn(() => productSizesQuery);
 productSizesQuery.order = vi.fn(() => productSizesQuery);
 productSizesQuery.limit = vi.fn(() => productSizesQuery);
 productSizesQuery.maybeSingle = maybeSingleMock;
+
+const analysisCacheUpsertQuery = {
+  select: selectAfterUpsertMock,
+  single: singleAfterUpsertMock,
+};
 
 const analysisCacheQuery = {
   upsert: upsertMock,
@@ -65,7 +72,9 @@ vi.mock('./indexNowService', () => ({
 
 describe('cacheAnalysisResult', () => {
   beforeEach(() => {
-    upsertMock.mockReset().mockResolvedValue({ error: null });
+    singleAfterUpsertMock.mockReset().mockResolvedValue({ data: { id: 'cache-row-id' }, error: null });
+    selectAfterUpsertMock.mockReset().mockReturnValue(analysisCacheUpsertQuery);
+    upsertMock.mockReset().mockReturnValue(analysisCacheUpsertQuery);
     maybeSingleMock.mockReset().mockResolvedValue({ data: { price: 999 }, error: null });
     rpcMock.mockReset().mockResolvedValue({ data: [], error: null });
     fromMock.mockReset().mockImplementation((table: string) => {
@@ -79,7 +88,7 @@ describe('cacheAnalysisResult', () => {
     const { cacheAnalysisResult } = await import('./supabaseService');
 
     const result = await cacheAnalysisResult(
-      'serverabc1234567',
+      'deadc0de1234beef',
       {
         cakeType: 'Bento',
         cakeThickness: '4 in',
@@ -100,10 +109,10 @@ describe('cacheAnalysisResult', () => {
       }
     );
 
-    expect(result?.storedPHash).toBe('serverabc1234567');
+    expect(result?.storedPHash).toBe('deadc0de1234beef');
     expect(upsertMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        p_hash: 'serverabc1234567',
+        p_hash: 'deadc0de1234beef',
         fingerprint_pipeline: 'v1-test-pipeline',
       }),
       expect.objectContaining({

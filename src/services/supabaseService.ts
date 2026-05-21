@@ -343,13 +343,28 @@ export interface FingerprintHashLookup {
   legacyPHashes?: string[];
 }
 
+const HEX_PHASH_PATTERN = /^[0-9a-f]{16}$/i;
+
+function normalizeHexPHash(candidate: string | null | undefined): string | null {
+  if (typeof candidate !== 'string') {
+    return null;
+  }
+
+  const normalized = candidate.trim().toLowerCase();
+  return HEX_PHASH_PATTERN.test(normalized) ? normalized : null;
+}
+
 function uniqueHashCandidates(candidates: Array<string | null | undefined>) {
-  return [...new Set(candidates.filter((candidate): candidate is string => Boolean(candidate)))];
+  const validCandidates = candidates
+    .map((candidate) => normalizeHexPHash(candidate))
+    .filter((candidate): candidate is string => candidate !== null);
+
+  return [...new Set(validCandidates)];
 }
 
 function normalizeHashLookup(input: string | string[] | FingerprintHashLookup) {
   if (typeof input === 'object' && !Array.isArray(input)) {
-    const canonicalHash = input.pHash || null;
+    const canonicalHash = normalizeHexPHash(input.pHash);
     const legacyHashes = uniqueHashCandidates(input.legacyPHashes || [])
       .filter((candidate) => candidate !== canonicalHash);
 
@@ -504,6 +519,18 @@ async function findSimilarAnalysisByLegacyHashes(
 export async function findSimilarAnalysisByHash(pHash: string | string[] | FingerprintHashLookup, imageUrl?: string): Promise<CacheHitResult | null> {
   try {
     const lookup = normalizeHashLookup(pHash);
+
+    if (typeof pHash === 'object' && !Array.isArray(pHash)) {
+      const droppedCanonical = pHash.pHash && !lookup.canonicalHash;
+      const droppedLegacyCount = (pHash.legacyPHashes || []).length - lookup.legacyHashes.length;
+
+      if (droppedCanonical || droppedLegacyCount > 0) {
+        console.warn('⚠️ Dropping invalid non-hex fingerprint candidates before cache lookup.', {
+          droppedCanonical,
+          droppedLegacyCount,
+        });
+      }
+    }
 
     if (lookup.allCandidates.length === 0) {
       console.log('⚫️ Cache MISS. No pHash candidates were available.');

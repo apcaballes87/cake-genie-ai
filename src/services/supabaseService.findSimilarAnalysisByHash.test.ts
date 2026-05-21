@@ -32,13 +32,13 @@ describe('findSimilarAnalysisByHash', () => {
     rpcMock.mockResolvedValue({
       data: [
         {
-          p_hash: 'abc123',
+          p_hash: 'abc123def4567890',
           analysis_json: { cakeType: 'Bento', keyword: 'lavender' },
           seo_title: 'Lavender Cake',
           seo_description: 'Known design',
           keywords: 'lavender',
           alt_text: 'Lavender cake',
-          slug: 'lavender-cake-abc123',
+          slug: 'lavender-cake-abc123de',
           original_image_url: 'https://example.com/lavender.webp',
           price: 999,
           availability: 'made_to_order',
@@ -48,13 +48,13 @@ describe('findSimilarAnalysisByHash', () => {
     });
 
     const { findSimilarAnalysisByHash } = await import('./supabaseService');
-    const result = await findSimilarAnalysisByHash('abc123');
+    const result = await findSimilarAnalysisByHash('abc123def4567890');
 
-    expect(result?.seoMetadata.slug).toBe('lavender-cake-abc123');
+    expect(result?.seoMetadata.slug).toBe('lavender-cake-abc123de');
     expect(rpcMock).toHaveBeenCalledWith('find_similar_analysis_by_fingerprint', {
       new_hash: null,
       new_pipeline: null,
-      legacy_hashes: ['abc123'],
+      legacy_hashes: ['abc123def4567890'],
     });
     expect(mockClient.from).not.toHaveBeenCalled();
     expect(updateMock).not.toHaveBeenCalled();
@@ -65,13 +65,13 @@ describe('findSimilarAnalysisByHash', () => {
     rpcMock.mockResolvedValue({
       data: [
         {
-          p_hash: 'server123',
+          p_hash: 'deadbeef1234abcd',
           analysis_json: { cakeType: 'Bento', keyword: 'server' },
           seo_title: 'Server Cake',
           seo_description: 'Found via server fingerprint',
           keywords: 'server',
           alt_text: 'Server cake',
-          slug: 'server-cake-server123',
+          slug: 'server-cake-deadbeef',
           original_image_url: 'https://example.com/server.webp',
           price: 1499,
           availability: 'made_to_order',
@@ -82,18 +82,18 @@ describe('findSimilarAnalysisByHash', () => {
 
     const { findSimilarAnalysisByHash } = await import('./supabaseService');
     const result = await findSimilarAnalysisByHash({
-      pHash: 'server123',
+      pHash: 'deadbeef1234abcd',
       pipeline: 'v1-test',
-      legacyPHashes: ['legacy123'],
+      legacyPHashes: ['feedface5678dcba'],
     });
 
     expect(rpcMock).toHaveBeenCalledTimes(1);
     expect(rpcMock).toHaveBeenCalledWith('find_similar_analysis_by_fingerprint', {
-      new_hash: 'server123',
+      new_hash: 'deadbeef1234abcd',
       new_pipeline: 'v1-test',
-      legacy_hashes: ['legacy123'],
+      legacy_hashes: ['feedface5678dcba'],
     });
-    expect(result?.seoMetadata.slug).toBe('server-cake-server123');
+    expect(result?.seoMetadata.slug).toBe('server-cake-deadbeef');
   });
 
   it('retries compatibility hashes until one matches', async () => {
@@ -109,13 +109,13 @@ describe('findSimilarAnalysisByHash', () => {
       .mockResolvedValueOnce({
         data: [
           {
-            p_hash: 'compat456',
+            p_hash: 'facefeed9876abcd',
             analysis_json: { cakeType: 'Bento', keyword: 'compat' },
             seo_title: 'Compat Cake',
             seo_description: 'Found via compatibility hash',
             keywords: 'compat',
             alt_text: 'Compat cake',
-            slug: 'compat-cake-compat456',
+            slug: 'compat-cake-facefeed',
             original_image_url: 'https://example.com/compat.webp',
             price: 1299,
             availability: 'made_to_order',
@@ -125,15 +125,39 @@ describe('findSimilarAnalysisByHash', () => {
       });
 
     const { findSimilarAnalysisByHash } = await import('./supabaseService');
-    const result = await findSimilarAnalysisByHash(['primary123', 'compat456']);
+    const result = await findSimilarAnalysisByHash(['1234567890abcdef', 'facefeed9876abcd']);
 
     expect(rpcMock).toHaveBeenNthCalledWith(1, 'find_similar_analysis_by_fingerprint', {
       new_hash: null,
       new_pipeline: null,
-      legacy_hashes: ['primary123', 'compat456'],
+      legacy_hashes: ['1234567890abcdef', 'facefeed9876abcd'],
     });
-    expect(rpcMock).toHaveBeenNthCalledWith(2, 'find_similar_analysis', { new_hash: 'primary123' });
-    expect(rpcMock).toHaveBeenNthCalledWith(3, 'find_similar_analysis', { new_hash: 'compat456' });
-    expect(result?.seoMetadata.slug).toBe('compat-cake-compat456');
+    expect(rpcMock).toHaveBeenNthCalledWith(2, 'find_similar_analysis', { new_hash: '1234567890abcdef' });
+    expect(rpcMock).toHaveBeenNthCalledWith(3, 'find_similar_analysis', { new_hash: 'facefeed9876abcd' });
+    expect(result?.seoMetadata.slug).toBe('compat-cake-facefeed');
+  });
+
+  it('drops malformed non-hex hashes before calling the RPCs', async () => {
+    rpcMock.mockResolvedValue({
+      data: [],
+      error: null,
+    });
+
+    const { findSimilarAnalysisByHash } = await import('./supabaseService');
+    await findSimilarAnalysisByHash({
+      pHash: 'not-a-real-phash',
+      pipeline: 'v1-test',
+      legacyPHashes: ['p123', 'abcdef1234567890'],
+    });
+
+    expect(rpcMock).toHaveBeenCalledTimes(2);
+    expect(rpcMock).toHaveBeenNthCalledWith(1, 'find_similar_analysis_by_fingerprint', {
+      new_hash: null,
+      new_pipeline: 'v1-test',
+      legacy_hashes: ['abcdef1234567890'],
+    });
+    expect(rpcMock).toHaveBeenNthCalledWith(2, 'find_similar_analysis', {
+      new_hash: 'abcdef1234567890',
+    });
   });
 });
