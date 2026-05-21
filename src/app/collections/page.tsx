@@ -1,4 +1,4 @@
-import { getDesignCategories, getAllRecentDesigns } from '@/services/supabaseService'
+import { getDesignCategories } from '@/services/supabaseService'
 import CollectionsClient from './CollectionsClient'
 import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
 
@@ -47,18 +47,14 @@ function CollectionPageSchema({ categories }: { categories: any[] }) {
 }
 
 export default async function CollectionsPage() {
-    const [categoriesRes, recentRes] = await Promise.all([
-        getDesignCategories().catch(() => ({ data: [], error: null })),
-        getAllRecentDesigns(24).catch(() => ({ data: [], error: null })),
-    ]);
+    const categoriesRes = await getDesignCategories().catch(() => ({ data: [], error: null }));
 
     const categories = categoriesRes.data || [];
-    const recentDesigns = recentRes.data || [];
 
     return (
         <>
             <CollectionPageSchema categories={categories} />
-            <CollectionsClient categories={categories} recentDesigns={recentDesigns} />
+            <CollectionsClient categories={categories} />
         </>
     );
 }

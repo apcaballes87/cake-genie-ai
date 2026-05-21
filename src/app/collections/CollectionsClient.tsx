@@ -5,9 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, ShoppingBag } from 'lucide-react';
-import Masonry from 'react-masonry-css';
-import { ProductCard } from '@/components/ProductCard';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
+import { LandingFooter } from '@/components/landing/LandingFooter';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import { useCart } from '@/contexts/CartContext';
 import { useImageManagement } from '@/contexts/ImageContext';
@@ -22,30 +21,12 @@ interface Category {
     count: number;
 }
 
-interface Design {
-    slug: string;
-    p_hash: string;
-    original_image_url: string;
-    price: number | null;
-    keywords: string | string[];
-    availability?: string | null;
-    analysis_json?: {
-        cakeType?: string;
-        icing_design?: string;
-        [key: string]: unknown;
-    };
-    image_width?: number | null;
-    image_height?: number | null;
-}
-
 interface CollectionsClientProps {
     categories: Category[];
-    recentDesigns: Design[];
 }
 
 const CollectionsClient: React.FC<CollectionsClientProps> = ({
-    categories,
-    recentDesigns
+    categories
 }) => {
     const router = useRouter();
     const { itemCount } = useCart();
@@ -200,49 +181,9 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                         </section>
                     )}
 
-                    {/* Recent Price Quotes */}
-                    {recentDesigns.length > 0 && (
-                        <section className="pt-6 border-t border-slate-200">
-                            <div className="mb-4">
-                                <h2 className="text-lg font-bold text-slate-800">Recent Price Quotes</h2>
-                                <p className="text-slate-500 text-sm mt-1">
-                                    Browse designs that other users have recently requested pricing for.
-                                </p>
-                            </div>
-
-                            <Masonry
-                                breakpointCols={{
-                                    default: 6,
-                                    1536: 6,
-                                    1280: 6,
-                                    1024: 6,
-                                    768: 6,
-                                    0: 3
-                                }}
-                                className="flex w-auto -ml-4"
-                                columnClassName="pl-4 bg-clip-padding"
-                            >
-                                {recentDesigns.map((design) => (
-                                    <div key={design.slug} className="mb-4">
-                                        <ProductCard
-                                            p_hash={design.p_hash}
-                                            original_image_url={design.original_image_url}
-                                            price={design.price}
-                                            keywords={Array.isArray(design.keywords) ? design.keywords.join(', ') : design.keywords}
-                                            slug={design.slug}
-                                            availability={design.availability ?? undefined}
-                                            analysis_json={design.analysis_json}
-                                            image_width={design.image_width}
-                                            image_height={design.image_height}
-                                            listName="collections"
-                                        />
-                                    </div>
-                                ))}
-                            </Masonry>
-                        </section>
-                    )}
             </div>
 
+            <LandingFooter />
 
             <MobileBottomNav />
         </div>
