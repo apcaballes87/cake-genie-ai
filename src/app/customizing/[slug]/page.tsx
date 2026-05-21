@@ -15,6 +15,15 @@ import { LandingFooter } from '@/components/landing/LandingFooter'
 import { mapAnalysisToState, mapProductToDefaultState } from '@/utils/customizationMapper'
 import { upgradeLegacySlug, downgradeCakeSlug } from '@/lib/utils/urlHelpers'
 import { generateDesignDetails, generateDynamicFAQ, generateRichAltText } from '@/utils/designContentUtils'
+import {
+    buildCustomCakeAdditionalProperties,
+    buildMerchantReturnPolicy,
+    buildOfferShippingDetails,
+    buildPriceSummary,
+    getCommercePolicyUrls,
+    getLeadTimeLabel,
+    mapDesignAvailabilityToSchema,
+} from '@/lib/commerce/machineReadable'
 
 // Minimum base price (1 Tier / 4in / 6" Round = ₱1,099) used as fallback
 // when a design has no valid cakeType or cached price.
@@ -49,6 +58,64 @@ const withPreferredHeroImage = <T extends DesignWithHeroImageUrls>(design: T): T
         design.studio_edited_image_url,
         design.original_image_url,
     ),
+});
+
+type LinkedMerchantProduct = {
+    product_id: string;
+    title: string;
+    slug: string;
+    custom_price: number | null;
+    availability: string;
+    merchant_id: string;
+    merchant_name: string;
+    merchant_slug: string;
+    merchant_city: string | null;
+};
+
+const getLinkedMerchantProductsByHash = cache(async (pHash: string | null | undefined): Promise<LinkedMerchantProduct[]> => {
+    if (!pHash) return [];
+
+    const supabase = await createClient();
+    const { data: products, error } = await supabase
+        .from('cakegenie_merchant_products')
+        .select('product_id, title, slug, custom_price, availability, merchant_id')
+        .eq('p_hash', pHash)
+        .eq('is_active', true)
+        .limit(5);
+
+    if (error || !products || products.length === 0) {
+        return [];
+    }
+
+    const merchantIds = [...new Set(products.map(product => product.merchant_id).filter(Boolean))];
+    const { data: merchants } = await supabase
+        .from('cakegenie_merchants')
+        .select('merchant_id, business_name, slug, city')
+        .in('merchant_id', merchantIds)
+        .eq('is_active', true);
+
+    const merchantMap = new Map(
+        (merchants || []).map((merchant) => [merchant.merchant_id, merchant]),
+    );
+
+    return products
+        .map((product) => {
+            const merchant = merchantMap.get(product.merchant_id);
+            if (!merchant) return null;
+
+            return {
+                product_id: product.product_id,
+                title: product.title,
+                slug: product.slug,
+                custom_price: product.custom_price,
+                availability: product.availability,
+                merchant_id: product.merchant_id,
+                merchant_name: merchant.business_name,
+                merchant_slug: merchant.slug,
+                merchant_city: merchant.city,
+            };
+        })
+        .filter((product): product is LinkedMerchantProduct => Boolean(product));
 });
 
 /**
@@ -341,6 +408,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
     const title = design.seo_title || `${tags.length > 0 ? tags[0] + ' ' : ''}${keywords} Cake`;
     const imageUrl = design.original_image_url;
     const pageUrl = `https://genie.ph/customizing/${design.slug || ''}`;
+    const policyUrls = getCommercePolicyUrls();
 
     const schemaDescription = resolveRichDescription(design, prices);
     const sanitizedDesc = sanitize(schemaDescription);
@@ -379,55 +447,22 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         representativeOfPage: false
     } : null;
 
-    // Standard Shipping Details (Free Delivery)
-    const shippingDetails = {
-        '@type': 'OfferShippingDetails',
-        shippingRate: {
-            '@type': 'MonetaryAmount',
-            value: 0,
-            currency: 'PHP'
-        },
-        deliveryTime: {
-            '@type': 'ShippingDeliveryTime',
-            handlingTime: {
-                '@type': 'QuantitativeValue',
-                minValue: 3, // Custom cakes take longer
-                maxValue: 7,
-                unitCode: 'DAY'
-            },
-            transitTime: {
-                '@type': 'QuantitativeValue',
-                minValue: 1,
-                maxValue: 2,
-                unitCode: 'DAY'
-            }
-        },
-        shippingDestination: {
-            '@type': 'DefinedRegion',
-            addressCountry: 'PH'
-        }
-    };
+    const shippingDetails = buildOfferShippingDetails();
 
     // Merchant Return Policy (No Returns)
-    const returnPolicy = {
-        '@type': 'MerchantReturnPolicy',
-        returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
-        merchantReturnDays: 0,
-        returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility',
-        returnPolicyCountry: 'PH' // Required since March 2025
-    };
+    const returnPolicy = buildMerchantReturnPolicy();
 
     // Use end of current year for stable schema (avoids changing on every render)
     const priceValidUntil = `${new Date().getFullYear()}-12-31`;
     const productMpn = design.p_hash || design.slug;
+    const priceSummary = buildPriceSummary(prices, (design.price && design.price > 0) ? design.price : FALLBACK_MIN_PRICE);
+    const availability = mapDesignAvailabilityToSchema(design.availability);
 
     let baseOffersWrapper;
 
-    if (prices && prices.length > 0) {
-        // Find min and max prices
-        const sortedPrices = [...prices].sort((a, b) => a.price - b.price);
-        const lowPrice = sortedPrices[0].price;
-        const highPrice = sortedPrices[sortedPrices.length - 1].price;
+    if (prices && prices.length > 0 && priceSummary.lowPrice !== null && priceSummary.highPrice !== null) {
+        const lowPrice = priceSummary.lowPrice;
+        const highPrice = priceSummary.highPrice;
 
         baseOffersWrapper = {
             '@type': 'AggregateOffer',
@@ -435,7 +470,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
             highPrice: highPrice,
             priceCurrency: 'PHP',
             offerCount: prices.length,
-            availability: 'https://schema.org/InStock',
+            availability: availability,
             itemCondition: 'https://schema.org/NewCondition',
             url: pageUrl,
             offers: prices.map(p => ({
@@ -445,13 +480,14 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
                 mpn: productMpn,
                 price: Math.round(p.price).toString(),
                 priceCurrency: 'PHP',
-                availability: 'https://schema.org/InStock',
+                availability: availability,
                 itemCondition: 'https://schema.org/NewCondition',
                 priceValidUntil: priceValidUntil,
                 url: pageUrl,
                 seller: {
                     '@type': 'Organization',
-                    name: 'Genie.ph'
+                    name: 'Genie.ph',
+                    url: 'https://genie.ph',
                 },
                 shippingDetails: shippingDetails,
                 hasMerchantReturnPolicy: returnPolicy
@@ -462,14 +498,15 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
             '@type': 'Offer',
             price: (design.price && design.price > 0) ? Math.round(design.price).toString() : FALLBACK_MIN_PRICE.toString(),
             priceCurrency: 'PHP',
-            availability: 'https://schema.org/InStock',
+            availability: availability,
             itemCondition: 'https://schema.org/NewCondition',
             priceValidUntil: priceValidUntil,
             sku: productMpn,
             mpn: productMpn,
             seller: {
                 '@type': 'Organization',
-                name: 'Genie.ph'
+                name: 'Genie.ph',
+                url: 'https://genie.ph',
             },
             url: pageUrl,
             shippingDetails: shippingDetails,
@@ -514,13 +551,26 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         },
         offers: offers,
         category: 'Custom Cakes',
+        additionalProperty: buildCustomCakeAdditionalProperties({
+            cakeType: design.analysis_json?.cakeType || null,
+            availability: design.availability || null,
+            sizeLabel: prices?.[0]?.size || null,
+            merchantName: 'Genie.ph',
+            selectedDesignSource: design.isSharedDesign ? 'shared_design' : 'analysis_cache',
+            uploadAssisted: true,
+        }),
         // Link to the AI engine that analyzed this design
-        subjectOf: {
-            '@type': 'SoftwareApplication',
-            name: 'Genie.ph AI Cake Price Calculator',
-            url: 'https://genie.ph/cake-price-calculator',
-            applicationCategory: 'BusinessApplication'
-        },
+        subjectOf: [
+            {
+                '@type': 'SoftwareApplication',
+                name: 'Genie.ph AI Cake Price Calculator',
+                url: 'https://genie.ph/cake-price-calculator',
+                applicationCategory: 'BusinessApplication'
+            },
+            { '@type': 'WebPage', name: 'Delivery rates', url: policyUrls.deliveryRates },
+            { '@type': 'WebPage', name: 'Return policy', url: policyUrls.returnPolicy },
+            { '@type': 'WebPage', name: 'Customer reviews', url: policyUrls.reviews },
+        ],
         ...(design.alt_text && { 'alternateName': sanitize(design.alt_text) })
     };
 
@@ -535,8 +585,25 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         mainEntity: {
             '@id': pageUrl // Reference the Product by URL instead of duplicating
         },
+        isPartOf: {
+            '@type': 'CollectionPage',
+            '@id': 'https://genie.ph/customizing',
+            url: 'https://genie.ph/customizing',
+        },
         ...(imageObject && { primaryImageOfPage: { ...imageObject, representativeOfPage: true } }),
         ...(imageUrl && { thumbnailUrl: imageUrl })
+    };
+
+    const commerceFactsSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'DefinedTermSet',
+        '@id': `${pageUrl}#custom-cake-commerce-facts`,
+        name: 'Custom Cake Commerce Facts',
+        hasDefinedTerm: [
+            { '@type': 'DefinedTerm', name: 'lead_time', termCode: getLeadTimeLabel(design.availability) || 'advance-order' },
+            { '@type': 'DefinedTerm', name: 'return_policy', termCode: policyUrls.returnPolicy },
+            { '@type': 'DefinedTerm', name: 'delivery_rates', termCode: policyUrls.deliveryRates },
+        ],
     };
 
     // BreadcrumbList schema for better SERP breadcrumb display
@@ -579,6 +646,10 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema).replace(/</g, '\\u003c') }}
             />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(commerceFactsSchema).replace(/</g, '\\u003c') }}
+            />
         </>
     );
 }
@@ -600,9 +671,22 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
  * CustomizingClient hides it on mount via document.getElementById('ssr-content') to avoid
  * duplication with the interactive UI. No-JS users see this as the primary content.
  */
-function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { design: any; prices?: BasePriceInfo[]; relatedDesigns?: any[]; captionText?: string }) {
+function SSRCakeDetails({
+    design,
+    prices,
+    relatedDesigns,
+    captionText,
+    linkedMerchantProducts,
+}: {
+    design: any;
+    prices?: BasePriceInfo[];
+    relatedDesigns?: any[];
+    captionText?: string;
+    linkedMerchantProducts?: LinkedMerchantProduct[];
+}) {
     const keywords = design.keywords || 'Custom';
     const analysis = design.analysis_json || {};
+    const policyUrls = getCommercePolicyUrls();
 
     // Clean title: use keywords + "Cake Design" if seo_title is missing
     // Always include "Cake Design" — matches what Filipino users search in Google Images
@@ -743,7 +827,7 @@ function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { desig
                                         key={i}
                                         className="text-sm text-slate-600 italic"
                                     >
-                                        "{msg.text || 'Custom message'}"
+                                        &quot;{msg.text || 'Custom message'}&quot;
                                     </li>
                                 ))}
                             </ul>
@@ -756,7 +840,64 @@ function SSRCakeDetails({ design, prices, relatedDesigns, captionText }: { desig
                             <p className="text-lg font-bold text-pink-600">
                                 Starting at <span>₱{Math.round(displayPrice).toLocaleString()}</span>
                             </p>
+                            <p className="mt-2 text-sm text-slate-600">
+                                {getLeadTimeLabel(design.availability) || 'Made-to-order custom cake'}.
+                                Delivery and pickup availability depend on service area, branch coverage, and order timing.
+                            </p>
                         </div>
+                    )}
+
+                    <section className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <h2 className="text-sm font-semibold text-slate-700">Ordering & policy details</h2>
+                        <ul className="space-y-2 text-sm text-slate-600">
+                            <li>
+                                Delivery coverage and fees:
+                                {' '}
+                                <Link href={policyUrls.deliveryRates.replace('https://genie.ph', '')} className="font-medium text-purple-700 hover:text-purple-800">
+                                    see covered areas and rates
+                                </Link>
+                            </li>
+                            <li>
+                                Custom cakes are perishable and made to order:
+                                {' '}
+                                <Link href={policyUrls.returnPolicy.replace('https://genie.ph', '')} className="font-medium text-purple-700 hover:text-purple-800">
+                                    review the return and cancellation policy
+                                </Link>
+                            </li>
+                            <li>
+                                Buyer trust and social proof:
+                                {' '}
+                                <Link href={policyUrls.reviews.replace('https://genie.ph', '')} className="font-medium text-purple-700 hover:text-purple-800">
+                                    browse Genie.ph customer reviews
+                                </Link>
+                            </li>
+                        </ul>
+                    </section>
+
+                    {linkedMerchantProducts && linkedMerchantProducts.length > 0 && (
+                        <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+                            <h2 className="text-sm font-semibold text-slate-700">Available from partner bakeries</h2>
+                            <p className="text-sm text-slate-600">
+                                This design is also linked to merchant product pages with cleaner pricing, review, and checkout signals.
+                            </p>
+                            <ul className="space-y-2">
+                                {linkedMerchantProducts.map((product) => (
+                                    <li key={product.product_id} className="rounded-lg border border-slate-200 px-3 py-2">
+                                        <Link
+                                            href={`/shop/${product.merchant_slug}/${product.slug}`}
+                                            className="font-medium text-purple-700 hover:text-purple-800"
+                                        >
+                                            {product.title} at {product.merchant_name}
+                                        </Link>
+                                        <p className="text-xs text-slate-500">
+                                            {product.custom_price ? `Starts at ₱${Math.round(product.custom_price).toLocaleString()}` : 'Custom pricing available'}
+                                            {' • '}
+                                            {product.merchant_city || 'Philippines'}
+                                        </p>
+                                    </li>
+                                ))}
+                            </ul>
+                        </section>
                     )}
 
                     {/* Size & Pricing Table */}
@@ -971,9 +1112,11 @@ export default async function RecentSearchPage({ params }: Props) {
     // Fetch SEO data in parallel to reduce server wait time without changing rendered content.
     let prices: BasePriceInfo[] = [];
     let relatedDesigns: any[] = [];
-    const [pricesResult, relatedDesignsResult] = await Promise.allSettled([
+    let linkedMerchantProducts: LinkedMerchantProduct[] = [];
+    const [pricesResult, relatedDesignsResult, linkedProductsResult] = await Promise.allSettled([
         getCakeBasePriceOptions(seoCakeType, CAKE_TYPE_THICKNESS_MAP[seoCakeType] || '4 in'),
         getRelatedProductsByKeywords(design.keywords, slug, 6, 0),
+        getLinkedMerchantProductsByHash(design.p_hash),
     ]);
 
     if (pricesResult.status === 'fulfilled') {
@@ -986,6 +1129,12 @@ export default async function RecentSearchPage({ params }: Props) {
         relatedDesigns = (relatedDesignsResult.value.data || []).map(withPreferredHeroImage);
     } else {
         console.error('Error fetching related designs:', relatedDesignsResult.reason);
+    }
+
+    if (linkedProductsResult.status === 'fulfilled') {
+        linkedMerchantProducts = linkedProductsResult.value;
+    } else {
+        console.error('Error fetching linked merchant products:', linkedProductsResult.reason);
     }
 
     // Generate unique caption for image SEO from the first 1-2 sentences of design details
@@ -1055,6 +1204,7 @@ export default async function RecentSearchPage({ params }: Props) {
                 prices={prices}
                 relatedDesigns={relatedDesigns}
                 captionText={captionText}
+                linkedMerchantProducts={linkedMerchantProducts}
             />
 
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>

@@ -4020,3 +4020,48 @@ export async function getMerchantReviewStats(
     return { data: null, error: err as Error };
   }
 }
+
+export async function getProductReviewStats(
+  productId: string
+): Promise<SupabaseServiceResponse<{
+  total: number;
+  averageRating: number;
+  ratingDistribution: { rating: number; count: number }[];
+}>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_reviews')
+      .select('rating')
+      .eq('product_id', productId)
+      .eq('is_approved', true)
+      .eq('is_visible', true);
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    const total = data?.length || 0;
+    const averageRating = total > 0
+      ? data!.reduce((sum, r) => sum + r.rating, 0) / total
+      : 0;
+
+    const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    data?.forEach((review) => {
+      if (distribution[review.rating] !== undefined) {
+        distribution[review.rating]++;
+      }
+    });
+
+    const ratingDistribution = Object.entries(distribution).map(([rating, count]) => ({
+      rating: parseInt(rating, 10),
+      count,
+    }));
+
+    return {
+      data: { total, averageRating, ratingDistribution },
+      error: null,
+    };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}

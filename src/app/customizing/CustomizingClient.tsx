@@ -111,6 +111,12 @@ import {
     requestMentionsPrintoutConversion,
 } from '@/utils/printoutConversionPrompt';
 import { buildDecorLocalizationHint } from '@/utils/editImageTuning';
+import {
+    buildCommerceOrderSnapshot,
+    deriveConstraintSnapshot,
+    deriveDeliveryZone,
+    getCommercePolicyUrls,
+} from '@/lib/commerce/machineReadable';
 
 interface AvailabilityInfo {
     type: AvailabilityType;
@@ -853,7 +859,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             const cartItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'> = {
                 user_id: cartUser.is_anonymous ? null : cartUser.id,
                 session_id: cartUser.is_anonymous ? cartUser.id : null,
-                merchant_id: null, // Will be set when ordering from a specific merchant shop
+                merchant_id: merchant?.merchant_id || null,
                 product_id: product?.product_id || null,
                 cake_type: cakeInfo.type,
                 cake_thickness: cakeInfo.thickness,
@@ -881,12 +887,86 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         color: m.color
                     })),
                     icingDesign: {
+                        base: icingDesign?.base,
                         drip: icingDesign?.drip || false,
                         gumpasteBaseBoard: icingDesign?.gumpasteBaseBoard || false,
                         colors: (icingDesign?.colors as unknown as Record<string, string>) || {}
                     },
                     additionalInstructions: additionalInstructions,
-                    chat_history: chatHistory
+                    chat_history: chatHistory,
+                    commerce_snapshot: buildCommerceOrderSnapshot({
+                        product: {
+                            productId: product?.product_id || null,
+                            designSlug: persistedSlug || (typeof slug === 'string' ? slug : null) || seoMetadata?.slug || recentSearchDesign?.slug || null,
+                            designPHash: currentPHash || product?.p_hash || recentSearchDesign?.p_hash || analysisId || null,
+                            merchantId: merchant?.merchant_id || null,
+                            canonicalUrl: product && merchant
+                                ? `https://genie.ph/shop/${merchant.slug}/${product.slug}`
+                                : ((persistedSlug || typeof slug === 'string')
+                                    ? `https://genie.ph/customizing/${persistedSlug || slug}`
+                                    : null),
+                            sourceSurface: product ? 'merchant_product' : (recentSearchDesign ? 'customizing' : 'uploaded_image'),
+                        },
+                        variant: {
+                            cakeType: cakeInfo.type,
+                            cakeThickness: cakeInfo.thickness,
+                            cakeSize: cakeInfo.size,
+                            flavors: cakeInfo.flavors,
+                        },
+                        customization: {
+                            mainToppers: mainToppers.filter(t => t.isEnabled).map(t => ({
+                                description: t.description,
+                                type: t.type,
+                                size: t.size,
+                            })),
+                            supportElements: supportElements.filter(e => e.isEnabled).map(e => ({
+                                description: e.description,
+                                type: e.type,
+                                coverage: e.size,
+                            })),
+                            cakeMessages: cakeMessages.filter(m => m.isEnabled).map(m => ({
+                                text: m.text,
+                                color: m.color,
+                            })),
+                            icingDesign: {
+                                base: icingDesign?.base,
+                                drip: icingDesign?.drip || false,
+                                gumpasteBaseBoard: icingDesign?.gumpasteBaseBoard || false,
+                                colors: (icingDesign?.colors as unknown as Record<string, string>) || {},
+                            },
+                            specialInstructions: additionalInstructions,
+                            selectedDesignSource: product
+                                ? 'merchant_product'
+                                : (recentSearchDesign ? 'analysis_cache' : 'uploaded_image'),
+                            referenceImageUrl: seoMetadata?.original_image_url || recentSearchDesign?.original_image_url || product?.image_url || null,
+                            uploadedReferenceImage: Boolean(originalImagePreview || recentSearchDesign?.original_image_url || product?.image_url),
+                        },
+                        fulfillment: {
+                            fulfillmentType: 'unspecified',
+                            pickupBranchId: null,
+                            deliveryCity: merchant?.city || null,
+                            deliveryZone: deriveDeliveryZone(merchant?.city || null),
+                            eventDate: null,
+                            eventTimeSlot: null,
+                        },
+                        pricing: {
+                            currency: 'PHP',
+                            basePrice: basePrice || 0,
+                            addOnPrice: ((effectivePrice || 0) - (basePrice || 0)) + ediblePhotoAddonPrice,
+                            rushFee: 0,
+                            finalPrice: (effectivePrice || 0) + ediblePhotoAddonPrice,
+                            pricingVersion: 'pricing_rules:v1',
+                        },
+                        constraints: deriveConstraintSnapshot({
+                            availabilityClass: availabilityType,
+                            earliestFulfillmentDate: null,
+                            cutoffEligible: availabilityType === 'rush' || availabilityType === 'same-day' ? true : null,
+                            branchCompatible: merchant ? true : null,
+                            deliveryZoneCompatible: merchant?.city ? true : null,
+                            blackoutDate: null,
+                        }),
+                        policyUrls: getCommercePolicyUrls(),
+                    }),
                 }
             };
 
@@ -925,6 +1005,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         ediblePhotoAddonPrice,
         chatHistory,
         product?.product_id,
+        product?.image_url,
+        product?.p_hash,
+        product?.slug,
+        merchant,
+        persistedSlug,
+        seoMetadata?.original_image_url,
+        seoMetadata?.slug,
+        currentPHash,
+        recentSearchDesign?.original_image_url,
+        recentSearchDesign?.p_hash,
+        recentSearchDesign?.slug,
+        availabilityType,
+        analysisId,
         router,
         slug,
         supabase,

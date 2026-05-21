@@ -1,5 +1,7 @@
 // lib/database.types.ts
 
+import type { CommerceOrderSnapshot } from '@/types';
+
 /**
  * The status of a customer's order in the fulfillment process.
  */
@@ -32,12 +34,14 @@ export interface CustomizationDetails {
     color: string;
   }[];
   icingDesign: {
+    base?: 'soft_icing' | 'fondant';
     drip: boolean;
     gumpasteBaseBoard: boolean;
     colors: Record<string, string>;
   };
   additionalInstructions: string;
   chat_history?: string[];
+  commerce_snapshot?: CommerceOrderSnapshot;
 }
 
 /**

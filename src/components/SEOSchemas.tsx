@@ -1,20 +1,34 @@
 import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.types';
 import { BasePriceInfo } from '@/types';
+import {
+    buildCustomCakeAdditionalProperties,
+    buildMerchantCenterCustomLabels,
+    buildMerchantCenterDescription,
+    buildMerchantReturnPolicy,
+    buildOfferShippingDetails,
+    buildPriceSummary,
+    getCommercePolicyUrls,
+    getMerchantListingNote,
+    getMerchantCenterGoogleProductCategory,
+    mapDesignAvailabilityToSchema,
+} from '@/lib/commerce/machineReadable';
 
 // JSON-LD Schema for Product (Schema.org)
 export function ProductSchema({ product, merchant, prices, ratingValue, reviewCount, imageWidth, imageHeight }: { product: CakeGenieMerchantProduct; merchant: CakeGenieMerchant; prices?: BasePriceInfo[]; ratingValue?: string; reviewCount?: string; imageWidth?: number | null; imageHeight?: number | null }) {
     // Sanitize string to prevent script injection in JSON-LD
     const sanitize = (str: string | undefined | null) => str ? str.replace(/<\/script/g, '<\\/script') : '';
     const pageUrl = `https://genie.ph/shop/${merchant.slug}/${product.slug}`;
+    const policyUrls = getCommercePolicyUrls();
+    const customLabels = buildMerchantCenterCustomLabels({
+        availability: product.availability,
+        merchantCity: merchant.city,
+        cakeType: product.cake_type,
+        uploadAssisted: Boolean(product.p_hash),
+        madeToOrder: product.availability === 'made_to_order' || product.availability === 'preorder',
+    });
 
     // Calculate generic availability
-    const availability = product.availability === 'in_stock'
-        ? 'https://schema.org/InStock'
-        : product.availability === 'preorder'
-            ? 'https://schema.org/PreOrder'
-            : product.availability === 'made_to_order'
-                ? 'https://schema.org/MadeToOrder'
-                : 'https://schema.org/OutOfStock';
+    const availability = mapDesignAvailabilityToSchema(product.availability);
 
     let offers;
 
@@ -23,11 +37,11 @@ export function ProductSchema({ product, merchant, prices, ratingValue, reviewCo
     nextYear.setFullYear(nextYear.getFullYear() + 1);
     const priceValidUntil = nextYear.toISOString().split('T')[0];
 
-    if (prices && prices.length > 0) {
-        // Find min and max prices
-        const sortedPrices = [...prices].sort((a, b) => a.price - b.price);
-        const lowPrice = sortedPrices[0].price;
-        const highPrice = sortedPrices[sortedPrices.length - 1].price;
+    const priceSummary = buildPriceSummary(prices, product.custom_price || 0);
+
+    if (prices && prices.length > 0 && priceSummary.lowPrice !== null && priceSummary.highPrice !== null) {
+        const lowPrice = priceSummary.lowPrice;
+        const highPrice = priceSummary.highPrice;
 
         offers = {
             '@type': 'AggregateOffer',
@@ -41,6 +55,7 @@ export function ProductSchema({ product, merchant, prices, ratingValue, reviewCo
             seller: {
                 '@type': 'Organization',
                 name: sanitize(merchant.business_name),
+                url: `https://genie.ph/shop/${merchant.slug}`,
             },
             url: pageUrl
         };
@@ -56,6 +71,7 @@ export function ProductSchema({ product, merchant, prices, ratingValue, reviewCo
             seller: {
                 '@type': 'Organization',
                 name: sanitize(merchant.business_name),
+                url: `https://genie.ph/shop/${merchant.slug}`,
             },
             url: pageUrl
         };
@@ -94,43 +110,10 @@ export function ProductSchema({ product, merchant, prices, ratingValue, reviewCo
     } : undefined;
 
     // Standard Shipping Details (Placeholder for now as dynamic calculation isn't available here)
-    const shippingDetails = {
-        '@type': 'OfferShippingDetails',
-        shippingRate: {
-            '@type': 'MonetaryAmount',
-            value: 0, // Placeholder or standard rate could be set here
-            currency: 'PHP'
-        },
-        deliveryTime: {
-            '@type': 'ShippingDeliveryTime',
-            handlingTime: {
-                '@type': 'QuantitativeValue',
-                minValue: 1,
-                maxValue: 3,
-                unitCode: 'DAY'
-            },
-            transitTime: {
-                '@type': 'QuantitativeValue',
-                minValue: 1,
-                maxValue: 3,
-                unitCode: 'DAY'
-            }
-        },
-        shippingDestination: {
-            '@type': 'DefinedRegion',
-            addressCountry: 'PH'
-        }
-    };
+    const shippingDetails = buildOfferShippingDetails(merchant);
 
     // Merchant Return Policy (No Returns for Perishable Custom Goods)
-    const returnPolicy = {
-        '@type': 'MerchantReturnPolicy',
-        returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
-        merchantReturnDays: 0,
-        returnMethod: 'https://schema.org/ReturnByMail', // Required even if not permitted sometimes, but safe to include
-        returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility',
-        returnPolicyCountry: 'PH' // Required since March 2025
-    };
+    const returnPolicy = buildMerchantReturnPolicy();
 
     // Update offers with new merchant listing properties
     const enhancedOffers = offers ? {
@@ -145,16 +128,30 @@ export function ProductSchema({ product, merchant, prices, ratingValue, reviewCo
         '@id': pageUrl, // Unique ID to link with WebPage
         url: pageUrl, // Explicit URL property
         name: sanitize(product.title),
-        description: sanitize(product.long_description || product.short_description || `Custom cake from ${merchant.business_name}`),
+        description: sanitize(buildMerchantCenterDescription(product, merchant)),
         image: product.image_url ? [product.image_url] : [],
         brand: {
             '@type': 'Brand',
             name: sanitize(product.brand || merchant.business_name),
         },
         category: sanitize(product.category || 'Cakes'),
+        additionalProperty: buildCustomCakeAdditionalProperties({
+            cakeType: product.cake_type,
+            availability: product.availability,
+            sizeLabel: prices?.[0]?.size || null,
+            merchantName: merchant.business_name,
+            selectedDesignSource: product.p_hash ? 'merchant_product' : null,
+            uploadAssisted: Boolean(product.p_hash),
+        }),
         ...(product.sku && { sku: sanitize(product.sku) }),
         ...(product.gtin && { gtin: sanitize(product.gtin) }),
+        itemCondition: 'https://schema.org/NewCondition',
         offers: enhancedOffers,
+        subjectOf: [
+            { '@type': 'WebPage', name: 'Delivery rates', url: policyUrls.deliveryRates },
+            { '@type': 'WebPage', name: 'Return policy', url: policyUrls.returnPolicy },
+            { '@type': 'WebPage', name: 'Customer reviews', url: policyUrls.reviews },
+        ],
         ...(aggregateRating && { aggregateRating })
     };
 
@@ -168,8 +165,55 @@ export function ProductSchema({ product, merchant, prices, ratingValue, reviewCo
         mainEntity: {
             '@id': pageUrl
         },
+        isPartOf: {
+            '@type': 'CollectionPage',
+            '@id': `https://genie.ph/shop/${merchant.slug}`,
+            url: `https://genie.ph/shop/${merchant.slug}`,
+        },
         ...(imageObject && { primaryImageOfPage: { ...imageObject, representativeOfPage: true } }),
         ...(product.image_url && { thumbnailUrl: product.image_url })
+    };
+
+    const merchantSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'Bakery',
+        '@id': `https://genie.ph/shop/${merchant.slug}#merchant`,
+        name: sanitize(merchant.business_name),
+        url: `https://genie.ph/shop/${merchant.slug}`,
+        areaServed: merchant.city ? {
+            '@type': 'City',
+            name: sanitize(merchant.city),
+        } : {
+            '@type': 'Country',
+            name: 'Philippines',
+        },
+        makesOffer: {
+            '@id': pageUrl,
+        },
+        hasMerchantReturnPolicy: {
+            ...returnPolicy,
+            url: policyUrls.returnPolicy,
+        },
+        subjectOf: [
+            { '@type': 'WebPage', url: policyUrls.deliveryRates, name: 'Delivery rates and covered areas' },
+            { '@type': 'WebPage', url: policyUrls.reviews, name: 'Customer reviews' },
+        ],
+        description: sanitize(getMerchantListingNote(merchant)),
+    };
+
+    const merchantCenterHintsSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'DefinedTermSet',
+        '@id': `${pageUrl}#merchant-center-hints`,
+        name: 'Merchant Center Export Hints',
+        hasDefinedTerm: [
+            { '@type': 'DefinedTerm', name: 'google_product_category', termCode: getMerchantCenterGoogleProductCategory() },
+            { '@type': 'DefinedTerm', name: 'custom_label_0', termCode: customLabels.customLabel0 },
+            { '@type': 'DefinedTerm', name: 'custom_label_1', termCode: customLabels.customLabel1 },
+            { '@type': 'DefinedTerm', name: 'custom_label_2', termCode: customLabels.customLabel2 },
+            { '@type': 'DefinedTerm', name: 'custom_label_3', termCode: customLabels.customLabel3 },
+            { '@type': 'DefinedTerm', name: 'custom_label_4', termCode: customLabels.customLabel4 },
+        ],
     };
 
     const breadcrumbSchema = {
@@ -216,6 +260,14 @@ export function ProductSchema({ product, merchant, prices, ratingValue, reviewCo
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(merchantSchema) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(merchantCenterHintsSchema) }}
             />
         </>
     );

@@ -226,12 +226,102 @@ export interface CartItemDetails {
     color: string;
   }[];
   icingDesign: {
+    base?: 'soft_icing' | 'fondant';
     drip: boolean;
     gumpasteBaseBoard: boolean;
     colors: Record<string, string>;
   };
   additionalInstructions: string;
   chat_history?: string[];
+  commerceSnapshot?: CommerceOrderSnapshot;
+}
+
+export interface CommercePolicyUrls {
+  returnPolicy: string;
+  deliveryRates: string;
+  privacy: string;
+  reviews: string;
+}
+
+export interface CommerceProductReference {
+  productId: string | null;
+  designSlug: string | null;
+  designPHash: string | null;
+  merchantId: string | null;
+  canonicalUrl: string | null;
+  sourceSurface: 'customizing' | 'merchant_product' | 'shared_design' | 'uploaded_image';
+}
+
+export interface CommerceVariantSnapshot {
+  cakeType: string | null;
+  cakeThickness: string | null;
+  cakeSize: string | null;
+  flavors: string[];
+}
+
+export interface CommerceCustomizationSnapshot {
+  mainToppers: {
+    description: string;
+    type: string;
+    size?: string;
+  }[];
+  supportElements: {
+    description: string;
+    type: string;
+    coverage?: string;
+  }[];
+  cakeMessages: {
+    text: string;
+    color: string;
+  }[];
+  icingDesign: {
+    base?: 'soft_icing' | 'fondant';
+    drip: boolean;
+    gumpasteBaseBoard: boolean;
+    colors: Record<string, string>;
+  };
+  specialInstructions: string;
+  selectedDesignSource: 'analysis_cache' | 'merchant_product' | 'shared_design' | 'uploaded_image';
+  referenceImageUrl: string | null;
+  uploadedReferenceImage: boolean;
+}
+
+export interface CommerceFulfillmentSnapshot {
+  fulfillmentType: 'delivery' | 'pickup' | 'unspecified';
+  pickupBranchId: string | null;
+  deliveryCity: string | null;
+  deliveryZone: string | null;
+  eventDate: string | null;
+  eventTimeSlot: string | null;
+}
+
+export interface CommercePricingSnapshot {
+  currency: 'PHP';
+  basePrice: number;
+  addOnPrice: number;
+  rushFee: number;
+  finalPrice: number;
+  pricingVersion: string;
+}
+
+export interface CommerceConstraintsSnapshot {
+  availabilityClass: 'rush' | 'same-day' | 'normal' | 'in_stock' | 'preorder' | 'made_to_order' | 'out_of_stock' | 'unknown';
+  earliestFulfillmentDate: string | null;
+  cutoffEligible: boolean | null;
+  branchCompatible: boolean | null;
+  deliveryZoneCompatible: boolean | null;
+  blackoutDate: boolean | null;
+  leadTimeLabel?: string | null;
+}
+
+export interface CommerceOrderSnapshot {
+  product: CommerceProductReference;
+  variant: CommerceVariantSnapshot;
+  customization: CommerceCustomizationSnapshot;
+  fulfillment: CommerceFulfillmentSnapshot;
+  pricing: CommercePricingSnapshot;
+  constraints: CommerceConstraintsSnapshot;
+  policyUrls: CommercePolicyUrls;
 }
 
 export interface CartItem {
