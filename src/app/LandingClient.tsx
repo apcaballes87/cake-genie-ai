@@ -1020,9 +1020,9 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                             src={displayedImageSrc}
                             alt={`${tier.label} cake preview`}
                             className="w-full h-full object-cover"
-                            loading="lazy"
+                            loading="eager"
                             decoding="async"
-                            fetchPriority="low"
+                            fetchPriority="high"
                             style={{ opacity: imgVisible ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
                         />
 
