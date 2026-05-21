@@ -225,6 +225,7 @@ const HeroMasonryGrid: React.FC<{
     onInteraction?: (index: number) => void
 }> = ({ products, onSelectProduct, onInteraction }) => {
     const handleInteraction = (index: number) => {
+        console.log('[HeroMasonryGrid] handleInteraction. Selected Index:', index);
         onSelectProduct?.(index);
         onInteraction?.(index);
     };
@@ -351,7 +352,12 @@ function HeroProductPeekCarousel({
     );
 
     useEffect(() => {
+        console.log('[HeroProductPeekCarousel] Component rendered. emblaApi initialized:', !!emblaApi, 'Time:', performance.now());
+    }, [emblaApi]);
+
+    useEffect(() => {
         if (!emblaApi || emblaApi.selectedScrollSnap() === heroProductIndex) return;
+        console.log('[HeroProductPeekCarousel] scrollTo Index:', heroProductIndex);
         emblaApi.scrollTo(heroProductIndex);
     }, [emblaApi, heroProductIndex]);
 
@@ -360,6 +366,7 @@ function HeroProductPeekCarousel({
 
         const syncSelectedProduct = () => {
             const selectedIndex = emblaApi.selectedScrollSnap();
+            console.log('[HeroProductPeekCarousel] syncSelectedProduct. Selected Index:', selectedIndex, 'User Triggered:', userTriggeredSelectionRef.current);
             onSelectProduct(selectedIndex);
 
             if (userTriggeredSelectionRef.current) {
@@ -373,6 +380,7 @@ function HeroProductPeekCarousel({
         emblaApi.on('reInit', syncSelectedProduct);
 
         const handlePointerDown = () => {
+            console.log('[HeroProductPeekCarousel] handlePointerDown.');
             userTriggeredSelectionRef.current = true;
         };
 
@@ -386,6 +394,7 @@ function HeroProductPeekCarousel({
     }, [emblaApi, onSelectProduct, onInteraction]);
 
     const handleProductClick = (index: number) => {
+        console.log('[HeroProductPeekCarousel] handleProductClick. Index:', index);
         userTriggeredSelectionRef.current = true;
         onSelectProduct(index);
         emblaApi?.scrollTo(index);
@@ -1228,6 +1237,10 @@ const LandingClient: React.FC<LandingClientProps> = ({
     // ───────────────────────────────────────────────────────────────────────
     const heroProducts = heroContent.products;
     const heroProductCount = heroProducts.length;
+
+    useEffect(() => {
+        console.log('[LandingClient] Hydration status updated. isMounted:', isMounted, 'Time:', performance.now());
+    }, [isMounted]);
 
     useEffect(() => {
         if (heroProductIndex >= heroProductCount) {
