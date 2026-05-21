@@ -383,11 +383,13 @@ export async function POST(req: NextRequest) {
         const publicUrl = urlData?.publicUrl || url;
 
         try {
+            const webpBlob = new Blob([Uint8Array.from(webpBuffer)], { type: 'image/webp' });
+
             const cachedResult = await cacheAnalysisResult(
                 pHash,
                 result,
                 publicUrl,
-                new Blob([webpBuffer], { type: 'image/webp' }),
+                webpBlob,
                 {
                     client: supabase,
                     fingerprintPipeline: fingerprint.pipeline,

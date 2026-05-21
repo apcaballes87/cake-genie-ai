@@ -1247,13 +1247,19 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
     // corresponding collections-table row exists.
     const ftsQuery = collection ? cleanCollectionName(collection.name) : normalizedKeyword;
 
-    // Step 2: Use FTS search (ranked, searches keywords + analysis_json + alt_text + slug)
-    const ftsResult = await searchProductsFTS(ftsQuery, limit, offset);
-    if (ftsResult.data && ftsResult.data.length > 0) {
-      return ftsResult;
+    // During `next build`, dozens of category/customizing pages can prerender in
+    // parallel. The FTS RPC is useful at runtime, but it is the path most likely
+    // to hit Supabase statement timeouts under static-build fan-out.
+    if (process.env.NEXT_PHASE !== 'phase-production-build') {
+      // Step 2: Use FTS search (ranked, searches keywords + analysis_json + alt_text + slug)
+      const ftsResult = await searchProductsFTS(ftsQuery, limit, offset);
+      if (ftsResult.data && ftsResult.data.length > 0) {
+        return ftsResult;
+      }
     }
 
-    // Step 3: FTS returned nothing — fall back to ILIKE
+    // Step 3: FTS returned nothing, or we intentionally skipped it during the
+    // production build — fall back to ILIKE.
     const orFilters = collection
       ? buildCollectionOrFilter(collection.name, collection.tags || [])
       : buildCollectionOrFilter(normalizedKeyword);

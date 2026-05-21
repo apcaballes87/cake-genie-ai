@@ -1,17 +1,59 @@
 # Tasks
 
+## Fix Vercel Build Regression For ORB URL Analyze Route
+
+### Plan
+
+- [x] Confirm the exact production TypeScript error from Vercel and isolate the failing line in `src/app/api/ai/analyze-url/route.ts`.
+- [x] Replace the direct `Buffer` -> `Blob` construction with a type-safe server-compatible conversion.
+- [x] Re-run targeted verification for the route/build behavior.
+- [x] Harden the related build-time sitemap and collection search paths that surfaced during full `next build` verification.
+- [x] Commit and push only the scoped production fix once verification passes.
+
+### Review
+
+- Root cause was not a single failing line. The Vercel failure started with `src/app/api/ai/analyze-url/route.ts` passing a raw Node `Buffer` into `new Blob(...)`, which Next 16 TypeScript rejects in production mode.
+- Full local `npm run build` verification then surfaced two deeper build-only issues:
+  1. `src/hooks/useImageManagement.ts` still referenced `getOrbBackendUrl` after its import had been removed.
+  2. Static generation was exercising live data paths that were fragile in production: `getDesignsByKeyword()` was still calling the heavy FTS RPC during `next build`, and shared-design sitemap generation was selecting `image_width` / `image_height` from `cakegenie_shared_designs` even though those columns are not consistently present in the live table.
+- Fixes applied:
+  `src/app/api/ai/analyze-url/route.ts` now wraps `webpBuffer` as `Uint8Array.from(webpBuffer)` before constructing the `Blob`.
+  `src/hooks/useImageManagement.ts` restores the missing `getOrbBackendUrl` import.
+  `src/services/supabaseService.ts` now skips the FTS RPC inside `getDesignsByKeyword()` during `phase-production-build` and falls back directly to the indexed ILIKE query for prerender safety.
+  `src/lib/sitemap/indexability.ts` now fetches shared-design sitemap rows using only the stable common columns that exist in the live schema.
+- Verification:
+  `npm run build` passed end to end on `2026-05-22`, including TypeScript, page-data collection, and static generation of all `513` pages/routes.
+
 ## Merchant Center Price Compliance
 
 ### Plan
 
-- [ ] Audit the current merchant-product feed and landing-page price output against Google Merchant Center's current price and structured-data requirements.
-- [ ] Normalize merchant-product and customizing page schema so SSR HTML always exposes a Merchant Center-compatible `Offer` with an active price.
-- [ ] Fix merchant-product SSR copy and feed export fallbacks so products without `custom_price` still surface the same starting price users see on the page.
-- [ ] Verify the affected pages/scripts with targeted checks and capture the root cause plus fix summary here.
+- [x] Audit the current merchant-product feed and landing-page price output against Google Merchant Center's current price and structured-data requirements.
+- [x] Normalize merchant-product and customizing page schema so SSR HTML always exposes a Merchant Center-compatible `Offer` with an active price.
+- [x] Fix merchant-product SSR copy and feed export fallbacks so products without `custom_price` still surface the same starting price users see on the page.
+- [x] Verify the affected pages/scripts with targeted checks and capture the root cause plus fix summary here.
 
 ### Review
 
-- Pending.
+- Root cause was a combination of three separate problems rather than one missing field:
+  1. Live merchant data still had `3` active products with `custom_price = null`, so the merchant-product CSV export path was writing `0.00 PHP` for those rows.
+  2. Merchant product pages mixed two price sources in the same SSR HTML: `custom_price` for the headline/FAQ and generic `productsizes_cakegenie` base prices for the size table and product schema. A quick live audit showed `4` of `12` active merchant products where `custom_price` disagreed with the generic lowest size price, which is exactly the kind of landing-page/feed mismatch Merchant Center flags.
+  3. Both merchant product pages and `/customizing/[slug]` pages emitted `AggregateOffer` in JSON-LD when multiple sizes existed. Google’s current merchant listing docs require a concrete `Offer` with a price for product landing pages, not an aggregate-only offer.
+- Added shared helpers in `src/lib/commerce/machineReadable.ts` to:
+  determine the single active Merchant Center price from visible size options, and
+  align a generic size ladder to a merchant-specific starting price when `custom_price` is present.
+- Updated `src/components/SEOSchemas.tsx` so merchant product pages always emit a Merchant Center-compatible `Offer` plus `priceSpecification`, instead of switching to `AggregateOffer`.
+- Updated `src/app/customizing/[slug]/page.tsx` so design pages also emit a concrete `Offer` with the active starting price in structured data, while keeping the visible size/price content for users.
+- Updated `src/app/shop/[merchantSlug]/[productSlug]/page.tsx` so the SSR page now:
+  uses the same authoritative starting price everywhere,
+  falls back cleanly when `custom_price` is null,
+  and shifts the SSR size ladder to stay aligned with a merchant-set starting price instead of showing a conflicting generic ladder.
+- Updated `scripts/export-merchant-center-feed.mjs` so merchant-product exports no longer default null prices to `0.00 PHP`; they now resolve a positive price from the merchant row first, then the cake-type base-price map, matching the landing-page fallback strategy.
+- Verification:
+  `npx vitest run /Users/apcaballes/genieph-nextjs/src/lib/commerce/machineReadable.test.ts /Users/apcaballes/genieph-nextjs/src/components/SEOSchemas.test.tsx '/Users/apcaballes/genieph-nextjs/src/app/shop/[merchantSlug]/[productSlug]/page.test.tsx' '/Users/apcaballes/genieph-nextjs/src/app/customizing/[slug]/page.test.tsx' --exclude '.claude/**'` passed (`19` tests).
+  `node --check scripts/export-merchant-center-feed.mjs` passed.
+  `node scripts/export-merchant-center-feed.mjs` regenerated `.cache/merchant-center/genieph-merchant-center.csv`, and the previously null-price merchant products now export as `1299.00 PHP` instead of `0.00 PHP`.
+  Live production HTML still shows the old behavior right now (`AggregateOffer`, blank `Starts at ₱` on the null-price sample), which is expected until these repo changes are deployed.
 
 ## Backfill ORB Indexing For Fresh AI Uploads
 

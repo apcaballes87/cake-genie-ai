@@ -17,6 +17,7 @@ import {
     type ClientImageFingerprint,
 } from '@/lib/utils/serverFingerprint.client';
 import {
+    getOrbBackendUrl,
     getOrbBackendUnavailableMessage,
 } from '@/services/orbBackendConfig';
 export { generatePerceptualHash } from '@/lib/utils/perceptualHash.client';
