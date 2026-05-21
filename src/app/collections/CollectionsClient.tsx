@@ -155,7 +155,7 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                                         href={`/collections/${cat.slug}`}
                                         className="group bg-white rounded-xl shadow-sm hover:shadow-md border border-gray-100 overflow-hidden transition-all duration-300 hover:-translate-y-1 flex flex-col"
                                     >
-                                        <div className="relative aspect-4/3 bg-gray-100">
+                                        <div className="relative aspect-4/5 bg-gray-100">
                                             <Image
                                                 src={cat.sample_image}
                                                 alt={`${cat.keyword || cat.name} cake designs`}
