@@ -29,17 +29,44 @@ load_dotenv(dotenv_path="../.env.local")
 SUPABASE_URL = os.getenv("VITE_SUPABASE_URL") or os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_ANON_KEY")
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    print("⚠️ WARNING: Supabase credentials not found in environment variables. Database features will be unavailable.")
+_supabase_client: Optional[Client] = None
+_supabase_last_error: Optional[str] = None
 
-# Initialize Supabase Client
-supabase: Optional[Client] = None
-if SUPABASE_URL and SUPABASE_KEY:
+
+def get_supabase() -> Optional[Client]:
+    """Return a connected Supabase client. Lazy-inits and retries on each call."""
+    global _supabase_client, _supabase_last_error
+
+    if _supabase_client is not None:
+        return _supabase_client
+
+    url = SUPABASE_URL
+    key = SUPABASE_KEY
+    if not url or not key:
+        _supabase_last_error = "Missing SUPABASE_URL or SUPABASE_KEY"
+        print(f"❌ {_supabase_last_error}")
+        return None
+
     try:
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        _supabase_client = create_client(url, key)
+        _supabase_last_error = None
         print("✅ Connected to Supabase successfully.")
+        return _supabase_client
     except Exception as e:
+        _supabase_last_error = str(e)
         print(f"❌ Failed to initialize Supabase client: {e}")
+        return None
+
+
+def get_supabase_or_raise() -> Client:
+    """Return a Supabase client or raise 503 if unavailable."""
+    client = get_supabase()
+    if client is None:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database unavailable — {_supabase_last_error or 'check server logs'}"
+        )
+    return client
 
 app = FastAPI(title="Genie Cropped-Image Similarity Detection System", version="1.0.0")
 
@@ -81,13 +108,14 @@ class ConfigUpdateRequest(BaseModel):
 _indexed_count_cache: dict = {"value": 0, "last_fetched": 0.0}
 
 def _get_indexed_count() -> int:
+    client = get_supabase()
+    if client is None:
+        return 0
     now = time.time()
     if now - _indexed_count_cache["last_fetched"] < 60:
         return _indexed_count_cache["value"]
     try:
-        res = supabase.table("cakegenie_image_features").select("id").limit(1).execute()
-        # Use a raw SQL count via RPC if available, otherwise use a HEAD request trick
-        count_res = supabase.table("cakegenie_image_features").select("id", count="exact").limit(0).execute()
+        count_res = client.table("cakegenie_image_features").select("id", count="exact").limit(0).execute()
         count = count_res.count or 0
         _indexed_count_cache["value"] = count
         _indexed_count_cache["last_fetched"] = now
@@ -100,7 +128,8 @@ def get_status():
     db_status = "Disconnected"
     indexed_count = 0
 
-    if supabase:
+    client = get_supabase()
+    if client:
         try:
             indexed_count = _get_indexed_count()
             db_status = "Connected"
@@ -145,8 +174,7 @@ async def match_image(
     5. Run ORB + RANSAC verification on candidates.
     6. Return match result, confidence, stats, and visualization base64.
     """
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Database connection is offline.")
+    supabase = get_supabase_or_raise()
         
     start_time = time.time()
     
@@ -396,8 +424,7 @@ async def index_image(
     Computes and saves features (Global pHash, Tile-based pHashes, ORB descriptors)
     for a newly uploaded image, linking it to its `cakegenie_analysis_cache` id.
     """
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Database connection is offline.")
+    supabase = get_supabase_or_raise()
         
     try:
         content = await file.read()
