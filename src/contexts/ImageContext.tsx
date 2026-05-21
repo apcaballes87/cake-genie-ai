@@ -7,7 +7,7 @@ import { toast as toastHot } from 'react-hot-toast'
 import { fileToBase64, validateCakeImage, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow } from '@/services/geminiService'
 import { createClient } from '@/lib/supabase/client'
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization'
-import { showSuccess, showError, showLoading } from '@/lib/utils/toast'
+import { showSuccess, showError, showLoading, showStatus } from '@/lib/utils/toast'
 import { HybridAnalysisResult, CacheSEOMetadata } from '@/types'
 import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService'
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils'
@@ -390,6 +390,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             // Run image validation and both cache lookups simultaneously.
             // Validation result gates the cache hit — a rejected image must NEVER
             // return a cached result, even if pHash collides with a valid cached entry.
+            const checkToastId = showStatus('Checking your image…', { duration: 30000 });
             const orbCacheHitPromise = findOrbCacheHit(file);
             const validationPromise = validateCakeImage(
                 compressedImageData.data,
@@ -407,6 +408,8 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 validationPromise,
                 orbCacheHitPromise.catch((orbError) => {
                     console.warn('FastAPI backend offline, falling back to pHash matching:', orbError);
+                    toastHot.dismiss(checkToastId);
+                    showStatus('Verifying your image…', { duration: 8000 });
                     return null;
                 }),
                 shouldUseSimilarCacheLookup
@@ -436,6 +439,8 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             let cacheHit = cacheHitRaw;
 
             if (orbCacheHit) {
+                toastHot.dismiss(checkToastId);
+                showStatus('We found your cake photo! 🎉');
                 cacheHit = {
                     pHash: orbCacheHit.pHash ?? cacheHitRaw?.pHash ?? '',
                     analysisResult: orbCacheHit.analysisResult,
@@ -460,8 +465,12 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     `\nLatency: ${orbCacheHit.executionTimeMs?.toFixed(0) ?? 'n/a'}ms`,
                 );
             } else if (cacheHitRaw) {
+                toastHot.dismiss(checkToastId);
+                showStatus('We found your cake photo! 🎉');
                 console.log(`✅ pHash Cache HIT! Found matching analysis for hash: ${pHash}`);
             } else {
+                toastHot.dismiss(checkToastId);
+                showStatus('Analyzing your design with AI…', { duration: 15000 });
                 console.log('%c⚫ CACHE MISS (ORB+RANSAC)', 'color: #94a3b8; font-weight: bold;', '— falling back to pHash lookup');
                 if (shouldUseSimilarCacheLookup) {
                     console.log('⚫️ Cache MISS. No matching pHash found in database.');

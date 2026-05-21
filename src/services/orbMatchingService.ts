@@ -71,12 +71,22 @@ export async function findOrbCacheHit(
   });
 
   if (!response.ok) {
+    console.error(`❌ ORB backend returned ${response.status}`, {
+      endpoint,
+      status: response.status,
+      statusText: response.statusText,
+    });
     throw new Error(`ORB backend returned ${response.status}`);
   }
 
   const matchData = await response.json() as OrbMatchApiResponse;
 
   if (!matchData.match || !matchData.analysis_json) {
+    console.log(
+      '%c🔍 ORB backend: no match found',
+      'color: #94a3b8;',
+      matchData.execution_time_ms != null ? `(${matchData.execution_time_ms}ms)` : '',
+    );
     return null;
   }
 

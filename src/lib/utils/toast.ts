@@ -61,3 +61,23 @@ export const showInfo = (message: string, options?: ToastOptions) => {
     ...options,
   });
 };
+
+/**
+ * Displays a small status toast with a subtle purple style — used for non-critical
+ * progress updates (cache checks, image lookups, etc.).
+ */
+export const showStatus = (message: string, options?: ToastOptions): string => {
+  return toast(message, {
+    duration: 3000,
+    position: 'bottom-center',
+    style: {
+      background: '#7c3aed',
+      color: '#ffffff',
+      fontSize: '13px',
+      padding: '8px 16px',
+      borderRadius: '8px',
+      maxWidth: '280px',
+    },
+    ...options,
+  });
+};
