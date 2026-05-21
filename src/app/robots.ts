@@ -10,6 +10,7 @@ export default function robots(): MetadataRoute.Robots {
                     '/account/',
                     '/admin/',
                     '/api/',
+                    '/_next/',
                     '/cart/',
                     '/saved/',
                     '/payment/',
@@ -25,7 +26,13 @@ export default function robots(): MetadataRoute.Robots {
             {
                 userAgent: ['GPTBot', 'ChatGPT-User', 'ClaudeBot', 'Google-Extended', 'PerplexityBot', 'OAI-SearchBot', 'Bytespider'],
                 allow: '/',
-                disallow: ['/admin/', '/api/', '/account/'],
+                disallow: ['/admin/', '/api/', '/account/', '/_next/'],
+            },
+            // Meta's sharing/debugger crawlers use several identifiers in the wild.
+            {
+                userAgent: ['facebookexternalhit', 'Facebot', 'FacebookBot', 'meta-externalagent'],
+                allow: '/',
+                disallow: ['/admin/', '/api/', '/account/', '/_next/'],
             },
         ],
         sitemap: 'https://genie.ph/sitemap.xml',

@@ -221,10 +221,9 @@ function HeroProductImage({
 
 const HeroMasonryGrid: React.FC<{ 
     products: readonly LandingHeroProduct[],
-    prioritizePrimaryImage?: boolean,
     onSelectProduct?: (index: number) => void,
     onInteraction?: (index: number) => void
-}> = ({ products, prioritizePrimaryImage = false, onSelectProduct, onInteraction }) => {
+}> = ({ products, onSelectProduct, onInteraction }) => {
     const handleInteraction = (index: number) => {
         onSelectProduct?.(index);
         onInteraction?.(index);
@@ -241,7 +240,7 @@ const HeroMasonryGrid: React.FC<{
                     <HeroProductImage
                         src={products[0]?.image || ''}
                         alt={products[0]?.title || 'Custom cake design'}
-                        priority={prioritizePrimaryImage}
+                        priority={true}
                         sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
@@ -324,7 +323,6 @@ const HeroMasonryGrid: React.FC<{
 function HeroProductPeekCarousel({
     products,
     heroProductIndex,
-    prioritizePrimaryImage = false,
     onSelectProduct,
     onInteraction,
     cardSpacingClassName = 'mx-1',
@@ -333,7 +331,6 @@ function HeroProductPeekCarousel({
 }: {
     products: readonly LandingHeroProduct[];
     heroProductIndex: number;
-    prioritizePrimaryImage?: boolean;
     onSelectProduct: (index: number) => void;
     onInteraction?: (index: number) => void;
     cardSpacingClassName?: string;
@@ -414,7 +411,7 @@ function HeroProductPeekCarousel({
                                 <HeroProductImage
                                     src={product.image}
                                     alt={`${product.title} example`}
-                                    priority={prioritizePrimaryImage && productIndex <= 2}
+                                    priority={productIndex === 0}
                                     sizes="(max-width: 767px) 50vw, (max-width: 1279px) 40vw, 380px"
                                     imageClassName={`object-cover transition-transform duration-700 ${isCenter ? 'scale-[1.1]' : 'scale-100'}`}
                                     aria-hidden={!isCenter}
@@ -488,7 +485,6 @@ function HeroFeatureHighlights({ compact = false, className = '' }: { compact?: 
 function HeroProductPreviewStack({
     products,
     heroProductIndex,
-    prioritizePrimaryImage = false,
     heroUploadState,
     heroUploadedImageSrc,
     heroProgressAnimate,
@@ -504,7 +500,6 @@ function HeroProductPreviewStack({
 }: {
     products: readonly LandingHeroProduct[];
     heroProductIndex: number;
-    prioritizePrimaryImage?: boolean;
     heroUploadState: HeroUploadState;
     heroUploadedImageSrc: string | null;
     heroProgressAnimate: boolean;
@@ -535,13 +530,11 @@ function HeroProductPreviewStack({
                         <Link href="/collections" className="text-purple-600 font-bold hover:underline hover:text-purple-700 transition-colors">Browse from 10,000+ cake designs</Link>
                     </div>
                 </div>
-
                 <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px] min-[505px]:mask-[linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] min-[505px]:[-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
                     <div className="overflow-hidden bg-transparent">
                         <HeroProductPeekCarousel 
                             products={products}
                             heroProductIndex={heroProductIndex} 
-                            prioritizePrimaryImage={prioritizePrimaryImage}
                             onSelectProduct={onSelectProduct} 
                             onInteraction={onInteraction}
                         />
@@ -1213,7 +1206,6 @@ const LandingClient: React.FC<LandingClientProps> = ({
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isOccasionOpen, setIsOccasionOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
-    const [isDesktopHeroViewport, setIsDesktopHeroViewport] = useState<boolean | null>(null);
     const heroMobilePreviewRef = useRef<HTMLElement>(null);
     const uploadToastId = useRef<string | null>(null);
     const isMounted = React.useSyncExternalStore(subscribeToHydration, () => true, () => false);
@@ -1236,22 +1228,6 @@ const LandingClient: React.FC<LandingClientProps> = ({
     // ───────────────────────────────────────────────────────────────────────
     const heroProducts = heroContent.products;
     const heroProductCount = heroProducts.length;
-
-    useEffect(() => {
-        const mediaQuery = window.matchMedia('(min-width: 768px)');
-
-        const updateViewport = () => {
-            setIsDesktopHeroViewport(mediaQuery.matches);
-        };
-
-        updateViewport();
-
-        mediaQuery.addEventListener('change', updateViewport);
-
-        return () => {
-            mediaQuery.removeEventListener('change', updateViewport);
-        };
-    }, []);
 
     useEffect(() => {
         if (heroProductIndex >= heroProductCount) {
@@ -1645,7 +1621,6 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                             <div className="w-full max-w-[680px] xl:max-w-[720px]">
                                                 <HeroMasonryGrid
                                                     products={heroProducts}
-                                                    prioritizePrimaryImage={isDesktopHeroViewport === true}
                                                     onSelectProduct={setHeroProductIndex}
                                                     onInteraction={handleHeroInteraction}
                                                 />
@@ -1855,7 +1830,6 @@ const LandingClient: React.FC<LandingClientProps> = ({
                         <HeroProductPreviewStack
                             products={heroProducts}
                             heroProductIndex={heroProductIndex}
-                            prioritizePrimaryImage={isDesktopHeroViewport !== true}
                             heroUploadState={heroUploadState}
                             heroUploadedImageSrc={heroUploadedImageSrc}
                             heroProgressAnimate={heroProgressAnimate}

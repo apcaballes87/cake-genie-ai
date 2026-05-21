@@ -49,14 +49,39 @@ Disallow: /signup
 # Bytespider - Apple/TikTok crawler
 User-agent: Bytespider
 Allow: /
+Disallow: /admin/
+Disallow: /api/
 Disallow: /account/
-Disallow: /cart
-Disallow: /login
-Disallow: /signup
+Disallow: /_next/
 
-# Facebook crawler
+# Meta sharing crawlers
+User-agent: facebookexternalhit
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /account/
+Disallow: /_next/
+
+User-agent: Facebot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /account/
+Disallow: /_next/
+
 User-agent: FacebookBot
 Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /account/
+Disallow: /_next/
+
+User-agent: meta-externalagent
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /account/
+Disallow: /_next/
 
 # Pinterest crawler
 User-agent: Pinterestbot
