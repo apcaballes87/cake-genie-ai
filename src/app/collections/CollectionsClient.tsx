@@ -1,16 +1,18 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Search, User } from 'lucide-react';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import { useCart } from '@/contexts/CartContext';
 import { useImageManagement } from '@/contexts/ImageContext';
 import { useCakeCustomization } from '@/contexts/CustomizationContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { COMMON_ASSETS } from '@/constants';
 
 interface Category {
     slug: string;
@@ -29,6 +31,7 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
     categories
 }) => {
     const router = useRouter();
+    const { isAuthenticated, user } = useAuth();
     const { itemCount } = useCart();
     const {
         handleImageUpload: hookImageUpload,
@@ -44,13 +47,14 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
         clearCustomization
     } = useCakeCustomization();
 
-    const [searchInput, setSearchInput] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const [isFetchingWebImage, setIsFetchingWebImage] = useState(false);
-    const [mounted, setMounted] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
 
-    React.useEffect(() => {
-        setMounted(true);
+    useEffect(() => { setIsMounted(true); }, []);
+
+    useEffect(() => {
         const updateScrollState = () => {
             setIsScrolled(window.scrollY > 12);
         };
@@ -94,39 +98,90 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
 
     return (
         <div className="min-h-screen pb-24 md:pb-0">
-            {/* Standard Sticky Header */}
-            <div className={`fixed top-0 left-0 right-0 z-80 border-b transition-all duration-200 ${isScrolled ? 'border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg' : 'border-transparent bg-white'}`}>
+            {/* ========== HEADER ========== */}
+            <nav className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${isScrolled ? 'border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg' : 'border-transparent bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="w-full flex items-center gap-2 md:gap-4 py-[11px] md:py-[14px]">
                         <Link href="/" className="p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label="Go back">
-                            <ArrowLeft />
+                            <ArrowLeft size={24} />
                         </Link>
-                        <div className="relative grow">
-                            <SearchAutocomplete
-                                value={searchInput}
-                                onChange={setSearchInput}
-                                onSearch={handleSearch}
-                                onUploadClick={() => router.push('/customizing')}
-                                showUploadButton={true}
-                                placeholder="Search cake designs..."
-                                inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
-                            />
+
+                        <div className="relative grow flex items-center gap-2 md:gap-4">
+                            {/* Logo - visible when not scrolled on mobile, always visible on desktop */}
+                            <Link
+                                href="/"
+                                className={`shrink-0 transition-all duration-300 ${isScrolled ? 'opacity-0 pointer-events-none absolute -translate-x-4 md:opacity-0 md:pointer-events-none' : 'opacity-100 translate-x-0'}`}
+                            >
+                                <img
+                                    src={COMMON_ASSETS.logo}
+                                    alt="Genie Logo"
+                                    width={135}
+                                    height={43}
+                                    className="h-[32px] md:h-[41px] w-auto object-contain"
+                                />
+                            </Link>
+
+                            {/* Search Bar - visible when scrolled on mobile, always visible on desktop */}
+                            <div className={`flex-1 transition-all duration-300 ${isScrolled ? 'opacity-100 translate-x-0' : 'hidden md:block md:opacity-100 md:translate-x-0 opacity-0 translate-x-4 pointer-events-none'}`}>
+                                <SearchAutocomplete
+                                    onSearch={handleSearch}
+                                    onUploadClick={() => router.push('/customizing')}
+                                    placeholder="Search for other designs..."
+                                    value={searchQuery}
+                                    onChange={setSearchQuery}
+                                    showUploadButton={false}
+                                    inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                                />
+                            </div>
                         </div>
-                        <button
-                            onClick={() => router.push('/cart')}
-                            className="relative p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
-                            aria-label={`View cart with ${mounted ? itemCount : 0} items`}
-                        >
-                            <ShoppingBag size={24} />
-                            {mounted && itemCount > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
-                                    {itemCount}
-                                </span>
+
+                        {/* Right Side: Actions & Cart */}
+                        <div className="flex items-center gap-1 md:gap-2 shrink-0">
+                            {/* Mobile Search Icon - visible only when NOT scrolled */}
+                            {!isScrolled && (
+                                <button
+                                    onClick={() => {
+                                        window.scrollTo({ top: 50, behavior: 'smooth' });
+                                    }}
+                                    className="md:hidden p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors"
+                                    aria-label="Search"
+                                >
+                                    <Search size={24} />
+                                </button>
                             )}
-                        </button>
+
+                            {/* Account Button - visible on desktop when not scrolled */}
+                            <button
+                                onClick={() => {
+                                    if (isAuthenticated && !user?.is_anonymous) {
+                                        router.push('/account');
+                                    } else {
+                                        router.push('/login');
+                                    }
+                                }}
+                                className={`hidden md:flex p-1.5 genie-icon-button rounded-full transition-all duration-300 ${isScrolled ? 'opacity-0 pointer-events-none absolute translate-x-4' : 'opacity-100 translate-x-0'}`}
+                                aria-label="Account"
+                            >
+                                <User size={22} />
+                            </button>
+
+                            {/* Cart Button */}
+                            <button
+                                onClick={() => router.push('/cart')}
+                                className="relative p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
+                                aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
+                            >
+                                <ShoppingBag size={24} />
+                                {isMounted && itemCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
+                                        {itemCount}
+                                    </span>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </nav>
 
             {/* Header Spacer */}
             <div className="h-[66px] md:h-[74px]"></div>
