@@ -167,7 +167,7 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                     {categories.length > 0 && (
                         <section className="mb-10">
                             <h2 className="text-lg font-bold text-slate-800 mb-4">Popular Categories</h2>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                                 {categories.map((cat) => (
                                     <Link
                                         key={cat.slug}
@@ -179,16 +179,16 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                                                 src={cat.sample_image}
                                                 alt={`${cat.keyword || cat.name} cake designs`}
                                                 fill
-                                                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                                                sizes="(max-width: 768px) 33vw, 16vw"
                                                 className="object-cover group-hover:scale-105 transition-transform duration-500"
                                             />
                                             <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent" />
-                                            <div className="absolute bottom-0 left-0 right-0 p-3">
-                                                <p className="text-white text-sm font-bold leading-tight capitalize drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
+                                            <div className="absolute bottom-0 left-0 right-0 p-2">
+                                                <p className="text-white text-[11px] font-bold leading-tight capitalize drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
                                                     {cat.keyword || cat.name}
                                                 </p>
                                                 {cat.count > 0 && (
-                                                    <p className="text-white/90 text-xs font-medium drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] mt-0.5">
+                                                    <p className="text-white/90 text-[9px] font-medium drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] mt-0.5">
                                                         {cat.count} designs
                                                     </p>
                                                 )}
