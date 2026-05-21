@@ -407,14 +407,14 @@ function HeroProductPeekCarousel({
                                 type="button"
                                 onClick={() => handleProductClick(productIndex)}
                                 aria-label={isCenter ? `${product.title} example` : `View ${product.title}`}
-                                className={`relative ${cardSpacingClassName} h-full min-w-0 overflow-hidden rounded-[1.35rem] bg-transparent transition-shadow duration-500 ease-out ${isCenter ? 'shadow-[0_18px_45px_-28px_rgba(15,23,42,0.75)]' : ''
+                                className={`relative ${cardSpacingClassName} h-full min-w-0 overflow-hidden rounded-[1.35rem] bg-slate-100 transition-shadow duration-500 ease-out ${isCenter ? 'shadow-[0_18px_45px_-28px_rgba(15,23,42,0.75)]' : ''
                                     }`}
                                 style={{ flex: cardFlexStyle }}
                             >
                                 <HeroProductImage
                                     src={product.image}
                                     alt={`${product.title} example`}
-                                    priority={prioritizePrimaryImage && productIndex === 0}
+                                    priority={prioritizePrimaryImage && productIndex <= 2}
                                     sizes="(max-width: 767px) 50vw, (max-width: 1279px) 40vw, 380px"
                                     imageClassName={`object-cover transition-transform duration-700 ${isCenter ? 'scale-[1.1]' : 'scale-100'}`}
                                     aria-hidden={!isCenter}
@@ -1855,7 +1855,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                         <HeroProductPreviewStack
                             products={heroProducts}
                             heroProductIndex={heroProductIndex}
-                            prioritizePrimaryImage={isDesktopHeroViewport === false}
+                            prioritizePrimaryImage={isDesktopHeroViewport !== true}
                             heroUploadState={heroUploadState}
                             heroUploadedImageSrc={heroUploadedImageSrc}
                             heroProgressAnimate={heroProgressAnimate}
