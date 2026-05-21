@@ -37,6 +37,20 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
 
 const GOOGLE_PRODUCT_CATEGORY =
   'Food, Beverages & Tobacco > Food Items > Bakery > Cakes & Dessert Bars > Cakes';
+const CAKE_TYPE_THICKNESS_MAP = {
+  '1 Tier': '4 in',
+  '2 Tier': '4 in',
+  '3 Tier': '4 in',
+  'Square': '3 in',
+  'Rectangle': '3 in',
+  '1 Tier Fondant': '5 in',
+  '2 Tier Fondant': '5 in',
+  '3 Tier Fondant': '5 in',
+  'Square Fondant': '5 in',
+  'Rectangle Fondant': '5 in',
+  Bento: '2 in',
+};
+const FALLBACK_MIN_PRICE = 1099;
 
 const header = [
   'id',
@@ -92,8 +106,9 @@ async function main() {
 
   const merchantIds = [...new Set((products || []).map((product) => product.merchant_id).filter(Boolean))];
   const pHashes = [...new Set((products || []).map((product) => product.p_hash).filter(Boolean))];
+  const cakeTypes = [...new Set((products || []).map((product) => product.cake_type).filter(Boolean))];
 
-  const [{ data: merchants, error: merchantsError }, { data: cacheRows, error: cacheError }] = await Promise.all([
+  const [{ data: merchants, error: merchantsError }, { data: cacheRows, error: cacheError }, { data: basePriceRows, error: basePriceError }] = await Promise.all([
     supabase
       .from('cakegenie_merchants')
       .select('merchant_id, business_name, slug, city')
@@ -104,13 +119,22 @@ async function main() {
           .select('p_hash, slug, original_image_url, studio_edited_image_url, seo_description, alt_text')
           .in('p_hash', pHashes)
       : Promise.resolve({ data: [], error: null }),
+    cakeTypes.length > 0
+      ? supabase
+          .from('productsizes_cakegenie')
+          .select('type, thickness, price')
+          .in('type', cakeTypes)
+          .order('price', { ascending: true })
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   if (merchantsError) throw merchantsError;
   if (cacheError) throw cacheError;
+  if (basePriceError) throw basePriceError;
 
   const merchantMap = new Map((merchants || []).map((merchant) => [merchant.merchant_id, merchant]));
   const cacheMap = new Map((cacheRows || []).map((row) => [row.p_hash, row]));
+  const basePriceMap = buildBasePriceMap(basePriceRows || []);
 
   const rows = (products || [])
     .map((product) => {
@@ -139,6 +163,8 @@ async function main() {
         cakeType: product.cake_type,
         uploadAssisted: Boolean(product.p_hash),
       });
+      const activePrice = resolveMerchantProductPrice(product, basePriceMap);
+      if (!activePrice || activePrice <= 0) return null;
 
       return {
         id: product.product_id,
@@ -148,7 +174,7 @@ async function main() {
         image_link: primaryImage,
         additional_image_link: additionalImage || '',
         availability: mapFeedAvailability(product.availability),
-        price: `${toPrice(product.custom_price)} PHP`,
+        price: `${toPrice(activePrice)} PHP`,
         brand: firstNonEmpty(product.brand, merchant.business_name, 'Genie.ph'),
         condition: 'new',
         google_product_category: GOOGLE_PRODUCT_CATEGORY,
@@ -194,6 +220,35 @@ function mapFeedAvailability(availability) {
     default:
       return 'preorder';
   }
+}
+
+function buildBasePriceMap(rows) {
+  const priceMap = {};
+
+  for (const row of rows) {
+    const expectedThickness = CAKE_TYPE_THICKNESS_MAP[row.type];
+    if (!expectedThickness) continue;
+    if (row.thickness !== expectedThickness) continue;
+    if (priceMap[row.type] != null) continue;
+
+    priceMap[row.type] = Number(row.price);
+  }
+
+  return priceMap;
+}
+
+function resolveMerchantProductPrice(product, basePriceMap) {
+  const directPrice = Number(product.custom_price || 0);
+  if (Number.isFinite(directPrice) && directPrice > 0) {
+    return directPrice;
+  }
+
+  const basePrice = Number(basePriceMap[product.cake_type] || 0);
+  if (Number.isFinite(basePrice) && basePrice > 0) {
+    return basePrice;
+  }
+
+  return FALLBACK_MIN_PRICE;
 }
 
 function toPrice(value) {

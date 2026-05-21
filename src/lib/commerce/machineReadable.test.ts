@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  alignPriceOptionsToStartingPrice,
   buildCommerceOrderSnapshot,
   buildCustomCakeAdditionalProperties,
   buildMerchantCenterCustomLabels,
   buildPriceSummary,
   deriveConstraintSnapshot,
   deriveDeliveryZone,
+  getMerchantListingActivePrice,
   getCommercePolicyUrls,
   mapDesignAvailabilityToSchema,
 } from './machineReadable';
@@ -25,6 +27,35 @@ describe('machine-readable commerce helpers', () => {
     expect(summary.highPrice).toBe(1499);
     expect(summary.offerCount).toBe(2);
     expect(summary.singlePrice).toBeNull();
+  });
+
+  it('picks the lowest visible price as the merchant listing active price', () => {
+    const activePrice = getMerchantListingActivePrice(
+      [
+        { size: '6" Round', price: 1299 },
+        { size: '8" Round', price: 1599 },
+      ],
+      1099,
+    );
+
+    expect(activePrice).toBe(1299);
+  });
+
+  it('aligns a generic size ladder to a merchant-specific starting price', () => {
+    const alignedPrices = alignPriceOptionsToStartingPrice(
+      [
+        { size: '6" Round', price: 1299 },
+        { size: '8" Round', price: 1599 },
+        { size: '10" Round', price: 1899 },
+      ],
+      1599,
+    );
+
+    expect(alignedPrices).toEqual([
+      { size: '6" Round', price: 1599 },
+      { size: '8" Round', price: 1899 },
+      { size: '10" Round', price: 2199 },
+    ]);
   });
 
   it('maps rush availability to an in-stock schema offer', () => {

@@ -103,6 +103,48 @@ export function buildPriceSummary(
   };
 }
 
+export function getMerchantListingActivePrice(
+  prices: BasePriceInfo[] | undefined,
+  fallbackPrice: number | null | undefined,
+): number | null {
+  const summary = buildPriceSummary(prices, fallbackPrice);
+
+  if (summary.lowPrice !== null && summary.lowPrice > 0) {
+    return summary.lowPrice;
+  }
+
+  if (summary.singlePrice !== null && summary.singlePrice > 0) {
+    return summary.singlePrice;
+  }
+
+  return null;
+}
+
+export function alignPriceOptionsToStartingPrice(
+  prices: BasePriceInfo[] | undefined,
+  startingPrice: number | null | undefined,
+): BasePriceInfo[] {
+  if (!prices || prices.length === 0) {
+    return [];
+  }
+
+  if (!startingPrice || !Number.isFinite(startingPrice) || startingPrice <= 0) {
+    return prices;
+  }
+
+  const currentMinPrice = Math.min(...prices.map((price) => price.price));
+  const delta = Math.round(startingPrice - currentMinPrice);
+
+  if (delta === 0) {
+    return prices;
+  }
+
+  return prices.map((price) => ({
+    ...price,
+    price: Math.max(1, Math.round(price.price + delta)),
+  }));
+}
+
 export function buildOfferShippingDetails(
   _merchant?: CakeGenieMerchant | null,
 ): {

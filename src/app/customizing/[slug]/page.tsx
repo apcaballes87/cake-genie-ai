@@ -19,9 +19,9 @@ import {
     buildCustomCakeAdditionalProperties,
     buildMerchantReturnPolicy,
     buildOfferShippingDetails,
-    buildPriceSummary,
     getCommercePolicyUrls,
     getLeadTimeLabel,
+    getMerchantListingActivePrice,
     mapDesignAvailabilityToSchema,
 } from '@/lib/commerce/machineReadable'
 
@@ -455,68 +455,36 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
     // Use end of current year for stable schema (avoids changing on every render)
     const priceValidUntil = `${new Date().getFullYear()}-12-31`;
     const productMpn = design.p_hash || design.slug;
-    const priceSummary = buildPriceSummary(prices, (design.price && design.price > 0) ? design.price : FALLBACK_MIN_PRICE);
     const availability = mapDesignAvailabilityToSchema(design.availability);
-
-    let baseOffersWrapper;
-
-    if (prices && prices.length > 0 && priceSummary.lowPrice !== null && priceSummary.highPrice !== null) {
-        const lowPrice = priceSummary.lowPrice;
-        const highPrice = priceSummary.highPrice;
-
-        baseOffersWrapper = {
-            '@type': 'AggregateOffer',
-            lowPrice: lowPrice,
-            highPrice: highPrice,
-            priceCurrency: 'PHP',
-            offerCount: prices.length,
-            availability: availability,
-            itemCondition: 'https://schema.org/NewCondition',
-            url: pageUrl,
-            offers: prices.map(p => ({
-                '@type': 'Offer',
-                name: p.size,
-                sku: `${productMpn}-${p.size.replace(/[^a-z0-9]/gi, '-').toLowerCase()}`,
-                mpn: productMpn,
-                price: Math.round(p.price).toString(),
-                priceCurrency: 'PHP',
-                availability: availability,
-                itemCondition: 'https://schema.org/NewCondition',
-                priceValidUntil: priceValidUntil,
-                url: pageUrl,
-                seller: {
-                    '@type': 'Organization',
-                    name: 'Genie.ph',
-                    url: 'https://genie.ph',
-                },
-                shippingDetails: shippingDetails,
-                hasMerchantReturnPolicy: returnPolicy
-            }))
-        };
-    } else {
-        baseOffersWrapper = {
-            '@type': 'Offer',
-            price: (design.price && design.price > 0) ? Math.round(design.price).toString() : FALLBACK_MIN_PRICE.toString(),
-            priceCurrency: 'PHP',
-            availability: availability,
-            itemCondition: 'https://schema.org/NewCondition',
-            priceValidUntil: priceValidUntil,
-            sku: productMpn,
-            mpn: productMpn,
-            seller: {
-                '@type': 'Organization',
-                name: 'Genie.ph',
-                url: 'https://genie.ph',
-            },
-            url: pageUrl,
-            shippingDetails: shippingDetails,
-            hasMerchantReturnPolicy: returnPolicy
-        };
-    }
-
+    const activePrice = getMerchantListingActivePrice(
+        prices,
+        (design.price && design.price > 0) ? design.price : FALLBACK_MIN_PRICE,
+    );
 
     const offers = {
-        ...baseOffersWrapper
+        '@type': 'Offer',
+        ...(activePrice !== null ? { price: Math.round(activePrice).toString() } : {}),
+        ...(activePrice !== null ? {
+            priceSpecification: {
+                '@type': 'UnitPriceSpecification',
+                price: Math.round(activePrice),
+                priceCurrency: 'PHP',
+            }
+        } : {}),
+        priceCurrency: 'PHP',
+        availability: availability,
+        itemCondition: 'https://schema.org/NewCondition',
+        priceValidUntil: priceValidUntil,
+        sku: productMpn,
+        mpn: productMpn,
+        seller: {
+            '@type': 'Organization',
+            name: 'Genie.ph',
+            url: 'https://genie.ph',
+        },
+        url: pageUrl,
+        shippingDetails: shippingDetails,
+        hasMerchantReturnPolicy: returnPolicy
     };
 
     // Build a second ImageObject when a customized variant exists

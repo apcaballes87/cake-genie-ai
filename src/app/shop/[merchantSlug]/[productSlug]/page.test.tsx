@@ -3,7 +3,14 @@ import { render, screen } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ProductPage from './page';
-import { getAnalysisByExactHash, getCakeBasePriceOptions, getMerchantBySlug, getMerchantProductBySlug } from '@/services/supabaseService';
+import {
+  getAnalysisByExactHash,
+  getCakeBasePriceOptions,
+  getImageDimensionsByHash,
+  getMerchantBySlug,
+  getMerchantProductBySlug,
+  getProductReviewStats,
+} from '@/services/supabaseService';
 
 vi.mock('next/navigation', () => ({ notFound: vi.fn() }));
 vi.mock('@/app/customizing/CustomizingClient', () => ({ default: () => <div data-testid="customizing-client" /> }));
@@ -20,6 +27,8 @@ vi.mock('@/services/supabaseService', () => ({
   getMerchantProductBySlug: vi.fn(),
   getCakeBasePriceOptions: vi.fn(),
   getAnalysisByExactHash: vi.fn(),
+  getImageDimensionsByHash: vi.fn(),
+  getProductReviewStats: vi.fn(),
 }));
 
 describe('ProductPage', () => {
@@ -42,7 +51,9 @@ describe('ProductPage', () => {
       error: null,
     } as never);
     vi.mocked(getAnalysisByExactHash).mockResolvedValue({ cakeInfo: { type: '1 Tier', thickness: '3 in' } } as never);
+    vi.mocked(getImageDimensionsByHash).mockResolvedValue({ image_width: 1200, image_height: 1200 } as never);
     vi.mocked(getCakeBasePriceOptions).mockResolvedValue([{ price: 1299, size: '6 in' }] as never);
+    vi.mocked(getProductReviewStats).mockResolvedValue({ data: { total: 0, averageRating: 0 }, error: null } as never);
   });
 
   it('preloads the hero image before rendering the customizing client', async () => {
@@ -53,5 +64,31 @@ describe('ProductPage', () => {
     expect(screen.getByTestId('customizing-client')).toBeInTheDocument();
     expect(staticMarkup).toContain('rel="preload"');
     expect(staticMarkup).toContain('href="https://example.com/anniversary-bento-cake.webp"');
+  });
+
+  it('falls back to the lowest visible size price when custom_price is missing', async () => {
+    vi.mocked(getMerchantProductBySlug).mockResolvedValueOnce({
+      data: {
+        product_id: 'product-123',
+        title: 'Anniversary Bento Cake',
+        slug: 'anniversary-bento-cake',
+        image_url: 'https://example.com/anniversary-bento-cake.webp',
+        alt_text: 'Anniversary bento cake with ribbon details',
+        custom_price: null,
+        cake_type: '1 Tier',
+        p_hash: null,
+      },
+      error: null,
+    } as never);
+    vi.mocked(getCakeBasePriceOptions).mockResolvedValueOnce([
+      { price: 1299, size: '6 in' },
+      { price: 1599, size: '8 in' },
+    ] as never);
+
+    const page = await ProductPage({ params: Promise.resolve({ merchantSlug: 'sweet-delights', productSlug: 'anniversary-bento-cake' }) });
+    const staticMarkup = renderToStaticMarkup(page);
+
+    expect(staticMarkup).toContain('Starts at ₱1,299');
+    expect(staticMarkup).not.toContain('₱undefined');
   });
 });

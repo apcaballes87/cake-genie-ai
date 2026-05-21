@@ -84,6 +84,8 @@ describe('RecentSearchPage', () => {
     expect(hasDirectPreloadLink).toBe(true);
     // Visible SSR <img> tag for Googlebot + hidden SSR fallback both reference the image
     expect(staticMarkup).toContain('src="https://example.com/pink-bento-cake.webp"');
+    expect(staticMarkup).toContain('"@type":"Offer"');
+    expect(staticMarkup).not.toContain('AggregateOffer');
   });
 
   it('prefers the studio-edited image for the customizing hero when it is not blank', async () => {

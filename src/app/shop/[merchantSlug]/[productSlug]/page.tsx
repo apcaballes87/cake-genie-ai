@@ -9,7 +9,13 @@ import { BasePriceInfo, CakeType, ProductPageProps, CakeThickness } from '@/type
 import { ProductSchema } from '@/components/SEOSchemas';
 import { CustomizationProvider } from '@/contexts/CustomizationContext';
 import { mapAnalysisToState } from '@/utils/customizationMapper';
-import { getCommercePolicyUrls, getMerchantListingNote, getLeadTimeLabel } from '@/lib/commerce/machineReadable';
+import {
+    alignPriceOptionsToStartingPrice,
+    getCommercePolicyUrls,
+    getLeadTimeLabel,
+    getMerchantListingActivePrice,
+    getMerchantListingNote,
+} from '@/lib/commerce/machineReadable';
 
 // Generate dynamic metadata for SEO and social sharing
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
@@ -123,12 +129,16 @@ export default async function ProductPage({ params }: ProductPageProps) {
         console.error('Error fetching SSR prices:', e);
     }
 
+    prices = alignPriceOptionsToStartingPrice(prices, product.custom_price ?? null);
+    const startingPrice = getMerchantListingActivePrice(prices, product.custom_price ?? null);
+
     const { data: productReviewStats } = await getProductReviewStats(product.product_id);
+    const startingPriceDisplay = startingPrice !== null ? `₱${startingPrice.toLocaleString()}` : 'Contact us';
 
     const faqs = [
         {
             question: `How much is the ${product.title} from ${merchant.business_name}?`,
-            answer: `The ${product.title} starts at ₱${product.custom_price?.toLocaleString()}. Prices may vary based on your selected customization options.`
+            answer: `The ${product.title} starts at ${startingPriceDisplay}. Prices may vary based on your selected customization options.`
         },
         {
             question: `Can I customize the ${product.title}?`,
@@ -226,7 +236,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             </li>
                             <li className="flex items-center gap-2">
                                 <span className="text-slate-500">Base Price:</span>
-                                <span className="font-medium">Starts at ₱{product.custom_price?.toLocaleString()}</span>
+                                <span className="font-medium">Starts at {startingPriceDisplay}</span>
                             </li>
                             <li className="flex items-center gap-2">
                                 <span className="text-slate-500">Merchant:</span>

@@ -6,8 +6,8 @@ import {
     buildMerchantCenterDescription,
     buildMerchantReturnPolicy,
     buildOfferShippingDetails,
-    buildPriceSummary,
     getCommercePolicyUrls,
+    getMerchantListingActivePrice,
     getMerchantListingNote,
     getMerchantCenterGoogleProductCategory,
     mapDesignAvailabilityToSchema,
@@ -30,52 +30,34 @@ export function ProductSchema({ product, merchant, prices, ratingValue, reviewCo
     // Calculate generic availability
     const availability = mapDesignAvailabilityToSchema(product.availability);
 
-    let offers;
-
     // Calculate priceValidUntil as 1 year from now (clearer approach)
     const nextYear = new Date();
     nextYear.setFullYear(nextYear.getFullYear() + 1);
     const priceValidUntil = nextYear.toISOString().split('T')[0];
 
-    const priceSummary = buildPriceSummary(prices, product.custom_price || 0);
+    const activePrice = getMerchantListingActivePrice(prices, product.custom_price || null);
 
-    if (prices && prices.length > 0 && priceSummary.lowPrice !== null && priceSummary.highPrice !== null) {
-        const lowPrice = priceSummary.lowPrice;
-        const highPrice = priceSummary.highPrice;
-
-        offers = {
-            '@type': 'AggregateOffer',
-            lowPrice: lowPrice,
-            highPrice: highPrice,
-            priceCurrency: 'PHP',
-            offerCount: prices.length,
-            availability: availability,
-            itemCondition: 'https://schema.org/NewCondition',
-            priceValidUntil: priceValidUntil,
-            seller: {
-                '@type': 'Organization',
-                name: sanitize(merchant.business_name),
-                url: `https://genie.ph/shop/${merchant.slug}`,
-            },
-            url: pageUrl
-        };
-    } else {
-        // Fallback to single offer
-        offers = {
-            '@type': 'Offer',
-            price: product.custom_price || 0,
-            priceCurrency: 'PHP',
-            availability: availability,
-            itemCondition: 'https://schema.org/NewCondition',
-            priceValidUntil: priceValidUntil,
-            seller: {
-                '@type': 'Organization',
-                name: sanitize(merchant.business_name),
-                url: `https://genie.ph/shop/${merchant.slug}`,
-            },
-            url: pageUrl
-        };
-    }
+    const offers = {
+        '@type': 'Offer',
+        ...(activePrice !== null ? { price: activePrice } : {}),
+        ...(activePrice !== null ? {
+            priceSpecification: {
+                '@type': 'UnitPriceSpecification',
+                price: activePrice,
+                priceCurrency: 'PHP',
+            }
+        } : {}),
+        priceCurrency: 'PHP',
+        availability: availability,
+        itemCondition: 'https://schema.org/NewCondition',
+        priceValidUntil: priceValidUntil,
+        seller: {
+            '@type': 'Organization',
+            name: sanitize(merchant.business_name),
+            url: `https://genie.ph/shop/${merchant.slug}`,
+        },
+        url: pageUrl
+    };
 
     // Only include aggregateRating when real review data is provided.
     // Hardcoded/fake ratings risk a manual action from Google for misleading structured data.
