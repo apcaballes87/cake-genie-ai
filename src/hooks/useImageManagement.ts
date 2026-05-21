@@ -14,10 +14,10 @@ import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
 import {
     generateImageFingerprintWithLegacyCandidates,
     toFingerprintLookup,
+    type ClientImageFingerprint,
 } from '@/lib/utils/serverFingerprint.client';
 import {
     getOrbBackendUnavailableMessage,
-    getOrbBackendUrl,
 } from '@/services/orbBackendConfig';
 export { generatePerceptualHash } from '@/lib/utils/perceptualHash.client';
 
@@ -130,19 +130,22 @@ export const useImageManagement = () => {
             }
 
             // --- STEP 1: CHECK pHash CACHE (FASTEST FALLBACK) ---
-            const fingerprint = await generateImageFingerprintWithLegacyCandidates(file, imageSrc);
-            pHash = fingerprint.pHash || '';
+            let fingerprint: ClientImageFingerprint | null = null;
+            if (!cachedAnalysis) {
+                fingerprint = await generateImageFingerprintWithLegacyCandidates(file, imageSrc);
+                pHash = fingerprint.pHash || '';
 
-            if (!cachedAnalysis && orbBackendOfflineOrFailed) {
-                console.log(`🖼️ Server pHash result: ${pHash ?? 'FAILED (null) — new cache writes will be skipped'}`);
-                
-                cacheHit = pHash || fingerprint.legacyPHashCandidates.length > 0
-                    ? await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), uploadedImageUrl)
-                    : null;
+                if (orbBackendOfflineOrFailed) {
+                    console.log(`🖼️ Server pHash result: ${pHash ?? 'FAILED (null) — new cache writes will be skipped'}`);
 
-                if (cacheHit) {
-                    console.log('⚡ pHash Cache Hit! Skipping AI analysis.');
-                    cachedAnalysis = cacheHit.analysisResult;
+                    cacheHit = pHash || fingerprint.legacyPHashCandidates.length > 0
+                        ? await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), uploadedImageUrl)
+                        : null;
+
+                    if (cacheHit) {
+                        console.log('⚡ pHash Cache Hit! Skipping AI analysis.');
+                        cachedAnalysis = cacheHit.analysisResult;
+                    }
                 }
             }
 
@@ -183,29 +186,9 @@ export const useImageManagement = () => {
                             const blobToPass = cacheHit && cacheHit.seoMetadata.original_image_url ? undefined : bgBlob;
 
                             // Update cache with bbox data only when the authoritative server pHash is available.
-                            if (pHash) {
-                                cacheAnalysisResult(pHash, enrichedResult, undefined, blobToPass, {
+                            if (pHash && fingerprint) {
+                                void cacheAnalysisResult(pHash, enrichedResult, undefined, blobToPass, {
                                     fingerprintPipeline: fingerprint.pipeline,
-                                }).then(async (cacheResult) => {
-                                    if (cacheResult && cacheResult.id) {
-                                        try {
-                                            const indexUrl = getOrbBackendUrl('/api/index');
-                                            if (!indexUrl) {
-                                                throw new Error(getOrbBackendUnavailableMessage());
-                                            }
-
-                                            const formDataIdx = new FormData();
-                                            formDataIdx.append('cache_id', cacheResult.id);
-                                            formDataIdx.append('file', file);
-                                            await fetch(indexUrl, {
-                                                method: 'POST',
-                                                body: formDataIdx,
-                                            });
-                                            console.log('✅ Background enriched image features successfully indexed in crop-resistant backend.');
-                                        } catch (idxErr) {
-                                            console.warn('Failed to index background enriched image features:', idxErr);
-                                        }
-                                    }
                                 });
                             }
 
@@ -269,56 +252,16 @@ export const useImageManagement = () => {
                     }
 
                     // Cache the fully enriched result (only if pHash is valid)
-                    if (pHash) {
-                        cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache, {
+                    if (pHash && fingerprint) {
+                        void cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache, {
                             fingerprintPipeline: fingerprint.pipeline,
-                        }).then(async (cacheResult) => {
-                            if (cacheResult && cacheResult.id) {
-                                try {
-                                    const indexUrl = getOrbBackendUrl('/api/index');
-                                    if (!indexUrl) {
-                                        throw new Error(getOrbBackendUnavailableMessage());
-                                    }
-
-                                    const formDataIdx = new FormData();
-                                    formDataIdx.append('cache_id', cacheResult.id);
-                                    formDataIdx.append('file', file);
-                                    await fetch(indexUrl, {
-                                        method: 'POST',
-                                        body: formDataIdx,
-                                    });
-                                    console.log('✅ Newly analyzed image features successfully indexed in crop-resistant backend.');
-                                } catch (idxErr) {
-                                    console.warn('Failed to index new image features (backend might be offline):', idxErr);
-                                }
-                            }
                         });
                     }
                 }).catch(enrichmentError => {
                     // Still cache the fast result even if enrichment fails
-                    if (pHash) {
-                        cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
+                    if (pHash && fingerprint) {
+                        void cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
                             fingerprintPipeline: fingerprint.pipeline,
-                        }).then(async (cacheResult) => {
-                            if (cacheResult && cacheResult.id) {
-                                try {
-                                    const indexUrl = getOrbBackendUrl('/api/index');
-                                    if (!indexUrl) {
-                                        throw new Error(getOrbBackendUnavailableMessage());
-                                    }
-
-                                    const formDataIdx = new FormData();
-                                    formDataIdx.append('cache_id', cacheResult.id);
-                                    formDataIdx.append('file', file);
-                                    await fetch(indexUrl, {
-                                        method: 'POST',
-                                        body: formDataIdx,
-                                    });
-                                    console.log('✅ Newly analyzed image features successfully indexed in crop-resistant backend (fast-result).');
-                                } catch (idxErr) {
-                                    console.warn('Failed to index new image features (fast-result):', idxErr);
-                                }
-                            }
                         });
                     }
                 });

@@ -7,6 +7,9 @@ const singleAfterUpsertMock = vi.fn();
 const maybeSingleMock = vi.fn();
 const fromMock = vi.fn();
 const rpcMock = vi.fn();
+const fetchMock = vi.fn();
+const storageUploadMock = vi.fn();
+const storageGetPublicUrlMock = vi.fn();
 
 interface ProductSizesQuery {
   select: ReturnType<typeof vi.fn>;
@@ -36,7 +39,10 @@ const mockClient = {
   rpc: rpcMock,
   from: fromMock,
   storage: {
-    from: vi.fn(),
+    from: vi.fn(() => ({
+      upload: storageUploadMock,
+      getPublicUrl: storageGetPublicUrlMock,
+    })),
   },
 };
 
@@ -72,6 +78,16 @@ vi.mock('./indexNowService', () => ({
 
 describe('cacheAnalysisResult', () => {
   beforeEach(() => {
+    process.env.NEXT_PUBLIC_ORB_BACKEND_URL = 'https://orb.genie.ph';
+    vi.stubGlobal('fetch', fetchMock);
+    fetchMock.mockReset().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ success: true }),
+    });
+    storageUploadMock.mockReset().mockResolvedValue({ error: null });
+    storageGetPublicUrlMock.mockReset().mockReturnValue({
+      data: { publicUrl: 'https://example.com/uploaded.webp' },
+    });
     singleAfterUpsertMock.mockReset().mockResolvedValue({ data: { id: 'cache-row-id' }, error: null });
     selectAfterUpsertMock.mockReset().mockReturnValue(analysisCacheUpsertQuery);
     upsertMock.mockReset().mockReturnValue(analysisCacheUpsertQuery);
@@ -204,6 +220,53 @@ describe('cacheAnalysisResult', () => {
       }),
       expect.objectContaining({
         onConflict: 'p_hash',
+      })
+    );
+  });
+
+  it('triggers ORB indexing when a source image blob is available', async () => {
+    const { cacheAnalysisResult } = await import('./supabaseService');
+    const originalWindow = globalThis.window;
+
+    Object.defineProperty(globalThis, 'window', {
+      value: undefined,
+      configurable: true,
+    });
+
+    try {
+      await cacheAnalysisResult(
+        'abcddcba12344321',
+        {
+          cakeType: 'Bento',
+          cakeThickness: '4 in',
+          keyword: 'indexed-design',
+          icing_design: {
+            base: 'soft_icing',
+            colors: { top: 'pink', side: 'white' },
+          },
+          main_toppers: [],
+          support_elements: [],
+          cake_messages: [],
+        } as unknown as HybridAnalysisResult,
+        'https://example.com/indexed-design.webp',
+        new Blob(['orb-image-bytes'], { type: 'image/webp' }),
+        {
+          fingerprintPipeline: 'v1-test-pipeline',
+          triggerStudioEdit: false,
+        }
+      );
+    } finally {
+      Object.defineProperty(globalThis, 'window', {
+        value: originalWindow,
+        configurable: true,
+      });
+    }
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://orb.genie.ph/api/index',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.any(FormData),
       })
     );
   });

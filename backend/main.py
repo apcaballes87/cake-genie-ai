@@ -418,6 +418,7 @@ async def match_image(
 @app.post("/api/index")
 async def index_image(
     cache_id: str = Form(...),
+    skip_if_exists: bool = Form(False),
     file: UploadFile = File(...)
 ):
     """
@@ -425,6 +426,25 @@ async def index_image(
     for a newly uploaded image, linking it to its `cakegenie_analysis_cache` id.
     """
     supabase = get_supabase_or_raise()
+
+    if skip_if_exists:
+        try:
+            existing = (
+                supabase.table("cakegenie_image_features")
+                .select("id")
+                .eq("id", cache_id)
+                .limit(1)
+                .execute()
+            )
+            if existing.data and len(existing.data) > 0:
+                return {
+                    "success": True,
+                    "already_indexed": True,
+                    "message": "Image features already indexed for this cache row.",
+                    "data": existing.data,
+                }
+        except Exception as lookup_err:
+            print(f"[DEBUG] Existing feature lookup failed for cache_id={cache_id}: {lookup_err}")
         
     try:
         content = await file.read()

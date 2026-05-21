@@ -1,5 +1,30 @@
 # Tasks
 
+## Backfill ORB Indexing For Fresh AI Uploads
+
+### Plan
+
+- [x] Trace the active fresh-upload analysis path and confirm whether it writes `cakegenie_analysis_cache` without indexing `cakegenie_image_features`.
+- [x] Centralize ORB indexing in the shared cache write flow so fresh AI analyses do not depend on one specific UI caller.
+- [x] Update the remaining upload/import callers to pass the source image blob into the shared cache writer where needed.
+- [x] Allow the ORB backend index endpoint to skip rows that are already indexed so shared retries do not overwrite existing canonical features.
+- [x] Add focused test coverage for the shared cache writer indexing trigger and run the relevant verification.
+
+### Review
+
+- Confirmed the active production upload path is `src/contexts/ImageContext.tsx`, and it was caching fresh AI analysis rows without triggering `/api/index`. The older `src/hooks/useImageManagement.ts` still had ad-hoc indexing calls, which is why the bug looked inconsistent across flows.
+- Moved ORB indexing into the shared `cacheAnalysisResult()` flow in `src/services/supabaseService.ts`. Any caller that provides the source image blob now automatically posts to the ORB backend after the cache row is written.
+- Hardened `backend/main.py` so `/api/index` accepts `skip_if_exists=true` and returns early when `cakegenie_image_features` already contains that cache row. That prevents shared retries from overwriting canonical ORB descriptors.
+- Updated callers that were caching fresh analyses without a blob to now supply one:
+  `src/app/api/ai/analyze-url/route.ts` now passes a `Blob` built from `webpBuffer`,
+  `src/app/admin/bulk-analysis/page.tsx` now passes the fetched image blob.
+- Removed the duplicated manual indexing fetches from `src/hooks/useImageManagement.ts` so the shared cache writer is the single source of truth.
+- Verification:
+  `npx vitest run src/services/supabaseService.cacheAnalysisResult.test.ts` passed (`4` tests), including the new regression that asserts cache writes with a source blob call `https://orb.genie.ph/api/index`.
+  `python3 -m py_compile backend/main.py backend/utils.py backend/sync_features.py` passed.
+  `git diff --check -- backend/main.py src/services/supabaseService.ts src/hooks/useImageManagement.ts src/app/api/ai/analyze-url/route.ts src/app/admin/bulk-analysis/page.tsx src/services/supabaseService.cacheAnalysisResult.test.ts tasks/todo.md tasks/lessons.md` passed.
+  Targeted eslint on the touched TS files still reports many pre-existing `no-explicit-any` / unused-variable issues in `src/services/supabaseService.ts` and `src/app/api/ai/analyze-url/route.ts`, plus older warnings in `src/hooks/useImageManagement.ts`; I did not widen the scope to clean those unrelated lint debts in this fix.
+
 ## Machine-Readable Commerce Normalization
 
 ### Plan

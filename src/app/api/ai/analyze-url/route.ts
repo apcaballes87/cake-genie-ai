@@ -387,7 +387,7 @@ export async function POST(req: NextRequest) {
                 pHash,
                 result,
                 publicUrl,
-                undefined,
+                new Blob([webpBuffer], { type: 'image/webp' }),
                 {
                     client: supabase,
                     fingerprintPipeline: fingerprint.pipeline,

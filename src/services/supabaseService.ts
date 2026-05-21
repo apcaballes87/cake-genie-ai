@@ -21,6 +21,7 @@ import {
   normalizeRelatedSearchPhrase,
   rankRelatedProducts,
 } from './relatedProductSearch';
+import { getOrbBackendUrl } from './orbBackendConfig';
 
 // The default client (uses @supabase/ssr browser client)
 const supabase: SupabaseClient = getSupabaseClient();
@@ -651,6 +652,55 @@ export async function convertToWebP(blob: Blob): Promise<Blob> {
   });
 }
 
+async function triggerOrbFeatureIndexing(cacheId: string, imageBlob: Blob): Promise<void> {
+  const indexUrl = getOrbBackendUrl('/api/index');
+  if (!indexUrl) {
+    console.warn('⚠️ ORB backend is not configured; skipping feature indexing trigger.');
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('cache_id', cacheId);
+    formData.append('skip_if_exists', 'true');
+
+    const fileName = typeof File !== 'undefined' && imageBlob instanceof File
+      ? imageBlob.name
+      : 'orb-index-source.webp';
+
+    formData.append('file', imageBlob, fileName);
+
+    const response = await fetch(indexUrl, {
+      method: 'POST',
+      body: formData,
+    });
+
+    let payload: { already_indexed?: boolean; detail?: string; message?: string } | null = null;
+    try {
+      payload = await response.json() as { already_indexed?: boolean; detail?: string; message?: string };
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      console.warn('⚠️ ORB feature indexing failed:', {
+        status: response.status,
+        detail: payload?.detail || payload?.message || 'Unknown error',
+      });
+      return;
+    }
+
+    if (payload?.already_indexed) {
+      console.log('ℹ️ ORB features already existed for cache row:', cacheId);
+      return;
+    }
+
+    console.log('✅ ORB features indexed for cache row:', cacheId);
+  } catch (err) {
+    console.warn('⚠️ Failed to trigger ORB feature indexing:', err);
+  }
+}
+
 /**
  * Saves a new AI analysis result to the cache table and returns the generated metadata
  * so callers (e.g. the chat widget) can immediately reply with a customizing link.
@@ -853,6 +903,10 @@ export async function cacheAnalysisResult(
           body: JSON.stringify({ pHash: resolvedPHash })
         }).catch(err => console.warn('Background trigger fetch error:', err));
       }
+    }
+
+    if (returnedId && imageBlob) {
+      await triggerOrbFeatureIndexing(returnedId, imageBlob);
     }
 
     return {

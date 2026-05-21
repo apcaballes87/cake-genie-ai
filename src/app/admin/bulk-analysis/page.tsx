@@ -173,7 +173,7 @@ export default function BulkAnalysisAdminPage() {
                 analysisResult.seo_title = title;
                 // Optionally update alt_text or descriptions if needed, but the prompt said overwrite title
 
-                await cacheAnalysisResult(pHash, analysisResult, linkImage, undefined, {
+                await cacheAnalysisResult(pHash, analysisResult, linkImage, blob, {
                     triggerStudioEdit: false,
                     fingerprintPipeline: fingerprint.pipeline,
                 });
