@@ -9,9 +9,17 @@ export const showSuccess = (message: string, options?: ToastOptions) => {
   toast.success(message, {
     duration: 3000,
     position: 'top-center',
+    iconTheme: {
+      primary: '#ffffff',
+      secondary: '#7c3aed',
+    },
     style: {
-      background: '#10B981', // Green-500
+      background: '#7c3aed',
       color: '#ffffff',
+      fontSize: '13px',
+      padding: '8px 16px',
+      borderRadius: '8px',
+      maxWidth: '280px',
     },
     ...options,
   });
@@ -25,9 +33,17 @@ export const showError = (message: string, options?: ToastOptions) => {
   toast.error(message, {
     duration: 4000,
     position: 'top-center',
+    iconTheme: {
+      primary: '#ffffff',
+      secondary: '#ef4444',
+    },
     style: {
-      background: '#EF4444', // Red-500
+      background: '#7c3aed',
       color: '#ffffff',
+      fontSize: '13px',
+      padding: '8px 16px',
+      borderRadius: '8px',
+      maxWidth: '280px',
     },
     ...options,
   });
@@ -41,6 +57,14 @@ export const showError = (message: string, options?: ToastOptions) => {
 export const showLoading = (message: string, options?: ToastOptions): string => {
   return toast.loading(message, {
     position: 'top-center',
+    style: {
+      background: '#7c3aed',
+      color: '#ffffff',
+      fontSize: '13px',
+      padding: '8px 16px',
+      borderRadius: '8px',
+      maxWidth: '280px',
+    },
     ...options,
   });
 };
@@ -55,8 +79,12 @@ export const showInfo = (message: string, options?: ToastOptions) => {
     position: 'top-center',
     icon: 'ℹ️',
     style: {
-      background: '#3B82F6', // Blue-500
+      background: '#7c3aed',
       color: '#ffffff',
+      fontSize: '13px',
+      padding: '8px 16px',
+      borderRadius: '8px',
+      maxWidth: '280px',
     },
     ...options,
   });
@@ -69,7 +97,7 @@ export const showInfo = (message: string, options?: ToastOptions) => {
 export const showStatus = (message: string, options?: ToastOptions): string => {
   return toast(message, {
     duration: 3000,
-    position: 'bottom-center',
+    position: 'top-center',
     style: {
       background: '#7c3aed',
       color: '#ffffff',

@@ -26,7 +26,6 @@ const buildProps = (): React.ComponentProps<typeof CustomizingEditorSheet> => ({
     activeCustomization: 'options',
     activeTopperSection: null,
     showAvailabilityOffset: true,
-    showWarningOffset: false,
     hasCakeInfoChanges: true,
     hasPendingVisualChanges: false,
     isUpdatingDesign: false,
@@ -45,7 +44,7 @@ describe('CustomizingEditorSheet', () => {
         render(<CustomizingEditorSheet {...props} />);
 
         expect(screen.getByText('Cake Options')).toBeInTheDocument();
-        expect(screen.getByText('168px')).toBeInTheDocument();
+        expect(screen.getByText('104px')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: /apply changes/i }));
         expect(props.onApplyOptions).toHaveBeenCalledTimes(1);
         expect(screen.getByText('panel-content')).toBeInTheDocument();
@@ -96,12 +95,21 @@ describe('CustomizingEditorSheet', () => {
         expect(props.onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('offsets the sheet above both warning and availability bars when both are visible', () => {
+    it('offsets the sheet above availability bar when visible', () => {
         const props = buildProps();
-        props.showWarningOffset = true;
+        props.showAvailabilityOffset = true;
 
         render(<CustomizingEditorSheet {...props} />);
 
-        expect(screen.getByText('206px')).toBeInTheDocument();
+        expect(screen.getByText('104px')).toBeInTheDocument();
+    });
+
+    it('offsets the sheet using base offset when availability bar is hidden', () => {
+        const props = buildProps();
+        props.showAvailabilityOffset = false;
+
+        render(<CustomizingEditorSheet {...props} />);
+
+        expect(screen.getByText('72px')).toBeInTheDocument();
     });
 });
