@@ -337,3 +337,43 @@
 - Successfully formatted `gemini.md` to remove all Markdown lint warnings regarding headings, list blocks, and code fences.
 - Migrated gradient and aspect-ratio styling rules in `CustomizingEmptyLandingState.tsx` and `LandingClient.tsx` to match Tailwind CSS v4 guidelines.
 - Confirmed that modified React components compile perfectly with type safety, resolving all IDE warnings for these files.
+
+---
+
+## Hermes Agent On Existing Hostinger n8n VPS
+
+### Hermes Install Plan
+
+- [x] Confirm current official Hostinger and Hermes installation guidance for a Hostinger VPS deployment.
+- [x] Verify whether the connected Hostinger account can see the actual VPS inventory and current Docker projects.
+- [x] Install Hermes Agent onto VPS `973201` without breaking the existing `n8n` + `Traefik` layout.
+- [x] Verify the Hermes installation is healthy from the VPS terminal and capture any remaining configuration requirement.
+
+### Hermes Install Review
+
+- Official Hostinger guidance currently says to deploy Hermes from `Docker Manager -> Catalog`, then access it through the VPS Browser Terminal by entering the generated `/docker/hermes-agent-xxxx/` project and running `docker compose exec -it hermes-agent /bin/bash`.
+- Official Hermes docs currently describe the broader self-hosted installer path, but on Hostinger the catalog deployment is the platform-supported route because Docker Manager creates and wires the service for you.
+- Verified live Hostinger access for this session:
+  `VPS_getVirtualMachinesV1` returned VPS `973201` on plan `KVM 2` (`2 vCPU`, `8192 MB RAM`, `102400 MB disk`) in `running` state.
+  `VPS_getProjectListV1` showed project `root` with `root-traefik-1` published on `80/443` and `root_n8n_1` published only on `127.0.0.1:5678`.
+- Confirmed the direct SSH path back into the VPS still works from this machine using the existing keypair:
+  local private key `/Users/apcaballes/.ssh/hostinger_orb_genieph`,
+  Hostinger public key `codex-hostinger-orb-genieph`,
+  successful login target `root@srv973201.hstgr.cloud`.
+- Chose the direct host install path over Docker Catalog to avoid touching the live `n8n` + `Traefik` compose stack.
+- Installed Hermes on `2026-05-22` with the official upstream installer:
+  `curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash -s -- --skip-setup`
+- Resulting live install layout on the VPS:
+  code at `/usr/local/lib/hermes-agent`,
+  launcher at `/usr/local/bin/hermes`,
+  config and runtime data at `/root/.hermes/`.
+- Post-install cleanup:
+  ran `hermes doctor --fix`,
+  symlinked `/root/.hermes/node/bin/{node,npm,npx}` into `/usr/local/bin` so browser tooling resolves cleanly from normal root shells.
+- Verification:
+  `hermes --version` returned `Hermes Agent v0.14.0 (2026.5.16)`.
+  `hermes doctor` passed the install, Python, browser tooling, and command checks after the Node symlink fix.
+  Existing services remained untouched during the install: Docker still shows only `root-traefik-1` and `root_n8n_1` running.
+- Remaining required step for actual model use:
+  add at least one LLM provider key and run `hermes setup` or `hermes model`.
+  Current doctor output shows the only real blocker is `OpenRouter API (not configured)`.

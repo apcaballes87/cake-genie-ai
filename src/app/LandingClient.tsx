@@ -1556,7 +1556,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                 {heroContent.eyebrow}
                             </p>
                             <div className="mb-3 text-center">
-                                <h1 className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-none tracking-tight text-gray-900">
+                                <div className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-none tracking-tight text-gray-900">
                                     <HeroTypingHeadlineLine 
                                         className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
                                         controlledPhraseIndex={heroHeadlineVariant}
@@ -1566,7 +1566,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                     />
                                     <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
                                     <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
-                                </h1>
+                                </div>
                                 {heroUploadState === 'idle' && (
                                     <HeroFeatureHighlights compact className="mx-auto mt-3 w-full max-w-[480px] px-2" />
                                 )}

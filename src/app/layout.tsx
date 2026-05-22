@@ -18,7 +18,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://genie.ph'),
+  metadataBase: new URL('https://genie.ph/'),
   title: {
     default: 'Genie.ph | Online Marketplace for Custom Cakes in Cebu!',
     template: '%s | Genie.ph',

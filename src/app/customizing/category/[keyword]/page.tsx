@@ -116,10 +116,37 @@ function stripCakeSuffix(label: string): string {
 function buildCategoryCopy(slug: string) {
     const decodedKeyword = decodeKeyword(slug);
     const displayName = toTitleCase(decodedKeyword);
-    const coreName = stripCakeSuffix(displayName) || displayName;
+
+    // Clean all trailing occurrences of "cake" or "cakes" separated by spaces
+    // e.g. "Birthday Cakes Cakes" -> "Birthday"
+    let coreName = displayName;
+    while (true) {
+        const cleaned = coreName.replace(/\s+cakes?$/i, '').trim();
+        if (cleaned === coreName || cleaned.length === 0) {
+            break;
+        }
+        coreName = cleaned;
+    }
+
+    // If it's just empty or literal "Cake" or "Cakes", fall back to displayName
+    if (!coreName) {
+        coreName = displayName;
+    }
+
     const coreNameLower = coreName.toLowerCase();
-    const designLabel = `${coreName} Cake Designs`;
-    const productLabel = `${coreName} Cakes`;
+
+    // Build design and product labels ensuring no double "cake" or "cakes"
+    let designLabel = '';
+    let productLabel = '';
+
+    if (coreNameLower.endsWith('cake') || coreNameLower.endsWith('cakes')) {
+        designLabel = `${coreName} Designs`;
+        productLabel = coreName;
+    } else {
+        designLabel = `${coreName} Cake Designs`;
+        productLabel = `${coreName} Cakes`;
+    }
+
     const productLabelLower = productLabel.toLowerCase();
 
     return {
