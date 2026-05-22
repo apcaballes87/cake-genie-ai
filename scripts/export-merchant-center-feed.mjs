@@ -51,6 +51,8 @@ const CAKE_TYPE_THICKNESS_MAP = {
   Bento: '2 in',
 };
 const FALLBACK_MIN_PRICE = 1099;
+const GOOGLE_MERCHANT_ID_MAX_LENGTH = 50;
+const GOOGLE_MERCHANT_ID_HASH_LENGTH = 8;
 
 const header = [
   'id',
@@ -167,7 +169,7 @@ async function main() {
       if (!activePrice || activePrice <= 0) return null;
 
       return {
-        id: product.product_id,
+        id: toGoogleMerchantId(String(product.product_id)),
         title,
         description,
         link: `https://genie.ph/shop/${merchant.slug}/${product.slug}`,
@@ -265,6 +267,29 @@ function buildCustomLabels({ availability, merchantCity, cakeType, uploadAssiste
     customLabel3: uploadAssisted ? 'upload-assisted' : 'standard-customization',
     customLabel4: availability === 'made_to_order' || availability === 'preorder' ? 'made-to-order' : 'catalog-product',
   };
+}
+
+function toGoogleMerchantId(rawValue) {
+  if (rawValue.length <= GOOGLE_MERCHANT_ID_MAX_LENGTH) {
+    return rawValue;
+  }
+
+  const suffix = stableShortHash(rawValue);
+  const prefixLength =
+    GOOGLE_MERCHANT_ID_MAX_LENGTH - GOOGLE_MERCHANT_ID_HASH_LENGTH - 1;
+
+  return `${rawValue.slice(0, prefixLength)}-${suffix}`;
+}
+
+function stableShortHash(value) {
+  let hash = 0x811c9dc5;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  return (hash >>> 0).toString(16).padStart(GOOGLE_MERCHANT_ID_HASH_LENGTH, '0');
 }
 
 function escapeCsv(value) {

@@ -1,5 +1,35 @@
 # Tasks
 
+## Merchant Center ID Attribute Compliance
+
+### Plan
+
+- [x] Confirm the documented Google Merchant Center `id [id]` length requirement and map it to every active Genie.ph product feed.
+- [x] Replace overlong feed IDs with stable, deterministic IDs that stay within Google's maximum length while preserving uniqueness across updates.
+- [x] Add focused regression coverage for the new ID formatting rules and verify the active feed output remains compliant.
+- [x] Document the fix and the Merchant Center reprocessing follow-up once verification passes.
+
+### Review
+
+- Google’s current `id [id]` attribute documentation caps product IDs at `50` characters and requires stable unique values per product. The live `https://genie.ph/feed/google` XML feed was still emitting long slug-based IDs, which matches the Merchant Center warning shown in the screenshot.
+- Added `src/lib/commerce/feedIds.ts` with a deterministic truncation rule:
+  keep compliant IDs unchanged,
+  shorten only overlong IDs,
+  preserve the leading slug prefix,
+  append an 8-character stable FNV-1a hash suffix so uniqueness survives truncation.
+- Updated `src/app/feed/google/route.ts` to pass each public design-feed ID through the new helper before writing `<g:id>`.
+- Updated `scripts/export-merchant-center-feed.mjs` to apply the same 50-character rule to merchant-product CSV IDs, so the curated merchant export stays compliant too.
+- Added focused tests in `src/lib/commerce/feedIds.test.ts` covering unchanged short IDs, 50-character shortening, stability, and collision resistance for different long source IDs.
+- Verification:
+  `npx vitest run src/lib/commerce/feedIds.test.ts --exclude '.claude/**'` passed (`4` tests).
+  `node --check scripts/export-merchant-center-feed.mjs` passed.
+  `node scripts/export-merchant-center-feed.mjs` passed and exported `12` merchant products.
+  A live-feed audit over the current production `https://genie.ph/feed/google` sample showed `25` IDs over `50` characters before the fix and `0` over `50` after applying the new formatter.
+- Feed-size follow-up:
+  the live `https://genie.ph/feed/google` feed currently exposes exactly `1000` items, while the underlying eligible `cakegenie_analysis_cache` population is `10,314` rows.
+  The root cause is that the route was making a single Supabase query and relying on `.limit(10000)`, but the API response is still capped at `1000` rows per request in the current project setup.
+  `src/app/feed/google/route.ts` now paginates through the full dataset in `1000`-row batches, which reproduced all `10,314` eligible rows across `11` pages during verification.
+
 ## Fix Vercel Build Regression For ORB URL Analyze Route
 
 ### Plan

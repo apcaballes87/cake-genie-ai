@@ -1,9 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { CakeThickness } from '@/types';
+import { toGoogleMerchantId } from '@/lib/commerce/feedIds';
 
 // Cache for 6 hours
 export const revalidate = 21600;
 
+const FEED_PAGE_SIZE = 1000;
 const FALLBACK_MIN_PRICE = 1099;
 
 const CAKE_TYPE_THICKNESS_MAP: Record<string, CakeThickness> = {
@@ -33,17 +35,9 @@ export async function GET() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    // Fetch all designs with images
-    const { data: designs, error } = await supabase
-        .from('cakegenie_analysis_cache')
-        .select('slug, keywords, seo_title, seo_description, alt_text, original_image_url, price, analysis_json, tags, created_at')
-        .not('original_image_url', 'is', null)
-        .not('slug', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(10000);
+    const designs = await fetchAllFeedDesigns(supabase);
 
-    if (error) {
-        console.error('Google feed error:', error.message);
+    if (!designs) {
         return new Response('Feed generation failed', { status: 500 });
     }
 
@@ -67,6 +61,41 @@ export async function GET() {
 
 interface BasePriceMap {
     [cakeType: string]: number; // minimum price for each cake type
+}
+
+async function fetchAllFeedDesigns(supabase: any) {
+    const designs: any[] = [];
+    let pageStart = 0;
+
+    while (true) {
+        const pageEnd = pageStart + FEED_PAGE_SIZE - 1;
+        const { data, error } = await supabase
+            .from('cakegenie_analysis_cache')
+            .select('slug, keywords, seo_title, seo_description, alt_text, original_image_url, price, analysis_json, tags, created_at')
+            .not('original_image_url', 'is', null)
+            .not('slug', 'is', null)
+            .order('created_at', { ascending: false })
+            .range(pageStart, pageEnd);
+
+        if (error) {
+            console.error('Google feed error:', error.message);
+            return null;
+        }
+
+        if (!data || data.length === 0) {
+            break;
+        }
+
+        designs.push(...data);
+
+        if (data.length < FEED_PAGE_SIZE) {
+            break;
+        }
+
+        pageStart += FEED_PAGE_SIZE;
+    }
+
+    return designs;
 }
 
 async function fetchBasePrices(supabase: any): Promise<BasePriceMap> {
@@ -125,7 +154,7 @@ function buildItem(design: any, baseUrl: string, basePrices: BasePriceMap) {
     const price = resolvePrice(design, basePrices);
 
     return {
-        id: design.slug,
+        id: toGoogleMerchantId(design.slug),
         title: sanitizeXml(title.substring(0, 150)),
         description: sanitizeXml(description.substring(0, 5000)),
         link,
