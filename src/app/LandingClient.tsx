@@ -59,6 +59,10 @@ interface LandingClientProps {
     children?: React.ReactNode;
     blogPosts?: BlogHomepagePreview[];
     heroContent?: LandingHeroContent;
+    reviewSummary?: {
+        total: number;
+        averageRating: number;
+    };
 }
 
 const LANDING_PRIMARY_CTA_RADIUS = 'rounded-[1.35rem]';
@@ -442,15 +446,31 @@ function HeroProductPeekCarousel({
     );
 }
 
-function HeroReviewSummary({ compact = false }: { compact?: boolean }) {
+function HeroReviewSummary({
+    compact = false,
+    reviewSummary,
+}: {
+    compact?: boolean;
+    reviewSummary?: {
+        total: number;
+        averageRating: number;
+    };
+}) {
+    const averageLabel = reviewSummary && reviewSummary.averageRating > 0
+        ? reviewSummary.averageRating.toFixed(1)
+        : 'Verified';
+    const countLabel = reviewSummary && reviewSummary.total > 0
+        ? `based on ${reviewSummary.total} public review${reviewSummary.total === 1 ? '' : 's'}.`
+        : 'real customer feedback and order photos.'
+
     return (
         <Link
             href="/reviews"
             className={`inline-flex items-center justify-center gap-1.5 text-gray-600 hover:text-purple-500 ${compact ? 'text-[11px]' : 'text-[13px] md:text-[14px]'}`}
         >
-            <span>4.8</span>
+            <span>{averageLabel}</span>
             <span className="text-yellow-500">★★★★★</span>
-            <span>based on 6 Happy Customers.</span>
+            <span>{countLabel}</span>
             <span>|</span>
             <span className="font-bold text-green-600">Verified ✓</span>
         </Link>
@@ -1200,6 +1220,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
     children,
     blogPosts = [],
     heroContent: propHeroContent,
+    reviewSummary,
 }) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
@@ -1550,7 +1571,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                         {/* Mobile Hero View - Simplified */}
                         <div className="md:hidden w-full flex flex-col mt-2">
                             <div className="mb-3 text-center">
-                                <HeroReviewSummary compact />
+                                <HeroReviewSummary compact reviewSummary={reviewSummary} />
                             </div>
                             <p className="mb-4 text-center text-[10px] min-[360px]:text-[11px] font-bold uppercase tracking-[0.06em] text-neutral-600 whitespace-nowrap">
                                 {heroContent.eyebrow}
@@ -1580,7 +1601,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                 <div className="col-span-1 mt-2 flex flex-col items-center text-center md:pr-2">
                                     <div className="w-full md:-translate-y-8">
                                         <div className="mb-3 text-center">
-                                            <HeroReviewSummary />
+                                            <HeroReviewSummary reviewSummary={reviewSummary} />
                                         </div>
                                         <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.092em] text-neutral-600">
                                             {heroContent.eyebrow}

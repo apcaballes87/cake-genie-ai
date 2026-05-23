@@ -2,8 +2,10 @@
 
 import React, { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ArrowLeft, Globe, Mail, Phone, MapPin, Clock, Send, Loader2 } from 'lucide-react';
 import { showSuccess, showError } from '@/lib/utils/toast';
+import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile';
 
 const ContactInfoItem: React.FC<{ icon: React.ReactNode; label: string; value: string; href?: string }> = ({ icon, label, value, href }) => (
     <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg">
@@ -27,7 +29,7 @@ const ContactClient: React.FC = () => {
     const [message, setMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = (e: FormEvent) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         if (!name.trim() || !contact.trim() || !email.trim() || !message.trim()) {
             showError("Please fill in all required fields.");
@@ -35,17 +37,35 @@ const ContactClient: React.FC = () => {
         }
 
         setIsSubmitting(true);
-        // Simulate a submission since no backend endpoint is specified
+        try {
+            const response = await fetch('/api/contact', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name,
+                    phone: contact,
+                    email,
+                    message,
+                }),
+            });
 
-        setTimeout(() => {
-            setIsSubmitting(false);
+            const payload = await response.json();
+            if (!response.ok || !payload.success) {
+                throw new Error(payload.error || 'Something went wrong while sending your message.');
+            }
+
             showSuccess("Thank you for your message! We'll get back to you soon.");
-            // Reset form
             setName('');
             setContact('');
             setEmail('');
             setMessage('');
-        }, 1000);
+        } catch (error) {
+            showError(error instanceof Error ? error.message : 'Failed to send your message.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const inputStyle = "w-full px-4 py-3 text-sm bg-white border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-colors";
@@ -58,7 +78,10 @@ const ContactClient: React.FC = () => {
                 <button onClick={() => router.push('/')} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Go back">
                     <ArrowLeft />
                 </button>
-                <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">Contact Us</h1>
+                <div>
+                    <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">Contact Us</h1>
+                    <p className="mt-1 text-sm text-slate-500">Ask a question, request help with an order, or confirm what kind of cake service fits your event.</p>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
@@ -67,10 +90,27 @@ const ContactClient: React.FC = () => {
                     <h2 className="text-xl font-bold text-slate-800">Get In Touch</h2>
                     <div className="space-y-4">
                         <ContactInfoItem icon={<Globe size={20} />} label="Website" value="genie.ph" href="https://genie.ph" />
-                        <ContactInfoItem icon={<Mail size={20} />} label="Email" value="support@genie.ph" href="mailto:support@genie.ph" />
-                        <ContactInfoItem icon={<Phone size={20} />} label="Contact" value="0908 940 8747" href="tel:09089408747" />
-                        <ContactInfoItem icon={<MapPin size={20} />} label="Address" value="Park Tower One, Cebu Business Park, Cebu City" href="https://maps.app.goo.gl/pnfoibK2gjaAD6DA7" />
-                        <ContactInfoItem icon={<Clock size={20} />} label="Business Hours" value="Mon - Sat: 9:00 AM - 6:00 PM" />
+                        <ContactInfoItem icon={<Mail size={20} />} label="Email" value={genieBusinessProfile.supportEmail} href={`mailto:${genieBusinessProfile.supportEmail}`} />
+                        <ContactInfoItem icon={<Phone size={20} />} label="Contact" value={genieBusinessProfile.phoneDisplay} href={genieBusinessProfile.phoneHref} />
+                        <ContactInfoItem icon={<MapPin size={20} />} label="Address" value={genieBusinessProfile.addressLine} href={genieBusinessProfile.mapUrl} />
+                        <ContactInfoItem icon={<Clock size={20} />} label="Business Hours" value={genieBusinessProfile.hoursDisplay} />
+                    </div>
+
+                    <div className="rounded-2xl border border-pink-100 bg-pink-50 p-5">
+                        <h3 className="text-base font-bold text-slate-900">New customer? Here&apos;s the fastest path.</h3>
+                        <ol className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
+                            <li>Upload a cake peg on Genie.ph to get a starting price.</li>
+                            <li>Use this form if you need help with rush viability, service area, or order support.</li>
+                            <li>For faster same-day questions, call during business hours.</li>
+                        </ol>
+                        <div className="mt-4 flex flex-wrap gap-3">
+                            <Link href="/customizing" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                                Upload a design
+                            </Link>
+                            <Link href="/services" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800">
+                                View services
+                            </Link>
+                        </div>
                     </div>
                 </div>
 
@@ -102,7 +142,7 @@ const ContactClient: React.FC = () => {
                             ) : (
                                 <Send className="w-5 h-5 mr-2" />
                             )}
-                            {isSubmitting ? 'Submitting...' : 'Submit'}
+                            {isSubmitting ? 'Sending...' : 'Send Message'}
                         </button>
                     </form>
                 </div>

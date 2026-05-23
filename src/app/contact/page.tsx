@@ -1,5 +1,6 @@
 import ContactClient from './ContactClient'
 import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
+import { buildGenieLocalBusinessSchema, genieBusinessProfile } from '@/lib/seo/genieBusinessProfile'
 
 export const metadata = buildMarketingPageMetadata({
     title: 'Contact Us for Cebu Custom Cake Orders',
@@ -8,54 +9,29 @@ export const metadata = buildMarketingPageMetadata({
 })
 
 function ContactPageSchema() {
-    const schema = {
+    const schema = buildGenieLocalBusinessSchema()
+    const contactPageSchema = {
         '@context': 'https://schema.org',
-        '@type': 'LocalBusiness',
-        '@id': 'https://genie.ph/#localbusiness',
-        name: 'Genie.ph',
-        description: 'AI-powered marketplace for custom cakes in the Philippines. Based in Cebu.',
-        url: 'https://genie.ph',
-        logo: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp',
-        image: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg',
-        telephone: '+63-908-940-8747',
-        email: 'hello@genie.ph',
-        address: {
-            '@type': 'PostalAddress',
-            streetAddress: 'Park Tower One, Cebu Business Park',
-            addressLocality: 'Cebu City',
-            addressRegion: 'Cebu',
-            addressCountry: 'PH'
+        '@type': 'ContactPage',
+        '@id': `${genieBusinessProfile.siteUrl}/contact#page`,
+        name: 'Contact Genie.ph',
+        url: `${genieBusinessProfile.siteUrl}/contact`,
+        mainEntity: {
+            '@id': `${genieBusinessProfile.siteUrl}/contact#localbusiness`,
         },
-        geo: {
-            '@type': 'GeoCoordinates',
-            latitude: 10.3175,
-            longitude: 123.9046
-        },
-        areaServed: {
-            '@type': 'AdministrativeArea',
-            name: 'Cebu'
-        },
-        sameAs: [
-            'https://web.facebook.com/geniephilippines',
-            'https://www.instagram.com/genie.ph/',
-            'http://tiktok.com/@genie.ph',
-            'https://www.youtube.com/@genieph'
-        ],
-        contactPoint: {
-            '@type': 'ContactPoint',
-            telephone: '+63-908-940-8747',
-            contactType: 'customer service',
-            areaServed: 'PH',
-            availableLanguage: ['English', 'Filipino']
-        },
-        priceRange: '₱₱'
-    };
+    }
 
     return (
-        <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-        />
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(contactPageSchema) }}
+            />
+        </>
     );
 }
 

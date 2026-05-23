@@ -1,5 +1,6 @@
 import AboutClient from './AboutClient'
 import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
+import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile'
 
 export const metadata = buildMarketingPageMetadata({
     title: 'About the Marketplace and Team',
@@ -13,17 +14,9 @@ export default function AboutPage() {
         '@type': 'AboutPage',
         name: 'About Genie.ph',
         description: 'Genie.ph is an AI-powered custom cake ordering platform connecting customers with local bakers.',
+        url: `${genieBusinessProfile.siteUrl}/about`,
         mainEntity: {
-            '@type': 'Organization',
-            name: 'Genie.ph',
-            url: 'https://genie.ph',
-            logo: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/genie%20favicon.webp',
-            sameAs: [
-                'https://web.facebook.com/geniephilippines',
-                'https://www.instagram.com/genie.ph/',
-                'http://tiktok.com/@genie.ph',
-                'https://www.youtube.com/@genieph'
-            ]
+            '@id': genieBusinessProfile.organizationId,
         }
     };
 

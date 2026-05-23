@@ -1,5 +1,123 @@
 # Tasks
 
+## Apply Contact Form Supabase Migration Via MCP
+
+### Plan
+
+- [x] Confirm the remote table is currently missing through Supabase MCP.
+- [x] Apply only the `create_cakegenie_contact_messages` migration through Supabase MCP.
+- [ ] Verify the table exists and the live `/api/contact` route accepts a submission.
+
+### Review
+
+- Supabase MCP authentication was restored, and the requested migration was applied successfully with `apply_migration` as `create_cakegenie_contact_messages`.
+- The remote `public.cakegenie_contact_messages` table now exists with RLS enabled, columns `id`, `name`, `phone`, `email`, `message`, `source`, and `created_at`, and primary key `id`.
+- Verified policies now exist for `service_role`: `service_role_contact_messages_insert` for `INSERT` and `service_role_contact_messages_select` for `SELECT`.
+- Per the task constraint, no fallback was used. I did not run `supabase db push`, did not repair migration history, and did not apply SQL through any non-MCP path.
+- Live route check against `POST https://genie.ph/api/contact` still returns `HTTP/2 404`, so the production deployment reachable at `genie.ph` does not currently expose the route. The database blocker is fixed; route verification is blocked by the deployed app version/routing.
+
+## Implement Genie.ph AEO / GEO Audit Fixes
+
+### Plan
+
+- [x] Add a shared `genieBusinessProfile` source of truth for business identity, contact details, service area, trust links, and service definitions.
+- [x] Replace the global platform `Bakery` schema with canonical `Organization` + `WebSite`, then align homepage, about, contact, reviews, sitemap, and the new services page to that shared source.
+- [x] Make `/reviews` indexable, add `/reviews` and `/services` to sitemap surfaces, and add visible homepage trust/service/local sections without disturbing the hero upload flow.
+- [x] Replace the fake contact form with a real `POST /api/contact` route backed by a new `cakegenie_contact_messages` table.
+- [x] Remove commercial `FAQPage` schema that should no longer be emitted, then run targeted tests, lint, build, and HTML/schema verification.
+
+### Review
+
+- Added `src/lib/seo/genieBusinessProfile.ts` as the shared source of truth for Genie.ph identity, contact details, service area, trust links, and core service definitions.
+- Replaced the global platform `Bakery` schema with canonical `Organization` + `WebSite` in `src/app/layout.tsx`, removed the duplicate homepage `WebSite` JSON-LD, and aligned page-level schema to reuse the shared organization/site IDs.
+- Added a new crawlable services page at `src/app/services/page.tsx`, made `/reviews` indexable, and added both `/services` and `/reviews` to `src/app/sitemap.ts` and `src/app/sitemap-html/page.tsx`.
+- Added homepage AEO sections in `src/components/seo/HomepageAeoSections.tsx` and wired real review stats/excerpts into the homepage server render instead of relying only on hardcoded review copy.
+- Updated `src/app/contact/ContactClient.tsx`, `src/app/contact/page.tsx`, `src/app/about/AboutClient.tsx`, and `src/components/landing/LandingFooter.tsx` so visible copy, CTAs, and contact facts now match the shared business profile.
+- Added `src/app/api/contact/route.ts` plus `supabase/migrations/20260524110000_create_cakegenie_contact_messages.sql` for real contact form submission storage.
+- Removed the commercial `FAQPage` JSON-LD from `src/app/customizing/category/[keyword]/page.tsx`, leaving the visible FAQ content intact.
+- Verification:
+  `npx vitest run src/app/page.metadata.test.tsx src/app/sitemap.test.ts src/app/reviews/page.metadata.test.ts src/app/api/contact/route.test.ts --exclude '.claude/**'` passed.
+  `npm run build` passed end to end, including static generation for `515` routes.
+  Rendered HTML verification on `/`, `/about`, `/contact`, `/reviews`, and `/services` confirmed one `WebSite`, zero platform `Bakery` nodes, and `index, follow` robots on all five routes.
+  `npm run lint` still fails because this repo already has a broad pre-existing lint backlog across root scripts, Supabase functions, and older app files unrelated to this feature.
+  The live `POST /api/contact` route currently returns a server error until the new migration is applied to the linked remote Supabase project; the route logs confirm the only missing piece is the absent `public.cakegenie_contact_messages` table.
+
+## Keep Desktop Sidebar Scroll Ownership After Advanced Expansion
+
+### Plan
+
+- [x] Reproduce why opening `Advanced Customization` causes wheel input over the right column to fall back to whole-page scrolling.
+- [x] Adjust the desktop sidebar scroll logic so the right column directly consumes wheel input while it still has internal scroll room, even after advanced cards expand.
+- [x] Run focused verification and capture the regression fix notes here.
+
+### Review
+
+- `src/app/customizing/desktopSidebarScroll.ts` now exposes `canConsumeDesktopSidebarWheel()`, which represents the simple edge rule the right sidebar should follow on hover: consume downward wheel input until it reaches the bottom, consume upward wheel input until it reaches the top, then release control back to the page.
+- `src/app/customizing/CustomizingClient.tsx` now adds a dedicated non-passive `wheel` listener directly on the desktop right-column scroller. That means when the cursor is over the cake-options sidebar, the sidebar keeps scrolling itself after `Advanced Customization` expands instead of immediately handing the wheel back to the whole page.
+- The earlier window-level redirect is still in place for the original desktop behavior where page scroll should feed the right column once the left hero column has finished. The new direct sidebar listener only strengthens hover behavior inside the sidebar itself and still releases page scroll naturally at the top and bottom edges.
+- Focused regression coverage was expanded in `src/app/customizing/desktopSidebarScroll.test.ts` to cover the new direct sidebar wheel-consumption helper.
+- Verification:
+  `npx vitest run src/app/customizing/desktopSidebarScroll.test.ts src/app/customizing/CustomizingStepSummarySections.test.tsx --exclude '.claude/**'` passed (`19` tests).
+  `npx eslint src/app/customizing/CustomizingClient.tsx src/app/customizing/desktopSidebarScroll.ts src/app/customizing/desktopSidebarScroll.test.ts src/app/customizing/CustomizingStepSummarySections.tsx src/app/customizing/CustomizingStepSummarySections.test.tsx` completed with `0` errors and existing warnings only. `CustomizingClient.tsx` still has many pre-existing unused import / hook dependency warnings, and `CustomizingStepSummarySections.tsx` still has the same `19` pre-existing warnings.
+
+## Fix Desktop Advanced Section Visibility And Sidebar Scroll Release
+
+### Plan
+
+- [x] Confirm why advanced desktop content can expand without becoming visible and why right-column upward scroll gets trapped at the sidebar edge.
+- [x] Adjust the desktop sidebar behavior so advanced content scrolls into view when opened and page scrolling resumes naturally when the sidebar is already at its top or bottom.
+- [x] Run focused verification and capture the regression fix notes here.
+
+### Review
+
+- `src/app/customizing/CustomizingStepSummarySections.tsx` no longer relies on `scrollIntoView({ block: 'nearest' })` for the desktop advanced section. That call could leave the advanced container technically expanded but still clipped below the visible area of the sticky right-column scroller.
+- The desktop expand effect now finds the actual nearest vertical scroll parent, targets the first advanced card, and scrolls that parent so the advanced controls land near the top of the visible sidebar. A short follow-up scroll pass runs after the expand animation begins, which keeps the first advanced cards visible even inside the sticky overflow container.
+- Focused regression coverage was added in `src/app/customizing/CustomizingStepSummarySections.test.tsx` to prove the desktop sidebar container receives the `scrollTo({ top, behavior: 'smooth' })` call when `Advanced Customization` opens.
+- Verification:
+  `npx vitest run src/app/customizing/CustomizingStepSummarySections.test.tsx --exclude '.claude/**'` passed (`10` tests).
+  `npx eslint src/app/customizing/CustomizingStepSummarySections.tsx src/app/customizing/CustomizingStepSummarySections.test.tsx` completed with `0` errors and the same `19` pre-existing unused-code warnings already present in `CustomizingStepSummarySections.tsx`.
+  `curl -I --max-time 10 http://127.0.0.1:3002/customizing/wednesday-addams-purple-2-tier-fondant-cake-e783` returned `HTTP/1.1 200 OK` during this regression pass.
+
+## Make Desktop Customizer Sidebar Consume Scroll First
+
+### Plan
+
+- [x] Inspect the desktop two-column customizer layout and identify where left-column hero height and right-column overflow can be coordinated.
+- [x] Add desktop-only right-column internal scrolling so wheel scroll is consumed by the cake-options column after the hero column finishes, then release page scrolling again once the right column catches up.
+- [x] Add focused verification for the scroll-capture rules and record the final behavior here.
+
+### Review
+
+- `src/app/customizing/CustomizingClient.tsx` now measures the desktop top bar, left column, full two-column section, and right sidebar scroll container so desktop wheel input can be redirected when the left hero has already finished but the right cake-options column still has overflow remaining.
+- The right desktop sidebar is now wrapped in a sticky, max-height-limited scroll container. That gives the cake-options column an internal scroll surface on desktop without changing the mobile behavior or the sidebar's content structure.
+- A new helper in `src/app/customizing/desktopSidebarScroll.ts` decides when to capture wheel input:
+  after the two-column section reaches the sticky zone,
+  after the left column bottom reaches the viewport bottom,
+  while the right column still has scroll remaining,
+  and in reverse while unwinding upward scroll inside the same section.
+- Focused tests were added in `src/app/customizing/desktopSidebarScroll.test.ts` to cover the capture rules for downward scroll, upward scroll, pre-hero-end behavior, and section exit behavior.
+- Verification:
+  `npx vitest run src/app/customizing/desktopSidebarScroll.test.ts src/app/customizing/CustomizingSidebarPanel.test.tsx src/app/customizing/CustomizingStepSummarySections.test.tsx --exclude '.claude/**'` passed (`19` tests).
+  `npx eslint src/app/customizing/CustomizingClient.tsx src/app/customizing/desktopSidebarScroll.ts src/app/customizing/desktopSidebarScroll.test.ts src/app/customizing/CustomizingSidebarPanel.tsx` completed with `0` errors and existing warnings only. `CustomizingClient.tsx` still has many pre-existing unused-import/hook-dependency warnings unrelated to this change.
+  Live browser verification was attempted against the existing local server on `http://127.0.0.1:3002`, but both Playwright navigation and `curl -I --max-time 10` timed out with no response, so this change was not visually validated in-browser during this pass.
+
+## Reduce Customizer Main Color Control Height
+
+### Plan
+
+- [x] Confirm the current spacing and circle sizes used by the main color controls in `CustomizingStepSummarySections.tsx`.
+- [x] Reduce the main color control block's vertical size by about 20 percent, including the preview circle and the selectable color circles.
+- [x] Run focused verification and capture the resulting behavior here.
+
+### Review
+
+- The main color control row in `src/app/customizing/CustomizingStepSummarySections.tsx` now uses tighter vertical spacing and smaller circles so the control reads about 20 percent shorter overall.
+- The large current-color preview circle was reduced from `w-12 h-12` to `w-10 h-10`, and the selectable swatches were reduced from `w-10 h-10` to `w-8 h-8`.
+- Supporting spacing was tightened at the same time: the row gap dropped from `gap-4` to `gap-3`, the label/swatch stack gap from `gap-1.5` to `gap-1`, the separator height from `h-12` to `h-10`, and the swatch strip padding/gap were reduced to keep the vertical footprint consistent with the smaller circles.
+- Verification:
+  `npx vitest run src/app/customizing/CustomizingStepSummarySections.test.tsx --exclude '.claude/**'` passed (`9` tests).
+  `npx eslint src/app/customizing/CustomizingStepSummarySections.tsx src/app/customizing/CustomizingStepSummarySections.test.tsx` completed with `0` errors and the same `19` pre-existing unused-code warnings already present in `CustomizingStepSummarySections.tsx`.
+
 ## Move Main Color Controls Outside Advanced Customization
 
 ### Plan

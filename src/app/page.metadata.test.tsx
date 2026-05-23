@@ -31,12 +31,13 @@ vi.mock('@/lib/supabase/server', () => ({
 }));
 
 describe('home page SEO schema', () => {
-  it('keeps website schema but no longer renders FAQPage schema', async () => {
+  it('renders CollectionPage schema without commercial FAQPage or duplicate WebSite JSON-LD', async () => {
     const { default: Home } = await import('./page');
     const markup = renderToStaticMarkup(await Home());
 
     expect(markup).toContain('https://schema.org');
-    expect(markup).toContain('WebSite');
+    expect(markup).toContain('CollectionPage');
     expect(markup).not.toContain('FAQPage');
+    expect(markup).not.toContain('"@type":"WebSite"');
   });
 });

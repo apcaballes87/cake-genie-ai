@@ -60,6 +60,12 @@ describe('sitemap collections routes', () => {
     expect(entries).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          url: 'https://genie.ph/services',
+        }),
+        expect.objectContaining({
+          url: 'https://genie.ph/reviews',
+        }),
+        expect.objectContaining({
           url: 'https://genie.ph/collections/surprise-collection',
           images: ['https://example.com/surprise.webp'],
           priority: 0.85,

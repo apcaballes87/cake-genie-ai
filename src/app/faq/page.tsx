@@ -51,7 +51,7 @@ const faqs = [
         questions: [
             {
                 q: 'Where does Genie.ph deliver?',
-                a: 'We currently deliver throughout Metro Cebu including Cebu City, Mandaue City, Lapu-Lapu City (Mactan), Talisay City, and select areas in Liloan, Consolacion, and Minglanilla. Delivery coverage depends on the specific baker you order from. We are also expanding to Cavite and other areas in the Philippines.'
+                a: 'We currently deliver throughout Metro Cebu including Cebu City, Mandaue City, Lapu-Lapu City (Mactan), Talisay City, and select areas in Liloan, Consolacion, and Minglanilla. Delivery coverage depends on the specific baker you order from.'
             },
             {
                 q: 'How long does delivery take?',

@@ -272,16 +272,6 @@ function CategorySchema({ category, designs, url }: { category: ReturnType<typeo
                 { '@type': 'ListItem', position: 3, name: category.designLabel, item: url },
             ],
         },
-        // FAQPage — qualifies for FAQ rich results & improves thin-content signal
-        {
-            '@context': 'https://schema.org',
-            '@type': 'FAQPage',
-            mainEntity: getCategoryFaqs(category.decodedKeyword, category.coreName, category.productLabel).map(({ q, a }) => ({
-                '@type': 'Question',
-                name: q,
-                acceptedAnswer: { '@type': 'Answer', text: a },
-            })),
-        },
     ];
 
     return (

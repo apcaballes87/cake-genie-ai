@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ArrowLeft, Award, Target, Rocket, Users, Handshake, Search, Upload, Edit, Wand2, ShoppingCart, CheckCircle, X } from 'lucide-react';
 import LazyImage from '@/components/LazyImage';
+import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile';
 
 const Section: React.FC<{ title: string; children: React.ReactNode; className?: string }> = ({ title, children, className = '' }) => (
     <div className={`pt-6 border-t border-slate-200 ${className}`}>
@@ -71,6 +73,21 @@ const AboutClient: React.FC = () => {
                 </div>
 
                 <div className="space-y-8">
+                    <div className="rounded-2xl border border-purple-100 bg-linear-to-r from-pink-50 via-white to-purple-50 p-5">
+                        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-pink-600">What Genie.ph is</p>
+                        <p className="mt-3 text-base leading-7 text-slate-600">
+                            Genie.ph is a Cebu-based AI-powered marketplace for custom cakes. We help customers upload a design, estimate the price, customize the details, and place an order with vetted local bakers serving Metro Cebu.
+                        </p>
+                        <div className="mt-4 flex flex-wrap gap-3">
+                            <Link href="/customizing" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                                Start an order
+                            </Link>
+                            <Link href="/contact" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800">
+                                Contact the team
+                            </Link>
+                        </div>
+                    </div>
+
                     <Section title="Our Story">
                         <p>Genie was founded by Alan Paris Caballes with a vision to revolutionize the made-to-order economy. What began as a solution to the frustrations of ordering custom cakes—the long waits for replies, tedious back-and-forth conversations, and unclear pricing—has evolved into a cutting-edge platform that bridges the gap between artisans and their customers through innovative AI-powered technology.</p>
                     </Section>
@@ -85,7 +102,7 @@ const AboutClient: React.FC = () => {
                     </div>
 
                     <Section title="What We Do">
-                        <p>Genie is an online cakeshop with true customization features powered by AI. Our platform transforms the custom cake ordering experience.</p>
+                        <p>Genie is an AI-powered custom cake marketplace with true customization features. Our platform transforms the custom cake ordering experience for Metro Cebu customers.</p>
                         <div className="mt-6">
                             <div>
                                 <h3 className="text-lg font-semibold text-slate-700 mb-3 flex items-center gap-2"><Users className="w-5 h-5 text-pink-500" /> For Customers</h3>
@@ -108,7 +125,7 @@ const AboutClient: React.FC = () => {
                         <div className="bg-linear-to-br from-yellow-50 to-amber-100 p-6 rounded-xl border-2 border-yellow-200">
                             <h3 className="text-lg font-bold text-amber-800 mb-2 flex items-center gap-2"><Award className="w-5 h-5" /> 1st Place Winner - Startup Innovation Summit, Mandaue City</h3>
                             <p className="text-amber-700">We are proud to have won first place at the Startup Innovation Summit – Innovative Business Start-Up Prototype Competition held during the Mandaue City Charter Anniversary Celebration. This prestigious recognition validates our commitment to innovation and our mission to provide technology solutions that make life better for communities.</p>
-                            <p className="text-amber-700 mt-2">Organized by the Mandaue Investment Promotions and Tourism Action Center (MIPTAC) in partnership with the Mandaue Chamber of Commerce and Industry (MCCI), the competition brought together the region's most promising innovators and entrepreneurs. Our victory demonstrates the value and potential of Genie in transforming not just the custom cake industry, but the entire made-to-order economy.</p>
+                            <p className="text-amber-700 mt-2">Organized by the Mandaue Investment Promotions and Tourism Action Center (MIPTAC) in partnership with the Mandaue Chamber of Commerce and Industry (MCCI), the competition brought together the region&apos;s most promising innovators and entrepreneurs. Our victory demonstrates the value and potential of Genie in transforming not just the custom cake industry, but the entire made-to-order economy.</p>
                         </div>
                     </Section>
 
@@ -122,6 +139,23 @@ const AboutClient: React.FC = () => {
                                     onClick={() => setZoomedPermit(permit.url)}
                                 />
                             ))}
+                        </div>
+                    </Section>
+
+                    <Section title="Location and Support">
+                        <p>
+                            Genie.ph is based at {genieBusinessProfile.addressLine} and currently focuses on Metro Cebu service areas including {genieBusinessProfile.serviceAreas.join(', ')}.
+                        </p>
+                        <p>
+                            Customer support is available {genieBusinessProfile.hoursDisplay}. You can reach us at {genieBusinessProfile.phoneDisplay} or {genieBusinessProfile.supportEmail}.
+                        </p>
+                        <div className="flex flex-wrap gap-3">
+                            <Link href="/reviews" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800">
+                                Read customer reviews
+                            </Link>
+                            <Link href="/services" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800">
+                                Explore services
+                            </Link>
                         </div>
                     </Section>
 

@@ -1,13 +1,14 @@
 import ReviewsClient from './ReviewsClient'
-import { buildNoIndexPageMetadata } from '@/lib/utils/metadata'
+import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
 import { createClient } from '@/lib/supabase/server'
 import { normalizePublicReviews, REVIEW_SELECT } from '@/lib/reviews'
 import { SupabaseClient } from '@supabase/supabase-js'
+import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile'
 
-export const metadata = buildNoIndexPageMetadata({
+export const metadata = buildMarketingPageMetadata({
     title: 'Customer Reviews and Testimonials',
     description: 'Read reviews and testimonials from customers who ordered custom cakes through Genie.ph.',
-    follow: true,
+    canonicalPath: 'https://genie.ph/reviews',
 })
 
 async function getReviews() {
@@ -26,6 +27,28 @@ async function getReviews() {
 
 export default async function ReviewsPage() {
   const { reviews, error } = await getReviews();
+  const reviewSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    '@id': `${genieBusinessProfile.siteUrl}/reviews#page`,
+    name: 'Genie.ph customer reviews',
+    url: `${genieBusinessProfile.siteUrl}/reviews`,
+    description: 'Verified customer reviews and testimonials for Genie.ph cake orders.',
+    isPartOf: {
+      '@id': genieBusinessProfile.websiteId,
+    },
+    about: {
+      '@id': genieBusinessProfile.organizationId,
+    },
+  }
   
-  return <ReviewsClient initialReviews={reviews} error={error?.message || null} />
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(reviewSchema) }}
+      />
+      <ReviewsClient initialReviews={reviews} error={error?.message || null} />
+    </>
+  )
 }
