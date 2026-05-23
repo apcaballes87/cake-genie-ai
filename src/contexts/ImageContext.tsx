@@ -20,6 +20,8 @@ import {
 } from '@/lib/utils/serverFingerprint.client'
 import { findOrbCacheHit } from '@/services/orbMatchingService'
 
+const USER_UPLOAD_ORB_MATCH_MODE = 'strict'
+
 interface ImageContextType {
     originalImageData: { data: string; mimeType: string } | null;
     sourceImageData: { data: string; mimeType: string } | null;
@@ -395,7 +397,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             // If the FastAPI backend is online, we rely on its authoritative crop-resistant matching.
             // We fall back to database pHash matching ONLY if the FastAPI backend is offline or errors.
             let checkToastId = showStatus('Checking your image…', { duration: 30000 });
-            const orbCacheHitPromise = findOrbCacheHit(file);
+            const orbCacheHitPromise = findOrbCacheHit(file, { mode: USER_UPLOAD_ORB_MATCH_MODE });
             const validationPromise = validateCakeImage(
                 compressedImageData.data,
                 compressedImageData.mimeType

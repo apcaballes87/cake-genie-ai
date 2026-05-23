@@ -1,5 +1,23 @@
 # Tasks
 
+## Make User Upload ORB Matching Strict
+
+### Plan
+
+- [x] Confirm the live user-upload ORB cache-hit path and identify where the match mode is chosen.
+- [x] Switch the real user-upload ORB requests from `default` to `strict` without changing the similarity debugger controls.
+- [x] Run targeted verification and capture the resulting live thresholds/behavior.
+
+### Review
+
+- The live production upload path in `src/contexts/ImageContext.tsx` now calls `findOrbCacheHit(file, { mode: 'strict' })`, so uploads only honor ORB cache hits after the stricter backend thresholds pass.
+- The older fallback hook in `src/hooks/useImageManagement.ts` was also updated from `mode=default` to `mode=strict` so any remaining callers behave consistently.
+- The similarity debugger was intentionally left unchanged. It still lets you choose `loose`, `default`, or `strict` manually from the UI.
+- Verified directly in code with `rg` that both upload call sites now use `strict`.
+- Local build verification:
+  `npm run build` reached a clean compile and TypeScript pass after the change.
+  A later local prerender phase stalled silently in this workspace, so I am not claiming a fresh end-to-end build completion for this tiny mode switch beyond the compile/typecheck signal.
+
 ## Merchant Center ID Attribute Compliance
 
 ### Plan

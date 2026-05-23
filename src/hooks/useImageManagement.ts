@@ -22,6 +22,7 @@ import {
 } from '@/services/orbBackendConfig';
 export { generatePerceptualHash } from '@/lib/utils/perceptualHash.client';
 
+const USER_UPLOAD_ORB_MATCH_MODE = 'strict';
 
 export const useImageManagement = () => {
     const supabase = getSupabaseClient();
@@ -102,7 +103,7 @@ export const useImageManagement = () => {
                 const formData = new FormData();
                 formData.append('file', file);
                 
-                const matchResponse = await fetch(`${matchUrl}?mode=default&visualize=false`, {
+                const matchResponse = await fetch(`${matchUrl}?mode=${USER_UPLOAD_ORB_MATCH_MODE}&visualize=false`, {
                     method: 'POST',
                     body: formData,
                 });
