@@ -59,6 +59,27 @@ interface CustomizingStepSummarySectionsProps {
     originalCakeType?: string | null;
 }
 
+const findScrollableParent = (element: HTMLElement | null): HTMLElement | null => {
+    if (!element || typeof window === 'undefined') {
+        return null;
+    }
+
+    let currentParent = element.parentElement;
+
+    while (currentParent) {
+        const { overflowY } = window.getComputedStyle(currentParent);
+        const canScrollVertically = /(auto|scroll|overlay)/.test(overflowY);
+
+        if (canScrollVertically && currentParent.scrollHeight > currentParent.clientHeight + 1) {
+            return currentParent;
+        }
+
+        currentParent = currentParent.parentElement;
+    }
+
+    return document.scrollingElement instanceof HTMLElement ? document.scrollingElement : null;
+};
+
 const getIcingImage = (icingDesign: IcingDesignUI, type: IcingImageType, isTopSpecific = false): string => {
     const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
     let color: string | undefined;
@@ -268,6 +289,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     const [showIcingChoice, setShowIcingChoice] = React.useState(true);
     const [showAdvanced, setShowAdvanced] = React.useState(false);
     const stepOneCardRef = React.useRef<HTMLDivElement | null>(null);
+    const advancedSectionRef = React.useRef<HTMLDivElement | null>(null);
     const sizeScrollRef = React.useRef<HTMLDivElement | null>(null);
     const heightScrollRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -306,11 +328,55 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
         }
     }, [cakeInfo?.thickness]);
 
+    React.useEffect(() => {
+        if (!showAdvanced || layout !== 'desktop' || !advancedSectionRef.current) {
+            return;
+        }
+
+        const scrollAdvancedIntoView = () => {
+            const advancedSection = advancedSectionRef.current;
+            if (!advancedSection) {
+                return;
+            }
+
+            const scrollParent = findScrollableParent(advancedSection);
+            const targetElement = advancedSection.firstElementChild instanceof HTMLElement
+                ? advancedSection.firstElementChild
+                : advancedSection;
+
+            if (!scrollParent || scrollParent === document.scrollingElement) {
+                targetElement.scrollIntoView({
+                    block: 'start',
+                    inline: 'nearest',
+                    behavior: 'smooth',
+                });
+                return;
+            }
+
+            const parentRect = scrollParent.getBoundingClientRect();
+            const targetRect = targetElement.getBoundingClientRect();
+            const targetTop = scrollParent.scrollTop + (targetRect.top - parentRect.top) - 16;
+
+            scrollParent.scrollTo({
+                top: Math.max(0, targetTop),
+                behavior: 'smooth',
+            });
+        };
+
+        const animationFrame = requestAnimationFrame(scrollAdvancedIntoView);
+        const followUpTimeout = window.setTimeout(scrollAdvancedIntoView, 220);
+
+        return () => {
+            cancelAnimationFrame(animationFrame);
+            window.clearTimeout(followUpTimeout);
+        };
+    }, [showAdvanced, layout]);
+
     const isDesktop = layout === 'desktop';
     const cakeType = cakeInfo?.type?.toLowerCase() || '';
     const isTieredFlavorLayout = cakeType.includes('2 tier') || cakeType.includes('3 tier');
     const containerClassName = isDesktop
-        ? 'w-full hidden md:flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden gap-2 pb-6 md:pb-4 scrollbar-hide snap-x md:snap-none relative z-60'
+        ? 'w-full hidden md:flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden gap-2 pb-6 md:pb-32 scrollbar-hide snap-x md:snap-none relative z-60'
         : 'w-full mt-0 flex flex-col gap-2 pb-4 md:hidden';
     const cardClassName = isDesktop
         ? 'shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start genie-card p-2 rounded-2xl'
@@ -428,19 +494,19 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     const combinedDecorSummary = buildCombinedDecorSummary(mainToppers, supportElements);
     const mainColorOptionsNode = cakeInfo ? (
         <div className={cardClassName}>
-            <div className="flex items-center gap-4 px-1 pb-2">
-                <div className="flex flex-col items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-3 px-1 pb-1">
+                <div className="flex flex-col items-center gap-1 shrink-0">
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Main</span>
                     <div
-                        className="w-12 h-12 rounded-full border-2 border-white shadow-md ring-1 ring-slate-100 shrink-0"
+                        className="w-10 h-10 rounded-full border-2 border-white shadow-md ring-1 ring-slate-100 shrink-0"
                         style={{ backgroundColor: icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF' }}
                     />
                 </div>
 
-                <div className="w-px h-12 bg-slate-100 shrink-0" />
+                <div className="w-px h-10 bg-slate-100 shrink-0" />
 
                 <div className="flex-1 overflow-x-auto scrollbar-hide">
-                    <div className="flex gap-2.5 py-1 px-1">
+                    <div className="flex gap-2 py-0.5 px-1">
                         {THEME_COLORS.map((color) => {
                             const currentColorHex = icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF';
                             const currentColorName = hexToColorNameProse(currentColorHex);
@@ -466,18 +532,18 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         onUpdateDesign?.(instruction);
                                     }}
                                     disabled={isUpdatingDesign}
-                                    className={`group relative flex flex-col items-center gap-1.5 shrink-0 transition-transform active:scale-95 ${isUpdatingDesign ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    className={`group relative flex flex-col items-center gap-1 shrink-0 transition-transform active:scale-95 ${isUpdatingDesign ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     title={color.name}
                                 >
                                     <div
-                                        className={`w-10 h-10 rounded-full border shadow-sm transition-all ${
+                                        className={`w-8 h-8 rounded-full border shadow-sm transition-all ${
                                             currentColorHex.toLowerCase() === color.hex.toLowerCase()
                                                 ? 'border-slate-300 ring-2 ring-slate-300'
                                                 : 'border-slate-100 group-hover:shadow-md group-hover:ring-2 group-hover:ring-purple-200'
                                         }`}
                                         style={{ backgroundColor: color.hex }}
                                     />
-                                    <span className="text-[8px] font-medium text-slate-500 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span className="text-[7px] font-medium text-slate-500 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
                                         {color.name}
                                     </span>
                                 </button>
@@ -886,6 +952,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
             )}
 
             <div 
+                ref={advancedSectionRef}
                 id="advanced-customization-steps" 
                 aria-hidden={!showAdvanced}
                 className={`flex flex-col gap-2 transition-all duration-500 ease-in-out overflow-hidden ${

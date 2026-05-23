@@ -51,7 +51,7 @@ const ImageZoomModalContent = React.memo<ImageZoomModalContentProps>(({
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-4 transition-opacity duration-200 opacity-100"
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[150] flex flex-col items-center justify-center p-4 transition-opacity duration-200 opacity-100"
       onClick={onClose}
       aria-modal="true"
       role="dialog"

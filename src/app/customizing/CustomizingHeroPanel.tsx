@@ -186,7 +186,7 @@ export const CustomizingHeroPanel = memo(({
             <div className="relative h-full w-full">
                 <div
                     ref={mobileHeroScrollRef}
-                    className="h-full w-full overflow-y-auto overscroll-contain bg-white scroll-smooth"
+                    className="h-full w-full overflow-y-auto overscroll-auto bg-white scroll-smooth"
                     style={{ WebkitOverflowScrolling: 'touch' }}
                     data-testid="mobile-hero-scroll-area"
                 >
@@ -269,7 +269,7 @@ export const CustomizingHeroPanel = memo(({
                 <div className="grow">
                     <div
                         className={enableMobileHeroPan
-                            ? 'relative w-full aspect-[5/4] md:aspect-auto md:min-h-0 rounded-3xl overflow-hidden touch-none md:touch-auto overscroll-contain md:overscroll-auto'
+                            ? 'relative w-full aspect-[5/4] md:aspect-auto md:min-h-0 rounded-3xl overflow-hidden touch-none md:touch-auto overscroll-auto'
                             : 'relative w-full min-h-[270px] md:min-h-[400px] rounded-3xl overflow-hidden'
                         }
                         onContextMenu={(event) => event.preventDefault()}
