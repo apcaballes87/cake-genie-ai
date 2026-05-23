@@ -6,7 +6,7 @@
 
 - [x] Confirm the remote table is currently missing through Supabase MCP.
 - [x] Apply only the `create_cakegenie_contact_messages` migration through Supabase MCP.
-- [ ] Verify the table exists and the live `/api/contact` route accepts a submission.
+- [x] Verify the table exists and the live `/api/contact` route accepts a submission.
 
 ### Review
 
@@ -14,7 +14,9 @@
 - The remote `public.cakegenie_contact_messages` table now exists with RLS enabled, columns `id`, `name`, `phone`, `email`, `message`, `source`, and `created_at`, and primary key `id`.
 - Verified policies now exist for `service_role`: `service_role_contact_messages_insert` for `INSERT` and `service_role_contact_messages_select` for `SELECT`.
 - Per the task constraint, no fallback was used. I did not run `supabase db push`, did not repair migration history, and did not apply SQL through any non-MCP path.
-- Live route check against `POST https://genie.ph/api/contact` still returns `HTTP/2 404`, so the production deployment reachable at `genie.ph` does not currently expose the route. The database blocker is fixed; route verification is blocked by the deployed app version/routing.
+- Committed and pushed the contact/API/AEO implementation to `main` at `80a2090`, then verified Vercel production deployment `dpl_2u4nvAUvzHn2DyUszXdDdEL61gMw` reached `READY` and was aliased to `genie.ph`.
+- Live route verification passed after deployment: `POST https://genie.ph/api/contact` returned `HTTP/2 200` with `{"success":true}`.
+- Supabase row verification passed for `codex-contact-deploy-test@example.com`, confirming the deployed route inserted into `public.cakegenie_contact_messages` with `source = 'contact-page'`.
 
 ## Implement Genie.ph AEO / GEO Audit Fixes
 
