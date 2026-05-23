@@ -426,6 +426,84 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
     const combinedDecorItems = getCombinedDecorItems(mainToppers, supportElements);
     const combinedDecorSummary = buildCombinedDecorSummary(mainToppers, supportElements);
+    const cakeTypeSelectorNode = cakeInfo ? (() => {
+        const currentIcingType = getIcingTypeValue(cakeInfo, icingDesign);
+        const allTypes = getCakeTypesForIcingBase(currentIcingType === 'Fondant' ? 'fondant' : 'soft_icing');
+
+        // Keep the current family grouping intact so shape changes stay scoped.
+        const normalizeForGroup = (type: string) => type.replace(/\s+Fondant$/i, '');
+        const standardGroup = ['Bento', '1 Tier', 'Square', 'Rectangle'];
+        const multiTierGroup = ['2 Tier', '3 Tier'];
+        const currentBaseType = normalizeForGroup(cakeInfo.type);
+        const isCurrentlyStandard = standardGroup.includes(currentBaseType);
+
+        const filteredTypes = allTypes.filter((type) => {
+            const baseType = normalizeForGroup(type);
+            return isCurrentlyStandard ? standardGroup.includes(baseType) : multiTierGroup.includes(baseType);
+        });
+
+        return (
+            <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cake Type</span>
+                <div className="flex flex-nowrap overflow-x-auto gap-3 py-1 px-1 scrollbar-hide">
+                    {filteredTypes.map((type) => {
+                        const isSelected = cakeInfo.type === type;
+
+                        return (
+                            <button
+                                key={type}
+                                onClick={() => onCakeInfoChange?.({ type })}
+                                className={`min-h-[32px] min-w-[90px] flex-1 flex items-center justify-center px-2 rounded-xl border transition-all duration-300 ${
+                                    isSelected
+                                        ? 'genie-control-selected text-purple-700 scale-[1.02]'
+                                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-200 hover:bg-slate-100/50'
+                                }`}
+                            >
+                                <span className="text-[9px] font-bold text-center leading-none whitespace-nowrap">{type}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    })() : null;
+    const cakeTypeUpdateNode = cakeInfo ? (() => {
+        const normalizeType = (type: string) => type.replace(/\s+Fondant$/i, '').trim();
+        const currentBaseType = normalizeType(cakeInfo.type);
+        const originalBaseType = originalCakeType ? normalizeType(originalCakeType) : null;
+        const isTypeDirty = originalBaseType && currentBaseType !== originalBaseType;
+        const isUpdateableType = ['Bento', '1 Tier', 'Square', 'Rectangle'].includes(currentBaseType);
+
+        if (!isTypeDirty || !isUpdateableType) {
+            return null;
+        }
+
+        return (
+            <div className="mt-3 px-1 animate-in fade-in slide-in-from-top-2 duration-300 flex flex-col items-center">
+                <button
+                    onClick={() => onUpdateDesign?.()}
+                    disabled={isUpdatingDesign}
+                    className="w-auto px-8 py-2 rounded-full genie-btn-primary flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.98] group relative overflow-hidden"
+                >
+                    <div className="absolute inset-0 bg-linear-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+                    {isUpdatingDesign ? (
+                        <>
+                            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <span className="font-bold text-[10px] tracking-tight uppercase">Updating...</span>
+                        </>
+                    ) : (
+                        <>
+                            <MagicSparkleIcon className="w-3.5 h-3.5 text-white group-hover:rotate-12 transition-transform" />
+                            <span className="font-bold text-[10px] tracking-tight uppercase italic whitespace-nowrap">Update design changes</span>
+                        </>
+                    )}
+                </button>
+                <p className="text-[9px] text-slate-400 mt-1.5 text-center font-medium italic opacity-80">
+                    ✨ This will update the cake shape/type using AI
+                </p>
+            </div>
+        );
+    })() : null;
     const icingSummaryItems = icingDesign && cakeInfo ? [
         { id: 'icing-edit-drip', description: 'Drip', label: 'Drip', alt: 'Drip', imageType: 'drip' as const, enabled: icingDesign.drip },
         { id: 'icing-edit-borderTop', description: 'Top', label: 'Top Border', alt: 'Top Border', imageType: 'borderTop' as const, enabled: icingDesign.border_top },
@@ -481,7 +559,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                     return (
                                         <button
                                             key={option.id}
-                                            onClick={() => onIcingTypeChange?.(option.id as any)}
+                                            onClick={() => onIcingTypeChange?.(option.id as IcingDesignUI['base'])}
                                             className={`flex-1 min-h-[32px] flex items-center justify-center px-2.5 py-0.5 rounded-xl border transition-all duration-300 ${
                                                 isSelected 
                                                     ? 'genie-control-selected text-purple-700 scale-[1.02]' 
@@ -494,94 +572,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                 })}
                             </div>
                         </div>
-
-                        {/* Line 2: Cake Type */}
-                        <div className="flex flex-col gap-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cake Type</span>
-                            <div className="flex flex-nowrap overflow-x-auto gap-3 py-1 px-1 scrollbar-hide">
-                                {(() => {
-                                    const currentIcingType = getIcingTypeValue(cakeInfo, icingDesign);
-                                    const allTypes = getCakeTypesForIcingBase(currentIcingType === 'Fondant' ? 'fondant' : 'soft_icing');
-                                    
-                                    // Normalize type by stripping " Fondant" suffix for grouping checks
-                                    const normalizeForGroup = (t: string) => t.replace(/\s+Fondant$/i, '');
-                                    
-                                    const standardGroup = ['Bento', '1 Tier', 'Square', 'Rectangle'];
-                                    const multiTierGroup = ['2 Tier', '3 Tier'];
-                                    
-                                    const currentBaseType = normalizeForGroup(cakeInfo.type);
-                                    const isCurrentlyStandard = standardGroup.includes(currentBaseType);
-                                    
-                                    const filteredTypes = allTypes.filter(t => {
-                                        const baseT = normalizeForGroup(t);
-                                        return isCurrentlyStandard ? standardGroup.includes(baseT) : multiTierGroup.includes(baseT);
-                                    });
-
-                                    return filteredTypes.map((type) => {
-                                        const isSelected = cakeInfo.type === type;
-                                        return (
-                                            <button
-                                                key={type}
-                                                onClick={() => onCakeInfoChange?.({ type })}
-                                                className={`min-h-[32px] min-w-[90px] flex-1 flex items-center justify-center px-2 rounded-xl border transition-all duration-300 ${
-                                                    isSelected 
-                                                        ? 'genie-control-selected text-purple-700 scale-[1.02]' 
-                                                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-200 hover:bg-slate-100/50'
-                                                }`}
-                                            >
-                                                <span className="text-[9px] font-bold text-center leading-none whitespace-nowrap">{type}</span>
-                                            </button>
-                                        );
-                                    });
-                                })()}
-                            </div>
-                        </div>
-
-                        {/* Update Design Button for specific cake types */}
-                        {(() => {
-                            if (!cakeInfo) return null;
-                            
-                            // Normalize types for comparison (strip " Fondant")
-                            const normalizeType = (t: string) => t.replace(/\s+Fondant$/i, '').trim();
-                            const currentBaseType = normalizeType(cakeInfo.type);
-                            const originalBaseType = originalCakeType ? normalizeType(originalCakeType) : null;
-                            
-                            // Show button ONLY if cake type changed from the original analysis
-                            const isTypeDirty = originalBaseType && currentBaseType !== originalBaseType;
-                            
-                            // Button only supports these specific types
-                            const isUpdateableType = ['Bento', '1 Tier', 'Square', 'Rectangle'].includes(currentBaseType);
-                            
-                            if (!isTypeDirty || !isUpdateableType) {
-                                return null;
-                            }
-
-                            return (
-                                <div className="mt-3 px-1 animate-in fade-in slide-in-from-top-2 duration-300 flex flex-col items-center">
-                                    <button
-                                        onClick={() => onUpdateDesign?.()}
-                                        disabled={isUpdatingDesign}
-                                        className="w-auto px-8 py-2 rounded-full genie-btn-primary flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.98] group relative overflow-hidden"
-                                    >
-                                        <div className="absolute inset-0 bg-linear-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
-                                        {isUpdatingDesign ? (
-                                            <>
-                                                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                <span className="font-bold text-[10px] tracking-tight uppercase">Updating...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <MagicSparkleIcon className="w-3.5 h-3.5 text-white group-hover:rotate-12 transition-transform" />
-                                                <span className="font-bold text-[10px] tracking-tight uppercase italic whitespace-nowrap">Update design changes</span>
-                                            </>
-                                        )}
-                                    </button>
-                                    <p className="text-[9px] text-slate-400 mt-1.5 text-center font-medium italic opacity-80">
-                                        ✨ This will update the cake shape/type using AI
-                                    </p>
-                                </div>
-                            );
-                        })()}
 
                         {/* Size, Height, and Flavor Container */}
                         <div className={isTieredFlavorLayout ? 'flex flex-col gap-4 w-full mt-2 bg-transparent' : 'flex flex-row gap-4 w-full mt-2 bg-transparent'}>
@@ -696,7 +686,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                         }`}
                                                     >
                                                         <span className={`text-[9px] font-black ${isSelected ? 'text-purple-600' : 'text-slate-600 group-hover:text-purple-300'} transition-colors`}>
-                                                            {heightValue}"
+                                                            {heightValue}&quot;
                                                         </span>
                                                     </div>
                                                 </button>
@@ -820,7 +810,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             <div className="text-left">
                                 <span className="block text-sm font-bold leading-tight">Advanced Customization</span>
                                 <span className="block text-[10px] font-medium text-slate-500 mt-0.5">
-                                    {showAdvanced ? 'Hide additional options' : 'Colors, decorations, AI chat and more'}
+                                    {showAdvanced ? 'Hide additional options' : 'Cake type, colors, decorations, AI chat and more'}
                                 </span>
                             </div>
                         </div>
@@ -833,6 +823,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
             <div 
                 id="advanced-customization-steps" 
+                aria-hidden={!showAdvanced}
                 className={`flex flex-col gap-2 transition-all duration-500 ease-in-out overflow-hidden ${
                     showAdvanced ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
                 }`}
@@ -896,6 +887,15 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                     })}
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {cakeInfo && !isAnalyzing && !isRejectionError && cakeTypeSelectorNode && (
+                    <div className={cardClassName}>
+                        <div className="flex flex-col gap-2 px-1 pb-2">
+                            {cakeTypeSelectorNode}
+                            {cakeTypeUpdateNode}
                         </div>
                     </div>
                 )}

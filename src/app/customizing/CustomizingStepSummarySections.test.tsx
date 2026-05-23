@@ -91,17 +91,19 @@ const buildProps = (): React.ComponentProps<typeof CustomizingStepSummarySection
 });
 
 describe('CustomizingStepSummarySections', () => {
-    it('opens a focused floating popup for cake specs and still forwards message actions', () => {
+    it('keeps cake type controls in advanced customization and still forwards message actions', () => {
         const props = buildProps();
 
         render(<CustomizingStepSummarySections {...props} />);
 
-        fireEvent.click(screen.getByRole('button', { name: /2 Tier/i }));
+        expect(screen.queryByRole('button', { name: /3 Tier/i })).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: /Advanced Customization/i }));
         fireEvent.click(screen.getByRole('button', { name: /3 Tier/i }));
         fireEvent.click(screen.getByText('Happy Birthday'));
         fireEvent.click(screen.getByRole('button', { name: 'Delete message' }));
 
-        expect(props.onCakeInfoChange).toHaveBeenNthCalledWith(2, { type: '3 Tier' });
+        expect(props.onCakeInfoChange).toHaveBeenCalledWith({ type: '3 Tier' });
         expect(props.setActiveCustomization).toHaveBeenCalledWith('messages');
         expect(props.setSelectedItem).toHaveBeenCalledWith(expect.objectContaining({
             id: 'message-1',
@@ -143,6 +145,7 @@ describe('CustomizingStepSummarySections', () => {
         render(<CustomizingStepSummarySections {...props} />);
 
         fireEvent.click(screen.getByRole('button', { name: /Add a cake message/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Advanced Customization/i }));
         fireEvent.click(screen.getByRole('button', { name: /1x\s*Toy topper\s*\(Toy\)/i }));
 
         expect(props.setActiveCustomization).toHaveBeenCalledWith('messages');
@@ -211,6 +214,8 @@ describe('CustomizingStepSummarySections', () => {
 
         render(<CustomizingStepSummarySections {...props} />);
 
+        fireEvent.click(screen.getByRole('button', { name: /Advanced Customization/i }));
+
         expect(screen.getByRole('button', { name: /1x\s*Toy topper\s*\(Toy\)/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /1x\s*Butterfly topper\s*\(Figurine \(Simpler\)\)/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /2x\s*Pink flowers\s*\(Fresh Flowers\)/i })).toBeInTheDocument();
@@ -256,8 +261,14 @@ describe('CustomizingStepSummarySections', () => {
 
         expect(advancedToggle).toHaveAttribute('aria-expanded', 'true');
         expect(advancedSection).toHaveClass('max-h-[2000px]', 'opacity-100');
-        expect(screen.getByText('Main')).toBeInTheDocument();
-        expect(screen.getByTitle('red')).toBeInTheDocument();
+        const advancedScope = within(advancedSection as HTMLElement);
+        const cakeTypeLabel = advancedScope.getByText('Cake Type');
+        const mainLabel = advancedScope.getByText('Main');
+
+        expect(advancedScope.getByRole('button', { name: /2 Tier/i })).toBeInTheDocument();
+        expect(advancedScope.getByRole('button', { name: /3 Tier/i })).toBeInTheDocument();
+        expect(advancedScope.getByTitle('red')).toBeInTheDocument();
+        expect(mainLabel.compareDocumentPosition(cakeTypeLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
     it('renders tiered flavor rows below height for 3-tier cakes', () => {

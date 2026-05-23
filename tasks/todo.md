@@ -1,5 +1,40 @@
 # Tasks
 
+## Move Main Color Controls Above Advanced Cake Options
+
+### Plan
+
+- [x] Confirm the current order of the advanced customization cards after the earlier cake-type move.
+- [x] Reorder the advanced customization stack so the main color controls appear before the cake options card.
+- [x] Update focused customizer tests, run targeted verification, and capture the resulting behavior here.
+
+### Review
+
+- The advanced customization stack in `src/app/customizing/CustomizingStepSummarySections.tsx` now renders the `Main` color controls card before the cake-type options card, so color selection appears first when the section opens.
+- This was a pure ordering change inside the advanced section. The cake options card still contains the same filtered cake-type buttons and `Update design changes` CTA; it now simply appears below the color controls instead of above them.
+- The focused advanced-section regression test now asserts both presence and DOM order, confirming that `Main` renders before the `Cake Type` label when the advanced section is expanded.
+- Verification:
+  `npx vitest run src/app/customizing/CustomizingStepSummarySections.test.tsx --exclude '.claude/**'` passed (`9` tests).
+  `npx eslint src/app/customizing/CustomizingStepSummarySections.tsx src/app/customizing/CustomizingStepSummarySections.test.tsx` completed with `0` errors and the same `19` pre-existing unused-code warnings already present in `CustomizingStepSummarySections.tsx`.
+
+## Move Cake Type Controls Into Advanced Customization
+
+### Plan
+
+- [x] Confirm where the customizer currently renders the cake type buttons and which nearby behaviors depend on that placement.
+- [x] Remove the cake type controls from the default cake options card and place them inside the Advanced Customization section without changing the rest of the sizing/flavor flow.
+- [x] Update focused customizer tests and run targeted verification, then capture the final behavior here.
+
+### Review
+
+- The cake type selector is no longer rendered in the default cake options card in `src/app/customizing/CustomizingStepSummarySections.tsx`. That top card now stays focused on icing, size, height, and flavor.
+- The same filtered cake-type selector logic was extracted into a reusable block and moved into the `Advanced Customization` stack so it stays grouped with the other optional design controls.
+- The cake-type-specific `Update design changes` AI CTA moved with that selector, keeping the shape-change action next to the type buttons instead of leaving it stranded in the main options card.
+- The advanced section toggle copy now mentions cake type, and the collapsible container is marked `aria-hidden` while closed so those controls are not exposed as active buttons until the section is opened.
+- Verification:
+  `npx vitest run src/app/customizing/CustomizingStepSummarySections.test.tsx --exclude '.claude/**'` passed (`9` tests).
+  `npx eslint src/app/customizing/CustomizingStepSummarySections.tsx src/app/customizing/CustomizingStepSummarySections.test.tsx` completed with `0` errors and `19` pre-existing warnings for unused imports/props/state already present in `CustomizingStepSummarySections.tsx`.
+
 ## Make User Upload ORB Matching Strict
 
 ### Plan
