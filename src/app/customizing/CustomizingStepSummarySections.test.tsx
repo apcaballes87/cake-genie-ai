@@ -246,16 +246,21 @@ describe('CustomizingStepSummarySections', () => {
         expect(screen.getByRole('button', { name: /Top Border/i })).toBeInTheDocument();
     });
 
-    it('keeps the color swatches inside the advanced customization section', () => {
+    it('renders the main color swatches above the cake options and outside advanced customization', () => {
         const props = buildProps();
 
         render(<CustomizingStepSummarySections {...props} />);
 
         const advancedToggle = screen.getByRole('button', { name: /Advanced Customization/i });
         const advancedSection = document.getElementById('advanced-customization-steps');
+        const icingTypeLabel = screen.getByText('Icing Type');
+        const mainLabel = screen.getByText('Main');
 
+        expect(mainLabel.compareDocumentPosition(icingTypeLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(screen.getByTitle('red')).toBeInTheDocument();
         expect(advancedToggle).toHaveAttribute('aria-expanded', 'false');
         expect(advancedSection).toHaveClass('max-h-0', 'opacity-0', 'pointer-events-none');
+        expect(within(advancedSection as HTMLElement).queryByText('Main')).not.toBeInTheDocument();
 
         fireEvent.click(advancedToggle);
 
@@ -263,12 +268,10 @@ describe('CustomizingStepSummarySections', () => {
         expect(advancedSection).toHaveClass('max-h-[2000px]', 'opacity-100');
         const advancedScope = within(advancedSection as HTMLElement);
         const cakeTypeLabel = advancedScope.getByText('Cake Type');
-        const mainLabel = advancedScope.getByText('Main');
 
         expect(advancedScope.getByRole('button', { name: /2 Tier/i })).toBeInTheDocument();
         expect(advancedScope.getByRole('button', { name: /3 Tier/i })).toBeInTheDocument();
-        expect(advancedScope.getByTitle('red')).toBeInTheDocument();
-        expect(mainLabel.compareDocumentPosition(cakeTypeLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(cakeTypeLabel).toBeInTheDocument();
     });
 
     it('renders tiered flavor rows below height for 3-tier cakes', () => {

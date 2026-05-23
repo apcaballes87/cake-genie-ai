@@ -1,5 +1,23 @@
 # Tasks
 
+## Move Main Color Controls Outside Advanced Customization
+
+### Plan
+
+- [x] Confirm the current placement of the `Main` color controls relative to the cake options card and advanced section.
+- [x] Move the `Main` color controls out of `Advanced Customization` and place them above the cake options container in the main flow.
+- [x] Update focused customizer tests, run targeted verification, and capture the resulting behavior here.
+
+### Review
+
+- The `Main` color controls now render in the main summary flow above the cake options container in `src/app/customizing/CustomizingStepSummarySections.tsx`, instead of being nested inside `Advanced Customization`.
+- The advanced section now starts with the cake-type options card, while the visible top-level order is color controls first, then the main cake options card, then the advanced toggle.
+- The advanced toggle helper copy was updated to remove `colors` from its collapsed description so the label matches the new placement.
+- The focused regression test now checks that `Main` renders before `Icing Type` in the main flow and confirms the advanced section no longer contains the `Main` label while collapsed or expanded.
+- Verification:
+  `npx vitest run src/app/customizing/CustomizingStepSummarySections.test.tsx --exclude '.claude/**'` passed (`9` tests).
+  `npx eslint src/app/customizing/CustomizingStepSummarySections.tsx src/app/customizing/CustomizingStepSummarySections.test.tsx` completed with `0` errors and the same `19` pre-existing unused-code warnings already present in `CustomizingStepSummarySections.tsx`.
+
 ## Move Main Color Controls Above Advanced Cake Options
 
 ### Plan
