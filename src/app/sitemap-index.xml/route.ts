@@ -2,9 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAllBlogs } from '@/services/supabaseService';
 import {
-    getIndexableCustomizedCakeRows,
-    getIndexableSharedDesignRows,
-    SITEMAP_CHUNK_SIZE,
+    getSitemapChunkHints,
 } from '@/lib/sitemap/indexability';
 
 export const dynamic = 'force-dynamic';
@@ -35,22 +33,15 @@ export async function GET() {
         .single();
     const productsLastMod = latestProduct?.updated_at ? new Date(latestProduct.updated_at).toISOString() : today;
 
-    const customizedCakes = await getIndexableCustomizedCakeRows();
-    const customizedCakeSlugs = new Set(customizedCakes.map((cake) => cake.slug));
-    const sharedDesigns = (await getIndexableSharedDesignRows())
-        .filter((design) => !customizedCakeSlugs.has(design.url_slug));
+    const {
+        customizedChunkCount: customChunks,
+        customizedLastMod,
+        sharedDesignChunkCount: designChunks,
+        sharedDesignLastMod,
+    } = await getSitemapChunkHints();
 
-    const customizedLastMod = customizedCakes[0]?.created_at
-        ? new Date(customizedCakes[0].created_at).toISOString()
-        : today;
-    const customChunks = customizedCakes.length > 0
-        ? Math.ceil(customizedCakes.length / SITEMAP_CHUNK_SIZE)
-        : 0;
-
-    const designsLastMod = sharedDesigns[0]?.created_at
-        ? new Date(sharedDesigns[0].created_at).toISOString()
-        : today;
-    const designChunks = Math.ceil(sharedDesigns.length / SITEMAP_CHUNK_SIZE) || 0;
+    const customizedLastModIso = customizedLastMod ? new Date(customizedLastMod).toISOString() : today;
+    const designsLastMod = sharedDesignLastMod ? new Date(sharedDesignLastMod).toISOString() : today;
 
     // Fetch blog posts from Supabase
     const { data: blogPosts } = await getAllBlogs();
@@ -64,7 +55,7 @@ export async function GET() {
         { name: 'sitemap-bakeries.xml', lastmod: bakeriesLastMod },
         { name: 'sitemap-products.xml', lastmod: productsLastMod },
         { name: 'sitemap-blog.xml', lastmod: latestBlogDate },
-        { name: 'sitemap-images.xml', lastmod: customizedLastMod },
+        { name: 'sitemap-images.xml', lastmod: customizedLastModIso },
     ];
 
     for (let i = 0; i < designChunks; i++) {
@@ -72,7 +63,7 @@ export async function GET() {
     }
 
     for (let i = 0; i < customChunks; i++) {
-        sitemaps.push({ name: `sitemap-customized-cakes-${i}.xml`, lastmod: customizedLastMod });
+        sitemaps.push({ name: `sitemap-customized-cakes-${i}.xml`, lastmod: customizedLastModIso });
     }
 
     const baseUrl = 'https://genie.ph';

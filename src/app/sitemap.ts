@@ -5,6 +5,7 @@ import { LOCAL_SEO_ROUTES } from '@/components/local-seo/cebuLandingData'
 import {
     getIndexableCustomizedCakeRows,
     getIndexableSharedDesignRows,
+    getSitemapChunkHints,
     SITEMAP_CHUNK_SIZE,
 } from '@/lib/sitemap/indexability'
 
@@ -50,32 +51,21 @@ export async function generateSitemaps(): Promise<Array<{ id: number | string }>
     const ids: Array<{ id: number | string }> = [{ id: 0 }, { id: 1 }, { id: 2 }, { id: 3 }];
 
     try {
-        const customizedCakes = await getIndexableCustomizedCakeRows();
-        const chunks = customizedCakes.length > 0
-            ? Math.ceil(customizedCakes.length / SITEMAP_CHUNK_SIZE)
-            : 0;
+        const {
+            customizedChunkCount: chunks,
+            sharedDesignChunkCount: designChunks,
+        } = await getSitemapChunkHints();
 
         for (let i = 0; i < chunks; i++) {
             ids.push({ id: `customized-cakes-${i}` });
         }
-    } catch (error) {
-        console.error('Error fetching sitemap chunks for customized cakes:', error);
-        ids.push({ id: 'customized-cakes-0' }); // Fallback
-    }
 
-    try {
-        const customizedCakeSlugs = new Set((await getIndexableCustomizedCakeRows()).map((cake) => cake.slug));
-        const designs = (await getIndexableSharedDesignRows())
-            .filter((design) => !customizedCakeSlugs.has(design.url_slug));
-        const chunks = designs.length > 0
-            ? Math.ceil(designs.length / SITEMAP_CHUNK_SIZE)
-            : 0;
-
-        for (let i = 0; i < chunks; i++) {
+        for (let i = 0; i < designChunks; i++) {
             ids.push({ id: `designs-${i}` });
         }
     } catch (error) {
-        console.error('Error fetching sitemap chunks for shared designs:', error);
+        console.error('Error fetching sitemap chunk hints:', error);
+        ids.push({ id: 'customized-cakes-0' }); // Fallback
         ids.push({ id: 'designs-0' }); // Fallback
     }
 
@@ -172,6 +162,7 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
             '/services',
             '/cake-price-calculator',
             '/chatgpt-cake-design-quote',
+            '/best-cake-shops-cebu',
             '/mothersdaycakes',
             '/faq',
             '/how-to-order',

@@ -9,43 +9,49 @@ export const metadata = buildMarketingPageMetadata({
 
 const comparisons = [
     {
-        slug: 'genie-ph-vs-goldilocks',
+        href: '/best-cake-shops-cebu',
+        title: 'Best Cake Shops in Cebu',
+        description: 'Compare 10 Cebu cake shops by best fit: custom birthday cakes, weddings, ube cake, cafe cakes, and moist chocolate cake.',
+        highlight: 'Top 10',
+    },
+    {
+        href: '/compare/genie-ph-vs-goldilocks',
         title: 'Genie.ph vs Goldilocks',
         description: 'Custom local cakes vs the most popular chain bakery in the Philippines. See which wins for your occasion.',
         highlight: 'High Traffic',
     },
     {
-        slug: 'genie-ph-vs-red-ribbon',
+        href: '/compare/genie-ph-vs-red-ribbon',
         title: 'Genie.ph vs Red Ribbon',
         description: 'How does ordering a custom cake from a local Cebu baker compare to Red Ribbon\'s signature cakes?',
         highlight: null,
     },
     {
-        slug: 'genie-ph-vs-contis',
+        href: '/compare/genie-ph-vs-contis',
         title: 'Genie.ph vs Contis',
         description: 'Contis\' legendary Moist Chocolate Cake vs fully personalized custom cakes from local Cebu bakers.',
         highlight: null,
     },
     {
-        slug: 'genie-ph-vs-caramia',
+        href: '/compare/genie-ph-vs-caramia',
         title: 'Genie.ph vs Caramia',
         description: 'Caramia\'s gelato cakes vs custom personalized designs. Which is right for your celebration in Cebu?',
         highlight: null,
     },
     {
-        slug: 'genie-ph-vs-traditional-bakeries',
+        href: '/compare/genie-ph-vs-traditional-bakeries',
         title: 'Genie.ph vs Traditional Bakeries',
         description: 'Compare the AI-powered marketplace experience with visiting traditional bakeshops in Cebu.',
         highlight: 'Most Popular',
     },
     {
-        slug: 'genie-ph-vs-social-media-ordering',
+        href: '/compare/genie-ph-vs-social-media-ordering',
         title: 'Genie.ph vs Social Media Ordering',
         description: 'See how ordering through Genie.ph compares to ordering custom cakes via Facebook or Instagram.',
         highlight: null,
     },
     {
-        slug: 'custom-cake-pricing-cebu',
+        href: '/compare/custom-cake-pricing-cebu',
         title: 'Custom Cake Pricing Guide: Cebu 2025',
         description: 'A comprehensive comparison of custom cake prices across different ordering methods in Cebu City.',
         highlight: 'Price Guide',
@@ -68,8 +74,8 @@ export default function ComparePage() {
                 <div className="grid gap-6">
                     {comparisons.map((item) => (
                         <Link
-                            key={item.slug}
-                            href={`/compare/${item.slug}`}
+                            key={item.title}
+                            href={item.href}
                             className="group block bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200 p-6 hover:border-pink-300 hover:shadow-lg transition-all"
                         >
                             <div className="flex items-start justify-between">

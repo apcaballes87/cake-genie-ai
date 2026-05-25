@@ -153,19 +153,22 @@ async function LandingServerSections() {
     const blogPosts = blogsRes.data || [];
 
     return (
-        <LandingClient
-            blogPosts={blogPosts}
-            reviewSummary={homepageReviews.reviewSummary}
-        >
-            {/* Server-rendered sections for LCP optimization */}
-            {/* <MerchantShowcase merchants={merchants} /> - Hidden for now */}
-            <RecommendedProductsSection products={recommendedProducts} />
-            <IntroContent />
-            <HomepageAeoSections
-                reviews={homepageReviews.reviews}
+        <>
+            <LandingClient
+                blogPosts={blogPosts}
                 reviewSummary={homepageReviews.reviewSummary}
-            />
-        </LandingClient>
+            >
+                {/* Server-rendered sections for LCP optimization */}
+                {/* <MerchantShowcase merchants={merchants} /> - Hidden for now */}
+                <RecommendedProductsSection products={recommendedProducts} />
+                <IntroContent />
+                <HomepageAeoSections
+                    reviews={homepageReviews.reviews}
+                    reviewSummary={homepageReviews.reviewSummary}
+                />
+            </LandingClient>
+            <LandingFooter reviewSummary={homepageReviews.reviewSummary} />
+        </>
     );
 }
 
@@ -177,7 +180,6 @@ export default function Home() {
                 <LandingServerSections />
             </Suspense>
             <NewsletterPopup />
-            <LandingFooter />
         </>
     );
 }

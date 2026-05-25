@@ -9,6 +9,15 @@ const mockCollections = [
   },
 ];
 
+const getIndexableCustomizedCakeRowsMock = vi.fn();
+const getIndexableSharedDesignRowsMock = vi.fn();
+const getSitemapChunkHintsMock = vi.fn().mockResolvedValue({
+  customizedChunkCount: 2,
+  customizedLastMod: '2026-05-24T00:00:00.000Z',
+  sharedDesignChunkCount: 1,
+  sharedDesignLastMod: '2026-05-23T00:00:00.000Z',
+});
+
 const mockFrom = vi.fn((table: string) => {
   if (table === 'cakegenie_collections') {
     return {
@@ -41,14 +50,18 @@ vi.mock('@/components/local-seo/cebuLandingData', () => ({
 }));
 
 vi.mock('@/lib/sitemap/indexability', () => ({
-  getIndexableCustomizedCakeRows: vi.fn(),
-  getIndexableSharedDesignRows: vi.fn(),
+  getIndexableCustomizedCakeRows: getIndexableCustomizedCakeRowsMock,
+  getIndexableSharedDesignRows: getIndexableSharedDesignRowsMock,
+  getSitemapChunkHints: getSitemapChunkHintsMock,
   SITEMAP_CHUNK_SIZE: 5000,
 }));
 
 describe('sitemap collections routes', () => {
   beforeEach(() => {
     mockFrom.mockClear();
+    getIndexableCustomizedCakeRowsMock.mockClear();
+    getIndexableSharedDesignRowsMock.mockClear();
+    getSitemapChunkHintsMock.mockClear();
   });
 
   it('builds collection sitemap entries from the collections table automatically', async () => {
@@ -70,6 +83,27 @@ describe('sitemap collections routes', () => {
           images: ['https://example.com/surprise.webp'],
           priority: 0.85,
         }),
+      ]),
+    );
+  });
+
+  it('derives dynamic sitemap chunk ids from lightweight chunk hints', async () => {
+    const { generateSitemaps } = await import('./sitemap');
+
+    const ids = await generateSitemaps();
+
+    expect(getSitemapChunkHintsMock).toHaveBeenCalledTimes(1);
+    expect(getIndexableCustomizedCakeRowsMock).not.toHaveBeenCalled();
+    expect(getIndexableSharedDesignRowsMock).not.toHaveBeenCalled();
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        { id: 0 },
+        { id: 1 },
+        { id: 2 },
+        { id: 3 },
+        { id: 'customized-cakes-0' },
+        { id: 'customized-cakes-1' },
+        { id: 'designs-0' },
       ]),
     );
   });

@@ -66,6 +66,7 @@ export default async function SitemapHtmlPage() {
                             <li><Link href="/faq" className="text-slate-600 hover:text-pink-600 font-medium">FAQ</Link></li>
                             <li><Link href="/cake-price-calculator" className="text-slate-600 hover:text-pink-600 font-medium">AI Price Calculator</Link></li>
                             <li><Link href="/chatgpt-cake-design-quote" className="text-slate-600 hover:text-pink-600 font-medium">ChatGPT Cake Quote</Link></li>
+                            <li><Link href="/best-cake-shops-cebu" className="text-slate-600 hover:text-pink-600 font-medium">Best Cake Shops in Cebu</Link></li>
                         </ul>
                     </section>
 

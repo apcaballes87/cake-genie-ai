@@ -1,5 +1,46 @@
 # Tasks
 
+## Add The Humanizer Codex Skill
+
+### Plan
+
+- [x] Create a personal Codex skill at `/Users/apcaballes/.codex/skills/the-humanizer` with trigger metadata that explicitly includes blog creation and blog review.
+- [x] Preserve the Humanizer review workflow: content-type detection, AI-pattern scan, originality check, scoring, structured review, rewrite, and skill-update report.
+- [x] Keep the main skill file concise by moving detailed marker lists into a reference file.
+- [x] Verify the skill files exist, have valid frontmatter, and are discoverable from the local skills directory.
+
+### Review
+
+- Added `/Users/apcaballes/.codex/skills/the-humanizer/SKILL.md` with metadata that triggers on humanizing writing, blog review, blog drafting, and the explicit rule: "Always use this skill when creating blogs."
+- Added `/Users/apcaballes/.codex/skills/the-humanizer/references/review-rules.md` with the adapted Humanizer v2.4 detection, scoring, originality, channel-specific rewrite, and blog QA rules.
+- Added `/Users/apcaballes/.codex/skills/the-humanizer/agents/openai.yaml` so the skill has UI-facing metadata.
+- Verification:
+  `python3` frontmatter/reference validation passed and confirmed the blog-creation trigger is present.
+  `rg` confirmed the installed skill contains the blog trigger, blog rules, scoring rules, and skill-update behavior.
+
+## Fix Live Sitemap Core Timeout And Homepage Trust Copy Drift
+
+### Plan
+
+- [x] Confirm why `https://genie.ph/sitemap-core.xml` is timing out and isolate the slow path in the sitemap routing flow.
+- [x] Add a focused fast-path for the public core sitemap so static-route XML no longer depends on heavyweight chunk discovery.
+- [x] Remove the stale hardcoded homepage footer review badge and reuse the live homepage review summary instead.
+- [x] Run targeted verification for the sitemap response path, footer output, and relevant tests/build checks.
+
+### Review
+
+- Root cause for the public `sitemap-core.xml` timeout was the `generateSitemaps()` path in `src/app/sitemap.ts`: every direct chunk request was doing heavyweight `getIndexableCustomizedCakeRows()` and `getIndexableSharedDesignRows()` work just to discover how many chunk IDs exist.
+- Added `getSitemapChunkHints()` in `src/lib/sitemap/indexability.ts`, which switches chunk discovery to lightweight Supabase count/latest-date queries instead of loading the full sitemap-ready datasets.
+- Updated both `src/app/sitemap.ts` and `src/app/sitemap-index.xml/route.ts` to use the new lightweight chunk hints, so the public sitemap routing flow no longer blocks on full customized-cake and shared-design enumeration before it can serve static sitemap surfaces.
+- Updated `src/components/landing/LandingFooter.tsx` to accept an optional `reviewSummary` prop and removed the stale hardcoded `4.8/5 based on 6 Happy Customers.` copy.
+- Updated `src/app/page.tsx` so the homepage footer reuses the same live review summary already powering the hero and homepage trust sections.
+- Added regression coverage in `src/app/sitemap.test.ts` to prove chunk ID generation now uses lightweight hints instead of the heavy row fetchers, and added `src/components/landing/LandingFooter.test.tsx` to prove the footer renders live review copy instead of the stale hardcoded badge.
+- Verification:
+  `npx vitest run src/app/sitemap.test.ts src/components/landing/LandingFooter.test.tsx src/app/page.metadata.test.tsx --exclude '.claude/**'` passed.
+  `npx eslint src/app/page.tsx src/components/landing/LandingFooter.tsx src/app/sitemap.ts src/app/sitemap-index.xml/route.ts src/lib/sitemap/indexability.ts src/app/sitemap.test.ts src/components/landing/LandingFooter.test.tsx` passed with warnings only; no new errors.
+  `npm run build` passed end to end.
+  Local production-mode checks on `http://127.0.0.1:3012` showed `sitemap-core.xml` returning `HTTP/1.1 200 OK` in about `664ms`, `sitemap.xml` returning `HTTP/1.1 200 OK`, and homepage HTML containing `5.0/5 based on 6 public reviews.` while no longer containing `4.8/5 based on 6 Happy Customers.`
+
 ## Apply Contact Form Supabase Migration Via MCP
 
 ### Plan
@@ -176,6 +217,27 @@
 ## Make User Upload ORB Matching Strict
 
 ### Plan
+
+## Refresh Best Cake Shops Cebu 2026 Page
+
+### Plan
+
+- [x] Update the `/best-cake-shops-cebu` page copy so it reads as a 2026 guide without visible ranking language.
+- [x] Remove the top Genie.ph hero image and keep the Genie rush-order image only in the bottom marketplace section.
+- [x] Make each cake shop image render uncropped so the full uploaded asset is visible.
+- [x] Verify and repair each cake shop website and Google Maps button so the public links respond successfully.
+- [x] Re-run focused verification and confirm the updated page is available again on local dev.
+
+### Review
+
+- Updated [src/app/best-cake-shops-cebu/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/best-cake-shops-cebu/page.tsx) so the page now presents as a 2026 guide instead of a ranked list. Visible ranking badges were removed, the quick-jump section now describes the guide as non-ranking, and the internal anchors were changed from rank-based IDs to slug-based IDs.
+- Removed the top Genie.ph rush-order image and kept that asset only in the bottom Genie.ph marketplace section.
+- Switched the cake shop images and the bottom Genie.ph image to uncropped `object-contain` rendering with intrinsic dimensions, so the full image is visible instead of being clipped to a uniform aspect ratio.
+- Verified the current website and map buttons with live HTTP checks. All 10 Google Maps search URLs returned `200`, and all website buttons were adjusted to public working destinations, including stable Facebook destinations for `10 Dove Street` and `Kermit's`.
+- Updated the bottom Genie.ph copy to make the same-day custom cake pitch more explicit: upload any cake design, get a price, and order within the same day when a seller has available capacity.
+- Verification:
+  `npx eslint src/app/best-cake-shops-cebu/page.tsx` passed.
+  `npm run build` passed, and `/best-cake-shops-cebu` remained prerendered successfully.
 
 - [x] Confirm the live user-upload ORB cache-hit path and identify where the match mode is chosen.
 - [x] Switch the real user-upload ORB requests from `default` to `strict` without changing the similarity debugger controls.
@@ -568,3 +630,76 @@
 - Remaining required step for actual model use:
   add at least one LLM provider key and run `hermes setup` or `hermes model`.
   Current doctor output shows the only real blocker is `OpenRouter API (not configured)`.
+
+---
+
+## Cebu Cake Shop Comparison Page Draft
+
+### Comparison Draft Plan
+
+- [x] Capture the correction that Cakes and Memories Bakeshop must be included as a top custom-cake option for Cebu birthday, themed, affordable, and short-lead-time orders.
+- [x] Refresh the top Cebu cake shop set with current public sources and expand the draft from 7 to 10 shops.
+- [x] Rewrite the comparison page so each shop has a clear entity, local modifier, best-fit category, and decision reason.
+- [x] Review the copy for AI-search usefulness: dense comparisons, structured data cues, bottom-of-funnel intent, and FAQs.
+
+### Comparison Draft Review
+
+- Started 2026-05-24 23:21:59 PST after user correction that Cakes and Memories Bakeshop was missing from the first comparison-page draft.
+- Revised top 10 set: Cakes and Memories Bakeshop, Chedz Cakes Cebu, The Chocolate Leaf/Crosswalk Bakery + Cafe, Leona Cakes & Pastries, Cebu Cardinal Bakeshop, 10 Dove Street, Tamp Cafe & Co., Cafe Georg, Kermit's Cakes & Pastries Shop, and Orange Brutus.
+- Verification sources checked included official or current public pages for Cakes and Memories, Chedz, Tamp, Cafe Georg, Kermit's, Orange Brutus, 10 Dove Street, and local Cebu food coverage for The Chocolate Leaf/Crosswalk, Leona, Cardinal, Chef's Table, and additional alternates.
+- Final draft structure uses a comparison table, per-shop decision sections, honorable mentions, and FAQs so the page directly answers "best cake shop in Cebu" and related custom cake, birthday cake, chocolate cake, ube cake, and rush-order intents.
+- User refinement: Chedz should not compete directly with Cakes and Memories on custom birthday/themed cake positioning. Revised Chedz angle should emphasize weddings, premium cakes, and oldest/long-standing Cebu bakeshop credibility.
+- User refinement: remove Treat Street from the top 10 and replace it with Tamp Cafe & Co. Tamp should fill the cafe-cake/dine-in celebration role with multiple Cebu branch accessibility.
+
+---
+
+## Create Best Cake Shops Cebu Page
+
+### Best Cake Shops Page Plan
+
+- [x] Inspect existing static SEO page, metadata, schema, sitemap, and local SEO patterns.
+- [x] Add `/best-cake-shops-cebu` as a static comparison page with the finalized top 10 Cebu bakeshop positioning.
+- [x] Add indexable sitemap and HTML sitemap links for discoverability.
+- [x] Verify with focused TypeScript/lint/build checks and review route behavior locally if feasible.
+
+### Best Cake Shops Page Review
+
+- Started from the existing marketing metadata helper and local SEO page conventions.
+- Chosen route: `/best-cake-shops-cebu`.
+- Schema plan: WebPage, ItemList, and BreadcrumbList JSON-LD only. FAQ content will be visible HTML, but not FAQPage schema because the repo already documents that commercial FAQPage rich-result schema is restricted.
+- Implemented `src/app/best-cake-shops-cebu/page.tsx` as a static comparison page with metadata, canonical URL, visible sources, top 10 comparison table, per-shop decision cards, FAQ content, CTA links, and JSON-LD.
+- Updated the top 10 list to replace Treat Street Cafe with Tamp Cafe & Co., positioned for cafe cakes, dine-in celebrations, whole cakes, and multiple Cebu branch accessibility.
+- Added discoverability links in `src/app/sitemap.ts`, `src/app/sitemap-html/page.tsx`, `src/app/compare/page.tsx`, and `public/llms.txt`.
+- Verification:
+  `npx eslint src/app/best-cake-shops-cebu/page.tsx src/app/compare/page.tsx src/app/sitemap-html/page.tsx src/app/sitemap.ts` passed.
+  `npx tsc --noEmit --pretty false` still reports pre-existing type errors in unrelated test files, but a focused rerun showed no errors from `src/app/best-cake-shops-cebu/page.tsx` or `src/app/compare/page.tsx`.
+  Browser verification on `http://localhost:3002/best-cake-shops-cebu` confirmed HTTP 200, correct canonical, 10 comparison rows, Cakes and Memories rank 1, Chedz wedding/premium positioning, no FAQPage schema, and JSON-LD types for WebPage, ItemList, and BreadcrumbList.
+  Local checks confirmed `/sitemap-html` links to `/best-cake-shops-cebu` and `/sitemap-core.xml` includes the new route.
+  `npm run build` passed and prerendered `/best-cake-shops-cebu` as a static page with one-day revalidation.
+
+---
+
+## Humanize Best Cake Shops Cebu Page
+
+### Humanized Page Plan
+
+- [x] Inspect the existing `/best-cake-shops-cebu` implementation and available page patterns.
+- [x] Verify public contact, website, social, address, and branch details for the listed Cebu cake shops.
+- [x] Rewrite the page in a warmer human editorial voice with a stronger intro and Genie.ph outro.
+- [x] Replace the compact cards/table feel with alternating two-column shop sections: image/detail, then detail/image.
+- [x] Add contact number, website, socials, address, and Google Maps links for each shop without leaving empty fields.
+- [x] Run lint/build and browser checks.
+
+### Humanized Page Review
+
+- User requested a humanized copy pass, alternating two-column image/detail layout, richer shop contact data, an intro, and an outro that explains Genie.ph as a Cebu cake marketplace offering access to these kinds of cakeshops.
+- Reworked `src/app/best-cake-shops-cebu/page.tsx` around long-form alternating shop sections, with images switching sides by rank and each shop showing contact number, address, website, Google Maps link, and public social links.
+- Added a warmer intro explaining how to use the guide and an outro positioning Genie.ph as a Cebu cake marketplace for uploading pegs, getting instant AI-assisted pricing, adjusting designs, and ordering from Cebu cake sellers.
+- Updated JSON-LD Bakery entities with telephone, address, website, and sameAs social links.
+- Replaced the generic homepage sample images with the user-provided Supabase page assets for the ten cake shops, and added `CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP` to the Genie.ph marketplace pitch section.
+- Verification:
+  `npx eslint src/app/best-cake-shops-cebu/page.tsx` passed.
+  Focused TypeScript check showed no errors from `src/app/best-cake-shops-cebu/page.tsx`.
+  `npm run build` passed and prerendered `/best-cake-shops-cebu` with one-day revalidation.
+  Local HTML check on `http://127.0.0.1:3002/best-cake-shops-cebu` returned 200 and confirmed 10 contact blocks, 10 website buttons, 10 Google Maps buttons, 10 shop anchors, Tamp present, no Treat Street text, the Genie.ph marketplace pitch present, and 11 rendered image tags.
+  After the image swap, a second local HTML check confirmed all 11 requested Supabase image filenames are present and the page renders 12 image tags total.

@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { CakeInfoUI, CakeMessageUI, IcingDesignUI, MainTopperUI, SupportElementUI } from '@/types';
@@ -10,6 +10,24 @@ vi.mock('@/components/LazyImage', () => ({
 }));
 
 Object.defineProperty(HTMLElement.prototype, 'scrollTo', {
+    value: vi.fn(),
+    writable: true,
+});
+
+Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    value: vi.fn(),
+    writable: true,
+});
+
+Object.defineProperty(window, 'requestAnimationFrame', {
+    value: (callback: FrameRequestCallback) => {
+        callback(0);
+        return 1;
+    },
+    writable: true,
+});
+
+Object.defineProperty(window, 'cancelAnimationFrame', {
     value: vi.fn(),
     writable: true,
 });
@@ -272,6 +290,73 @@ describe('CustomizingStepSummarySections', () => {
         expect(advancedScope.getByRole('button', { name: /2 Tier/i })).toBeInTheDocument();
         expect(advancedScope.getByRole('button', { name: /3 Tier/i })).toBeInTheDocument();
         expect(cakeTypeLabel).toBeInTheDocument();
+    });
+
+    it('scrolls the desktop sidebar container to reveal advanced cards when opened', async () => {
+        const props = buildProps();
+
+        render(
+            <div data-testid="scroll-parent" style={{ overflowY: 'auto', maxHeight: '220px' }}>
+                <CustomizingStepSummarySections {...props} />
+            </div>,
+        );
+
+        const scrollParent = screen.getByTestId('scroll-parent');
+        const advancedSection = document.getElementById('advanced-customization-steps');
+
+        expect(advancedSection).not.toBeNull();
+
+        Object.defineProperty(scrollParent, 'scrollHeight', {
+            value: 640,
+            configurable: true,
+        });
+        Object.defineProperty(scrollParent, 'clientHeight', {
+            value: 220,
+            configurable: true,
+        });
+        Object.defineProperty(scrollParent, 'scrollTop', {
+            value: 40,
+            writable: true,
+            configurable: true,
+        });
+
+        scrollParent.getBoundingClientRect = vi.fn(() => ({
+            top: 120,
+            left: 0,
+            bottom: 340,
+            right: 320,
+            width: 320,
+            height: 220,
+            x: 0,
+            y: 120,
+            toJSON: () => ({}),
+        }));
+
+        const firstAdvancedCard = advancedSection?.firstElementChild as HTMLElement | null;
+        expect(firstAdvancedCard).not.toBeNull();
+
+        firstAdvancedCard.getBoundingClientRect = vi.fn(() => ({
+            top: 280,
+            left: 0,
+            bottom: 520,
+            right: 320,
+            width: 320,
+            height: 240,
+            x: 0,
+            y: 280,
+            toJSON: () => ({}),
+        }));
+
+        vi.clearAllMocks();
+
+        fireEvent.click(screen.getByRole('button', { name: /Advanced Customization/i }));
+
+        await waitFor(() => {
+            expect(HTMLElement.prototype.scrollTo).toHaveBeenCalledWith({
+                top: 184,
+                behavior: 'smooth',
+            });
+        });
     });
 
     it('renders tiered flavor rows below height for 3-tier cakes', () => {

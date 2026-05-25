@@ -57,6 +57,13 @@ export type IndexableSharedDesignRow = RawSharedDesignRow & {
   image_url: string
 }
 
+export type SitemapChunkHints = {
+  customizedChunkCount: number
+  customizedLastMod: string
+  sharedDesignChunkCount: number
+  sharedDesignLastMod: string
+}
+
 function getSupabaseClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -164,6 +171,75 @@ export function getPreferredSitemapImage(row: ImageLikeRow): string | null {
   }
 
   return null
+}
+
+export async function getSitemapChunkHints(now = new Date()): Promise<SitemapChunkHints> {
+  const supabase = getSupabaseClient()
+  const cutoffDate = getSitemapCutoffDate(now)
+  const fallbackLastMod = now.toISOString()
+
+  const [
+    { count: customizedCount, error: customizedCountError },
+    { data: latestCustomizedRows, error: latestCustomizedError },
+    { count: sharedDesignCount, error: sharedDesignCountError },
+    { data: latestSharedRows, error: latestSharedError },
+  ] = await Promise.all([
+    supabase
+      .from('cakegenie_analysis_cache')
+      .select('slug', { count: 'exact', head: true })
+      .not('slug', 'is', null)
+      .not('image_width', 'is', null)
+      .not('image_height', 'is', null)
+      .or('seo_title.not.is.null,alt_text.not.is.null,keywords.not.is.null')
+      .lte('created_at', cutoffDate),
+    supabase
+      .from('cakegenie_analysis_cache')
+      .select('created_at')
+      .not('slug', 'is', null)
+      .not('image_width', 'is', null)
+      .not('image_height', 'is', null)
+      .or('seo_title.not.is.null,alt_text.not.is.null,keywords.not.is.null')
+      .lte('created_at', cutoffDate)
+      .order('created_at', { ascending: false })
+      .limit(1),
+    supabase
+      .from('cakegenie_shared_designs')
+      .select('url_slug', { count: 'exact', head: true })
+      .not('url_slug', 'is', null)
+      .or('title.not.is.null,alt_text.not.is.null,description.not.is.null')
+      .lte('created_at', cutoffDate),
+    supabase
+      .from('cakegenie_shared_designs')
+      .select('created_at')
+      .not('url_slug', 'is', null)
+      .or('title.not.is.null,alt_text.not.is.null,description.not.is.null')
+      .lte('created_at', cutoffDate)
+      .order('created_at', { ascending: false })
+      .limit(1),
+  ])
+
+  if (customizedCountError) {
+    throw new Error(`Failed to count sitemap-ready customized cakes: ${customizedCountError.message}`)
+  }
+
+  if (latestCustomizedError) {
+    throw new Error(`Failed to fetch latest customized-cake sitemap date: ${latestCustomizedError.message}`)
+  }
+
+  if (sharedDesignCountError) {
+    throw new Error(`Failed to count sitemap-ready shared designs: ${sharedDesignCountError.message}`)
+  }
+
+  if (latestSharedError) {
+    throw new Error(`Failed to fetch latest shared-design sitemap date: ${latestSharedError.message}`)
+  }
+
+  return {
+    customizedChunkCount: Math.ceil((customizedCount || 0) / SITEMAP_CHUNK_SIZE),
+    customizedLastMod: latestCustomizedRows?.[0]?.created_at || fallbackLastMod,
+    sharedDesignChunkCount: Math.ceil((sharedDesignCount || 0) / SITEMAP_CHUNK_SIZE),
+    sharedDesignLastMod: latestSharedRows?.[0]?.created_at || fallbackLastMod,
+  }
 }
 
 export function toIndexableCustomizedCakeRow(
