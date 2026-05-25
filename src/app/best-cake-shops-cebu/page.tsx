@@ -21,11 +21,20 @@ const pageUrl = 'https://genie.ph/best-cake-shops-cebu';
 const pageTitle = 'Best Cake Shops in Cebu 2026 | 10 Cebu Cake Shops to Check';
 const pageDescription =
   'A 2026 guide to Cebu cake shops for custom birthday cakes, wedding cakes, moist chocolate cakes, ube cake, cafe desserts, and rush-friendly celebration orders.';
+const pageAssetBaseUrl =
+  'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/pages';
+const socialPreviewImage = {
+  url: `${pageAssetBaseUrl}/top-bakeshops-cebu-hero.webp`,
+  width: 1800,
+  height: 1100,
+  alt: 'Top cake shops in Cebu hero image featuring custom celebration cakes',
+};
 
 export const metadata = buildMarketingPageMetadata({
   title: pageTitle,
   description: pageDescription,
   canonicalPath: pageUrl,
+  socialImage: socialPreviewImage,
 });
 
 type SocialLink = {
@@ -54,9 +63,6 @@ type CakeShop = {
 
 const googleMapSearch = (query: string) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-
-const pageAssetBaseUrl =
-  'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/pages';
 
 const cakeImages = {
   tenDoveStreet: `${pageAssetBaseUrl}/10-dove-street-cakes-cebu.webp`,

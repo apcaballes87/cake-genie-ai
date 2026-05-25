@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
-import { Star, ThumbsUp } from 'lucide-react';
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Star, ThumbsUp, ShieldCheck, X } from 'lucide-react';
 import { CakeGenieReview } from '@/lib/database.types';
 import { getReviewAvatarInitial, getReviewDisplayName } from '@/lib/reviews';
 import LazyImage from './LazyImage';
@@ -40,68 +41,198 @@ const StarRating: React.FC<{ rating: number; size?: 'sm' | 'md' }> = ({ rating, 
   );
 };
 
-const ReviewCard: React.FC<{
+export const ReviewCard: React.FC<{
   review: CakeGenieReview;
   showMerchantResponse?: boolean;
 }> = ({ review, showMerchantResponse = true }) => {
+  const router = useRouter();
   const displayName = getReviewDisplayName(review);
+  const [localLightbox, setLocalLightbox] = useState<string | null>(null);
+
+  const hasBeforeAfter = !!(review.original_image_url && review.finished_image_url);
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
-          {/* Avatar */}
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
-            {getReviewAvatarInitial(review)}
-          </div>
-          <div>
-            <p className="font-semibold text-slate-800">{displayName}</p>
-            <div className="flex items-center gap-2">
-              <StarRating rating={review.rating} />
-              <span className="text-xs text-slate-400">
-                {formatDate(review.created_at)}
-              </span>
+    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
+      {hasBeforeAfter ? (
+        <div className="flex flex-col md:flex-row-reverse gap-5 items-start">
+          {/* Right Side: Before & After images */}
+          <div className="grid grid-cols-2 gap-2.5 w-full md:w-44 lg:w-52 flex-shrink-0">
+            {/* Before */}
+            <div className="relative aspect-square w-full rounded-lg overflow-hidden border border-slate-100 group shadow-xs">
+              <button
+                type="button"
+                className="absolute inset-0 w-full h-full text-left cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-pink-400 focus:rounded-lg"
+                onClick={() => setLocalLightbox(review.original_image_url!)}
+                aria-label="View original inspiration design"
+              >
+                <span className="absolute top-1.5 left-1.5 z-10 px-1 py-0.5 text-[7px] min-[400px]:text-[8px] font-extrabold tracking-wider text-pink-700 bg-pink-50/90 backdrop-blur-xs rounded-md shadow-xs uppercase border border-pink-100 whitespace-nowrap">
+                  Cake Inspo
+                </span>
+                <LazyImage
+                  src={review.original_image_url!}
+                  alt="Inspiration cake design"
+                  fill
+                  imageClassName="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+                  sizes="(max-width: 768px) 50vw, 150px"
+                />
+              </button>
             </div>
+
+            {/* After */}
+            <div className="relative aspect-square w-full rounded-lg overflow-hidden border border-slate-100 group shadow-xs">
+              <button
+                type="button"
+                className="absolute inset-0 w-full h-full text-left cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-purple-400 focus:rounded-lg"
+                onClick={() => setLocalLightbox(review.finished_image_url!)}
+                aria-label="View finished masterpiece cake"
+              >
+                <span className="absolute top-1.5 left-1.5 z-10 px-1 py-0.5 text-[7px] min-[400px]:text-[8px] font-extrabold tracking-wider text-purple-700 bg-purple-50/90 backdrop-blur-xs rounded-md shadow-xs uppercase border border-purple-100 whitespace-nowrap">
+                  Final Product
+                </span>
+                <LazyImage
+                  src={review.finished_image_url!}
+                  alt="Finished custom cake"
+                  fill
+                  imageClassName="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+                  sizes="(max-width: 768px) 50vw, 150px"
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Right Side: details */}
+          <div className="flex-1 min-w-0 w-full flex flex-col justify-between self-stretch">
+            <div>
+              {/* Header */}
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-xs">
+                    {getReviewAvatarInitial(review)}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-800 text-sm block leading-tight">
+                      {displayName}
+                    </span>
+                    {(review.is_verified || review.user_id) && (
+                      <span className="inline-flex items-center gap-0.5 mt-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-50/80 px-1.5 py-0.2 rounded-full border border-emerald-100">
+                        <ShieldCheck className="w-2.5 h-2.5" />
+                        Verified Purchase
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <span className="text-[11px] text-slate-400 font-medium">{formatDate(review.created_at)}</span>
+              </div>
+
+              {/* Stars + rating */}
+              <div className="flex items-center gap-1.5 mb-2">
+                <StarRating rating={review.rating} />
+                <span className="text-[11px] font-bold text-slate-500">{review.rating}/5</span>
+              </div>
+
+              {/* Title */}
+              {review.title && (
+                <h4 className="font-bold text-slate-800 text-sm mb-1">{review.title}</h4>
+              )}
+
+              {/* Comment */}
+              {review.comment && (
+                <p className="text-slate-600 text-xs leading-relaxed whitespace-pre-wrap">{review.comment}</p>
+              )}
+            </div>
+
+            {/* Recreate CTA */}
+            {review.cakegenie_analysis_cache?.slug && (
+              <div className="mt-3 flex items-center justify-end">
+                <button
+                  onClick={() => router.push(`/customizing/${review.cakegenie_analysis_cache?.slug}`)}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold text-pink-600 hover:text-white bg-pink-50 hover:bg-gradient-to-r hover:from-pink-500 hover:to-purple-600 border border-pink-100 hover:border-transparent rounded-lg shadow-xs transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none"
+                >
+                  <span>Recreate Design</span>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
         </div>
-      </div>
-
-      {/* Title */}
-      {review.title && (
-        <h4 className="font-semibold text-slate-800 mb-2">{review.title}</h4>
-      )}
-
-      {/* Comment */}
-      {review.comment && (
-        <p className="text-slate-600 text-sm leading-relaxed mb-3">
-          {review.comment}
-        </p>
-      )}
-
-      {/* Photos */}
-      {review.photos && review.photos.length > 0 && (
-        <div className="flex gap-2 flex-wrap mb-3">
-          {review.photos.slice(0, 4).map((photo, index) => (
-            <div
-              key={index}
-              className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200"
-            >
-              <LazyImage
-                src={photo}
-                alt={`Review photo ${index + 1}`}
-                fill
-                imageClassName="object-cover"
-                sizes="80px"
-              />
+      ) : (
+        <>
+          {/* Legacy View */}
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-3">
+              {/* Avatar */}
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                {getReviewAvatarInitial(review)}
+              </div>
+              <div>
+                <p className="font-semibold text-slate-800">{displayName}</p>
+                <div className="flex items-center gap-2">
+                  <StarRating rating={review.rating} />
+                  <span className="text-xs text-slate-400">
+                    {formatDate(review.created_at)}
+                  </span>
+                </div>
+              </div>
             </div>
-          ))}
-          {review.photos.length > 4 && (
-            <div className="w-20 h-20 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-xs text-slate-500">
-              +{review.photos.length - 4} more
+          </div>
+
+          {/* Title */}
+          {review.title && (
+            <h4 className="font-semibold text-slate-800 mb-2">{review.title}</h4>
+          )}
+
+          {/* Comment */}
+          {review.comment && (
+            <p className="text-slate-600 text-sm leading-relaxed mb-3">
+              {review.comment}
+            </p>
+          )}
+
+          {/* Photos */}
+          {review.photos && review.photos.length > 0 && (
+            <div className="flex gap-2 flex-wrap mb-3">
+              {review.photos.slice(0, 4).map((photo, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-pink-400"
+                  onClick={() => setLocalLightbox(photo)}
+                  aria-label={`View photo ${index + 1}`}
+                >
+                  <LazyImage
+                    src={photo}
+                    alt={`Review photo ${index + 1}`}
+                    fill
+                    imageClassName="object-cover"
+                    sizes="80px"
+                  />
+                </button>
+              ))}
+              {review.photos.length > 4 && (
+                <div className="w-20 h-20 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-xs text-slate-500">
+                  +{review.photos.length - 4} more
+                </div>
+              )}
             </div>
           )}
-        </div>
+
+          {/* Recreate CTA for standard items */}
+          {review.cakegenie_analysis_cache?.slug && (
+            <div className="mt-3 flex items-center justify-end">
+              <button
+                onClick={() => router.push(`/customizing/${review.cakegenie_analysis_cache?.slug}`)}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold text-pink-600 hover:text-white bg-pink-50 hover:bg-gradient-to-r hover:from-pink-500 hover:to-purple-600 border border-pink-100 hover:border-transparent rounded-lg shadow-xs transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none"
+              >
+                <span>Recreate Design</span>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Merchant Response */}
@@ -121,9 +252,34 @@ const ReviewCard: React.FC<{
           <p className="text-sm text-slate-600 pl-8">{review.merchant_response}</p>
         </div>
       )}
+
+      {/* Local Lightbox */}
+      {localLightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+          onClick={() => setLocalLightbox(null)}
+        >
+          <button
+            className="absolute top-4 right-4 p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+            onClick={() => setLocalLightbox(null)}
+            type="button"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          <div className="relative max-w-4xl max-h-[90vh] w-full aspect-[4/3]" onClick={(e) => e.stopPropagation()}>
+            <LazyImage
+              src={localLightbox}
+              alt="Enlarged review photo"
+              fill
+              imageClassName="object-contain"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
 
 const ReviewsDisplay: React.FC<ReviewsDisplayProps> = ({
   reviews,

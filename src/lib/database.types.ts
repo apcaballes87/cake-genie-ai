@@ -374,10 +374,13 @@ export interface CakeGenieReview {
   photos: string[] | null; // Array of image URLs
   reviewer_name?: string | null;
   is_verified?: boolean | null;
+  is_published?: boolean | null;
   is_approved: boolean; // Auto-approved by default, but can be moderated
   is_visible: boolean; // Whether shown publicly
   merchant_response: string | null;
   merchant_response_at: string | null; // ISO 8601 timestamp
+  original_image_url?: string | null;
+  finished_image_url?: string | null;
   created_at: string; // ISO 8601 timestamp
   updated_at: string; // ISO 8601 timestamp
   // Joined data (optional for enriched queries)
@@ -390,4 +393,5 @@ export interface CakeGenieReview {
     customization_details?: Record<string, unknown> | null;
   } | null;
   cakegenie_orders?: { order_number: string } | null;
+  cakegenie_analysis_cache?: { slug: string | null } | null;
 }

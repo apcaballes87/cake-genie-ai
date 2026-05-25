@@ -8,6 +8,7 @@ import { getRelatedProductsByKeywords, getRecommendedProducts } from '@/services
 import type { CakeGenieReview } from '@/lib/database.types';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import SameDayCutoffBanner from '@/components/SameDayCutoffBanner';
+import { ReviewCard } from '@/components/ReviewsDisplay';
 import { ProductCard } from '@/components/ProductCard';
 import type { LandingPageConfig } from './cebuLandingData';
 
@@ -60,35 +61,7 @@ async function getReviewData(): Promise<{ reviews: CakeGenieReview[]; totalRevie
   };
 }
 
-function ReviewCard({ review }: { review: CakeGenieReview }) {
-  const displayName =
-    review.reviewer_name ||
-    review.user?.first_name ||
-    'Genie.ph customer';
 
-  return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <p className="font-semibold text-slate-900">{displayName}</p>
-          <p className="text-xs text-slate-500">{new Date(review.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-        </div>
-        <div className="flex items-center gap-0.5 text-yellow-400">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <Star
-              key={index}
-              className={`h-4 w-4 ${index < review.rating ? 'fill-current' : 'fill-slate-200 text-slate-200'}`}
-            />
-          ))}
-        </div>
-      </div>
-      {review.title ? <h3 className="mb-2 text-sm font-semibold text-slate-900">{review.title}</h3> : null}
-      <p className="text-sm leading-6 text-slate-600">
-        {review.comment || 'Verified customer feedback from a recent Genie.ph order.'}
-      </p>
-    </article>
-  );
-}
 
 function HeroSampleTile({ product }: { product: ProductPreview }) {
   const href = product.slug ? `/customizing/${product.slug}` : '/customizing';
