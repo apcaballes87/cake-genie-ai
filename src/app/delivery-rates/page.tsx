@@ -1,3 +1,4 @@
+// Triggering clean Vercel rebuild after transient platform deployment error
 import React from 'react';
 import Link from 'next/link';
 import { Truck, MapPin, Search as SearchIcon, AlertCircle } from 'lucide-react';
