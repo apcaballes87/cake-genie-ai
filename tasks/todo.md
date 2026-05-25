@@ -1,5 +1,24 @@
 # Tasks
 
+## Audit Customizing Social Metadata For SEO Impact
+
+### Plan
+
+- [x] Inspect the dynamic metadata generator for `/customizing/[slug]` and confirm which tags the route emits server-side.
+- [x] Compare the live output against current Open Graph, X Cards, and Next.js metadata documentation.
+- [x] Record whether the Facebook debugger description affects SEO and note any metadata anomalies that actually need a code change.
+
+### Review
+
+- Confirmed `src/app/customizing/[slug]/page.tsx` emits server-rendered `description`, `og:*`, and `twitter:*` tags from `generateMetadata`, with the slug route setting canonical, robots, OG image dimensions, and Twitter card fields directly.
+- Live fetch of `https://genie.ph/customizing/butterfly-princess-lavender-2-tier-cake-1e50` with the `facebookexternalhit/1.1` user-agent returned the expected source tags: `og:title`, `og:description`, `og:url`, `og:image`, `og:image:width`, `og:image:height`, `og:image:alt`, plus standard `twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`, `twitter:image:width`, `twitter:image:height`, and `twitter:image:alt`.
+- The odd `og:temporal:twitter:*` labels shown in Facebook Share Debugger do not exist in the page source; they appear to be a debugger-side representation of parsed Twitter/X metadata rather than proof that the site is emitting malformed Open Graph tags.
+- SEO conclusion: the Facebook debugger description itself does not directly influence Google rankings. It affects social share previews, while search visibility depends more on the HTML title, standard meta description, canonical, crawlability, page content, and structured data.
+- Verification:
+  Repo inspection: `src/app/customizing/[slug]/page.tsx`, `src/app/layout.tsx`, and `src/lib/utils/metadata.ts`.
+  Live HTML fetch with `facebookexternalhit/1.1` confirmed the exact meta tags rendered in production.
+  Official references checked: Open Graph protocol (`ogp.me`), X Cards markup docs (`developer.x.com`), and Next.js `generateMetadata` docs.
+
 ## Humanize Homepage Reviews Copy And Remove Container
 
 ### Plan
