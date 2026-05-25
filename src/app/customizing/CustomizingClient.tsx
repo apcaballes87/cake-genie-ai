@@ -69,6 +69,7 @@ import { CustomizingStepSummarySections } from './CustomizingStepSummarySections
 import { CustomizingEmptyLandingState } from './CustomizingEmptyLandingState';
 import { CustomizingAiChatPanel } from './CustomizingAiChatPanel';
 import { CustomizingToppersPanel } from './CustomizingToppersPanel';
+import { canConsumeDesktopSidebarWheel, shouldCaptureDesktopSidebarScroll } from './desktopSidebarScroll';
 import {
     buildRetryUploadUrl,
     buildRelatedCollectionsRequestKey,
@@ -405,6 +406,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     // --- Refs ---
     const accountMenuRef = useRef<HTMLDivElement>(null);
     const mainImageContainerRef = useRef<HTMLDivElement>(null);
+    const desktopColumnsRef = useRef<HTMLDivElement>(null);
+    const desktopLeftColumnRef = useRef<HTMLDivElement>(null);
+    const desktopSidebarScrollRef = useRef<HTMLDivElement>(null);
     const isLoadingDesignRef = useRef(false);
     const isLoadingShopifyCseRef = useRef(false);
     const isResettingRef = useRef(false);
@@ -2125,6 +2129,14 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setIsUploaderOpen(true);
     }, [clearCustomization, clearImages, setAnalysisError]);
 
+    useEffect(() => {
+        if (searchParams.get('upload') !== '1') {
+            return;
+        }
+
+        handleUploadAnother();
+    }, [handleUploadAnother, searchParams]);
+
     const onClearAll = () => {
         isResettingRef.current = true;
         clearImages();
@@ -2965,6 +2977,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     };
 
     const [isTopSearchBarScrolled, setIsTopSearchBarScrolled] = useState(false);
+    const [desktopSidebarTopOffset, setDesktopSidebarTopOffset] = useState(0);
 
     useEffect(() => {
         const updateTopSearchBarState = () => {
@@ -2975,6 +2988,106 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         window.addEventListener('scroll', updateTopSearchBarState, { passive: true });
 
         return () => window.removeEventListener('scroll', updateTopSearchBarState);
+    }, []);
+
+    useEffect(() => {
+        const updateDesktopSidebarTopOffset = () => {
+            const topBar = document.querySelector<HTMLElement>('[data-customizing-topbar]');
+            const topBarHeight = topBar?.getBoundingClientRect().height ?? 0;
+            setDesktopSidebarTopOffset(topBarHeight + 8);
+        };
+
+        updateDesktopSidebarTopOffset();
+        window.addEventListener('resize', updateDesktopSidebarTopOffset);
+
+        return () => window.removeEventListener('resize', updateDesktopSidebarTopOffset);
+    }, []);
+
+    useEffect(() => {
+        const handleWheel = (event: WheelEvent) => {
+            if (window.innerWidth < 768 || event.defaultPrevented || event.deltaY === 0) {
+                return;
+            }
+
+            const desktopColumns = desktopColumnsRef.current;
+            const desktopLeftColumn = desktopLeftColumnRef.current;
+            const desktopSidebarScroll = desktopSidebarScrollRef.current;
+
+            if (!desktopColumns || !desktopLeftColumn || !desktopSidebarScroll) {
+                return;
+            }
+
+            const rightScrollMax = desktopSidebarScroll.scrollHeight - desktopSidebarScroll.clientHeight;
+            if (rightScrollMax <= 0) {
+                return;
+            }
+
+            const sectionRect = desktopColumns.getBoundingClientRect();
+            const leftRect = desktopLeftColumn.getBoundingClientRect();
+
+            if (!shouldCaptureDesktopSidebarScroll({
+                deltaY: event.deltaY,
+                leftBottom: leftRect.bottom,
+                rightScrollMax,
+                rightScrollTop: desktopSidebarScroll.scrollTop,
+                sectionBottom: sectionRect.bottom,
+                sectionTop: sectionRect.top,
+                topOffset: desktopSidebarTopOffset,
+                viewportHeight: window.innerHeight,
+            })) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const nextScrollTop = Math.max(0, Math.min(
+                rightScrollMax,
+                desktopSidebarScroll.scrollTop + event.deltaY,
+            ));
+
+            desktopSidebarScroll.scrollTop = nextScrollTop;
+        };
+
+        window.addEventListener('wheel', handleWheel, { passive: false });
+
+        return () => window.removeEventListener('wheel', handleWheel);
+    }, [desktopSidebarTopOffset]);
+
+    useEffect(() => {
+        const desktopSidebarScroll = desktopSidebarScrollRef.current;
+
+        if (!desktopSidebarScroll) {
+            return;
+        }
+
+        const handleSidebarWheel = (event: WheelEvent) => {
+            if (window.innerWidth < 768 || event.defaultPrevented || event.deltaY === 0) {
+                return;
+            }
+
+            const rightScrollMax = desktopSidebarScroll.scrollHeight - desktopSidebarScroll.clientHeight;
+
+            if (!canConsumeDesktopSidebarWheel({
+                deltaY: event.deltaY,
+                rightScrollMax,
+                rightScrollTop: desktopSidebarScroll.scrollTop,
+            })) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const nextScrollTop = Math.max(0, Math.min(
+                rightScrollMax,
+                desktopSidebarScroll.scrollTop + event.deltaY,
+            ));
+
+            desktopSidebarScroll.scrollTop = nextScrollTop;
+        };
+
+        desktopSidebarScroll.addEventListener('wheel', handleSidebarWheel, { passive: false });
+
+        return () => desktopSidebarScroll.removeEventListener('wheel', handleSidebarWheel);
     }, []);
 
     const showStickyBar = finalPrice !== null || !!basePriceError || isAnalyzing || hasPendingVisualChanges || isUpdatingDesign;
@@ -3043,9 +3156,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
                 {/* Two-column layout for desktop/tablet landscape */}
-                <div className="w-full flex flex-col md:flex-row gap-2">
+                <div ref={desktopColumnsRef} className="w-full flex flex-col md:flex-row gap-2">
                     {/* LEFT COLUMN: Image and Update Design */}
-                    <div className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
+                    <div ref={desktopLeftColumnRef} className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
                         <CustomizingHeroPanel
                             mainImageContainerRef={mainImageContainerRef}
                             editedImage={editedImage}
@@ -3277,74 +3390,85 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
 
-                        <CustomizingSidebarPanel
-                            showLoadingState={isAnalyzing || (isLoading && !isDesignSaved)}
-                            showContentState={Boolean(cakeInfo)}
-                            analysisError={analysisError}
-                            onUploadAnother={handleUploadAnother}
-                            onGoBackHome={() => router.push('/')}
-                            onUpdateDesign={onUpdateDesign}
-                            isUpdatingDesign={isUpdatingDesign}
-                            dirtyFields={dirtyFields}
-                            stepSummaryProps={{
-                                cakeInfo,
-                                icingDesign,
-                                cakeMessages,
-                                mainToppers,
-                                supportElements,
-                                basePriceOptions,
-                                markerMap,
-                                itemPrices,
-                                isAdmin,
-                                isAnalyzing,
-                                isRejectionError,
-                                activeCustomization,
-                                selectedItemId: selectedItem?.id ?? null,
-                                setActiveCustomization,
-                                setSelectedItem,
-                                removeCakeMessage,
-                                updateMainTopper,
-                                updateSupportElement,
-                                onTopperImageReplace: onTopperImageReplace,
-                                onSupportElementImageReplace: onSupportElementImageReplace,
-                                openTopperSheet,
-                                onCakeInfoChange,
-                                onIcingTypeChange: handleIcingTypeChange,
-                                onIcingDesignChange,
-                                addOnPricing: addOnPricing?.addOnPrice ?? 0,
-                                separateIcingStep,
-                                hideStepOne,
-                                hideStepFour,
-                                photoStepNode,
-                                originalCakeType: analysisResult?.cakeType,
-                                aiChatNode: !analysisError && !hideAiChat ? (
-                                    <CustomizingAiChatPanel
-                                        className="w-full"
-                                        containerRef={aiChatDesktopContainerRef}
-                                        inputRef={aiChatDesktopInputRef}
-                                        chatInput={chatInput}
-                                        selectedAiPromptTemplate={selectedAiPromptTemplate}
-                                        selectedAiPromptColor={selectedAiPromptColor}
-                                        showAiPromptColorPicker={showAiPromptColorPicker}
-                                        showAiPromptSuggestions={showAiPromptSuggestions}
-                                        filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
-                                        selectedAiPromptIndex={selectedAiPromptIndex}
-                                        isAiProcessing={isAiProcessing}
-                                        isUpdatingDesign={isUpdatingDesign}
-                                        onSubmit={handleChatSubmit}
-                                        onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
-                                        onTemplateClear={handleAiPromptTemplateClear}
-                                        onTemplateColorChange={handleAiPromptTemplateColorChange}
-                                        onInputChange={handleAiChatInputChange}
-                                        onInputInteract={handleAiChatInputInteract}
-                                        onInputBlur={() => setShowAiPromptSuggestions(false)}
-                                        onInputKeyDown={handleAiPromptInputKeyDown}
-                                        onSuggestionSelect={handleAiPromptSuggestionSelect}
-                                        placeholder="✨ Describe the icing colors you want..."
-                                    />
-                                ) : null,
-                            }}
-                        />
+                        <div
+                            ref={desktopSidebarScrollRef}
+                            className="hidden md:flex md:w-full md:min-h-0 md:overflow-y-auto md:overscroll-auto md:pr-1 scrollbar-hide"
+                            style={desktopSidebarTopOffset > 0 ? {
+                                maxHeight: `calc(100vh - ${desktopSidebarTopOffset}px)`,
+                                position: 'sticky',
+                                top: `${desktopSidebarTopOffset}px`,
+                            } : undefined}
+                        >
+                            <CustomizingSidebarPanel
+                                showLoadingState={isAnalyzing || (isLoading && !isDesignSaved)}
+                                showContentState={Boolean(cakeInfo)}
+                                analysisError={analysisError}
+                                onUploadAnother={handleUploadAnother}
+                                onGoBackHome={() => router.push('/')}
+                                onUpdateDesign={onUpdateDesign}
+                                isUpdatingDesign={isUpdatingDesign}
+                                dirtyFields={dirtyFields}
+                                className="w-full flex flex-col gap-2"
+                                stepSummaryProps={{
+                                    cakeInfo,
+                                    icingDesign,
+                                    cakeMessages,
+                                    mainToppers,
+                                    supportElements,
+                                    basePriceOptions,
+                                    markerMap,
+                                    itemPrices,
+                                    isAdmin,
+                                    isAnalyzing,
+                                    isRejectionError,
+                                    activeCustomization,
+                                    selectedItemId: selectedItem?.id ?? null,
+                                    setActiveCustomization,
+                                    setSelectedItem,
+                                    removeCakeMessage,
+                                    updateMainTopper,
+                                    updateSupportElement,
+                                    onTopperImageReplace: onTopperImageReplace,
+                                    onSupportElementImageReplace: onSupportElementImageReplace,
+                                    openTopperSheet,
+                                    onCakeInfoChange,
+                                    onIcingTypeChange: handleIcingTypeChange,
+                                    onIcingDesignChange,
+                                    addOnPricing: addOnPricing?.addOnPrice ?? 0,
+                                    separateIcingStep,
+                                    hideStepOne,
+                                    hideStepFour,
+                                    photoStepNode,
+                                    originalCakeType: analysisResult?.cakeType,
+                                    aiChatNode: !analysisError && !hideAiChat ? (
+                                        <CustomizingAiChatPanel
+                                            className="w-full"
+                                            containerRef={aiChatDesktopContainerRef}
+                                            inputRef={aiChatDesktopInputRef}
+                                            chatInput={chatInput}
+                                            selectedAiPromptTemplate={selectedAiPromptTemplate}
+                                            selectedAiPromptColor={selectedAiPromptColor}
+                                            showAiPromptColorPicker={showAiPromptColorPicker}
+                                            showAiPromptSuggestions={showAiPromptSuggestions}
+                                            filteredAiChatPromptSuggestions={filteredAiChatPromptSuggestions}
+                                            selectedAiPromptIndex={selectedAiPromptIndex}
+                                            isAiProcessing={isAiProcessing}
+                                            isUpdatingDesign={isUpdatingDesign}
+                                            onSubmit={handleChatSubmit}
+                                            onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
+                                            onTemplateClear={handleAiPromptTemplateClear}
+                                            onTemplateColorChange={handleAiPromptTemplateColorChange}
+                                            onInputChange={handleAiChatInputChange}
+                                            onInputInteract={handleAiChatInputInteract}
+                                            onInputBlur={() => setShowAiPromptSuggestions(false)}
+                                            onInputKeyDown={handleAiPromptInputKeyDown}
+                                            onSuggestionSelect={handleAiPromptSuggestionSelect}
+                                            placeholder="✨ Describe the icing colors you want..."
+                                        />
+                                    ) : null,
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
 
