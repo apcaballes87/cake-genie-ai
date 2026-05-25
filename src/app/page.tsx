@@ -22,7 +22,7 @@ export const metadata: Metadata = {
         title: 'Best Online Cake Delivery for Rush Orders in Cebu',
         description: 'Upload any cake design, customize with AI, and get instant pricing from top cakeshops and homebakers in Cebu. Order your perfect custom cake online today!',
         images: [{
-            url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg',
+            url: genieBusinessProfile.ogImageUrl,
             width: 1200,
             height: 630,
             alt: 'Genie.ph | Online Marketplace for Custom Cakes in Cebu',
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
         title: 'Best Online Cake Delivery for Rush Orders in Cebu',
         description: 'Upload any cake design, customize with AI, and get instant pricing from top cakeshops and homebakers in Cebu.',
         images: [{
-            url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg',
+            url: genieBusinessProfile.ogImageUrl,
             width: 1200,
             height: 630,
             alt: 'Genie.ph | Online Marketplace for Custom Cakes in Cebu',

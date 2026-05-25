@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     description: 'Upload any cake design, customize with AI, and get instant pricing from top cakeshops and homebakers in Cebu. Order your perfect custom cake online today!',
     images: [
       {
-        url: genieBusinessProfile.heroImageUrl,
+        url: genieBusinessProfile.ogImageUrl,
         width: 1200,
         height: 630,
         alt: 'Genie.ph - Custom Cakes Online',
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     description: 'Upload design, get pricing, order custom cakes online.',
     images: [
       {
-        url: genieBusinessProfile.heroImageUrl,
+        url: genieBusinessProfile.ogImageUrl,
         width: 1200,
         height: 630,
         alt: 'Genie.ph | Online Marketplace for Custom Cakes',

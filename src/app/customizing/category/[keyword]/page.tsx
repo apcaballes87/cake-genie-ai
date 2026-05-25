@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDesignsByKeyword, getDesignCategories } from '@/services/supabaseService';
 import { DesignGridWithLoadMore } from '@/components/collections/DesignGridWithLoadMore';
+import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile';
 
 // ---------------------------------------------------------------------------
 // Related category cross-links (curated for internal link graph health)
@@ -95,7 +96,7 @@ const getCategoryFaqs = (decodedKeyword: string, coreName: string, productLabel:
 export const revalidate = 3600; // ISR: revalidate every hour
 
 const CATEGORY_PAGE_SIZE = 30;
-const DEFAULT_OG_IMAGE = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta-GENIE.jpg';
+const DEFAULT_OG_IMAGE = genieBusinessProfile.ogImageUrl;
 
 interface Props {
     params: Promise<{ keyword: string }>;
@@ -107,10 +108,6 @@ function decodeKeyword(slug: string): string {
 
 function toTitleCase(str: string): string {
     return str.replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function stripCakeSuffix(label: string): string {
-    return label.replace(/\s+cakes?$/i, '').trim();
 }
 
 function buildCategoryCopy(slug: string) {
@@ -165,6 +162,8 @@ const getCategoryDesigns = cache(async (keyword: string) => {
     return data || [];
 });
 
+type CategoryDesign = Awaited<ReturnType<typeof getCategoryDesigns>>[number];
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { keyword } = await params;
     const { decodedKeyword, coreName, coreNameLower, designLabel, productLabelLower } = buildCategoryCopy(keyword);
@@ -211,11 +210,11 @@ export async function generateStaticParams() {
     }));
 }
 
-function CategorySchema({ category, designs, url }: { category: ReturnType<typeof buildCategoryCopy>; designs: any[]; url: string }) {
+function CategorySchema({ category, designs, url }: { category: ReturnType<typeof buildCategoryCopy>; designs: CategoryDesign[]; url: string }) {
     const titleCore = category.coreNameLower;
 
     // Top 12 designs as full ImageObjects — triggers Google image rich results
-    const galleryImages = designs.slice(0, 12).map((d: any) => {
+    const galleryImages = designs.slice(0, 12).map((d) => {
         const kw = typeof d.keywords === 'string' ? d.keywords.split(',')[0].trim() : 'Custom';
         const kwLower = kw.toLowerCase();
         // Avoid doubling: "Kuromi Kuromi Cake Design" → "Kuromi Cake Design"

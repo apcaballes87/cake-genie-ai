@@ -4,6 +4,7 @@ import Link from 'next/link'
 import CustomizingClient from './CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { LandingFooter } from '@/components/landing/LandingFooter'
+import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile'
 
 // Shopify CSE handoff: image comes from external URL via query param
 // Read searchParams to enable SSR-side preload of the hero image
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
         type: 'website',
         url: 'https://genie.ph/customizing',
         images: [{
-            url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta-GENIE.jpg',
+            url: genieBusinessProfile.ogImageUrl,
             width: 1200,
             height: 630,
             alt: 'Custom Cake Designs for Birthday, Wedding, Debut & Graduation | Genie.ph',
@@ -33,7 +34,7 @@ export const metadata: Metadata = {
         title: 'Cake Designs & Customization | Genie.ph',
         description: 'Browse 1,000+ cake designs by category or upload your own. Get instant AI pricing from trusted bakers in Cebu.',
         images: [{
-            url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta-GENIE.jpg',
+            url: genieBusinessProfile.ogImageUrl,
             width: 1200,
             height: 630,
             alt: 'Custom Cake Designs for Birthday, Wedding, Debut & Graduation | Genie.ph',
@@ -63,7 +64,7 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
         keywords: 'cake design, birthday cake design, wedding cake design, custom cake, debut cake, graduation cake, character cake, Cebu cake',
         image: {
             '@type': 'ImageObject',
-            url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta-GENIE.jpg',
+            url: genieBusinessProfile.ogImageUrl,
             width: 1200,
             height: 630,
             name: 'Custom Cake Designs',

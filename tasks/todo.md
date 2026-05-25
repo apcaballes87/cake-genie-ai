@@ -1,5 +1,27 @@
 # Tasks
 
+## Update Default Social Preview Image
+
+### Plan
+
+- [x] Confirm the current default Open Graph and Twitter preview image sources across shared metadata helpers and page-level fallbacks.
+- [x] Replace the old `meta GENIE.jpg` default with the rush-orders Supabase image wherever the site emits default social preview metadata.
+- [x] Preserve page-specific social preview overrides that intentionally use another image.
+- [x] Run focused metadata tests and reference checks.
+- [x] Record the verification results here.
+
+### Review
+
+- Changed the shared default social image to `https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/pages/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP` through `genieBusinessProfile.ogImageUrl`.
+- Updated the root layout, homepage, shop page, customizing index, customizing category fallback, Mother's Day page, and shared metadata helper to use that shared default instead of the old `meta GENIE` asset.
+- Preserved the existing page-specific override support in `buildMarketingPageMetadata`, including the Cebu cake shops page override that already points at its own hero image.
+- Removed a small pre-existing lint issue in the touched customizing category page by deleting an unused helper and deriving the category design type from the existing cached fetcher.
+- Verification:
+  `npx vitest run src/lib/utils/metadata.test.ts src/app/page.metadata.test.tsx 'src/app/customizing/category/[keyword]/page.test.tsx' --exclude '.claude/**'` passed.
+  `npx eslint src/lib/seo/genieBusinessProfile.ts src/lib/utils/metadata.ts src/lib/utils/metadata.test.ts src/app/layout.tsx src/app/page.tsx src/app/shop/page.tsx src/app/customizing/page.tsx 'src/app/customizing/category/[keyword]/page.tsx' src/app/mothersdaycakes/page.tsx` passed.
+  `npm run build` passed.
+  Built-server HTML checks on `/`, `/customizing`, `/shop`, `/mothersdaycakes`, and `/about` showed both `og:image` and `twitter:image` using the new rush-orders image.
+
 ## Add The Humanizer Codex Skill
 
 ### Plan

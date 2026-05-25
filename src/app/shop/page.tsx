@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { ShopClient } from './ShopClient';
 import { getMerchants } from '@/services/supabaseService';
 import { CakeGenieMerchant } from '@/lib/database.types';
+import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile';
 
 // Static metadata for SEO
 export const metadata: Metadata = {
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
         siteName: 'Genie.ph',
         url: 'https://genie.ph/shop',
         images: [{
-            url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg',
+            url: genieBusinessProfile.ogImageUrl,
             width: 1200,
             height: 630,
             alt: 'Shop Custom Cakes from Cebu Bakeshops | Genie.ph',
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
         title: 'Shop Custom Cakes from Cebu Bakeshops | Genie.ph',
         description: 'Find the perfect cake from our partner bakeries in Cebu',
         images: [{
-            url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg',
+            url: genieBusinessProfile.ogImageUrl,
             width: 1200,
             height: 630,
             alt: 'Shop Custom Cakes from Cebu Bakeshops | Genie.ph',

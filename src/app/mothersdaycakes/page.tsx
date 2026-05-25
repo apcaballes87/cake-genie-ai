@@ -13,6 +13,7 @@ import {
     type RecommendedProductsQueryOptions,
 } from '@/services/supabaseService';
 import type { LandingHeroContent } from '@/components/landing/landingHeroContent';
+import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile';
 
 export const revalidate = 3600;
 
@@ -105,7 +106,7 @@ async function getMothersDayProducts(limit: number = 8): Promise<MothersDayProdu
 }
 
 const META_IMAGE =
-    'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg';
+    genieBusinessProfile.ogImageUrl;
 
 export const metadata: Metadata = {
     title: { absolute: "Mother's Day Cakes 2026 in Cebu | Personalized Cakes for Mom | Genie.ph" },

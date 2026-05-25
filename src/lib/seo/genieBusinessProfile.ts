@@ -15,7 +15,7 @@ export const genieBusinessProfile = {
   heroImageUrl:
     'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/customized-cakes-cover-photo-genieph.webp',
   ogImageUrl:
-    'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/meta%20GENIE.jpg',
+    'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/pages/CUSTOM-CAKES-FOR-RUSH-ORDERS.WEBP',
   supportEmail: 'support@genie.ph',
   phoneDisplay: '+63 908 940 8747',
   phoneHref: 'tel:+639089408747',
@@ -214,4 +214,3 @@ export function buildGenieLocalBusinessSchema() {
     },
   }
 }
-
