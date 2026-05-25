@@ -47,7 +47,7 @@ function HighlightMatch({ text, query }: { text: string; query: string }) {
   return (
     <>
       {text.substring(0, index)}
-      <span className="font-bold text-pink-600">
+      <span className="font-bold text-purple-600">
         {text.substring(index, index + query.length)}
       </span>
       {text.substring(index + query.length)}
@@ -381,9 +381,9 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                               key={`sugg-${keyword}`}
                               onMouseDown={(e) => e.preventDefault()}
                               onClick={() => handleSelectSuggestion(keyword)}
-                              className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors active:bg-pink-100 ${isSelected
-                                ? 'bg-pink-100 text-pink-700 ring-2 ring-pink-300'
-                                : 'bg-slate-100 text-slate-700 hover:bg-pink-100 hover:text-pink-700'
+                              className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors active:bg-purple-100 ${isSelected
+                                ? 'bg-purple-100 text-purple-700 ring-2 ring-purple-300/40'
+                                : 'bg-slate-100 text-slate-700 hover:bg-purple-100 hover:text-purple-700'
                                 }`}
                             >
                               {keyword}
@@ -405,9 +405,9 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                               key={`pop-${keyword}`}
                               onMouseDown={(e) => e.preventDefault()}
                               onClick={() => handleSelectSuggestion(keyword)}
-                              className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors active:bg-pink-100 ${isSelected
-                                ? 'bg-pink-100 text-pink-700 ring-2 ring-pink-300'
-                                : 'bg-slate-100 text-slate-700 hover:bg-pink-100 hover:text-pink-700'
+                              className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors active:bg-purple-100 ${isSelected
+                                ? 'bg-purple-100 text-purple-700 ring-2 ring-purple-300/40'
+                                : 'bg-slate-100 text-slate-700 hover:bg-purple-100 hover:text-purple-700'
                                 }`}
                             >
                               {keyword}
@@ -428,9 +428,9 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                             key={`sameday-${keyword}`}
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => handleSelectSuggestion(keyword)}
-                            className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors active:bg-pink-200 ${isSelected
-                              ? 'bg-pink-100 text-pink-700 ring-2 ring-pink-300'
-                              : 'bg-slate-100 text-slate-700 hover:bg-pink-100 hover:text-pink-700'
+                            className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors active:bg-purple-200 ${isSelected
+                              ? 'bg-purple-100 text-purple-700 ring-2 ring-purple-300/40'
+                              : 'bg-slate-100 text-slate-700 hover:bg-purple-100 hover:text-purple-700'
                               }`}
                           >
                             {keyword}
@@ -519,9 +519,9 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                           <Link
                             href={link.href}
                             onClick={() => setShowSuggestions(false)}
-                            className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors cursor-pointer active:bg-pink-100 ${isSelected ? 'bg-pink-50' : 'hover:bg-pink-50'}`}
+                            className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors cursor-pointer active:bg-purple-100 ${isSelected ? 'bg-purple-50' : 'hover:bg-purple-50'}`}
                           >
-                            <LayersIcon className="w-4 h-4 text-pink-400 shrink-0" />
+                            <LayersIcon className="w-4 h-4 text-purple-400 shrink-0" />
                             <span className="text-slate-700 text-sm font-medium">
                               <HighlightMatch text={link.label} query={query} />
                             </span>
@@ -571,7 +571,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                             {product.alt_text || product.keywords || product.slug}
                           </p>
                           {product.price && (
-                            <p className="text-xs text-pink-600 font-medium">
+                            <p className="text-xs text-slate-900 font-bold">
                               ₱{Number(product.price).toLocaleString()}
                             </p>
                           )}

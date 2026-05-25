@@ -19,7 +19,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode; className?: 
 const InfoCard: React.FC<{ icon: React.ReactNode; title: string; children: React.ReactNode }> = ({ icon, title, children }) => (
     <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
         <div className="flex items-center gap-3 mb-2">
-            <div className="text-pink-500">{icon}</div>
+            <div className="text-purple-600">{icon}</div>
             <h3 className="text-lg font-bold text-slate-800">{title}</h3>
         </div>
         <p className="text-slate-600">{children}</p>
@@ -34,7 +34,7 @@ const ListItem: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 const PermitThumbnail: React.FC<{ src: string; alt: string; onClick: () => void }> = ({ src, alt, onClick }) => (
-    <button onClick={onClick} className="group text-center focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 rounded-lg">
+    <button onClick={onClick} className="group text-center focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 rounded-lg">
         <div className="aspect-w-3 aspect-h-4 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 relative">
             <LazyImage
                 src={src}
@@ -43,7 +43,7 @@ const PermitThumbnail: React.FC<{ src: string; alt: string; onClick: () => void 
                 imageClassName="group-hover:scale-105 transition-transform duration-300"
             />
         </div>
-        <p className="mt-2 text-sm font-medium text-slate-700 group-hover:text-pink-600 transition-colors">{alt}</p>
+        <p className="mt-2 text-sm font-medium text-slate-700 group-hover:text-purple-600 transition-colors">{alt}</p>
     </button>
 );
 
@@ -67,14 +67,14 @@ const AboutClient: React.FC = () => {
                         <ArrowLeft />
                     </button>
                     <div className="grow">
-                        <h1 className="text-3xl sm:text-4xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">About Us</h1>
+                        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">About <span className="text-purple-400">Us</span></h1>
                         <p className="text-slate-500 font-medium mt-1">Your Cake Wish, Granted.</p>
                     </div>
                 </div>
 
                 <div className="space-y-8">
-                    <div className="rounded-2xl border border-purple-100 bg-linear-to-r from-pink-50 via-white to-purple-50 p-5">
-                        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-pink-600">What Genie.ph is</p>
+                    <div className="rounded-2xl border border-purple-100 bg-linear-to-r from-purple-50/50 via-white to-purple-50/50 p-5">
+                        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-purple-600">What Genie.ph is</p>
                         <p className="mt-3 text-base leading-7 text-slate-600">
                             Genie.ph is a Cebu-based AI-powered marketplace for custom cakes. We help customers upload a design, estimate the price, customize the details, and place an order with vetted local bakers serving Metro Cebu.
                         </p>
@@ -105,7 +105,7 @@ const AboutClient: React.FC = () => {
                         <p>Genie is an AI-powered custom cake marketplace with true customization features. Our platform transforms the custom cake ordering experience for Metro Cebu customers.</p>
                         <div className="mt-6">
                             <div>
-                                <h3 className="text-lg font-semibold text-slate-700 mb-3 flex items-center gap-2"><Users className="w-5 h-5 text-pink-500" /> For Customers</h3>
+                                <h3 className="text-lg font-semibold text-slate-700 mb-3 flex items-center gap-2"><Users className="w-5 h-5 text-purple-600" /> For Customers</h3>
                                 <ul className="space-y-3">
                                     <ListItem><strong>Infinite Design Possibilities</strong> - Access unlimited cake designs with just one click, all fully customizable.</ListItem>
                                     <ListItem><strong>Real-Time Visualization</strong> - See your custom creation come to life instantly as you personalize every detail.</ListItem>

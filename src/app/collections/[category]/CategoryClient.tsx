@@ -121,7 +121,7 @@ const CategoryClient: React.FC<CategoryClientProps> = ({
                         >
                             <ShoppingBag size={24} />
                             {mounted && itemCount > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
+                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-purple-500 text-white text-[10px] font-bold">
                                     {itemCount}
                                 </span>
                             )}
@@ -144,7 +144,7 @@ const CategoryClient: React.FC<CategoryClientProps> = ({
                 </nav>
 
                 <header className="mb-10 max-w-4xl">
-                    <h1 className="text-2xl md:text-4xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">
+                    <h1 className="text-2xl md:text-4xl font-bold text-slate-900">
                         {heading}
                     </h1>
                     <p className="mt-3 text-base text-slate-600 leading-relaxed">

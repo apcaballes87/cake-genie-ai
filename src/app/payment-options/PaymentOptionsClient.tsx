@@ -113,8 +113,8 @@ export default function PaymentOptionsClient() {
 
                 {/* Header */}
                 <div className="text-center mb-12">
-                    <div className="inline-flex items-center justify-center p-3 bg-pink-100 rounded-full mb-4">
-                        <CreditCard className="w-8 h-8 text-pink-600" />
+                    <div className="inline-flex items-center justify-center p-3 bg-purple-100 rounded-full mb-4">
+                        <CreditCard className="w-8 h-8 text-purple-600" />
                     </div>
                     <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-4 font-serif">
                         Payment Options
@@ -159,7 +159,7 @@ export default function PaymentOptionsClient() {
                                     {category.methods.map((method) => (
                                         <div
                                             key={method.name}
-                                            className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:border-pink-300 hover:shadow-md transition-all"
+                                            className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:border-purple-300 hover:shadow-md transition-all"
                                         >
                                             <div className="flex items-center gap-3 mb-3">
                                                 <img
@@ -202,7 +202,7 @@ export default function PaymentOptionsClient() {
                             },
                         ].map((item) => (
                             <div key={item.step} className="text-center">
-                                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-pink-100 text-pink-600 font-bold text-lg mb-3">
+                                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-purple-100 text-purple-600 font-bold text-lg mb-3">
                                     {item.step}
                                 </div>
                                 <h3 className="font-semibold text-slate-800 mb-1">{item.title}</h3>
@@ -237,7 +237,7 @@ export default function PaymentOptionsClient() {
                 <div className="text-center">
                     <Link
                         href="/"
-                        className="inline-flex items-center justify-center gap-2 bg-pink-600 hover:bg-pink-700 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
+                        className="inline-flex items-center justify-center gap-2 genie-btn-primary px-8 py-4 rounded-full text-lg font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]"
                     >
                         Start Your Custom Order
                         <ArrowRight className="w-5 h-5" />

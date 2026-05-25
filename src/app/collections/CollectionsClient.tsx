@@ -173,7 +173,7 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                             >
                                 <ShoppingBag size={24} />
                                 {isMounted && itemCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
+                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-purple-500 text-white text-[10px] font-bold">
                                         {itemCount}
                                     </span>
                                 )}
@@ -190,9 +190,9 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                 {/* Header */}
                     <div className="flex items-center gap-4 mb-8">
                         <div className="grow">
-                            <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">
-                                Browse Cake Collections
-                            </h1>
+                             <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
+                                 Browse Cake <span className="text-purple-400">Collections</span>
+                             </h1>
                             <p className="text-slate-500 font-medium mt-1">
                                 Explore our organized library of custom cake designs. Filter by category or browse the newest arrivals from the Genie.ph community.
                             </p>

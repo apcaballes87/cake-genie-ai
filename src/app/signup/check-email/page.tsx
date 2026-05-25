@@ -23,8 +23,8 @@ function CheckEmailContent() {
                         </div>
                     </div>
 
-                    <h1 className="text-2xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text mb-3">
-                        Check your email
+                    <h1 className="text-2xl font-bold text-slate-900 mb-3">
+                        Check your <span className="text-purple-400">email</span>
                     </h1>
 
                     <p className="text-slate-600 mb-2">
@@ -42,7 +42,7 @@ function CheckEmailContent() {
 
                     <Link
                         href={loginHref}
-                        className="w-full inline-block bg-linear-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:shadow-lg hover:scale-[1.02] transition-all duration-200 text-center"
+                        className="w-full inline-block genie-btn-primary font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 text-center"
                     >
                         Go to Sign In
                     </Link>

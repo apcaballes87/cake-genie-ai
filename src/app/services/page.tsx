@@ -62,24 +62,24 @@ export default function ServicesPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
 
-      <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(251,207,232,0.45),_transparent_35%),linear-gradient(180deg,_#fffdf8,_#f8fafc_35%,_#ffffff)] px-4 py-10 sm:px-6 lg:px-8">
+      <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(233,213,255,0.45),_transparent_35%),linear-gradient(180deg,_#fffdf8,_#f8fafc_35%,_#ffffff)] px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-8">
-          <section className="overflow-hidden rounded-[2.25rem] border border-white/80 bg-linear-to-br from-slate-950 via-purple-950 to-pink-700 p-8 text-white shadow-[0_30px_80px_-48px_rgba(88,28,135,0.8)] md:p-12">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/70">Genie.ph Services</p>
-            <h1 className="mt-5 max-w-4xl text-4xl font-black tracking-tight sm:text-5xl">
-              Custom cake services in Cebu, from instant pricing to final delivery.
+          <section className="overflow-hidden rounded-[2.25rem] border border-purple-100 bg-purple-50/30 p-8 text-slate-900 shadow-[0_15px_40px_-20px_rgba(168,85,247,0.15)] md:p-12">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple-600">Genie.ph Services</p>
+            <h1 className="mt-5 max-w-4xl text-4xl font-black tracking-tight sm:text-5xl text-slate-900">
+              Custom cake services in <span className="text-purple-600">Cebu</span>, from instant pricing to final delivery.
             </h1>
-            <p className="mt-5 max-w-3xl text-base leading-7 text-white/85 sm:text-lg">
+            <p className="mt-5 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg">
               Genie.ph helps Metro Cebu customers discover a cake design, estimate the price, customize the details, and place an order with vetted local bakers in one flow.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="/customizing" className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-purple-700">
+              <Link href="/customizing" className="genie-btn-primary px-6 py-3 rounded-full text-sm font-bold shadow-md hover:scale-[1.02] transition-transform">
                 Upload a cake design
               </Link>
-              <Link href="/collections" className="rounded-full border border-white/30 px-5 py-3 text-sm font-semibold text-white">
+              <Link href="/collections" className="genie-btn-secondary border border-purple-200 px-6 py-3 rounded-full text-sm font-bold shadow-xs hover:scale-[1.02] transition-transform">
                 Browse cake collections
               </Link>
-              <Link href="/reviews" className="rounded-full border border-white/30 px-5 py-3 text-sm font-semibold text-white">
+              <Link href="/reviews" className="genie-btn-secondary border border-purple-200 px-6 py-3 rounded-full text-sm font-bold shadow-xs hover:scale-[1.02] transition-transform">
                 Read customer reviews
               </Link>
             </div>
@@ -88,7 +88,7 @@ export default function ServicesPage() {
           <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {genieBusinessProfile.services.map((service) => (
               <article key={service.slug} className="rounded-[1.75rem] border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-pink-600">Service</p>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-purple-600">Service</p>
                 <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-900">{service.name}</h2>
                 <p className="mt-3 text-sm leading-7 text-slate-600">{service.description}</p>
               </article>
@@ -114,28 +114,28 @@ export default function ServicesPage() {
               </div>
             </div>
 
-            <aside className="rounded-[2rem] border border-slate-200 bg-slate-950 p-6 text-white shadow-sm md:p-8">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/70">Need help?</p>
-              <h2 className="mt-4 text-3xl font-black tracking-tight">Talk to Genie.ph</h2>
-              <div className="mt-5 space-y-3 text-sm leading-6 text-white/85">
+            <aside className="rounded-[2rem] border border-purple-100 bg-purple-50/20 p-6 text-slate-900 shadow-sm md:p-8">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple-600">Need help?</p>
+              <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-900">Talk to Genie.ph</h2>
+              <div className="mt-5 space-y-3 text-sm leading-6 text-slate-600">
                 <p>{genieBusinessProfile.addressLine}</p>
                 <p>{genieBusinessProfile.hoursDisplay}</p>
-                <a href={genieBusinessProfile.phoneHref} className="block hover:text-white">
+                <a href={genieBusinessProfile.phoneHref} className="block hover:text-purple-600 transition-colors font-medium">
                   {genieBusinessProfile.phoneDisplay}
                 </a>
-                <a href={`mailto:${genieBusinessProfile.supportEmail}`} className="block hover:text-white">
+                <a href={`mailto:${genieBusinessProfile.supportEmail}`} className="block hover:text-purple-600 transition-colors font-medium">
                   {genieBusinessProfile.supportEmail}
                 </a>
               </div>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link href="/contact" className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-900">
+                <Link href="/contact" className="genie-btn-primary px-5 py-2.5 rounded-full text-sm font-bold shadow-md hover:scale-[1.02] transition-transform">
                   Contact us
                 </Link>
                 <a
                   href={genieBusinessProfile.mapUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-full border border-white/20 px-5 py-2.5 text-sm font-semibold text-white"
+                  className="genie-btn-secondary border border-purple-200 px-5 py-2.5 rounded-full text-sm font-bold shadow-xs hover:scale-[1.02] transition-transform"
                 >
                   View map
                 </a>

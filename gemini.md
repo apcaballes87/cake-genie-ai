@@ -109,6 +109,74 @@ This project uses the official modern `@google/genai` SDK (version `^1.38.0` or 
 
 ---
 
+## 🎨 Landing Page Branding And Color Rules
+
+- Treat the homepage and landing-style pages as a soft, premium, reassuring brand system, not a loud multicolor marketplace.
+- Keep the base look aligned with the shared Genie tokens in `src/app/globals.css`. That file is the source of truth for `--genie-primary`, `--genie-primary-strong`, `--genie-accent`, `--genie-soft`, `--genie-soft-border`, `genie-page-bg`, `genie-btn-primary`, `genie-btn-secondary`, `genie-icon-button`, and `genie-link`.
+- Default page surfaces should stay light and airy: white, off-white, soft lavender, blush, and the existing `genie-page-bg` gradient. Do not switch landing pages to dark themes or saturated flat backgrounds unless the user explicitly asks.
+- Primary text should stay dark neutral ink/slate (`text-gray-900`, `text-slate-900`, `text-black`) for trust and readability. Supporting copy should stay muted neutral (`text-slate-500`, `text-gray-600`). Do not make long paragraphs purple or pink.
+- Purple is the main brand accent. Use it for primary CTA buttons, highlighted headline words, links, focus states, icon emphasis, and selected states.
+- Pink is a supporting accent only. Use it sparingly in gradients, background glow, or secondary decorative emphasis. Do not let pink replace purple as the main action color.
+- Green and blue are semantic colors, not brand-default accents. Reserve them for meaning such as rush availability, same-day delivery, success, verified states, or logistics badges.
+- Buttons should prefer the shared utilities over ad hoc color classes:
+  - Use `genie-btn-primary` for the main action on a section.
+  - Use `genie-btn-secondary` for secondary actions.
+  - Use `genie-icon-button` for circular or icon-only controls.
+- When adding new landing sections, match the current hierarchy visible in `src/app/LandingClient.tsx` and `src/components/landing/*`:
+  - bold dark headline
+  - muted supporting copy
+  - one purple-highlighted phrase or CTA
+  - soft white/cream card surfaces with gentle purple borders or shadows
+- Avoid introducing random one-off Tailwind colors like bright red, harsh orange, neon blue, or unrelated purple/pink shades when the shared Genie tokens already cover the need.
+- If a new page is supposed to feel like the landing page, reuse the shared Genie utilities first and only add new color tokens when the existing brand system genuinely cannot express the design.
+
+### Branding Compliance Audit Prompt
+
+Use this prompt when reviewing any page for Genie branding color compliance:
+
+```text
+Audit this page for Genie.ph branding color compliance.
+
+Page to review:
+- [INSERT URL, ROUTE, SCREENSHOT, OR FILE PATH]
+
+Brand rules to enforce:
+- The page should feel soft, premium, light, and reassuring, not loud or overly saturated.
+- Use `src/app/globals.css` as the source of truth for shared branding tokens and utilities, especially `--genie-primary`, `--genie-primary-strong`, `--genie-accent`, `genie-page-bg`, `genie-btn-primary`, `genie-btn-secondary`, `genie-icon-button`, and `genie-link`.
+- Primary text should stay dark neutral ink/slate such as `text-gray-900`, `text-slate-900`, or `text-black`.
+- Supporting text should stay muted neutral such as `text-slate-500` or `text-gray-600`.
+- Purple is the main brand accent for primary CTAs, links, highlighted words, focus states, selected states, and icon emphasis.
+- Pink is only a supporting accent and should not replace purple as the dominant action color.
+- Green and blue should be semantic colors only, mainly for success, delivery, availability, rush, same-day, or verified states.
+- Surfaces should stay light: white, off-white, soft lavender, blush, or the existing Genie gradient system. Avoid dark mode styling or harsh flat backgrounds unless intentionally requested.
+- Prefer shared Genie utility classes over ad hoc one-off color classes whenever possible.
+- Avoid random bright red, orange, neon blue, or unrelated purple/pink shades that break the Genie palette.
+
+What to examine:
+1. Page background and section surfaces
+2. Headline, body, caption, and muted text colors
+3. Primary, secondary, and icon-only buttons
+4. Links, badges, chips, pills, borders, shadows, and focus states
+5. Any status colors and whether they are semantic or misused as branding
+6. Whether the page visually matches the homepage/landing brand language
+
+Output format:
+- Overall verdict: Compliant, Partially compliant, or Not compliant
+- What already matches the Genie brand
+- What is off-brand
+- Exact colors/classes/components causing the mismatch
+- Recommended fixes
+- Where to fix it in the codebase
+
+Important:
+- Be strict about branding consistency.
+- Do not give generic design advice.
+- Tie every finding to the actual page UI and, when possible, the actual file/class/token in the repo.
+- If the page is mostly compliant, still call out small off-brand accents or button treatments that should be normalized.
+```
+
+---
+
 ## 💻 Coding Stack & Implementation Rules
 
 - **Languages**: ReactJS, NextJS, JavaScript, TypeScript, TailwindCSS, HTML, CSS.

@@ -31,8 +31,8 @@ const PrivacyClient: React.FC = () => {
                         </div>
                         <span className="font-medium">Back to Home</span>
                     </button>
-                    <h1 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">
-                        Privacy Policy
+                    <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+                        Privacy <span className="text-purple-400">Policy</span>
                     </h1>
                 </div>
 

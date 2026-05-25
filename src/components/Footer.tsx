@@ -37,7 +37,7 @@ export const Footer = () => {
                         <div className="w-12 h-12 genie-icon-soft rounded-full flex items-center justify-center mx-auto mb-4">
                             <Cake size={24} />
                         </div>
-                        <h3 className="font-bold text-lg mb-2 text-pink-600 font-serif italic">Fresh cakes delivered to you</h3>
+                        <h3 className="font-bold text-lg mb-2 text-purple-700 font-serif italic">Fresh cakes delivered to you</h3>
                         <p className="text-gray-600 text-sm mb-4">Homemade delicious cakes freshly baked just in time for your special day</p>
                         <button onClick={() => router.push('/about')} className="genie-btn-primary px-6 py-2 rounded-full text-sm font-bold">
                             About Us
@@ -59,7 +59,7 @@ export const Footer = () => {
                         <div className="w-12 h-12 genie-icon-soft rounded-full flex items-center justify-center mx-auto mb-4">
                             <CreditCard size={24} />
                         </div>
-                        <h3 className="font-bold text-lg mb-2 text-pink-600 font-serif italic">Secure payment options</h3>
+                        <h3 className="font-bold text-lg mb-2 text-purple-700 font-serif italic">Secure payment options</h3>
                         <p className="text-gray-600 text-sm mb-4">E-wallets, over-the-counter and bank payments for your convenience</p>
                         <a 
                             href="https://checkout.xendit.co/od/genieph" 

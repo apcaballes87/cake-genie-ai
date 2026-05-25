@@ -77,7 +77,7 @@ const BillShareCard: React.FC<BillShareCardProps> = ({ design, onDesignUpdate })
                             <p className="text-xs text-slate-500 mt-1">Created on {designDate}</p>
                         </div>
                         <div className="text-right flex-shrink-0 ml-4">
-                            <p className="text-lg font-bold text-pink-600">₱{design.final_price.toLocaleString()}</p>
+                            <p className="text-lg font-black text-slate-900">₱{design.final_price.toLocaleString()}</p>
                             <p className="text-xs text-slate-500">1 item</p>
                         </div>
                     </div>
@@ -93,7 +93,7 @@ const BillShareCard: React.FC<BillShareCardProps> = ({ design, onDesignUpdate })
                         </div>
                         <div className="w-full bg-slate-200 rounded-full h-2.5">
                             <div
-                                className="bg-gradient-to-r from-pink-500 to-purple-500 h-2.5 rounded-full transition-all"
+                                className="bg-purple-500 h-2.5 rounded-full transition-all"
                                 style={{ width: `${progress}%` }}
                             />
                         </div>
@@ -129,13 +129,13 @@ const BillShareCard: React.FC<BillShareCardProps> = ({ design, onDesignUpdate })
                             <h4 className="text-sm font-semibold text-slate-800 mb-2">Item</h4>
                             <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
                                 <div className="flex gap-4">
-                                    <button onClick={() => setZoomState({ isOpen: true, initialTab: 'customized' })} className="w-24 h-24 flex-shrink-0 rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 transition-transform hover:scale-105" aria-label="Enlarge cake image">
+                                    <button onClick={() => setZoomState({ isOpen: true, initialTab: 'customized' })} className="w-24 h-24 flex-shrink-0 rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 transition-transform hover:scale-105" aria-label="Enlarge cake image">
                                         <LazyImage src={design.customized_image_url} alt={design.title} className="w-full h-full object-cover" />
                                     </button>
                                     <div className="flex-grow">
                                         <p className="font-semibold text-slate-800">{design.cake_type}</p>
                                         <p className="text-sm text-slate-500">{design.cake_size}</p>
-                                        <p className="text-lg font-bold text-pink-600 mt-1">₱{design.final_price.toLocaleString()}</p>
+                                        <p className="text-lg font-black text-slate-900 mt-1">₱{design.final_price.toLocaleString()}</p>
                                     </div>
                                 </div>
                                 <details className="mt-3">

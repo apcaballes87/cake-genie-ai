@@ -86,3 +86,4 @@ Follow this checklist for managing your tasks:
 Before starting, make sure to cross-reference specialized workspace guidelines:
 - **UI Stability**: [.agent/rules/regression_prevention.md](file:///Users/apcaballes/genieph-nextjs/.agent/rules/regression_prevention.md)
 - **AI/Gemini Context**: [AI_CONTEXT.md](file:///Users/apcaballes/genieph-nextjs/AI_CONTEXT.md)
+- **The Humanizer**: [the-humanizer.md](file:///Users/apcaballes/genieph-nextjs/the-humanizer.md)

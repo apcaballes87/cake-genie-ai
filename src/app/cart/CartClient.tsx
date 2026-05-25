@@ -1210,7 +1210,7 @@ function CartClient() {
                     <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-fade-in-fast { animation: fadeInFast 0.2s ease-out; } @keyframes fadeInFast { from { opacity: 0; } to { opacity: 1; } } `}</style>
 
                     <div className="flex justify-between items-center px-4 pt-4 pb-3 border-b border-purple-100">
-                        <h1 className="text-2xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">Your Cart</h1>
+                        <h1 className="text-2xl font-bold text-slate-900">Your <span className="text-purple-400">Cart</span></h1>
                         <button onClick={handleClose} className="p-2 genie-icon-button rounded-full transition-colors" aria-label="Close cart">
                             <CloseIcon />
                         </button>

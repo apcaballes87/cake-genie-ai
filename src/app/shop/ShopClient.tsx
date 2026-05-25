@@ -29,13 +29,13 @@ export function ShopClient({ merchants }: ShopClientProps) {
     return (
         <div className="min-h-screen bg-slate-50 pb-20">
             {/* Hero Section */}
-            <div className="bg-linear-to-br from-purple-600 via-purple-700 to-pink-600 text-white">
+            <div className="relative overflow-hidden bg-purple-50/30 border-b border-purple-100 text-slate-900">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16">
                     <div className="text-center">
-                        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-                            Discover Amazing Bakeshops
+                        <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 mb-4">
+                            Discover Amazing <span className="text-purple-400">Bakeshops</span>
                         </h1>
-                        <p className="text-purple-100 text-lg md:text-xl max-w-2xl mx-auto mb-8">
+                        <p className="text-slate-500 text-lg md:text-xl max-w-2xl mx-auto mb-8 font-medium">
                             Find the perfect cake from our partner bakeries across the Philippines
                         </p>
 
@@ -47,7 +47,7 @@ export function ShopClient({ merchants }: ShopClientProps) {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search by bakeshop name or city..."
-                                className="w-full pl-12 pr-4 py-4 bg-white text-slate-900 rounded-2xl shadow-lg focus:ring-4 focus:ring-purple-300 focus:outline-none transition-all placeholder:text-slate-400"
+                                className="w-full pl-12 pr-4 py-4 bg-white text-slate-900 rounded-2xl shadow-lg border border-purple-100 focus:ring-4 focus:ring-purple-200 focus:outline-none transition-all placeholder:text-slate-400"
                             />
                         </div>
                     </div>
@@ -84,7 +84,7 @@ export function ShopClient({ merchants }: ShopClientProps) {
                                 className="group bg-white rounded-2xl shadow-sm hover:shadow-xl border border-slate-100 overflow-hidden transition-all duration-300 hover:-translate-y-1"
                             >
                                 {/* Cover Image */}
-                                <div className="relative h-32 bg-linear-to-br from-purple-100 to-pink-100 overflow-hidden">
+                                <div className="relative h-32 bg-gradient-to-br from-purple-50 to-purple-100 overflow-hidden">
                                     {merchant.cover_image_url ? (
                                         <LazyImage
                                             src={merchant.cover_image_url}

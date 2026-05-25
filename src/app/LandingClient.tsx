@@ -1552,7 +1552,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                             >
                                 <ShoppingBag size={24} />
                                 {isMounted && itemCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
+                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-purple-500 text-white text-[10px] font-bold">
                                         {itemCount}
                                     </span>
                                 )}

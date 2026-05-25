@@ -1,5 +1,38 @@
 # Tasks
 
+## Add Reusable Branding Compliance Prompt
+
+### Plan
+
+- [x] Review the existing Genie branding rules and turn them into a reusable audit prompt.
+- [x] Add the prompt to the repo instruction file so future agents can check any page for branding color compliance.
+- [x] Verify the prompt covers backgrounds, text, buttons, accents, semantic colors, and output format.
+
+### Review
+
+- Added a `Branding Compliance Audit Prompt` section to `gemini.md` directly under the landing-page branding rules.
+- Structured the prompt so an agent can paste in a URL, route, screenshot, or file path and then evaluate that page against the real Genie palette and shared utilities in `src/app/globals.css`.
+- Required the audit output to report verdict, compliant elements, off-brand elements, exact classes/tokens/components involved, recommended fixes, and where to change the code.
+- Verification:
+  Repo inspection confirmed the prompt is aligned with the previously documented Genie branding rules and references the correct shared theme utilities.
+
+## Document Landing Page Branding Rules
+
+### Plan
+
+- [x] Inspect the homepage and shared theme utilities to identify the actual Genie landing-page palette and styling hierarchy.
+- [x] Choose the repo instruction file that should hold persistent design guidance for future agents.
+- [x] Add a durable branding and color reminder that explains how to style text, buttons, accents, surfaces, and semantic statuses on landing-style pages.
+- [x] Verify the written rule matches the observed homepage implementation and shared CSS tokens.
+
+### Review
+
+- Added a new `Landing Page Branding And Color Rules` section to `gemini.md` so future agents have a persistent reminder without needing the user to restate the same design adjustment.
+- Grounded the rule in the real shared theme source of truth from `src/app/globals.css`, including `genie-page-bg`, `genie-btn-primary`, `genie-btn-secondary`, `genie-icon-button`, and the Genie color tokens.
+- Captured the observed landing-page pattern from `src/app/LandingClient.tsx` and `src/components/landing/*`: dark neutral text, muted supporting copy, purple as the primary brand accent, pink as a limited supporting accent, and green/blue reserved for semantic delivery or availability states.
+- Verification:
+  Repo inspection confirmed the guidance matches the current homepage implementation in `src/app/LandingClient.tsx`, `src/components/landing/IntroContent.tsx`, `src/components/landing/HeroTransitionSection.tsx`, `src/components/landing/LandingFooter.tsx`, and `src/app/globals.css`.
+
 ## Align Landing Page Reviews Branding
 
 ### Plan

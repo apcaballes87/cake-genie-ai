@@ -215,7 +215,7 @@ export default async function SharedDesignPage({ params }: Props) {
                     className="w-16 h-16 object-contain"
                 />
                 <div>
-                    <h1 className="text-5xl font-extrabold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">
+                    <h1 className="text-5xl font-extrabold text-slate-900">
                         Genie
                     </h1>
                     <p className="text-slate-500 text-sm mt-1">Your Cake Wish, Granted.</p>
@@ -225,7 +225,7 @@ export default async function SharedDesignPage({ params }: Props) {
             <div className="w-full max-w-4xl mx-auto bg-white/70 backdrop-blur-lg p-6 sm:p-8 rounded-2xl shadow-lg border border-slate-200 animate-fade-in">
                 <div className="flex items-center gap-4 mb-6">
                     <SharedDesignBackButton />
-                    <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text truncate">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 truncate">
                         {design.title}
                     </h1>
                 </div>
@@ -289,7 +289,7 @@ export default async function SharedDesignPage({ params }: Props) {
                             </div>
                             <div className="flex justify-between items-center mt-4">
                                 <span className="text-slate-500 font-medium">Price:</span>
-                                <span className="text-3xl font-bold text-pink-600">₱{design.final_price?.toLocaleString()}</span>
+                                <span className="text-3xl font-black text-slate-900">₱{design.final_price?.toLocaleString()}</span>
                             </div>
                         </div>
 

@@ -68,7 +68,7 @@ const ReviewRow: React.FC<{
                 {/* Left: Review Content */}
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                        <div className="w-10 h-10 rounded-full bg-purple-100 border border-purple-200 flex items-center justify-center text-purple-700 font-bold text-sm">
                             {displayName.charAt(0).toUpperCase()}
                         </div>
                         <div>
@@ -358,7 +358,7 @@ export default function ReviewsManagementClient() {
         return (
             <div className="w-full max-w-4xl mx-auto py-8 px-4 text-center">
                 <p className="text-slate-600">Please sign in to manage reviews.</p>
-                <button onClick={() => router.push('/')} className="mt-4 text-pink-600 font-semibold hover:underline">
+                 <button onClick={() => router.push('/')} className="mt-4 text-purple-600 font-semibold hover:underline">
                     Go Back
                 </button>
             </div>
@@ -375,9 +375,9 @@ export default function ReviewsManagementClient() {
                 >
                     <ArrowLeft />
                 </button>
-                <h1 className="text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">
-                    Reviews Management
-                </h1>
+                 <h1 className="text-3xl font-bold text-slate-900">
+                     Reviews <span className="text-purple-400">Management</span>
+                 </h1>
             </div>
 
             {/* Stats Summary */}

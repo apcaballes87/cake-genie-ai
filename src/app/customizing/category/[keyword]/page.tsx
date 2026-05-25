@@ -315,10 +315,10 @@ export default async function CategoryPage({ params }: Props) {
                     </nav>
 
                     {/* Header */}
-                    <header className="mb-8">
-                        <h1 className="text-2xl md:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text truncate">
-                            {category.designLabel}
-                        </h1>
+                     <header className="mb-8">
+                         <h1 className="text-2xl md:text-3xl font-bold text-slate-900 truncate">
+                             {category.designLabel}
+                         </h1>
                         <p className="text-slate-500 font-medium mt-1">
                             Browse {designs.length} {category.coreNameLower} cake designs. Get instant AI pricing and order from trusted bakers in Cebu.
                         </p>

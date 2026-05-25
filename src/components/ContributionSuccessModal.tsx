@@ -32,10 +32,10 @@ export const ContributionSuccessModal: React.FC<ContributionSuccessModalProps> =
             Your ₱{contributionAmount.toLocaleString()} contribution was successful!
           </p>
 
-          <div className="mt-6 p-4 bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl border-2 border-pink-200">
+          <div className="mt-6 p-4 bg-purple-50/30 rounded-xl border-2 border-purple-100">
             <div className="flex items-center justify-center gap-2">
-              <Sparkles className="w-5 h-5 text-pink-500" />
-              <h3 className="font-bold text-pink-800">Here's ₱100 OFF Your First Cake!</h3>
+              <Sparkles className="w-5 h-5 text-purple-500" />
+              <h3 className="font-bold text-purple-950">Here's ₱100 OFF Your First Cake!</h3>
             </div>
             <div className="my-3 py-2 px-4 bg-white border-2 border-dashed border-purple-400 rounded-lg text-purple-700 font-mono text-lg font-bold">
               {discountCode}
@@ -52,7 +52,7 @@ export const ContributionSuccessModal: React.FC<ContributionSuccessModalProps> =
           <div className="mt-6 space-y-3">
             <button
               onClick={onStartDesigning}
-              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-base"
+              className="w-full genie-btn-primary font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-base flex items-center justify-center"
             >
               Start Designing Your Cake
             </button>

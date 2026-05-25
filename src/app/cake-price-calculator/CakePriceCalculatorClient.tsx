@@ -203,18 +203,20 @@ const CakePriceCalculatorClient: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-linear-to-b from-pink-50 to-white">
+        <div className="min-h-screen genie-page-bg">
             {/* Header */}
-            <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-pink-100">
+            <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-purple-100">
                 <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
                     <button
                         onClick={() => router.push('/')}
-                        className="p-2 hover:bg-pink-50 rounded-full transition-colors"
+                        className="p-2 hover:bg-purple-50 rounded-full transition-colors"
                         aria-label="Go back to home"
                     >
-                        <ArrowLeft className="w-5 h-5 text-pink-600" />
+                        <ArrowLeft className="w-5 h-5 text-purple-600" />
                     </button>
-                    <h1 className="text-xl font-bold text-pink-600">Cake Price Calculator</h1>
+                    <h1 className="text-xl font-bold text-gray-900">
+                        Cake Price <span className="text-purple-650 font-extrabold text-purple-600">Calculator</span>
+                    </h1>
                 </div>
             </header>
 
@@ -222,8 +224,8 @@ const CakePriceCalculatorClient: React.FC = () => {
             <main className="max-w-xl mx-auto px-4 py-8">
                 {/* Heading Section */}
                 <div className="text-center mb-8">
-                    <h2 className="text-2xl md:text-3xl font-bold text-pink-600 mb-2">
-                        Cake Price Calculator for Customized Cakes
+                    <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight mb-2">
+                        Cake Price <span className="text-purple-400">Calculator</span> for Customized Cakes
                     </h2>
                     <p className="text-slate-600">
                         Upload your design to get an instant quote via our AI Customizer
@@ -246,17 +248,17 @@ const CakePriceCalculatorClient: React.FC = () => {
                             className={`
                                 p-8 md:p-12 border-2 border-dashed rounded-2xl cursor-pointer transition-all
                                 ${isDragging
-                                    ? 'border-pink-500 bg-pink-100'
-                                    : 'border-pink-300 bg-pink-50 hover:bg-pink-100 hover:border-pink-400'
+                                    ? 'border-purple-400 bg-purple-50'
+                                    : 'border-purple-200 bg-purple-50/40 hover:bg-purple-50/70 hover:border-purple-300'
                                 }
                             `}
                         >
-                            <div className="flex flex-col items-center text-pink-600 gap-3">
-                                <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center">
-                                    <Camera className="w-8 h-8" />
+                            <div className="flex flex-col items-center text-purple-650 text-purple-600 gap-3">
+                                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
+                                    <Camera className="w-8 h-8 text-purple-600" />
                                 </div>
-                                <span className="font-semibold text-lg">Drag & drop or click to upload photo</span>
-                                <span className="text-sm text-pink-400">Supports: WEBP, PNG, JPG</span>
+                                <span className="font-semibold text-lg text-slate-800">Drag & drop or click to upload photo</span>
+                                <span className="text-sm text-purple-450 text-purple-400">Supports: WEBP, PNG, JPG</span>
                             </div>
                         </div>
                     ) : (
@@ -273,19 +275,19 @@ const CakePriceCalculatorClient: React.FC = () => {
                                         />
                                     </div>
                                     <div className="flex flex-col items-center gap-3">
-                                        <Loader2 className="animate-spin w-8 h-8 text-pink-500" />
-                                        <p className="font-semibold text-pink-600">
+                                        <Loader2 className="animate-spin w-8 h-8 text-purple-500" />
+                                        <p className="font-semibold text-purple-650 text-purple-650 text-purple-600">
                                             Preparing your design for AI customization...
                                         </p>
                                         <p className="text-sm text-slate-500">
-                                            Redirecting in <span className="font-bold text-pink-600">{countdown}</span> seconds
+                                            Redirecting in <span className="font-bold text-purple-600">{countdown}</span> seconds
                                         </p>
                                     </div>
                                 </>
                             ) : (
                                 <div className="flex flex-col items-center gap-3">
-                                    <Loader2 className="animate-spin w-10 h-10 text-pink-500" />
-                                    <p className="font-semibold text-pink-600">{processingStatus}</p>
+                                    <Loader2 className="animate-spin w-10 h-10 text-purple-500" />
+                                    <p className="font-semibold text-purple-600">{processingStatus}</p>
                                 </div>
                             )}
                         </div>
@@ -301,25 +303,25 @@ const CakePriceCalculatorClient: React.FC = () => {
                 </div>
 
                 {/* SEO Content Section */}
-                <div className="bg-white rounded-2xl shadow-sm border border-pink-100 p-6 md:p-8 space-y-6">
+                <div className="bg-white rounded-2xl shadow-sm border border-purple-100 p-6 md:p-8 space-y-6">
                     <p className="text-slate-700 leading-relaxed">
                         Skip the back-and-forth on Messenger. Upload a cake photo, see the{' '}
-                        <strong className="text-pink-600">price instantly</strong>, and order online!
+                        <strong className="text-purple-600">price instantly</strong>, and order online!
                         Available for delivery or pickup in{' '}
                         <strong>Cebu City</strong> and <strong>Cavite</strong>.
                     </p>
 
                     <ul className="space-y-2 text-slate-700">
                         <li className="flex items-start gap-2">
-                            <span className="text-pink-500 mt-1">•</span>
+                            <span className="text-purple-400 mt-1">•</span>
                             Instant quotes for custom and decorated cakes
                         </li>
                         <li className="flex items-start gap-2">
-                            <span className="text-pink-500 mt-1">•</span>
+                            <span className="text-purple-400 mt-1">•</span>
                             Detailed explanation of designs (toppers, drip, macarons, etc.)
                         </li>
                         <li className="flex items-start gap-2">
-                            <span className="text-pink-500 mt-1">•</span>
+                            <span className="text-purple-400 mt-1">•</span>
                             Fast checkout with delivery or pickup options
                         </li>
                     </ul>
@@ -352,7 +354,7 @@ const CakePriceCalculatorClient: React.FC = () => {
                                 <div key={index} className="border-b border-slate-100 pb-2">
                                     <button
                                         onClick={() => toggleFaq(index)}
-                                        className="w-full flex items-center justify-between text-left py-2 font-semibold text-pink-600 hover:text-pink-700 transition-colors"
+                                        className="w-full flex items-center justify-between text-left py-2 font-semibold text-purple-600 hover:text-purple-700 transition-colors"
                                         aria-expanded={expandedFaq === index}
                                     >
                                         <span>{faq.q}</span>

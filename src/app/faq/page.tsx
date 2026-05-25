@@ -101,14 +101,14 @@ const faqs = [
 
 export default function FAQPage() {
     return (
-        <main className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100">
+        <main className="min-h-screen bg-gradient-to-br from-purple-50/50 via-slate-50 to-purple-50/30">
             <div className="container mx-auto px-4 py-12 max-w-4xl">
                 <header className="text-center mb-12">
                     <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
                         Frequently Asked Questions
                     </h1>
                     <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                        Everything you need to know about ordering custom cakes on Genie.ph. Can&apos;t find your answer? <Link href="/contact" className="text-pink-600 hover:text-pink-700 underline">Contact us</Link> and we&apos;ll be happy to help.
+                        Everything you need to know about ordering custom cakes on Genie.ph. Can&apos;t find your answer? <Link href="/contact" className="text-purple-600 hover:text-purple-700 underline font-semibold">Contact us</Link> and we&apos;ll be happy to help.
                     </p>
                 </header>
 
@@ -124,7 +124,7 @@ export default function FAQPage() {
                                         key={faqIdx}
                                         className="group bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
                                     >
-                                        <summary className="cursor-pointer px-5 py-4 font-medium text-slate-800 hover:text-pink-700 transition-colors list-none flex items-center justify-between">
+                                        <summary className="cursor-pointer px-5 py-4 font-medium text-slate-800 hover:text-purple-600 transition-colors list-none flex items-center justify-between">
                                             <span>{faq.q}</span>
                                             <svg className="w-5 h-5 text-slate-400 group-open:rotate-180 transition-transform flex-shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -144,31 +144,31 @@ export default function FAQPage() {
                 <nav className="mt-12 pt-8 border-t border-slate-200" aria-label="Related pages">
                     <h2 className="text-lg font-semibold text-slate-800 mb-4">Helpful Resources</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Link href="/how-to-order" className="flex items-center gap-3 p-4 bg-white/70 rounded-xl border border-slate-200 hover:border-pink-300 transition-colors group">
+                        <Link href="/how-to-order" className="flex items-center gap-3 p-4 bg-white/70 rounded-xl border border-slate-200 hover:border-purple-300 transition-colors group">
                             <span className="text-2xl">📋</span>
                             <div>
-                                <p className="font-medium text-slate-800 group-hover:text-pink-700 transition-colors">How to Order</p>
+                                <p className="font-medium text-slate-800 group-hover:text-purple-600 transition-colors">How to Order</p>
                                 <p className="text-sm text-slate-500">Step-by-step ordering guide</p>
                             </div>
                         </Link>
-                        <Link href="/cake-price-calculator" className="flex items-center gap-3 p-4 bg-white/70 rounded-xl border border-slate-200 hover:border-pink-300 transition-colors group">
+                        <Link href="/cake-price-calculator" className="flex items-center gap-3 p-4 bg-white/70 rounded-xl border border-slate-200 hover:border-purple-300 transition-colors group">
                             <span className="text-2xl">🎂</span>
                             <div>
-                                <p className="font-medium text-slate-800 group-hover:text-pink-700 transition-colors">Cake Price Calculator</p>
+                                <p className="font-medium text-slate-800 group-hover:text-purple-600 transition-colors">Cake Price Calculator</p>
                                 <p className="text-sm text-slate-500">Get instant AI pricing</p>
                             </div>
                         </Link>
-                        <Link href="/contact" className="flex items-center gap-3 p-4 bg-white/70 rounded-xl border border-slate-200 hover:border-pink-300 transition-colors group">
+                        <Link href="/contact" className="flex items-center gap-3 p-4 bg-white/70 rounded-xl border border-slate-200 hover:border-purple-300 transition-colors group">
                             <span className="text-2xl">📞</span>
                             <div>
-                                <p className="font-medium text-slate-800 group-hover:text-pink-700 transition-colors">Contact Us</p>
+                                <p className="font-medium text-slate-800 group-hover:text-purple-600 transition-colors">Contact Us</p>
                                 <p className="text-sm text-slate-500">Get help from our team</p>
                             </div>
                         </Link>
-                        <Link href="/blog" className="flex items-center gap-3 p-4 bg-white/70 rounded-xl border border-slate-200 hover:border-pink-300 transition-colors group">
+                        <Link href="/blog" className="flex items-center gap-3 p-4 bg-white/70 rounded-xl border border-slate-200 hover:border-purple-300 transition-colors group">
                             <span className="text-2xl">📝</span>
                             <div>
-                                <p className="font-medium text-slate-800 group-hover:text-pink-700 transition-colors">Cake Blog</p>
+                                <p className="font-medium text-slate-800 group-hover:text-purple-600 transition-colors">Cake Blog</p>
                                 <p className="text-sm text-slate-500">Tips, trends, and inspiration</p>
                             </div>
                         </Link>

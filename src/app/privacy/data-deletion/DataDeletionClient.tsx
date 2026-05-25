@@ -33,8 +33,8 @@ const DataDeletionClient: React.FC = () => {
                         </div>
                         <span className="font-medium">Back to Privacy Policy</span>
                     </button>
-                    <h1 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">
-                        Data Deletion Instructions
+                    <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+                        Data Deletion <span className="text-purple-400">Instructions</span>
                     </h1>
                 </div>
 
@@ -50,7 +50,7 @@ const DataDeletionClient: React.FC = () => {
                     <div className="space-y-8">
                         <section>
                             <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                <Trash2 size={24} className="text-pink-500" />
+                                <Trash2 size={24} className="text-purple-500" />
                                 How to Request Data Deletion
                             </h2>
                             <div className="grid gap-4">
@@ -96,7 +96,7 @@ const DataDeletionClient: React.FC = () => {
                             </div>
                             <a 
                                 href="mailto:support@genie.ph"
-                                className="inline-flex items-center justify-center px-6 py-3 bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold rounded-xl hover:shadow-lg transition-all active:scale-95 text-center"
+                                className="inline-flex items-center justify-center px-6 py-3 genie-btn-primary font-bold rounded-xl shadow-md hover:shadow-lg transition-all text-center"
                             >
                                 Contact Support
                             </a>

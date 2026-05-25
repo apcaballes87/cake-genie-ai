@@ -6,7 +6,7 @@ import { ArrowLeft, Search, Upload, Edit, Wand2, ShoppingCart, CheckCircle, Help
 
 const Step: React.FC<{ icon: React.ReactNode; title: string; children: React.ReactNode }> = ({ icon, title, children }) => (
     <div className="flex items-start gap-4">
-        <div className="shrink-0 w-12 h-12 flex items-center justify-center bg-pink-100 text-pink-600 rounded-full border-2 border-pink-200">
+        <div className="shrink-0 w-12 h-12 flex items-center justify-center bg-purple-100 text-purple-700 rounded-full border-2 border-purple-200">
             {icon}
         </div>
         <div>
@@ -27,7 +27,7 @@ const HowToOrderClient: React.FC = () => {
                 <button onClick={() => router.push('/')} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Go back">
                     <ArrowLeft />
                 </button>
-                <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">How to Order</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">How to <span className="text-purple-400">Order</span></h1>
             </div>
 
             <div className="space-y-8">
@@ -37,7 +37,7 @@ const HowToOrderClient: React.FC = () => {
                         <li><strong>Search the Web:</strong> Type any idea into the search bar (e.g., "blue dinosaur cake," "elegant floral wedding cake") to find designs from across the internet.</li>
                         <li><strong>Upload Your Own:</strong> Have a photo saved from Pinterest or Instagram? Click the camera icon to upload an image directly from your device. This is the fastest way to get an accurate quote on a specific design you already love.</li>
                     </ul>
-                    <p className="text-sm bg-pink-50 border border-pink-100 rounded-lg px-3 py-2">
+                    <p className="text-sm bg-purple-50/50 border border-purple-100 rounded-lg px-3 py-2">
                         <strong>Pro tip:</strong> Use a well-lit photo with a plain background for the most accurate AI pricing. Busy backgrounds can sometimes cause the AI to pick up extra decorations that aren&apos;t actually part of the design.
                     </p>
                 </Step>
@@ -51,7 +51,7 @@ const HowToOrderClient: React.FC = () => {
                         <li>An initial price estimate based on the design&apos;s overall complexity.</li>
                     </ul>
                     <p>These details will automatically appear in the customization panel, ready for you to edit. For a typical 1-tier, 6-inch round cake with buttercream icing and simple floral decorations, the AI usually returns a starting price range of <strong>₱700–₱1,200</strong>. More elaborate designs with multiple tiers, fondant work, or 3D toppers will price higher.</p>
-                    <p className="text-sm bg-pink-50 border border-pink-100 rounded-lg px-3 py-2">
+                    <p className="text-sm bg-purple-50/50 border border-purple-100 rounded-lg px-3 py-2">
                         <strong>Note:</strong> If your reference photo shows a multi-tier cake, the AI will detect and price each tier separately — so a 3-tier cake will show three tier entries in your customization panel.
                     </p>
                 </Step>
@@ -65,7 +65,7 @@ const HowToOrderClient: React.FC = () => {
                         <li><strong>Update Messages:</strong> Edit the text or color of any message written on the cake — perfect for birthdays, anniversaries, or graduations.</li>
                         <li><strong>Click &quot;Update Design&quot;:</strong> After making your changes, click the big <strong>&quot;Update Design&quot;</strong> button. The AI will generate a new preview image reflecting your edits in just a few seconds.</li>
                     </ul>
-                    <p className="text-sm bg-pink-50 border border-pink-100 rounded-lg px-3 py-2">
+                    <p className="text-sm bg-purple-50/50 border border-purple-100 rounded-lg px-3 py-2">
                         <strong>Pro tip:</strong> For complex edits, make one or two changes at a time before clicking &quot;Update Design.&quot; This keeps the preview accurate. Use the <strong>&quot;Additional Instructions&quot;</strong> box for specific details the palette can&apos;t handle, like &quot;make the drip gold&quot; or &quot;put the message on the front tier.&quot;
                     </p>
                 </Step>

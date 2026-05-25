@@ -59,8 +59,8 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
           <ArrowLeft />
         </button>
         <div>
-          <h1 className="text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">
-            Customer Reviews
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            Customer <span className="text-purple-400">Reviews</span>
           </h1>
           {ratingSummary && (
             <p className="text-sm text-slate-500 mt-0.5">
@@ -115,11 +115,11 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
                         <div className="relative aspect-square w-full rounded-xl overflow-hidden border border-slate-100 group shadow-xs">
                           <button
                             type="button"
-                            className="absolute inset-0 w-full h-full text-left cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-pink-400 focus:rounded-xl"
+                            className="absolute inset-0 w-full h-full text-left cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-purple-400 focus:rounded-xl"
                             onClick={() => setLightboxImage(review.original_image_url!)}
                             aria-label="View original inspiration design"
                           >
-                            <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 text-[8px] font-extrabold tracking-wider text-pink-750 bg-pink-50/90 backdrop-blur-xs rounded-md shadow-xs uppercase border border-pink-200/50 whitespace-nowrap">
+                            <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 text-[8px] font-extrabold tracking-wider text-purple-750 bg-purple-50/90 backdrop-blur-xs rounded-md shadow-xs uppercase border border-purple-200/50 whitespace-nowrap">
                               Cake Inspo
                             </span>
                             <LazyImage
@@ -160,7 +160,7 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
                           {/* Header */}
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-xs border border-pink-100">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-xs border border-purple-100">
                                 {getReviewAvatarInitial(review)}
                               </div>
                               <div>
@@ -191,7 +191,7 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
 
                           {/* Comment */}
                           {review.comment && (
-                            <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">{review.comment}</p>
+                            <p className="text-purple-900/90 text-sm leading-relaxed whitespace-pre-wrap">{review.comment}</p>
                           )}
                         </div>
 
@@ -200,7 +200,7 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
                           <div className="mt-4 flex items-center justify-end">
                             <button
                               onClick={() => router.push(`/customizing/${review.cakegenie_analysis_cache?.slug}`)}
-                              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-pink-600 hover:text-white bg-pink-50 hover:bg-gradient-to-r hover:from-pink-500 hover:to-purple-600 border border-pink-105 hover:border-transparent rounded-xl shadow-xs transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                              className="genie-btn-secondary px-4 py-2 rounded-xl text-xs font-bold shadow-xs active:scale-[0.99] transition-transform"
                             >
                               <span>Recreate This Custom Cake</span>
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -216,7 +216,7 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
                       {/* Row 1: Avatar + Name + Date */}
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                             {getReviewAvatarInitial(review)}
                           </div>
                           <span className="font-semibold text-slate-800">
@@ -245,7 +245,7 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
 
                       {/* Row 4: Full comment */}
                       {review.comment && (
-                        <p className="text-slate-600 leading-relaxed mb-4">{review.comment}</p>
+                        <p className="text-purple-900/90 leading-relaxed mb-4">{review.comment}</p>
                       )}
 
                       {/* Row 5: Product info */}
@@ -254,7 +254,7 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
                           {firstItem.customized_image_url && (
                             <button
                               type="button"
-                              className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-pink-400"
+                              className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-purple-400"
                               onClick={() => setLightboxImage(firstItem.customized_image_url!)}
                               aria-label="View product image"
                             >
@@ -290,7 +290,7 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
                             <button
                               key={idx}
                               type="button"
-                              className="relative w-20 h-20 overflow-hidden rounded-lg cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-pink-400"
+                              className="relative w-20 h-20 overflow-hidden rounded-lg cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-purple-400"
                               onClick={() => setLightboxImage(photo)}
                               aria-label={`View review photo ${idx + 1}`}
                             >
@@ -311,7 +311,7 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
                         <div className="mt-4 flex items-center justify-end">
                           <button
                             onClick={() => router.push(`/customizing/${review.cakegenie_analysis_cache?.slug}`)}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-pink-600 hover:text-white bg-pink-50 hover:bg-gradient-to-r hover:from-pink-500 hover:to-purple-600 border border-pink-100 hover:border-transparent rounded-xl shadow-xs transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                            className="genie-btn-secondary px-4 py-2 rounded-xl text-xs font-bold shadow-xs active:scale-[0.99] transition-transform"
                           >
                             <span>Recreate This Custom Cake</span>
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -147,7 +147,7 @@ const OrderConfirmationContent: React.FC = () => {
                 <p className="text-gray-600 mb-6">We couldn't find the requested order. It may have been cancelled or there was an issue.</p>
                 <button
                     onClick={onGoToOrders}
-                    className="bg-linear-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:shadow-lg transition-all"
+                    className="genie-btn-primary text-white px-6 py-3 rounded-full font-semibold shadow-md hover:shadow-lg transition-all inline-flex justify-center items-center"
                 >
                     Back to My Orders
                 </button>
@@ -162,7 +162,7 @@ const OrderConfirmationContent: React.FC = () => {
             <div className="mx-auto w-16 h-16 flex items-center justify-center bg-green-100 rounded-full">
                 <svg className="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
             </div>
-            <h1 className="text-2xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text mt-4">Order Placed Successfully!</h1>
+            <h1 className="text-2xl font-bold text-slate-900 mt-4">Order Placed <span className="text-purple-400">Successfully!</span></h1>
             <p className="text-slate-600 mt-2">Your order is now being processed.</p>
 
             <div className="mt-4 bg-slate-100 p-3 rounded-lg">
@@ -257,7 +257,7 @@ const OrderConfirmationContent: React.FC = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row-reverse gap-3 mt-8">
-                <button onClick={onGoToOrders} className="w-full bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-base">
+                <button onClick={onGoToOrders} className="w-full genie-btn-primary font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all text-base flex items-center justify-center">
                     Check My Orders
                 </button>
                 <button onClick={onContinueShopping} className="w-full text-center bg-white border border-slate-300 text-slate-700 font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-slate-50 transition-all text-base">

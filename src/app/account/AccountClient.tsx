@@ -62,7 +62,7 @@ const AccountClient: React.FC = () => {
                 <button onClick={() => router.push('/')} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Go back">
                     <ArrowLeft />
                 </button>
-                <h1 className="text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">My Account</h1>
+                <h1 className="text-3xl font-bold text-slate-900">My <span className="text-purple-400">Account</span></h1>
             </div>
 
             {/* User Email */}

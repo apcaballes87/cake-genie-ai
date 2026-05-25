@@ -32,10 +32,10 @@ const AddressCard: React.FC<AddressCardProps> = ({ address, onSetDefault, onDele
   return (
     <div
       id={cardId}
-      className={`relative p-5 bg-white rounded-xl border-2 transition-all duration-300 ${isDefault ? 'border-pink-500 shadow-lg' : 'border-slate-200'}`}
+      className={`relative p-5 bg-white rounded-xl border-2 transition-all duration-300 ${isDefault ? 'border-purple-400 bg-purple-50/10 shadow-lg' : 'border-slate-200'}`}
     >
       {isDefault && (
-        <div className="absolute -top-3 -right-3 flex items-center bg-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+        <div className="absolute -top-3 -right-3 flex items-center bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
           <Star className="w-3 h-3 mr-1.5" fill="currentColor" />
           DEFAULT
         </div>
@@ -59,7 +59,7 @@ const AddressCard: React.FC<AddressCardProps> = ({ address, onSetDefault, onDele
       <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-slate-100">
         <button
           onClick={onEdit}
-          className="flex items-center justify-center text-xs font-semibold text-slate-600 hover:text-pink-600 disabled:opacity-50 transition-colors px-3 py-1.5"
+          className="flex items-center justify-center text-xs font-semibold text-slate-600 hover:text-purple-600 disabled:opacity-50 transition-colors px-3 py-1.5"
         >
           <Pencil className="w-4 h-4 mr-2" />
           Edit
@@ -68,7 +68,7 @@ const AddressCard: React.FC<AddressCardProps> = ({ address, onSetDefault, onDele
           <button
             onClick={onSetDefault}
             disabled={isSettingDefault}
-            className="flex items-center justify-center text-xs font-semibold text-slate-600 hover:text-pink-600 disabled:opacity-50 transition-colors px-3 py-1.5"
+            className="flex items-center justify-center text-xs font-semibold text-slate-600 hover:text-purple-600 disabled:opacity-50 transition-colors px-3 py-1.5"
           >
             {isSettingDefault ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Star className="w-4 h-4 mr-2" />}
             Set as Default
@@ -146,7 +146,7 @@ export default function AddressesClient() {
     return (
       <div className="w-full max-w-3xl mx-auto pb-24 md:pb-8 px-4 text-center pt-4">
         <p className="text-slate-600">You must be logged in to manage your addresses.</p>
-        <button onClick={() => router.push('/')} className="mt-4 text-pink-600 font-semibold hover:underline">Go Back</button>
+        <button onClick={() => router.push('/')} className="mt-4 text-purple-650 text-purple-600 font-semibold hover:underline">Go Back</button>
       </div>
     );
   }
@@ -158,12 +158,12 @@ export default function AddressesClient() {
           <button onClick={() => router.push('/account')} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Go back">
             <ArrowLeft />
           </button>
-          <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text whitespace-nowrap">My Addresses</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight whitespace-nowrap">My <span className="text-purple-400">Addresses</span></h1>
         </div>
         {formState === null && (
           <button
             onClick={() => setFormState({ mode: 'add' })}
-            className="flex items-center justify-center bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-3 sm:px-4 rounded-lg shadow-lg hover:shadow-xl transition-all text-sm shrink-0"
+            className="genie-btn-primary flex items-center justify-center rounded-lg py-2 px-3 sm:px-4 text-sm shrink-0 active:scale-[0.99] transition-transform"
           >
             <Plus className="w-5 h-5 sm:mr-2" />
             <span className="hidden sm:inline">Add Address</span>

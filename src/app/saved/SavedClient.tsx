@@ -142,8 +142,8 @@ const SavedClient: React.FC = () => {
                         </button>
                         <div className="flex items-center gap-2">
                             <Heart className="w-6 h-6 text-red-500" fill="currentColor" />
-                            <h1 className="text-2xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">
-                                My Saved Cakes
+                            <h1 className="text-2xl font-bold text-slate-900">
+                                My Saved <span className="text-purple-400">Cakes</span>
                             </h1>
                         </div>
                         <span className="ml-auto text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full font-medium">
@@ -167,7 +167,7 @@ const SavedClient: React.FC = () => {
                         </p>
                         <button
                             onClick={() => router.push('/')}
-                            className="px-6 py-3 bg-linear-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all"
+                            className="px-6 py-3 genie-btn-primary font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all flex items-center justify-center"
                         >
                             <Sparkles className="inline-block w-5 h-5 mr-2" />
                             Explore Cakes

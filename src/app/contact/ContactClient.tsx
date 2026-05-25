@@ -9,11 +9,11 @@ import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile';
 
 const ContactInfoItem: React.FC<{ icon: React.ReactNode; label: string; value: string; href?: string }> = ({ icon, label, value, href }) => (
     <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg">
-        <div className="shrink-0 text-pink-500">{icon}</div>
+        <div className="shrink-0 text-purple-600">{icon}</div>
         <div>
             <p className="text-sm font-semibold text-slate-500">{label}</p>
             {href ? (
-                <a href={href} target="_blank" rel="noopener noreferrer" className="text-slate-700 font-medium hover:text-pink-600 transition-colors wrap-break-word">{value}</a>
+                <a href={href} target="_blank" rel="noopener noreferrer" className="text-slate-700 font-medium hover:text-purple-600 transition-colors wrap-break-word">{value}</a>
             ) : (
                 <p className="text-slate-700 font-medium wrap-break-word">{value}</p>
             )}
@@ -68,7 +68,7 @@ const ContactClient: React.FC = () => {
         }
     };
 
-    const inputStyle = "w-full px-4 py-3 text-sm bg-white border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-colors";
+    const inputStyle = "w-full px-4 py-3 text-sm bg-white border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-colors";
 
     return (
         <div className="w-full max-w-4xl mx-auto bg-white/70 backdrop-blur-lg p-6 sm:p-8 rounded-2xl shadow-lg border border-slate-200 animate-fade-in">
@@ -79,7 +79,7 @@ const ContactClient: React.FC = () => {
                     <ArrowLeft />
                 </button>
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">Contact Us</h1>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Contact <span className="text-purple-400">Us</span></h1>
                     <p className="mt-1 text-sm text-slate-500">Ask a question, request help with an order, or confirm what kind of cake service fits your event.</p>
                 </div>
             </div>
@@ -96,9 +96,9 @@ const ContactClient: React.FC = () => {
                         <ContactInfoItem icon={<Clock size={20} />} label="Business Hours" value={genieBusinessProfile.hoursDisplay} />
                     </div>
 
-                    <div className="rounded-2xl border border-pink-100 bg-pink-50 p-5">
+                    <div className="rounded-2xl border border-purple-100 bg-purple-50/40 p-5">
                         <h3 className="text-base font-bold text-slate-900">New customer? Here&apos;s the fastest path.</h3>
-                        <ol className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
+                        <ol className="mt-3 space-y-2 text-sm leading-6 text-slate-650 text-slate-600">
                             <li>Upload a cake peg on Genie.ph to get a starting price.</li>
                             <li>Use this form if you need help with rush viability, service area, or order support.</li>
                             <li>For faster same-day questions, call during business hours.</li>
@@ -136,7 +136,7 @@ const ContactClient: React.FC = () => {
                             <label htmlFor="message" className="block text-sm font-medium text-slate-600 mb-1">Comment/Message <span className="text-red-500">*</span></label>
                             <textarea id="message" value={message} onChange={e => setMessage(e.target.value)} className={inputStyle} rows={4} required />
                         </div>
-                        <button type="submit" disabled={isSubmitting} className="w-full flex justify-center items-center bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all text-base disabled:opacity-75 disabled:cursor-not-allowed">
+                        <button type="submit" disabled={isSubmitting} className="genie-btn-primary w-full py-3.5 px-4 rounded-lg active:scale-[0.99] transition-transform">
                             {isSubmitting ? (
                                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                             ) : (

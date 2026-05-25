@@ -10,7 +10,7 @@ export const metadata = buildNoIndexPageMetadata({
 
 function OrdersFallback() {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-pink-50 via-purple-50 to-indigo-50">
+        <div className="min-h-screen flex items-center justify-center genie-page-bg">
             <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
         </div>
     )

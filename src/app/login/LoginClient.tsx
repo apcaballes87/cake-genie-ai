@@ -110,8 +110,8 @@ export default function LoginClient() {
 
                     {/* Header */}
                     <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text mb-2">
-                            Welcome Back
+                        <h1 className="text-3xl font-bold text-slate-900 mb-2">
+                            Welcome <span className="text-purple-400">Back</span>
                         </h1>
                         <p className="text-slate-600">Sign in to your Cake Genie account</p>
                     </div>
@@ -178,7 +178,7 @@ export default function LoginClient() {
                         <button
                             type="submit"
                             disabled={isLoading || isGoogleLoading}
-                            className="w-full bg-linear-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:shadow-lg hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center"
+                            className="w-full genie-btn-primary font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                         >
                             {isLoading ? (
                                 <>

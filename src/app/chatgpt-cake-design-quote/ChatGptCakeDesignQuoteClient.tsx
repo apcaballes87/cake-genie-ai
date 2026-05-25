@@ -147,7 +147,7 @@ function SectionHeading({
 }) {
   return (
     <div className="max-w-3xl">
-      <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-purple-600">{eyebrow}</p>
+      <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-purple-400">{eyebrow}</p>
       <h2 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">{title}</h2>
       <p className="mt-4 text-base leading-7 text-slate-600 sm:text-lg">{body}</p>
     </div>
@@ -253,7 +253,7 @@ export default function ChatGptCakeDesignQuoteClient() {
                 </h1>
 
                 <div className="mt-6 rounded-[1.8rem] border border-purple-200/70 bg-white/80 p-6 shadow-[0_24px_60px_-38px_rgba(88,28,135,0.75)] backdrop-blur">
-                  <p className="text-sm font-bold uppercase tracking-[0.2em] text-pink-600">
+                  <p className="text-sm font-bold uppercase tracking-[0.2em] text-purple-400">
                     I made a cake design in ChatGPT. Can someone make this into a real cake?
                   </p>
                   <p className="mt-3 text-lg leading-8 text-slate-700">
@@ -291,7 +291,7 @@ export default function ChatGptCakeDesignQuoteClient() {
                     Upload screenshots, downloads, or exported AI images
                   </span>
                   <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 shadow-sm">
-                    <Clock3 className="h-4 w-4 text-pink-600" />
+                    <Clock3 className="h-4 w-4 text-purple-400" />
                     Reuses Genie.ph&apos;s live quote flow
                   </span>
                 </div>
@@ -404,7 +404,7 @@ export default function ChatGptCakeDesignQuoteClient() {
             <div className="grid gap-4 sm:grid-cols-2">
               {customizationPoints.map(({ title, body, icon: Icon }) => (
                 <article key={title} className="genie-card rounded-[1.6rem] p-5">
-                  <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-pink-600 shadow-sm">
+                  <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 shadow-sm">
                     <Icon className="h-5 w-5" />
                   </div>
                   <h3 className="text-lg font-bold text-slate-900">{title}</h3>
@@ -448,30 +448,30 @@ export default function ChatGptCakeDesignQuoteClient() {
 
         <section className="px-4 pb-6 pt-6 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
-            <div className="overflow-hidden rounded-[2.2rem] border border-purple-200/80 bg-linear-to-br from-slate-950 via-purple-950 to-pink-900 px-6 py-10 text-white shadow-[0_30px_80px_-35px_rgba(88,28,135,0.85)] sm:px-10">
+            <div className="overflow-hidden rounded-[2.2rem] border border-purple-200 bg-linear-to-br from-purple-50 via-white to-pink-50/30 px-6 py-10 text-slate-900 shadow-[0_20px_50px_-25px_rgba(88,28,135,0.15)] sm:px-10">
               <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-pink-200">Ready to test your AI design?</p>
-                  <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-purple-600">Ready to test your AI design?</p>
+                  <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
                     Upload the ChatGPT cake image and see the quote before you order
                   </h2>
-                  <p className="mt-4 max-w-2xl text-base leading-7 text-white/80">
+                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-650 text-slate-600">
                     If the design is clear enough to save from ChatGPT, it is clear enough to start the Genie.ph flow.
                     Upload it now, open the full customizer, or review the step-by-step ordering guide first.
                   </p>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Link href="#upload" className="rounded-2xl bg-white px-5 py-4 text-center text-sm font-semibold text-slate-900 transition-transform hover:-translate-y-0.5">
+                  <Link href="#upload" className="genie-btn-primary rounded-2xl px-5 py-4 text-center text-sm font-semibold transition-transform hover:-translate-y-0.5">
                     Upload now
                   </Link>
-                  <Link href="/customizing" className="rounded-2xl border border-white/25 bg-white/10 px-5 py-4 text-center text-sm font-semibold text-white transition-colors hover:bg-white/15">
+                  <Link href="/customizing" className="rounded-2xl border border-purple-200 bg-white px-5 py-4 text-center text-sm font-semibold text-purple-750 text-purple-700 transition-colors hover:bg-purple-50">
                     Open customizer
                   </Link>
-                  <Link href="/cake-price-calculator" className="rounded-2xl border border-white/25 bg-white/10 px-5 py-4 text-center text-sm font-semibold text-white transition-colors hover:bg-white/15">
+                  <Link href="/cake-price-calculator" className="rounded-2xl border border-purple-200 bg-white px-5 py-4 text-center text-sm font-semibold text-purple-750 text-purple-700 transition-colors hover:bg-purple-50">
                     Cake price calculator
                   </Link>
-                  <Link href="/how-to-order" className="rounded-2xl border border-white/25 bg-white/10 px-5 py-4 text-center text-sm font-semibold text-white transition-colors hover:bg-white/15">
+                  <Link href="/how-to-order" className="rounded-2xl border border-purple-200 bg-white px-5 py-4 text-center text-sm font-semibold text-purple-750 text-purple-700 transition-colors hover:bg-purple-50">
                     How to order
                   </Link>
                 </div>

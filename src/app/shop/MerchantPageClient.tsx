@@ -233,7 +233,7 @@ export function MerchantPageClient({ slug }: MerchantPageClientProps) {
                     <div className="w-full md:w-auto shrink-0">
                         <button
                             onClick={() => setIsUploadOpen(true)}
-                            className="w-full md:w-auto px-6 py-3 bg-linear-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+                            className="w-full md:w-auto px-6 py-3 genie-btn-primary font-semibold rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -352,7 +352,7 @@ export function MerchantPageClient({ slug }: MerchantPageClientProps) {
                             {merchant.review_count > 6 && !showAllReviews && (
                                 <button
                                     onClick={() => setShowAllReviews(true)}
-                                    className="text-sm text-pink-600 hover:text-pink-700 font-medium"
+                                    className="text-sm text-purple-600 hover:text-purple-700 font-medium"
                                 >
                                     View all {merchant.review_count} reviews
                                 </button>

@@ -51,8 +51,8 @@ export default function DeliveryRatesPage() {
 
                     {/* Header Section */}
                     <div className="text-center mb-12">
-                        <div className="inline-flex items-center justify-center p-3 bg-pink-100 rounded-full mb-4">
-                            <Truck className="w-8 h-8 text-pink-600" />
+                        <div className="inline-flex items-center justify-center p-3 bg-purple-100 rounded-full mb-4">
+                            <Truck className="w-8 h-8 text-purple-600" />
                         </div>
                         <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-4 font-serif">
                             {SEO_CONTENT.title}
@@ -83,9 +83,9 @@ export default function DeliveryRatesPage() {
                         <h2 className="text-3xl font-bold text-slate-900 mb-6 text-center">Flat Rate Delivery Fees</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             {DELIVERY_RATES.map((item) => (
-                                <div key={item.city} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center justify-between hover:border-pink-300 hover:shadow-md transition-all">
+                                <div key={item.city} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center justify-between hover:border-purple-300 hover:shadow-md transition-all">
                                     <span className="font-semibold text-slate-700">{item.city}</span>
-                                    <span className="text-lg font-bold text-pink-600">₱{item.rate}</span>
+                                    <span className="text-lg font-bold text-purple-600">₱{item.rate}</span>
                                 </div>
                             ))}
                         </div>
@@ -103,14 +103,14 @@ export default function DeliveryRatesPage() {
                                 <div key={city} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
                                     <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                                         <h3 className="text-xl font-bold text-slate-800">{city}</h3>
-                                        <span className="text-sm font-medium text-pink-600 bg-pink-50 px-3 py-1 rounded-full">
+                                        <span className="text-sm font-medium text-purple-600 bg-purple-50 px-3 py-1 rounded-full">
                                             ₱{getDeliveryFeeByCity(city)}
                                         </span>
                                     </div>
                                     <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
                                         {barangays.map(barangay => (
                                             <li key={barangay} className="text-sm text-slate-600 flex items-start gap-2">
-                                                <span className="text-pink-400 mt-1 text-xs">•</span>
+                                                <span className="text-purple-400 mt-1 text-xs">•</span>
                                                 {barangay}
                                             </li>
                                         ))}
@@ -144,7 +144,7 @@ export default function DeliveryRatesPage() {
                     <div className="mt-12 text-center">
                         <Link
                             href="/customizing"
-                            className="inline-flex items-center justify-center bg-pink-600 hover:bg-pink-700 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
+                            className="inline-flex items-center justify-center genie-btn-primary px-8 py-4 rounded-full text-lg font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]"
                         >
                             Start Your Custom Order
                         </Link>

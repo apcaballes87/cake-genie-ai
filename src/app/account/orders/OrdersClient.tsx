@@ -137,7 +137,7 @@ const PaymentUploadForm: React.FC<{ order: EnrichedOrder; onUploadSuccess: (upda
                     </label>
                     {preview && <LazyImage src={preview} alt="Preview" className="w-12 h-12 object-cover rounded-md" />}
                 </div>
-                <button type="submit" disabled={!file || uploadMutation.isPending} className="w-full flex justify-center items-center bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition-all text-sm disabled:opacity-50">
+                <button type="submit" disabled={!file || uploadMutation.isPending} className="genie-btn-primary w-full py-2 px-4 rounded-lg shadow-sm active:scale-[0.99] transition-transform text-sm">
                     {uploadMutation.isPending ? <><Loader2 className="animate-spin mr-2 w-4 h-4" /> Submitting...</> : 'Submit Proof'}
                 </button>
             </form>
@@ -184,13 +184,13 @@ const PayOrderButton: React.FC<{ order: EnrichedOrder }> = ({ order }) => {
     };
 
     return (
-        <div className="p-4 bg-linear-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-lg">
+        <div className="p-4 bg-purple-50/50 border border-purple-100 rounded-lg">
             <h4 className="text-sm font-semibold text-slate-800 mb-2">Pay Order Online</h4>
             <p className="text-xs text-slate-500 mb-3">Pay securely via GCash, Credit Card, or other methods.</p>
             <button
                 onClick={handlePayOrder}
                 disabled={isProcessing}
-                className="w-full flex items-center justify-center bg-linear-to-r from-pink-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all text-sm disabled:opacity-70 disabled:hover:scale-100"
+                className="genie-btn-primary w-full py-3.5 px-4 rounded-xl shadow-lg active:scale-[0.99] transition-transform text-sm"
             >
                 {isProcessing ? (
                     <>
@@ -260,7 +260,7 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                                     <div className="flex gap-4">
                                         <button
                                             onClick={() => setZoomedItem(item)}
-                                            className="w-24 h-24 shrink-0 rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 transition-transform hover:scale-105"
+                                            className="w-24 h-24 shrink-0 rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 transition-transform hover:scale-105"
                                             aria-label="Enlarge cake image"
                                         >
                                             <LazyImage 
@@ -275,12 +275,12 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                                         <div className="grow">
                                             <p className="font-semibold text-slate-800">{item.cake_type}</p>
                                             <p className="text-sm text-slate-500">{item.cake_size}</p>
-                                            <p className="text-lg font-bold text-pink-600 mt-1">₱{item.final_price.toLocaleString()}</p>
+                                            <p className="text-lg font-black text-slate-900 mt-1">₱{item.final_price.toLocaleString()}</p>
                                         </div>
                                     </div>
                                     {customization && (
                                         <details className="mt-3">
-                                            <summary className="text-xs font-semibold text-slate-600 cursor-pointer">View Customization Details</summary>
+                                            <summary className="text-xs font-semibold text-purple-600 cursor-pointer">View Customization Details</summary>
                                             <div className="mt-2 pl-2 border-l-2 border-slate-200 space-y-1.5 text-xs text-slate-500">
                                                 <DetailItem label="Type" value={`${item.cake_type}, ${item.cake_thickness}, ${item.cake_size}`} />
                                                 {(!customization.flavors || customization.flavors.length <= 1) ? (
@@ -372,7 +372,7 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                     </div>
                 )}
                 {details.payment_proof_url && details.payment_status !== 'pending' && (
-                    <a href={details.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-pink-600 hover:underline text-center block mt-2">View Submitted Proof</a>
+                    <a href={details.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:text-purple-700 hover:underline text-center block mt-2">View Submitted Proof</a>
                 )}
 
                 {/* Per-Item Review Section */}
@@ -419,7 +419,7 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                                                     setSelectedItemForReview(item);
                                                     setShowReviewForm(true);
                                                 }}
-                                                className="shrink-0 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-pink-500 to-purple-600 rounded-full hover:from-pink-600 hover:to-purple-700 transition-all shadow-sm"
+                                                className="rounded-full px-3 py-1.5 text-xs shadow-sm bg-purple-600 text-white hover:bg-purple-700"
                                             >
                                                 Write Review
                                             </button>
@@ -532,7 +532,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
                         <p className="text-xs text-slate-500 mt-1">Placed on {orderDate}</p>
                     </div>
                     <div className="text-right">
-                        <p className="text-lg font-bold text-pink-600">₱{order.total_amount.toLocaleString()}</p>
+                        <p className="text-lg font-black text-slate-900">₱{order.total_amount.toLocaleString()}</p>
                         <p className="text-xs text-slate-500">{itemCount} item(s)</p>
                     </div>
                 </div>
@@ -546,7 +546,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
                         </div>
                         <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                             <div
-                                className={`h-full transition-all duration-500 ${isFullyFunded ? 'bg-green-500' : 'bg-linear-to-r from-purple-500 to-pink-500'}`}
+                                className={`h-full transition-all duration-500 ${isFullyFunded ? 'bg-green-500' : 'bg-purple-600'}`}
                                 style={{ width: `${progress}%` }}
                             />
                         </div>
@@ -608,7 +608,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
 
                     {/* Expanded Split Order Details */}
                     {isSplitOrder && (
-                        <div className="mb-6 mt-4 p-4 bg-linear-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100">
+                        <div className="mb-6 mt-4 p-4 bg-purple-50/50 rounded-xl border border-purple-100">
                             <div className="flex justify-between items-start mb-3">
                                 <div>
                                     <h4 className="text-sm font-bold text-purple-900">Split Order Details</h4>
@@ -733,7 +733,7 @@ export default function OrdersClient() {
         return (
             <div className="w-full max-w-3xl mx-auto py-8 px-4 text-center">
                 <p className="text-slate-600">You must be logged in to view your orders.</p>
-                <button onClick={() => router.push('/')} className="mt-4 text-pink-600 font-semibold hover:underline">Go Back</button>
+                <button onClick={() => router.push('/')} className="mt-4 text-purple-650 text-purple-600 font-semibold hover:underline">Go Back</button>
             </div>
         );
     }
@@ -744,7 +744,7 @@ export default function OrdersClient() {
                 <button onClick={() => router.push('/account')} className="p-2 text-slate-500 hover:text-slate-800 rounded-full hover:bg-slate-100 transition-colors" aria-label="Go back">
                     <ArrowLeft />
                 </button>
-                <h1 className="text-3xl font-bold bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-transparent bg-clip-text">My Orders</h1>
+                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">My <span className="text-purple-400">Orders</span></h1>
             </div>
 
             <div className="space-y-4">
@@ -762,7 +762,7 @@ export default function OrdersClient() {
                     <div className="text-center py-16 bg-white/50 rounded-2xl">
                         <Package className="w-12 h-12 mx-auto text-slate-400" />
                         <p className="text-slate-500 mt-4">You haven't placed any orders or created any designs yet.</p>
-                        <button onClick={() => router.push('/')} className="mt-4 text-pink-600 font-semibold hover:underline">Start Designing</button>
+                        <button onClick={() => router.push('/')} className="mt-4 text-purple-600 font-semibold hover:underline">Start Designing</button>
                     </div>
                 )}
             </div>
