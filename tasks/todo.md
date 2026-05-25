@@ -1,5 +1,20 @@
 # Tasks
 
+## Humanize Homepage Reviews Copy And Remove Container
+
+### Plan
+
+- [x] Inspect the remaining homepage reviews section and identify the copy and layout wrapper to change.
+- [x] Replace the heading copy with more natural, customer-friendly SEO text.
+- [x] Remove the enclosing container styling and run a focused sanity check.
+
+### Review
+
+- Updated the homepage reviews section in `src/components/seo/HomepageAeoSections.tsx` so the label now reads `Customer Reviews` and the heading/subcopy are more natural for shoppers while still targeting Genie.ph, cake ordering, reviews, and Metro Cebu intent.
+- Removed the enclosing card treatment from that section by deleting the old shared container class and leaving the reviews block as an unframed section.
+- Verification:
+  `npx eslint src/components/seo/HomepageAeoSections.tsx` passed.
+
 ## Remove Duplicate Homepage AEO Containers
 
 ### Plan
