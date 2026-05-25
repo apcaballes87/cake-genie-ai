@@ -36,7 +36,7 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
   const hasReviewSummary = Boolean(reviewSummary && reviewSummary.total > 0 && reviewSummary.averageRating > 0);
   const averageLabel = hasReviewSummary ? reviewSummary!.averageRating.toFixed(1) : null;
   const countLabel = hasReviewSummary
-    ? `${averageLabel}/5 based on ${reviewSummary!.total} public review${reviewSummary!.total === 1 ? '' : 's'}.`
+    ? `${averageLabel}/5 based on ${reviewSummary!.total} Happy Customer${reviewSummary!.total === 1 ? '' : 's'}.`
     : 'Verified customer reviews';
 
   return (

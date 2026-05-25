@@ -1081,10 +1081,16 @@ export default async function RecentSearchPage({ params }: Props) {
     let prices: BasePriceInfo[] = [];
     let relatedDesigns: any[] = [];
     let linkedMerchantProducts: LinkedMerchantProduct[] = [];
-    const [pricesResult, relatedDesignsResult, linkedProductsResult] = await Promise.allSettled([
+    const supabase = await createClient();
+    const [pricesResult, relatedDesignsResult, linkedProductsResult, ratingRowsResult] = await Promise.allSettled([
         getCakeBasePriceOptions(seoCakeType, CAKE_TYPE_THICKNESS_MAP[seoCakeType] || '4 in'),
         getRelatedProductsByKeywords(design.keywords, slug, 6, 0),
         getLinkedMerchantProductsByHash(design.p_hash),
+        supabase
+            .from('cakegenie_reviews')
+            .select('rating')
+            .eq('is_visible', true)
+            .eq('is_approved', true)
     ]);
 
     if (pricesResult.status === 'fulfilled') {
@@ -1103,6 +1109,16 @@ export default async function RecentSearchPage({ params }: Props) {
         linkedMerchantProducts = linkedProductsResult.value;
     } else {
         console.error('Error fetching linked merchant products:', linkedProductsResult.reason);
+    }
+
+    let reviewSummary = { total: 6, averageRating: 4.8 };
+    if (ratingRowsResult.status === 'fulfilled' && ratingRowsResult.value.data) {
+        const ratingRows = ratingRowsResult.value.data;
+        const total = ratingRows.length || 0;
+        const averageRating = total > 0
+            ? ratingRows.reduce((sum: number, r: any) => sum + r.rating, 0) / total
+            : 4.8;
+        reviewSummary = { total, averageRating };
     }
 
     // Generate unique caption for image SEO from the first 1-2 sentences of design details
@@ -1187,10 +1203,11 @@ export default async function RecentSearchPage({ params }: Props) {
                         postEditorSlot={<SSRDesignContent design={design} prices={prices} />}
                         hideAiChat={false}
                         enableMobileHeroPan={true}
+                        reviewSummary={reviewSummary}
                     />
                 </CustomizationProvider>
             </Suspense>
-            <LandingFooter />
+            <LandingFooter reviewSummary={reviewSummary} />
         </>
     )
 }

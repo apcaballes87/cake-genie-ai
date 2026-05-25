@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import Link from 'next/link';
 import LazyImage from '@/components/LazyImage';
 import { ImageZoomModal } from '@/components/ImageZoomModal';
 import { Heart, ShieldCheck, Wand2 } from 'lucide-react';
@@ -45,6 +46,10 @@ interface CustomizingHeroPanelProps {
     onOpenReportModal: () => void;
     onSave: () => void;
     onClearAll: () => void;
+    reviewSummary?: {
+        total: number;
+        averageRating: number;
+    } | null;
 }
 
 export interface HeroActionButtonsRowProps {
@@ -132,6 +137,7 @@ export const CustomizingHeroPanel = memo(({
     onOpenReportModal,
     onSave,
     onClearAll,
+    reviewSummary,
 }: CustomizingHeroPanelProps) => {
     const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
     const [isHeroImageZoomOpen, setIsHeroImageZoomOpen] = useState(false);
@@ -489,17 +495,32 @@ export const CustomizingHeroPanel = memo(({
                 </div>
             </div>
 
-            <div className="flex items-center justify-center gap-x-1.5 whitespace-nowrap overflow-x-auto px-2 text-center text-[11px] sm:text-sm text-slate-600 scrollbar-hide">
-                <span className="text-sm sm:text-base font-semibold leading-none text-slate-900">4.8</span>
-                <span className="flex items-center gap-0.5 shrink-0" aria-label="5 star rating">
-                        {reviewStars}
+            <Link href="/reviews" className="flex items-center justify-center gap-x-1.5 whitespace-nowrap overflow-x-auto px-2 text-center text-[11px] sm:text-sm text-slate-600 hover:text-purple-600 transition-colors duration-200 scrollbar-hide">
+                <span className="text-sm sm:text-base font-semibold leading-none text-slate-900">
+                    {reviewSummary && reviewSummary.averageRating > 0 ? reviewSummary.averageRating.toFixed(1) : '4.8'}
                 </span>
-                <span className="shrink-0">based on 6 Happy Customers.</span>
+                <span className="flex items-center gap-0.5 shrink-0" aria-label="Rating stars">
+                    {Array.from({ length: 5 }, (_, index) => {
+                        const starValue = index + 1;
+                        const avgRating = reviewSummary?.averageRating || 4.8;
+                        const fillClass = starValue <= Math.round(avgRating) ? 'text-amber-400' : 'text-slate-200';
+                        return (
+                            <span key={index} aria-hidden="true" className={`tracking-tight ${fillClass}`}>
+                                ★
+                            </span>
+                        );
+                    })}
+                </span>
+                <span className="shrink-0">
+                    {reviewSummary && reviewSummary.total > 0
+                        ? `based on ${reviewSummary.total} Happy Customer${reviewSummary.total === 1 ? '' : 's'}.`
+                        : 'based on 6 Happy Customers.'}
+                </span>
                 {reviewSeparator}
                 <span className="inline-flex items-center gap-1 font-semibold text-green-600 shrink-0">
                     Verified <span aria-hidden="true" className="text-green-600">✓</span>
                 </span>
-            </div>
+            </Link>
 
             <span className="text-xs font-semibold uppercase tracking-wide text-green-600 text-center">
                 FREE Delivery within Cebu City

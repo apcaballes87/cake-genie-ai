@@ -345,14 +345,43 @@ interface CustomizingClientProps {
     hideStepFour?: boolean;
     photoStepNode?: React.ReactNode;
     enableMobileHeroPan?: boolean;
+    reviewSummary?: {
+        total: number;
+        averageRating: number;
+    } | null;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false, hideStickyBar = false, useBasePriceAsFallback = false, ediblePhotoAddonPrice = 0, separateIcingStep = false, hideBanner = false, hideStepOne = false, hideStepFour = false, photoStepNode = null, enableMobileHeroPan = false }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false, hideStickyBar = false, useBasePriceAsFallback = false, ediblePhotoAddonPrice = 0, separateIcingStep = false, hideBanner = false, hideStepOne = false, hideStepFour = false, photoStepNode = null, enableMobileHeroPan = false, reviewSummary: initialReviewSummary }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const params = useParams();
     const slug = params?.slug || currentSlug;
     const supabase = useMemo(() => createClient(), []);
+
+    const [reviewSummary, setReviewSummary] = useState<{ total: number; averageRating: number } | null>(initialReviewSummary || null);
+
+    useEffect(() => {
+        if (initialReviewSummary) return;
+        const fetchReviewStats = async () => {
+            try {
+                const { data: ratingRows, error } = await supabase
+                    .from('cakegenie_reviews')
+                    .select('rating')
+                    .eq('is_visible', true)
+                    .eq('is_approved', true);
+
+                if (error) throw error;
+                const total = ratingRows?.length || 0;
+                const averageRating = total > 0
+                    ? ratingRows!.reduce((sum, r) => sum + r.rating, 0) / total
+                    : 4.8;
+                setReviewSummary({ total, averageRating });
+            } catch (err) {
+                console.error('Error fetching dynamic reviews summary:', err);
+            }
+        };
+        fetchReviewStats();
+    }, [initialReviewSummary, supabase]);
 
     // Smart back navigation
     const { goBack } = useSmartBack('customizing');
@@ -3143,7 +3172,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
             <div className={`flex flex-col items-center gap-2 w-full max-w-7xl mx-auto px-4 transition-all duration-300 ${showStickyBar ? 'pb-2' : 'pb-4'}`}>
                 {isEmptyState && !isAnalyzing ? (
-                    <CustomizingEmptyLandingState onImageSelect={handleImageSelect} />
+                    <CustomizingEmptyLandingState onImageSelect={handleImageSelect} reviewSummary={reviewSummary} />
                 ) : (
                     <>
                         {/* SEO Breadcrumbs - Visible for both Shop Product and SEO Landing Pages */}
@@ -3198,6 +3227,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             onOpenReportModal={onOpenReportModal}
                             onSave={onSave}
                             onClearAll={onClearAll}
+                            reviewSummary={reviewSummary}
                         />
 
 

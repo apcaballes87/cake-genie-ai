@@ -460,7 +460,7 @@ function HeroReviewSummary({
         ? reviewSummary.averageRating.toFixed(1)
         : 'Verified';
     const countLabel = reviewSummary && reviewSummary.total > 0
-        ? `based on ${reviewSummary.total} public review${reviewSummary.total === 1 ? '' : 's'}.`
+        ? `based on ${reviewSummary.total} Happy Customer${reviewSummary.total === 1 ? '' : 's'}.`
         : 'real customer feedback and order photos.'
 
     return (

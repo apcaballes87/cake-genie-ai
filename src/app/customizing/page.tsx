@@ -4,6 +4,7 @@ import Link from 'next/link'
 import CustomizingClient from './CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { LandingFooter } from '@/components/landing/LandingFooter'
+import { createClient } from '@/lib/supabase/server'
 import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile'
 
 // Shopify CSE handoff: image comes from external URL via query param
@@ -51,6 +52,19 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
     const imageUrl = typeof searchParams.image_url === 'string' ? searchParams.image_url : null;
     const source = typeof searchParams.source === 'string' ? searchParams.source : null;
 
+    const supabase = await createClient();
+    const { data: ratingRows } = await supabase
+        .from('cakegenie_reviews')
+        .select('rating')
+        .eq('is_visible', true)
+        .eq('is_approved', true);
+
+    const total = ratingRows?.length || 0;
+    const averageRating = total > 0
+        ? ratingRows!.reduce((sum, r) => sum + r.rating, 0) / total
+        : 4.8;
+    const reviewSummary = { total, averageRating };
+
     // Preload for external sources (Shopify CSE, Chrome Extension) - external images go through proxy
     const isExternalSource = (source === 'shopify_cse' || source === 'chrome_extension') && imageUrl;
     const proxyImageUrl = isExternalSource ? `/api/proxy-image?url=${encodeURIComponent(imageUrl)}` : null;
@@ -91,12 +105,12 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
                     href={proxyImageUrl}
                 />
             )}
-            {/* Client-side customization tool — uses root-level CustomizationProvider from Providers.tsx */}
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                 <CustomizingClient
                     preloadSource={source || undefined}
                     preloadImageUrl={proxyImageUrl || undefined}
                     hideAiChat={false}
+                    reviewSummary={reviewSummary}
                 />
             </Suspense>
 
@@ -126,7 +140,7 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
                     ))}
                 </div>
             </nav>
-            <LandingFooter />
+            <LandingFooter reviewSummary={reviewSummary} />
         </>
     )
 }

@@ -3,12 +3,17 @@
 import React from 'react';
 import { ImagePlus, Zap, Truck } from 'lucide-react';
 import { ImageUploader } from '@/components/ImageUploader';
+import Link from 'next/link';
 
 interface CustomizingEmptyLandingStateProps {
     onImageSelect: (file: File) => void;
+    reviewSummary?: {
+        total: number;
+        averageRating: number;
+    } | null;
 }
 
-export const CustomizingEmptyLandingState: React.FC<CustomizingEmptyLandingStateProps> = ({ onImageSelect }) => {
+export const CustomizingEmptyLandingState: React.FC<CustomizingEmptyLandingStateProps> = ({ onImageSelect, reviewSummary }) => {
     return (
         <div className="w-full max-w-6xl mx-auto py-8 md:py-16 px-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Split layout: Left Upload, Right Texts */}
@@ -34,13 +39,28 @@ export const CustomizingEmptyLandingState: React.FC<CustomizingEmptyLandingState
                 <div className="w-full lg:col-span-7 flex flex-col gap-6 text-center lg:text-left">
                     
                     {/* Trust Review Summary (1 line) */}
-                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-1.5 text-xs text-gray-600 font-semibold self-center lg:self-start">
-                        <span>4.8</span>
-                        <span className="text-yellow-500 leading-none">★★★★★</span>
-                        <span>based on 6 Happy Customers.</span>
+                    <Link href="/reviews" className="flex flex-wrap items-center justify-center lg:justify-start gap-1.5 text-xs text-gray-600 font-semibold self-center lg:self-start hover:text-purple-600 transition-colors duration-200">
+                        <span>{reviewSummary && reviewSummary.averageRating > 0 ? reviewSummary.averageRating.toFixed(1) : '4.8'}</span>
+                        <span className="flex items-center gap-0.5 text-yellow-500 leading-none">
+                            {Array.from({ length: 5 }, (_, index) => {
+                                const starValue = index + 1;
+                                const avgRating = reviewSummary?.averageRating || 4.8;
+                                const isFilled = starValue <= Math.round(avgRating);
+                                return (
+                                    <span key={index} aria-hidden="true" className={isFilled ? 'text-yellow-500' : 'text-slate-200'}>
+                                        ★
+                                    </span>
+                                );
+                            })}
+                        </span>
+                        <span>
+                            {reviewSummary && reviewSummary.total > 0
+                                ? `based on ${reviewSummary.total} Happy Customer${reviewSummary.total === 1 ? '' : 's'}.`
+                                : 'based on 6 Happy Customers.'}
+                        </span>
                         <span className="text-slate-300">|</span>
                         <span className="font-bold text-green-600">Verified ✓</span>
-                    </div>
+                    </Link>
 
                     {/* Sub-eyebrow & Main Big Headline */}
                     <div className="space-y-4">
