@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Star, ThumbsUp, ShieldCheck, X } from 'lucide-react';
+import { Star, ShieldCheck, X } from 'lucide-react';
 import { CakeGenieReview } from '@/lib/database.types';
 import { getReviewAvatarInitial, getReviewDisplayName } from '@/lib/reviews';
 import LazyImage from './LazyImage';
@@ -106,7 +106,7 @@ export const ReviewCard: React.FC<{
               {/* Header */}
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-xs">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-white/80 bg-linear-to-br from-[#f3e8ff] via-[#ddd6fe] to-[#c084fc] text-xs font-bold text-purple-700 shadow-sm">
                     {getReviewAvatarInitial(review)}
                   </div>
                   <div>
@@ -137,7 +137,7 @@ export const ReviewCard: React.FC<{
 
               {/* Comment */}
               {review.comment && (
-                <p className="text-slate-600 text-xs leading-relaxed whitespace-pre-wrap">{review.comment}</p>
+                <p className="text-purple-900/90 text-xs leading-relaxed whitespace-pre-wrap">{review.comment}</p>
               )}
             </div>
 
@@ -146,7 +146,7 @@ export const ReviewCard: React.FC<{
               <div className="mt-3 flex items-center justify-end">
                 <button
                   onClick={() => router.push(`/customizing/${review.cakegenie_analysis_cache?.slug}`)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold text-pink-600 hover:text-white bg-pink-50 hover:bg-gradient-to-r hover:from-pink-500 hover:to-purple-600 border border-pink-100 hover:border-transparent rounded-lg shadow-xs transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none"
+                  className="genie-btn-secondary genie-focus inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-[10px] font-bold shadow-xs hover:-translate-y-0.5 active:translate-y-0"
                 >
                   <span>Recreate Design</span>
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,7 +163,7 @@ export const ReviewCard: React.FC<{
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-3">
               {/* Avatar */}
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/80 bg-linear-to-br from-[#f3e8ff] via-[#ddd6fe] to-[#c084fc] text-sm font-bold text-purple-700 shadow-sm">
                 {getReviewAvatarInitial(review)}
               </div>
               <div>
@@ -185,7 +185,7 @@ export const ReviewCard: React.FC<{
 
           {/* Comment */}
           {review.comment && (
-            <p className="text-slate-600 text-sm leading-relaxed mb-3">
+            <p className="text-purple-900/90 text-sm leading-relaxed mb-3">
               {review.comment}
             </p>
           )}
@@ -223,7 +223,7 @@ export const ReviewCard: React.FC<{
             <div className="mt-3 flex items-center justify-end">
               <button
                 onClick={() => router.push(`/customizing/${review.cakegenie_analysis_cache?.slug}`)}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold text-pink-600 hover:text-white bg-pink-50 hover:bg-gradient-to-r hover:from-pink-500 hover:to-purple-600 border border-pink-100 hover:border-transparent rounded-lg shadow-xs transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none"
+                className="genie-btn-secondary genie-focus inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-[10px] font-bold shadow-xs hover:-translate-y-0.5 active:translate-y-0"
               >
                 <span>Recreate Design</span>
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

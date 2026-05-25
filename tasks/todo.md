@@ -1,5 +1,22 @@
 # Tasks
 
+## Align Landing Page Reviews Branding
+
+### Plan
+
+- [x] Inspect the landing-page reviews section and identify the profile-circle and button styles that do not match the landing page palette.
+- [x] Update the landing-page reviews UI so avatar circles and review-section buttons use the same purple Genie branding system as the rest of the landing page.
+- [x] Run a focused verification pass on the touched files and record the result.
+
+### Review
+
+- Updated the homepage reviews CTA in `src/components/seo/HomepageAeoSections.tsx` to use the shared `genie-btn-secondary` treatment so it now matches the landing page's branded secondary buttons.
+- Updated the review avatar circles in `src/components/ReviewsDisplay.tsx` to use a softer Genie purple gradient with purple text instead of the previous pink-heavy chip styling.
+- Updated both `Recreate Design` buttons in `src/components/ReviewsDisplay.tsx` to use the shared landing-page secondary button styling for consistent borders, hover states, and focus treatment.
+- Removed an unused `ThumbsUp` import in `src/components/ReviewsDisplay.tsx` so the touched files verify cleanly.
+- Verification:
+  `npx eslint src/components/ReviewsDisplay.tsx src/components/seo/HomepageAeoSections.tsx` passed.
+
 ## Audit Customizing Social Metadata For SEO Impact
 
 ### Plan

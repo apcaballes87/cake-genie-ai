@@ -18,7 +18,7 @@ export default function HomepageAeoSections({ reviews }: HomepageAeoSectionsProp
               Read real customer feedback on custom cake ordering, delivery, design accuracy, and overall experience in Metro Cebu.
             </p>
           </div>
-          <Link href="/reviews" className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50">
+          <Link href="/reviews" className="genie-btn-secondary rounded-full px-5 py-2.5 text-sm font-semibold">
             View all reviews
           </Link>
         </div>
