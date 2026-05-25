@@ -1,5 +1,22 @@
 # Tasks
 
+## Remove Duplicate Homepage AEO Containers
+
+### Plan
+
+- [x] Confirm which homepage sections duplicate content already present in the footer or elsewhere on the landing page.
+- [x] Remove the `What Genie.ph Does`, `Our Services`, `Why Customers Trust Genie.ph`, and `Location and Service Area` containers from the homepage AEO section.
+- [x] Run a focused sanity check on the touched files and record the result.
+
+### Review
+
+- Removed the duplicate `What Genie.ph Does`, `Our Services`, `Why Customers Trust Genie.ph`, and `Location and Service Area` containers from `src/components/seo/HomepageAeoSections.tsx`.
+- Kept the `Recent Review Excerpts` block in place so the homepage still has one machine-readable review-focused section below the core landing content.
+- Simplified `HomepageAeoSections` to accept only `reviews`, and removed the now-unused `reviewSummary` prop from its call site in `src/app/page.tsx`.
+- Verification:
+  `npx eslint src/components/seo/HomepageAeoSections.tsx src/app/page.tsx` passed.
+  `rg` confirmed the removed headings no longer appear in `src/components/seo/HomepageAeoSections.tsx`, and `src/app/page.tsx` no longer passes `reviewSummary` into `HomepageAeoSections`.
+
 ## Update Default Social Preview Image
 
 ### Plan

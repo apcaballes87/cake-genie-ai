@@ -163,8 +163,7 @@ async function LandingServerSections() {
                 <RecommendedProductsSection products={recommendedProducts} />
                 <IntroContent />
                 <HomepageAeoSections
-                    reviews={homepageReviews.reviews}
-                    reviewSummary={homepageReviews.reviewSummary}
+                  reviews={homepageReviews.reviews}
                 />
             </LandingClient>
             <LandingFooter reviewSummary={homepageReviews.reviewSummary} />
