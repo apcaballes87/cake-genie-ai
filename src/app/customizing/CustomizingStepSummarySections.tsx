@@ -493,7 +493,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     const combinedDecorItems = getCombinedDecorItems(mainToppers, supportElements);
     const combinedDecorSummary = buildCombinedDecorSummary(mainToppers, supportElements);
     const mainColorOptionsNode = cakeInfo ? (
-        <div className={`${cardClassName} max-md:py-1 max-md:px-1.5 max-md:-mb-1`}>
+        <div className={`${cardClassName} max-md:py-1 max-md:px-1.5`}>
             <div className="flex items-center gap-2 px-1 pb-0.5 md:gap-3">
                 <div className="flex flex-col items-center gap-0.5 shrink-0">
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Main</span>
@@ -506,7 +506,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                 <div className="w-px md:h-10 h-[34px] bg-slate-100 shrink-0" />
 
                 <div className="flex-1 overflow-x-auto scrollbar-hide">
-                    <div className="flex gap-2 py-0.5 px-1">
+                    <div className="flex gap-1 py-0.5 px-1">
                         {THEME_COLORS.map((color) => {
                             const currentColorHex = icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF';
                             const currentColorName = hexToColorNameProse(currentColorHex);
