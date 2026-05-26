@@ -12,7 +12,7 @@ export default function HomepageAeoSections({ reviews }: HomepageAeoSectionsProp
       <div>
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Customer Reviews</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple-500">Customer Reviews</p>
             <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-900">What Cebu customers say about ordering cakes through Genie.ph</h2>
             <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
               Read real customer feedback on custom cake ordering, delivery, design accuracy, and overall experience in Metro Cebu.
