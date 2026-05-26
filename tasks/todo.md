@@ -1,5 +1,26 @@
 # Tasks
 
+## Route Icing-Only Edits To Gemini 2.5 Flash Image
+
+### Plan
+
+- [x] Identify the cleanest existing signal for color-only or icing-only edits in the customizer flow.
+- [x] Pass an explicit model preference through the interactive edit pipeline for those color-only edits.
+- [x] Keep the edit-image API default on Gemini 3.1 while honoring Gemini 2.5 Flash Image for the color-only path.
+- [x] Add focused tests and record verification results here.
+
+### Review
+
+- Reused the existing `useInpaintingStyle` detection in `src/services/designService.ts` as the authoritative signal for icing-only or color-only edits.
+- `src/services/designService.ts` now passes an explicit preferred model of `gemini-2.5-flash-image` only for the color-only interactive edit path.
+- `src/services/geminiService.ts` now forwards that model preference to `/api/ai/edit-image`.
+- `src/app/api/ai/edit-image/route.ts` now defaults to `gemini-3.1-flash-image-preview` for normal edits, but switches to `gemini-2.5-flash-image` when the request explicitly prefers the icing-only model.
+- The studio restaging/background routes were left unchanged, so the post-analysis studio pipeline still uses Gemini 3.1 image preview.
+- `src/app/api/ai/edit-image/route.test.ts` now covers the Gemini 2.5 preference path.
+- Verification:
+  `npx vitest run src/app/api/ai/edit-image/route.test.ts src/services/designService.no-op.test.ts` passed. Vitest again discovered mirrored `.claude/worktrees/...` copies, and those also passed.
+  `npx eslint src/app/api/ai/edit-image/route.ts src/app/api/ai/edit-image/route.test.ts src/services/geminiService.ts src/services/designService.ts` still fails because `src/services/geminiService.ts` already has pre-existing `no-explicit-any` errors and several unused-import warnings unrelated to this model-routing change.
+
 ## Use Fastest Safe Gemini Image Response Mode
 
 ### Plan

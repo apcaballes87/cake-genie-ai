@@ -627,6 +627,7 @@ ${colorChanges.join('\n')}`;
                 supportElements,
                 isThreeTierReconstruction ? threeTierReferenceImage : null,
                 systemInstruction,
+                useInpaintingStyle && !isThreeTierReconstruction ? 'gemini-2.5-flash-image' : undefined,
                 effectiveTraceId,
                 requestSource
             ),

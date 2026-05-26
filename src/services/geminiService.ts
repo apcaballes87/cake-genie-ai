@@ -269,6 +269,7 @@ export async function editCakeImage(
     supportElements: SupportElementUI[],
     threeTierReferenceImage: { data: string; mimeType: string; } | null,
     systemInstruction: string,
+    preferredModel?: 'gemini-2.5-flash-image' | 'gemini-3.1-flash-image-preview',
     traceId?: string,
     requestSource?: string,
 ): Promise<string> {
@@ -325,7 +326,8 @@ export async function editCakeImage(
                 prompt,
                 originalImage: compressedBase64Result,
                 threeTierReferenceImage,
-                systemInstruction // We pass this through as it's dynamically constructed in the UI
+                systemInstruction, // We pass this through as it's dynamically constructed in the UI
+                preferredModel,
             })
         });
 

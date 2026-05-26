@@ -57,6 +57,47 @@ describe('/api/ai/edit-image', () => {
         );
     });
 
+    it('uses Gemini 2.5 Flash Image when the request explicitly prefers the icing-only model', async () => {
+        generateContent.mockResolvedValueOnce({
+            candidates: [
+                {
+                    content: {
+                        parts: [
+                            {
+                                inlineData: {
+                                    data: 'generated-image',
+                                    mimeType: 'image/png',
+                                },
+                            },
+                        ],
+                    },
+                },
+            ],
+        });
+
+        const response = await POST(
+            new Request('http://localhost/api/ai/edit-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: 'Change just the icing to mint green',
+                    originalImage: { data: 'abc123', mimeType: 'image/png' },
+                    preferredModel: 'gemini-2.5-flash-image',
+                }),
+            }) as never
+        );
+
+        expect(response.status).toBe(200);
+        expect(generateContent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                model: 'gemini-2.5-flash-image',
+                config: expect.objectContaining({
+                    responseModalities: ['IMAGE'],
+                }),
+            })
+        );
+    });
+
     it('returns 429 with a friendly message when Gemini reports quota exhaustion via status', async () => {
         generateContent.mockRejectedValueOnce(
             Object.assign(new Error('quota exceeded'), { status: 429 })

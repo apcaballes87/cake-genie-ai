@@ -3,7 +3,10 @@ import { getAI } from '@/lib/ai/client';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 
 export const maxDuration = 180;
-const MODEL_NAME = 'gemini-3.1-flash-image-preview';
+const DEFAULT_MODEL_NAME = 'gemini-3.1-flash-image-preview';
+const COLOR_ONLY_MODEL_NAME = 'gemini-2.5-flash-image';
+
+type EditImageModelName = typeof DEFAULT_MODEL_NAME | typeof COLOR_ONLY_MODEL_NAME;
 
 type AiInlineDataPart = {
     inlineData?: {
@@ -35,7 +38,16 @@ type EditImageRequestBody = {
         mimeType?: string;
     } | null;
     systemInstruction?: string;
+    preferredModel?: EditImageModelName;
 };
+
+function resolveModelName(preferredModel?: string): EditImageModelName {
+    if (preferredModel === COLOR_ONLY_MODEL_NAME) {
+        return COLOR_ONLY_MODEL_NAME;
+    }
+
+    return DEFAULT_MODEL_NAME;
+}
 
 function extractGeneratedImage(response: AiGenerateContentResponse) {
     const candidate = response?.candidates?.[0];
@@ -86,7 +98,8 @@ export async function POST(req: NextRequest) {
 
     try {
         const body = (await req.json()) as EditImageRequestBody;
-        const { prompt, originalImage, threeTierReferenceImage, systemInstruction } = body;
+        const { prompt, originalImage, threeTierReferenceImage, systemInstruction, preferredModel } = body;
+        const modelName = resolveModelName(preferredModel);
 
         console.log(`[AI TRACE ${traceId}] /api/ai/edit-image:start`, {
             requestSource,
@@ -94,6 +107,8 @@ export async function POST(req: NextRequest) {
             hasOriginalImage: Boolean(originalImage?.data && originalImage?.mimeType),
             hasThreeTierReferenceImage: Boolean(threeTierReferenceImage?.data && threeTierReferenceImage?.mimeType),
             hasSystemInstruction: Boolean(systemInstruction),
+            preferredModel,
+            resolvedModel: modelName,
         });
 
         if (!prompt || !originalImage) {
@@ -145,10 +160,10 @@ export async function POST(req: NextRequest) {
         // Use Gemini 3.1 Flash Image Preview for image editing experiments.
         console.log(`[AI TRACE ${traceId}] /api/ai/edit-image:calling-model`, {
             requestSource,
-            model: MODEL_NAME,
+            model: modelName,
         });
         const response = await aiClient.models.generateContent({
-            model: MODEL_NAME,
+            model: modelName,
             contents: [{ role: 'user', parts }],
             config: {
                 systemInstruction: systemInstruction,
