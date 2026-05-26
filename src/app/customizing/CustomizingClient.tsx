@@ -294,6 +294,7 @@ const MotifPanel: React.FC<{
 
 // Props interface for optional product context (used by SEO-friendly routes)
 interface RecentSearchDesignProp {
+    id?: string | null; // ADDED
     p_hash: string;
     original_image_url: string | null;
     studio_edited_image_url?: string | null;
@@ -710,6 +711,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     } = useDesignUpdate({
         originalImageData, editedImage, analysisResult, cakeInfo, mainToppers, supportElements, cakeMessages,
         icingDesign, additionalInstructions, threeTierReferenceImage,
+        cacheId: recentSearchDesign?.id || null, // ADDED
+        slug: recentSearchDesign?.slug || null, // ADDED
         onSuccess: (editedImageResult: string, baseImageData) => {
             // Save the committed state (matches the previous image) for undo.
             // committedStateRef tracks state from before user edits, so it won't
@@ -2135,8 +2138,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     };
     const onOpenReportModal = () => setIsReportModalOpen(true);
 
-    const onUpdateDesign = useCallback((instruction?: string) => {
-        handleUpdateDesign(instruction);
+    const onUpdateDesign = useCallback((instruction?: string, colorMeta?: { hex: string; name: string }) => {
+        handleUpdateDesign(instruction, { colorMeta });
         scrollToHero();
     }, [handleUpdateDesign, scrollToHero]);
     const onSave = handleSave;
@@ -3268,7 +3271,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         separateIcingStep,
                                         hideStepFour,
                                         photoStepNode,
-                                        onUpdateDesign: handleUpdateDesign,
+                                        onUpdateDesign: onUpdateDesign,
                                         isUpdatingDesign: isUpdatingDesign,
                                         dirtyFields: dirtyFields,
                                         aiChatNode: !analysisError && !hideAiChat ? (

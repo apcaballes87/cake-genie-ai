@@ -395,3 +395,16 @@ export interface CakeGenieReview {
   cakegenie_orders?: { order_number: string } | null;
   cakegenie_analysis_cache?: { slug: string | null } | null;
 }
+
+/**
+ * Represents a cached color variant of a design from cakegenie_analysis_cache.
+ */
+export interface CakeGenieColorVariant {
+  id: string; // UUID
+  cache_id: string; // UUID
+  color_hex: string;
+  color_name: string;
+  image_url: string;
+  created_at: string; // ISO 8601 timestamp
+}
+

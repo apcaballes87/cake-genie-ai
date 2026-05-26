@@ -53,7 +53,7 @@ interface CustomizingStepSummarySectionsProps {
     hideStepOne?: boolean;
     hideStepFour?: boolean;
     photoStepNode?: React.ReactNode;
-    onUpdateDesign?: (instruction?: string) => void;
+    onUpdateDesign?: (instruction?: string, colorMeta?: { hex: string; name: string }) => void;
     isUpdatingDesign?: boolean;
     dirtyFields?: Set<string>;
     originalCakeType?: string | null;
@@ -529,7 +529,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         const instruction = currentColorName
                                             ? `Change the dominant color of the cake from ${currentColorName} to ${color.name}.`
                                             : `Change the dominant color theme of the cake to ${color.name}.`;
-                                        onUpdateDesign?.(instruction);
+                                        onUpdateDesign?.(instruction, { hex: color.hex, name: color.name });
                                     }}
                                     disabled={isUpdatingDesign}
                                     className={`group relative flex flex-col items-center gap-1 shrink-0 transition-transform active:scale-95 ${isUpdatingDesign ? 'opacity-50 cursor-not-allowed' : ''}`}

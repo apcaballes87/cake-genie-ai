@@ -1,6 +1,8 @@
 // hooks/useDesignUpdate.ts
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { updateDesign } from '@/services/designService';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import type {
     HybridAnalysisResult,
     MainTopperUI,
@@ -40,6 +42,7 @@ export interface HandleDesignUpdateOptions {
     source?: string;
     promptGenerator?: DesignPromptGenerator;
     stateOverrides?: DesignUpdateStateOverrides;
+    colorMeta?: { hex: string; name: string }; // ADDED
 }
 
 interface UseDesignUpdateProps {
@@ -53,6 +56,8 @@ interface UseDesignUpdateProps {
     icingDesign: IcingDesignUI | null;
     additionalInstructions: string;
     threeTierReferenceImage: { data: string; mimeType: string } | null;
+    cacheId?: string | null; // ADDED
+    slug?: string | null; // ADDED
     onSuccess: (editedImage: string, baseImageData: { data: string; mimeType: string }) => void;
     promptGenerator?: DesignPromptGenerator;
 }
@@ -84,14 +89,50 @@ export const useDesignUpdate = ({
     icingDesign,
     additionalInstructions,
     threeTierReferenceImage,
+    cacheId = null, // ADDED
+    slug = null, // ADDED
     onSuccess,
     promptGenerator, // ADDED
 }: UseDesignUpdateProps) => {
+    const supabase = getSupabaseClient(); // ADDED
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const lastGenerationInfoRef = useRef<{ prompt: string; systemInstruction: string; } | null>(null);
     const inFlightPromiseRef = useRef<Promise<string> | null>(null);
     const [isSafetyFallback, setIsSafetyFallback] = useState(false);
+
+    // Local cache for color variants (maps colorHex.toLowerCase() -> imageUrl)
+    const localCacheRef = useRef<Record<string, string>>({}); // ADDED
+
+    // Fetch existing color variants on mount or cacheId change
+    useEffect(() => {
+        if (!cacheId) {
+            localCacheRef.current = {};
+            return;
+        }
+        const fetchVariants = async () => {
+            try {
+                const { data, error: fetchError } = await supabase
+                    .from('cakegenie_color_variants')
+                    .select('color_hex, image_url')
+                    .eq('cache_id', cacheId);
+                
+                if (fetchError) throw fetchError;
+                
+                if (data) {
+                    const cacheMap: Record<string, string> = {};
+                    data.forEach(item => {
+                        cacheMap[item.color_hex.toLowerCase()] = item.image_url;
+                    });
+                    localCacheRef.current = cacheMap;
+                    console.log(`🔌 Loaded ${data.length} cached color variants for design ${cacheId}`);
+                }
+            } catch (err) {
+                console.warn('Failed to prefetch color variants:', err);
+            }
+        };
+        fetchVariants();
+    }, [cacheId, supabase]);
 
     const handleUpdateDesign = useCallback((
         overrideInstruction?: string,
@@ -108,6 +149,17 @@ export const useDesignUpdate = ({
         const resolvedAdditionalInstructions = options?.stateOverrides?.additionalInstructions ?? additionalInstructions;
         const resolvedPromptGenerator = options?.promptGenerator ?? promptGenerator;
         const currentBaseImageData = parseDataUriImage(editedImage) ?? originalImageData;
+
+        // Synchronous cache hit check (completely avoids blocking or setting in-flight promises)
+        const colorMeta = options?.colorMeta;
+        if (colorMeta && cacheId && currentBaseImageData) {
+            const cachedUrl = localCacheRef.current[colorMeta.hex.toLowerCase()];
+            if (cachedUrl) {
+                console.log(`🎯 Color Variant Cache Hit! Instantly loading ${colorMeta.name} (${colorMeta.hex})`);
+                onSuccess(cachedUrl, currentBaseImageData);
+                return Promise.resolve(cachedUrl);
+            }
+        }
 
         if (inFlightPromiseRef.current) {
             return inFlightPromiseRef.current;
@@ -156,6 +208,51 @@ export const useDesignUpdate = ({
 
                 lastGenerationInfoRef.current = { prompt, systemInstruction };
                 onSuccess(editedImageResult, currentBaseImageData);
+
+                // --- Background Cache Save (on Miss) ---
+                if (colorMeta && cacheId) {
+                    void (async () => {
+                        try {
+                            console.log(`💾 Caching new color variant in background: ${colorMeta.name} (${colorMeta.hex})`);
+                            const editedImageBlob = dataURItoBlob(editedImageResult);
+                            const editedImageFile = new File([editedImageBlob], 'color-variant.webp', { type: 'image/webp' });
+                            const compressedEditedFile = await compressImage(editedImageFile, { maxSizeMB: 1, fileType: 'image/webp' });
+                            
+                            // Safe file name using sanitized hex code (remove #)
+                            const cleanHex = colorMeta.hex.replace('#', '').toLowerCase();
+                            const filename = `color-variants/${cacheId}/${cleanHex}.webp`;
+
+                            const { error: uploadError } = await supabase.storage
+                                .from('cakegenie')
+                                .upload(filename, compressedEditedFile, { contentType: 'image/webp', upsert: true });
+
+                            if (uploadError) throw uploadError;
+
+                            const { data: urlData } = supabase.storage.from('cakegenie').getPublicUrl(filename);
+                            if (!urlData?.publicUrl) throw new Error("Failed to get public URL for color variant.");
+
+                            const publicUrl = urlData.publicUrl;
+
+                            const { error: dbError } = await supabase
+                                .from('cakegenie_color_variants')
+                                .insert({
+                                    cache_id: cacheId,
+                                    color_hex: colorMeta.hex,
+                                    color_name: colorMeta.name,
+                                    image_url: publicUrl
+                                });
+
+                            if (dbError) throw dbError;
+
+                            // Cache locally for subsequent clicks
+                            localCacheRef.current[colorMeta.hex.toLowerCase()] = publicUrl;
+                            console.log(`✅ Color variant saved successfully: ${publicUrl}`);
+                        } catch (cacheErr) {
+                            console.warn('Failed to background-cache new color variant:', cacheErr);
+                        }
+                    })();
+                }
+
                 return editedImageResult;
 
             } catch (err) {
