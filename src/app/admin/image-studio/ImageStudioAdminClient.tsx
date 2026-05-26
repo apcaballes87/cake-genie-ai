@@ -126,6 +126,8 @@ export default function ImageStudioAdminClient() {
     label: string;
   } | null>(null);
   const [isAutoContinuing, setIsAutoContinuing] = useState(false);
+  const [selectedHashes, setSelectedHashes] = useState<Set<string>>(new Set());
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
   const stopBatchRef = useRef(false);
 
@@ -377,6 +379,96 @@ export default function ImageStudioAdminClient() {
     }
   }, [isAutoContinuing, loading, autoProcessing, handleAutoEdit, isAuthenticated, fetchedPage, page]);
 
+  // --- Bulk Selection & Status Update Actions ---
+  const [bulkStatus, setBulkStatus] = useState<ImageStudioStatus>('not_started');
+
+  const handleToggleSelect = (pHash: string) => {
+    setSelectedHashes((prev) => {
+      const next = new Set(prev);
+      if (next.has(pHash)) {
+        next.delete(pHash);
+      } else {
+        next.add(pHash);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    const allPageHashes = records.map((r) => r.p_hash);
+    const allSelected = allPageHashes.every((hash) => selectedHashes.has(hash));
+
+    setSelectedHashes((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        allPageHashes.forEach((hash) => next.delete(hash));
+      } else {
+        allPageHashes.forEach((hash) => next.add(hash));
+      }
+      return next;
+    });
+  };
+
+  const handleBulkStatusChange = async (targetStatus: ImageStudioStatus) => {
+    if (selectedHashes.size === 0) return;
+
+    setIsBulkUpdating(true);
+    const hashesToUpdate = Array.from(selectedHashes);
+
+    try {
+      const response = await fetch('/api/admin/cake-cache-images', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN,
+        },
+        body: JSON.stringify({
+          pHashes: hashesToUpdate,
+          status: targetStatus,
+        }),
+      });
+
+      const payload = (await response.json()) as {
+        success?: boolean;
+        updatedCount?: number;
+        items?: CakeCacheImageRecord[];
+        error?: string;
+      };
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || 'Failed to update statuses.');
+      }
+
+      setRecords((currentRecords) =>
+        currentRecords.map((record) => {
+          const updatedItem = payload.items?.find((item) => item.p_hash === record.p_hash);
+          if (updatedItem) {
+            return {
+              ...record,
+              ...updatedItem,
+              studio_edit_status: normalizeImageStudioStatus(updatedItem.studio_edit_status),
+            };
+          }
+          return record;
+        })
+      );
+
+      toast.success(
+        `Successfully updated ${payload.updatedCount ?? hashesToUpdate.length} item(s) to ${targetStatus.replace('_', ' ')}`
+      );
+      setSelectedHashes(new Set());
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error) || 'Failed to update statuses.');
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  useEffect(() => {
+    setSelectedHashes(new Set());
+  }, [page, searchQuery, statusFilter, sizeFilter, refreshTick]);
+  // --- End Bulk Actions ---
+
   const handleCopyHash = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value);
@@ -620,10 +712,25 @@ export default function ImageStudioAdminClient() {
             </div>
           </div>
 
-          <div className="mt-8 flex items-center justify-between gap-3">
-            <div className="text-sm text-slate-500">
-              Each edit keeps the cake intact and swaps in the professional pastel purple cyclorama background.
-            </div>
+          <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
+            {!loading && records.length > 0 ? (
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="select-all"
+                  checked={records.every((r) => selectedHashes.has(r.p_hash))}
+                  onChange={handleSelectAll}
+                  className="size-5 cursor-pointer rounded border-slate-300 text-violet-600 focus:ring-violet-500 bg-white"
+                />
+                <label htmlFor="select-all" className="text-sm font-semibold text-slate-700 cursor-pointer select-none">
+                  Select all on page ({records.length})
+                </label>
+              </div>
+            ) : (
+              <div className="text-sm text-slate-500">
+                Each edit keeps the cake intact and swaps in the professional pastel purple cyclorama background.
+              </div>
+            )}
             <div className="text-sm font-medium text-slate-500">
               Failed on page: <span className="text-rose-600">{pageSummary.failed}</span>
             </div>
@@ -657,8 +764,23 @@ export default function ImageStudioAdminClient() {
                 return (
                   <article
                     key={record.p_hash}
-                    className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)]"
+                    className={`relative overflow-hidden rounded-[28px] border bg-white shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)] transition-all duration-200 ${
+                      selectedHashes.has(record.p_hash)
+                        ? 'border-violet-500 ring-2 ring-violet-200/50'
+                        : 'border-slate-200 hover:border-violet-300'
+                    }`}
                   >
+                    {/* Selection Checkbox */}
+                    <div className="absolute left-4 top-4 z-20">
+                      <input
+                        type="checkbox"
+                        checked={selectedHashes.has(record.p_hash)}
+                        onChange={() => handleToggleSelect(record.p_hash)}
+                        className="size-6 cursor-pointer rounded-lg border-slate-300 text-violet-600 focus:ring-violet-500 bg-white shadow-[0_4px_12px_rgba(109,40,217,0.15)] transition hover:scale-110 active:scale-95"
+                        aria-label={`Select cake ${record.seo_title || record.slug || record.p_hash}`}
+                      />
+                    </div>
+
                     <div className="grid gap-0 lg:grid-cols-2">
                       <div className="border-b border-slate-100 bg-slate-50 lg:border-b-0 lg:border-r">
                         {record.original_image_url ? (
@@ -862,6 +984,66 @@ export default function ImageStudioAdminClient() {
             </div>
           </div>
         </div>
+
+        {/* Floating Bulk Actions Bar */}
+        {selectedHashes.size > 0 ? (
+          <div className="fixed bottom-6 left-1/2 z-50 w-full max-w-2xl -translate-x-1/2 px-4">
+            <div className="flex flex-col gap-4 rounded-3xl border border-slate-800 bg-slate-950/95 p-4 text-white shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-6 duration-300 md:flex-row md:items-center md:justify-between md:py-3 md:pl-6 md:pr-3">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <p className="text-xs font-semibold tracking-wider text-violet-400 uppercase">
+                    Bulk Actions
+                  </p>
+                  <p className="text-sm font-medium text-slate-300">
+                    <span className="font-bold text-white text-base mr-1">{selectedHashes.size}</span>
+                    {selectedHashes.size === 1 ? 'item' : 'items'} selected
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedHashes(new Set())}
+                  className="text-xs font-semibold text-slate-400 hover:text-white transition underline underline-offset-4"
+                >
+                  Deselect all
+                </button>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <select
+                  id="bulk-status-select"
+                  value={bulkStatus}
+                  onChange={(e) => setBulkStatus(e.target.value as ImageStudioStatus)}
+                  className="rounded-2xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-violet-500 transition cursor-pointer"
+                  aria-label="Select target status for bulk action"
+                >
+                  <option value="not_started">Reset to Not started</option>
+                  <option value="failed">Mark as Failed</option>
+                  <option value="completed">Mark as Completed</option>
+                  <option value="processing">Mark as Processing</option>
+                </select>
+
+                <button
+                  type="button"
+                  disabled={isBulkUpdating}
+                  onClick={() => void handleBulkStatusChange(bulkStatus)}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-violet-600 hover:bg-violet-500 active:scale-98 px-5 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                >
+                  {isBulkUpdating ? (
+                    <>
+                      <LoaderCircle className="size-4 animate-spin" />
+                      Updating…
+                    </>
+                  ) : (
+                    <>
+                      <WandSparkles className="size-4" />
+                      Apply Status
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

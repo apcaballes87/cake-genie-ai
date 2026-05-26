@@ -555,3 +555,74 @@ export const POST = async (req: NextRequest) => {
     );
   }
 };
+
+export const PATCH = async (req: NextRequest) => {
+  if (!isAuthorized(req)) {
+    return unauthorizedResponse();
+  }
+
+  try {
+    const body = await req.json();
+    const pHashes = body?.pHashes;
+    const status = body?.status;
+
+    if (!Array.isArray(pHashes) || pHashes.length === 0) {
+      return NextResponse.json(
+        { error: 'Missing or invalid pHashes array' },
+        { status: 400 }
+      );
+    }
+
+    const validStatuses = ['not_started', 'processing', 'completed', 'failed'];
+    if (!status || !validStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    const supabase = createPublicServerSupabaseClient();
+    const updatePayload: any = {
+      studio_edit_status: status,
+    };
+
+    if (status === 'not_started') {
+      updatePayload.studio_edit_error = null;
+      updatePayload.studio_edited_image_url = null;
+      updatePayload.studio_edited_at = null;
+    } else if (status === 'processing') {
+      updatePayload.studio_edit_error = null;
+    } else if (status === 'completed') {
+      updatePayload.studio_edit_error = null;
+    }
+
+    const { data, error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .update(updatePayload)
+      .in('p_hash', pHashes)
+      .select();
+
+    if (error) {
+      console.error('Failed to bulk update cake cache images:', error);
+      return NextResponse.json(
+        { error: `Database update failed: ${error.message}` },
+        { status: 500 }
+      );
+    }
+
+    const items = (data ?? []).map(mapCacheRow);
+
+    return NextResponse.json({
+      success: true,
+      updatedCount: items.length,
+      items,
+    });
+  } catch (error: unknown) {
+    console.error('Bulk status update route failed:', error);
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
+  }
+};
+
