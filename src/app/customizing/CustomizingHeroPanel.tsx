@@ -502,7 +502,7 @@ export const CustomizingHeroPanel = memo(({
 
             {/* Color Variant Thumbnails (only show if there's at least one variant generated) */}
             {colorVariants && Object.keys(colorVariants).length > 0 ? (
-                <div className="w-full mt-1 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="w-full mt-0.5 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="flex items-center justify-start gap-2 overflow-x-auto py-1 px-2 scrollbar-hide">
                         {/* Original Image Option */}
                         <button
